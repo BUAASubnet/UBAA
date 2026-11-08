@@ -8,6 +8,18 @@ use std::sync::{Arc, Condvar, Mutex as TestMutex};
 
 use tokio::sync::Mutex;
 
+/// 财务查询系统令牌，只在当前路线的内存状态中保存。
+#[derive(Clone)]
+pub(crate) struct FinanceCredential {
+    pub(crate) user: String,
+    pub(crate) token: crate::domain::SecretValue,
+}
+impl std::fmt::Debug for FinanceCredential {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("FinanceCredential([已隐藏])")
+    }
+}
+
 /// 博雅业务令牌，只在当前路线的内存状态中保存。
 #[derive(Clone)]
 pub(crate) struct BykcCredential {

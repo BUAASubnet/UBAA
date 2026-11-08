@@ -25,6 +25,11 @@ use crate::io::input::internal_error;
 /// 命令执行所需的认证门面。
 #[async_trait]
 pub trait CliBackend {
+    async fn finance_incomes(
+        &mut self,
+    ) -> Result<FeatureResult<ubaa_core::facade::FinanceIncomes>> {
+        Err(internal_error("财务查询后端未接入"))
+    }
     async fn portal_profile(&mut self) -> Result<FeatureResult<PortalProfile>>;
     async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>>;
     async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>>;
@@ -258,6 +263,12 @@ pub trait CliBackend {
 /// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
+    async fn finance_incomes(&mut self) -> RoutedResult<ubaa_core::facade::FinanceIncomes> {
+        Err(ubaa_core::facade::RoutedError {
+            error: internal_error("财务查询后端未接入"),
+            resolution: None,
+        })
+    }
     async fn bhpan_execute(
         &mut self,
         _args: &crate::BhpanArgs,

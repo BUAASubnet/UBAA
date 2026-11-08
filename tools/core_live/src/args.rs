@@ -49,4 +49,5 @@ pub(crate) const FEATURES: &[&str] = &[
     "ihome",
     "portal",
     "network",
+    "finance",
 ];

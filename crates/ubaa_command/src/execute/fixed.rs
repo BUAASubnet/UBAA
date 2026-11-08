@@ -90,6 +90,7 @@ pub(crate) async fn execute_fixed<B: CliBackend + Send, R: BufRead, E: Write>(
         )),
         Command::Portal(arguments) => super::features::campus::portal(arguments, backend).await,
         Command::Network(arguments) => super::features::campus::network(arguments, backend).await,
+        Command::Finance(arguments) => super::features::campus::finance(arguments, backend).await,
         Command::Auth(AuthArgs {
             command: AuthCommand::Login(arguments),
         }) => run_login(cli.json, arguments, backend, input, stderr).await,

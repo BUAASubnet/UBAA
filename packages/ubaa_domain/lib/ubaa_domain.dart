@@ -20,3 +20,5 @@ export 'src/agenda/service.dart';
 export 'src/agenda/sync.dart';
 
 export 'src/agenda/export.dart';
+
+export 'src/finance/service.dart';

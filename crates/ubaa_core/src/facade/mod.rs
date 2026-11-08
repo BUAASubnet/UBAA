@@ -143,6 +143,8 @@ pub use evaluation_cache::{
 mod ygdk_cache;
 pub use ygdk_cache::YgdkRecordsRefresh;
 
+mod finance;
+pub use crate::domain::{FinanceIncome, FinanceIncomes};
 mod profile_cache;
 
 #[path = "campus/cache.rs"]

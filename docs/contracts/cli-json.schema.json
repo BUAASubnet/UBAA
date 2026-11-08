@@ -21,7 +21,7 @@
       ],
       "properties": {
         "schemaVersion": {
-          "const": 14
+          "const": 15
         },
         "ok": {
           "type": "boolean"
@@ -679,6 +679,32 @@
       },
       "additionalProperties": false
     },
+    "financeIncome": {
+      "type": "object",
+      "required": ["id", "project", "description", "amountCents", "taxCents", "paidCents", "taxRate", "recordedDate", "year", "month"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "project": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]},
+        "amountCents": {"type": ["integer", "null"]},
+        "taxCents": {"type": ["integer", "null"]},
+        "paidCents": {"type": ["integer", "null"]},
+        "taxRate": {"type": ["string", "null"]},
+        "recordedDate": {"type": ["string", "null"]},
+        "year": {"type": ["string", "null"]},
+        "month": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "financeIncomes": {
+      "type": "object",
+      "required": ["entries", "total"],
+      "properties": {
+        "entries": {"type": "array", "items": {"$ref": "#/$defs/financeIncome"}},
+        "total": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
     "networkUsage": {
       "type": "object",
       "required": [
@@ -715,7 +741,7 @@
       ]
     },
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "bhpan", "ihome", "portal", "network"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "bhpan", "ihome", "portal", "network", "finance"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -1803,7 +1829,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 14 },
+        "schemaVersion": { "const": 15 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1862,6 +1888,12 @@
                   "data": {
                     "$ref": "#/$defs/networkUsage"
                   }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "finance" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/financeIncomes" }
                 }
               },
               {
@@ -2004,7 +2036,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 14 },
+        "schemaVersion": { "const": 15 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -2161,7 +2193,7 @@
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
         "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
-        "schemaVersion": { "const": 14 },
+        "schemaVersion": { "const": 15 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -2237,7 +2269,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 14 },
+        "schemaVersion": { "const": 15 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
@@ -2497,7 +2529,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 14
+                "const": 15
               },
               "ok": {
                 "const": true
@@ -2633,7 +2665,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 14
+                "const": 15
               },
               "ok": {
                 "const": false

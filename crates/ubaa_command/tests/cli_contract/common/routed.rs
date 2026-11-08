@@ -2,6 +2,7 @@
 impl RoutedCliBackend for FakeRoutedBackend {
     async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> { Ok(Routed { data: campus_profile(), resolution: direct_resolution() }) }
     async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> { Ok(Routed { data: campus_metrics(), resolution: direct_resolution() }) }
+    async fn finance_incomes(&mut self) -> RoutedResult<ubaa_core::facade::FinanceIncomes> { Ok(Routed { data: ubaa_core::facade::FinanceIncomes { entries: vec![], total: 0 }, resolution: direct_resolution() }) }
     async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> { Ok(Routed { data: campus_network(), resolution: direct_resolution() }) }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         self.ygdk_overview_calls += 1;

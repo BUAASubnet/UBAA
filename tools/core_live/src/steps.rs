@@ -46,6 +46,17 @@ async fn run(args: Args) -> Result<Evidence> {
         std::process::exit(2);
     }
     let (username, password) = read_credentials()?;
+    if args.feature == "finance" {
+        return run_finance_only(
+            &args,
+            mode,
+            LoginInput {
+                username,
+                password: SecretValue::new(password),
+            },
+        )
+        .await;
+    }
     let mut client = RouteClient::new(mode, &args.config_dir)?;
     let mut evidence = Evidence::new(route_name);
     match client.prepare_login().await {
@@ -76,6 +87,14 @@ async fn run(args: Args) -> Result<Evidence> {
             return Ok(evidence);
         }
     }
+    run_reads(args, client, evidence).await
+}
+
+async fn run_reads(
+    args: Args,
+    mut client: RouteClient,
+    mut evidence: Evidence,
+) -> Result<Evidence> {
     run_auth_status(&mut client, &mut evidence).await;
     run_user(&mut client, &mut evidence, &args.feature).await;
     if args.feature == "auth" || args.feature == "user" {
@@ -102,6 +121,9 @@ async fn run(args: Args) -> Result<Evidence> {
             Ok(result) => evidence.pass("signin", "today", Some(result.data.len())),
             Err(error) => evidence.fail("signin", "today", error.code),
         }
+    }
+    if args.feature == "all" || args.feature == "finance" {
+        run_finance(&mut client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "ihome" {
         run_ihome(&mut client, &mut evidence).await;
@@ -172,6 +194,7 @@ fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
         ("portal", "borrowed_books"),
         ("portal", "cloud_storage_remaining"),
         ("network", "usage"),
+        ("finance", "incomes"),
     ];
     for &(operation_feature, operation) in ALL {
         let selected = feature == "all"
@@ -741,6 +764,41 @@ fn campus_metric<T>(
         ubaa_core::facade::CampusMetric::Failure { error, .. } => {
             evidence.fail("portal", operation, error.code);
         }
+    }
+}
+
+async fn run_finance_only(
+    args: &Args,
+    mode: ConnectionMode,
+    input: LoginInput,
+) -> Result<Evidence> {
+    let mut client = ubaa_core::facade::UbaaClient::open(&args.config_dir)?;
+    client.set_default_route_policy(match mode {
+        ConnectionMode::Direct => ubaa_core::facade::RoutePolicy::Direct,
+        ConnectionMode::WebVpn => ubaa_core::facade::RoutePolicy::WebVpn,
+    })?;
+    let mut evidence = Evidence::new(if mode == ConnectionMode::Direct {
+        "direct"
+    } else {
+        "webvpn"
+    });
+    if let Err(error) = client.login_required_route(mode, input).await {
+        evidence.fail("auth", "login", error.code);
+        evidence.blocked("finance", "incomes", "authentication_failed");
+        return Ok(evidence);
+    }
+    evidence.pass("auth", "login", None);
+    match client.finance_incomes().await {
+        Ok(value) => evidence.pass("finance", "incomes", Some(value.data.entries.len())),
+        Err(error) => evidence.fail("finance", "incomes", error.error.code),
+    }
+    Ok(evidence)
+}
+
+async fn run_finance(client: &mut RouteClient, evidence: &mut Evidence) {
+    match client.finance_incomes().await {
+        Ok(v) => evidence.pass("finance", "incomes", Some(v.data.entries.len())),
+        Err(e) => evidence.fail("finance", "incomes", e.code),
     }
 }
 

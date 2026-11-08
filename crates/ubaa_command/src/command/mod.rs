@@ -15,7 +15,9 @@ pub use agenda::{
 };
 mod academic;
 mod campus;
-pub use campus::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
+pub use campus::{
+    FinanceArgs, FinanceCommand, NetworkArgs, NetworkCommand, PortalArgs, PortalCommand,
+};
 mod assignments;
 mod auth;
 mod bykc;
@@ -73,6 +75,8 @@ pub enum Command {
     Portal(PortalArgs),
     /// 网费流量只读查询。
     Network(NetworkArgs),
+    /// 学生财务收入查询。
+    Finance(FinanceArgs),
     /// iHome 校园服务只读查询。
     Ihome(IhomeArgs),
     /// 认证并管理持久化会话。
@@ -151,6 +155,7 @@ impl Cli {
                 | Command::Ygdk(_)
                 | Command::Evaluation(_)
                 | Command::Portal(_)
+                | Command::Finance(_)
                 | Command::Network(_)
                 | Command::Bhpan(_)
         )
@@ -191,6 +196,7 @@ pub(crate) const fn command_feature(command: &Command) -> CliFeature {
         Command::Bhpan(_) => CliFeature::Bhpan,
         Command::Portal(_) => CliFeature::Portal,
         Command::Network(_) => CliFeature::Network,
+        Command::Finance(_) => CliFeature::Finance,
         Command::Auth(_) => CliFeature::Auth,
         Command::User(_) => CliFeature::User,
         Command::Schedule(_) => CliFeature::Schedule,

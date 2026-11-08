@@ -3,6 +3,7 @@
 pub(crate) mod academic;
 pub(crate) mod bhpan;
 pub(crate) mod campus;
+pub(crate) mod finance;
 mod http;
 
 pub mod bykc;

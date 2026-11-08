@@ -22,6 +22,7 @@ enum RecoveryTarget {
   user,
   portal,
   network,
+  finance,
   ihome,
   schedule,
   exam,
@@ -39,7 +40,7 @@ enum RecoveryTarget {
   static RecoveryTarget fromFeature(FeatureId feature) =>
       RecoveryTarget.values.byName(feature.name);
   FeatureId? get feature => switch (this) {
-    user || portal || network || ihome || bhpan => null,
+    user || portal || network || finance || ihome || bhpan => null,
     _ => FeatureId.values.byName(name),
   };
 }

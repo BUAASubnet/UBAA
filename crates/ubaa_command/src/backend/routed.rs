@@ -38,6 +38,9 @@ impl RoutedCliBackend for UbaaClient {
     async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> {
         UbaaClient::campus_metrics(self).await
     }
+    async fn finance_incomes(&mut self) -> RoutedResult<ubaa_core::facade::FinanceIncomes> {
+        UbaaClient::finance_incomes(self).await
+    }
     async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> {
         UbaaClient::network_usage(self).await
     }

@@ -3,6 +3,7 @@
 mod campus;
 pub(crate) mod error;
 pub(crate) mod exit_code;
+mod finance;
 pub(crate) mod human;
 pub(crate) mod input;
 pub(crate) mod render;

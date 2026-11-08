@@ -77,7 +77,9 @@ impl DomainRoutes {
 pub(in crate::facade) fn allowed(domain: &str) -> bool {
     matches!(
         domain,
-        "uc.buaa.edu.cn"
+        "icw.buaa.edu.cn"
+            | "chaxun.icw.buaa.edu.cn"
+            | "uc.buaa.edu.cn"
             | "byxt.buaa.edu.cn"
             | "gsmis.buaa.edu.cn"
             | "app.buaa.edu.cn"
@@ -113,6 +115,7 @@ fn domains(operation: Operation) -> &'static [&'static str] {
             ReadonlyFeature::Cgyy => &["cgyy.buaa.edu.cn"],
             ReadonlyFeature::Portal => &["it.buaa.edu.cn"],
             ReadonlyFeature::Network => &["zfw.buaa.edu.cn"],
+            ReadonlyFeature::Finance => &["icw.buaa.edu.cn", "chaxun.icw.buaa.edu.cn"],
         },
     }
 }

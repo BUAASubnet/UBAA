@@ -31,6 +31,8 @@ pub enum ReadonlyFeature {
     Portal,
     /// 网费自助流量查询。
     Network,
+    /// 学生财务收入查询。
+    Finance,
     /// iHome 校园诉求。
     Ihome,
     /// 博雅课程只读查询。
@@ -66,6 +68,7 @@ impl ReadonlyFeature {
         match self {
             Self::Portal => "portal",
             Self::Network => "network",
+            Self::Finance => "finance",
             Self::Ihome => "ihome",
             Self::Bykc => "bykc",
             Self::Cgyy => "cgyy",

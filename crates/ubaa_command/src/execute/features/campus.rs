@@ -1,6 +1,8 @@
 //! 校园账户 fixed/routed handler。
 use crate::backend::{CliBackend, RoutedCliBackend};
-use crate::command::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
+use crate::command::{
+    FinanceArgs, FinanceCommand, NetworkArgs, NetworkCommand, PortalArgs, PortalCommand,
+};
 use crate::execute::routed_readonly;
 use crate::io::schema::{CliFeature, CommandOutput, readonly};
 use ubaa_core::facade::{Result, RoutedResult};
@@ -54,6 +56,29 @@ pub(in crate::execute) async fn routed_network<B: RoutedCliBackend + Send>(
     match arguments.command {
         NetworkCommand::Usage => {
             routed_readonly(backend.network_usage().await, CliFeature::Network)
+        }
+    }
+}
+
+pub(in crate::execute) async fn finance<B: CliBackend + Send>(
+    arguments: FinanceArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        FinanceCommand::Incomes => backend
+            .finance_incomes()
+            .await
+            .and_then(|v| readonly(v, CliFeature::Finance)),
+    }
+}
+
+pub(in crate::execute) async fn routed_finance<B: RoutedCliBackend + Send>(
+    arguments: FinanceArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        FinanceCommand::Incomes => {
+            routed_readonly(backend.finance_incomes().await, CliFeature::Finance)
         }
     }
 }

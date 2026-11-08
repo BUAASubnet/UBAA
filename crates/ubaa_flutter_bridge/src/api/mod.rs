@@ -31,6 +31,7 @@ pub mod sensitive;
 pub mod ihome;
 
 pub mod campus;
+pub mod finance;
 
 pub mod agenda;
 pub mod bhpan;

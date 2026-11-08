@@ -3,7 +3,7 @@
 
 ubaa_live_feature_supported() {
   case "${1:-}" in
-    all|auth|user|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation|ihome|portal|network)
+    all|auth|user|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation|ihome|portal|network|finance)
       return 0
       ;;
     *)

@@ -30,6 +30,11 @@ impl CliBackend for RouteClient {
     async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>> {
         RouteClient::campus_metrics(self).await
     }
+    async fn finance_incomes(
+        &mut self,
+    ) -> Result<FeatureResult<ubaa_core::facade::FinanceIncomes>> {
+        RouteClient::finance_incomes(self).await
+    }
     async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>> {
         RouteClient::network_usage(self).await
     }

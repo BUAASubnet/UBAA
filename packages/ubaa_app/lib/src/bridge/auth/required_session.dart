@@ -106,6 +106,7 @@ BridgeRecoveryFeature _target(RecoveryTarget target) => switch (target) {
   RecoveryTarget.user => BridgeRecoveryFeature.user,
   RecoveryTarget.portal => BridgeRecoveryFeature.portal,
   RecoveryTarget.network => BridgeRecoveryFeature.network,
+  RecoveryTarget.finance => BridgeRecoveryFeature.finance,
   RecoveryTarget.ihome => BridgeRecoveryFeature.ihome,
   RecoveryTarget.schedule => BridgeRecoveryFeature.schedule,
   RecoveryTarget.exam => BridgeRecoveryFeature.exam,

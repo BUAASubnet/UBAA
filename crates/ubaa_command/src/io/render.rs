@@ -235,6 +235,9 @@ fn write_readonly<W: Write>(
     route: ConnectionMode,
     routed: bool,
 ) -> std::io::Result<()> {
+    if feature == CliFeature::Finance {
+        return super::finance::write(stdout, route, data);
+    }
     if !super::campus::write(stdout, feature, route, data)? {
         if routed {
             writeln!(stdout, "{} ({route:?}): {data}", feature.as_str())?;

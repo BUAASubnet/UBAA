@@ -24,6 +24,7 @@ pub struct RouteConfig {
 struct FeaturePolicies {
     portal: Option<RoutePolicy>,
     network: Option<RoutePolicy>,
+    finance: Option<RoutePolicy>,
     ihome: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
@@ -62,6 +63,7 @@ struct RawRoute {
 struct RawFeatures {
     portal: Option<RoutePolicy>,
     network: Option<RoutePolicy>,
+    finance: Option<RoutePolicy>,
     ihome: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
@@ -107,6 +109,7 @@ impl RouteConfig {
             features: FeaturePolicies {
                 portal: raw.route.features.portal,
                 network: raw.route.features.network,
+                finance: raw.route.features.finance,
                 ihome: raw.route.features.ihome,
                 bykc: raw.route.features.bykc,
                 cgyy: raw.route.features.cgyy,
@@ -224,6 +227,7 @@ impl RouteConfig {
         match feature {
             ReadonlyFeature::Portal => self.features.portal,
             ReadonlyFeature::Network => self.features.network,
+            ReadonlyFeature::Finance => self.features.finance,
             ReadonlyFeature::Ihome => self.features.ihome,
             ReadonlyFeature::Bykc => self.features.bykc,
             ReadonlyFeature::Cgyy => self.features.cgyy,
@@ -241,10 +245,11 @@ impl RouteConfig {
         .unwrap_or(self.default)
     }
 
-    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 15] {
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 16] {
         [
             (ReadonlyFeature::Portal, self.features.portal),
             (ReadonlyFeature::Network, self.features.network),
+            (ReadonlyFeature::Finance, self.features.finance),
             (ReadonlyFeature::Ihome, self.features.ihome),
             (ReadonlyFeature::Bykc, self.features.bykc),
             (ReadonlyFeature::Cgyy, self.features.cgyy),

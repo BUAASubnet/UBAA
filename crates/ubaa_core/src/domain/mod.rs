@@ -1,5 +1,7 @@
 //! Core facade 与宿主绑定共享的稳定领域值。
 
+mod finance;
+pub use finance::*;
 mod campus;
 pub use campus::*;
 

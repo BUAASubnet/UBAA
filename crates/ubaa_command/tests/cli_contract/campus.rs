@@ -4,11 +4,12 @@ use std::io::Cursor;
 use ubaa_command::{Cli, run_with_backend, run_with_routed_backend};
 
 #[tokio::test]
-async fn 三个校园命令分别投影正确数据并符合_json_合同() {
+async fn 校园与财务命令投影符合_json_合同() {
     for (group, operation, key) in [
         ("portal", "profile", "identity"),
         ("portal", "metrics", "cloudStorageRemaining"),
         ("network", "usage", "products"),
+        ("finance", "incomes", "entries"),
     ] {
         for routed in [true, false] {
             let cli = Cli::try_parse_from(["ubaa", "--json", group, operation]).unwrap();

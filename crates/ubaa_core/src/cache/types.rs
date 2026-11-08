@@ -148,6 +148,7 @@ pub enum CacheQuery {
     CampusMetrics,
     /// 网费系统的产品流量表。
     NetworkUsage,
+    FinanceIncomes,
 }
 
 /// 一个账号库内的精确查询及最近成功来源；路线不参与业务缓存键。
@@ -214,6 +215,7 @@ pub enum CachePayload {
     CampusProfile(PortalProfile),
     CampusMetrics(CachedCampusMetrics),
     NetworkUsage(NetworkUsage),
+    FinanceIncomes(crate::domain::FinanceIncomes),
 }
 
 /// 部分结果不能宣称本次完整，也不能清空旧的完整集合。
@@ -428,6 +430,9 @@ impl CachePayload {
                 !v.identity.trim().is_empty() && !v.department.trim().is_empty()
             }
             (Self::CampusMetrics(v), CacheQuery::CampusMetrics) => v.valid(),
+            (Self::FinanceIncomes(v), CacheQuery::FinanceIncomes) => {
+                v.entries.len() == v.total as usize
+            }
             (Self::NetworkUsage(v), CacheQuery::NetworkUsage) => {
                 v.products.iter().all(|p| !p.product_name.trim().is_empty())
             }

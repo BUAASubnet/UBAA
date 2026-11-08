@@ -73,6 +73,20 @@ impl RoutedCliBackend for CommandBackend<'_> {
 
         UbaaClient::campus_metrics(client).await
     }
+    async fn finance_incomes(&mut self) -> RoutedResult<ubaa_core::facade::FinanceIncomes> {
+        current_core!(self, guard, client);
+        if let Some(cache) = self.cache {
+            return project(
+                client
+                    .refresh_cached_finance(&cache.cache)
+                    .await
+                    .map(|v| v.result),
+                Some,
+            );
+        }
+        UbaaClient::finance_incomes(client).await
+    }
+
     async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> {
         current_core!(self, guard, client);
         if let Some(cache) = self.cache {

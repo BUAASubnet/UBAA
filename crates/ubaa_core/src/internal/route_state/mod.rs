@@ -5,6 +5,7 @@ pub(crate) use ihome::IhomeState;
 mod cache;
 mod classroom;
 mod credentials;
+pub(crate) use credentials::CredentialState;
 
 pub(crate) use cache::{AssignmentList, JudgeState};
 #[cfg(test)]
@@ -13,8 +14,8 @@ pub(crate) use classroom::ClassroomState;
 #[cfg(test)]
 pub(crate) use credentials::StoreCredentialHook;
 pub(crate) use credentials::{
-    BykcCredential, BykcState, CgyyState, LibBookCredential, LibBookState, SigninCredential,
-    SigninState, SpocCredential, SpocState, YgdkCredential, YgdkState,
+    BykcCredential, BykcState, CgyyState, FinanceCredential, LibBookCredential, LibBookState,
+    SigninCredential, SigninState, SpocCredential, SpocState, YgdkCredential, YgdkState,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,6 +39,7 @@ pub(crate) struct RouteFeatureState {
     pub(crate) judge: JudgeState,
     pub(crate) ygdk: YgdkState,
     pub(crate) ihome: IhomeState,
+    pub(crate) finance: CredentialState<FinanceCredential>,
 }
 
 impl RouteFeatureState {
@@ -75,6 +77,7 @@ impl RouteFeatureState {
         self.judge.clear();
         self.ygdk.clear();
         self.ihome.clear();
+        self.finance.clear();
     }
 }
 

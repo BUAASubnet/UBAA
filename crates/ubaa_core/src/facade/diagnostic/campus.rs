@@ -37,3 +37,15 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 }
+
+use crate::domain::FinanceIncomes;
+impl RouteClient {
+    /// 查询当前账号的完整财务收入范围。
+    ///
+    /// # Errors
+    /// 认证失败、分页不完整或响应结构变化时返回安全错误。
+    pub async fn finance_incomes(&mut self) -> crate::error::Result<FeatureResult<FinanceIncomes>> {
+        let data = crate::features::finance::incomes(&mut self.runtime).await?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+}

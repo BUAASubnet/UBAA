@@ -77,3 +77,7 @@ abstract interface class IhomeBackend {
 abstract interface class CampusAccountBackend {
   CampusAccountService get campusAccount;
 }
+
+abstract interface class FinanceBackend {
+  FinanceService get finance;
+}

@@ -26,3 +26,15 @@ pub enum NetworkCommand {
     /// 查询已用流量、免费和计费剩余流量。
     Usage,
 }
+
+#[derive(Clone, Debug, Args)]
+pub struct FinanceArgs {
+    #[command(subcommand)]
+    pub command: FinanceCommand,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub enum FinanceCommand {
+    /// 查询财务系统收入记录。
+    Incomes,
+}

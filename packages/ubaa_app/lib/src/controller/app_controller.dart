@@ -3,6 +3,7 @@ import 'home/presentation.dart';
 import 'agenda/lifecycle.dart';
 import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
+import 'features/finance/service.dart';
 import 'features/campus/service.dart';
 import 'features/bhpan/service.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -241,6 +242,32 @@ class AppController extends ControllerState
       );
     }
     return _campusService;
+  }
+
+  FinanceService? _financeService;
+  UbaaBackend? _financeBackend;
+  int? _financeEpoch;
+
+  /// 财务数据读取；账号、会话或路线代次变化后旧绑定失效。
+  FinanceService? get financeService {
+    final backend = internalBackend;
+    if (backend is! FinanceBackend) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _financeBackend) || epoch != _financeEpoch) {
+      _financeBackend = backend;
+      _financeEpoch = epoch;
+      _financeService = GuardedFinanceService(
+        (backend as FinanceBackend).finance,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+      );
+    }
+    return _financeService;
   }
 
   AppController({

@@ -842,6 +842,7 @@ fn target_to_bridge(target: command::RecoveryTarget) -> super::recovery::BridgeR
         T::User => B::User,
         T::Portal => B::Portal,
         T::Network => B::Network,
+        T::Finance => B::Finance,
         T::Ihome => B::Ihome,
         T::Schedule => B::Schedule,
         T::Exam => B::Exam,

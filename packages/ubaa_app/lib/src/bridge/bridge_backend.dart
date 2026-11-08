@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'agenda/backend.dart';
 import 'ihome/service.dart';
+import 'finance/service.dart';
 import 'campus/service.dart';
 import 'bhpan/service.dart';
 import 'write/pinned_readback.dart';
@@ -78,7 +79,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 56;
+const _supportedBridgeContractVersion = 57;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -92,6 +93,7 @@ class BridgeBackend
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,
+        FinanceBackend,
         CampusAccountBackend,
         BhpanProvider,
         PinnedWriteReadbackBackend,
@@ -245,6 +247,14 @@ class BridgeBackend
   late final BridgeAgendaBackend _homeAgenda = BridgeAgendaBackend(_context);
   @override
   late final AgendaService agenda = AgendaService(_homeAgenda);
+  @override
+  late final FinanceService finance = BridgeFinanceService(
+    _context,
+    () => BridgeRequiredSessionBackend(
+      _context.client,
+    ).recoverTargetSession(RecoveryTarget.finance),
+  );
+
   @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override

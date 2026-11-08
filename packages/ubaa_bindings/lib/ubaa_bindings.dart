@@ -62,3 +62,5 @@ export 'src/rust/api/command.dart';
 export 'src/rust/api/command/output.dart';
 
 export 'src/rust/api/read/graduate.dart';
+
+export 'src/rust/api/finance.dart';

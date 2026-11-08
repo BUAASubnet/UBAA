@@ -76,6 +76,9 @@ pub(crate) async fn execute_routed<B: RoutedCliBackend + Send>(
             CliFeature::Portal,
             super::features::campus::routed_portal(arguments, backend).await,
         ),
+        Command::Finance(arguments) => {
+            return super::features::campus::routed_finance(arguments, backend).await;
+        }
         Command::Network(arguments) => (
             CliFeature::Network,
             super::features::campus::routed_network(arguments, backend).await,
