@@ -4,6 +4,10 @@
 
 ## 主线与候选
 
+2026-11-08 学业系统：按 `it.buaa.edu.cn` 门户身份统一分流本科和研究生的课表、成绩与考试，身份按认证代次和路线缓存。已接入 [PR #98](https://github.com/BUAASubnet/UBAA/pull/98) 的研究生完整历史成绩、Core 全局/分学期统计、独立考试学期和空考试判定，并接入 Flutter 及统一 App 命令 `grades overview`、`exam terms`。单学期缓存保留研究生统计，考试学期独立保存；历史成绩不冒充当前学期。CLI schema v14、Bridge v56、业务缓存 schema v8。
+
+该候选的严格 Rust/脚本检查、1528 项 Rust 测试、八包 Flutter 2028 项与 macOS 原生集成 13 项已通过；Flutter 另有 1 项既有跳过。真实本科和研究生账号的 Direct/WebVPN 读取尚未执行，需相应账号及两条路线授权后补验。非空研究生考试明细沿 PR #98 明确返回 `unsupported`，不显示为暂无考试。门户可达性是在线身份分流的前提；未知身份不按学号猜测。来源及边界见[GSMIS 对照](source-parity-gsmis-2026-10-02.md#门户身份分流与研究生成绩考试2026-11-08)。
+
 2026-11-08 研究生课表：GSMIS 排课缺少、null 或空白 `JCFADM` 时，使用上游唯一且编号非空的作息方案，并保留编号供课程合并和时间轴使用。多方案、编号不匹配或节次关联不唯一继续返回错误，已有明确编号保持原值。该兼容处理对应 [issue #109](https://github.com/BUAASubnet/UBAA/issues/109) 和 [PR #100](https://github.com/BUAASubnet/UBAA/pull/100)，请求协议与缓存格式不变。研究生课表聚焦 8 项、Rust 全工作区检查、八包 Flutter 2023 项及 macOS 原生集成 13 项通过，Flutter 另有 1 项既有跳过。新增解析回归覆盖缺失编号与歧义边界，来源见[GSMIS 对照](source-parity-gsmis-2026-10-02.md#2026-11-08排课缺失作息方案编号)。当前会话未提供研究生账号及 Direct/WebVPN 真实读取授权，双路线验收待对应账号和路线授权具备后执行。
 
 主登录和会话状态不再请求 UC。Direct 与 WebVPN 都使用同一既有 service 取票，并向 SSO 验证身份；WebVPN 单独完成网关 CAS 登录。校外 Auto 并发认证两条路线，任一路线就绪即可进入。校园网仅使用 Direct。普通读取优先 Direct，网络不可达或超时后在独立 WebVPN 会话重读；同域名读取成功后保存 24 小时偏好，到期重新尝试 Direct。HTTP、业务和解析错误不触发该回退。
@@ -54,14 +58,14 @@ SSO 图像验证码使用内置 ddddocr 默认模型、左右各 5 像素留白�
 
 日程视图 `f217e264` 从 `fb98234d` 继续，列表、周、月共用焦点日期和筛选，复用课表网格并保留发生身份。冲突判断包含隐藏课程，只使用起止明确的有效学校时段。异步刷新保留横纵滚动，普通翻周保留原日期筛选，宽屏清除范围外详情。相关五包 1481 项、日程 30 项、最终 UI 补验 539 项通过，针对复审另独立通过 16 项。Core、Bridge、存储和平台文件通道输入不变。日程复审与分段证据分别保存在主目录私有 `agenda_review` 和日程执行检出的 `agenda_delivery` 中。
 
-北航云盘在 `e090b271` 公共命令和 `29cf104c` 日程视图基础上使用 CLI JSON schema v13、Flutter bridge contract v49。传输使用 Core 的有界缓冲，Bridge 只交付进度、结果与本机路径。版本 facade 保留基版 R、已取得的新版本 U 和未知结果，条件覆盖能力保持 `Unverified`。Linux 在 Debian 12 arm64 容器验证 AOT 命令与 Secret Service；macOS 验证 GUI 与命令双进程以及正式 Debug 命令。Windows 原生命令的本机验证见下表。
+北航云盘在 `e090b271` 公共命令和 `29cf104c` 日程视图基础上使用 CLI JSON schema v14、Flutter bridge contract v49。传输使用 Core 的有界缓冲，Bridge 只交付进度、结果与本机路径。版本 facade 保留基版 R、已取得的新版本 U 和未知结果，条件覆盖能力保持 `Unverified`。Linux 在 Debian 12 arm64 容器验证 AOT 命令与 Secret Service；macOS 验证 GUI 与命令双进程以及正式 Debug 命令。Windows 原生命令的本机验证见下表。
 
 ## 统一 App 命令模式
 
 `codex/command-delivery` 从 `6d0e241d` 整合共享服务候选 `05666699` 和 Windows/公共命令候选 `5126d69a`，在独立工作树中交付统一命令链路，`e090b271` 及组合修复已随云盘候选进入整合分支。
 
 - Core 路线重开保留共享账号绑定与关闭控制，等待材料锁后重新检查关闭、取消和期限。正式回归覆盖三个原有阻塞。
-- 公共 Rust 命令库保留 CLI JSON schema v13，Flutter bridge contract v48 提供计划、输入、执行、身份交付与有界输出。Dart 复用共享账号及恢复服务，只读命令最多完整重跑一次，学校写入只在准备资格前恢复。
+- 公共 Rust 命令库保留 CLI JSON schema v14，Flutter bridge contract v48 提供计划、输入、执行、身份交付与有界输出。Dart 复用共享账号及恢复服务，只读命令最多完整重跑一次，学校写入只在准备资格前恢复。
 - 本机日程支持新建、重复范围编辑与删除、完成、本地覆盖、数量比较清除和原子 `.ics` 文件交付。编辑排除日期已通过日程界面的 `edit_draft` 接口统一接入。
 - macOS 无窗口 Engine 与 Linux AOT 已有隔离合成材料的原生进程证据。Linux Secret Service 适配保留原插件的 schema、account、JSON item 与材料键，双向互通及锁定拒绝通过。
 - 旧独立 Rust 宿主和材料 worker 已迁出，`core-live` 保留在 `tools/core_live`。有效覆盖去向见[测试策略](../development/testing.md)。Windows 新命令宿主已通过本机原生验证。
@@ -77,7 +81,7 @@ SSO 图像验证码使用内置 ddddocr 默认模型、左右各 5 像素留白�
 ## 主线能力与合同
 
 - Rust Core 统一拥有学校协议、Direct/WebVPN/Auto 路线、会话、校园读写与加密缓存。宿主通过 facade 或专用 Bridge 使用 Core。
-- 当前整合合同为 CLI JSON schema v13、Flutter bridge contract v55；Session v2、配置 v1、业务缓存 v8、日程 v4 分别管理。
+- 当前整合合同为 CLI JSON schema v14、Flutter bridge contract v56；Session v2、配置 v1、业务缓存 v8、日程 v4 分别管理。
 - 日程每个事项和覆盖记录单独存储，按账号隔离，退出后保留，同账号重新登录后激活。缓存清理不删除日程，缓存密钥缺失不阻止本机日程操作。
 - 首页七类学校待办复用 Core 投影。学校本地标记保留原上游状态，不生成学校写资格。路线切换投影修复已放行至 `8075e64d`，Core 导出修复已放行至 `de797fce`。
 - 当前候选底栏为首页、学习、日程、校园、我的，首页“查看全部”进入日程待办筛选，具体交互见[日程设计](../design/agenda.md)。

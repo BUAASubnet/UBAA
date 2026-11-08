@@ -14,7 +14,7 @@
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
-隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v13；CLI 不再
+隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v14；CLI 不再
 输出 schema-v9 或更早 envelope。历史 schema v4 首次承载 Signin typed 写结果，v5–v7 分别承载
 LibBook 预约、LibBook 取消与 Cgyy 预约合同，v8 承载 Cgyy typed 取消资格与安全结果，v9 再承载
 Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读，v10 承载 Evaluation typed target、四态批量
@@ -63,3 +63,7 @@ Flutter 手动登录、已授权的自动登录与会话恢复使用 Bridge v54 
 Core/Bridge 增加独立的单次恢复控制，期限从构造时按单调时钟计算，最大两分钟。控制覆盖 Bridge 锁排队与 Core 请求边界，取消不依赖 `dispose` 取得网络锁。中断清理目标路线的准备状态并拒绝后续请求，保留已原子保存的会话，不执行共享注销。具体接口和错误分类见[Bridge v46 合同](flutter-bridge.md#v46所需路线恢复的按操作控制)。
 
 本单元仅为共同无感恢复提供底层能力。共同 Dart 服务、GUI 与命令消费者接入、自动登录许可核对和跨进程协调仍按[共享服务计划](../design/desktop-shared-state.md)分阶段完成。原凭据策略、账号别名、CacheKey、业务缓存加密和日程明文规则保持。
+
+## 学业身份
+
+课表、成绩和考试按信息门户 `d.info.identity` 的明确身份分类选择数据源。该资料读取独立于 SSO 登录，不改变主认证成功条件。分类结果仅在对应路线和认证代次中复用；未知身份返回 `unsupported`，不使用账号名称或学号推断学籍。具体操作见[只读功能合同](readonly-features.md)。

@@ -39,3 +39,19 @@ Core 与 Bridge 继续保留 GSMIS 的完整节次方案和课程时间。Dart �
 | 操作 | CAS/bootstrap与service | redirect/final URL | Cookie/session | 方法与精确参数 | headers/body | crypto | DTO/parser | cache/concurrency | 错误/退出 |
 |---|---|---|---|---|---|---|---|---|---|
 | GSMIS 课表规范化 | 沿本页 GSMIS 引导，例无 | 沿现有同路线重定向和最终地址检查 | 沿当前会话与来源标记 | 沿 `loadXskbData.do` 的原有 POST 与四项表单 | 沿原有请求头和表单编码 | 无新增 | 排课 `JCFADM` 缺失、null 或空白时，仅从唯一 `jcfaList` 项的非空 `DM` 补全；起止节次仍须按编号各唯一匹配；补全编号保留在规范化 Row 中，参与合并和时间轴过滤 | 复用现有类型化缓存、会话代次和完整解析后交付 | 多方案、声明无编号、节次缺失/重复/不匹配继续返回 `upstream_changed`；已有明确编号不覆盖，不丢弃失败排课 |
+
+## 门户身份分流与研究生成绩、考试（2026-11-08）
+
+本次按用户要求采用门户 `d.info.identity` 选择学业数据源，替换本科失败后尝试 GSMIS 的规则。门户协议与既有 HAR 对照见[校园账户来源](source-parity-campus.md)。`本科生` 对应本科；`研究生`、`硕士研究生`、`博士研究生` 对应 GSMIS。这些标签是应用接受的精确分类，未知标签明确返回不支持，不按学号、子串或请求失败推断身份。身份仅缓存于当前路线和认证代次，注销、重新认证和会话清理后重新读取。
+
+已对照冻结旧版 `LocalGradeApi.kt`、`GradeApi.kt`、`Grade.kt`、`LocalConnectionAuth.kt`、`GraduateScheduleUpstream.kt` 与现有 GSMIS 测试；固定 buaa-api 的 `api/app/{core,opt,data}.rs`、`api/aas/{core,opt,data}.rs`、`api/user/auth.rs`、`request.rs`、`store/{cookies,cred}.rs`。两个冻结来源均无研究生成绩和考试协议，在这些操作上不适用。新增操作取自用户指定的 [PR #98](https://github.com/BUAASubnet/UBAA/pull/98)，固定提交 `72e46968445b1357b880b53042f1c1ce90ad27db` 的 `features/gsmis/{mod,academic}.rs` 与其来源记录。PR 记录的旧 APK 验证和合成测试属于历史证据，当前候选仍需真实研究生账号验证。
+
+| 操作 | 引导、方法、参数及头 | 响应与产品行为 | 会话、缓存、错误及来源差异 |
+|---|---|---|---|
+| 身份 | 既有门户 GET `/personal/frontend/data/info`，JSON Accept、XHR、Referer home；10013 时使用既有门户 CAS 引导一次 | `e=0,d.info.identity`，学院仍按既有资料解析 | 当前路线 Cookie；身份不写磁盘。失败不请求任何教务系统。两个冻结来源无此门户身份字段，沿用现有 HAR 证据 |
+| 全量成绩 | GET `https://gsmis.buaa.edu.cn/gsapp/sys/wdcjapp/*default/index.do`，POST `modules/wdcj/xscjcx.do`，表单 `pageSize=12&pageNumber=1..` | `code=0,datas.xscjcx.rows/totalSize/pageNumber`；总数稳定、WID 唯一，完整读取后返回；成绩学期来自 XNXQDM/XNXQDM_DISPLAY | 只读串行分页，无自动重放，不借课表学期；两个冻结来源不适用 |
+| 成绩字典及统计 | 同入口，非空成绩时 POST `modules/wdcj/cjfzdjcx.do` 空表单 | `datas.cjfzdjcx.rows/totalSize` 完整；CJFZDM 与 DM/MC 唯一匹配，DYJDZ/DYBFZCJ；百分制及有效性规则沿 PR98，GPA 与均分各自按有效正学分加权，空分母为 null | 不根据课程名称猜测计分；空成绩无需字典；不返回部分统计。两个冻结来源不适用 |
+| 考试学期 | GET `https://gsmis.buaa.edu.cn/gsapp/sys/wdksapp/*default/index.do`，POST `modules/ksxxck/getXnxqList.do` 空表单 | `datas[].DM/MC/SFDQXQ`，独立于课表学期，代码唯一 | 两个冻结来源不适用 |
+| 考试列表 | 同考试入口，POST `modules/ksxxck/getWdksxx.do`，表单 `xnxqdm` | success=true 且 countKs/countKcks/countJk 全零才返回空，任一正数明确不支持明细 | 不推断非空字段；两个冻结来源不适用 |
+
+GSMIS 共用既有 TLS、有界重定向、Direct/WebVPN URL 与 Referer 转换、按路线和域/路径隔离的 Cookie；不硬编码 CAS service、票据或浏览器参数。XHR 头为 JSON Accept、X-Requested-With 与对应应用入口 Referer，表单 Content-Type 沿 Core。无新增加密或签名常量；SSO 落点、登录表单与401返回认证错误，非200及格式不符返回安全错误，不公开响应正文。

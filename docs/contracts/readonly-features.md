@@ -25,7 +25,7 @@ HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，C
 
 原始 Cookie、CAS ticket、配置 ID、跳转 URL、上游消息与 HTML 不进入 DTO。网络两项剩余量均不含套餐，不合计成总剩余量。图书只有数量，不推断书目和到期日。
 
-三个命令为兼容性新增，沿用 CLI JSON schema v13 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
+三个命令为兼容性新增，沿用 CLI JSON schema v14 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
 
 ## 标准只读功能
 
@@ -76,7 +76,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v13 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v14 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -103,7 +103,11 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 ## GSMIS研究生课表
 
-课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v13及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
+课表、成绩和考试统一使用 `it.buaa.edu.cn/personal/frontend/data/info` 的 `d.info.identity` 分流。本科生使用现有本科接口，研究生、硕士研究生和博士研究生使用 GSMIS。未知身份明确返回 `unsupported`，门户失败不查询教务；不按学号、学期编码或业务错误切换学籍系统。身份按路线和认证代次复用，清理会话后重新获取。门户可达性是在线学业查询的前提，Auto 仍沿现有规则选择 Direct/WebVPN。
+
+研究生课表保留学期完整性、排课班号、唯一校历周一和节次核对，以及唯一作息方案补全。`grades overview` / `grades_overview` 返回完整历史成绩、成绩自身的学期与全局/分学期统计；本科返回 `graduate=false`，继续原逐学期查询。GPA 与均分分别使用有效正学分作为分母，缺少有效分母时为 null。界面只展示 Core 统计，不按本科等级规则重算研究生成绩。历史成绩中最近学期不自动标为当前学期，也不据此启动当前学期成绩通知。
+
+`exam terms` / `exam_terms` 返回考试系统学期；研究生考试三项计数均为零才返回空，非空明细返回 `unsupported`。考试学期缓存使用独立键，不借课表学期。单学期成绩的可空 `statistics` 随原缓存保存，旧记录缺字段按 null 读取。CLI schema v14、Bridge v56；缓存键和可空字段为追加，业务库版本保持 v8。来源与真实验证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
 
 
 ## iHome
