@@ -31,6 +31,7 @@ import 'offline_profile.dart';
 import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'read/graduate.dart';
 import 'recovery.dart';
 import 'recovery/control.dart';
 import 'schedule_import.dart';
@@ -543,6 +544,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
 
+  Future<BridgeRoutedTerms> examTerms();
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicTermsRefresh> examTermsCached({
+    required BridgeOfflineCache cache,
+  });
+
   /// # Errors
   /// 客户端或缓存不可用、次数已用尽或命令已停止时返回错误。
   Future<BridgeCommandAttempt> executeCachedCommand({
@@ -568,6 +579,8 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedGrades> grades({required String term});
+
+  Future<BridgeRoutedGradeOverview> gradesOverview();
 
   /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
   ///
@@ -1166,6 +1179,7 @@ enum BridgeErrorCode {
   intentExpired,
   operationConflict,
   outcomeUnknown,
+  unsupported,
 }
 
 /// bridge 对外的安全错误类别。

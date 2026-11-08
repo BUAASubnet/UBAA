@@ -18,6 +18,7 @@ import 'offline_profile.dart';
 import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'read/graduate.dart';
 import 'shared_account.dart';
 import 'write.dart';
 import 'write/readback.dart';
@@ -285,6 +286,14 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 账号关闭或存储损坏返回稳定错误，缺少记录返回 None。
   Future<BridgeCachedEvaluationRecord?> readEvaluation({
+    required BridgeConnectionMode route,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicTerms?> readExamTerms({
     required BridgeConnectionMode route,
   });
 
