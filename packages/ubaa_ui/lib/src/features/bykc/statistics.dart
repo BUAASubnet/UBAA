@@ -136,8 +136,9 @@ class BykcStatisticsContent extends StatelessWidget {
                             color: category.qualified == null
                                 ? theme.colorScheme.onSurfaceVariant
                                 : category.qualified!
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.error,
+                                // 达标用成功色，未达标是待完成提醒而非错误，用提醒色。
+                                ? UbaaTheme.success(theme.colorScheme)
+                                : UbaaTheme.warning(theme.colorScheme),
                           ),
                         ),
                       ),

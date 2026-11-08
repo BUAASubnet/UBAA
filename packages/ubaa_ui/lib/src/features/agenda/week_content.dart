@@ -86,43 +86,79 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                 final fg = colors.onSurface;
                 final place =
                     entry.local?.content.location ?? entry.school?.location;
+                final titleStyle = TextStyle(
+                  fontSize: 10.5,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                );
+                final placeStyle = TextStyle(
+                  fontSize: 9.5,
+                  height: 1.2,
+                  color: fg.withValues(alpha: .85),
+                );
                 return Container(
                   decoration: BoxDecoration(
                     border: Border(left: BorderSide(color: source, width: 3)),
                   ),
                   padding: const EdgeInsets.fromLTRB(4, 3, 2, 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          agendaTitle(entry),
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            height: 1.2,
-                            fontWeight: FontWeight.w600,
-                            color: fg,
-                          ),
-                        ),
-                      ),
-                      if (place?.isNotEmpty == true)
-                        Flexible(
-                          child: Text(
-                            '@$place',
-                            maxLines: 2,
+                  // 按块高只排完整的行，避免末行被横向切掉一半；标题优先，地点用剩余行。
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final scaler = MediaQuery.textScalerOf(context);
+                      int linesOf(String text, TextStyle style, int max) {
+                        final painter = TextPainter(
+                          text: TextSpan(text: text, style: style),
+                          textDirection: TextDirection.ltr,
+                          textScaler: scaler,
+                          maxLines: max,
+                        )..layout(maxWidth: constraints.maxWidth);
+                        final lines = painter.computeLineMetrics().length;
+                        painter.dispose();
+                        return lines;
+                      }
+
+                      double lineHeight(TextStyle style) =>
+                          scaler.scale(style.fontSize!) * style.height!;
+                      final title = agendaTitle(entry);
+                      final titleLine = lineHeight(titleStyle);
+                      final titleLines = (constraints.maxHeight / titleLine)
+                          .floor()
+                          .clamp(1, 4);
+                      final usedTitle =
+                          linesOf(title, titleStyle, titleLines) * titleLine;
+                      final placeLines = place?.isNotEmpty == true
+                          ? ((constraints.maxHeight - usedTitle) /
+                                    lineHeight(placeStyle))
+                                .floor()
+                                .clamp(0, 2)
+                          : 0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: titleLines,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              height: 1.2,
-                              color: fg.withValues(alpha: .85),
-                            ),
+                            style: titleStyle,
                           ),
-                        ),
-                      if (conflict)
-                        Icon(Icons.event_busy_outlined, size: 12, color: fg),
-                    ],
+                          if (placeLines > 0)
+                            Text(
+                              '@$place',
+                              maxLines: placeLines,
+                              overflow: TextOverflow.ellipsis,
+                              style: placeStyle,
+                            ),
+                          if (conflict &&
+                              constraints.maxHeight - usedTitle >= 12)
+                            Icon(
+                              Icons.event_busy_outlined,
+                              size: 12,
+                              color: fg,
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 );
               },

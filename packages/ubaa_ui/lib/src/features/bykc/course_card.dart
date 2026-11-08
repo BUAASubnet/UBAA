@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme.dart' show UbaaTheme;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'card_parts.dart' show BykcCardTags, BykcCardInfo, BykcCardFooter;
 import 'display.dart'
@@ -88,6 +89,10 @@ class BykcCourseCard extends StatelessWidget {
                               value: (count / capacity).clamp(0, 1),
                               minHeight: 5,
                               borderRadius: BorderRadius.circular(4),
+                              // 报满后改用提醒色，与“已满”按钮一致。
+                              color: count >= capacity
+                                  ? UbaaTheme.warning(theme.colorScheme)
+                                  : null,
                             ),
                           ],
                         ],

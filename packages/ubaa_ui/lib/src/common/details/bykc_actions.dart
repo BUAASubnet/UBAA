@@ -36,6 +36,14 @@ extension BykcDetailActions on _FeatureDetailListState {
         target == courseId &&
         eligibility == ActionEligibility.allowed &&
         (selected || !full);
+    // 已满时直接说明原因，不只留一个灰掉的“选课”。
+    if (!selected && full && widget.bykcPendingCourseId != target) {
+      return OutlinedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.block),
+        label: const Text('已满'),
+      );
+    }
     return OutlinedButton.icon(
       onPressed: allowed ? () => widget.onBykcWrite!(operation, target) : null,
       icon: _bykcWriteIcon(operation, target),

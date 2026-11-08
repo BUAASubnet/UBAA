@@ -77,6 +77,64 @@ void _registerBykcStateTests() {
     expect(prepareCalls, 1);
   });
 
+  testWidgets('博雅列表里人数已满的课程按钮说明已满且不可点', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '合成已满课程',
+                    presentation: BykcCoursePresentation(
+                      id: 74,
+                      courseName: '合成已满课程',
+                      status: BykcCourseStatus.available,
+                      selected: false,
+                      courseCurrentCount: 20,
+                      courseMaxCount: 20,
+                    ),
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 74,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (_, _) async => throw StateError('已满课程不应触发准备回调'),
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(OutlinedButton, '选课'), findsNothing);
+    final full = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '已满'),
+    );
+    expect(full.onPressed, isNull);
+  });
+
   testWidgets('博雅选退课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
