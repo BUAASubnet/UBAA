@@ -512,6 +512,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final header = AppBar(
       centerTitle: false,
       toolbarHeight: wide ? 72 : 64,
+      // 分类根页用大标题；进入功能、详情等下一级后标题小一号，层级更清楚，
+      // 也给右上角的校区切换与更新状态留出空间。
+      titleTextStyle: atRoot
+          ? null
+          : Theme.of(
+              context,
+            ).appBarTheme.titleTextStyle?.copyWith(fontSize: 22),
       automaticallyImplyLeading: false,
       titleSpacing: wide && atRoot
           ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)

@@ -106,7 +106,8 @@ void main() {
           ),
         );
         if (changeDate) {
-          await tester.tap(find.text('2026-09-09'));
+          // 日期芯片显示中文日期，按日期图标定位。
+          await tester.tap(find.byIcon(Icons.date_range));
           await tester.pumpAndSettle();
           await tester.tap(find.text('10').last);
           await tester.tap(find.text('确定'));

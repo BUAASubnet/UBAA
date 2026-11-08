@@ -54,6 +54,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
       children: [
         if (floors.isNotEmpty)
           UiChipStrip(
+            bleed: true,
             padding: const EdgeInsets.symmetric(vertical: 4),
             children: [
               for (final floor in floors)
@@ -72,6 +73,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
           ),
         if (areas.isNotEmpty)
           UiChipStrip(
+            bleed: true,
             padding: const EdgeInsets.symmetric(vertical: 4),
             children: [
               for (final area in areas)

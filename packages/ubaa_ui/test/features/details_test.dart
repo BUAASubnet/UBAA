@@ -341,16 +341,10 @@ void _registerFeatureInputTests() {
     await tester.tap(find.text('选择照片'));
     await tester.pumpAndSettle();
     expect(find.text('已选择照片：photo-placeholder.png'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
-      findsOneWidget,
-    );
+    expect(find.byWidgetPredicate(_isPhotoImage), findsOneWidget);
     await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
-    expect(
-      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
-      findsNothing,
-    );
+    expect(find.byWidgetPredicate(_isPhotoImage), findsNothing);
     expect(prepareCalls, 1);
     expect(commitCalls, 1);
     expect(ygdkRefreshCalls, 1);
@@ -787,4 +781,12 @@ void main() {
   _registerFeatureRenderingTests();
   _registerFeatureInputTests();
   _registerFeatureCollectionTests();
+}
+
+/// 用户照片预览；应用图标等资源图即使按显示尺寸解码（ResizeImage）也不算。
+bool _isPhotoImage(Widget w) {
+  if (w is! Image) return false;
+  final image = w.image;
+  final source = image is ResizeImage ? image.imageProvider : image;
+  return source is! AssetImage;
 }

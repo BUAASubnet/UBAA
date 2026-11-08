@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiHiddenAcademicField;
+import '../../shared/schedule_values.dart' show uiWeekdays;
 import '../../shared/app_bar_slot.dart' show UiAppBarPicker, UiAppBarSlot;
 import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
 
@@ -107,8 +108,9 @@ class _ClassroomContentState extends State<ClassroomContent> {
             ? DateTime.tryParse(first!.queryDate!)
             : null) ??
         DateTime(now.year, now.month, now.day);
+    // 与全应用一致的中文日期写法；跨年时补年份。
     final queryDate =
-        '${dateObj.year.toString().padLeft(4, '0')}-${dateObj.month.toString().padLeft(2, '0')}-${dateObj.day.toString().padLeft(2, '0')}';
+        '${dateObj.year == now.year ? '' : '${dateObj.year}年'}${dateObj.month}月${dateObj.day}日 ${uiWeekdays[dateObj.weekday - 1].replaceFirst('星期', '周')}';
 
     final availableBuildings =
         widget.details
@@ -311,34 +313,18 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
                                     ),
-                                    child: Center(
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.secondaryContainer,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
+                                    // 与作业等列表的分组标题一致：左对齐的次要色小标题，不像可点的芯片。
+                                    child: Text(
+                                      name.isEmpty ? '楼栋未说明' : name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
                                           ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 4,
-                                          ),
-                                          child: Text(
-                                            name.isEmpty ? '楼栋未说明' : name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSecondaryContainer,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 );

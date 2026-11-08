@@ -212,6 +212,7 @@ class _IhomeViewState extends State<IhomeView> {
               Expanded(
                 child: UiChipStrip(
                   spacing: 8,
+                  bleed: true,
                   children: [
                     for (final item in const [
                       (IhomeScope.public, '诉求广场'),

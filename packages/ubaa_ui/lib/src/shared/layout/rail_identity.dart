@@ -77,6 +77,8 @@ class UiAppIcon extends StatelessWidget {
       package: 'ubaa_ui',
       width: size,
       height: size,
+      // 按显示尺寸解码 1024 像素原图，首次出现不再延迟。
+      cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
       fit: BoxFit.cover,
       errorBuilder: (context, _, _) => SizedBox.square(
         dimension: size,

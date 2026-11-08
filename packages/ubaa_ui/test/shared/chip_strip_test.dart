@@ -52,4 +52,40 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('页面边距内的芯片条在手机上延伸到屏幕边缘', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.iOS),
+        home: Scaffold(
+          body: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UiChipStrip(
+                    bleed: true,
+                    children: [
+                      for (var i = 0; i < 8; i++)
+                        FilterChip(label: Text('合成选项 $i'), onSelected: (_) {}),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    // 首个选项仍与页面内容左缘对齐，滑动区域覆盖到屏幕边缘。
+    expect(tester.getRect(find.byType(SingleChildScrollView)).left, 0);
+    expect(tester.getRect(find.byType(SingleChildScrollView)).right, 390);
+    expect(tester.getTopLeft(find.byType(FilterChip).first).dx, 16);
+  });
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiNonBlank;
-import '../../shared/when.dart' show uiShortRange;
+import '../../shared/when.dart' show uiShortDateTime, uiShortRange;
 
 List<String> uiYgdkRecordSearchValues(YgdkRecordPresentation p) => [
   '记录编号',
@@ -46,7 +46,8 @@ class YgdkRecordCard extends StatelessWidget {
           builder: (context) => UiSheetBody(
             title: uiNonBlank(p.itemName) ?? '运动打卡',
             subtitle: switch (uiNonBlank(p.createdAtLabel ?? p.createdAt)) {
-              final submitted? => '提交于 $submitted',
+              // 与正文时间同一中文短日期写法。
+              final submitted? => '提交于 ${uiShortDateTime(submitted)}',
               null => null,
             },
             children: [
@@ -109,7 +110,11 @@ class YgdkRecordCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       [
-                        '提交于 ${p.createdAtLabel ?? p.createdAt ?? '时间未知'}',
+                        switch (uiNonBlank(p.createdAtLabel ?? p.createdAt)) {
+                          final submitted? =>
+                            '提交于 ${uiShortDateTime(submitted)}',
+                          null => '提交于 时间未知',
+                        },
                         if (p.imageCount > 0) '${p.imageCount} 张图片',
                         p.isOpen ? '已分享' : '未分享',
                       ].join(' · '),
