@@ -79,6 +79,13 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 ),
                 service: widget.ihomeService,
               )
+            : _utilityPage == '财务查询'
+            ? FinanceView(
+                key: ValueKey(
+                  widget.cacheAccountId ?? widget.user?.accountScope,
+                ),
+                service: widget.financeService,
+              )
             : _utilityPage == '关于'
             ? AboutView(
                 loadVersion: widget.onLoadAppVersion,

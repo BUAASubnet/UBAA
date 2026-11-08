@@ -365,6 +365,7 @@ class FeatureGridView extends StatelessWidget {
     required this.features,
     this.onOpenIhome,
     this.onOpenBhpan,
+    this.onOpenFinance,
   });
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
@@ -372,6 +373,7 @@ class FeatureGridView extends StatelessWidget {
   final List<FeatureId> features;
   final VoidCallback? onOpenIhome;
   final VoidCallback? onOpenBhpan;
+  final VoidCallback? onOpenFinance;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -398,6 +400,13 @@ class FeatureGridView extends StatelessWidget {
           icon: Icons.cloud_outlined,
           subtitle: '文档库、文件管理、分享与回收站',
           onTap: onOpenBhpan!,
+        ),
+      if (onOpenFinance != null)
+        UiEntryCard(
+          title: '财务查询',
+          icon: Icons.account_balance_wallet_outlined,
+          subtitle: '酬金、助学金等收入发放记录',
+          onTap: onOpenFinance!,
         ),
       for (final feature in features)
         Semantics(

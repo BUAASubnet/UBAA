@@ -9,6 +9,7 @@ import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
     show TabPager, CompactNavigationBar, currentTabPager;
 import '../features/ihome/view.dart';
+import '../features/finance/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
@@ -89,6 +90,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveCgyyDefaults,
     this.onLoadAppVersion,
     this.ihomeService,
+    this.financeService,
     this.onOpenAppLink,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
@@ -208,6 +210,9 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(CgyyReservationDefaults)? onSaveCgyyDefaults;
   final Future<String?> Function()? onLoadAppVersion;
   final IhomeService? ihomeService;
+
+  /// 财务收入只读服务；为空时不显示入口。
+  final FinanceService? financeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
@@ -911,6 +916,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           : null,
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
+          : null,
+      onOpenFinance:
+          index == UiDestination.campus.index && widget.financeService != null
+          ? () => _openUtility('财务查询')
           : null,
       features: _tabs[index].features,
       snapshots: widget.snapshots,

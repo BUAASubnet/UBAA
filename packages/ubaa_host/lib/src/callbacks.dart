@@ -124,6 +124,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           ? null
           : (key, value) => _savePlace(localOwner, key, value),
       ihomeService: _controller.ihomeService,
+      financeService: _controller.financeService,
       campusAccountService: _controller.campusAccountService,
       bhpanService: _controller.bhpanService,
       onPickBhpanFile: widget.bhpanFilePicker.pick,

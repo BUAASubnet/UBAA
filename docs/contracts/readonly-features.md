@@ -120,6 +120,6 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 `finance incomes` 读取财务查询系统当前返回范围，只有全部分页完整成功才返回。公开字段包含流水号、项目、摘要、录入日期、年月、金额、税额、实发金额和税率展示值。金额使用整数分，零与缺失分别保留。该接口不提供银行到账确认。
 
-Core 的 `finance_incomes` 提供在线数据，`refresh_cached_finance` 和 `read_finance` 复用账号加密缓存。App 的 `FinanceService.refresh/cached` 由 `AppController.financeService` 提供，账号或路线代次变化后拒绝旧绑定。财务功能尚无 UI 页面。
+Core 的 `finance_incomes` 提供在线数据，`refresh_cached_finance` 和 `read_finance` 复用账号加密缓存。App 的 `FinanceService.refresh/cached` 由 `AppController.financeService` 提供，账号或路线代次变化后拒绝旧绑定。共享界面在“校园”页提供“财务查询”入口，先显示离线记录再读取在线结果，按所属年月分组并合计实发金额；页面注明录入记录不代表银行到账。
 
 API Token 仅存路线内存，退出或会话失效即清除。查询不得接受任意用户编号，账号来自已认证财务跳转。证件、银行账号和原始响应不进入 DTO、命令输出或缓存。来源见[财务对照](../migration/source-parity.md#财务收入查询2026-11-08)。
