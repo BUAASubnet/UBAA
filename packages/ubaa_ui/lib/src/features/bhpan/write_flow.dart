@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../write_callbacks.dart';
 import '../../shared/dialogs/confirmation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/feedback.dart';
 
 /// 写入的确认方式。
 ///
@@ -39,6 +40,38 @@ typedef BhpanWriteRunner =
       BhpanMutationKind.uploadFast => ('秒传文件', '秒传', false),
       BhpanMutationKind.upload => ('上传文件', '上传', false),
     };
+
+/// 写入成功后的简短结论；失败和结果不明仍沿用统一的提交结果文案。
+String bhpanDoneText(BhpanMutationKind kind) => switch (kind) {
+  BhpanMutationKind.createFolder => '已新建文件夹',
+  BhpanMutationKind.rename => '已重命名',
+  BhpanMutationKind.move => '已移动',
+  BhpanMutationKind.copy => '已复制',
+  BhpanMutationKind.recycle => '已移入回收站',
+  BhpanMutationKind.restore => '已恢复',
+  BhpanMutationKind.deleteForever => '已永久删除',
+  BhpanMutationKind.createShare => '已创建分享',
+  BhpanMutationKind.updateShare => '已保存分享设置',
+  BhpanMutationKind.cancelShare => '已取消分享',
+  BhpanMutationKind.uploadFast || BhpanMutationKind.upload => '上传成功',
+};
+
+void bhpanShowOutcome(
+  BuildContext context,
+  BhpanMutationKind kind,
+  WriteOutcome outcome,
+) {
+  final result = outcome.result;
+  if (result != null && result.success && !result.outcomeUnknown) {
+    UbaaFeedback.show(
+      context,
+      bhpanDoneText(kind),
+      kind: UbaaFeedbackKind.success,
+    );
+  } else {
+    UbaaFeedback.showOutcome(context, outcome);
+  }
+}
 
 String? _consequence(BhpanMutationKind kind) => switch (kind) {
   BhpanMutationKind.deleteForever => '永久删除后无法找回。',

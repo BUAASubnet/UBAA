@@ -96,6 +96,16 @@ void main() {
     expect(client.committed, 'confirmation');
     expect(client.discarded, 'confirmation');
   });
+  test('Core 未给出警告时准备结果不附加警告，界面已确认的操作不再弹确认框', () async {
+    final intent = await BridgeBackend(_Client()).bhpan.prepare(
+      const BhpanMutation(
+        BhpanMutationKind.rename,
+        target: 'file-handle',
+        name: '新名称',
+      ),
+    );
+    expect(intent.warnings, isEmpty);
+  });
   test('普通上传和下载复用同一个客户端传输控制并保留文件交付参数', () async {
     final client = _Client();
     final service = BridgeBackend(client).bhpan;

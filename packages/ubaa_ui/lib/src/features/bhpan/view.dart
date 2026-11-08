@@ -164,7 +164,7 @@ class _BhpanViewState extends State<BhpanView> {
   Widget _dialogScope(Widget child) =>
       UiScopeBoundary(generation: _scope, child: child);
   bool _current(int generation) => mounted && generation == _generation;
-  String _message(Object e) => e is UiError ? e.message : '云盘操作未完成，请检查连接后重试';
+  String _message(Object e) => e is UiError ? e.message : '操作失败，请检查网络后重试';
   void _notify(
     String message, [
     UbaaFeedbackKind kind = UbaaFeedbackKind.info,
@@ -352,7 +352,7 @@ class _BhpanViewState extends State<BhpanView> {
     try {
       final result = await run(request, style);
       if (!_current(generation) || result == null) return null;
-      UbaaFeedback.showOutcome(context, result);
+      bhpanShowOutcome(context, request.kind, result);
       final share = result.result?.bhpanReceipt?.share;
       if (share != null) {
         await bhpanShowShareLink(

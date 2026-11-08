@@ -156,7 +156,7 @@ WriteIntent _intent(BridgeBhpanPrepared p) => WriteIntent(
   operation: WriteOperation.bhpan,
   targetSummary: p.description,
   resolvedRoute: bridgeToConnectionMode(p.route),
-  warnings: const ['同名目标由服务器检查，结果待核对时请勿重复提交'],
+  warnings: const [],
   expiresAt: DateTime.now().add(const Duration(minutes: 4)),
   requestDigest: '',
 );
@@ -201,7 +201,7 @@ Future<WriteCommitResult> bridgeBhpanCommit(
     return WriteCommitResult(
       operation: WriteOperation.bhpan,
       success: true,
-      message: '云盘操作已完成',
+      message: '操作成功',
       outcomeUnknown: false,
       resolvedRoute: ConnectionMode.direct,
       bhpanReceipt: BhpanReceipt(

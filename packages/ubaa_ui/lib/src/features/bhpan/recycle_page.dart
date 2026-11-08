@@ -92,13 +92,19 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
         style,
       );
       if (!_current(generation) || result == null) return result;
-      UbaaFeedback.showOutcome(context, result);
+      bhpanShowOutcome(
+        context,
+        action == BhpanAction.restore
+            ? BhpanMutationKind.restore
+            : BhpanMutationKind.deleteForever,
+        result,
+      );
       return result;
     } on Object catch (e) {
       if (_current(generation))
         UbaaFeedback.show(
           context,
-          e is UiError ? e.message : '操作未完成，请检查连接后重试',
+          e is UiError ? e.message : '操作失败，请检查网络后重试',
           kind: UbaaFeedbackKind.error,
         );
       return null;

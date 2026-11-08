@@ -99,7 +99,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
     try {
       final result = await run(request);
       if (!_current(generation) || result == null) return;
-      UbaaFeedback.showOutcome(context, result);
+      bhpanShowOutcome(context, request.kind, result);
       if (result.error == null ||
           result.error?.code == UbaaErrorCode.outcomeUnknown)
         await _load();
@@ -107,7 +107,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
       if (_current(generation))
         UbaaFeedback.show(
           context,
-          e is UiError ? e.message : '操作未完成，请检查连接后重试',
+          e is UiError ? e.message : '操作失败，请检查网络后重试',
           kind: UbaaFeedbackKind.error,
         );
     } finally {
@@ -330,7 +330,7 @@ class _LinkBox extends StatelessWidget {
             child: link != null
                 ? SelectableText(link, style: theme.textTheme.bodyMedium)
                 : failed
-                ? Text('没能读取分享链接', style: TextStyle(color: colors.error))
+                ? Text('分享链接读取失败', style: TextStyle(color: colors.error))
                 : const Align(
                     alignment: Alignment.centerLeft,
                     child: LoadingGlyph(dimension: 18),
@@ -394,7 +394,7 @@ Future<void> bhpanShowShareLink(
     if (isCurrent() && context.mounted)
       UbaaFeedback.show(
         context,
-        e is UiError ? e.message : '没能读取分享链接，请稍后重试',
+        e is UiError ? e.message : '分享链接读取失败，请重试',
         kind: UbaaFeedbackKind.error,
       );
   }
