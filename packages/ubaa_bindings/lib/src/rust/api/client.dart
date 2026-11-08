@@ -10,6 +10,7 @@ import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
 import 'command.dart';
+import 'finance.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -577,6 +578,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeCommand command,
     required BridgeSharedAccount scope,
   });
+
+  Future<BridgeFinanceRefresh> financeCached({
+    required BridgeOfflineCache cache,
+  });
+
+  Future<BridgeFinanceResult> financeIncomes();
 
   Future<BridgeRoutedGrades> grades({required String term});
 

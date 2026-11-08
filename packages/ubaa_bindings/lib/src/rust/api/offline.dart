@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'cache_management.dart';
 import 'campus.dart';
 import 'client.dart';
+import 'finance.dart';
 import 'offline_academic.dart';
 import 'offline_academic/baseline.dart';
 import 'offline_bykc.dart';
@@ -294,6 +295,10 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 范围无效、账号关闭或存储损坏时返回稳定错误。
   Future<BridgeCachedAcademicTerms?> readExamTerms({
+    required BridgeConnectionMode route,
+  });
+
+  Future<BridgeCachedFinance?> readFinance({
     required BridgeConnectionMode route,
   });
 

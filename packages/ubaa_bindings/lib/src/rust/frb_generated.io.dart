@@ -16,6 +16,7 @@ import 'api/campus.dart';
 import 'api/client.dart';
 import 'api/command.dart';
 import 'api/command/output.dart';
+import 'api/finance.dart';
 import 'api/ihome.dart';
 import 'api/initialization.dart';
 import 'api/interactive_auth.dart';
@@ -799,6 +800,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cached_evaluation_record(dynamic raw);
 
   @protected
+  BridgeCachedFinance dco_decode_box_autoadd_bridge_cached_finance(dynamic raw);
+
+  @protected
   BridgeCachedHomeSignin dco_decode_box_autoadd_bridge_cached_home_signin(
     dynamic raw,
   );
@@ -1507,6 +1511,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedFinance dco_decode_bridge_cached_finance(dynamic raw);
+
+  @protected
   BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw);
 
   @protected
@@ -1825,6 +1832,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeExamArrangement dco_decode_bridge_exam_arrangement(dynamic raw);
+
+  @protected
+  BridgeFinanceIncome dco_decode_bridge_finance_income(dynamic raw);
+
+  @protected
+  BridgeFinanceIncomes dco_decode_bridge_finance_incomes(dynamic raw);
+
+  @protected
+  BridgeFinanceRefresh dco_decode_bridge_finance_refresh(dynamic raw);
+
+  @protected
+  BridgeFinanceResult dco_decode_bridge_finance_result(dynamic raw);
 
   @protected
   BridgeGrade dco_decode_bridge_grade(dynamic raw);
@@ -2626,6 +2645,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeExam> dco_decode_list_bridge_exam(dynamic raw);
 
   @protected
+  List<BridgeFinanceIncome> dco_decode_list_bridge_finance_income(dynamic raw);
+
+  @protected
   List<BridgeGrade> dco_decode_list_bridge_grade(dynamic raw);
 
   @protected
@@ -2950,6 +2972,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedEvaluationRecord?
   dco_decode_opt_box_autoadd_bridge_cached_evaluation_record(dynamic raw);
+
+  @protected
+  BridgeCachedFinance? dco_decode_opt_box_autoadd_bridge_cached_finance(
+    dynamic raw,
+  );
 
   @protected
   BridgeCachedHomeSignin? dco_decode_opt_box_autoadd_bridge_cached_home_signin(
@@ -3896,6 +3923,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedFinance sse_decode_box_autoadd_bridge_cached_finance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedHomeSignin sse_decode_box_autoadd_bridge_cached_home_signin(
     SseDeserializer deserializer,
   );
@@ -4802,6 +4834,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedFinance sse_decode_bridge_cached_finance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
     SseDeserializer deserializer,
   );
@@ -5232,6 +5269,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeExamArrangement sse_decode_bridge_exam_arrangement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeFinanceIncome sse_decode_bridge_finance_income(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeFinanceIncomes sse_decode_bridge_finance_incomes(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeFinanceRefresh sse_decode_bridge_finance_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeFinanceResult sse_decode_bridge_finance_result(
     SseDeserializer deserializer,
   );
 
@@ -6273,6 +6330,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeExam> sse_decode_list_bridge_exam(SseDeserializer deserializer);
 
   @protected
+  List<BridgeFinanceIncome> sse_decode_list_bridge_finance_income(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeGrade> sse_decode_list_bridge_grade(SseDeserializer deserializer);
 
   @protected
@@ -6697,6 +6759,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedEvaluationRecord?
   sse_decode_opt_box_autoadd_bridge_cached_evaluation_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedFinance? sse_decode_opt_box_autoadd_bridge_cached_finance(
     SseDeserializer deserializer,
   );
 
@@ -7787,6 +7854,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_evaluation_record(
     BridgeCachedEvaluationRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_finance(
+    BridgeCachedFinance self,
     SseSerializer serializer,
   );
 
@@ -8889,6 +8962,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_finance(
+    BridgeCachedFinance self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_home_signin(
     BridgeCachedHomeSignin self,
     SseSerializer serializer,
@@ -9407,6 +9486,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_exam_arrangement(
     BridgeExamArrangement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_finance_income(
+    BridgeFinanceIncome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_finance_incomes(
+    BridgeFinanceIncomes self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_finance_refresh(
+    BridgeFinanceRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_finance_result(
+    BridgeFinanceResult self,
     SseSerializer serializer,
   );
 
@@ -10698,6 +10801,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_finance_income(
+    List<BridgeFinanceIncome> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_grade(
     List<BridgeGrade> self,
     SseSerializer serializer,
@@ -11192,6 +11301,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_evaluation_record(
     BridgeCachedEvaluationRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_finance(
+    BridgeCachedFinance? self,
     SseSerializer serializer,
   );
 

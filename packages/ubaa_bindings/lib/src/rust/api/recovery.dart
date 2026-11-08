@@ -16,6 +16,7 @@ enum BridgeRecoveryFeature {
   user,
   portal,
   network,
+  finance,
   ihome,
   schedule,
   exam,
