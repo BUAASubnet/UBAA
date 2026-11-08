@@ -29,3 +29,13 @@
 ## 2026-10-31：展示优先级补充
 
 Core 与 Bridge 继续保留 GSMIS 的完整节次方案和课程时间。Dart 的第 1–14 节时间轴改用用户确认的 2026—2027 校历作息，适用于空周、在线投影、离线投影和 Android 课表组件导出。校历以外节次仍按接口与课程边界处理，具体取舍见[校历作息优先](decision-log.md#2026-10-31课表节次轴固定采用校历作息)。此次没有上游请求变更，也未执行真实学校请求。
+
+## 2026-11-08：排课缺失作息方案编号
+
+冻结旧版 `1f4b8f84` 的 `GsmisSchedule.kt` 直接按排课与节次的 `JCFADM` 匹配，`GsmisScheduleTest.kt` 只覆盖排课已有编号的响应。冻结 buaa-api `a63712fa` 的 `aas/core.rs`、`opt.rs` 和 `data.rs` 仅支持本科协议，GSMIS 缺失编号的处理不适用。
+
+[issue #109](https://github.com/BUAASubnet/UBAA/issues/109) 记录了真实响应中排课 `JCFADM=null`、`jcfaList` 只有编号 `01` 的方案，以及补全编号后解析成功的观察。[PR #100](https://github.com/BUAASubnet/UBAA/pull/100) 提供对应 Kotlin 实现与脱敏回归。这里使用公开问题记录作为兼容依据，未取得原始个人课表或重新实测。来源取舍见[决策记录](decision-log.md#2026-11-08研究生排课缺失方案编号)。
+
+| 操作 | CAS/bootstrap与service | redirect/final URL | Cookie/session | 方法与精确参数 | headers/body | crypto | DTO/parser | cache/concurrency | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| GSMIS 课表规范化 | 沿本页 GSMIS 引导，例无 | 沿现有同路线重定向和最终地址检查 | 沿当前会话与来源标记 | 沿 `loadXskbData.do` 的原有 POST 与四项表单 | 沿原有请求头和表单编码 | 无新增 | 排课 `JCFADM` 缺失、null 或空白时，仅从唯一 `jcfaList` 项的非空 `DM` 补全；起止节次仍须按编号各唯一匹配；补全编号保留在规范化 Row 中，参与合并和时间轴过滤 | 复用现有类型化缓存、会话代次和完整解析后交付 | 多方案、声明无编号、节次缺失/重复/不匹配继续返回 `upstream_changed`；已有明确编号不覆盖，不丢弃失败排课 |

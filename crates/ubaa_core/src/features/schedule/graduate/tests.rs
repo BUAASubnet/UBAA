@@ -99,3 +99,109 @@ fn gsmis仅合并同班同方案相邻节次且去重() {
         3
     );
 }
+
+#[test]
+fn gsmis缺失排课方案使用唯一声明并保留合并和时间轴() {
+    for scheme in [
+        None,
+        Some(serde_json::Value::Null),
+        Some("".into()),
+        Some(" \t".into()),
+    ] {
+        let mut body: serde_json::Value =
+            serde_json::from_str(&BODY.replace("\"01\"", "\"02\"")).unwrap();
+        body["jcfaList"][0]["DM"] = "02".into();
+        let mut adjacent = body["jgList"][0].clone();
+        adjacent["KSJCDM"] = 3.into();
+        adjacent["JSJCDM"] = 3.into();
+        match scheme {
+            Some(value) => adjacent["JCFADM"] = value,
+            None => {
+                adjacent.as_object_mut().unwrap().remove("JCFADM");
+            }
+        }
+        body["jgList"].as_array_mut().unwrap().push(adjacent);
+        let data = parse(&body.to_string()).expect("缺失编号应使用唯一声明方案");
+        assert_eq!(
+            data.weeks("2026-09-14").unwrap()[1].start_date,
+            "2026-09-14"
+        );
+        let week = data.weekly(2).unwrap();
+        assert_eq!(week.arranged_list.len(), 1);
+        let course = &week.arranged_list[0];
+        assert_eq!(course.begin_section, Some(1));
+        assert_eq!(course.end_section, Some(3));
+        assert_eq!(course.begin_time.as_deref(), Some("08:00"));
+        assert_eq!(course.end_time.as_deref(), Some("10:35"));
+        assert_eq!(data.today("2026-09-14").unwrap().len(), 1);
+        assert_eq!(week.section_times.len(), 3);
+        assert_eq!(data.weekly(1).unwrap().section_times, week.section_times);
+    }
+}
+
+#[test]
+fn gsmis缺失排课方案不能借用不明确的声明或不匹配的节次() {
+    let mut body: serde_json::Value = serde_json::from_str(BODY).unwrap();
+    body["jgList"][0]["JCFADM"] = serde_json::Value::Null;
+    body["jcfaList"][0]["DM"] = "01".into();
+    let mut invalid = Vec::new();
+    for scheme in [
+        None,
+        Some(serde_json::Value::Null),
+        Some("".into()),
+        Some(" ".into()),
+    ] {
+        let mut value = body.clone();
+        match scheme {
+            Some(code) => value["jcfaList"][0]["DM"] = code,
+            None => {
+                value["jcfaList"][0].as_object_mut().unwrap().remove("DM");
+            }
+        }
+        invalid.push(value);
+    }
+    let mut multiple = body.clone();
+    multiple["jcfaList"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"DM":"02","skjcList":[]}));
+    invalid.push(multiple);
+    let mut mismatched = body.clone();
+    mismatched["jcfaList"][0]["skjcList"][0]["JCFADM"] = "02".into();
+    invalid.push(mismatched);
+    let mut missing_slot = body.clone();
+    missing_slot["jcfaList"][0]["skjcList"]
+        .as_array_mut()
+        .unwrap()
+        .remove(1);
+    invalid.push(missing_slot);
+    let mut duplicate_slot = body.clone();
+    let slot = duplicate_slot["jcfaList"][0]["skjcList"][0].clone();
+    duplicate_slot["jcfaList"][0]["skjcList"]
+        .as_array_mut()
+        .unwrap()
+        .push(slot);
+    invalid.push(duplicate_slot);
+    for value in invalid {
+        assert_eq!(
+            parse(&value.to_string()).err().unwrap().code,
+            crate::error::ErrorCode::UpstreamChanged
+        );
+    }
+}
+
+#[test]
+fn gsmis明确排课方案保持原编号() {
+    let mut body: serde_json::Value = serde_json::from_str(BODY).unwrap();
+    body["jcfaList"][0]["DM"] = "01".into();
+    body["jgList"][0]["JCFADM"] = "02".into();
+    assert!(parse(&body.to_string()).is_err());
+    body["jgList"][0]["JCFADM"] = "01".into();
+    body["jcfaList"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"DM":"02","skjcList":[]}));
+    let week = parse(&body.to_string()).unwrap().weekly(2).unwrap();
+    assert_eq!(week.arranged_list[0].begin_time.as_deref(), Some("08:00"));
+    assert_eq!(week.section_times.len(), 3);
+}

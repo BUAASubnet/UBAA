@@ -92,8 +92,9 @@ pub(super) fn parse_schedule(body: &str, terms: Vec<Term>, term: &str) -> Result
     }
     let rows = objects(root, "jgList")?;
     let courses = objects(root, "rwList")?;
+    let schemes = objects(root, "jcfaList")?;
     let mut slots = Vec::new();
-    for scheme in objects(root, "jcfaList")? {
+    for scheme in &schemes {
         slots.extend(objects(scheme, "skjcList")?);
     }
     let mut course_ids = BTreeSet::new();
@@ -115,7 +116,7 @@ pub(super) fn parse_schedule(body: &str, terms: Vec<Term>, term: &str) -> Result
         let end = number(row, "JSJCDM")?;
         let day = number(row, "XQ")?;
         let mask = required(row, "ZCBH")?;
-        let scheme = text(row, "JCFADM");
+        let scheme = row_scheme(row, &schemes)?;
         if begin <= 0
             || end < begin
             || !(1..=7).contains(&day)
@@ -126,7 +127,10 @@ pub(super) fn parse_schedule(body: &str, terms: Vec<Term>, term: &str) -> Result
         let slot = |section| -> Result<&Object> {
             let matches: Vec<_> = slots
                 .iter()
-                .filter(|s| text(s, "JCFADM") == scheme && number(s, "DM").ok() == Some(section))
+                .filter(|s| {
+                    text(s, "JCFADM").as_deref() == Some(scheme.as_str())
+                        && number(s, "DM").ok() == Some(section)
+                })
                 .collect();
             if matches.len() != 1 {
                 return Err(error());
@@ -146,7 +150,7 @@ pub(super) fn parse_schedule(body: &str, terms: Vec<Term>, term: &str) -> Result
             .join(" ");
         parsed.push(Row {
             mask,
-            scheme,
+            scheme: Some(scheme),
             teachers,
             course: CourseClass {
                 course_code: required(row, "KCDM")?,
@@ -173,6 +177,17 @@ pub(super) fn parse_schedule(body: &str, terms: Vec<Term>, term: &str) -> Result
         sections,
         monday,
     })
+}
+
+fn row_scheme(row: &Object, schemes: &[&Object]) -> Result<String> {
+    // 缺失编号只能使用上游唯一声明的方案，不能从节次列表猜测。
+    text(row, "JCFADM")
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| match schemes {
+            [scheme] => text(scheme, "DM").filter(|s| !s.trim().is_empty()),
+            _ => None,
+        })
+        .ok_or_else(error)
 }
 
 fn semester_start(courses: &[&Object], rows: &[&Object]) -> Result<Option<NaiveDate>> {
