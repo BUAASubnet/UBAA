@@ -255,7 +255,7 @@ class _SigninCourseCard extends StatelessWidget {
               UiInfoRow(
                 icon: Icons.info_outline,
                 text: field.value,
-                detail: field.label,
+                label: field.label,
               ),
         ],
       ),

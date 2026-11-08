@@ -50,7 +50,7 @@ extension EvaluationCourseRows on _FeatureDetailListState {
                 UiInfoRow(
                   icon: Icons.info_outline,
                   text: field.value,
-                  detail: field.label,
+                  label: field.label,
                 ),
           ],
         ),

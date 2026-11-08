@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'search_field.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show LoadingPlaceholder;
@@ -557,16 +558,20 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // 标题与其他底部面板（UiSheetBody）同一字号与左边距。
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                              padding: const EdgeInsets.fromLTRB(24, 12, 12, 0),
                               child: Row(
                                 children: [
                                   Expanded(
                                     child: Text(
                                       '筛选',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                   IconButton(
@@ -580,9 +585,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                             Flexible(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.fromLTRB(
-                                  20,
+                                  24,
                                   0,
-                                  20,
+                                  24,
                                   16,
                                 ),
                                 child: _filterControls(kind),
@@ -617,13 +622,20 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
               label: Text('$count'),
               backgroundColor: Theme.of(context).colorScheme.primary,
               textColor: Theme.of(context).colorScheme.onPrimary,
+              // 与搜索框同高，左右两侧的边缘对齐。
               child: count > 0
                   ? IconButton.filledTonal(
+                      style: IconButton.styleFrom(
+                        fixedSize: const Size.square(UiSearchField.height),
+                      ),
                       tooltip: '筛选（$count 项生效）',
                       onPressed: togglePanel,
                       icon: const Icon(Icons.tune),
                     )
                   : IconButton.outlined(
+                      style: IconButton.styleFrom(
+                        fixedSize: const Size.square(UiSearchField.height),
+                      ),
                       tooltip: '筛选',
                       onPressed: togglePanel,
                       icon: const Icon(Icons.tune),
@@ -635,32 +647,12 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     );
   }
 
-  Widget _searchField(BuildContext context) => TextField(
-    key: const ValueKey<String>('feature-search-field'),
+  Widget _searchField(BuildContext context) => UiSearchField(
+    fieldKey: const ValueKey<String>('feature-search-field'),
     controller: _searchController,
-    textInputAction: TextInputAction.search,
+    hintText: _searchHint,
     onChanged: (_) => setState(() {}),
-    onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-    decoration: InputDecoration(
-      isDense: true,
-      hintText: _searchHint,
-      prefixIcon: const Icon(Icons.search),
-      suffixIcon: _searchController.text.isEmpty
-          ? null
-          : IconButton(
-              tooltip: '清除搜索',
-              onPressed: _clearSearch,
-              icon: const Icon(Icons.close),
-            ),
-      // 与云盘、日程的搜索栏一致：填充胶囊，无描边。
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      border: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(999)),
-        borderSide: BorderSide.none,
-      ),
-    ),
+    onClear: _clearSearch,
   );
 
   bool get _isLibraryReservation =>

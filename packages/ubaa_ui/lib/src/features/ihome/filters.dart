@@ -20,38 +20,16 @@ extension _IhomeFilters on _IhomeViewState {
       Padding(
         padding: const EdgeInsets.only(top: 12),
         // 与其他功能页的搜索框保持同样的外观和高度。
-        child: TextField(
+        child: UiSearchField(
           controller: _search,
           enabled: _busy.isEmpty,
           maxLength: 200,
-          textInputAction: TextInputAction.search,
-          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: '搜索诉求或回复',
-            counterText: '',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _search.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: '清除搜索',
-                    onPressed: _busy.isNotEmpty
-                        ? null
-                        : () {
-                            _search.clear();
-                            if (_keyword.isEmpty) return _update(() {});
-                            _submitSearch('');
-                          },
-                    icon: const Icon(Icons.close),
-                  ),
-            // 与其他页面的搜索栏一致：填充胶囊，无描边。
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(999)),
-              borderSide: BorderSide.none,
-            ),
-          ),
+          hintText: '搜索诉求或回复',
+          onClear: () {
+            _search.clear();
+            if (_keyword.isEmpty) return _update(() {});
+            _submitSearch('');
+          },
           onChanged: (_) => _update(() {}),
           onSubmitted: _submitSearch,
         ),

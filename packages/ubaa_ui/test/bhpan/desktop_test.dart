@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_ui/src/common/search_field.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'support.dart';
 import 'view_test.dart' show mount;
@@ -46,7 +47,10 @@ void main() {
         await tester.sendKeyUpEvent(modifier);
         await tester.pumpAndSettle();
         expect(
-          tester.widget<SearchBar>(find.byType(SearchBar)).focusNode!.hasFocus,
+          tester
+              .widget<UiSearchField>(find.byType(UiSearchField))
+              .focusNode!
+              .hasFocus,
           isTrue,
         );
       }

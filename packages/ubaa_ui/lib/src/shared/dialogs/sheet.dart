@@ -74,6 +74,7 @@ class UiSheetBody extends StatelessWidget {
     this.actions = const [],
     this.primaryAction,
     this.onClose,
+    this.headerActions = const [],
   });
   final String title;
   final String? subtitle;
@@ -88,6 +89,9 @@ class UiSheetBody extends StatelessWidget {
   /// 主要操作（实心按钮）单独一行占满宽度，放在次要操作上方。
   final Widget? primaryAction;
   final VoidCallback? onClose;
+
+  /// 标题右侧的低频图标操作（如重新获取），不占底部按钮栏。
+  final List<Widget> headerActions;
 
   @override
   Widget build(BuildContext context) {
@@ -104,9 +108,19 @@ class UiSheetBody extends StatelessWidget {
     final close =
         onClose ?? (dialog ? () => Navigator.maybePop(context) : null);
     final header = Padding(
-      padding: EdgeInsets.fromLTRB(24, close == null ? 0 : 16, 12, 0),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        // 底部面板上方已有拖动条，只给标题右侧按钮留出少量空间。
+        close != null
+            ? 16
+            : headerActions.isEmpty
+            ? 0
+            : 4,
+        12,
+        0,
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -147,6 +161,7 @@ class UiSheetBody extends StatelessWidget {
               ],
             ),
           ),
+          ...headerActions,
           if (close != null)
             IconButton(
               tooltip: onClose == null ? '关闭' : '关闭详情',
@@ -216,11 +231,17 @@ class UiInfoRow extends StatelessWidget {
     super.key,
     required this.icon,
     required this.text,
+    this.label,
     this.detail,
     this.color,
   });
   final IconData icon;
   final String text;
+
+  /// 字段名（如“学分”），以小字显示在值上方。
+  final String? label;
+
+  /// 补充说明，以小字显示在正文下方。
   final String? detail;
 
   /// 需要提醒时（如冲突）整行使用的颜色。
@@ -241,6 +262,13 @@ class UiInfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (label case final label?)
+                  Text(
+                    label,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
                 Text(
                   text,
                   style: theme.textTheme.bodyLarge?.copyWith(color: color),

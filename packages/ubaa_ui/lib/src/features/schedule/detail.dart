@@ -60,9 +60,9 @@ Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
         if (teacher != null)
           UiInfoRow(icon: Icons.person_outline, text: teacher),
         if (uiNonBlank(p.credit) case final credit?)
-          UiInfoRow(icon: Icons.school_outlined, text: credit, detail: '学分'),
+          UiInfoRow(icon: Icons.school_outlined, text: '$credit 学分'),
         if (uiNonBlank(p.teachingTarget) case final target?)
-          UiInfoRow(icon: Icons.groups_outlined, text: target, detail: '教学对象'),
+          UiInfoRow(icon: Icons.groups_outlined, text: target, label: '教学对象'),
         for (final field in detail.fields)
           if (!uiHiddenAcademicField(field.label) &&
               !shownLabels.contains(field.label.trim()) &&
@@ -71,7 +71,7 @@ Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
             UiInfoRow(
               icon: Icons.info_outline,
               text: field.value,
-              detail: field.label,
+              label: field.label,
             ),
       ],
     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../common/filters/filter_section.dart';
 
 /// 展示条件独立于网络查询，父列表保留条件直到页面销毁。
 class AssignmentListFilters {
@@ -122,11 +123,9 @@ class AssignmentFilterControls extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const SizedBox(height: 16),
-      const Text('排序方式'),
-      Wrap(
-        spacing: 8,
-        children: [
+      UiFilterSection(
+        title: '排序方式',
+        chips: [
           for (final (start, label) in [(false, '按截止时间'), (true, '按开始时间')])
             ChoiceChip(
               label: Text(label),
@@ -135,11 +134,9 @@ class AssignmentFilterControls extends StatelessWidget {
             ),
         ],
       ),
-      const SizedBox(height: 12),
-      const Text('顺序'),
-      Wrap(
-        spacing: 8,
-        children: [
+      UiFilterSection(
+        title: '顺序',
+        chips: [
           for (final (ascending, label) in [(true, '升序'), (false, '降序')])
             ChoiceChip(
               label: Text(label),
@@ -149,11 +146,9 @@ class AssignmentFilterControls extends StatelessWidget {
             ),
         ],
       ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
+      UiFilterSection(
+        title: '范围',
+        chips: [
           FilterChip(
             label: Text(filters.isSpoc ? '仅显示未提交' : '仅显示未完成'),
             selected: filters.onlyUnfinished,

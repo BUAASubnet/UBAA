@@ -1,6 +1,7 @@
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../common/detail_fields.dart' show DetailField;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/text.dart' show uiNonBlank;
 import '../../shared/when.dart'
@@ -344,22 +345,30 @@ class _AssignmentDetail extends StatelessWidget {
           ),
         ),
         section('提交信息', [
-          Text('状态：${uiNonBlank(status) ?? '未知'}'),
+          DetailField(label: '状态', value: uiNonBlank(status) ?? '未知'),
           if (uiNonBlank(start) case final s?)
-            Text('开始时间：${uiShortDateTime(s)}'),
-          Text(
-            '截止时间：${uiNonBlank(due) == null ? '未知' : uiShortDateTime(due!)}',
+            DetailField(label: '开始时间', value: uiShortDateTime(s)),
+          DetailField(
+            label: '截止时间',
+            value: uiNonBlank(due) == null ? '未知' : uiShortDateTime(due!),
           ),
           if (p is SpocAssignmentPresentation) ...[
-            if (uiNonBlank(p.score) case final score?) Text('分值：$score'),
+            if (uiNonBlank(p.score) case final score?)
+              DetailField(label: '分值', value: score),
             if (uiNonBlank(p.submittedAt) case final time?)
-              Text('提交时间：${uiShortDateTime(time)}'),
+              DetailField(label: '提交时间', value: uiShortDateTime(time)),
           ],
           if (p is JudgeAssignmentPresentation) ...[
             if (p.totalProblems > 0)
-              Text('进度：${p.submittedCount}/${p.totalProblems}'),
+              DetailField(
+                label: '进度',
+                value: '${p.submittedCount}/${p.totalProblems}',
+              ),
             if (uiNonBlank(p.maxScore) case final score? when _scored(score))
-              Text('分数：${uiNonBlank(p.myScore) ?? '无'} / $score'),
+              DetailField(
+                label: '分数',
+                value: '${uiNonBlank(p.myScore) ?? '无'} / $score',
+              ),
           ],
         ]),
         if (p is SpocAssignmentPresentation)

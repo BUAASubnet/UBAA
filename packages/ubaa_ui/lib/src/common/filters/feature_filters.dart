@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
+import 'filter_section.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/sheet.dart' show showUiSheet;
 import '../../shared/feedback.dart';
@@ -175,17 +176,7 @@ class FeatureFilterControls extends StatelessWidget {
   }
 
   Widget _section(BuildContext context, String title, List<Widget> chips) =>
-      Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: chips),
-          ],
-        ),
-      );
+      UiFilterSection(title: title, chips: chips);
 
   Widget _status(BuildContext context) {
     final current = query.view;

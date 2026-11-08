@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import '../../shared/dialogs/sheet.dart';
 import '../../shared/loading.dart';
+import '../../common/tag.dart';
 
 /// 保留原教学周顺序，重复编号全部待确认，不静默挑一个当权威值。
 List<FeatureDetail> uiUniqueWeekOptions(FeatureResult result, String term) {
@@ -62,14 +63,13 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
   @override
   Widget build(BuildContext context) => UiSheetBody(
     title: '选择教学周',
-    actions: [
-      OutlinedButton(onPressed: _reload, child: const Text('重新获取')),
-      // 对话框右上角已有关闭，不再重复「取消」。
-      if (!uiInSheetDialog(context))
-        OutlinedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
+    // 重新获取是低频操作，放在标题右侧；底部面板下滑或点遮罩即可关闭，不再放「取消」。
+    headerActions: [
+      IconButton(
+        tooltip: '重新获取',
+        onPressed: _reload,
+        icon: const Icon(Icons.refresh),
+      ),
     ],
     children: [
       FutureBuilder<FeatureResult>(
@@ -91,8 +91,7 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
               ],
             );
           final options = uiUniqueWeekOptions(snapshot.data!, widget.term);
-          if (options.isEmpty) return const Text('暂无可确定的教学周，可取消后手动填写。');
-          final colors = Theme.of(context).colorScheme;
+          if (options.isEmpty) return const Text('暂无可确定的教学周，可关闭后手动填写。');
           // 打开时滚到已选周（没有则本周），不用从第 1 周往下找。
           final target =
               options
@@ -121,31 +120,19 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
                   ListTile(
                     key: week.number == target ? _targetKey : null,
                     contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    // 大字或长周名时标签换到下一行，不挤压周名。
                     title: Wrap(
                       spacing: 8,
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(detail.title),
-                        if (week.current) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.secondaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '本周',
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: colors.onSecondaryContainer,
-                                  ),
-                            ),
-                          ),
-                        ],
+                        Text(
+                          detail.title,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        if (week.current)
+                          const UiTag('本周', tone: UiTagTone.primary),
                       ],
                     ),
                     subtitle: Text(

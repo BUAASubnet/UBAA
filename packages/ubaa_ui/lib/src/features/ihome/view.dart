@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/confirmation.dart' show uiConfirmIrreversible;
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
+import '../../common/search_field.dart';
 import '../../common/chip_strip.dart';
 import '../../theme.dart';
 import '../../common/state_panel.dart';

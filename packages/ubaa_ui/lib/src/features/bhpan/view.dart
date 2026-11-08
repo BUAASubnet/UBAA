@@ -1,6 +1,7 @@
 import '../../theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../common/search_field.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
@@ -781,23 +782,11 @@ class _BhpanViewState extends State<BhpanView> {
         if (_searchVisible)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SearchBar(
+            child: UiSearchField(
               controller: _search,
               focusNode: _searchFocus,
               hintText: '在此文件夹中搜索',
-              elevation: const WidgetStatePropertyAll(0),
-              leading: const Icon(Icons.search),
-              trailing: [
-                if (_filter.isNotEmpty)
-                  IconButton(
-                    tooltip: '清除',
-                    onPressed: () => setState(() {
-                      _search.clear();
-                      _filter = '';
-                    }),
-                    icon: const Icon(Icons.close),
-                  ),
-              ],
+              clearTooltip: '清除',
               onChanged: (v) => setState(() => _filter = v),
             ),
           ),

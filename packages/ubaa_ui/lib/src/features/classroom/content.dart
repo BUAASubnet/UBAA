@@ -620,7 +620,7 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
         UiInfoRow(
           icon: Icons.schedule_outlined,
           text: p.availableSections.isEmpty ? '未提供' : p.availableSections,
-          detail: '空闲节次',
+          label: '空闲节次',
         ),
         if (p.queryDate case final date?)
           UiInfoRow(icon: Icons.event_outlined, text: date),
@@ -630,7 +630,7 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
             UiInfoRow(
               icon: Icons.info_outline,
               text: field.value,
-              detail: field.label,
+              label: field.label,
             ),
       ],
     ),

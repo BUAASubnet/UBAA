@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import '../../common/search_field.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/feedback.dart';
 import 'editor.dart';
@@ -636,23 +637,11 @@ class AgendaViewState extends State<AgendaView> {
             if (searchVisible)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: SearchBar(
+                child: UiSearchField(
                   key: const ValueKey('agenda-search'),
                   controller: searchField,
                   focusNode: searchFocus,
                   hintText: '搜索标题、备注或地点',
-                  elevation: const WidgetStatePropertyAll(0),
-                  leading: const Icon(Icons.search),
-                  trailing: [
-                    IconButton(
-                      tooltip: '清除搜索',
-                      onPressed: () {
-                        searchField.clear();
-                        setState(() => search = '');
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
                   onChanged: (value) => setState(() => search = value),
                 ),
               ),

@@ -62,14 +62,14 @@ extension LibbookBookingRows on _FeatureDetailListState {
                         UiInfoRow(
                           icon: Icons.confirmation_number_outlined,
                           text: booking.id,
-                          detail: '预约编号',
+                          label: '预约编号',
                         ),
                         for (final field in detail.fields)
                           if (field.value.trim().isNotEmpty)
                             UiInfoRow(
                               icon: Icons.info_outline,
                               text: field.value,
-                              detail: field.label,
+                              label: field.label,
                             ),
                       ],
                     ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_ui/src/common/search_field.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/bhpan/location.dart';
@@ -72,11 +73,11 @@ void main() {
     await tester.tap(find.byTooltip('搜索'));
     await tester.pumpAndSettle();
     final search = find.descendant(
-      of: find.byType(SearchBar),
+      of: find.byType(UiSearchField),
       matching: find.byType(TextField),
     );
     expect(
-      tester.widget<SearchBar>(find.byType(SearchBar)).hintText,
+      tester.widget<UiSearchField>(find.byType(UiSearchField)).hintText,
       '在此文件夹中搜索',
     );
     await tester.enterText(search, '课程');
@@ -87,7 +88,7 @@ void main() {
     // 第一次返回先关闭搜索，不离开目录。
     expect(back.handleBack(), isTrue);
     await tester.pumpAndSettle();
-    expect(find.byType(SearchBar), findsNothing);
+    expect(find.byType(UiSearchField), findsNothing);
     expect(find.text('报告.txt'), findsOneWidget);
     await tester.tap(find.text('课程资料'));
     await tester.pumpAndSettle();

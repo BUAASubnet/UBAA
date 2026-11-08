@@ -184,33 +184,23 @@ class HomeViewState extends State<HomeView> {
     Widget todoSection(int limit) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 标题字号与“今日课表”一致；刷新状态统一显示在标题栏右侧。
-        Row(
-          children: [
-            Text(
-              '待办',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            if (tasks.length > limit)
-              TextButton(
-                key: const ValueKey('home-todos-toggle'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  minimumSize: const Size(0, 36),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: widget.onViewAllTodos,
-                child: Text('查看全部（${tasks.length}）'),
-              ),
-          ],
+        // 与课表同一分节标题；刷新状态统一显示在标题栏右侧。
+        UiSectionHeader(
+          title: '待办',
+          subtitle: tasks.isEmpty ? '近期截止与提醒' : '近期 ${tasks.length} 项',
+          trailing: tasks.length > limit
+              ? TextButton(
+                  key: const ValueKey('home-todos-toggle'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: widget.onViewAllTodos,
+                  child: Text('查看全部（${tasks.length}）'),
+                )
+              : null,
         ),
-        // 与课表日期行同高，两栏并排时首张卡片顶端对齐。
-        const SizedBox(height: 4),
-        Text(tasks.isEmpty ? '近期截止与提醒' : '近期 ${tasks.length} 项'),
-        const SizedBox(height: 12),
         HomeTodoGrid(
           key: const ValueKey('home-todos'),
           children: [
@@ -394,9 +384,7 @@ class FeatureGridView extends StatelessWidget {
     ],
   );
 
-  Widget _grid() => UiAdaptiveGrid(
-    minItemWidth: 400,
-    maxColumns: 2,
+  Widget _grid() => UiEntryList(
     children: [
       if (onOpenIhome != null)
         UiEntryCard(

@@ -88,7 +88,7 @@ void main() {
     backend.failOptions = FeatureQueryView.scheduleWeeks;
     await tap(tester, find.text('合成教学第4周'));
     backend.failOptions = null;
-    await tap(tester, find.text('重新获取'));
+    await tap(tester, find.byTooltip('重新获取'));
     expect(find.text('合成教学第3周'), findsOneWidget);
     expect(backend.scheduleReads, hasLength(1));
     expect(tester.takeException(), isNull);

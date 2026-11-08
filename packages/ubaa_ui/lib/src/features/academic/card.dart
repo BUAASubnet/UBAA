@@ -183,7 +183,7 @@ Future<void> uiShowAcademicDetails(
           UiInfoRow(
             icon: Icons.info_outline,
             text: field.value,
-            detail: field.label,
+            label: field.label,
           ),
     ];
     if (presentation is! ExamPresentation) {
@@ -222,7 +222,7 @@ Future<void> uiShowAcademicDetails(
             UiInfoRow(
               icon: Icons.description_outlined,
               text: value,
-              detail: '考试说明',
+              label: '考试说明',
             ),
         if (p.week case final value?)
           UiInfoRow(icon: Icons.date_range_outlined, text: '第$value周'),
