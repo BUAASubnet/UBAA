@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../theme.dart' show UbaaTheme;
+import '../shared/layout/rail_identity.dart' show UiAppIcon;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
 import '../common/error_card.dart'
     show FriendlyErrorCard, uiShowDiagnosticsDialog;
@@ -131,10 +132,16 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
-                          Text(
-                            'UBAA 登录',
-                            style: Theme.of(context).textTheme.headlineMedium,
-                            textAlign: TextAlign.center,
+                          const Center(child: UiAppIcon(size: 72)),
+                          const SizedBox(height: 16),
+                          // 大字号下整体缩小，不把“UBAA 登录”拆成两行。
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'UBAA 登录',
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           TextField(

@@ -90,7 +90,8 @@ extension _AgendaFilters on AgendaViewState {
   }
 
   Widget _buildQuickFilters() => SizedBox(
-    height: 40,
+    // 随系统字号增高，避免大字号下选项文字被裁切。
+    height: MediaQuery.textScalerOf(context).scale(40).clamp(40, 72),
     child: ListView.separated(
       key: const ValueKey('agenda-quick-filters'),
       scrollDirection: Axis.horizontal,

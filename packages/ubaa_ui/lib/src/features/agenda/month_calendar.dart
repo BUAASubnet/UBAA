@@ -186,6 +186,10 @@ class AgendaDateStrip extends StatelessWidget {
                       .take(3)
                       .toList();
                   final weekend = i >= 5;
+                  // 日期圆随字号放大，但不超过一周七格的宽度。
+                  final circleSize = MediaQuery.textScalerOf(
+                    context,
+                  ).scale(36).clamp(36.0, 50.0);
                   final Color circle = isToday
                       ? colors.primary
                       : selected
@@ -226,8 +230,8 @@ class AgendaDateStrip extends StatelessWidget {
                             const SizedBox(height: 6),
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
-                              width: 36,
-                              height: 36,
+                              width: circleSize,
+                              height: circleSize,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: circle,
@@ -239,16 +243,20 @@ class AgendaDateStrip extends StatelessWidget {
                                       )
                                     : null,
                               ),
-                              child: Text(
-                                '${day.day}',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: number,
-                                  fontWeight: isToday || selected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${day.day}',
+                                  maxLines: 1,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: number,
+                                    fontWeight: isToday || selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

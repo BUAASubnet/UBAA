@@ -78,13 +78,13 @@ class UiSectionHeader extends StatelessWidget {
           ConstrainedBox(
             // 有无右侧按钮时标题行等高。
             constraints: const BoxConstraints(minHeight: 36),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Align(alignment: Alignment.centerLeft, child: heading),
-                ),
-                ?trailing,
-              ],
+            // 放得下时标题在左、按钮在右；大字号下放不下时按钮换到下一行，
+            // 而不是挤压标题或溢出。
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: 4,
+              children: [heading, ?trailing],
             ),
           ),
           if (subtitle case final subtitle?)

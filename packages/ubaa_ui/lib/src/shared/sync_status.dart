@@ -144,7 +144,11 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
     } else {
       label = const SizedBox.shrink(key: ValueKey('sync-none'));
     }
-    final status = Semantics(liveRegion: true, child: label);
+    // 状态是次要信息：大字号下限制放大倍数，把标题栏宽度留给页面标题。
+    final status = MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: Semantics(liveRegion: true, child: label),
+    );
     if (widget.onRefresh == null) {
       return Padding(padding: const EdgeInsets.only(right: 12), child: status);
     }

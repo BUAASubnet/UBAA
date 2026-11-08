@@ -109,16 +109,18 @@ Future<void> openUtility(WidgetTester tester, String title) async {
     await tester.pumpAndSettle();
     if (title == '我的') return;
   }
-  final target = title == '我的资料'
+  final scrollTarget = title == '我的资料'
       ? find.byKey(const ValueKey('me-profile'))
       : find.byTooltip(title).evaluate().isNotEmpty
       ? find.byTooltip(title)
-      : find.text(title).last;
+      : find.text(title);
+  // 懒加载列表里目标可能尚未构建；`.last` 在空结果上会直接抛错，滚动时先用原查找。
   await tester.scrollUntilVisible(
-    target,
+    scrollTarget,
     250,
     scrollable: find.byType(Scrollable).last,
   );
+  final target = scrollTarget.last;
   await tester.ensureVisible(target);
   await tester.pumpAndSettle();
   await tester.tap(target);

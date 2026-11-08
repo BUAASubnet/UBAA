@@ -250,14 +250,14 @@ class _MetricsPanel extends StatelessWidget {
       _MetricTile(
         key: const ValueKey('me-metric-card'),
         icon: Icons.credit_card_outlined,
-        label: '校园卡余额',
+        label: '校园卡',
         value: _amount(metrics?.cardBalance, money: true),
         large: true,
       ),
       _MetricTile(
         key: const ValueKey('me-metric-network-fee'),
         icon: Icons.wifi_outlined,
-        label: '网费余额',
+        label: '网费',
         value: _amount(metrics?.networkBalance, money: true),
         large: true,
       ),
@@ -302,7 +302,14 @@ class _MetricsPanel extends StatelessWidget {
         children: [
           if (constraints.maxWidth >= 760)
             row([...balances, ...counts])
-          else ...[
+          else if (MediaQuery.textScalerOf(context).scale(10) > 13) ...[
+            // 大字号下三列放不下标签，改为两列。
+            row(balances),
+            const SizedBox(height: 12),
+            row(counts.sublist(0, 2)),
+            const SizedBox(height: 12),
+            row([counts[2], const SizedBox.shrink()]),
+          ] else ...[
             row(balances),
             const SizedBox(height: 12),
             row(counts),
@@ -392,7 +399,7 @@ class _MetricTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
@@ -555,6 +562,7 @@ class _NetworkProductCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 figure('已用', product.used),
                 const SizedBox(width: 12),

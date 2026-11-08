@@ -143,28 +143,43 @@ class _CourseCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 时间列固定宽度，多张卡片的起止时间上下对齐。
+              // 时间列等宽，多张卡片的起止时间上下对齐；随系统字号放大，
+              // 最宽限制在卡片的三分之一以内，超出时整体缩小而不折行。
               SizedBox(
-                width: 76,
+                width: MediaQuery.textScalerOf(
+                  context,
+                ).scale(76).clamp(76, 128),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       if (times.isNotEmpty)
-                        Text(
-                          times.first,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontFeatures: const [FontFeature.tabularFigures()],
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            times.first,
+                            maxLines: 1,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
                         ),
                       if (times.length > 1)
-                        Text(
-                          times.last,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: muted,
-                            fontFeatures: const [FontFeature.tabularFigures()],
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            times.last,
+                            maxLines: 1,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: muted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
                         ),
                     ],

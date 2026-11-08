@@ -194,7 +194,6 @@ class HomeViewState extends State<HomeView> {
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     minimumSize: const Size(0, 36),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   onPressed: widget.onViewAllTodos,
                   child: Text('查看全部（${tasks.length}）'),
@@ -431,8 +430,8 @@ class _RecentFeatureIcons extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final (i, feature) in features.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
+        for (final feature in features) ...[
+          // 图标 36pt，点击区域由默认的 48pt 外边距补足，相邻按钮间距也由它提供。
           IconButton.filledTonal(
             key: ValueKey('recent-${feature.name}'),
             tooltip: feature.title,
@@ -440,7 +439,6 @@ class _RecentFeatureIcons extends StatelessWidget {
               minimumSize: const Size(36, 36),
               fixedSize: const Size(36, 36),
               padding: EdgeInsets.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               backgroundColor: scheme.primaryContainer,
               foregroundColor: scheme.onPrimaryContainer,
             ),
