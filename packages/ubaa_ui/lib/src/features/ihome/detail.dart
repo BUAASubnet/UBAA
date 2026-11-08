@@ -100,7 +100,7 @@ extension _IhomeCards on _IhomeViewState {
               child: UiInlineRetry(
                 message: _detailErrors[id]!,
                 onRetry: loading || busy ? null : () => _readDetail(id),
-                label: _uncertain.contains(id) ? '刷新核对' : '重试',
+                label: _uncertain.contains(id) ? '刷新' : '重试',
               ),
             ),
           if (expanded && detail != null && detail.history.isNotEmpty)

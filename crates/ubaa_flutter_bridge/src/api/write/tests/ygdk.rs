@@ -255,7 +255,7 @@ async fn 阳光打卡commit重新复核并按冻结wire恰好提交一次() {
 
     assert!(result.success);
     assert!(!result.outcome_unknown);
-    assert_eq!(result.message, "阳光打卡已提交");
+    assert_eq!(result.message, "打卡成功");
     let receipt = result.ygdk_receipt.expect("正记录编号应生成安全收据");
     assert_eq!(receipt.record_id, 77);
     let requests = direct.requests().expect("读取请求");

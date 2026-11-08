@@ -87,7 +87,7 @@ void main() {
           expect(prepares, 1);
           expect(commits, 0);
           expect(discarded, ['synthetic-1']);
-          expect(find.text('博雅签到未完成，请刷新后重试。'), findsOneWidget);
+          expect(find.text('签到失败，请刷新后重试'), findsOneWidget);
           await tester.tap(find.text('博雅签退'));
           await tester.pumpAndSettle();
           expect(prepares, 2);

@@ -386,7 +386,7 @@ void main() {
           .onPressed,
       isNull,
     );
-    await tester.tap(find.text('刷新核对'));
+    await tester.tap(find.text('刷新'));
     await tester.pumpAndSettle();
     expect(
       tester

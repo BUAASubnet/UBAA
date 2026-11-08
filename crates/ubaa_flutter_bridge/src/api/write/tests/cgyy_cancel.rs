@@ -269,7 +269,7 @@ async fn 场馆取消commit重新fresh复核后恰好发送一次且意图只消
         .expect("明确成功应返回安全结果");
 
     assert!(result.success);
-    assert_eq!(result.message, "研讨室订单已取消");
+    assert_eq!(result.message, "已取消预约");
     assert!(!result.outcome_unknown);
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     assert!(result.cgyy_receipt.is_none());

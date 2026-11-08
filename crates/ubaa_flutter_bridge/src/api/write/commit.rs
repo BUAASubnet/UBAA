@@ -140,11 +140,11 @@ pub(super) fn evaluation_commit_message(
     batch: &super::BridgeEvaluationBatchResult,
 ) -> &'static str {
     if batch.outcome_unknown {
-        "教学评教提交结果无法确认，请刷新课程后核对"
+        "评教结果未确认，请刷新后查看"
     } else if batch.success {
-        "教学评教已全部提交"
+        "评教成功"
     } else {
-        "教学评教部分课程未提交，请刷新课程后重试"
+        "部分课程评教失败，请重试"
     }
 }
 

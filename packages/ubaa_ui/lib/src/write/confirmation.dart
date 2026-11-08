@@ -149,7 +149,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
                 DetailField(label: '目标', value: intent.targetSummary),
                 if (widget.showRoute) ...[
                   const SizedBox(height: 8),
-                  DetailField(label: '实际路线', value: intent.resolvedRoute.label),
+                  DetailField(label: '连接方式', value: intent.resolvedRoute.label),
                 ],
                 const SizedBox(height: 8),
                 DetailField(

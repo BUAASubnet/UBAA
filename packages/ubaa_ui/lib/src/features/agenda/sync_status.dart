@@ -23,9 +23,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
     } on Object catch (error) {
       final failure = error is AgendaException ? error.failure : null;
       UbaaFeedback.show(context, switch (failure) {
-        AgendaFailure.unavailable => '请稍后重试',
+        AgendaFailure.unavailable => '正在同步，请稍后再试',
         AgendaFailure.superseded => '网络已切换，请刷新后再试',
-        _ => '暂时无法同步，请稍后重试',
+        _ => '同步失败，请稍后重试',
       }, kind: UbaaFeedbackKind.warning);
       return;
     }

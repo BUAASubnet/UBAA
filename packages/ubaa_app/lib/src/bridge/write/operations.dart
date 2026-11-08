@@ -92,10 +92,10 @@ Future<WriteCommitResult> bridgeCommitWrite(
       message: evaluationResult == null
           ? result.message
           : evaluationResult.success
-          ? '教学评教已全部提交'
+          ? '评教成功'
           : evaluationResult.outcomeUnknown
-          ? '教学评教提交结果无法确认，请刷新课程后核对'
-          : '教学评教部分课程未提交，请刷新课程后重试',
+          ? '评教结果未确认，请刷新后查看'
+          : '部分课程评教失败，请重试',
       outcomeUnknown: result.outcomeUnknown,
       resolvedRoute: result.resolvedRoute == null
           ? null

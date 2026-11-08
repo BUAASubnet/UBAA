@@ -47,7 +47,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '退出并清除'));
     await tester.pumpAndSettle();
     expect(find.byType(UbaaLoginView), findsOneWidget);
-    expect(find.text('本机数据未能完全清除，请稍后重试。'), findsOneWidget);
+    expect(find.text('部分本机数据未清除，请重试'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets(

@@ -66,7 +66,7 @@ void main() {
     denied = true;
     await chooseExport(tester);
     expect(calls, 2);
-    expect(find.text('日历文件未保存，请检查位置与权限后重试'), findsOneWidget);
+    expect(find.text('保存失败，请检查存储权限后重试'), findsOneWidget);
   });
   testWidgets('旧作用域的导出结果不能打开保存面板，日期面板随作用域关闭', (tester) async {
     final backend = MemoryAgenda()..exportGate = Completer();

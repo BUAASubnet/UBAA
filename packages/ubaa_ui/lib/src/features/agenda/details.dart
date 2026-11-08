@@ -52,11 +52,7 @@ extension AgendaDetails on AgendaViewState {
       return current(token) ? item : null;
     } on Object {
       if (current(token))
-        UbaaFeedback.show(
-          context,
-          '事项读取失败，原数据已保留',
-          kind: UbaaFeedbackKind.error,
-        );
+        UbaaFeedback.show(context, '事项读取失败，请重试', kind: UbaaFeedbackKind.error);
       return null;
     }
   }

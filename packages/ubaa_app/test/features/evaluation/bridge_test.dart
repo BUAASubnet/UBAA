@@ -442,7 +442,7 @@ void fixtureRegisterEvaluationBridgeBackendTests() {
     expect(result.success, isFalse);
     expect(result.outcomeUnknown, isTrue);
     expect(result.resolvedRoute, ConnectionMode.webvpn);
-    expect(result.message, '教学评教提交结果无法确认，请刷新课程后核对');
+    expect(result.message, '评教结果未确认，请刷新后查看');
     expect(
       batch.items.map((item) => item.outcome),
       EvaluationCourseOutcome.values,

@@ -21,7 +21,7 @@ Future<void> uiShowAppLinkFailure(BuildContext context, AppLink link) =>
               if (context.mounted) {
                 UbaaFeedback.show(
                   context,
-                  '复制失败，请重试。',
+                  '复制失败，请重试',
                   kind: UbaaFeedbackKind.error,
                 );
               }

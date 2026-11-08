@@ -154,7 +154,7 @@ class _ErrorDetailsState extends State<_ErrorDetails> {
 
 /// 复制是用户主动行为；平台剪贴板失败不向界面抛出异常。
 Future<void> _copyDiagnosticText(BuildContext context, String text) async {
-  var message = '已复制诊断信息';
+  var message = '已复制错误信息';
   try {
     await Clipboard.setData(ClipboardData(text: text));
   } on Object {

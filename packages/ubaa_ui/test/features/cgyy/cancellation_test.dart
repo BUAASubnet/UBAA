@@ -82,7 +82,7 @@ void _registerCgyyCancellationWriteTest() {
     expect(commitCalls, 1);
     expect(verifyCalls, 1);
     expect(ordinaryRefreshCalls, 0);
-    expect(find.text('场馆订单取消已提交（取消状态已核对）'), findsOneWidget);
+    expect(find.text('场馆订单取消已提交'), findsOneWidget);
   });
 
   testWidgets('窄屏双倍字体可取消弹窗且不发请求', (tester) async {
@@ -180,7 +180,7 @@ void _registerCgyyCancellationWriteTest() {
     expect(prepareCalls, 1);
     expect(commitCalls, 1);
     expect(verifyCalls, 1);
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
   });
 
   testWidgets('场馆取消 OutcomeUnknown 结果双回读成功时仅显示固定提示', (tester) async {
@@ -232,7 +232,7 @@ void _registerCgyyCancellationWriteTest() {
 
     expect(verifyCalls, 1);
     expect(ordinaryRefreshCalls, 0);
-    expect(find.text('提交响应不确定，但研讨室订单取消状态已核对，请勿重复提交。'), findsOneWidget);
+    expect(find.text('已取消预约'), findsOneWidget);
     expect(find.textContaining('token=secret'), findsNothing);
   });
 

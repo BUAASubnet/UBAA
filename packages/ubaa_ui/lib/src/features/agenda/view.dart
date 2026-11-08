@@ -337,7 +337,7 @@ class AgendaViewState extends State<AgendaView> {
       await load();
     } on Object {
       if (current(token))
-        UbaaFeedback.show(context, '操作未完成，请重试', kind: UbaaFeedbackKind.error);
+        UbaaFeedback.show(context, '操作失败，请重试', kind: UbaaFeedbackKind.error);
     } finally {
       if (current(token)) setState(() => busy = false);
     }

@@ -45,7 +45,7 @@ extension _UbaaAppHostWidgets on _UbaaAppHostState {
             if (messenger != null)
               UbaaFeedback.showOn(
                 messenger,
-                '桌面课表暂时不可用，请重新保存课表后重试。',
+                '桌面小组件更新失败，请刷新课表后重试',
                 kind: UbaaFeedbackKind.warning,
               );
           }

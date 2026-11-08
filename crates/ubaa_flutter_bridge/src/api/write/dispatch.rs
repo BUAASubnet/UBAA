@@ -117,9 +117,9 @@ pub(crate) fn project(
         WriteReceipt::Bykc(_) => (
             true,
             safe_message(match operation {
-                BridgeWriteOperation::BykcSelectCourse => "博雅选课已提交",
-                BridgeWriteOperation::BykcDeselectCourse => "博雅退选已提交",
-                _ => "博雅签到已提交",
+                BridgeWriteOperation::BykcSelectCourse => "选课成功",
+                BridgeWriteOperation::BykcDeselectCourse => "退选成功",
+                _ => "签到成功",
             }),
             None,
             None,
@@ -128,9 +128,9 @@ pub(crate) fn project(
         WriteReceipt::BykcSign(_, kind) => (
             true,
             safe_message(if kind == 1 {
-                "博雅签到已提交"
+                "签到成功"
             } else {
-                "博雅签退已提交"
+                "签退成功"
             }),
             None,
             None,
@@ -141,7 +141,7 @@ pub(crate) fn project(
             safe_message(if v.success {
                 "签到成功"
             } else {
-                "签到未完成"
+                "签到失败"
             }),
             None,
             None,
@@ -150,9 +150,9 @@ pub(crate) fn project(
         WriteReceipt::LibbookReserve(v) => (
             v.success,
             safe_message(if v.success {
-                "图书馆预约已提交"
+                "预约成功"
             } else {
-                "图书馆预约未完成"
+                "预约失败"
             }),
             None,
             None,
@@ -161,9 +161,9 @@ pub(crate) fn project(
         WriteReceipt::LibbookCancel(v) => (
             v.success,
             safe_message(if v.success {
-                "图书馆预约已取消"
+                "已取消预约"
             } else {
-                "图书馆预约取消未完成"
+                "取消失败"
             }),
             None,
             None,
@@ -171,7 +171,7 @@ pub(crate) fn project(
         ),
         WriteReceipt::Ygdk(v) => (
             v.success,
-            safe_message("阳光打卡已提交"),
+            safe_message("打卡成功"),
             None,
             map_ygdk_receipt(v.record_id),
             None,
@@ -179,9 +179,9 @@ pub(crate) fn project(
         WriteReceipt::CgyyReserve(v) => (
             v.success,
             safe_message(if v.success {
-                "研讨室预约已提交"
+                "预约成功"
             } else {
-                "研讨室预约未完成"
+                "预约失败"
             }),
             v.receipt.map(map_cgyy_receipt),
             None,
@@ -190,9 +190,9 @@ pub(crate) fn project(
         WriteReceipt::CgyyCancel(v) => (
             v.success,
             safe_message(if v.success {
-                "研讨室订单已取消"
+                "已取消预约"
             } else {
-                "研讨室订单取消未完成"
+                "取消失败"
             }),
             None,
             None,

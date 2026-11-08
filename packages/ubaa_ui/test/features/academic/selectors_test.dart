@@ -97,7 +97,7 @@ void main() {
     await tester.tap(find.text('旧会话学期'));
     await tester.pumpAndSettle();
     expect(queries, isEmpty);
-    expect(find.text('网络已切换，请重新选择学期。'), findsOneWidget);
+    expect(find.text('网络已切换，请重新选择学期'), findsOneWidget);
   });
 
   testWidgets('考试学期按名称选择，只提交typed编码而非展示字段', (tester) async {

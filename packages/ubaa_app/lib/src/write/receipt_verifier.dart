@@ -107,18 +107,8 @@ class WriteReceiptVerifier {
       cgyyCancellationVerified: cancellationVerified,
       ygdkReadbackAttempted: ygdkAttempted,
       message: result == null
-          ? _errorMessage(
-              error!,
-              operation,
-              cancellationVerified,
-              ygdkAttempted,
-            )
-          : _resultMessage(
-              result,
-              receiptVerified,
-              cancellationVerified,
-              ygdkAttempted,
-            ),
+          ? _errorMessage(error!, operation, cancellationVerified)
+          : _resultMessage(result, receiptVerified, cancellationVerified),
     );
   }
 
@@ -156,36 +146,30 @@ class WriteReceiptVerifier {
     }
   }
 
+  /// 结果不明时只提示不要重复提交；已核对到取消状态时直接告知结果。
   String _unknownMessage(
     WriteOperation operation,
     bool? cancellationVerified,
-    bool ygdkAttempted,
-  ) {
-    if (operation == WriteOperation.ygdkSubmit) {
-      return ygdkAttempted
-          ? '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'
-          : '提交结果不确定；未能自动刷新概览与记录，请勿重复提交。';
-    }
-    return cancellationVerified == true
-        ? '提交响应不确定，但研讨室订单取消状态已核对，请勿重复提交。'
-        : '提交结果不确定，请先刷新相关状态，不要重复提交。';
-  }
+  ) =>
+      operation == WriteOperation.cgyyCancelOrder &&
+          cancellationVerified == true
+      ? '已取消预约'
+      : '结果未确认，请刷新后查看，勿重复提交';
 
   String _errorMessage(
     UiError error,
     WriteOperation operation,
     bool? cancellationVerified,
-    bool ygdkAttempted,
   ) {
     if (error.code == UbaaErrorCode.outcomeUnknown) {
-      return _unknownMessage(operation, cancellationVerified, ygdkAttempted);
+      return _unknownMessage(operation, cancellationVerified);
     }
     if (operation == WriteOperation.ygdkSubmit &&
         error.code == UbaaErrorCode.upstreamUnavailable) {
-      return '照片上传未完成，应用不会自动重试；本次阳光打卡尚未最终提交。';
+      return '照片上传失败，打卡未提交，请重试';
     }
     if (error.code == UbaaErrorCode.internalError) {
-      return '应用内部错误，请返回后刷新相关状态。';
+      return '操作失败，请刷新后重试';
     }
     return error.message;
   }
@@ -194,33 +178,16 @@ class WriteReceiptVerifier {
     WriteCommitResult result,
     bool? receiptVerified,
     bool? cancellationVerified,
-    bool ygdkAttempted,
   ) {
     if (result.outcomeUnknown) {
-      return _unknownMessage(
-        result.operation,
-        cancellationVerified,
-        ygdkAttempted,
-      );
+      return _unknownMessage(result.operation, cancellationVerified);
     }
-    if (result.operation == WriteOperation.cgyyCancelOrder) {
-      final hint = cancellationVerified == true ? '取消状态已核对' : '取消状态尚未核对，请勿重复提交';
-      return '${result.message}（$hint）';
-    }
-    if (result.operation == WriteOperation.ygdkSubmit) {
-      if (!result.success) return result.message;
-      final receipt = result.ygdkReceipt;
-      final readbackHint = ygdkAttempted ? '已尝试按原路线刷新概览与记录' : '请手动刷新概览与记录';
-      final hint = receipt?.isValid == true
-          ? '记录编号 ${receipt!.recordId}；$readbackHint'
-          : readbackHint;
-      return '${result.message}（$hint）';
-    }
-    final receipt = result.cgyyReceipt;
+    // 研讨室订单列表里查不到新订单时提醒用户自行确认，其余成功只给结论。
     if (result.operation == WriteOperation.cgyySubmitReservation &&
-        receipt != null) {
-      final hint = receiptVerified == true ? '订单列表已核对' : '请在订单列表核对';
-      return '${result.message}（订单编号 ${receipt.orderId}，$hint）';
+        result.success &&
+        result.cgyyReceipt != null &&
+        receiptVerified == false) {
+      return '预约已提交，请在预约记录中确认';
     }
     return result.message;
   }

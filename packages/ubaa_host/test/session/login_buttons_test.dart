@@ -186,7 +186,7 @@ void main() {
       expect(find.byType(UbaaMainShell), findsNothing);
       expect(find.byType(UbaaLoginView), findsOneWidget);
       expect(find.text('fixture-private-name'), findsNothing);
-      expect(find.text('本机数据未能完全清除，请稍后重试。'), findsOneWidget);
+      expect(find.text('部分本机数据未清除，请重试'), findsOneWidget);
       expect(find.textContaining('合成系统错误'), findsNothing);
       expect(vault.hasValue, isTrue);
       expect(tester.takeException(), isNull);
@@ -388,7 +388,7 @@ void _registerRecoveryRegressions() {
         expect(vault.hasValue, failClear);
         expect(grades.clearedAccounts, <String>['fixture-old-account']);
         expect(
-          find.text('本机数据未能完全清除，请稍后重试。'),
+          find.text('部分本机数据未清除，请重试'),
           (failClear || failures.logout) ? findsOneWidget : findsNothing,
         );
         expect(

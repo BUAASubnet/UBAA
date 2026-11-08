@@ -203,7 +203,7 @@ async fn signin_commit_rechecks_fresh_authority_and_preserves_business_false() {
         .expect("明确业务 false 应作为确定结果返回");
 
     assert!(!result.success);
-    assert_eq!(result.message, "签到未完成");
+    assert_eq!(result.message, "签到失败");
     assert!(!result.message.contains("当前尚不可签到"));
     assert!(!result.outcome_unknown);
     direct.assert_exhausted().expect("最终写请求必须恰好一次");

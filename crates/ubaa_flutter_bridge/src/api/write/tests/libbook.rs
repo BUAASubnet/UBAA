@@ -281,7 +281,7 @@ async fn 图书馆预约明确业务拒绝保留_false_且只发送一次() {
         .expect("明确业务 false 应作为确定结果返回");
 
     assert!(!result.success);
-    assert_eq!(result.message, "图书馆预约未完成");
+    assert_eq!(result.message, "预约失败");
     assert!(!result.message.contains("该座位不可预约"));
     assert!(!result.outcome_unknown);
     assert_eq!(confirm_request_count(&direct), 1);

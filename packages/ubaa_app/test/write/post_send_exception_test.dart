@@ -25,7 +25,7 @@ void main() {
     coordinator.setIntent(fixtureIntent());
     final outcome = await coordinator.confirmForUi();
     expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
-    expect(outcome?.message, contains('不要重复提交'));
+    expect(outcome?.message, contains('勿重复提交'));
     expect(reads, 1);
     expect(readRoute, ConnectionMode.webvpn);
     expect(await coordinator.confirmForUi(), isNull);

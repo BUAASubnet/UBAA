@@ -193,11 +193,7 @@ void main() {
         await expectLater(
           clearing,
           throwsA(
-            isA<UiError>().having(
-              (e) => e.message,
-              '固定反馈',
-              '本机数据未能完全清除，请稍后重试。',
-            ),
+            isA<UiError>().having((e) => e.message, '固定反馈', '部分本机数据未清除，请重试'),
           ),
         );
       } else {

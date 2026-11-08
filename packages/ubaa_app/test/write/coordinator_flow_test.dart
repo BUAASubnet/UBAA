@@ -230,7 +230,7 @@ void _registerFlowTests() {
     final outcome = await first;
     expect(calls, 1);
     expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
-    expect(outcome?.message, '提交结果不确定，请先刷新相关状态，不要重复提交。');
+    expect(outcome?.message, '结果未确认，请刷新后查看，勿重复提交');
     expect(coordinator.intent, isNull);
     expect(await coordinator.confirmForUi(), isNull);
     coordinator.dispose();

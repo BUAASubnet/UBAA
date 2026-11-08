@@ -228,7 +228,7 @@ void _registerYgdkWriteResultTests() {
     expect(discardedIntentIds, const <String>['wrong-domain-intent']);
     expect(commitCalls, 0);
     expect(find.text('确认提交'), findsNothing);
-    expect(find.text('阳光打卡未提交，已保留填写内容，请重试。'), findsOneWidget);
+    expect(find.text('打卡失败，请重试'), findsOneWidget);
   });
 
   testWidgets('阳光打卡回读能力在提交期间丢失时不虚称已尝试', (tester) async {
@@ -280,7 +280,7 @@ void _registerYgdkWriteResultTests() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('已尝试'), findsNothing);
-    expect(find.textContaining('请手动刷新概览与记录'), findsOneWidget);
+    expect(find.text('阳光打卡已提交'), findsOneWidget);
   });
 
   testWidgets('阳光打卡真实抛出 OutcomeUnknown 时只按原路线回读一次', (tester) async {
@@ -310,7 +310,7 @@ void _registerYgdkWriteResultTests() {
 
     expect(refreshCalls, 1);
     expect(refreshedRoute, ConnectionMode.webvpn);
-    expect(find.text('提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.textContaining('已核对'), findsNothing);
   });
 
@@ -341,7 +341,7 @@ void _registerYgdkWriteResultTests() {
 
     expect(refreshCalls, 1);
     expect(refreshedRoute, ConnectionMode.webvpn);
-    expect(find.text('提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.textContaining('不可信的异领域成功'), findsNothing);
   });
 
@@ -366,7 +366,7 @@ void _registerYgdkWriteResultTests() {
     await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
-    expect(find.text('照片上传未完成，应用不会自动重试；本次阳光打卡尚未最终提交。'), findsOneWidget);
+    expect(find.text('照片上传失败，打卡未提交，请重试'), findsOneWidget);
     expect(find.textContaining('请稍后重试'), findsNothing);
   });
 
@@ -479,7 +479,7 @@ void _registerYgdkWriteResultTests() {
 
     expect(refreshCalls, 1);
     expect(refreshedRoute, ConnectionMode.webvpn);
-    expect(find.text('提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.textContaining('已核对'), findsNothing);
   });
 

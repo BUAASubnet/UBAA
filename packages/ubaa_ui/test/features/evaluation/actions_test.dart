@@ -625,7 +625,7 @@ void _registerEvaluationWriteTests() {
       ),
     ),
     expectsReadback: true,
-    expectedMessage: '提交结果不确定，请先刷新相关状态，不要重复提交。',
+    expectedMessage: '结果未确认，请刷新后查看，勿重复提交',
   );
   registerReadbackCase(
     name: '评教抛出 outcomeUnknown 恰好一次按 intent 路线回读',
@@ -635,7 +635,7 @@ void _registerEvaluationWriteTests() {
       message: '结果暂时无法确认',
     ),
     expectsReadback: true,
-    expectedMessage: '提交结果不确定，请先刷新相关状态，不要重复提交。',
+    expectedMessage: '结果未确认，请刷新后查看，勿重复提交',
   );
   registerReadbackCase(
     name: '评教未知结果的回读失败不升级结论也不重发',
@@ -652,7 +652,7 @@ void _registerEvaluationWriteTests() {
     ),
     expectsReadback: true,
     readbackThrows: true,
-    expectedMessage: '提交结果不确定，请先刷新相关状态，不要重复提交。',
+    expectedMessage: '结果未确认，请刷新后查看，勿重复提交',
   );
   registerReadbackCase(
     name: '评教任意 commit 错误仍回读原路线且不重发',

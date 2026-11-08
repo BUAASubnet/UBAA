@@ -269,21 +269,18 @@ fn 评教总览文案区分成功确定性partial与结果未知() {
         outcome_unknown,
     };
 
-    assert_eq!(
-        evaluation_commit_message(&batch(true, false)),
-        "教学评教已全部提交"
-    );
+    assert_eq!(evaluation_commit_message(&batch(true, false)), "评教成功");
     assert_eq!(
         evaluation_commit_message(&batch(false, false)),
-        "教学评教部分课程未提交，请刷新课程后重试"
+        "部分课程评教失败，请重试"
     );
     assert_eq!(
         evaluation_commit_message(&batch(false, true)),
-        "教学评教提交结果无法确认，请刷新课程后核对"
+        "评教结果未确认，请刷新后查看"
     );
     assert_eq!(
         evaluation_commit_message(&batch(true, true)),
-        "教学评教提交结果无法确认，请刷新课程后核对"
+        "评教结果未确认，请刷新后查看"
     );
 }
 
@@ -445,7 +442,7 @@ async fn 评教commit再次读取fresh权威并完整返回四态批次() {
     assert!(!result.success);
     assert!(result.outcome_unknown);
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
-    assert_eq!(result.message, "教学评教提交结果无法确认，请刷新课程后核对");
+    assert_eq!(result.message, "评教结果未确认，请刷新后查看");
     assert!(result.cgyy_receipt.is_none());
     assert!(result.ygdk_receipt.is_none());
     let batch = result.evaluation_result.expect("不得丢弃 Core batch");

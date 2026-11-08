@@ -243,7 +243,7 @@ class ProfileView extends StatelessWidget {
         if (messenger?.mounted == true) {
           UbaaFeedback.showOn(
             messenger!,
-            '本机数据未能完全清除，请稍后重试。',
+            '部分本机数据未清除，请重试',
             kind: UbaaFeedbackKind.error,
           );
         }

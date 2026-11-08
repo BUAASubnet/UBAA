@@ -36,7 +36,7 @@ void _registerReadbackTests() {
     expect(calls, <String>['commit', 'refresh', 'receipt']);
     expect(outcome?.result, same(result));
     expect(outcome?.cgyyReceiptVerified, isTrue);
-    expect(outcome?.message, contains('订单编号 42，订单列表已核对'));
+    expect(outcome?.message, result.message);
     coordinator.dispose();
   });
 
@@ -70,7 +70,7 @@ void _registerReadbackTests() {
     final outcome = await coordinator.confirmForUi();
     expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
     expect(outcome?.cgyyCancellationVerified, isTrue);
-    expect(outcome?.message, '提交响应不确定，但研讨室订单取消状态已核对，请勿重复提交。');
+    expect(outcome?.message, '已取消预约');
     expect(genericReads, 0);
     coordinator.dispose();
   });
@@ -94,7 +94,7 @@ void _registerReadbackTests() {
     final outcome = await coordinator.confirmForUi();
     expect(outcome?.result, same(result));
     expect(outcome?.ygdkReadbackAttempted, isTrue);
-    expect(outcome?.message, '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。');
+    expect(outcome?.message, '结果未确认，请刷新后查看，勿重复提交');
     coordinator.dispose();
   });
 
@@ -148,7 +148,7 @@ void _registerReadbackTests() {
     final outcome = await coordinator.confirmForUi();
     expect(outcome?.result, isNull);
     expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
-    expect(outcome?.message, '提交结果不确定，请先刷新相关状态，不要重复提交。');
+    expect(outcome?.message, '结果未确认，请刷新后查看，勿重复提交');
     coordinator.dispose();
   });
 

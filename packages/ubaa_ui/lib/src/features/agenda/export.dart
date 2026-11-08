@@ -77,7 +77,7 @@ extension AgendaFileExport on AgendaViewState {
       if (current(token))
         UbaaFeedback.show(
           context,
-          '日历文件未保存，请检查位置与权限后重试',
+          '保存失败，请检查存储权限后重试',
           kind: UbaaFeedbackKind.error,
         );
     } finally {

@@ -231,7 +231,7 @@ void _registerFeatureInputTests() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 1);
-    expect(find.text('研讨室预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
+    expect(find.text('研讨室预约结果已提交，请刷新订单确认'), findsOneWidget);
   });
 
   testWidgets('阳光打卡填写时间并选择内存照片后直接提交', (tester) async {
@@ -348,13 +348,7 @@ void _registerFeatureInputTests() {
     expect(prepareCalls, 1);
     expect(commitCalls, 1);
     expect(ygdkRefreshCalls, 1);
-    expect(
-      find.text(
-        '阳光打卡结果已提交，请刷新记录确认'
-        '（记录编号 41；已尝试按原路线刷新概览与记录）',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('阳光打卡结果已提交，请刷新记录确认'), findsOneWidget);
   });
 
   testWidgets('阳光打卡不从展示标签推测目标且 unknown 资格 fail-closed', (tester) async {

@@ -125,7 +125,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
         code: UbaaErrorCode.internalError,
         kind: UbaaErrorKind.internal,
         title: '本机数据清除未完成',
-        message: '本机数据未能完全清除，请稍后重试。',
+        message: '部分本机数据未清除，请重试',
       );
     }
   }

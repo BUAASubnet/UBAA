@@ -49,7 +49,7 @@ void _registerSigninWriteResultTests() {
 
     expect(commitCalls, 1);
     expect(refreshCalls, 1);
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.textContaining('secret-safe@example.test'), findsNothing);
     expect(find.text('确认课堂签到'), findsNothing);
   });

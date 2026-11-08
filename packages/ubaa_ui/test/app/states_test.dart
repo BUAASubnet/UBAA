@@ -939,7 +939,7 @@ void _registerSharedStateTests() {
     await tester.tap(find.text('选课'));
     await tester.pumpAndSettle();
 
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.text('上游响应超时'), findsNothing);
     expect(refreshCalls, 1);
   });
@@ -955,7 +955,7 @@ void _registerSharedStateTests() {
     );
 
     expect(find.text('网络或登录状态已变化，请重新操作。'), findsOneWidget);
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsNothing);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsNothing);
     expect(refreshCalls, 0);
   });
 
@@ -969,7 +969,7 @@ void _registerSharedStateTests() {
       ),
     );
 
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.text('不应直接展示的自定义文案'), findsNothing);
     expect(refreshCalls, 1);
   });
@@ -980,8 +980,8 @@ void _registerSharedStateTests() {
       Exception('/private/session?token=secret'),
     );
 
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
-    expect(find.text('应用内部错误，请返回后刷新相关状态。'), findsNothing);
+    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
+    expect(find.text('操作失败，请刷新后重试'), findsNothing);
     expect(find.textContaining('secret'), findsNothing);
     expect(refreshCalls, 1);
   });

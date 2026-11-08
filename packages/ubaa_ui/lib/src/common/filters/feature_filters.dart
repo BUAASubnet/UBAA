@@ -223,7 +223,7 @@ class FeatureFilterControls extends StatelessWidget {
     if (readCacheEpoch?.call() != epoch) {
       UbaaFeedback.show(
         context,
-        '网络已切换，请重新选择学期。',
+        '网络已切换，请重新选择学期',
         kind: UbaaFeedbackKind.warning,
       );
       return;

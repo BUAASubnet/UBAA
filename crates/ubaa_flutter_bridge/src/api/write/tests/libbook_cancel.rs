@@ -390,7 +390,7 @@ async fn 图书馆取消成功使用固定文案且重复commit不会重发() {
         .expect("取消成功应返回确定结果");
 
     assert!(result.success);
-    assert_eq!(result.message, "图书馆预约已取消");
+    assert_eq!(result.message, "已取消预约");
     assert!(!result.outcome_unknown);
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     assert_eq!(cancel_request_count(&direct), 1);
@@ -438,7 +438,7 @@ async fn 图书馆取消确定业务false保持失败并隐藏上游文案() {
         .expect("确定业务 false 应作为确定结果返回");
 
     assert!(!result.success);
-    assert_eq!(result.message, "图书馆预约取消未完成");
+    assert_eq!(result.message, "取消失败");
     assert!(!result.message.contains("secret"));
     assert!(!result.outcome_unknown);
     assert_eq!(cancel_request_count(&direct), 1);

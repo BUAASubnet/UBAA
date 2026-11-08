@@ -128,7 +128,7 @@ mixin ControllerWriteCache on ControllerState {
             ? const UiError(
                 code: UbaaErrorCode.operationConflict,
                 title: '相关内容待更新',
-                message: '学校状态可能已变化，正在重新核对相关内容。',
+                message: '内容可能已变化，正在更新',
                 retryable: true,
                 actionLabel: '刷新',
               )

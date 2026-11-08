@@ -314,7 +314,7 @@ async fn 博雅签退成功只提交一次并返回准确确认文案() {
         .expect("提交博雅签退");
 
     assert!(result.success);
-    assert_eq!(result.message, "博雅签退已提交");
+    assert_eq!(result.message, "签退成功");
     assert!(!result.outcome_unknown);
     direct.assert_exhausted().expect("最终写请求必须恰好一次");
     assert_eq!(direct.requests().expect("读取请求").len(), 6);

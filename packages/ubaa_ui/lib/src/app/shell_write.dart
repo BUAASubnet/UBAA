@@ -110,7 +110,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       outcome = await confirm();
     } on Object {
       if (mounted && generation == _accountGeneration) {
-        failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : '未能提交，请刷新后重试';
+        failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : '提交失败，请刷新后重试';
       }
     } finally {
       // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
@@ -173,8 +173,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     await _runDirectWrite(
       prepare: () => prepare(action),
       failureMessage: action.kind == BykcSignKind.signOut
-          ? '博雅签退未完成，请刷新后重试。'
-          : '博雅签到未完成，请刷新后重试。',
+          ? '签退失败，请刷新后重试'
+          : '签到失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -184,7 +184,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '签到未完成，请刷新后重试。',
+      failureMessage: '签到失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -200,7 +200,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '研讨室预约未取消，请刷新后重试。',
+      failureMessage: '取消失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -210,7 +210,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '座位未预约，请刷新后重试。',
+      failureMessage: '预约失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -226,7 +226,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '座位预约未取消，请刷新后重试。',
+      failureMessage: '取消失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -243,7 +243,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       return;
     await _runDirectWrite(
       prepare: () => prepare(targets),
-      failureMessage: '评教未提交，请刷新后重试。',
+      failureMessage: '评教失败，请刷新后重试',
       expectedOperation: WriteOperation.evaluationSubmitCourses,
     );
   }
@@ -253,7 +253,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (!_hasYgdkSubmissionCapabilities || prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(input),
-      failureMessage: '阳光打卡未提交，已保留填写内容，请重试。',
+      failureMessage: '打卡失败，请重试',
       expectedOperation: WriteOperation.ygdkSubmit,
     );
   }
@@ -263,7 +263,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(input),
-      failureMessage: '研讨室未预约，已保留填写内容，请重试。',
+      failureMessage: '预约失败，请重试',
       expectedOperation: WriteOperation.cgyySubmitReservation,
     );
   }
@@ -295,7 +295,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         if (outcome == null) failure = failureMessage;
       }
     } on Object {
-      failure = attempted ? '结果未确认，请刷新后查看，勿重复提交。' : failureMessage;
+      failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : failureMessage;
     } finally {
       // 过期等原因未被消费的意图立即释放，避免阻塞下一次操作。
       if (mounted &&
@@ -323,7 +323,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       await cancel();
     } on Object {
       if (!mounted) return;
-      UbaaFeedback.show(context, '操作未完成，请稍后重试。', kind: UbaaFeedbackKind.error);
+      UbaaFeedback.show(context, '操作失败，请重试', kind: UbaaFeedbackKind.error);
     }
   }
 }
@@ -359,11 +359,7 @@ extension UbaaHomeSignin on _UbaaMainShellState {
       return outcome;
     } on Object {
       if (mounted && generation == _accountGeneration) {
-        UbaaFeedback.show(
-          context,
-          '签到未完成，请刷新状态后重试。',
-          kind: UbaaFeedbackKind.error,
-        );
+        UbaaFeedback.show(context, '签到失败，请刷新后重试', kind: UbaaFeedbackKind.error);
       }
       return null;
     } finally {
