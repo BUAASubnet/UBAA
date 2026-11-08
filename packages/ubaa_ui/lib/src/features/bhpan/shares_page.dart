@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'chrome.dart';
 import 'share_form.dart';
 import 'write_flow.dart';
 import '../../shared/dialogs/scope_boundary.dart';
@@ -171,7 +170,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
         ),
       );
     } else if (shares == null) {
-      content = const BhpanSkeletonList();
+      content = const LoadingPlaceholder();
     } else if (shares.isEmpty) {
       content = PullToRefresh(
         onRefresh: _load,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../shared/loading.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
 import 'selection.dart';
@@ -198,7 +199,7 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
         ),
       );
     } else if (_page == null) {
-      content = const BhpanSkeletonList();
+      content = const LoadingPlaceholder();
     } else if (items.isEmpty) {
       content = PullToRefresh(
         onRefresh: _load,

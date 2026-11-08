@@ -1,6 +1,7 @@
 import '../../theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../shared/loading.dart';
 import '../../common/search_field.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -840,38 +841,45 @@ class _BhpanViewState extends State<BhpanView> {
       }
     }
 
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): escape,
-        const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _openSearch,
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
-            _openSearch,
-      },
-      child: Focus(
-        focusNode: _keys,
-        autofocus: true,
-        child: Stack(
-          children: [
-            // 云盘行内边距按手机 16 设计；宽屏补齐到页面统一左右边线。
-            Positioned.fill(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width) -
-                      16,
-                ),
-                child: body,
-              ),
-            ),
-            if (showFab)
+    // 刷新目录时同样在标题栏右上角显示“更新中”。
+    return UiReportBusy(
+      busy: _loading && _page != null,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): escape,
+          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+              _openSearch,
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+              _openSearch,
+        },
+        child: Focus(
+          focusNode: _keys,
+          autofocus: true,
+          child: Stack(
+            children: [
+              // 云盘行内边距按手机 16 设计；宽屏补齐到页面统一左右边线。
               Positioned.fill(
-                child: BhpanCreateMenu(
-                  enabled: !_busy,
-                  onUpload: _canUpload ? _upload : null,
-                  onNewFolder: _canCreateFolder ? _newFolder : null,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        UbaaTheme.pagePadding(
+                          MediaQuery.sizeOf(context).width,
+                        ) -
+                        16,
+                  ),
+                  child: body,
                 ),
               ),
-          ],
+              if (showFab)
+                Positioned.fill(
+                  child: BhpanCreateMenu(
+                    enabled: !_busy,
+                    onUpload: _canUpload ? _upload : null,
+                    onNewFolder: _canCreateFolder ? _newFolder : null,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

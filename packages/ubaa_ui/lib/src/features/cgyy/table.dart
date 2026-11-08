@@ -128,15 +128,13 @@ extension CgyyReservationTable on CgyyReservationFlowState {
         if (spaces.isEmpty && _busy)
           const Spacer()
         else if (spaces.isEmpty)
+          // 与全应用一致的空状态：图标、说明和一个操作。
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('这一天该楼层没有可预约时段'),
-                  TextButton(onPressed: _showAll, child: const Text('显示全部时段')),
-                ],
-              ),
+            child: UiStatePanel(
+              icon: Icons.event_busy_outlined,
+              title: '这一天该楼层没有可预约时段',
+              action: '显示全部时段',
+              onAction: _showAll,
             ),
           )
         else

@@ -63,7 +63,8 @@ extension _BhpanContent on _BhpanViewState {
         onRefresh: _refresh,
         child: RefreshViewport(child: _errorPanel(error)),
       );
-    if (_page == null) return const BhpanSkeletonList();
+    // 首次进入目录只留空白，进度显示在标题栏右上角。
+    if (_page == null) return const LoadingPlaceholder();
     if (items.isEmpty)
       return PullToRefresh(
         onRefresh: _refresh,

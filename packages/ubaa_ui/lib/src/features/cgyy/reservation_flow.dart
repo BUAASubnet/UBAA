@@ -5,7 +5,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../../shared/loading.dart' show LoadingPlaceholder;
+import '../../shared/loading.dart' show LoadingPlaceholder, UiReportBusy;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
@@ -252,11 +252,10 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     return Column(
       children: [
         buildInlineChips(context),
-        SizedBox(
-          height: 2,
-          child: _busy && day != null
-              ? const LinearProgressIndicator(minHeight: 2)
-              : null,
+        // 切换日期、楼层时的读取进度显示在标题栏右上角；保留 2 像素间距不改布局。
+        UiReportBusy(
+          busy: _busy && day != null,
+          child: const SizedBox(height: 2),
         ),
         Expanded(
           child:
@@ -266,7 +265,10 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback
               : day == null
-              ? const Center(child: Text('当前暂无研讨室时段'))
+              ? const UiStatePanel(
+                  icon: Icons.meeting_room_outlined,
+                  title: '当前暂无研讨室时段',
+                )
               : Padding(
                   padding: UbaaTheme.pageInsets(context, top: 0, bottom: 0),
                   child: _table(context, day),

@@ -278,7 +278,8 @@ class _MetricsPanel extends StatelessWidget {
       _MetricTile(
         key: const ValueKey('me-metric-cloud'),
         icon: Icons.cloud_outlined,
-        label: '云盘剩余',
+        // 窄卡片还要放箭头，两字标签不被截断。
+        label: '云盘',
         value: _amount(metrics?.cloudStorageRemaining),
         onTap: onOpenBhpan,
       ),
@@ -368,11 +369,10 @@ class _MetricTile extends StatelessWidget {
         '读取失败',
         style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
       ),
-      _TilePending(:final loading) => Text(
-        loading ? '读取中…' : '—',
-        style: (loading ? theme.textTheme.bodyLarge : valueStyle)?.copyWith(
-          color: scheme.outline,
-        ),
+      // 读取进度只在标题栏右上角显示，卡片内保持中性的占位。
+      _TilePending() => Text(
+        '—',
+        style: valueStyle?.copyWith(color: scheme.outline),
       ),
     };
     return Card.outlined(
@@ -456,7 +456,7 @@ class _NetworkPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     section.loading
-                        ? '正在读取流量…'
+                        ? '—'
                         : usage != null
                         ? '当前账号没有网络产品'
                         : '暂无流量数据',

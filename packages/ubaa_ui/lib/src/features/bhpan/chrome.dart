@@ -62,7 +62,7 @@ import 'format.dart';
   };
 }
 
-/// 列表用的短时间：今天 21:57、昨天 21:57、今年 3月13日、往年 2025-12-08。
+/// 列表用的短时间：今天 21:57、昨天 21:57、今年 3月13日、往年 2025年12月8日。
 String bhpanShortDate(DateTime time, {DateTime? now}) {
   final d = time.toUtc().add(const Duration(hours: 8));
   final n = (now ?? DateTime.now()).toUtc().add(const Duration(hours: 8));
@@ -74,7 +74,7 @@ String bhpanShortDate(DateTime time, {DateTime? now}) {
   if (diff == 0) return '今天 $hm';
   if (diff == 1) return '昨天 $hm';
   if (d.year == n.year) return '${d.month}月${d.day}日';
-  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  return '${d.year}年${d.month}月${d.day}日';
 }
 
 /// 列表行副标题：文件显示大小，有时间时追加短时间。
@@ -236,55 +236,6 @@ class _BhpanItemTileState extends State<BhpanItemTile> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// 首次进入目录时的占位行，尺寸与 [BhpanItemTile] 一致，避免内容跳动。
-class BhpanSkeletonList extends StatelessWidget {
-  const BhpanSkeletonList({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final fill = Theme.of(context).colorScheme.surfaceContainerHigh;
-    Widget bar(double width, double height) => Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(6),
-      ),
-    );
-    return ListView(
-      key: const ValueKey('bhpan-skeleton'),
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      children: [
-        for (final width in const [180.0, 120.0, 200.0, 150.0, 96.0, 170.0])
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: fill,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    bar(width, 14),
-                    const SizedBox(height: 8),
-                    bar(72, 10),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }
