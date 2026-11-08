@@ -35,8 +35,21 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('导航栏在宽度$width的矮窗口可访问溢出入口且固定设置和关于', (tester) async {
+    testWidgets('导航栏在宽度$width的矮窗口可访问全部分组入口', (tester) async {
       await _mount(tester, Size(width, 400));
+      if (width < 1000) {
+        // 紧凑侧栏在矮窗口不再固定底部按钮：四个分组和设置都直接可点，
+        // “关于”从“我的”页进入，避免底部按钮盖住分组。
+        for (final label in ['首页', '学习', '日程', '校园', '设置']) {
+          expect(find.byTooltip(label).hitTestable(), findsOneWidget);
+        }
+        expect(find.byTooltip('关于'), findsNothing);
+        await tester.tap(find.byTooltip('校园'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        return;
+      }
       final navigation = tester.state<ScrollableState>(
         find.byType(Scrollable).first,
       );

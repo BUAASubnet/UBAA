@@ -141,61 +141,70 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                   : null,
             ),
           );
-      return NavigationRail(
-        scrollable: true,
-        minWidth: 88,
-        selectedIndex: _selectedIndex < 4 && _utilityPage == null
-            ? _selectedIndex
-            : null,
-        onDestinationSelected: _selectTab,
-        labelType: NavigationRailLabelType.none,
-        leading: _buildRailLeading(context, false),
-        trailingAtBottom: true,
-        trailing: Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: '设置',
-                isSelected:
-                    _selectedIndex == UiDestination.settings.index &&
-                    _utilityPage == null,
-                style: railButtonStyle,
-                onPressed: () => _selectTab(UiDestination.settings.index),
-                icon: Icon(UiDestination.settings.icon),
-                selectedIcon: Icon(UiDestination.settings.selectedIcon),
+      // 矮窗口收紧间距、设置紧跟分组、省去“关于”（在“我的”页），不再遮住分组。
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final short = constraints.maxHeight < 560;
+          return NavigationRail(
+            scrollable: true,
+            minWidth: 88,
+            selectedIndex: _selectedIndex < 4 && _utilityPage == null
+                ? _selectedIndex
+                : null,
+            onDestinationSelected: _selectTab,
+            labelType: NavigationRailLabelType.none,
+            leading: _buildRailLeading(context, false),
+            trailingAtBottom: !short,
+            trailing: Padding(
+              padding: EdgeInsets.only(bottom: short ? 8 : 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: '设置',
+                    isSelected:
+                        _selectedIndex == UiDestination.settings.index &&
+                        _utilityPage == null,
+                    style: railButtonStyle,
+                    onPressed: () => _selectTab(UiDestination.settings.index),
+                    icon: Icon(UiDestination.settings.icon),
+                    selectedIcon: Icon(UiDestination.settings.selectedIcon),
+                  ),
+                  if (!short) ...[
+                    const SizedBox(height: 8),
+                    IconButton(
+                      tooltip: '关于',
+                      isSelected:
+                          _utilityPage == '关于' && _openedFeature == null,
+                      style: railButtonStyle,
+                      onPressed: () => _openUtility('关于'),
+                      icon: const Icon(Icons.info_outline),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 8),
-              IconButton(
-                tooltip: '关于',
-                isSelected: _utilityPage == '关于' && _openedFeature == null,
-                style: railButtonStyle,
-                onPressed: () => _openUtility('关于'),
-                icon: const Icon(Icons.info_outline),
-              ),
-            ],
-          ),
-        ),
-        destinations: _UbaaMainShellState._tabs
-            .take(4)
-            .map(
-              (tab) => NavigationRailDestination(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                icon: Tooltip(
-                  message: tab.label,
-                  excludeFromSemantics: true,
-                  child: Icon(tab.icon),
-                ),
-                selectedIcon: Tooltip(
-                  message: tab.label,
-                  excludeFromSemantics: true,
-                  child: Icon(tab.selectedIcon),
-                ),
-                label: Text(tab.label),
-              ),
-            )
-            .toList(),
+            ),
+            destinations: _UbaaMainShellState._tabs
+                .take(4)
+                .map(
+                  (tab) => NavigationRailDestination(
+                    padding: EdgeInsets.symmetric(vertical: short ? 0 : 8),
+                    icon: Tooltip(
+                      message: tab.label,
+                      excludeFromSemantics: true,
+                      child: Icon(tab.icon),
+                    ),
+                    selectedIcon: Tooltip(
+                      message: tab.label,
+                      excludeFromSemantics: true,
+                      child: Icon(tab.selectedIcon),
+                    ),
+                    label: Text(tab.label),
+                  ),
+                )
+                .toList(),
+          );
+        },
       );
     }
     Widget entry(UiDestination tab) => Padding(

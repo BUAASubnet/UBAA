@@ -50,6 +50,28 @@ void main() {
     }
   });
 
+  testWidgets('手机横屏高度不足时侧边导航的每个分组仍可点击', (tester) async {
+    await _mount(tester);
+    tester.view.physicalSize = const Size(874, 402);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    for (final destination in UiDestination.values.take(4)) {
+      // 不先滚动：用户看不到被遮住的入口，也不会想到侧边栏可以滚动。
+      final target = find.byTooltip(destination.label);
+      expect(target.hitTestable(), findsOneWidget, reason: destination.label);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<NavigationRail>(find.byType(NavigationRail))
+            .selectedIndex,
+        destination.index,
+        reason: destination.label,
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('同一导航在599到600到999到1000使用对应形态且标签可读', (tester) async {
     await _mount(tester);
     final state = tester.state(find.byType(UbaaMainShell));
