@@ -5,7 +5,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../forms/action_bar.dart' show FormActionBar;
+import '../../shared/dialogs/form_page.dart';
 import '../../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
 import 'draft.dart' show YgdkFormContext, YgdkFormDraft, uiYgdkItemKey;
 part 'form_ygdk_draft.dart';
@@ -125,212 +125,139 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
   @override
   Widget build(BuildContext context) {
     final selected = _selected;
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        toolbarHeight: 56,
-        title: const Text(
-          '填写阳光打卡信息',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        leading: BackButton(onPressed: _cancel),
+    return UiFormScaffold(
+      title: '填写阳光打卡信息',
+      onClose: _cancel,
+      error: _error,
+      secondary: TextButton(onPressed: _cancel, child: const Text('取消')),
+      primary: FilledButton(
+        onPressed: _picking ? null : _continue,
+        child: const Text('提交打卡'),
       ),
-      bottomNavigationBar: FormActionBar(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_error case final message?)
-                Text(
-                  message,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              Row(
-                children: [
-                  TextButton(onPressed: _cancel, child: const Text('取消')),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: FilledButton(
-                        onPressed: _picking ? null : _continue,
-                        child: const Text('提交打卡'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      children: [
+        _section('运动项目', description: '留空时使用默认运动项目', [
+          OutlinedButton(
+            onPressed: _chooseItem,
+            child: Text(selected == null ? '选择运动项目' : _itemName(selected)),
           ),
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 840),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+        ]),
+        _section('时间', description: '全部留空时自动生成一小时时间段', [
+          // 够宽时开始、结束并排，窄屏上下排列。
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final start = _timeField(
+                _startController,
+                '开始时间',
+                (v) => draft.start = v,
+              );
+              final end = _timeField(
+                _endController,
+                '结束时间',
+                (v) => draft.end = v,
+              );
+              return constraints.maxWidth >= 420
+                  ? Row(
                       children: [
-                        _section('运动项目', [
-                          const Text('留空时使用默认运动项目'),
-                          OutlinedButton(
-                            onPressed: _chooseItem,
-                            child: Text(
-                              selected == null ? '选择运动项目' : _itemName(selected),
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 12),
-                        _section('时间', [
-                          const Text('全部留空时自动生成一小时时间段'),
-                          _timeField(
-                            _startController,
-                            '开始时间',
-                            (v) => draft.start = v,
-                          ),
-                          const SizedBox(height: 12),
-                          _timeField(
-                            _endController,
-                            '结束时间',
-                            (v) => draft.end = v,
-                          ),
-                        ]),
-                        const SizedBox(height: 12),
-                        _section('地点', [
-                          TextField(
-                            controller: _placeController,
-                            onChanged: (v) => draft.place = v,
-                            decoration: const InputDecoration(
-                              labelText: '打卡地点',
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 12),
-                        _section('照片', [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed:
-                                      _picking || widget.onPickPhoto == null
-                                      ? null
-                                      : _pickPhoto,
-                                  icon: const Icon(
-                                    Icons.photo_library_outlined,
-                                  ),
-                                  label: Text(
-                                    _photo == null
-                                        ? '选择照片'
-                                        : '已选择照片：${_photo!.fileName}',
-                                  ),
-                                ),
-                              ),
-                              if (widget.onCapturePhoto != null) ...[
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _picking
-                                        ? null
-                                        : () => _pickPhoto(capture: true),
-                                    icon: const Icon(
-                                      Icons.photo_camera_outlined,
-                                    ),
-                                    label: const Text('拍摄照片'),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Text('单张图片不超过 10 MB'),
-                          if (_previewBytes case final bytes?) ...[
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.memory(
-                                  bytes,
-                                  key: const ValueKey<String>(
-                                    'ygdk-photo-preview',
-                                  ),
-                                  width: 180,
-                                  height: 120,
-                                  cacheWidth: _previewCacheWidth,
-                                  cacheHeight: _previewCacheHeight,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox(
-                                    width: 180,
-                                    height: 72,
-                                    child: Center(
-                                      child: Text('照片预览不可用，请重新选择。'),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton.icon(
-                                onPressed: _picking
-                                    ? null
-                                    : () => setState(_releasePhotoReferences),
-                                icon: const Icon(Icons.delete_outline),
-                                label: const Text('清除照片'),
-                              ),
-                            ),
-                          ],
-                          const Text('未选择照片时使用默认图片'),
-                        ]),
-                        const SizedBox(height: 12),
-                        Card(
-                          child: CheckboxListTile(
-                            value: draft.share,
-                            onChanged: (v) =>
-                                setState(() => draft.share = v ?? false),
-                            contentPadding: const EdgeInsets.all(16),
-                            secondary: const Icon(Icons.share_outlined),
-                            title: const Text('分享到打卡广场'),
-                          ),
-                        ),
+                        Expanded(child: start),
+                        const SizedBox(width: 12),
+                        Expanded(child: end),
                       ],
-                    ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [start, const SizedBox(height: 12), end],
+                    );
+            },
+          ),
+        ]),
+        _section('地点', [
+          TextField(
+            controller: _placeController,
+            onChanged: (v) => draft.place = v,
+            decoration: const InputDecoration(labelText: '打卡地点'),
+          ),
+        ]),
+        _section('照片', description: '单张不超过 10 MB，不选时使用默认图片', [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _picking || widget.onPickPhoto == null
+                      ? null
+                      : _pickPhoto,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(
+                    _photo == null ? '选择照片' : '已选择照片：${_photo!.fileName}',
+                  ),
+                ),
+              ),
+              if (widget.onCapturePhoto != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _picking
+                        ? null
+                        : () => _pickPhoto(capture: true),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('拍摄照片'),
                   ),
                 ),
               ],
-            ),
+            ],
           ),
+          if (_previewBytes case final bytes?) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  bytes,
+                  key: const ValueKey<String>('ygdk-photo-preview'),
+                  width: 180,
+                  height: 120,
+                  cacheWidth: _previewCacheWidth,
+                  cacheHeight: _previewCacheHeight,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    width: 180,
+                    height: 72,
+                    child: Center(child: Text('照片预览不可用，请重新选择。')),
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _picking
+                    ? null
+                    : () => setState(_releasePhotoReferences),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('清除照片'),
+              ),
+            ),
+          ],
+        ]),
+        UiFormSection(
+          padding: EdgeInsets.zero,
+          children: [
+            CheckboxListTile(
+              value: draft.share,
+              onChanged: (v) => setState(() => draft.share = v ?? false),
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.share_outlined),
+              title: const Text('分享到打卡广场'),
+            ),
+          ],
         ),
-      ),
+      ],
     );
   }
 
-  Widget _section(String title, List<Widget> children) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    ),
-  );
+  Widget _section(String title, List<Widget> children, {String? description}) =>
+      UiFormSection(title: title, description: description, children: children);
 
   Future<void> _pickPhoto({bool capture = false}) async {
     final picker = capture ? widget.onCapturePhoto : widget.onPickPhoto;

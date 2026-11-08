@@ -181,7 +181,7 @@ class HomeViewState extends State<HomeView> {
               onTap: widget.onFeatureTap,
             ),
     );
-    final todoSection = Column(
+    Widget todoSection(int limit) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 标题字号与“今日课表”一致；刷新状态统一显示在标题栏右侧。
@@ -194,22 +194,27 @@ class HomeViewState extends State<HomeView> {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            if (tasks.length > 4)
+            if (tasks.length > limit)
               TextButton(
                 key: const ValueKey('home-todos-toggle'),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: widget.onViewAllTodos,
                 child: Text('查看全部（${tasks.length}）'),
               ),
           ],
         ),
+        // 与课表日期行同高，两栏并排时首张卡片顶端对齐。
+        const SizedBox(height: 4),
+        Text(tasks.isEmpty ? '近期截止与提醒' : '近期 ${tasks.length} 项'),
         const SizedBox(height: 12),
         HomeTodoGrid(
           key: const ValueKey('home-todos'),
           children: [
-            for (final task in tasks.take(4))
+            for (final task in tasks.take(limit))
               HomeTodoCard(
                 item: task,
                 now: campusNow,
@@ -316,9 +321,7 @@ class HomeViewState extends State<HomeView> {
       onRefresh: () => widget.onPullRefresh?.call(refresh) ?? refresh(),
       child: ListView(
         key: const ValueKey('home-scroll'),
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
+        padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
           if (widget.writeReadbackNotice case final notice?) ...[
             notice,
@@ -332,10 +335,29 @@ class HomeViewState extends State<HomeView> {
             ),
             const SizedBox(height: 12),
           ],
-          courseSection,
-          // 课程卡片自带 12 的下边距，再留 12 与卡片间距相称。
-          const SizedBox(height: 12),
-          todoSection,
+          LayoutBuilder(
+            builder: (context, constraints) =>
+                constraints.maxWidth >=
+                    MediaQuery.textScalerOf(context).scale(840)
+                // 桌面宽度下课表与待办并排，减少整页只占上半屏的空白。
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 5, child: courseSection),
+                      const SizedBox(width: 24),
+                      Expanded(flex: 6, child: todoSection(6)),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      courseSection,
+                      // 课程卡片自带 12 的下边距，再留 12 与卡片间距相称。
+                      const SizedBox(height: 12),
+                      todoSection(4),
+                    ],
+                  ),
+          ),
         ],
       ),
     );
@@ -366,52 +388,45 @@ class FeatureGridView extends StatelessWidget {
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [
       SliverPadding(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
-        sliver: SliverList.list(
-          children: [
-            if (onOpenIhome != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: UiEntryCard(
-                  title: 'iHome',
-                  icon: Icons.forum_outlined,
-                  subtitle: '校园诉求、回复与公告',
-                  onTap: onOpenIhome!,
-                ),
-              ),
-            if (onOpenBhpan != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: UiEntryCard(
-                  title: '北航云盘',
-                  icon: Icons.cloud_outlined,
-                  subtitle: '文档库、文件管理、分享与回收站',
-                  onTap: onOpenBhpan!,
-                ),
-              ),
-            for (final feature in features)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Semantics(
-                  container: true,
-                  button: true,
-                  excludeSemantics: true,
-                  onTap: () => onFeatureTap(feature),
-                  label:
-                      '${feature.title}：${snapshots[feature]?.summary ?? feature.description}。点击查看详情',
-                  child: UiEntryCard(
-                    title: feature.title,
-                    icon: uiFeatureIcon(feature),
-                    subtitle: feature.description,
-                    onTap: () => onFeatureTap(feature),
-                  ),
-                ),
-              ),
-          ],
-        ),
+        padding: UbaaTheme.pageInsets(context, top: 8),
+        sliver: SliverToBoxAdapter(child: _grid()),
       ),
+    ],
+  );
+
+  Widget _grid() => UiAdaptiveGrid(
+    minItemWidth: 400,
+    maxColumns: 2,
+    children: [
+      if (onOpenIhome != null)
+        UiEntryCard(
+          title: 'iHome',
+          icon: Icons.forum_outlined,
+          subtitle: '校园诉求、回复与公告',
+          onTap: onOpenIhome!,
+        ),
+      if (onOpenBhpan != null)
+        UiEntryCard(
+          title: '北航云盘',
+          icon: Icons.cloud_outlined,
+          subtitle: '文档库、文件管理、分享与回收站',
+          onTap: onOpenBhpan!,
+        ),
+      for (final feature in features)
+        Semantics(
+          container: true,
+          button: true,
+          excludeSemantics: true,
+          onTap: () => onFeatureTap(feature),
+          label:
+              '${feature.title}：${snapshots[feature]?.summary ?? feature.description}。点击查看详情',
+          child: UiEntryCard(
+            title: feature.title,
+            icon: uiFeatureIcon(feature),
+            subtitle: feature.description,
+            onTap: () => onFeatureTap(feature),
+          ),
+        ),
     ],
   );
 }

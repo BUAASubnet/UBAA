@@ -44,8 +44,12 @@ extension _IhomeFilters on _IhomeViewState {
                           },
                     icon: const Icon(Icons.close),
                   ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+            // 与其他页面的搜索栏一致：填充胶囊，无描边。
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+            border: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(999)),
+              borderSide: BorderSide.none,
             ),
           ),
           onChanged: (_) => _update(() {}),

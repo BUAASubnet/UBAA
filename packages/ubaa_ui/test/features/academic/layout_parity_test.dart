@@ -138,7 +138,11 @@ void main() {
     expect(find.text('更多信息'), findsNothing);
     await tester.tap(find.text('合成考试'));
     await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
+    // 宽屏面板以对话框显示。
+    expect(
+      find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
+      findsOneWidget,
+    );
     expect(find.text('2999-10-01 · 09:00 开始'), findsOneWidget);
     expect(find.text('TASK-KEEP'), findsNothing);
     expect(find.text('保留值'), findsOneWidget);

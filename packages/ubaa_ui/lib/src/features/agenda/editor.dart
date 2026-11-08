@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../theme.dart' show UbaaTheme;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'format.dart';
+import '../../shared/dialogs/form_page.dart';
 
 /// 编辑器只收集校园时区输入，重复规则由 Core 校验和展开。
 class AgendaEditor extends StatefulWidget {
@@ -89,17 +89,16 @@ class _AgendaEditorState extends State<AgendaEditor> {
     String label,
     String initial, {
     int lines = 1,
+    int? minLines,
     bool required = false,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: TextFormField(
       key: ValueKey('agenda-$key'),
       controller: field(key, initial),
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       maxLines: lines,
+      minLines: minLines,
       validator: required
           ? (value) =>
                 value == null || value.trim().isEmpty ? '请填写$label' : null
@@ -214,15 +213,69 @@ class _AgendaEditorState extends State<AgendaEditor> {
     );
   }
 
-  Widget section(List<Widget> children) => Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(children: children),
-  );
+  Widget section(List<Widget> children) => UiFormSection(children: children);
+
+  static const _colors = {
+    '#5B6FCB': '蓝紫',
+    '#30856A': '绿色',
+    '#C77A29': '橙色',
+    '#BA4F65': '玫红',
+  };
+
+  /// 颜色直接以色块选择，比下拉列表少一步，也能一眼看到效果。
+  Widget colorPicker() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final options = {
+      ..._colors,
+      if (!_colors.containsKey(_color)) _color: '原颜色',
+    };
+    Color parse(String hex) => Color(
+      int.tryParse(hex.substring(1), radix: 16) ?? 0x5B6FCB,
+    ).withValues(alpha: 1);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text('颜色', style: theme.textTheme.bodyLarge)),
+          for (final MapEntry(key: hex, value: name) in options.entries)
+            Semantics(
+              button: true,
+              selected: hex == _color,
+              label: '颜色$name',
+              excludeSemantics: true,
+              child: Tooltip(
+                message: name,
+                child: InkResponse(
+                  radius: 20,
+                  onTap: _busy ? null : () => setState(() => _color = hex),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        width: 2,
+                        color: hex == _color
+                            ? colors.onSurface
+                            : Colors.transparent,
+                      ),
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: parse(hex),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Future<void> save() async {
     if (!_form.currentState!.validate() || _busy || !widget.isCurrent()) return;
@@ -413,181 +466,152 @@ class _AgendaEditorState extends State<AgendaEditor> {
     final single =
         widget.item?.rrule != null &&
         widget.scope == AgendaEditScope.thisOccurrence;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.item == null ? '新建事项' : '编辑事项'),
-        centerTitle: false,
+    final theme = Theme.of(context);
+    final title = widget.item == null ? '新建事项' : '编辑事项';
+    final fields = <Widget>[
+      SegmentedButton<AgendaKind>(
+        segments: const [
+          ButtonSegment(value: AgendaKind.event, label: Text('日程')),
+          ButtonSegment(value: AgendaKind.task, label: Text('待办')),
+        ],
+        selected: {_kind},
+        onSelectionChanged: _busy
+            ? null
+            : (v) => setState(() => _kind = v.single),
       ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          key: const ValueKey('agenda-editor-list'),
-          padding: EdgeInsets.all(
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+      const SizedBox(height: 20),
+      text('title', '标题', content?.title ?? '', required: true),
+      if (_kind == AgendaKind.event)
+        section([
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('全天'),
+            value: _allDay,
+            onChanged: _busy ? null : (v) => setState(() => _allDay = v),
           ),
-          children: [
-            SegmentedButton<AgendaKind>(
-              segments: const [
-                ButtonSegment(value: AgendaKind.event, label: Text('日程')),
-                ButtonSegment(value: AgendaKind.task, label: Text('待办')),
-              ],
-              selected: {_kind},
-              onSelectionChanged: _busy
-                  ? null
-                  : (v) => setState(() => _kind = v.single),
-            ),
-            const SizedBox(height: 20),
-            text('title', '标题', content?.title ?? '', required: true),
-            if (_kind == AgendaKind.event)
-              section([
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('全天'),
-                  value: _allDay,
-                  onChanged: _busy ? null : (v) => setState(() => _allDay = v),
-                ),
-                const Divider(height: 1),
-                timeField(
-                  'start',
-                  '开始',
-                  initialTime(content?.start, now),
-                  dateOnly: _allDay,
-                ),
-                timeField(
-                  'end',
-                  _allDay ? '结束（次日零点）' : '结束',
-                  initialTime(content?.end, now.add(const Duration(hours: 1))),
-                  dateOnly: _allDay,
-                ),
-              ])
-            else
-              section([
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('无日期待办'),
-                  value: _undated,
-                  onChanged: _busy ? null : (v) => setState(() => _undated = v),
-                ),
-                if (!_undated) ...[
-                  const Divider(height: 1),
-                  timeField(
-                    'due',
-                    '截止',
-                    initialTime(
-                      content?.due,
-                      now.add(const Duration(hours: 1)),
-                    ),
-                  ),
-                ],
-              ]),
-            if (!single) ...[
-              DropdownButtonFormField<String>(
-                initialValue: _repeat,
-                decoration: const InputDecoration(labelText: '重复'),
-                items: [
-                  for (final s in ['不重复', '每天', '每周', '工作日', '按教学周', '自定义'])
-                    DropdownMenuItem(value: s, child: Text(s)),
-                ],
-                onChanged: _busy ? null : (v) => setState(() => _repeat = v!),
-              ),
-              const SizedBox(height: 16),
-              if (_repeat == '自定义')
-                text(
-                  'rule',
-                  'RRULE（如 FREQ=MONTHLY;BYMONTHDAY=15）',
-                  widget.item?.rrule ?? '',
-                ),
-              if (_repeat == '按教学周') ...[
-                text(
-                  'monday',
-                  '第一教学周周一（YYYY-MM-DD）',
-                  agendaDate(now.subtract(Duration(days: now.weekday - 1))),
-                ),
-                Row(
-                  children: [
-                    Expanded(child: text('first', '开始教学周', '1')),
-                    const SizedBox(width: 12),
-                    Expanded(child: text('last', '结束教学周', '18')),
-                  ],
-                ),
-                DropdownButtonFormField<TeachingWeekPattern>(
-                  initialValue: _pattern,
-                  decoration: const InputDecoration(labelText: '教学周范围'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: TeachingWeekPattern.every,
-                      child: Text('每周'),
-                    ),
-                    DropdownMenuItem(
-                      value: TeachingWeekPattern.odd,
-                      child: Text('单周'),
-                    ),
-                    DropdownMenuItem(
-                      value: TeachingWeekPattern.even,
-                      child: Text('双周'),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() => _pattern = v!),
-                ),
-                DropdownButtonFormField<int>(
-                  initialValue: _weekday,
-                  decoration: const InputDecoration(labelText: '星期'),
-                  items: [
-                    for (var d = 1; d <= 7; d++)
-                      DropdownMenuItem(
-                        value: d,
-                        child: Text('星期${'一二三四五六日'[d - 1]}'),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _weekday = v!),
-                ),
-              ],
-              if (_repeat != '不重复')
-                text('skips', '跳过日期 / 假期（逗号分隔）', initialSkips),
-            ],
-            text('location', '地点', content?.location ?? ''),
-            text('notes', '备注', content?.notes ?? '', lines: 3),
-            DropdownButtonFormField<String>(
-              initialValue: _color,
-              decoration: const InputDecoration(labelText: '颜色'),
-              items: [
-                for (final c in {
-                  '#5B6FCB': '蓝紫',
-                  '#30856A': '绿色',
-                  '#C77A29': '橙色',
-                  '#BA4F65': '玫红',
-                  if (![
-                    '#5B6FCB',
-                    '#30856A',
-                    '#C77A29',
-                    '#BA4F65',
-                  ].contains(_color))
-                    _color: '原颜色',
-                }.entries)
-                  DropdownMenuItem(value: c.key, child: Text(c.value)),
-              ],
-              onChanged: (v) => setState(() => _color = v!),
-            ),
-            const SizedBox(height: 20),
-            if (_error != null)
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            Text(
-              '时间均为北京时间',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+          const Divider(height: 1),
+          timeField(
+            'start',
+            '开始',
+            initialTime(content?.start, now),
+            dateOnly: _allDay,
+          ),
+          timeField(
+            'end',
+            _allDay ? '结束（次日零点）' : '结束',
+            initialTime(content?.end, now.add(const Duration(hours: 1))),
+            dateOnly: _allDay,
+          ),
+        ])
+      else
+        section([
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('无日期待办'),
+            value: _undated,
+            onChanged: _busy ? null : (v) => setState(() => _undated = v),
+          ),
+          if (!_undated) ...[
+            const Divider(height: 1),
+            timeField(
+              'due',
+              '截止',
+              initialTime(content?.due, now.add(const Duration(hours: 1))),
             ),
           ],
+        ]),
+      if (!single) ...[
+        DropdownButtonFormField<String>(
+          initialValue: _repeat,
+          decoration: const InputDecoration(labelText: '重复'),
+          items: [
+            for (final s in ['不重复', '每天', '每周', '工作日', '按教学周', '自定义'])
+              DropdownMenuItem(value: s, child: Text(s)),
+          ],
+          onChanged: _busy ? null : (v) => setState(() => _repeat = v!),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-        child: FilledButton(
+        const SizedBox(height: 16),
+        if (_repeat == '自定义')
+          text(
+            'rule',
+            'RRULE（如 FREQ=MONTHLY;BYMONTHDAY=15）',
+            widget.item?.rrule ?? '',
+          ),
+        if (_repeat == '按教学周') ...[
+          text(
+            'monday',
+            '第一教学周周一（YYYY-MM-DD）',
+            agendaDate(now.subtract(Duration(days: now.weekday - 1))),
+          ),
+          Row(
+            children: [
+              Expanded(child: text('first', '开始教学周', '1')),
+              const SizedBox(width: 12),
+              Expanded(child: text('last', '结束教学周', '18')),
+            ],
+          ),
+          DropdownButtonFormField<TeachingWeekPattern>(
+            initialValue: _pattern,
+            decoration: const InputDecoration(labelText: '教学周范围'),
+            items: const [
+              DropdownMenuItem(
+                value: TeachingWeekPattern.every,
+                child: Text('每周'),
+              ),
+              DropdownMenuItem(
+                value: TeachingWeekPattern.odd,
+                child: Text('单周'),
+              ),
+              DropdownMenuItem(
+                value: TeachingWeekPattern.even,
+                child: Text('双周'),
+              ),
+            ],
+            onChanged: (v) => setState(() => _pattern = v!),
+          ),
+          DropdownButtonFormField<int>(
+            initialValue: _weekday,
+            decoration: const InputDecoration(labelText: '星期'),
+            items: [
+              for (var d = 1; d <= 7; d++)
+                DropdownMenuItem(
+                  value: d,
+                  child: Text('星期${'一二三四五六日'[d - 1]}'),
+                ),
+            ],
+            onChanged: (v) => setState(() => _weekday = v!),
+          ),
+        ],
+        if (_repeat != '不重复') text('skips', '跳过日期 / 假期（逗号分隔）', initialSkips),
+      ],
+      text('location', '地点', content?.location ?? ''),
+      text('notes', '备注', content?.notes ?? '', lines: 5, minLines: 2),
+      section([colorPicker()]),
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            _error!,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ),
+    ];
+    return Form(
+      key: _form,
+      child: UiFormScaffold(
+        title: title,
+        listKey: const ValueKey('agenda-editor-list'),
+        hint: '时间均为北京时间',
+        error: _error,
+        children: fields,
+        secondary: uiInDialogPage(context)
+            ? TextButton(
+                onPressed: () => Navigator.maybePop(context),
+                child: const Text('取消'),
+              )
+            : null,
+        primary: FilledButton(
           key: const ValueKey('agenda-editor-save'),
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
           onPressed: _busy ? null : save,
           child: Text(_busy ? '保存中…' : '保存事项'),
         ),

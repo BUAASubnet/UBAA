@@ -10,7 +10,11 @@ class CacheSettings extends StatefulWidget {
     required this.read,
     required this.clear,
     required this.enabled,
+    this.inCard = true,
   });
+
+  /// 设置页把多行合进同一张卡片时传 false，只给出行本身。
+  final bool inCard;
   final String accountId;
   final Future<CacheUsageSummary> Function(String) read;
   final Future<CacheClearOutcome> Function(String) clear;
@@ -105,35 +109,31 @@ class _CacheSettingsState extends State<CacheSettings> {
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('本机缓存', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (_usage == null && !_failed && _notice == null)
-            const LoadingGlyph()
-          else
-            Text(
-              _usage != null
-                  ? '已占用 ${_bytes(_usage!.databaseBytes)}'
-                  : (_failed ? '暂时无法读取占用空间' : '暂无占用统计'),
+  Widget build(BuildContext context) {
+    // 与其余设置行同一结构：图标、标题与说明，操作放在右侧。
+    final row = ListTile(
+      leading: const Icon(Icons.storage_outlined),
+      title: const Text('本机缓存'),
+      subtitle: _usage == null && !_failed && _notice == null
+          ? const Align(alignment: Alignment.centerLeft, child: LoadingGlyph())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _usage != null
+                      ? '已占用 ${_bytes(_usage!.databaseBytes)}'
+                      : (_failed ? '暂时无法读取占用空间' : '暂无占用统计'),
+                ),
+                if (_notice != null) Text(_notice!),
+              ],
             ),
-          if (_notice != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(_notice!),
-            ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _busy || !widget.enabled ? null : _clear,
-            icon: const Icon(Icons.cleaning_services_outlined),
-            label: Text(_busy ? '正在清理…' : '清理缓存'),
-          ),
-        ],
+      trailing: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+        onPressed: _busy || !widget.enabled ? null : _clear,
+        icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+        label: Text(_busy ? '正在清理…' : '清理缓存'),
       ),
-    ),
-  );
+    );
+    return widget.inCard ? Card(child: row) : row;
+  }
 }

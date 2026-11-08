@@ -9,7 +9,7 @@ import '../../app/shell_parity_test.dart' as shell;
 
 void main() {
   for (final width in [1100.0, 390.0]) {
-    testWidgets('首页待办预览随页面滚动，查看全部进入日程且保留四项预览，宽度 $width', (tester) async {
+    testWidgets('首页待办预览随页面滚动，查看全部进入日程且保留预览，宽度 $width', (tester) async {
       tester.view.physicalSize = Size(width, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -81,11 +81,13 @@ void main() {
       final toggle = find.byKey(const ValueKey('home-todos-toggle'));
       await tester.ensureVisible(toggle);
       await tester.pumpAndSettle();
-      expect(find.text('任务4'), findsNothing, reason: '首页先展示时间最临近的四项');
+      // 宽屏课表与待办并排，待办单列预览六项；窄屏上下排列预览四项。
+      final preview = width >= 840 ? 6 : 4;
+      expect(find.text('任务$preview'), findsNothing, reason: '首页先展示时间最临近的几项');
       await tester.tap(toggle);
       await tester.pumpAndSettle();
       expect(viewedAll, isTrue);
-      expect(find.text('任务4'), findsNothing);
+      expect(find.text('任务$preview'), findsNothing);
       await tester.ensureVisible(find.text('任务3'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('任务3'));
@@ -100,7 +102,7 @@ void main() {
   }
 
   for (final config in [(1100.0, 1.0), (390.0, 2.0)]) {
-    testWidgets('长描述待办等高且时间对齐，窄屏大字保留全文 $config', (tester) async {
+    testWidgets('待办单列排列，长描述保留全文 $config', (tester) async {
       tester.view.physicalSize = Size(config.$1, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -159,44 +161,14 @@ void main() {
         for (var i = 0; i < 4; i++) find.widgetWithText(Card, '对齐任务$i'),
       ];
       final rects = cards.map(tester.getRect).toList();
-      if (config.$1 > 1000) {
-        for (final rect in rects) {
-          expect(
-            rect.height,
-            closeTo(rects.first.height, 0.1),
-            reason: '长描述不能只撑高其中一排',
-          );
-        }
-        for (var i = 0; i < 4; i++) {
-          final time = find.descendant(
-            of: cards[i],
-            matching: find.textContaining('截止'),
-          );
-          expect(
-            tester.getRect(time).bottom - rects[i].top,
-            closeTo(
-              tester
-                      .getRect(
-                        find.descendant(
-                          of: cards.first,
-                          matching: find.textContaining('截止'),
-                        ),
-                      )
-                      .bottom -
-                  rects.first.top,
-              0.1,
-            ),
-            reason: '截止时间使用同一底部位置',
-          );
-        }
-      } else {
-        expect(rects[1].top, greaterThanOrEqualTo(rects[0].bottom));
-        final description = find.text(descriptions[1]);
-        expect(tester.getRect(description).bottom, lessThan(rects[1].bottom));
-        expect(tester.widget<Text>(description).maxLines, isNull);
-        await tester.ensureVisible(find.text('对齐任务3'));
-        await tester.pumpAndSettle();
+      for (var i = 1; i < rects.length; i++) {
+        expect(rects[i].top, greaterThanOrEqualTo(rects[i - 1].bottom));
       }
+      final description = find.text(descriptions[1]);
+      expect(tester.getRect(description).bottom, lessThan(rects[1].bottom));
+      expect(tester.widget<Text>(description).maxLines, isNull);
+      await tester.ensureVisible(find.text('对齐任务3'));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
   }

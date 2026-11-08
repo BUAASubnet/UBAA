@@ -179,7 +179,29 @@ Future<void> uiShowDiagnosticsDialog(
     context,
     builder: (context) => UiSheetBody(
       title: '诊断信息',
-      children: [SelectableText(report)],
+      // 诊断内容是 JSON：等宽字体放在浅色底框里，便于阅读和复制。
+      children: [
+        Builder(
+          builder: (context) => Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: .05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SelectableText(
+              report,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontFamily: 'Menlo',
+                fontFamilyFallback: const ['monospace', 'Courier'],
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
       primaryAction: FilledButton.icon(
         onPressed: () => _copyDiagnosticText(context, report),
         icon: const Icon(Icons.copy_outlined, size: 18),

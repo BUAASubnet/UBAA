@@ -10,15 +10,14 @@ Future<YgdkSubmitInput?> uiCollectYgdkForm(
 }) async {
   final data = formContext ?? YgdkFormContext(draft: YgdkFormDraft());
   final generation = data.draft.generation;
-  final input = await Navigator.of(context).push<YgdkSubmitInput>(
-    MaterialPageRoute(
-      builder: (_) => _YgdkFormPage(
-        items: items,
-        onPickPhoto: onPickPhoto,
-        onCapturePhoto: onCapturePhoto,
-        data: data,
-        initialAction: initialAction,
-      ),
+  final input = await showUiPage<YgdkSubmitInput>(
+    context,
+    builder: (_) => _YgdkFormPage(
+      items: items,
+      onPickPhoto: onPickPhoto,
+      onCapturePhoto: onCapturePhoto,
+      data: data,
+      initialAction: initialAction,
     ),
   );
   final valid = generation == data.draft.generation;

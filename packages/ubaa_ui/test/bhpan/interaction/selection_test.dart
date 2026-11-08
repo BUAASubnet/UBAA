@@ -122,10 +122,13 @@ void main() {
       );
       await openPlace(tester, '回收站');
       expect(find.text('仅显示最近 100 项'), findsOneWidget);
-      expect(find.byKey(const ValueKey('bhpan-create')), findsNothing);
-      await tester.longPress(find.text('课程资料'));
+      expect(
+        _topLayer(find.byKey(const ValueKey('bhpan-create'))),
+        findsNothing,
+      );
+      await tester.longPress(_topLayer(find.text('课程资料')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('全选'));
+      await tester.tap(_topLayer(find.text('全选')));
       await tester.pumpAndSettle();
       expect(find.text('已选 2 项'), findsOneWidget);
       expect(find.byKey(const ValueKey('bhpan-batch-download')), findsNothing);
@@ -150,3 +153,8 @@ void main() {
     });
   }
 }
+
+/// 宽屏子页面以对话框叠在云盘上，背景仍可见；只在最上层查找。
+Finder _topLayer(Finder finder) => find.byType(Dialog).evaluate().isEmpty
+    ? finder
+    : find.descendant(of: find.byType(Dialog).last, matching: finder);

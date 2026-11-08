@@ -11,6 +11,7 @@ import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
 import 'reservation_content.dart' show uiCanReserveSeat;
 import '../../shared/when.dart' show uiShortDateTime;
 import '../../common/state_panel.dart';
+import '../../common/chip_strip.dart';
 part 'schedule.dart';
 part 'choices.dart';
 part 'content.dart';

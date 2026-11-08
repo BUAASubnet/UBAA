@@ -51,38 +51,55 @@ class ProfileView extends StatelessWidget {
   final List<ConnectionMode> activeRoutes;
   final String Function()? onReadDiagnostics;
 
+  bool get hasCache =>
+      cacheAccountId != null &&
+      onReadCacheUsage != null &&
+      onClearBusinessCache != null;
+
   @override
   Widget build(BuildContext context) => ListView(
-    padding: EdgeInsets.all(
-      UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-    ),
+    padding: UbaaTheme.pageInsets(context, top: 8),
     children: [
       if (!settingsOnly) ProfileIdentityCard(user: user),
       if (settingsOnly) ...[
         const UiSectionTitle('个性化'),
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('外观主题'),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<ThemeMode>(
-                  key: const ValueKey('theme-mode'),
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: ThemeMode.system, label: Text('跟随系统')),
-                    ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
-                    ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
-                  ],
-                  selected: {themeMode},
-                  onSelectionChanged: onThemeModeChanged == null
-                      ? null
-                      : (value) => onThemeModeChanged!(value.single),
-                ),
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final picker = SegmentedButton<ThemeMode>(
+                key: const ValueKey('theme-mode'),
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: ThemeMode.system, label: Text('跟随系统')),
+                  ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
+                  ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
+                ],
+                selected: {themeMode},
+                onSelectionChanged: onThemeModeChanged == null
+                    ? null
+                    : (value) => onThemeModeChanged!(value.single),
+              );
+              // 宽屏把选择放在行尾，不把三个选项拉成整行宽。
+              final inline =
+                  constraints.maxWidth >=
+                  MediaQuery.textScalerOf(context).scale(600);
+              return ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('外观主题'),
+                trailing: inline
+                    ? SizedBox(
+                        width: MediaQuery.textScalerOf(context).scale(300),
+                        child: picker,
+                      )
+                    : null,
+                subtitle: inline
+                    ? null
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: SizedBox(width: double.infinity, child: picker),
+                      ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 16),
@@ -141,22 +158,21 @@ class ProfileView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         const UiSectionTitle('数据与隐私'),
-        if (cacheAccountId != null &&
-            onReadCacheUsage != null &&
-            onClearBusinessCache != null) ...[
-          CacheSettings(
-            accountId: cacheAccountId!,
-            read: onReadCacheUsage!,
-            clear: onClearBusinessCache!,
-            enabled: canClearBusinessCache,
-          ),
-          const SizedBox(height: 8),
-        ],
+        // 缓存、统计与诊断合在一张卡片里，与「连接模式」「账号」的分组方式一致。
         Card(
           child: Column(
             children: [
+              if (hasCache)
+                CacheSettings(
+                  accountId: cacheAccountId!,
+                  read: onReadCacheUsage!,
+                  clear: onClearBusinessCache!,
+                  enabled: canClearBusinessCache,
+                  inCard: false,
+                ),
               // 未启用统计的版本不显示这个永远灰着的开关。
-              if (telemetryAvailable)
+              if (telemetryAvailable) ...[
+                if (hasCache) const Divider(height: 1),
                 SwitchListTile(
                   secondary: const Icon(Icons.insights_outlined),
                   title: const Text('匿名产品改进统计'),
@@ -164,8 +180,9 @@ class ProfileView extends StatelessWidget {
                   value: telemetryEnabled,
                   onChanged: onTelemetryChanged,
                 ),
+              ],
               if (onReadDiagnostics != null) ...[
-                if (telemetryAvailable) const Divider(height: 1),
+                if (hasCache || telemetryAvailable) const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: const Text('诊断信息'),
@@ -174,8 +191,21 @@ class ProfileView extends StatelessWidget {
                       uiShowDiagnosticsDialog(context, onReadDiagnostics!),
                 ),
               ],
-              if (telemetryAvailable || onReadDiagnostics != null)
-                const Divider(height: 1),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const UiSectionTitle('账号'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                key: const ValueKey('settings-logout'),
+                leading: const Icon(Icons.logout),
+                title: const Text('退出登录'),
+                onTap: () => unawaited(onLogout()),
+              ),
+              const Divider(height: 1),
               ListTile(
                 leading: Icon(
                   Icons.delete_outline,

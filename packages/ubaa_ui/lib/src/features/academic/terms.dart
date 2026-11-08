@@ -34,10 +34,12 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
     title: '选择学期',
     actions: [
       OutlinedButton(onPressed: _reload, child: const Text('重新获取')),
-      OutlinedButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('取消'),
-      ),
+      // 对话框右上角已有关闭，不再重复「取消」。
+      if (!uiInSheetDialog(context))
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
     ],
     children: [
       FutureBuilder<FeatureResult>(

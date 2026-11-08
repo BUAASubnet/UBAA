@@ -108,7 +108,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     telemetryAvailable: widget.telemetryAvailable,
     onRoutePolicyChanged: widget.onRoutePolicyChanged,
     onTelemetryChanged: widget.onTelemetryChanged,
-    onLogout: widget.onLogout,
+    onLogout: _logout,
     onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
     activeRoutes: widget.activeRoutes,
     onReadDiagnostics: widget.onReadDiagnostics,
@@ -128,6 +128,19 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     final extended = MediaQuery.sizeOf(context).width >= 1000;
     final colors = Theme.of(context).colorScheme;
     if (!extended) {
+      final railButtonStyle =
+          IconButton.styleFrom(minimumSize: const Size(56, 48)).copyWith(
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? colors.secondaryContainer
+                  : null,
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? colors.onSecondaryContainer
+                  : null,
+            ),
+          );
       return NavigationRail(
         scrollable: true,
         minWidth: 88,
@@ -148,19 +161,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 isSelected:
                     _selectedIndex == UiDestination.settings.index &&
                     _utilityPage == null,
-                style: IconButton.styleFrom(minimumSize: const Size(56, 48))
-                    .copyWith(
-                      backgroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? colors.secondaryContainer
-                            : null,
-                      ),
-                      foregroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? colors.onSecondaryContainer
-                            : null,
-                      ),
-                    ),
+                style: railButtonStyle,
                 onPressed: () => _selectTab(UiDestination.settings.index),
                 icon: Icon(UiDestination.settings.icon),
                 selectedIcon: Icon(UiDestination.settings.selectedIcon),
@@ -168,15 +169,10 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               const SizedBox(height: 8),
               IconButton(
                 tooltip: '关于',
+                isSelected: _utilityPage == '关于' && _openedFeature == null,
+                style: railButtonStyle,
                 onPressed: () => _openUtility('关于'),
                 icon: const Icon(Icons.info_outline),
-              ),
-              const SizedBox(height: 8),
-              IconButton(
-                tooltip: '退出登录',
-                color: colors.error,
-                onPressed: _logout,
-                icon: const Icon(Icons.logout),
               ),
             ],
           ),
@@ -223,7 +219,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
                 child: _buildRailLeading(context, true),
               ),
               Expanded(
@@ -237,21 +233,16 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               ),
               entry(UiDestination.settings),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.fromLTRB(12, 3, 12, 16),
                 child: ListTile(
-                  leading: const Icon(Icons.info_outline),
+                  selected: _utilityPage == '关于' && _openedFeature == null,
+                  selectedTileColor: colors.secondaryContainer,
+                  selectedColor: colors.onSecondaryContainer,
+                  leading: Icon(
+                    _utilityPage == '关于' ? Icons.info : Icons.info_outline,
+                  ),
                   title: const Text('关于'),
                   onTap: () => _openUtility('关于'),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                child: ListTile(
-                  iconColor: colors.error,
-                  textColor: colors.error,
-                  leading: const Icon(Icons.logout),
-                  title: const Text('退出登录'),
-                  onTap: _logout,
                 ),
               ),
             ],
@@ -269,12 +260,17 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     context,
     extended,
     user: widget.user,
+    // “我的资料”是“我的”的下一级，打开时身份区保持高亮。
+    selected:
+        _selectedIndex == UiDestination.me.index &&
+        (_utilityPage == null || _utilityPage == '我的资料'),
     onTap: onTap ?? () => _selectTab(UiDestination.me.index),
   );
 
-  void _logout() {
+  /// 写操作进行中不退出；侧栏不再放退出入口，统一在设置页的「账号」分组。
+  Future<void> _logout() async {
     if (widget.writeState.intent != null) return;
-    unawaited(widget.onLogout());
+    await widget.onLogout();
   }
 
   Future<void> _joinRefresh(Object key, Future<void> Function() action) =>

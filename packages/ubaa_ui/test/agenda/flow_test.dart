@@ -89,7 +89,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('待办'));
+    // 宽屏编辑器是对话框，背后的日程页也有“待办”；取最上层。
+    await tester.tap(find.text('待办').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('agenda-title')), '合成待办');
     await saveAgendaEditor(tester);

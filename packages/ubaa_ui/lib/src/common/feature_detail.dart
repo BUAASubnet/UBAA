@@ -236,8 +236,12 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     if (snapshot.details.isNotEmpty) return false;
     if (snapshot.status == FeatureLoadStatus.failure) return true;
     // 已确认空结果的刷新期间仍显示空状态，搜索栏不能来回出现。
+    // 带概览的成功结果（如评教 0/0）同样没有可筛的条目；普通成功空列表
+    // 可能来自分类等服务端条件，保留入口以便撤销。
     final empty =
         snapshot.status == FeatureLoadStatus.empty ||
+        (snapshot.status == FeatureLoadStatus.success &&
+            snapshot.overview != null) ||
         (snapshot.status == FeatureLoadStatus.loading &&
             snapshot.updatedAt != null);
     if (!empty) return false;
@@ -498,7 +502,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             ],
           )
         : content;
-    if (kind == null) return body;
+    // 筛选入口在工具栏里；工具栏隐藏时弹层也不再显示，已打开的弹层保留到用户关闭。
+    if (kind == null || (!showsToolbar && !_panelOpen)) return body;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = MediaQuery.sizeOf(context).width >= 600;
@@ -508,10 +513,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             Positioned.fill(child: body),
             if (_panelOpen)
               Positioned.fill(
+                // 宽屏是贴着按钮的弹层，不压暗页面；窄屏底部面板保留遮罩。
                 child: ModalBarrier(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.scrim.withValues(alpha: .26),
+                  color: wide
+                      ? Colors.transparent
+                      : Theme.of(
+                          context,
+                        ).colorScheme.scrim.withValues(alpha: .26),
                   onDismiss: togglePanel,
                   semanticsLabel: '关闭筛选',
                 ),
@@ -523,7 +531,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 child: Offstage(
                   offstage: !_panelOpen,
                   child: Padding(
-                    padding: wide ? const EdgeInsets.all(16) : EdgeInsets.zero,
+                    // 宽屏出现在工具栏下方，右边与页面内容对齐，不遮住筛选按钮。
+                    padding: wide
+                        ? EdgeInsets.only(
+                            top: 60,
+                            right: UbaaTheme.pageInsets(context).right,
+                          )
+                        : EdgeInsets.zero,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         minWidth: wide ? 420 : constraints.maxWidth,
@@ -639,8 +653,12 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
               onPressed: _clearSearch,
               icon: const Icon(Icons.close),
             ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+      // 与云盘、日程的搜索栏一致：填充胶囊，无描边。
+      filled: true,
+      fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      border: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(999)),
+        borderSide: BorderSide.none,
       ),
     ),
   );

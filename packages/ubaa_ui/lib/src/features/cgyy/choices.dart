@@ -142,8 +142,8 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
   }
 }
 
-/// 保留旧版横向直选；桌面显示滚动条便于鼠标拖动，手机直接滑动。
-class _ChoiceStrip extends StatefulWidget {
+/// 保留旧版横向直选；手机滑动，桌面换行铺开。
+class _ChoiceStrip extends StatelessWidget {
   const _ChoiceStrip({
     super.key,
     required this.children,
@@ -155,38 +155,12 @@ class _ChoiceStrip extends StatefulWidget {
   final bool trailingPadding;
 
   @override
-  State<_ChoiceStrip> createState() => _ChoiceStripState();
-}
-
-class _ChoiceStripState extends State<_ChoiceStrip> {
-  final _scroll = ScrollController();
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final touch = uiIsTouchPlatform(context);
-    final strip = SingleChildScrollView(
-      controller: _scroll,
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.only(bottom: touch ? 0 : 6),
-      child: Row(
-        children: [
-          for (final child in widget.children)
-            Padding(padding: const EdgeInsets.only(right: 6), child: child),
-        ],
-      ),
-    );
-    final insets = UbaaTheme.pageInsets(context, top: 2, bottom: 2);
-    return Padding(
-      padding: widget.trailingPadding ? insets : insets.copyWith(right: 4),
-      child: touch
-          ? strip
-          : Scrollbar(controller: _scroll, thumbVisibility: true, child: strip),
+    // 组间留 12，组内换行 6，日期、校区、楼层三组一眼分开。
+    final insets = UbaaTheme.pageInsets(context, top: 6, bottom: 6);
+    return UiChipStrip(
+      padding: trailingPadding ? insets : insets.copyWith(right: 4),
+      children: children,
     );
   }
 }

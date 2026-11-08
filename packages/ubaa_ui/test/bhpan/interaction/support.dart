@@ -33,7 +33,7 @@ Future<void> openPlace(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   await tester.tap(
     find.descendant(
-      of: find.byType(BottomSheet),
+      of: find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
       matching: find.widgetWithText(ListTile, label),
     ),
   );
@@ -41,8 +41,10 @@ Future<void> openPlace(WidgetTester tester, String label) async {
 }
 
 /// 底部面板里的文字按钮（快捷操作或列表项）。
-Finder sheetText(String label) =>
-    find.descendant(of: find.byType(BottomSheet), matching: find.text(label));
+Finder sheetText(String label) => find.descendant(
+  of: find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
+  matching: find.text(label),
+);
 
 Future<void> openCreateSheet(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('bhpan-create')));
@@ -50,6 +52,6 @@ Future<void> openCreateSheet(WidgetTester tester) async {
 }
 
 Finder sheetAction(String action) => find.descendant(
-  of: find.byType(BottomSheet),
+  of: find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
   matching: find.widgetWithText(ListTile, action),
 );

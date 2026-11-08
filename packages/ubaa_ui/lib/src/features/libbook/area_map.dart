@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../shared/dialogs/sheet.dart' show showUiSheet;
+import '../../shared/dialogs/sheet.dart' show showUiSheet, uiInSheetDialog;
 
 // 冻结LibBookReserveScreen的资源白名单；不以相似编号推断另一张地图。
 const _libraryMapIds = {
@@ -71,6 +71,7 @@ Future<void> _showAreaMapSheet(
   return showUiSheet<void>(
     context,
     enableDrag: false,
+    dialogWidth: 960,
     builder: (_) => SizedBox(
       height: height,
       child: _LibraryAreaMap(areaId: areaId, areaName: areaName),
@@ -146,6 +147,13 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
                 icon: const Icon(Icons.zoom_in),
               ),
               TextButton(onPressed: _reset, child: const Text('重置')),
+              // 对话框形式补上关闭，与其他对话框一致。
+              if (uiInSheetDialog(context))
+                IconButton(
+                  tooltip: '关闭',
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.close),
+                ),
             ],
           ),
           Text(

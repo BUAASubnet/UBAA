@@ -53,7 +53,7 @@ void main() {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);
     await tap(tester, find.byTooltip('选择学期'));
-    await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+    await tap(tester, find.byTooltip('关闭'));
     expect(backend.scheduleReads.length, 1);
     await tap(tester, find.byTooltip('选择学期'));
     await tap(tester, find.text('合成上一学期'));
@@ -144,7 +144,7 @@ void main() {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);
     await tap(tester, find.text('合成教学第4周'));
-    await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+    await tap(tester, find.byTooltip('关闭'));
     expect(backend.scheduleReads, hasLength(1));
     await tap(tester, find.text('合成教学第4周'));
     await tap(tester, find.text('合成教学第5周'));

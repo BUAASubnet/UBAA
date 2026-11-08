@@ -502,11 +502,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         : _onMeTab && widget.campusAccountService != null
         ? _refreshCampusAccount
         : null;
+    // 宽屏侧栏直接列出“关于”，它与分类同级，不显示返回。
+    final atRoot =
+        _openedFeature == null &&
+        (_utilityPage == null || (wide && _utilityPage == '关于'));
     final header = AppBar(
       centerTitle: false,
-      toolbarHeight: wide ? 80 : 64,
+      toolbarHeight: wide ? 72 : 64,
       automaticallyImplyLeading: false,
-      titleSpacing: wide && _openedFeature == null && _utilityPage == null
+      titleSpacing: wide && atRoot
           ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)
           : null,
       title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
@@ -524,7 +528,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      leading: _openedFeature != null || _utilityPage != null
+      leading: !atRoot
           ? IconButton(
               tooltip: '返回',
               onPressed: () {

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'draft.dart' show CgyyFormContext, CgyyFormDraft;
-import '../forms/action_bar.dart' show FormActionBar;
+import '../../shared/dialogs/form_page.dart';
 import '../../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
 part 'fields.dart';
 
@@ -19,16 +19,15 @@ Future<CgyySubmitInput?> uiCollectCgyyReservation(
 }) async {
   final data = formContext ?? CgyyFormContext(draft: CgyyFormDraft());
   final generation = data.draft.generation;
-  final result = await Navigator.of(context).push<CgyySubmitInput>(
-    MaterialPageRoute(
-      builder: (_) => _CgyyReservationForm(
-        target: target,
-        availableActions: availableActions,
-        data: data,
-        initialSelection: initialSelection,
-        selectionLabel: selectionLabel,
-        actionLabels: actionLabels,
-      ),
+  final result = await showUiPage<CgyySubmitInput>(
+    context,
+    builder: (_) => _CgyyReservationForm(
+      target: target,
+      availableActions: availableActions,
+      data: data,
+      initialSelection: initialSelection,
+      selectionLabel: selectionLabel,
+      actionLabels: actionLabels,
     ),
   );
   final valid = generation == data.draft.generation;
@@ -261,151 +260,69 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        toolbarHeight: 64,
-        title: const Text(
-          '填写预约信息',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        leading: IconButton(
-          tooltip: '返回',
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+    return UiFormScaffold(
+      title: '填写预约信息',
+      error: error,
+      secondary: OutlinedButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('返回修改时段'),
       ),
-      bottomNavigationBar: FormActionBar(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('返回修改时段'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _continue,
-                  child: const Text('提交预约'),
-                ),
-              ),
-            ],
+      primary: FilledButton(onPressed: _continue, child: const Text('提交预约')),
+      children: [
+        _section('已选时段', [
+          Text(
+            (widget.selectionLabel ??
+                    [
+                      widget.target.reservationDate.trim(),
+                      ?widget.actionLabels[uiCgyyActionKey(widget.target)],
+                    ].join('\n'))
+                .replaceAll('\n', ' · '),
           ),
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 840),
-            child: Column(
+          if (widget.initialSelection == null && actionsByKey.length > 1)
+            Text('选择预约时段（已选 ${selected.length} 个）'),
+          if (widget.initialSelection == null && actionsByKey.length > 1)
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _section('已选时段', [
-                        Text(
-                          (widget.selectionLabel ??
-                                  [
-                                    widget.target.reservationDate.trim(),
-                                    ?widget.actionLabels[uiCgyyActionKey(
-                                      widget.target,
-                                    )],
-                                  ].join('\n'))
-                              .replaceAll('\n', ' · '),
-                        ),
-                        if (widget.initialSelection == null &&
-                            actionsByKey.length > 1)
-                          Text('选择预约时段（已选 ${selected.length} 个）'),
-                        if (widget.initialSelection == null &&
-                            actionsByKey.length > 1)
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              for (final (index, entry)
-                                  in actionsByKey.entries.indexed)
-                                FilterChip(
-                                  label: Text(
-                                    widget.actionLabels[entry.key] ??
-                                        '时段 ${index + 1}',
-                                  ),
-                                  selected: selected.contains(entry.key),
-                                  onSelected: (value) => setState(() {
-                                    if (!value) {
-                                      selected.remove(entry.key);
-                                    } else {
-                                      uiSelectCgyyAction(
-                                        selected,
-                                        actionsByKey,
-                                        entry.key,
-                                      );
-                                    }
-                                  }),
-                                ),
-                            ],
-                          ),
-                      ]),
-                      const SizedBox(height: 12),
-                      _information(),
-                      const SizedBox(height: 12),
-                      _section('附加选项', [
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: draft.philosophy,
-                          title: const Text('哲学社会科学类活动'),
-                          onChanged: (v) =>
-                              setState(() => draft.philosophy = v ?? false),
-                        ),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: draft.offSchool,
-                          title: const Text('含校外参与人'),
-                          onChanged: (v) =>
-                              setState(() => draft.offSchool = v ?? false),
-                        ),
-                      ]),
-                    ],
-                  ),
-                ),
-                if (error case final message?)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      message,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                for (final (index, entry) in actionsByKey.entries.indexed)
+                  FilterChip(
+                    label: Text(
+                      widget.actionLabels[entry.key] ?? '时段 ${index + 1}',
                     ),
+                    selected: selected.contains(entry.key),
+                    onSelected: (value) => setState(() {
+                      if (!value) {
+                        selected.remove(entry.key);
+                      } else {
+                        uiSelectCgyyAction(selected, actionsByKey, entry.key);
+                      }
+                    }),
                   ),
               ],
             ),
+        ]),
+        _information(),
+        _section('附加选项', [
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: draft.philosophy,
+            title: const Text('哲学社会科学类活动'),
+            onChanged: (v) => setState(() => draft.philosophy = v ?? false),
           ),
-        ),
-      ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: draft.offSchool,
+            title: const Text('含校外参与人'),
+            onChanged: (v) => setState(() => draft.offSchool = v ?? false),
+          ),
+        ]),
+      ],
     );
   }
 
-  Widget _section(String title, List<Widget> children) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    ),
-  );
+  Widget _section(String title, List<Widget> children) =>
+      UiFormSection(title: title, children: children);
 }
 
 void uiSelectCgyyAction(

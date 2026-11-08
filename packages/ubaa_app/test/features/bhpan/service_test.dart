@@ -29,6 +29,34 @@ void main() {
     expect(intent.operation, WriteOperation.bhpan);
     expect(intent.intentId, 'bhpan:confirmation');
   });
+  test('权限错误保留认证与上游类别，供界面选择重新登录或重试', () async {
+    for (final (kind, expected) in [
+      (BridgeErrorKind.authentication, UbaaErrorKind.authentication),
+      (BridgeErrorKind.upstream, UbaaErrorKind.upstream),
+    ]) {
+      final client = _Client()
+        ..readError = BridgeError(
+          code: BridgeErrorCode.permissionDenied,
+          kind: kind,
+          retryable: false,
+          message: '合成权限错误',
+        );
+      final service = GuardedBhpanService(
+        BridgeBackend(client).bhpan,
+        () => true,
+      );
+      await expectLater(
+        service.read(const BhpanRead(BhpanReadView.personalRoot)),
+        throwsA(
+          isA<UiError>()
+              .having((e) => e.code, '错误码', UbaaErrorCode.permissionDenied)
+              .having((e) => e.kind, '错误类别', expected),
+        ),
+        reason: kind.name,
+      );
+      expect(client.query!.view, BridgeBhpanReadView.personalRoot);
+    }
+  });
   test('账号代次变化拒绝迟到列表与后续准备', () async {
     final client = _Client()..gate = Completer<BridgeBhpanPage>();
     var current = true;
@@ -191,6 +219,7 @@ class _Client implements BridgeClient {
   }
 
   Completer<BridgeBhpanPage>? gate;
+  BridgeError? readError;
   BridgeBhpanQuery? query;
   BridgeBhpanWrite? write;
   String? committed, discarded;
@@ -199,6 +228,7 @@ class _Client implements BridgeClient {
   @override
   Future<BridgeBhpanPage> bhpanRead({required BridgeBhpanQuery query}) async {
     this.query = query;
+    if (readError case final error?) throw error;
     return gate == null ? _page : gate!.future;
   }
 

@@ -1,7 +1,8 @@
 part of 'form.dart';
 
 extension CgyyFormFields on _CgyyReservationFormState {
-  Widget _information() => _section('填写预约信息', [
+  // 对话框标题已是「填写预约信息」，分组改叫「活动信息」避免重复。
+  Widget _information() => _section('活动信息', [
     _field(
       phone,
       '联系电话',
@@ -74,6 +75,8 @@ extension CgyyFormFields on _CgyyReservationFormState {
           : TextInputAction.newline,
       decoration: InputDecoration(
         labelText: label,
+        // 多行框的标签贴顶，不在大框中间悬着。
+        alignLabelWithHint: lines > 1,
         hintText: fallback.isEmpty ? null : fallback,
         // 有灰字默认值时标签常驻上方，避免与灰字重叠。
         floatingLabelBehavior: fallback.isEmpty

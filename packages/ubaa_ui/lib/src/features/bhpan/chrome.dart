@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'format.dart';
@@ -101,7 +102,9 @@ class BhpanTypeIcon extends StatelessWidget {
   }
 }
 
-class BhpanItemTile extends StatelessWidget {
+/// 文件行。桌面端：悬停显示勾选框进入多选，右键打开更多操作，⌘/Ctrl 加点击切换选中；
+/// 触屏仍用长按进入多选。
+class BhpanItemTile extends StatefulWidget {
   const BhpanItemTile({
     super.key,
     required this.item,
@@ -118,35 +121,83 @@ class BhpanItemTile extends StatelessWidget {
   final VoidCallback onTap, onLongPress, onMore;
   final String? meta;
   @override
+  State<BhpanItemTile> createState() => _BhpanItemTileState();
+}
+
+class _BhpanItemTileState extends State<BhpanItemTile> {
+  bool _hovering = false;
+
+  bool get _desktop => switch (Theme.of(context).platform) {
+    TargetPlatform.macOS ||
+    TargetPlatform.windows ||
+    TargetPlatform.linux => true,
+    _ => false,
+  };
+
+  void _tap() {
+    final keys = HardwareKeyboard.instance;
+    // 桌面习惯：按住 ⌘/Ctrl 点击切换选中，不打开文件。
+    if (_desktop && (keys.isMetaPressed || keys.isControlPressed)) {
+      widget.onLongPress();
+    } else {
+      widget.onTap();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final BhpanItemTile(
+      :item,
+      :selecting,
+      :selected,
+      :enabled,
+      :onTap,
+      :onLongPress,
+      :onMore,
+    ) = widget;
+    final showCheck = selecting || (_desktop && _hovering && enabled);
+    final check = Checkbox(
+      value: selected,
+      // 未进入多选时，勾选即进入多选并选中这一项。
+      onChanged: enabled ? (_) => selecting ? onTap() : onLongPress() : null,
+    );
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final meta = this.meta ?? bhpanItemMeta(item);
+    final meta = widget.meta ?? bhpanItemMeta(item);
     return Material(
       color: selected
           ? colors.secondaryContainer.withValues(alpha: .6)
           : Colors.transparent,
       child: InkWell(
-        onTap: enabled ? onTap : null,
+        onTap: enabled ? _tap : null,
         onLongPress: enabled ? onLongPress : null,
+        onSecondaryTap: enabled && !selecting ? onMore : null,
+        onHover: _desktop ? (value) => setState(() => _hovering = value) : null,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
           child: Row(
             children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 150),
-                child: selecting
-                    ? Padding(
-                        key: const ValueKey('check'),
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Checkbox(
-                          value: selected,
-                          onChanged: enabled ? (_) => onTap() : null,
-                        ),
+              // 桌面端勾选框替换文件图标位置，悬停时内容不左右跳动；触屏多选时在图标前插入。
+              if (_desktop)
+                showCheck
+                    ? SizedBox.square(
+                        dimension: 40,
+                        child: Center(child: check),
                       )
-                    : const SizedBox(key: ValueKey('none')),
-              ),
-              BhpanTypeIcon(item: item),
+                    : BhpanTypeIcon(item: item)
+              else ...[
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 150),
+                  child: showCheck
+                      ? Padding(
+                          key: const ValueKey('check'),
+                          padding: const EdgeInsets.only(right: 4),
+                          child: check,
+                        )
+                      : const SizedBox(key: ValueKey('none')),
+                ),
+                BhpanTypeIcon(item: item),
+              ],
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

@@ -137,7 +137,7 @@ void main() {
     await tester.pump();
     backend.terms.complete();
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.widgetWithText(OutlinedButton, '取消'));
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程1'), findsOneWidget);
     expect(backend.scheduleReads.map((q) => (q.term, q.week)), [

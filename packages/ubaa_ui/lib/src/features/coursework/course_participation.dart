@@ -114,7 +114,7 @@ class _SigninListState extends State<_SigninList> {
         return r != 0 ? r : a.$1.compareTo(b.$1);
       });
     return ListView.separated(
-      padding: UbaaTheme.pageInsets(context),
+      padding: UbaaTheme.pageInsets(context, top: 8),
       itemCount: ordered.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) => _SigninCourseCard(
@@ -275,7 +275,7 @@ class _EvaluationList extends StatelessWidget {
     final pending = details.where((d) => !_done(d)).toList();
     final done = details.where(_done).toList();
     return ListView(
-      padding: UbaaTheme.pageInsets(context),
+      padding: UbaaTheme.pageInsets(context, top: 8),
       children: [
         for (final detail in pending) row(detail),
         if (done.isNotEmpty)

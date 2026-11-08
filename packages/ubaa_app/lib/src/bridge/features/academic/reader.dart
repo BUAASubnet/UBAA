@@ -69,7 +69,7 @@ Future<FeatureResult> _projectAcademicFeature(
                 .toList(growable: false);
             return bridgeCountResult(
               details.length,
-              '第 ${query.week} 周课表',
+              '项课程（第 ${query.week} 周）',
               overview: bridgeScheduleOverview(result.data, details),
               details: details,
               resolvedRoute: result.route,
@@ -163,7 +163,7 @@ Future<FeatureResult> _projectAcademicFeature(
               .toList(growable: false);
           return bridgeCountResult(
             details.length,
-            '第 $week 周课表',
+            '项课程（第 $week 周）',
             overview: bridgeScheduleOverview(result.data, details),
             details: details,
             resolvedRoute: result.route,
@@ -197,9 +197,9 @@ Future<FeatureResult> _projectAcademicFeature(
               )
               .toList(growable: false);
           final label = switch (query.view) {
-            FeatureQueryView.examArranged => '已安排考试',
-            FeatureQueryView.examNotArranged => '未安排考试',
-            _ => '考试安排',
+            FeatureQueryView.examArranged => '场已安排考试',
+            FeatureQueryView.examNotArranged => '场未安排考试',
+            _ => '场考试安排',
           };
           return bridgeCountResult(
             exams.length,

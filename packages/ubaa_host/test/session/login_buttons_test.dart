@@ -27,7 +27,7 @@ void main() {
     expect(find.byType(UbaaLoginView), findsOneWidget);
   });
 
-  testWidgets('登录选项文字与复选框一样可点并保持记住与自动的联动', (tester) async {
+  testWidgets('登录选项文字和整行均可点，保持记住与自动的联动', (tester) async {
     await tester.pumpWidget(_host(_AppInformation()));
     await tester.pumpAndSettle();
 
@@ -41,7 +41,7 @@ void main() {
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isFalse);
     expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
 
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.widgetWithText(InkWell, '记住密码'));
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
     expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
@@ -81,7 +81,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _fillLogin(tester);
-      await tester.tap(find.byType(Checkbox).first);
+      await tester.tap(find.widgetWithText(InkWell, '记住密码'));
       await tester.tap(find.widgetWithText(FilledButton, '登录'));
       await tester.pumpAndSettle();
 
@@ -121,7 +121,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _fillLogin(tester);
-      await tester.tap(find.byType(Checkbox).first);
+      await tester.tap(find.widgetWithText(InkWell, '记住密码'));
       await tester.tap(find.widgetWithText(FilledButton, '登录'));
       await tester.pump();
       for (final state in <AppLifecycleState>[

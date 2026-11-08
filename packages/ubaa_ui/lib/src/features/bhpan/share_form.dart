@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/form_page.dart';
 
 /// 来源用该时刻表示「不过期」。
 const bhpanNeverExpires = '1970-01-01T08:00:00+08:00';
@@ -14,13 +15,11 @@ Future<BhpanShareSettings?> bhpanShareDialog(
   required String title,
   BhpanShare? existing,
   bool isFolder = false,
-}) => Navigator.of(context).push<BhpanShareSettings>(
-  MaterialPageRoute(
-    fullscreenDialog: true,
-    builder: (_) => UiScopeBoundary(
-      generation: scope,
-      child: _ShareForm(title: title, existing: existing, isFolder: isFolder),
-    ),
+}) => showUiPage<BhpanShareSettings>(
+  context,
+  builder: (_) => UiScopeBoundary(
+    generation: scope,
+    child: _ShareForm(title: title, existing: existing, isFolder: isFolder),
   ),
 );
 
@@ -185,179 +184,161 @@ class _ShareFormState extends State<_ShareForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final day = _customDay;
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: '取消',
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close),
-        ),
-        title: Text(_editing ? '分享设置' : '创建分享'),
+    return UiFormScaffold(
+      title: _editing ? '分享设置' : '创建分享',
+      flush: true,
+      error: _error,
+      secondary: uiInDialogPage(context)
+          ? TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            )
+          : null,
+      primary: FilledButton(
+        onPressed: _submit,
+        child: Text(_editing ? '保存设置' : '创建链接'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: TextField(
+            controller: _title,
+            decoration: const InputDecoration(
+              labelText: '分享标题',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        _section('提取码'),
+        if (_editing && widget.existing!.passwordRequired)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<_PasswordMode>(
+              segments: const [
+                ButtonSegment(value: _PasswordMode.keep, label: Text('保留原提取码')),
+                ButtonSegment(value: _PasswordMode.change, label: Text('修改')),
+                ButtonSegment(value: _PasswordMode.none, label: Text('不需要')),
+              ],
+              selected: {_passwordMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (v) =>
+                  setState(() => _passwordMode = v.first),
+            ),
+          )
+        else
+          SwitchListTile(
+            title: const Text('需要提取码'),
+            subtitle: const Text('打开链接时需要输入提取码'),
+            value: _passwordMode == _PasswordMode.change,
+            onChanged: (on) => setState(
+              () => _passwordMode = on
+                  ? _PasswordMode.change
+                  : _PasswordMode.none,
+            ),
+          ),
+        if (_passwordMode == _PasswordMode.change)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: TextField(
-              controller: _title,
+              controller: _password,
+              enableSuggestions: false,
+              autocorrect: false,
+              keyboardType: TextInputType.visiblePassword,
+              inputFormatters: [
+                FilteringTextInputFormatter.deny(RegExp(r'\s')),
+              ],
               decoration: const InputDecoration(
-                labelText: '分享标题',
+                labelText: '提取码',
                 border: OutlineInputBorder(),
               ),
             ),
           ),
-          _section('提取码'),
-          if (_editing && widget.existing!.passwordRequired)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<_PasswordMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: _PasswordMode.keep,
-                    label: Text('保留原提取码'),
-                  ),
-                  ButtonSegment(value: _PasswordMode.change, label: Text('修改')),
-                  ButtonSegment(value: _PasswordMode.none, label: Text('不需要')),
-                ],
-                selected: {_passwordMode},
-                showSelectedIcon: false,
-                onSelectionChanged: (v) =>
-                    setState(() => _passwordMode = v.first),
-              ),
-            )
-          else
-            SwitchListTile(
-              title: const Text('需要提取码'),
-              subtitle: const Text('打开链接时需要输入提取码'),
-              value: _passwordMode == _PasswordMode.change,
-              onChanged: (on) => setState(
-                () => _passwordMode = on
-                    ? _PasswordMode.change
-                    : _PasswordMode.none,
-              ),
-            ),
-          if (_passwordMode == _PasswordMode.change)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: TextField(
-                controller: _password,
-                enableSuggestions: false,
-                autocorrect: false,
-                keyboardType: TextInputType.visiblePassword,
-                inputFormatters: [
-                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                ],
-                decoration: const InputDecoration(
-                  labelText: '提取码',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-          _section('有效期'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final (value, label) in const [
-                  (_Expiry.never, '永久有效'),
-                  (_Expiry.day, '1 天'),
-                  (_Expiry.week, '7 天'),
-                  (_Expiry.month, '30 天'),
-                ])
-                  ChoiceChip(
-                    label: Text(label),
-                    selected: _expiry == value,
-                    onSelected: (_) => setState(() => _expiry = value),
-                  ),
+        _section('有效期'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final (value, label) in const [
+                (_Expiry.never, '永久有效'),
+                (_Expiry.day, '1 天'),
+                (_Expiry.week, '7 天'),
+                (_Expiry.month, '30 天'),
+              ])
                 ChoiceChip(
-                  avatar: const Icon(Icons.event, size: 18),
-                  label: Text(
-                    day == null || _expiry != _Expiry.custom
-                        ? '自定义'
-                        : '${day.year}年${day.month}月${day.day}日',
+                  label: Text(label),
+                  selected: _expiry == value,
+                  onSelected: (_) => setState(() => _expiry = value),
+                ),
+              ChoiceChip(
+                avatar: const Icon(Icons.event, size: 18),
+                label: Text(
+                  day == null || _expiry != _Expiry.custom
+                      ? '自定义'
+                      : '${day.year}年${day.month}月${day.day}日',
+                ),
+                selected: _expiry == _Expiry.custom,
+                onSelected: (_) => _pickDay(),
+              ),
+            ],
+          ),
+        ),
+        _section('访问次数'),
+        SwitchListTile(
+          title: const Text('不限次数'),
+          value: _unlimited,
+          onChanged: (on) => setState(() => _unlimited = on),
+        ),
+        if (!_unlimited)
+          ListTile(
+            title: const Text('最多访问'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton.outlined(
+                  tooltip: '减少',
+                  onPressed: _times > 1 ? () => setState(() => _times--) : null,
+                  icon: const Icon(Icons.remove),
+                ),
+                SizedBox(
+                  width: 56,
+                  child: Text(
+                    '$_times 次',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium,
                   ),
-                  selected: _expiry == _Expiry.custom,
-                  onSelected: (_) => _pickDay(),
+                ),
+                IconButton.outlined(
+                  tooltip: '增加',
+                  onPressed: _times < 9999
+                      ? () => setState(() => _times++)
+                      : null,
+                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
           ),
-          _section('访问次数'),
-          SwitchListTile(
-            title: const Text('不限次数'),
-            value: _unlimited,
-            onChanged: (on) => setState(() => _unlimited = on),
+        _section('访问者可以'),
+        _permission(BhpanPermission.preview, '在线预览', '在浏览器里直接查看文件'),
+        _permission(BhpanPermission.download, '下载', '把文件保存到自己的设备'),
+        if (widget.isFolder || _editing)
+          Theme(
+            data: theme.copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              title: const Text('更多权限'),
+              subtitle: const Text('仅对文件夹分享有效'),
+              initiallyExpanded:
+                  _permissions.contains(BhpanPermission.create) ||
+                  _permissions.contains(BhpanPermission.modify),
+              children: [
+                _permission(BhpanPermission.create, '上传', '向分享的文件夹添加文件'),
+                _permission(BhpanPermission.modify, '修改', '重命名或替换文件夹里的文件'),
+              ],
+            ),
           ),
-          if (!_unlimited)
-            ListTile(
-              title: const Text('最多访问'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton.outlined(
-                    tooltip: '减少',
-                    onPressed: _times > 1
-                        ? () => setState(() => _times--)
-                        : null,
-                    icon: const Icon(Icons.remove),
-                  ),
-                  SizedBox(
-                    width: 56,
-                    child: Text(
-                      '$_times 次',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  IconButton.outlined(
-                    tooltip: '增加',
-                    onPressed: _times < 9999
-                        ? () => setState(() => _times++)
-                        : null,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-            ),
-          _section('访问者可以'),
-          _permission(BhpanPermission.preview, '在线预览', '在浏览器里直接查看文件'),
-          _permission(BhpanPermission.download, '下载', '把文件保存到自己的设备'),
-          if (widget.isFolder || _editing)
-            Theme(
-              data: theme.copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Text('更多权限'),
-                subtitle: const Text('仅对文件夹分享有效'),
-                initiallyExpanded:
-                    _permissions.contains(BhpanPermission.create) ||
-                    _permissions.contains(BhpanPermission.modify),
-                children: [
-                  _permission(BhpanPermission.create, '上传', '向分享的文件夹添加文件'),
-                  _permission(BhpanPermission.modify, '修改', '重命名或替换文件夹里的文件'),
-                ],
-              ),
-            ),
-          if (_error case final error?)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Text(error, style: TextStyle(color: colors.error)),
-            ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: FilledButton(
-            onPressed: _submit,
-            child: Text(_editing ? '保存设置' : '创建链接'),
-          ),
-        ),
-      ),
+      ],
     );
   }
 }

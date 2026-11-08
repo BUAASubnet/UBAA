@@ -11,12 +11,12 @@ void main() {
     await _mount(tester);
     await openUtility(tester, '关于');
     expect(find.text('关于'), findsOneWidget);
-    expect(find.text('UBAA 应用'), findsOneWidget);
-    expect(find.text('开源项目 (GitHub)'), findsOneWidget);
-    expect(find.text('反馈建议 (Issues)'), findsOneWidget);
+    expect(find.text('UBAA'), findsOneWidget);
+    expect(find.text('开源项目（GitHub）'), findsOneWidget);
+    expect(find.text('反馈建议（Issues）'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
     final card = find.ancestor(
-      of: find.text('UBAA 应用'),
+      of: find.text('UBAA'),
       matching: find.byType(Card),
     );
     expect(
@@ -37,7 +37,7 @@ void main() {
       },
     );
     await _open(tester);
-    expect(find.text('版本：2.3.4+17'), findsOneWidget);
+    expect(find.text('版本 2.3.4+17'), findsOneWidget);
     for (final link in AppLink.values) {
       await tester.ensureVisible(find.text(link.label));
       await tester.tap(find.text(link.label));
@@ -77,7 +77,7 @@ void main() {
     expect(find.textContaining('不可输出原始错误'), findsNothing);
     await tester.tap(find.text('重新读取版本'));
     await tester.pumpAndSettle();
-    expect(find.text('版本：2.3.4+18'), findsOneWidget);
+    expect(find.text('版本 2.3.4+18'), findsOneWidget);
     await tester.ensureVisible(find.text(AppLink.feedback.label));
     await tester.tap(find.text(AppLink.feedback.label));
     await tester.pumpAndSettle();
@@ -103,13 +103,14 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<TextButton>(
-            find.widgetWithText(TextButton, AppLink.project.label),
+          .widget<ListTile>(
+            find.widgetWithText(ListTile, AppLink.project.label),
           )
-          .onPressed,
-      isNull,
+          .enabled,
+      isFalse,
     );
-    await tester.tap(find.byTooltip('返回'));
+    // 宽屏“关于”与侧栏分类同级，没有返回；切到首页离开。
+    await tester.tap(find.byIcon(Icons.home_outlined).hitTestable().first);
     await tester.pumpAndSettle();
     pending.complete(false);
     await tester.pumpAndSettle();

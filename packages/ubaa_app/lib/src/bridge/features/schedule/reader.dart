@@ -38,7 +38,7 @@ Future<FeatureResult> bridgeLoadTodayWithCache(BridgeContext backend) async {
   return result.data.isEmpty
       ? FeatureResult.empty(resolvedRoute: route, evidence: evidence)
       : FeatureResult.success(
-          summary: '${result.data.length}今日课程',
+          summary: '${result.data.length}项今日课程',
           details: result.data.map(bridgeTodayDetail).toList(growable: false),
           resolvedRoute: route,
           evidence: evidence,

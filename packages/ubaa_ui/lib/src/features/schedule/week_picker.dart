@@ -21,6 +21,13 @@ List<FeatureDetail> uiUniqueWeekOptions(FeatureResult result, String term) {
       .toList();
 }
 
+/// 教学周起止日期：上游给「2026-09-07 00:00:00」，显示为「9月7日」；无法解析时原样显示。
+String uiWeekDate(String raw) {
+  final match = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(raw.trim());
+  if (match == null) return raw;
+  return '${int.parse(match[2]!)}月${int.parse(match[3]!)}日';
+}
+
 class AcademicWeekDialog extends StatefulWidget {
   const AcademicWeekDialog({
     required this.term,
@@ -36,6 +43,8 @@ class AcademicWeekDialog extends StatefulWidget {
 
 class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
   late Future<FeatureResult> _future;
+  final _targetKey = GlobalKey();
+  bool _scrolled = false;
   @override
   void initState() {
     super.initState();
@@ -55,10 +64,12 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
     title: '选择教学周',
     actions: [
       OutlinedButton(onPressed: _reload, child: const Text('重新获取')),
-      OutlinedButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('取消'),
-      ),
+      // 对话框右上角已有关闭，不再重复「取消」。
+      if (!uiInSheetDialog(context))
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
     ],
     children: [
       FutureBuilder<FeatureResult>(
@@ -82,41 +93,63 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
           final options = uiUniqueWeekOptions(snapshot.data!, widget.term);
           if (options.isEmpty) return const Text('暂无可确定的教学周，可取消后手动填写。');
           final colors = Theme.of(context).colorScheme;
+          // 打开时滚到已选周（没有则本周），不用从第 1 周往下找。
+          final target =
+              options
+                  .map((d) => d.presentation)
+                  .whereType<WeekPresentation>()
+                  .any((w) => w.number == widget.selected)
+              ? widget.selected
+              : options
+                    .map((d) => d.presentation)
+                    .whereType<WeekPresentation>()
+                    .where((w) => w.current)
+                    .firstOrNull
+                    ?.number;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final context = _targetKey.currentContext;
+            if (context != null && !_scrolled) {
+              _scrolled = true;
+              Scrollable.ensureVisible(context, alignment: .4);
+            }
+          });
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final detail in options)
                 if (detail.presentation case final WeekPresentation week)
                   ListTile(
+                    key: week.number == target ? _targetKey : null,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(detail.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+                    title: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('${week.startDate}–${week.endDate}'),
-                        if (week.current)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colors.secondaryContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '本周',
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: colors.onSecondaryContainer,
-                                    ),
-                              ),
+                        Text(detail.title),
+                        if (week.current) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.secondaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '本周',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: colors.onSecondaryContainer,
+                                  ),
                             ),
                           ),
+                        ],
                       ],
+                    ),
+                    subtitle: Text(
+                      '${uiWeekDate(week.startDate)} – ${uiWeekDate(week.endDate)}',
                     ),
                     selected: week.number == widget.selected,
                     trailing: week.number == widget.selected

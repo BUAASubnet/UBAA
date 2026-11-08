@@ -88,7 +88,8 @@ class _BhpanLocationBarState extends State<BhpanLocationBar> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 180),
+          // 当前目录放宽，中间层级收短，避免长目录名在空位充足时也被截断。
+          constraints: BoxConstraints(maxWidth: last ? 360 : 160),
           child: Text(
             text,
             maxLines: 1,

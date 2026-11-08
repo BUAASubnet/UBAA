@@ -260,7 +260,7 @@ void _registerCgyyReservationWriteTests() {
     await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
-    expect(find.widgetWithText(AppBar, '填写预约信息'), findsOneWidget);
+    expect(find.text('填写预约信息'), findsOneWidget);
 
     await tester.enterText(fixtureCgyyTextField('参与人说明'), '  张三  ');
     await tester.tap(find.text('提交预约'));

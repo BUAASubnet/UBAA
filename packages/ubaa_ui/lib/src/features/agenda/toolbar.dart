@@ -1,118 +1,127 @@
 part of 'view.dart';
 
 extension _AgendaToolbar on AgendaViewState {
-  Widget _buildToolbar() => Padding(
-    padding: EdgeInsets.fromLTRB(
-      16,
-      MediaQuery.paddingOf(context).top + 4,
-      4,
-      0,
-    ),
-    child: SizedBox(
-      height: 56,
-      child: Row(
-        children: [
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                '日程',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          // 刷新进度：下拉期间已有下拉指示器，不重复显示。
-          if (loading && result != null && !pulling)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: LoadingGlyph(),
-            ),
-          IconButton(
-            tooltip: '搜索日程',
-            isSelected: searchVisible,
-            onPressed: () => update(() {
-              searchVisible = !searchVisible;
-              if (!searchVisible) {
-                searchField.clear();
-                search = '';
-              }
-            }),
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            tooltip: '筛选日程',
-            onPressed: showFilters,
-            icon: Badge(
-              isLabelVisible: selectedFilterCount > 0,
-              label: Text('$selectedFilterCount'),
-              child: const Icon(Icons.tune),
-            ),
-          ),
-          PopupMenuButton<String>(
-            tooltip: '更多日程操作',
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              switch (value) {
-                case 'export':
-                  unawaited(export());
-                case 'refresh':
-                  unawaited(load());
-                case 'school':
-                  unawaited(refreshSchool());
-                case 'import':
-                  importSchedule();
-                case 'data':
-                  unawaited(dataSheet());
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                key: const ValueKey('agenda-data-menu'),
-                value: 'data',
-                enabled: available,
-                child: const ListTile(
-                  leading: Icon(Icons.storage_outlined),
-                  title: Text('数据与同步'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'export',
-                enabled: available && !busy,
-                child: const ListTile(
-                  leading: Icon(Icons.ios_share),
-                  title: Text('导出日历'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'school',
-                enabled: available,
-                child: const ListTile(
-                  leading: Icon(Icons.cloud_download_outlined),
-                  title: Text('刷新学校日程'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'import',
-                enabled: available,
-                child: const ListTile(
-                  leading: Icon(Icons.calendar_month_outlined),
-                  title: Text('导入整学期课表'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'refresh',
-                enabled: !loading,
-                child: const ListTile(
-                  leading: Icon(Icons.refresh),
-                  title: Text('重新加载'),
-                ),
-              ),
-            ],
-          ),
-        ],
+  /// 与外壳标题栏同高、同左边线和同字号，切换到日程时标题不跳动。
+  Widget _buildToolbar({required bool wide}) {
+    final width = MediaQuery.sizeOf(context).width;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        UbaaTheme.pagePadding(width),
+        MediaQuery.paddingOf(context).top,
+        width >= 600 ? 12 : 4,
+        0,
       ),
+      child: SizedBox(
+        height: width >= 600 ? 72 : 64,
+        child: Row(
+          children: [
+            Expanded(
+              child: Semantics(
+                header: true,
+                child: Text(
+                  '日程',
+                  style: Theme.of(context).appBarTheme.titleTextStyle,
+                ),
+              ),
+            ),
+            // 刷新进度：下拉期间已有下拉指示器，不重复显示。
+            if (loading && result != null && !pulling)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: LoadingGlyph(),
+              ),
+            IconButton(
+              tooltip: '搜索日程',
+              isSelected: searchVisible,
+              onPressed: () => update(() {
+                searchVisible = !searchVisible;
+                if (searchVisible) {
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => searchFocus.requestFocus(),
+                  );
+                } else {
+                  searchField.clear();
+                  search = '';
+                }
+              }),
+              icon: const Icon(Icons.search),
+            ),
+            // 宽屏左栏已常驻筛选，不再重复入口。
+            if (!wide)
+              IconButton(
+                tooltip: '筛选日程',
+                onPressed: showFilters,
+                icon: Badge(
+                  isLabelVisible: selectedFilterCount > 0,
+                  label: Text('$selectedFilterCount'),
+                  child: const Icon(Icons.tune),
+                ),
+              ),
+            PopupMenuButton<String>(
+              tooltip: '更多日程操作',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                switch (value) {
+                  case 'export':
+                    unawaited(export());
+                  case 'refresh':
+                    unawaited(load());
+                  case 'school':
+                    unawaited(refreshSchool());
+                  case 'import':
+                    importSchedule();
+                  case 'data':
+                    unawaited(dataSheet());
+                }
+              },
+              itemBuilder: (_) => [
+                _menuItem(
+                  'data',
+                  Icons.storage_outlined,
+                  '数据与同步',
+                  enabled: available,
+                  key: const ValueKey('agenda-data-menu'),
+                ),
+                _menuItem(
+                  'export',
+                  Icons.ios_share,
+                  '导出日历',
+                  enabled: available && !busy,
+                ),
+                const PopupMenuDivider(),
+                _menuItem(
+                  'school',
+                  Icons.cloud_download_outlined,
+                  '刷新学校日程',
+                  enabled: available,
+                ),
+                _menuItem(
+                  'import',
+                  Icons.calendar_month_outlined,
+                  '导入整学期课表',
+                  enabled: available,
+                ),
+                _menuItem('refresh', Icons.refresh, '重新加载', enabled: !loading),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _menuItem(
+    String value,
+    IconData icon,
+    String label, {
+    required bool enabled,
+    Key? key,
+  }) => PopupMenuItem(
+    key: key,
+    value: value,
+    enabled: enabled,
+    child: Row(
+      children: [Icon(icon, size: 20), const SizedBox(width: 12), Text(label)],
     ),
   );
 

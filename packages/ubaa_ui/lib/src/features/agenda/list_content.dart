@@ -30,6 +30,10 @@ List<Widget> agendaListSlivers({
 
   /// 月视图选中某天时，空日只显示一行说明，新建入口由悬浮按钮承担。
   String? compactEmpty,
+
+  /// 正在搜索时，空结果提示没找到并提供清除搜索，而不是引导新建。
+  String search = '',
+  VoidCallback? onClearSearch,
 }) {
   final theme = Theme.of(context);
   final colors = theme.colorScheme;
@@ -49,19 +53,29 @@ List<Widget> agendaListSlivers({
     ];
   }
   if (entries.isEmpty) {
+    final searching = search.trim().isNotEmpty;
     return [
       SliverFillRemaining(
         hasScrollBody: false,
         child: Padding(
           padding: const EdgeInsets.only(bottom: 64),
-          child: UiStatePanel(
-            icon: Icons.wb_twilight_rounded,
-            title: '这段时间没有安排',
-            detail: '没有符合筛选的事项，可新建日程或待办',
-            action: '新建事项',
-            actionIcon: Icons.add,
-            onAction: onCreate,
-          ),
+          child: searching
+              ? UiStatePanel(
+                  icon: Icons.search_off_rounded,
+                  title: '没有找到「${search.trim()}」',
+                  detail: '只搜索当前时间范围内的标题、备注和地点',
+                  action: '清除搜索',
+                  actionIcon: Icons.close,
+                  onAction: onClearSearch,
+                )
+              : UiStatePanel(
+                  icon: Icons.wb_twilight_rounded,
+                  title: '这段时间没有安排',
+                  detail: '没有符合筛选的事项，可新建日程或待办',
+                  action: '新建事项',
+                  actionIcon: Icons.add,
+                  onAction: onCreate,
+                ),
         ),
       ),
     ];
@@ -90,53 +104,60 @@ List<Widget> agendaListSlivers({
     );
   final todayKey = agendaDate(agendaDay(now));
   return [
-    for (final day in keys) ...[
-      SliverPersistentHeader(
-        pinned: true,
-        delegate: _AgendaDayHeader(
-          label: day == '逾期待办' || day == '无日期'
-              ? day
-              : agendaDayLabel(DateTime.parse(day), now),
-          count: agendaAttachSignins(agendaMergeCourses(groups[day]!)).length,
-          overdue: day == '逾期待办',
-          today: day == todayKey,
-          colors: colors,
-          style: theme.textTheme.titleSmall!,
-          height: MediaQuery.textScalerOf(context).scale(16) + 28,
-        ),
+    // 每天的标题与事项成组：标题只在本组内吸顶，被下一天的标题顶走，不在顶部层层叠起。
+    for (final day in keys)
+      SliverMainAxisGroup(
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _AgendaDayHeader(
+              label: day == '逾期待办' || day == '无日期'
+                  ? day
+                  : agendaDayLabel(DateTime.parse(day), now),
+              count: agendaAttachSignins(
+                agendaMergeCourses(groups[day]!),
+              ).length,
+              overdue: day == '逾期待办',
+              today: day == todayKey,
+              colors: colors,
+              style: theme.textTheme.titleSmall!,
+              height: MediaQuery.textScalerOf(context).scale(16) + 28,
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            sliver: SliverList.list(
+              children: [
+                for (final (entry, end, signin) in agendaAttachSignins(
+                  agendaMergeCourses(
+                    groups[day]!..sort((a, b) {
+                      final allA = a.timing.kind == AgendaTimingKind.allDay,
+                          allB = b.timing.kind == AgendaTimingKind.allDay;
+                      return allA != allB
+                          ? (allA ? -1 : 1)
+                          : (agendaEntryDate(a)?.toIso8601String() ?? '')
+                                .compareTo(
+                                  agendaEntryDate(b)?.toIso8601String() ?? '',
+                                );
+                    }),
+                  ),
+                ))
+                  AgendaEntryTile(
+                    entry: entry,
+                    now: now,
+                    displayEnd: end,
+                    signin: signin,
+                    onOpenSignin: signin == null ? null : () => onOpen(signin),
+                    conflicts: agendaEntryConflicts(entry, allEntries),
+                    onOpen: () => onOpen(entry),
+                    busy: busy,
+                    onComplete: (value) => onComplete(entry, value),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-        sliver: SliverList.list(
-          children: [
-            for (final (entry, end, signin) in agendaAttachSignins(
-              agendaMergeCourses(
-                groups[day]!..sort((a, b) {
-                  final allA = a.timing.kind == AgendaTimingKind.allDay,
-                      allB = b.timing.kind == AgendaTimingKind.allDay;
-                  return allA != allB
-                      ? (allA ? -1 : 1)
-                      : (agendaEntryDate(a)?.toIso8601String() ?? '').compareTo(
-                          agendaEntryDate(b)?.toIso8601String() ?? '',
-                        );
-                }),
-              ),
-            ))
-              AgendaEntryTile(
-                entry: entry,
-                now: now,
-                displayEnd: end,
-                signin: signin,
-                onOpenSignin: signin == null ? null : () => onOpen(signin),
-                conflicts: agendaEntryConflicts(entry, allEntries),
-                onOpen: () => onOpen(entry),
-                busy: busy,
-                onComplete: (value) => onComplete(entry, value),
-              ),
-          ],
-        ),
-      ),
-    ],
   ];
 }
 

@@ -3,6 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../../common/section.dart';
 import '../../shared/text.dart' show uiNonBlank;
+import '../../shared/layout/rail_identity.dart' show UiAppIcon;
 
 /// “我的”：身份、校园账户与校园网流量。
 ///
@@ -31,15 +32,15 @@ class MeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overview = this.overview ?? const CampusAccountOverview();
-    final width = MediaQuery.sizeOf(context).width;
     return ListView(
       key: const PageStorageKey<String>('me-page'),
-      padding: EdgeInsets.all(UbaaTheme.pagePadding(width)),
+      padding: UbaaTheme.pageInsets(context, top: 8),
       children: [
-        InkWell(
+        _IdentityHeader(
           key: const ValueKey('me-profile'),
+          user: user,
+          identity: overview.identity,
           onTap: onOpenProfile,
-          child: _IdentityHeader(user: user, identity: overview.identity),
         ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园账户'),
@@ -62,9 +63,17 @@ class MeView extends StatelessWidget {
 }
 
 class _IdentityHeader extends StatelessWidget {
-  const _IdentityHeader({required this.user, required this.identity});
+  const _IdentityHeader({
+    super.key,
+    required this.user,
+    required this.identity,
+    this.onTap,
+  });
   final UserSummary? user;
   final CampusSection<PortalIdentity> identity;
+
+  /// 打开“我的资料”；卡片末尾的箭头提示可以点开。
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -83,82 +92,70 @@ class _IdentityHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         child: Text(
           text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelLarge?.copyWith(color: scheme.onSurface),
+          style: theme.textTheme.labelMedium?.copyWith(color: scheme.onSurface),
         ),
       ),
     );
     return Card(
       margin: EdgeInsets.zero,
       color: scheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                'assets/icons/app_icon.png',
-                package: 'ubaa_ui',
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => CircleAvatar(
-                  radius: 30,
-                  child: Text(name.characters.first),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                  if (studentId != null && studentId != name) ...[
-                    const SizedBox(height: 2),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              const UiAppIcon(size: 60),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      studentId,
+                      name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onPrimaryContainer,
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
-            // 身份与学院竖排在右侧；学院名较长时限宽省略，不挤压姓名。
-            if (tags.isNotEmpty) ...[
-              const SizedBox(width: 12),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 160),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (final (i, text) in tags.indexed) ...[
-                      if (i > 0) const SizedBox(height: 8),
-                      tag(text),
+                    if (studentId != null && studentId != name) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        studentId,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onPrimaryContainer.withValues(
+                            alpha: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                    // 身份与学院横排在学号下方，长学院名换行而不挤压姓名。
+                    if (tags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [for (final text in tags) tag(text)],
+                      ),
                     ],
                   ],
                 ),
               ),
+              if (onTap != null) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, color: scheme.onPrimaryContainer),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -278,14 +275,12 @@ class _MetricsPanel extends StatelessWidget {
         label: '待还图书',
         value: _count(metrics?.borrowedBooks, '本'),
       ),
-      InkWell(
+      _MetricTile(
+        key: const ValueKey('me-metric-cloud'),
+        icon: Icons.cloud_outlined,
+        label: '云盘剩余',
+        value: _amount(metrics?.cloudStorageRemaining),
         onTap: onOpenBhpan,
-        child: _MetricTile(
-          key: const ValueKey('me-metric-cloud'),
-          icon: Icons.cloud_outlined,
-          label: '云盘剩余',
-          value: _amount(metrics?.cloudStorageRemaining),
-        ),
       ),
     ];
     Widget row(List<Widget> tiles) => IntrinsicHeight(
@@ -328,12 +323,16 @@ class _MetricTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.large = false,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final _TileValue value;
   final bool large;
+
+  /// 可点开的指标（如云盘）在标签行末尾显示箭头。
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -378,40 +377,49 @@ class _MetricTile extends StatelessWidget {
     };
     return Card.outlined(
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: EdgeInsets.all(large ? 16 : 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: scheme.primary),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 18, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: large ? 12 : 10),
-            // 数值行固定高度：数值、读取中、失败之间切换时卡片不跳动，
-            // 并避免缩放文本在等高行内报告不一致的固有高度。
-            SizedBox(
-              height: valueLineHeight,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: AlignmentDirectional.bottomStart,
-                child: display,
+                  if (onTap != null)
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                ],
               ),
-            ),
-          ],
+              SizedBox(height: large ? 12 : 10),
+              // 数值行固定高度：数值、读取中、失败之间切换时卡片不跳动，
+              // 并避免缩放文本在等高行内报告不一致的固有高度。
+              SizedBox(
+                height: valueLineHeight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.bottomStart,
+                  child: display,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/form_page.dart' show showUiPage;
 import '../../shared/dialogs/sheet.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart';
@@ -189,19 +190,18 @@ Future<BhpanItem?> bhpanDestination(
   Set<String> exclude = const {},
   List<BhpanItem>? start,
   String? disabledTarget,
-}) => Navigator.of(context).push<BhpanItem>(
-  MaterialPageRoute(
-    fullscreenDialog: true,
-    builder: (_) => UiScopeBoundary(
-      generation: scope,
-      child: _Destination(
-        service: service,
-        title: title,
-        action: action,
-        exclude: exclude,
-        start: start,
-        disabledTarget: disabledTarget,
-      ),
+}) => showUiPage<BhpanItem>(
+  context,
+  fixedHeight: true,
+  builder: (_) => UiScopeBoundary(
+    generation: scope,
+    child: _Destination(
+      service: service,
+      title: title,
+      action: action,
+      exclude: exclude,
+      start: start,
+      disabledTarget: disabledTarget,
     ),
   ),
 );

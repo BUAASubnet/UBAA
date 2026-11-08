@@ -95,3 +95,55 @@ class UiEntryCard extends StatelessWidget {
     );
   }
 }
+
+/// 宽度允许时把同类卡片排成多列；同一行等高，窄屏退回单列。
+class UiAdaptiveGrid extends StatelessWidget {
+  const UiAdaptiveGrid({
+    super.key,
+    required this.children,
+    this.minItemWidth = 320,
+    this.maxColumns = 3,
+    this.spacing = 12,
+  });
+  final List<Widget> children;
+  final double minItemWidth;
+  final int maxColumns;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final minWidth = MediaQuery.textScalerOf(context).scale(minItemWidth);
+      final columns = ((constraints.maxWidth + spacing) / (minWidth + spacing))
+          .floor()
+          .clamp(1, maxColumns);
+      final rows = <Widget>[
+        for (var start = 0; start < children.length; start += columns)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = start; i < start + columns; i++) ...[
+                  if (i > start) SizedBox(width: spacing),
+                  Expanded(
+                    child: i < children.length
+                        ? children[i]
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, row) in rows.indexed) ...[
+            if (i > 0) SizedBox(height: spacing),
+            row,
+          ],
+        ],
+      );
+    },
+  );
+}

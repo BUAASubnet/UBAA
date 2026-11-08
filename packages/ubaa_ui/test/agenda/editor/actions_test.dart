@@ -158,7 +158,10 @@ void main() {
     await tester.tap(find.text('合成学校作业'));
     await tester.pumpAndSettle();
     expect(
-      find.descendant(of: find.byType(BottomSheet), matching: find.text('未提交')),
+      find.descendant(
+        of: find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
+        matching: find.text('未提交'),
+      ),
       findsOneWidget,
     );
     await tester.tap(find.text('添加备注…'));

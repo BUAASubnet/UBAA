@@ -32,7 +32,10 @@ void _registerYgdkFormTests() {
     await mount(tester, fixtureValidYgdkPhoto);
     await fixtureOpenAndFillYgdkForm(tester);
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(Dialog), matching: find.text('填写阳光打卡信息')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
@@ -137,7 +140,7 @@ void _registerYgdkFormTests() {
     expect(find.text('已选择照片：camera.png'), findsOneWidget);
     await tester.tap(camera);
     await tester.pump();
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     pending.complete(await fixtureValidYgdkPhoto());
     await tester.pumpAndSettle();

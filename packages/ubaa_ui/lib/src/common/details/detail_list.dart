@@ -50,7 +50,7 @@ import '../../write/cgyy/form.dart'
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/loading.dart' show LoadingGlyph;
-import '../../shared/when.dart' show uiShortDateTime;
+import '../../shared/when.dart' show uiShortDateTime, uiShortRange;
 import '../tag.dart';
 
 part 'assignments.dart';
@@ -297,7 +297,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                       onNavigate: widget.onNavigate,
                     )
                   : ListView.separated(
-                      padding: UbaaTheme.pageInsets(context),
+                      padding: UbaaTheme.pageInsets(context, top: 8),
                       itemCount: visible.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {

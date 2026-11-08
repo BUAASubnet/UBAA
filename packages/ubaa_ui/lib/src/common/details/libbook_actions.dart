@@ -6,8 +6,11 @@ extension LibbookDetailActions on _FeatureDetailListState {
     LibbookCancelAction? libbookCancelAction,
     bool canLibbookCancel,
   ) => <Widget>[
+    // 已结束、已取消等不可取消的预约不再显示灰掉的按钮，状态标签已说明。
     if (libbookCancelAction != null &&
-        widget.onLibbookCancelWrite != null) ...<Widget>[
+        widget.onLibbookCancelWrite != null &&
+        libbookCancelAction.eligibility !=
+            ActionEligibility.denied) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
         onPressed: !widget.writesEnabled
@@ -18,15 +21,6 @@ extension LibbookDetailActions on _FeatureDetailListState {
         icon: const Icon(Icons.event_busy),
         label: const Text('取消预约'),
       ),
-      if (!canLibbookCancel &&
-          libbookCancelAction.eligibility == ActionEligibility.denied)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '该预约当前不可取消。',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
     ],
   ];
 

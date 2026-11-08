@@ -9,24 +9,43 @@ extension LibbookBookingRows on _FeatureDetailListState {
     bool canCancel,
   ) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    // 上游开始/结束可能带完整日期，统一成「5月8日 14:59–23:00」；只有时刻时补上日期。
+    final range =
+        uiShortRange(
+          booking.beginTime.contains('-') || booking.day.trim().isEmpty
+              ? booking.beginTime
+              : '${booking.day} ${booking.beginTime}',
+          booking.endTime.contains('-') || booking.day.trim().isEmpty
+              ? booking.endTime
+              : '${booking.day} ${booking.endTime}',
+        ) ??
+        '${booking.beginTime}–${booking.endTime}';
+    final seat = '座位 ${booking.seatNumber}';
+    final place =
+        booking.areaName.trim().isEmpty ||
+            booking.areaName.trim() == booking.seatNumber.trim()
+        ? seat
+        : '${booking.areaName} · $seat';
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(booking.name, style: theme.textTheme.titleMedium),
+                  child: Text(
+                    booking.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    booking.statusName.isEmpty ? '状态未说明' : booking.statusName,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                UiTag(
+                  booking.statusName.isEmpty ? '状态未说明' : booking.statusName,
                 ),
                 IconButton(
                   tooltip: '预约详情',
@@ -58,13 +77,21 @@ extension LibbookBookingRows on _FeatureDetailListState {
                 ),
               ],
             ),
-            Text(
-              '${uiShortDateTime(booking.day)} ${booking.beginTime}–${booking.endTime}',
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${booking.areaName} · 座位 ${booking.seatNumber}',
-              style: theme.textTheme.bodySmall,
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(range, style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    place,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
             ..._libbookCancelWriteFields(context, action, canCancel),
           ],

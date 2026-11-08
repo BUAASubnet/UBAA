@@ -59,7 +59,13 @@ final class BridgeBhpanService implements BhpanService {
       return await call();
     } on BridgeError catch (e) {
       final mapped = UbaaErrorMapper.fromException(bridgeMapError(e));
-      throw UiError(code: mapped.code, title: mapped.title, message: e.message);
+      // 透传错误类别，界面据此区分「会话过期」与真正的权限不足。
+      throw UiError(
+        code: mapped.code,
+        title: mapped.title,
+        message: e.message,
+        kind: mapped.kind,
+      );
     }
   }
 

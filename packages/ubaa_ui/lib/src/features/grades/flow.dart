@@ -161,9 +161,7 @@ class _GradesFlowState extends State<GradesFlow> {
         .toList();
     return ListView(
       key: const PageStorageKey('grades-old-list'),
-      padding: EdgeInsets.all(
-        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-      ),
+      padding: UbaaTheme.pageInsets(context, top: 8),
       children: [
         if (snapshot.status == FeatureLoadStatus.stale &&
             snapshot.error != null)
@@ -186,61 +184,67 @@ class _GradesFlowState extends State<GradesFlow> {
                           )
                         : null,
                   ),
+                  // 只包住学期名，菜单贴着文字弹出，而不是对齐整条的一端。
                   Expanded(
-                    child: PopupMenuButton<String>(
-                      tooltip: '选择学期',
-                      enabled: hasTerms,
-                      initialValue: selectedCode,
-                      onSelected: (code) =>
-                          setState(() => _selectedTermCode = code),
-                      itemBuilder: (context) => [
-                        for (final term in terms)
-                          PopupMenuItem(
-                            value: term.code,
-                            child: Row(
-                              children: [
-                                if (term.code == selectedCode)
-                                  Icon(
-                                    Icons.check,
-                                    size: 18,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                else
-                                  const SizedBox(width: 18),
-                                const SizedBox(width: 8),
-                                Text(term.name),
-                                if (term.code == current.termCode)
-                                  Text(
-                                    ' (本学期)',
-                                    style: TextStyle(
+                    child: Center(
+                      child: PopupMenuButton<String>(
+                        tooltip: '选择学期',
+                        enabled: hasTerms,
+                        initialValue: selectedCode,
+                        onSelected: (code) =>
+                            setState(() => _selectedTermCode = code),
+                        itemBuilder: (context) => [
+                          for (final term in terms)
+                            PopupMenuItem(
+                              value: term.code,
+                              child: Row(
+                                children: [
+                                  if (term.code == selectedCode)
+                                    Icon(
+                                      Icons.check,
+                                      size: 18,
                                       color: theme.colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
+                                    )
+                                  else
+                                    const SizedBox(width: 18),
+                                  const SizedBox(width: 8),
+                                  Text(term.name),
+                                  if (term.code == current.termCode)
+                                    Text(
+                                      '（本学期）',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                      ],
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                isCurrentTerm
-                                    ? '${activeTerm?.name ?? current.termCode} (本学期)'
-                                    : activeTerm.name,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_drop_down, size: 20),
-                          ],
+                        ],
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  isCurrentTerm
+                                      ? '${activeTerm?.name ?? current.termCode}（本学期）'
+                                      : activeTerm.name,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_drop_down, size: 20),
+                            ],
+                          ),
                         ),
                       ),
                     ),

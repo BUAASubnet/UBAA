@@ -167,8 +167,7 @@ void main() {
       ],
     );
     await tapVisible(tester, find.widgetWithText(Card, 'A1'));
-    await tapVisible(tester, find.byKey(const ValueKey('libbook-choice-时段')));
-    await tapVisible(tester, find.text('次日时段 14:00–16:00').last);
+    await tapVisible(tester, _choice('时段', '次日时段 14:00–16:00'));
     expect(backend.libraryReads.last.segment, 'second-slot');
     expect(backend.libraryReads.last.date, DateTime(2026, 9, 4));
     expect(find.text('已选座位：A1'), findsNothing);
@@ -196,10 +195,11 @@ void main() {
   testWidgets('切换日期挂起时旧座位失效，返回后迟到结果不扩展读取链', (tester) async {
     final backend = await _open(tester);
     await tapVisible(tester, find.widgetWithText(Card, 'A1'));
-    await tapVisible(tester, find.byKey(const ValueKey('libbook-choice-日期')));
+    await tester.ensureVisible(_choice('日期', '9月5日'));
+    await tester.pumpAndSettle();
     final gate = Completer<void>();
     backend.pending = gate;
-    await tester.tap(find.text('9月5日').last);
+    await tester.tap(_choice('日期', '9月5日'));
     await tester.pump();
     expect(find.text('已选座位：A1'), findsNothing);
     await tester.tap(find.byTooltip('返回'));
@@ -262,9 +262,13 @@ void main() {
 }
 
 Future<void> _secondDay(WidgetTester tester) async {
-  await tapVisible(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-  await tapVisible(tester, find.text('9月5日').last);
+  await tapVisible(tester, _choice('日期', '9月5日'));
 }
+
+Finder _choice(String group, String text) => find.descendant(
+  of: find.byKey(ValueKey('libbook-choice-$group')),
+  matching: find.widgetWithText(ChoiceChip, text),
+);
 
 class _ScheduleBackend extends LibraryBackend {
   _ScheduleBackend({super.state, this.days = _defaultDays});

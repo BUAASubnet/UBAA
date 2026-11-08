@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
+import 'calendar/entry_chip.dart';
 import '../../shared/layout/seven_day_grid.dart';
 import 'calendar_values.dart';
 import 'format.dart';
@@ -61,11 +61,12 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   Widget block(AgendaEntry entry) {
     final colors = Theme.of(context).colorScheme;
     final conflict = agendaEntryConflicts(entry, widget.allEntries).isNotEmpty;
-    final color =
-        agendaColor(entry.local?.content.color) ??
-        (entry.school?.navigation.feature == AgendaFeature.schedule
-            ? colors.tertiaryContainer
-            : colors.secondaryContainer);
+    // 与列表视图同一来源色：浅色底加左侧色条，课程、作业一眼可分。
+    final source = agendaSourceColor(entry, colors);
+    final color = Color.alphaBlend(
+      source.withValues(alpha: .22),
+      colors.surfaceContainerLow,
+    );
     return Padding(
       padding: const EdgeInsets.all(1),
       child: Tooltip(
@@ -73,21 +74,23 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
             '${agendaTitle(entry)} · ${agendaWhen(entry)}${conflict ? ' · 与课程重叠' : ''}',
         child: Material(
           color: color,
-          borderRadius: BorderRadius.circular(5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+            side: BorderSide(color: source.withValues(alpha: .35)),
+          ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => widget.onOpen(entry),
             child: Builder(
               builder: (context) {
-                final fg =
-                    ThemeData.estimateBrightnessForColor(color) ==
-                        Brightness.dark
-                    ? Colors.white
-                    : Colors.black87;
+                final fg = colors.onSurface;
                 final place =
                     entry.local?.content.location ?? entry.school?.location;
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(3, 3, 2, 2),
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(left: BorderSide(color: source, width: 3)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(4, 3, 2, 2),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -593,68 +596,20 @@ class _AllDayRow extends StatelessWidget {
     return title;
   }
 
-  Widget _pill(BuildContext context, AgendaEntry entry) {
-    final theme = Theme.of(context);
-    final source = agendaSourceColor(entry, theme.colorScheme);
-    // 与课程重叠时描红边，完整说明放在提示与读屏标签里。
-    final conflict = agendaEntryConflicts(entry, allEntries).isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.all(1),
-      child: Tooltip(
-        message:
-            '${agendaTitle(entry)} · ${agendaWhen(entry)}${conflict ? ' · 与课程重叠' : ''}',
-        child: Material(
-          color: source.withValues(alpha: .16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: conflict
-                ? BorderSide(color: theme.colorScheme.error)
-                : BorderSide.none,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => onOpen(entry),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-              child: Text(
-                _label(entry),
-                // 手机列宽只放得下三四个字，窄列允许两行。
-                maxLines: column < 90 ? 2 : 1,
-                overflow: TextOverflow.clip,
-                softWrap: column < 90,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _pill(BuildContext context, AgendaEntry entry) => AgendaEntryChip(
+    entry: entry,
+    label: _label(entry),
+    conflict: agendaEntryConflicts(entry, allEntries).isNotEmpty,
+    // 手机列宽只放得下三四个字，窄列允许两行。
+    wrap: column < 90,
+    onTap: () => onOpen(entry),
+  );
 
   void _showList(BuildContext context, String title, List<AgendaEntry> items) =>
-      showUiSheet<void>(
+      showAgendaEntryList(
         context,
-        builder: (sheet) => UiSheetBody(
-          title: title,
-          children: [
-            for (final entry in items)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.circle,
-                  size: 10,
-                  color: agendaSourceColor(entry, Theme.of(sheet).colorScheme),
-                ),
-                title: Text(agendaTitle(entry)),
-                subtitle: Text(agendaWhen(entry)),
-                onTap: () {
-                  Navigator.pop(sheet);
-                  onOpen(entry);
-                },
-              ),
-          ],
-        ),
+        title: title,
+        entries: items,
+        onOpen: onOpen,
       );
 }

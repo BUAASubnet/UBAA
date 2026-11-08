@@ -73,14 +73,14 @@ class AssignmentContent extends StatelessWidget {
         groups[''] = details;
       }
       return ListView(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
+        // 顶部与其他页面一致，紧贴页面标题。
+        padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
-          for (final entry in groups.entries) ...[
+          for (final (i, entry) in groups.entries.indexed) ...[
             if (summary)
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                // 组间多留一段，课程标题归属下方卡片而不是上一组。
+                padding: EdgeInsets.only(top: i == 0 ? 0 : 12, bottom: 8),
                 child: Text(
                   uiNonBlank(entry.key) ?? '课程名称未提供',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(

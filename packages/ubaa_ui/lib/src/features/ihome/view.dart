@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/confirmation.dart' show uiConfirmIrreversible;
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
+import '../../common/chip_strip.dart';
 import '../../theme.dart';
 import '../../common/state_panel.dart';
 part 'detail.dart';
@@ -203,43 +204,38 @@ class _IhomeViewState extends State<IhomeView> {
     return PullToRefresh(
       onRefresh: () => _load(),
       child: ListView(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
+        padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
           Row(
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    spacing: 8,
-                    children: [
-                      for (final item in const [
-                        (IhomeScope.public, '诉求广场'),
-                        (IhomeScope.mine, '我的诉求'),
-                        (IhomeScope.followed, '我的关注'),
-                        (IhomeScope.appraised, '我的评价'),
-                      ])
-                        ChoiceChip(
-                          label: Text(item.$2),
-                          selected: !_notices && _scope == item.$1,
-                          onSelected: _busy.isNotEmpty
-                              ? null
-                              : (_) => _selectScope(item.$1),
-                        ),
+                child: UiChipStrip(
+                  spacing: 8,
+                  children: [
+                    for (final item in const [
+                      (IhomeScope.public, '诉求广场'),
+                      (IhomeScope.mine, '我的诉求'),
+                      (IhomeScope.followed, '我的关注'),
+                      (IhomeScope.appraised, '我的评价'),
+                    ])
                       ChoiceChip(
-                        label: const Text('公告'),
-                        selected: _notices,
+                        label: Text(item.$2),
+                        selected: !_notices && _scope == item.$1,
                         onSelected: _busy.isNotEmpty
                             ? null
-                            : (_) {
-                                setState(() => _notices = true);
-                                unawaited(_load(reset: true));
-                              },
+                            : (_) => _selectScope(item.$1),
                       ),
-                    ],
-                  ),
+                    ChoiceChip(
+                      label: const Text('公告'),
+                      selected: _notices,
+                      onSelected: _busy.isNotEmpty
+                          ? null
+                          : (_) {
+                              setState(() => _notices = true);
+                              unawaited(_load(reset: true));
+                            },
+                    ),
+                  ],
                 ),
               ),
               if (Theme.of(context).platform
@@ -258,7 +254,7 @@ class _IhomeViewState extends State<IhomeView> {
                 ),
             ],
           ),
-          if (!_notices) ..._filters(),
+          if (!_notices) ..._filters() else const SizedBox(height: 12),
           // 只有首次读取在页面内占位；刷新保留原内容。
           if (_loading && empty) const LoadingPlaceholder(compact: true),
           if (_error != null)

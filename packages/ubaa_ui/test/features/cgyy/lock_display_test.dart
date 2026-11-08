@@ -26,13 +26,47 @@ class _Session implements CgyyLockDisplaySession {
   }
 }
 
-Widget _view(_Session session, {bool visible = true}) => MaterialApp(
-  theme: ThemeData(platform: TargetPlatform.macOS),
+Widget _view(
+  _Session session, {
+  bool visible = true,
+  int refreshRevision = 0,
+  TargetPlatform platform = TargetPlatform.android,
+}) => MaterialApp(
+  // 页内“刷新密码”只在触屏显示；桌面由顶栏刷新驱动 refreshRevision。
+  theme: ThemeData(platform: platform),
   home: Scaffold(
-    body: UbaaCgyyLockDisplayView(open: () async => session, visible: visible),
+    body: UbaaCgyyLockDisplayView(
+      open: () async => session,
+      visible: visible,
+      refreshRevision: refreshRevision,
+    ),
   ),
 );
 void main() {
+  testWidgets('桌面顶栏刷新清除旧密码并更新显示，读取期间保持单飞', (tester) async {
+    final session = _Session();
+    await tester.pumpWidget(_view(session, platform: TargetPlatform.macOS));
+    await tester.pump();
+    session.requests.single.complete(CgyyLockDisplay(code: '001234'));
+    await tester.pump();
+    expect(find.text('001234'), findsOneWidget);
+    await tester.pumpWidget(
+      _view(session, platform: TargetPlatform.macOS, refreshRevision: 1),
+    );
+    await tester.pump();
+    expect(find.text('001234'), findsNothing);
+    expect(session.requests, hasLength(2));
+    await tester.pumpWidget(
+      _view(session, platform: TargetPlatform.macOS, refreshRevision: 2),
+    );
+    await tester.pump();
+    expect(session.requests, hasLength(2));
+    session.requests.last.complete(CgyyLockDisplay(code: '005678'));
+    await tester.pump();
+    expect(find.text('005678'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    expect(session.closed, isTrue);
+  });
   testWidgets('门锁显示30秒到期先清旧码且手动定时单飞', (tester) async {
     final session = _Session();
     await tester.pumpWidget(_view(session));

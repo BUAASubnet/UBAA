@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../shared/text.dart' show uiNonBlank;
+import '../shared/layout/rail_identity.dart' show UiAppIcon;
 
 /// 我的资料：头部显示姓名与学号，下方直接列出资料。
 /// 手机和邮箱上游已打码，原样显示。
@@ -37,20 +38,7 @@ class ProfileIdentityCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.asset(
-                    'assets/icons/app_icon.png',
-                    package: 'ubaa_ui',
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => CircleAvatar(
-                      radius: 28,
-                      child: Text(name.characters.first),
-                    ),
-                  ),
-                ),
+                const UiAppIcon(size: 56),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

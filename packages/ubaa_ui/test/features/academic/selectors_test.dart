@@ -57,11 +57,12 @@ void main() {
     );
     await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
+    // 宽屏以对话框显示面板，窄屏为底部面板；两者都应按内容收缩。
+    final host = find.byType(BottomSheet).evaluate().isNotEmpty
+        ? find.byType(BottomSheet)
+        : find.byType(Dialog);
     final surface = find
-        .descendant(
-          of: find.byType(BottomSheet),
-          matching: find.byType(Material),
-        )
+        .descendant(of: host, matching: find.byType(Material))
         .first;
     expect(tester.getSize(surface).height, lessThan(400));
     expect(find.text('合成甲学期'), findsOneWidget);
@@ -149,7 +150,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '重试'));
     await tester.pumpAndSettle();
     expect(loads, [false, true]);
-    await tester.tap(find.text('取消'));
+    // 对话框形式只保留右上角关闭，不再重复“取消”。
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     expect(find.text('学期编码'), findsNothing);
     expect(queries, isEmpty);

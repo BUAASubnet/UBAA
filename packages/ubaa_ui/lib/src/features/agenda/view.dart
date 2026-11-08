@@ -10,9 +10,12 @@ import '../../shared/feedback.dart';
 import 'editor.dart';
 import 'format.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/date_range.dart';
+import '../../shared/dialogs/form_page.dart' show showUiPage;
 import 'cache_status.dart';
 import 'calendar_values.dart';
 import 'month_calendar.dart';
+import 'calendar/month_grid.dart';
 import 'week_content.dart';
 import 'list_content.dart';
 import 'sync_status.dart';
@@ -21,6 +24,7 @@ import '../../shared/create_button.dart';
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
 import '../../common/state_panel.dart';
+import '../../theme.dart';
 part 'details.dart';
 part 'export.dart';
 part 'filters.dart';
@@ -90,6 +94,8 @@ class AgendaViewState extends State<AgendaView> {
   bool searchVisible = false, noticesDismissed = false;
   String? selectedKey;
   final searchField = TextEditingController();
+  // 页面外层 Focus 已持有焦点，SearchBar 的 autoFocus 不会生效，打开时显式聚焦。
+  final searchFocus = FocusNode(debugLabel: 'agenda-search');
   int revision = 0;
   final generation = ValueNotifier<int>(0);
 
@@ -237,6 +243,7 @@ class AgendaViewState extends State<AgendaView> {
     sheetTick.dispose();
     unawaited(_syncSubscription?.cancel());
     searchField.dispose();
+    searchFocus.dispose();
     super.dispose();
   }
 
@@ -341,35 +348,33 @@ class AgendaViewState extends State<AgendaView> {
   }) async {
     if (busy || !available) return;
     final token = generation.value;
-    final done = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => bound(
-          AgendaEditor(
-            service: service,
-            boundary: bound,
-            isCurrent: () => current(token),
-            item: item,
-            occurrence: occurrence,
-            scope: scope,
-            now: now,
-            findConflicts: (content) async {
-              final start = agendaValue(content.start),
-                  end = agendaValue(content.end);
-              if (start == null || end == null) return [];
-              final value = await service.query(
-                query(
-                  start: agendaDay(start),
-                  end: agendaDay(end).add(const Duration(days: 1)),
-                  hidden: true,
-                ),
-              );
-              if (!current(token)) return [];
-              return agendaContentConflicts(content, value.entries);
-            },
-          ),
-        ),
+    Widget editor() => bound(
+      AgendaEditor(
+        service: service,
+        boundary: bound,
+        isCurrent: () => current(token),
+        item: item,
+        occurrence: occurrence,
+        scope: scope,
+        now: now,
+        findConflicts: (content) async {
+          final start = agendaValue(content.start),
+              end = agendaValue(content.end);
+          if (start == null || end == null) return [];
+          final value = await service.query(
+            query(
+              start: agendaDay(start),
+              end: agendaDay(end).add(const Duration(days: 1)),
+              hidden: true,
+            ),
+          );
+          if (!current(token)) return [];
+          return agendaContentConflicts(content, value.entries);
+        },
       ),
     );
+    // 宽窗口为居中对话框，窄窗口整页。
+    final done = await showUiPage<bool>(context, builder: (_) => editor());
     if (current(token) && done == true) {
       widget.onChanged?.call();
       await load();
@@ -488,7 +493,7 @@ class AgendaViewState extends State<AgendaView> {
     }
   }
 
-  Widget toolbar() => _buildToolbar();
+  Widget toolbar({required bool wide}) => _buildToolbar(wide: wide);
 
   String get rangeLabel {
     if (mode == AgendaViewMode.month)
@@ -558,6 +563,18 @@ class AgendaViewState extends State<AgendaView> {
           FocusManager.instance.primaryFocus?.context
               ?.findAncestorStateOfType<EditableTextState>() !=
           null;
+      // Esc 关闭搜索（焦点在搜索框里时也生效）。
+      if (event is KeyDownEvent &&
+          event.logicalKey == LogicalKeyboardKey.escape &&
+          searchVisible) {
+        searchField.clear();
+        setState(() {
+          searchVisible = false;
+          search = '';
+        });
+        node.requestFocus();
+        return KeyEventResult.handled;
+      }
       if (event is! KeyDownEvent ||
           !HardwareKeyboard.instance.isAltPressed ||
           editing)
@@ -606,9 +623,13 @@ class AgendaViewState extends State<AgendaView> {
           }
         }
 
-        final selected = (mode == AgendaViewMode.week ? visible : list)
-            .where((e) => agendaEntryKey(e) == selectedKey)
-            .firstOrNull;
+        final selected =
+            (mode == AgendaViewMode.week ||
+                        (wide && mode == AgendaViewMode.month)
+                    ? visible
+                    : list)
+                .where((e) => agendaEntryKey(e) == selectedKey)
+                .firstOrNull;
         final header = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -618,7 +639,7 @@ class AgendaViewState extends State<AgendaView> {
                 child: SearchBar(
                   key: const ValueKey('agenda-search'),
                   controller: searchField,
-                  autoFocus: true,
+                  focusNode: searchFocus,
                   hintText: '搜索标题、备注或地点',
                   elevation: const WidgetStatePropertyAll(0),
                   leading: const Icon(Icons.search),
@@ -674,6 +695,16 @@ class AgendaViewState extends State<AgendaView> {
           onOpen: open,
           onDate: goDate,
         );
+        // 宽屏左栏已有小月历，月视图主区改为整月网格。
+        final monthGrid = wide && mode == AgendaViewMode.month;
+        final grid = AgendaMonthGrid(
+          date: focusDate,
+          today: agendaDay(now),
+          entries: filtered,
+          allEntries: all,
+          onSelected: goDate,
+          onOpen: open,
+        );
         final content = PullToRefresh(
           onRefresh: () async {
             setState(() => pulling = true);
@@ -687,7 +718,16 @@ class AgendaViewState extends State<AgendaView> {
             key: const ValueKey('agenda-main-scroll'),
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (result != null && mode == AgendaViewMode.week)
+              if (result != null && monthGrid)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  sliver: fillsWeek
+                      ? SliverFillRemaining(child: grid)
+                      : SliverToBoxAdapter(
+                          child: SizedBox(height: 560, child: grid),
+                        ),
+                )
+              else if (result != null && mode == AgendaViewMode.week)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   // 周网格撑满到底栏；矮窗口保留最小高度，整页可滚动。
@@ -724,16 +764,21 @@ class AgendaViewState extends State<AgendaView> {
                   compactEmpty: mode == AgendaViewMode.month
                       ? '${agendaMonthDay(focusDate)} 没有安排'
                       : null,
+                  search: search,
+                  onClearSearch: () {
+                    searchField.clear();
+                    setState(() => search = '');
+                  },
                 ),
               ],
-              if (!(fillsWeek && mode == AgendaViewMode.week))
+              if (!(fillsWeek && (mode == AgendaViewMode.week || monthGrid)))
                 const SliverToBoxAdapter(child: SizedBox(height: 88)),
             ],
           ),
         );
         return Column(
           children: [
-            toolbar(),
+            toolbar(wide: wide),
             Expanded(
               child: Stack(
                 children: [
@@ -742,10 +787,17 @@ class AgendaViewState extends State<AgendaView> {
                     children: [
                       if (wide) ...[
                         SizedBox(
-                          width: 280 * scale,
+                          width: 296 * scale,
                           key: const ValueKey('agenda-sidebar'),
                           child: ListView(
-                            padding: const EdgeInsets.all(16),
+                            padding: EdgeInsets.fromLTRB(
+                              UbaaTheme.pagePadding(
+                                MediaQuery.sizeOf(context).width,
+                              ),
+                              8,
+                              16,
+                              16,
+                            ),
                             children: [
                               AgendaMonthCalendar(
                                 date: focusDate,
@@ -813,8 +865,8 @@ class AgendaViewState extends State<AgendaView> {
 
   Future<void> range() async {
     final token = generation.value;
-    final selected = await showDateRangePicker(
-      context: context,
+    final selected = await uiShowDateRangePicker(
+      context,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       initialDateRange: DateTimeRange(

@@ -59,9 +59,7 @@ class AcademicResultContent extends StatelessWidget {
           );
       if (weekly) return ScheduleContent(details: details, timeline: timeline);
       return ListView(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
+        padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
           if (feature == FeatureId.exam)
             ExamTimeline(details: details)

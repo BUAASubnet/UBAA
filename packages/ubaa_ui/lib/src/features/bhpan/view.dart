@@ -1,3 +1,4 @@
+import '../../theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,12 +16,14 @@ import 'transfer_view.dart';
 import 'write_flow.dart';
 import 'create_menu.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/form_page.dart' show showUiPage;
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
 import '../../shared/sync_status.dart';
 import '../../common/state_panel.dart';
 
 part 'view_transfer.dart';
+part 'view_content.dart';
 
 class BhpanAccess {
   const BhpanAccess({
@@ -79,6 +82,8 @@ class _BhpanViewState extends State<BhpanView> {
   Object? _error;
   String _filter = '';
   final _search = TextEditingController();
+  final _keys = FocusNode(debugLabel: 'bhpan-keys');
+  final _searchFocus = FocusNode(debugLabel: 'bhpan-search');
   bool _searchVisible = false;
   bool _loading = false, _working = false;
   BhpanSortKey _sort = BhpanSortKey.name;
@@ -141,6 +146,8 @@ class _BhpanViewState extends State<BhpanView> {
     _scope.value++;
     _scope.dispose();
     _search.dispose();
+    _keys.dispose();
+    _searchFocus.dispose();
     _transfer?.cancel();
     _progressTimer?.cancel();
     _progressHide?.cancel();
@@ -163,10 +170,20 @@ class _BhpanViewState extends State<BhpanView> {
     if (mounted) UbaaFeedback.show(context, message, kind: kind);
   }
 
+  /// 页面快捷键节点已持有焦点，SearchBar 的 autoFocus 不生效，这里显式聚焦。
+  void _openSearch() {
+    setState(() => _searchVisible = true);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _searchFocus.requestFocus(),
+    );
+  }
+
   void _clearSearch() {
     _searchVisible = false;
     _filter = '';
     _search.clear();
+    // 搜索框移除后焦点收回页面，⌘F 等快捷键继续可用。
+    _keys.requestFocus();
   }
 
   /// [keep] 为 true 时保留当前列表（刷新、写入后回读），否则显示骨架。
@@ -284,9 +301,13 @@ class _BhpanViewState extends State<BhpanView> {
 
   Future<void> _push(Widget page) async {
     final generation = _generation;
-    await Navigator.of(
+    // 回收站、分享管理：宽窗口为大对话框，不盖住侧边栏。
+    await showUiPage<void>(
       context,
-    ).push(MaterialPageRoute<void>(builder: (_) => _dialogScope(page)));
+      dialogWidth: 720,
+      fixedHeight: true,
+      builder: (_) => _dialogScope(page),
+    );
     if (_current(generation)) await _refresh();
   }
 
@@ -722,13 +743,8 @@ class _BhpanViewState extends State<BhpanView> {
       IconButton(
         tooltip: '搜索',
         isSelected: _searchVisible,
-        onPressed: () => setState(() {
-          if (_searchVisible) {
-            _clearSearch();
-          } else {
-            _searchVisible = true;
-          }
-        }),
+        onPressed: () =>
+            _searchVisible ? setState(_clearSearch) : _openSearch(),
         icon: const Icon(Icons.search),
       ),
       _sortButton(),
@@ -740,91 +756,6 @@ class _BhpanViewState extends State<BhpanView> {
         ),
     ],
   );
-
-  Widget _errorPanel(Object error) {
-    final code = error is UiError ? error.code : null;
-    if (_received)
-      return UiStatePanel(
-        icon: Icons.link_off,
-        title: '没能打开这个分享',
-        detail: _message(error),
-        action: '重新输入链接',
-        onAction: _loading ? null : _receivedShare,
-      );
-    return switch (code) {
-      UbaaErrorCode.authenticationRequired ||
-      UbaaErrorCode.invalidCredentials => UiStatePanel(
-        icon: Icons.lock_outline,
-        title: '云盘登录已失效',
-        detail: '重新登录后会回到个人文档库',
-        action: '重新登录云盘',
-        onAction: _loading ? null : () => _load(reconnect: true),
-      ),
-      UbaaErrorCode.permissionDenied => UiStatePanel(
-        icon: Icons.block,
-        title: '没有权限访问这里',
-        detail: _message(error),
-        action: '重试',
-        onAction: _loading ? null : _load,
-      ),
-      UbaaErrorCode.networkError ||
-      UbaaErrorCode.timeout ||
-      UbaaErrorCode.upstreamUnavailable => UiStatePanel(
-        icon: Icons.wifi_off,
-        title: '暂时连不上北航云盘',
-        detail: '请检查网络后重试',
-        action: '重试',
-        onAction: _loading ? null : _load,
-      ),
-      _ => UiStatePanel(
-        icon: Icons.cloud_off_outlined,
-        title: '没能读取这个文件夹',
-        detail: _message(error),
-        action: '重试',
-        onAction: _loading ? null : _load,
-      ),
-    };
-  }
-
-  Widget _content(List<BhpanItem> items, bool selecting) {
-    if (_error case final error?)
-      return PullToRefresh(
-        onRefresh: _refresh,
-        child: RefreshViewport(child: _errorPanel(error)),
-      );
-    if (_page == null) return const BhpanSkeletonList();
-    if (items.isEmpty)
-      return PullToRefresh(
-        onRefresh: _refresh,
-        child: RefreshViewport(
-          child: _filter.isNotEmpty
-              ? UiStatePanel(
-                  icon: Icons.search_off,
-                  title: '没有找到「$_filter」',
-                  detail: '只搜索当前文件夹里的名称',
-                )
-              : UiStatePanel(
-                  icon: Icons.folder_open_outlined,
-                  title: '这个文件夹是空的',
-                  action: _canUpload ? '上传文件' : null,
-                  onAction: _canUpload ? _upload : null,
-                ),
-        ),
-      );
-    return PullToRefresh(
-      onRefresh: _refresh,
-      child: ListView.builder(
-        key: ValueKey(
-          '${_base.view}/${_base.root}/${_base.link}/${_trail.map((f) => f.handle).join('/')}',
-        ),
-        padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
-        itemCount: items.length + 1,
-        itemBuilder: (c, index) => index == items.length
-            ? _footer(items.length)
-            : _row(items[index], selecting),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -852,7 +783,7 @@ class _BhpanViewState extends State<BhpanView> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: SearchBar(
               controller: _search,
-              autoFocus: true,
+              focusNode: _searchFocus,
               hintText: '在此文件夹中搜索',
               elevation: const WidgetStatePropertyAll(0),
               leading: const Icon(Icons.search),
@@ -911,18 +842,49 @@ class _BhpanViewState extends State<BhpanView> {
     );
     final showFab =
         !selecting && _page != null && (_canUpload || _canCreateFolder);
-    return Stack(
-      children: [
-        Positioned.fill(child: body),
-        if (showFab)
-          Positioned.fill(
-            child: BhpanCreateMenu(
-              enabled: !_busy,
-              onUpload: _canUpload ? _upload : null,
-              onNewFolder: _canCreateFolder ? _newFolder : null,
+    // 桌面快捷键：⌘/Ctrl+F 打开搜索，Esc 先退出多选、再关闭搜索。
+    void escape() {
+      if (_selected.isNotEmpty) {
+        setState(_selected.clear);
+      } else if (_searchVisible) {
+        setState(_clearSearch);
+      }
+    }
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): escape,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _openSearch,
+      },
+      child: Focus(
+        focusNode: _keys,
+        autofocus: true,
+        child: Stack(
+          children: [
+            // 云盘行内边距按手机 16 设计；宽屏补齐到页面统一左右边线。
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width) -
+                      16,
+                ),
+                child: body,
+              ),
             ),
-          ),
-      ],
+            if (showFab)
+              Positioned.fill(
+                child: BhpanCreateMenu(
+                  enabled: !_busy,
+                  onUpload: _canUpload ? _upload : null,
+                  onNewFolder: _canCreateFolder ? _newFolder : null,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

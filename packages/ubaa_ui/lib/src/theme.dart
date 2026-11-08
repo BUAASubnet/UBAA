@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'shared/monday_first_localizations.dart';
 
 /// 共享 Material 3 设计变量；宿主只选择亮度，不持久化偏好。
 class UbaaTheme {
@@ -8,6 +9,8 @@ class UbaaTheme {
   static const locale = Locale('zh', 'CN');
   static const supportedLocales = [locale];
   static const localizationsDelegates = [
+    // 排在官方委托前面：同类型委托取第一个，中文日期选择器改为周一开头。
+    UiMondayFirstLocalizationsDelegate(),
     GlobalMaterialLocalizations.delegate,
     GlobalWidgetsLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -28,6 +31,10 @@ class UbaaTheme {
       colors.brightness == Brightness.dark
       ? const Color(0xFFFFBD75)
       : const Color(0xFF9A4D00);
+
+  /// 面板、对话框内的分组底色：半透明叠色，在页面、底部面板和对话框上都看得出边界。
+  static Color insetFill(ColorScheme colors) =>
+      colors.onSurface.withValues(alpha: .05);
 
   static double pagePadding(double width) => width < 600
       ? 16
@@ -104,6 +111,7 @@ class UbaaTheme {
       borderRadius: BorderRadius.circular(controlRadius),
     );
     return ThemeData(
+      adaptations: [_AppleSwitchAdaptation(colors.primary)],
       useMaterial3: true,
       colorScheme: colors,
       scaffoldBackgroundColor: colors.surface,
@@ -139,6 +147,17 @@ class UbaaTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      // 日期选择与其他对话框同一底色。
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: colors.surfaceContainerLow,
+        rangePickerBackgroundColor: colors.surfaceContainerLow,
+      ),
+      // 菜单从按钮下方展开，不盖住触发它的按钮。
+      popupMenuTheme: PopupMenuThemeData(
+        position: PopupMenuPosition.under,
+        color: colors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       hoverColor: colors.primary.withValues(alpha: 0.04),
       focusColor: colors.primary.withValues(alpha: 0.10),
@@ -204,4 +223,21 @@ class UbaaTheme {
       ),
     );
   }
+}
+
+/// Apple 平台的自适应开关默认是系统绿色且忽略 [SwitchThemeData]；改为主色，
+/// 与 macOS 跟随强调色的原生开关一致。
+class _AppleSwitchAdaptation extends Adaptation<SwitchThemeData> {
+  const _AppleSwitchAdaptation(this.primary);
+  final Color primary;
+  @override
+  SwitchThemeData adapt(ThemeData theme, SwitchThemeData defaultValue) =>
+      switch (theme.platform) {
+        TargetPlatform.iOS || TargetPlatform.macOS => SwitchThemeData(
+          trackColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? primary : null,
+          ),
+        ),
+        _ => defaultValue,
+      };
 }

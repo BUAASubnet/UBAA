@@ -84,7 +84,7 @@ class AgendaCacheStatus extends StatelessWidget {
       key: const ValueKey('agenda-cache-status'),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
+        color: UbaaTheme.insetFill(colors),
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,

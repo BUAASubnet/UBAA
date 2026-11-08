@@ -17,7 +17,7 @@ List<Widget> uiBykcSupplementSections(BykcCoursePresentation course) {
   return [
     if (supplement.descriptionPlainText case final description?) ...[
       const SizedBox(height: 12),
-      BykcSection('课程简介', [Text(description)]),
+      BykcSection('课程简介', [Text(_tidyParagraphs(description))]),
     ],
     if (course.audienceCampuses.isNotEmpty ||
         supplement.audienceColleges.isNotEmpty ||
@@ -33,6 +33,14 @@ List<Widget> uiBykcSupplementSections(BykcCoursePresentation course) {
     ],
   ];
 }
+
+/// 简介原文常带全角/半角缩进和连续空行；逐行去掉首尾空白，段落之间只留一空行。
+String _tidyParagraphs(String text) => text
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+    .trim();
 
 List<Widget> uiBykcDisplaySignFields(BykcSignDisplayConfig? config) => [
   BykcInfoLine(

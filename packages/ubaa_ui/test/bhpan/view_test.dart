@@ -166,7 +166,7 @@ void main() {
     await openItemActions(tester, '报告.txt');
     await tester.tap(sheetText('移动'));
     await tester.pumpAndSettle();
-    expect(find.text('报告.txt'), findsNothing);
+    expect(_topLayer(find.text('报告.txt')), findsNothing);
     final pick = find.widgetWithText(FilledButton, '移动到此处');
     expect(pick, findsOneWidget);
     expect(tester.widget<FilledButton>(pick).onPressed, isNull);
@@ -222,3 +222,8 @@ void main() {
     expect(find.text('新建文件夹'), findsNothing);
   });
 }
+
+/// 宽屏子页面以对话框叠在云盘上，背景仍可见；只在最上层查找。
+Finder _topLayer(Finder finder) => find.byType(Dialog).evaluate().isEmpty
+    ? finder
+    : find.descendant(of: find.byType(Dialog).last, matching: finder);

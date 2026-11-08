@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../common/app_links.dart' show uiShowAppLinkFailure;
+import '../shared/layout/rail_identity.dart' show UiAppIcon;
 
 class AboutView extends StatefulWidget {
   const AboutView({this.loadVersion, this.openLink});
@@ -53,66 +54,77 @@ class _AboutViewState extends State<AboutView> {
   }
 
   @override
-  Widget build(BuildContext context) => SizedBox.expand(
-    child: SingleChildScrollView(
-      padding: UbaaTheme.pageInsets(context, top: 16, bottom: 16),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: double.infinity,
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'UBAA 应用',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (loading && version == null)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: LoadingGlyph(),
-                    )
-                  else
-                    Text(version == null ? '版本信息暂不可用' : '版本：$version'),
-                  if (!loading && version == null && widget.loadVersion != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: _loadVersion,
-                        child: const Text('重新读取版本'),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  const Text('北航校园生活助手'),
-                  const SizedBox(height: 24),
-                  for (final link in AppLink.values)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: opening ? null : () => _open(link),
-                          icon: Icon(
-                            link == AppLink.project
-                                ? Icons.code
-                                : Icons.feedback_outlined,
-                          ),
-                          label: Text(link.label),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: UbaaTheme.pageInsets(context, top: 8),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                const UiAppIcon(size: 64),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'UBAA',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                ],
-              ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '北航校园生活助手',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (loading && version == null)
+                        const LoadingGlyph()
+                      else
+                        Text(
+                          version == null ? '版本信息暂不可用' : '版本 $version',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
+                if (!loading && version == null && widget.loadVersion != null)
+                  TextButton(
+                    onPressed: _loadVersion,
+                    child: const Text('重新读取版本'),
+                  ),
+              ],
             ),
           ),
         ),
-      ),
-    ),
-  );
+        const SizedBox(height: 16),
+        Card(
+          child: Column(
+            children: [
+              for (final (i, link) in AppLink.values.indexed) ...[
+                if (i > 0) const Divider(height: 1),
+                ListTile(
+                  enabled: !opening,
+                  leading: Icon(
+                    link == AppLink.project
+                        ? Icons.code
+                        : Icons.feedback_outlined,
+                  ),
+                  title: Text(link.label),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => _open(link),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

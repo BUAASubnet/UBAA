@@ -2,6 +2,7 @@ import 'dart:async';
 import '../../shared/loading.dart' show LoadingGlyph;
 import '../../shared/refresh.dart' show PullToRefresh;
 import 'package:flutter/material.dart';
+import '../../shared/sync_status.dart' show uiIsTouchPlatform;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/section.dart' show UiSectionTitle;
 import '../../theme.dart';
@@ -142,17 +143,20 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     return PullToRefresh(
       onRefresh: _refresh,
       child: ListView(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
+        padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
+          // 桌面顶栏已有刷新（同样刷新密码），页内按钮只留给触屏。
           UiSectionTitle(
             '密码状态',
-            action: IconButton(
-              tooltip: '刷新密码',
-              onPressed: _busy ? null : _refresh,
-              icon: _busy ? const LoadingGlyph() : const Icon(Icons.refresh),
-            ),
+            action: !uiIsTouchPlatform(context)
+                ? (_busy ? const LoadingGlyph() : null)
+                : IconButton(
+                    tooltip: '刷新密码',
+                    onPressed: _busy ? null : _refresh,
+                    icon: _busy
+                        ? const LoadingGlyph()
+                        : const Icon(Icons.refresh),
+                  ),
           ),
           if (_error != null)
             Padding(
@@ -193,33 +197,38 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
               ),
             ),
           ),
-          if (value != null) ...[
+          // 没有任何预约字段时不显示空的「预约信息」标题。
+          if (value != null && _entries(value).isNotEmpty) ...[
             const SizedBox(height: 12),
             const UiSectionTitle('预约信息'),
-            for (final entry in <(String, String?)>[
-              ('预约单号', value.reservationReference),
-              ('场地', value.venueText),
-              ('教室', value.spaceName),
-              ('预约人', value.orderName),
-              ('预约日期', value.reservationDate),
-              ('时段', value.timeRangeText),
-              ('开始时间', value.reservationStartDate),
-              ('结束时间', value.reservationEndDate),
-            ])
-              if (entry.$2 != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(entry.$1, style: theme.textTheme.labelMedium),
-                      Text(entry.$2!),
-                    ],
-                  ),
+            for (final entry in _entries(value))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(entry.$1, style: theme.textTheme.labelMedium),
+                    Text(entry.$2),
+                  ],
                 ),
+              ),
           ],
         ],
       ),
     );
   }
 }
+
+List<(String, String)> _entries(CgyyLockDisplay value) => [
+  for (final (label, text) in <(String, String?)>[
+    ('预约单号', value.reservationReference),
+    ('场地', value.venueText),
+    ('教室', value.spaceName),
+    ('预约人', value.orderName),
+    ('预约日期', value.reservationDate),
+    ('时段', value.timeRangeText),
+    ('开始时间', value.reservationStartDate),
+    ('结束时间', value.reservationEndDate),
+  ])
+    if (text != null && text.trim().isNotEmpty) (label, text),
+];

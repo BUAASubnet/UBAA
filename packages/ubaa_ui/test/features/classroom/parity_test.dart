@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/common/section.dart' show UiAdaptiveGrid;
 import 'package:clock/clock.dart';
 import 'package:ubaa_ui/src/features/classroom/content.dart';
 import 'package:flutter/material.dart';
@@ -78,8 +79,11 @@ void main() {
     final entry = tester.getRect(
       find.widgetWithText(Card, FeatureId.classroom.title),
     );
-    expect(table.left, closeTo(entry.left, .01));
-    expect(table.right, closeTo(entry.right, .01));
+    // 功能列表在宽屏排成两列；表格对齐整块列表的左右边线。
+    final grid = tester.getRect(find.byType(UiAdaptiveGrid));
+    expect(table.left, closeTo(grid.left, .01));
+    expect(table.right, closeTo(grid.right, .01));
+    expect(entry.left, closeTo(grid.left, .01));
   });
 
   for (final width in [390.0, 1280.0])
@@ -109,7 +113,9 @@ void main() {
         } else {
           await tester.tap(find.byTooltip('切换校区'));
           await tester.pumpAndSettle();
-          await tester.tap(find.text('杭州'));
+          await tester.tap(
+            find.widgetWithText(CheckedPopupMenuItem<int>, '杭州'),
+          );
         }
         await tester.pumpAndSettle();
         expect(queries.single.campus, changeDate ? 2 : 3);

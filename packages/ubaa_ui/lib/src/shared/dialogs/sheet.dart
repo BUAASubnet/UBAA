@@ -1,28 +1,65 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// 全应用统一的底部面板：只留拖动条，下滑或点外面关闭，高度贴合内容、最高 90%。
+/// 全应用统一的面板：窄窗口是底部面板（只留拖动条，下滑或点外面关闭，高度贴合
+/// 内容、最高 90%）；宽窗口改为居中对话框，标题行带关闭按钮，操作按钮靠右。
 ///
 /// 详情、选择与简单设置用它；需要确认的操作用 uiConfirmIrreversible，
 /// 内容较多的编辑用整页。
 ///
 /// 内容本身需要纵向拖动（如可缩放的地图）时传 [enableDrag] 为 false，
-/// 只能点外面或返回关闭。
+/// 只能点外面或返回关闭。[dialogWidth] 是宽窗口对话框的最大宽度。
 Future<T?> showUiSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool enableDrag = true,
-}) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  showDragHandle: true,
-  enableDrag: enableDrag,
-  constraints: BoxConstraints(
-    maxHeight: MediaQuery.sizeOf(context).height * .9,
-  ),
-  builder: builder,
-);
+  double dialogWidth = 480,
+}) {
+  final size = MediaQuery.sizeOf(context);
+  if (uiPrefersDialog(context)) {
+    return showDialog<T>(
+      context: context,
+      builder: (context) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        insetPadding: const EdgeInsets.all(32),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: dialogWidth,
+            maxHeight: size.height * .85,
+          ),
+          child: _UiSheetDialogScope(child: Builder(builder: builder)),
+        ),
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    enableDrag: enableDrag,
+    constraints: BoxConstraints(maxHeight: size.height * .9),
+    builder: builder,
+  );
+}
+
+/// 宽而高的窗口用居中对话框代替底部面板，避免面板横跨整个桌面窗口。
+bool uiPrefersDialog(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.width >= 720 && size.height >= 480;
+}
+
+/// 当前面板内容是否以对话框形式显示（右上角已有关闭按钮）。
+bool uiInSheetDialog(BuildContext context) => _UiSheetDialogScope.of(context);
+
+/// 标记面板内容正以对话框形式显示。
+class _UiSheetDialogScope extends InheritedWidget {
+  const _UiSheetDialogScope({required super.child});
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_UiSheetDialogScope>() != null;
+  @override
+  bool updateShouldNotify(_UiSheetDialogScope oldWidget) => false;
+}
 
 /// 面板骨架：加粗标题、标题下一行的来源与次要信息、可滚动内容、底部固定操作。
 ///
@@ -56,13 +93,18 @@ class UiSheetBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    // 键盘弹出时让出键盘高度，否则避开 Home 指示条。
-    final keyboard = math.max(
-      MediaQuery.viewInsetsOf(context).bottom,
-      MediaQuery.paddingOf(context).bottom - 8,
-    );
+    final dialog = _UiSheetDialogScope.of(context);
+    // 键盘弹出时让出键盘高度，否则避开 Home 指示条；对话框由 Dialog 自己避让。
+    final keyboard = dialog
+        ? 4.0
+        : math.max(
+            MediaQuery.viewInsetsOf(context).bottom,
+            MediaQuery.paddingOf(context).bottom - 8,
+          );
+    final close =
+        onClose ?? (dialog ? () => Navigator.maybePop(context) : null);
     final header = Padding(
-      padding: EdgeInsets.fromLTRB(24, onClose == null ? 0 : 12, 12, 0),
+      padding: EdgeInsets.fromLTRB(24, close == null ? 0 : 16, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,10 +147,10 @@ class UiSheetBody extends StatelessWidget {
               ],
             ),
           ),
-          if (onClose != null)
+          if (close != null)
             IconButton(
-              tooltip: '关闭详情',
-              onPressed: onClose,
+              tooltip: onClose == null ? '关闭' : '关闭详情',
+              onPressed: close,
               icon: const Icon(Icons.close),
             ),
         ],
@@ -129,7 +171,18 @@ class UiSheetBody extends StatelessWidget {
             ),
           ),
         ),
-        if (actions.isNotEmpty || primaryAction != null)
+        if (dialog && (actions.isNotEmpty || primaryAction != null))
+          // 对话框：操作按钮按桌面习惯靠右排成一行，主要操作在最右。
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [...actions, ?primaryAction],
+            ),
+          )
+        else if (actions.isNotEmpty || primaryAction != null)
           Padding(
             padding: EdgeInsets.fromLTRB(24, 8, 24, 16 + keyboard),
             child: Column(

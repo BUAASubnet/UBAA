@@ -292,12 +292,11 @@ void _registerLibbookCancellationWriteTest() {
       },
     );
 
+    // 明确不可取消时不显示灰掉的按钮；资格未知仍显示但禁用。
     expect(_libbookCancelButtonFor('缺失 action 的预约'), findsNothing);
-    final denied = _libbookCancelButtonFor('denied 预约');
+    expect(_libbookCancelButtonFor('denied 预约'), findsNothing);
     final unknown = _libbookCancelButtonFor('unknown 预约');
-    expect(denied, findsOneWidget);
     expect(unknown, findsOneWidget);
-    expect(tester.widget<OutlinedButton>(denied).onPressed, isNull);
     expect(tester.widget<OutlinedButton>(unknown).onPressed, isNull);
     expect(prepareCalls, 0);
   });

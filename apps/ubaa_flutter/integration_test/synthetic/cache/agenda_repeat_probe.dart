@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
+import 'package:ubaa_ui/src/features/agenda/list_content.dart'
+    show AgendaEntryTile;
 import 'package:ubaa_ui/src/features/agenda/format.dart'
     show agendaTime, campusDate;
 import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart'
@@ -90,7 +92,16 @@ Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
         ),
       );
       await tester.pumpAndSettle();
-      final target = find.text('系列平移').at(scope == AgendaEditScope.all ? 0 : 1);
+      final occurrence = at(scope == AgendaEditScope.all ? 5 : 6).rfc3339;
+      final target = find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) =>
+              widget is AgendaEntryTile &&
+              widget.entry.local?.itemId == item.id &&
+              widget.entry.local?.recurrenceId == occurrence,
+        ),
+        matching: find.text('系列平移'),
+      );
       await tester.scrollUntilVisible(
         target,
         180,

@@ -53,52 +53,40 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (floors.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          UiChipStrip(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                for (final floor in floors)
-                  if (floor.id.trim().isNotEmpty &&
-                      floors.where((other) => other.id == floor.id).length == 1)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        label: Text(
-                          '${floor.name} · 空 ${floor.freeNum}/${floor.totalNum}',
-                        ),
-                        selected: floor.id == _storeyId,
-                        onSelected: _busy || widget.onQuery == null
-                            ? null
-                            : (_) => unawaited(_chooseFloor(floor)),
-                      ),
+            children: [
+              for (final floor in floors)
+                if (floor.id.trim().isNotEmpty &&
+                    floors.where((other) => other.id == floor.id).length == 1)
+                  FilterChip(
+                    label: Text(
+                      '${floor.name} · 空 ${floor.freeNum}/${floor.totalNum}',
                     ),
-              ],
-            ),
+                    selected: floor.id == _storeyId,
+                    onSelected: _busy || widget.onQuery == null
+                        ? null
+                        : (_) => unawaited(_chooseFloor(floor)),
+                  ),
+            ],
           ),
         if (areas.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          UiChipStrip(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                for (final area in areas)
-                  if (area.id.trim().isNotEmpty &&
-                      areas.where((other) => other.id == area.id).length == 1)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        label: Text(
-                          '${area.name} · 空 ${area.freeNum}/${area.totalNum}',
-                        ),
-                        selected: area.id == _areaId,
-                        onSelected: _busy || widget.onQuery == null
-                            ? null
-                            : (_) => unawaited(_chooseArea(area)),
-                      ),
+            children: [
+              for (final area in areas)
+                if (area.id.trim().isNotEmpty &&
+                    areas.where((other) => other.id == area.id).length == 1)
+                  FilterChip(
+                    label: Text(
+                      '${area.name} · 空 ${area.freeNum}/${area.totalNum}',
                     ),
-              ],
-            ),
+                    selected: area.id == _areaId,
+                    onSelected: _busy || widget.onQuery == null
+                        ? null
+                        : (_) => unawaited(_chooseArea(area)),
+                  ),
+            ],
           ),
       ],
     );
@@ -110,25 +98,19 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
     String? selected,
     Map<String, String> choices,
     ValueChanged<String> select,
-  ) => SingleChildScrollView(
+  ) => UiChipStrip(
     key: ValueKey('libbook-choice-$label'),
-    scrollDirection: Axis.horizontal,
     padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      children: [
-        for (final entry in choices.entries)
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              label: Text(entry.value),
-              selected: entry.key == selected,
-              onSelected: _busy || widget.onQuery == null
-                  ? null
-                  : (_) => select(entry.key),
-            ),
-          ),
-      ],
-    ),
+    children: [
+      for (final entry in choices.entries)
+        ChoiceChip(
+          label: Text(entry.value),
+          selected: entry.key == selected,
+          onSelected: _busy || widget.onQuery == null
+              ? null
+              : (_) => select(entry.key),
+        ),
+    ],
   );
 }
 

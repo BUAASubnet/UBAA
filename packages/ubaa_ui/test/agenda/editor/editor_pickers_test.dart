@@ -123,6 +123,33 @@ void main() {
     );
   });
 
+  testWidgets('颜色色块保存所选颜色并保留日程时间', (tester) async {
+    phone(tester);
+    final backend = MemoryAgenda();
+    await openEditor(tester, await opened(backend));
+    await tester.enterText(find.byKey(const ValueKey('agenda-title')), '绿色安排');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final green = find.byTooltip('绿色');
+    await tester.scrollUntilVisible(
+      green,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('agenda-editor-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(green);
+    await tester.pumpAndSettle();
+    await saveAgendaEditor(tester);
+    final content = backend.items.values.single.content;
+    expect(content.color, '#30856A');
+    expect(content.start?.rfc3339, '2026-11-05T09:00:00+08:00');
+    expect(content.end?.rfc3339, '2026-11-05T10:00:00+08:00');
+  });
+
   testWidgets('暗色大字体下保存按钮固定，说明文字可滚动且不重叠', (tester) async {
     phone(tester);
     final backend = MemoryAgenda();

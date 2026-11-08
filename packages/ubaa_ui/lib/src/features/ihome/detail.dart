@@ -109,14 +109,22 @@ extension _IhomeCards on _IhomeViewState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
-                  Text('处理进度', style: Theme.of(context).textTheme.titleMedium),
-                  for (final history in detail.history)
-                    _ihomeBlock(
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Text(
+                    '处理进度',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 时间线：圆点加竖线，按上游给出的顺序排列。
+                  for (final (i, history) in detail.history.indexed)
+                    _ihomeHistoryStep(
                       context,
-                      '',
                       history.content,
                       history.createdAt,
+                      last: i == detail.history.length - 1,
                     ),
                 ],
               ),
@@ -162,24 +170,61 @@ Widget _ihomeReaction(
   ],
 );
 
-Widget _ihomeBlock(
+Widget _ihomeHistoryStep(
   BuildContext context,
-  String title,
   String body,
-  String date,
-) => Padding(
-  padding: const EdgeInsets.only(top: 12),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (title.isNotEmpty)
-        Text(title, style: Theme.of(context).textTheme.titleSmall),
-      SelectableText(body),
-      if (date.isNotEmpty)
-        Text(date, style: Theme.of(context).textTheme.bodySmall),
-    ],
-  ),
-);
+  String date, {
+  required bool last,
+}) {
+  final theme = Theme.of(context);
+  final colors = theme.colorScheme;
+  return IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 16,
+          child: Column(
+            children: [
+              const SizedBox(height: 6),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              if (!last)
+                Expanded(
+                  child: Container(width: 1.5, color: colors.outlineVariant),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: last ? 0 : 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(body),
+                if (date.isNotEmpty)
+                  Text(
+                    date,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 class _IhomeNoticeCard extends StatefulWidget {
   const _IhomeNoticeCard({
@@ -214,7 +259,10 @@ class _IhomeNoticeCardState extends State<_IhomeNoticeCard> {
       children: [
         ListTile(
           title: Text(widget.notice.title),
-          subtitle: Text(widget.notice.date),
+          // 上游没给日期时不留空副标题，标题保持垂直居中。
+          subtitle: widget.notice.date.trim().isEmpty
+              ? null
+              : Text(widget.notice.date),
           trailing: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
           onTap: () => setState(() {
             _expanded = !_expanded;

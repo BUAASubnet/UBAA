@@ -171,7 +171,11 @@ void main() {
       expect(find.byType(TextField), findsNothing);
       await tester.tap(find.text('周一早课'));
       await tester.pumpAndSettle();
-      expect(find.byType(BottomSheet), findsOneWidget);
+      // 宽屏面板以对话框显示。
+      expect(
+        find.byWidgetPredicate((w) => w is BottomSheet || w is Dialog),
+        findsOneWidget,
+      );
       expect(find.text('CODE-周一早课'), findsNothing);
       expect(find.text('星期一 · 第1–2节 · 08:00–09:40'), findsOneWidget);
       expect(find.text('合成教师与第1–16周'), findsOneWidget);

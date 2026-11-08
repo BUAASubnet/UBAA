@@ -108,7 +108,10 @@ void _registerWriteCoordinationTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(Dialog), matching: find.text('填写阳光打卡信息')),
+      findsOneWidget,
+    );
     await tester.enterText(
       find.widgetWithText(TextField, '开始时间'),
       '2026-09-05 08:00',

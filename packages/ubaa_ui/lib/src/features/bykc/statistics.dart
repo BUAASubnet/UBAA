@@ -26,9 +26,7 @@ class BykcStatisticsContent extends StatelessWidget {
     final mixedParents =
         categories.map((c) => c.categoryName).toSet().length > 1;
     return ListView(
-      padding: EdgeInsets.all(
-        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-      ),
+      padding: UbaaTheme.pageInsets(context, top: 8),
       children: [
         // 总次数与达标进度压成一行，表格才是主体。
         Card(

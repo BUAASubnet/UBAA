@@ -138,8 +138,8 @@ class _ClassroomContentState extends State<ClassroomContent> {
 
     final gutter = UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width);
     final availableColor = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF4D735F)
-        : const Color(0xFFD5E8D8);
+        ? const Color(0xFF3F7A5A)
+        : const Color(0xFFBFE0C6);
     _restore(campus, dateObj, availableBuildings);
     UiAppBarSlot.publish(
       context,
@@ -356,6 +356,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                 height: rowHeight,
                                 child: Stack(
                                   children: [
+                                    // 底层：细网格与当前节次列，逐节保留读屏说明。
                                     Row(
                                       children: [
                                         const Expanded(
@@ -374,9 +375,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                               label:
                                                   '第$section节${free.contains(section) ? '空闲' : '未列为空闲'}',
                                               child: _ClassroomCell(
-                                                color: free.contains(section)
-                                                    ? availableColor
-                                                    : section == current
+                                                color: section == current
                                                     ? Theme.of(context)
                                                           .colorScheme
                                                           .primary
@@ -388,6 +387,46 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                             ),
                                           ),
                                       ],
+                                    ),
+                                    // 上层：连续空闲节次合成一段圆角条，读起来像时间轴。
+                                    Positioned.fill(
+                                      child: ExcludeSemantics(
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            const Expanded(
+                                              flex: 22,
+                                              child: SizedBox(),
+                                            ),
+                                            for (final run in _classroomRuns(
+                                              free,
+                                            ))
+                                              Expanded(
+                                                flex: 10 * run.length,
+                                                child: run.free
+                                                    ? Padding(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 2,
+                                                              vertical: 11,
+                                                            ),
+                                                        child: DecoratedBox(
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                availableColor,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      )
+                                                    : const SizedBox(),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                     _ClassroomPinnedName(
                                       controller: _horizontal,
@@ -437,6 +476,20 @@ class _ClassroomContentState extends State<ClassroomContent> {
   }
 }
 
+/// 1–14 节按是否空闲切成连续段。
+List<({bool free, int length})> _classroomRuns(Set<int> free) {
+  final runs = <({bool free, int length})>[];
+  for (var section = 1; section <= 14; section++) {
+    final isFree = free.contains(section);
+    if (runs.isNotEmpty && runs.last.free == isFree) {
+      runs.last = (free: isFree, length: runs.last.length + 1);
+    } else {
+      runs.add((free: isFree, length: 1));
+    }
+  }
+  return runs;
+}
+
 class _ClassroomCell extends StatelessWidget {
   const _ClassroomCell({this.child, this.color});
   final Widget? child;
@@ -447,7 +500,9 @@ class _ClassroomCell extends StatelessWidget {
     decoration: BoxDecoration(
       color: color,
       border: Border.all(
-        color: Theme.of(context).colorScheme.outlineVariant,
+        color: Theme.of(
+          context,
+        ).colorScheme.outlineVariant.withValues(alpha: .45),
         width: .5,
       ),
     ),

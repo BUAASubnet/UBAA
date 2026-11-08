@@ -67,53 +67,58 @@ class YgdkRecordCard extends StatelessWidget {
             ],
           ),
         ),
+        // 紧凑三行：项目名、时间与地点、提交信息；左侧一个图标块对齐整卡。
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.directions_run),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      p.itemName ?? '运动打卡',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.directions_run,
+                  size: 22,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
               ),
-              if (p.place?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 8),
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.place_outlined),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        p.place!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      p.itemName ?? '运动打卡',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [_ygdkRecordTime(p), ?uiNonBlank(p.place)].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        '提交于 ${p.createdAtLabel ?? p.createdAt ?? '时间未知'}',
+                        if (p.imageCount > 0) '${p.imageCount} 张图片',
+                        p.isOpen ? '已分享' : '未分享',
+                      ].join(' · '),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
-              ],
-              const SizedBox(height: 8),
-              Text(_ygdkRecordTime(p), style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              Text(
-                '${p.createdAtLabel ?? p.createdAt ?? '提交时间未知'}'
-                '${p.imageCount > 0 ? ' · ${p.imageCount} 张图片' : ''}'
-                ' · ${p.isOpen ? '已分享' : '未分享'}',
-                style: theme.textTheme.bodySmall,
               ),
             ],
           ),
