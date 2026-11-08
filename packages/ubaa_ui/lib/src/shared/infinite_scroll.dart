@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'loading.dart' show LoadingGlyph;
+import 'loading.dart' show UiReportBusy;
 import '../common/state_panel.dart';
 
 /// 在主列表接近底部时续载，忽略嵌套文本、横向表格和后台导航页。
@@ -70,30 +70,22 @@ class _InfiniteScrollState extends State<InfiniteScroll> {
             if (notification.depth == 0) _consider(notification.metrics);
             return false;
           },
-          child: Column(
-            children: [
-              Expanded(child: widget.child),
-              if (widget.loading)
-                const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      LoadingGlyph(),
-                      SizedBox(width: 8),
-                      Text('正在加载更多…'),
-                    ],
+          // 续载进度交给标题栏状态显示，列表底部不再插入进度行，避免视口跳动。
+          child: UiReportBusy(
+            busy: widget.loading,
+            child: Column(
+              children: [
+                Expanded(child: widget.child),
+                if (!widget.loading && widget.error != null)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: UiInlineRetry(
+                      message: widget.error!,
+                      onRetry: widget.onLoadMore,
+                    ),
                   ),
-                )
-              else if (widget.error != null)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: UiInlineRetry(
-                    message: widget.error!,
-                    onRetry: widget.onLoadMore,
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       );

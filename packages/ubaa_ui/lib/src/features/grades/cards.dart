@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme.dart' show UbaaTheme;
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../shared/loading.dart' show LoadingGlyph;
+import '../../shared/loading.dart' show UiReportBusy;
 import '../../shared/text.dart' show uiNonBlank;
 
 String _gradeNumber(double? value) {
@@ -90,16 +90,17 @@ class GradeSummaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            if (loading && stats == null)
-              const SizedBox(height: 48, child: Center(child: LoadingGlyph()))
-            else
-              Row(
+            // 统计未到时先显示占位值，读取进度交给标题栏。
+            UiReportBusy(
+              busy: loading && stats == null,
+              child: Row(
                 children: [
                   metric('GPA', stats?.gpa?.toStringAsFixed(2) ?? '--'),
                   metric('加权平均分', _gradeNumber(stats?.weightedAverage)),
                   metric('算术平均分', _gradeNumber(stats?.arithmeticAverage)),
                 ],
               ),
+            ),
             if (overallTitle != null) ...[
               const SizedBox(height: 12),
               Divider(height: 1, color: muted.withValues(alpha: .2)),
@@ -116,12 +117,9 @@ class GradeSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: overallLoading && overall == null
-                        ? const Align(
-                            alignment: Alignment.centerLeft,
-                            child: SizedBox.square(
-                              dimension: 16,
-                              child: LoadingGlyph(),
-                            ),
+                        ? UiReportBusy(
+                            busy: true,
+                            child: Text('—', style: theme.textTheme.bodySmall),
                           )
                         : Text(
                             overall == null ? '暂不可用' : brief(overall!),

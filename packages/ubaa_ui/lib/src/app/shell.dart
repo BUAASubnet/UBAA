@@ -561,7 +561,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             icon: Icon(
               widget.onCompleteLogin != null
                   ? Icons.person_outline
-                  : Icons.cloud_off_outlined,
+                  : Icons.sync_problem_outlined,
             ),
             onPressed: () async {
               if (widget.onCompleteLogin != null) {
