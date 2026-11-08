@@ -1,7 +1,7 @@
 import 'dart:async';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
-import '../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody, UiInfoRow;
+import '../shared/layout/connection_status.dart' show UiConnectionStatusButton;
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
 import '../features/agenda/view.dart';
@@ -555,38 +555,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           : null,
       actions: <Widget>[
         if (widget.connectionStatus != null || widget.onCompleteLogin != null)
-          IconButton(
-            tooltip: widget.onCompleteLogin != null ? '完成登录' : '连接状态',
-            icon: Icon(
-              widget.onCompleteLogin != null
-                  ? Icons.person_outline
-                  : Icons.sync_problem_outlined,
-            ),
-            onPressed: () async {
-              if (widget.onCompleteLogin != null) {
-                widget.onCompleteLogin!(context);
-                return;
-              }
-              final retry = await showUiSheet<bool>(
-                context,
-                builder: (context) => UiSheetBody(
-                  title: '连接状态',
-                  children: [
-                    UiInfoRow(
-                      icon: Icons.info_outline,
-                      text: widget.connectionStatus ?? '连接已恢复',
-                    ),
-                  ],
-                  primaryAction: widget.onReconnect == null
-                      ? null
-                      : FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('重试'),
-                        ),
-                ),
-              );
-              if (retry == true && mounted) widget.onReconnect?.call();
-            },
+          UiConnectionStatusButton(
+            status: widget.connectionStatus,
+            onReconnect: widget.onReconnect,
+            onCompleteLogin: widget.onCompleteLogin,
           ),
         if (_openedFeature case final feature?)
           ValueListenableBuilder<Map<FeatureId, Widget>>(
