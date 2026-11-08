@@ -4,7 +4,13 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 回归用例沿实际分类入口进入领域，查询和写入断言继续由原用例负责。
-Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
+///
+/// [settle] 为 false 时只推进有限帧：来源持续加载时标题栏一直显示“更新中”，无法静止。
+Future<void> openFeature(
+  WidgetTester tester,
+  FeatureId feature, {
+  bool settle = true,
+}) async {
   final destination = UiDestination.forFeature(feature);
   final nav = find.byType(NavigationBar);
   if (nav.evaluate().isNotEmpty) {
@@ -46,7 +52,13 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
   await tester.ensureVisible(card);
   await tester.pumpAndSettle();
   await tester.tap(card);
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
   final landing = find.byKey(ValueKey(('feature-landing', feature)));
   if (landing.evaluate().isNotEmpty) {
     final title = switch (feature) {

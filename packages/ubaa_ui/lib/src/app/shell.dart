@@ -12,6 +12,7 @@ import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
+import '../shared/loading.dart' show UiBusyRegistry, UiBusyScope;
 import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -275,6 +276,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
   final _appBarSlot = ValueNotifier<Map<FeatureId, Widget>>(const {});
+  final _pageBusy = UiBusyRegistry();
   late final _places = <String, String>{...widget.placePreferences};
   bool _cgyyOnlyAvailable = true;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
@@ -465,6 +467,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     _bhpanModalScope.dispose();
     _visiblePage.dispose();
     _appBarSlot.dispose();
+    _pageBusy.dispose();
     _tabPager.dispose();
     super.dispose();
   }
@@ -616,42 +619,45 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
         body: UiAppBarSlot(
           slot: _appBarSlot,
-          child: UiPlaceMemory(
-            values: _places,
-            onChanged: _savePlace,
-            child: Row(
-              children: <Widget>[
-                if (wide) _buildRail(context),
+          child: UiBusyScope(
+            busy: _pageBusy,
+            child: UiPlaceMemory(
+              values: _places,
+              onChanged: _savePlace,
+              child: Row(
+                children: <Widget>[
+                  if (wide) _buildRail(context),
 
-                Expanded(
-                  key: const ValueKey<String>('feature-pages'),
-                  child: Column(
-                    children: [
-                      if (_selectedIndex != UiDestination.agenda.index ||
-                          _openedFeature != null ||
-                          _utilityPage != null)
-                        Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: maxContentWidth,
+                  Expanded(
+                    key: const ValueKey<String>('feature-pages'),
+                    child: Column(
+                      children: [
+                        if (_selectedIndex != UiDestination.agenda.index ||
+                            _openedFeature != null ||
+                            _utilityPage != null)
+                          Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: maxContentWidth,
+                              ),
+                              child: header,
                             ),
-                            child: header,
+                          ),
+                        Expanded(
+                          child: ScrollGutters(
+                            maxWidth: maxContentWidth,
+                            child: SafeArea(
+                              top: false,
+                              bottom: wide,
+                              child: body,
+                            ),
                           ),
                         ),
-                      Expanded(
-                        child: ScrollGutters(
-                          maxWidth: maxContentWidth,
-                          child: SafeArea(
-                            top: false,
-                            bottom: wide,
-                            child: body,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

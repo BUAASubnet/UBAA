@@ -3,19 +3,25 @@ part of 'shell.dart';
 extension UbaaShellSync on _UbaaMainShellState {
   /// 标题栏右侧的统一刷新状态：功能页、首页和“我的”各自给出刷新中与更新时间。
   Widget _buildSyncStatus(Future<void> Function()? refresh) {
-    Widget status(Object key, bool busy, DateTime? updatedAt) => UiSyncStatus(
-      key: ValueKey(key),
-      // 下拉刷新已有下拉指示器，期间标题栏不再重复转圈。
-      busy: (busy || widget.connecting) && _pulling == 0,
-      updatedAt: updatedAt,
-      onRefresh: refresh,
-      refreshTooltip:
-          _openedFeature == null ||
-              (_openedFeature == FeatureId.schedule &&
-                  widget.onSaveScheduleSemester != null)
-          ? '刷新'
-          : '刷新当前查询',
-    );
+    Widget status(Object key, bool busy, DateTime? updatedAt) =>
+        ListenableBuilder(
+          listenable: _pageBusy,
+          builder: (context, _) => UiSyncStatus(
+            key: ValueKey(key),
+            // 下拉刷新已有下拉指示器，期间标题栏不再重复转圈。
+            // 页面内的首次读取只登记忙碌（LoadingPlaceholder），也在这里显示。
+            busy:
+                (busy || widget.connecting || _pageBusy.busy) && _pulling == 0,
+            updatedAt: updatedAt,
+            onRefresh: refresh,
+            refreshTooltip:
+                _openedFeature == null ||
+                    (_openedFeature == FeatureId.schedule &&
+                        widget.onSaveScheduleSemester != null)
+                ? '刷新'
+                : '刷新当前查询',
+          ),
+        );
     if (_openedFeature case final feature?) {
       return ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,

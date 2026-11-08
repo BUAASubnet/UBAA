@@ -9,7 +9,11 @@ void main() {
     testWidgets('$status已有完整离线索引不等待网络，直接进入已保存周课表', (tester) async {
       final queries = <FeatureQuery>[];
       await _show(tester, queries, status: status);
-      await openFeature(tester, FeatureId.schedule);
+      await openFeature(
+        tester,
+        FeatureId.schedule,
+        settle: status != FeatureLoadStatus.loading,
+      );
       expect(queries.map((q) => q.view), [
         FeatureQueryView.scheduleTerms,
         FeatureQueryView.scheduleWeeks,
