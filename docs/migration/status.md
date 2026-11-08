@@ -4,6 +4,12 @@
 
 ## 主线与候选
 
+2026-11-08 财务收入：Core、Bridge、App 数据服务和 `finance incomes` 命令已接入。完整分页成功才发布加密快照，金额以整数分保存，认证材料按路线隔离，银行卡和证件字段不进入公开投影。CLI schema v15、Bridge v57，业务缓存继续使用 schema v8。UI 页面尚未制作。
+
+财务候选的严格 Rust/脚本检查和 1534 项 Rust 测试、八包 Flutter 2030 项测试及 macOS 原生集成 13 项均通过。Rust 有 3 项既有忽略，Flutter 有 1 项既有跳过。FRB 重新生成与候选绑定一致。其他平台实机、远端 CI 与签名发布尚未验证。
+
+使用本次提供的有权限账号，生产 Core 的 Direct/WebVPN 显式路线认证及收入查询均通过，两条路线返回相同记录数。Direct 小页探针完成连续翻页并核对流水号唯一性。真实业务写入为零，原始证据位于忽略目录 `.ubaa_local/finance_integration/`。查询只表示财务录入记录，不推断银行到账；范围见[财务对照](source-parity.md#财务收入查询2026-11-08)。
+
 2026-11-08 学业系统：按 `it.buaa.edu.cn` 门户身份统一分流本科和研究生的课表、成绩与考试，身份按认证代次和路线缓存。已接入 [PR #98](https://github.com/BUAASubnet/UBAA/pull/98) 的研究生完整历史成绩、Core 全局/分学期统计、独立考试学期和空考试判定，并接入 Flutter 及统一 App 命令 `grades overview`、`exam terms`。单学期缓存保留研究生统计，考试学期独立保存；历史成绩不冒充当前学期。CLI schema v14、Bridge v56、业务缓存 schema v8。
 
 该候选的严格 Rust/脚本检查、1528 项 Rust 测试、八包 Flutter 2028 项与 macOS 原生集成 13 项已通过；Flutter 另有 1 项既有跳过。真实本科和研究生账号的 Direct/WebVPN 读取尚未执行，需相应账号及两条路线授权后补验。非空研究生考试明细沿 PR #98 明确返回 `unsupported`，不显示为暂无考试。门户可达性是在线身份分流的前提；未知身份不按学号猜测。来源及边界见[GSMIS 对照](source-parity-gsmis-2026-10-02.md#门户身份分流与研究生成绩考试2026-11-08)。
@@ -81,7 +87,7 @@ SSO 图像验证码使用内置 ddddocr 默认模型、左右各 5 像素留白�
 ## 主线能力与合同
 
 - Rust Core 统一拥有学校协议、Direct/WebVPN/Auto 路线、会话、校园读写与加密缓存。宿主通过 facade 或专用 Bridge 使用 Core。
-- 当前整合合同为 CLI JSON schema v14、Flutter bridge contract v56；Session v2、配置 v1、业务缓存 v8、日程 v4 分别管理。
+- 当前整合合同为 CLI JSON schema v15、Flutter bridge contract v57；Session v2、配置 v1、业务缓存 v8、日程 v4 分别管理。
 - 日程每个事项和覆盖记录单独存储，按账号隔离，退出后保留，同账号重新登录后激活。缓存清理不删除日程，缓存密钥缺失不阻止本机日程操作。
 - 首页七类学校待办复用 Core 投影。学校本地标记保留原上游状态，不生成学校写资格。路线切换投影修复已放行至 `8075e64d`，Core 导出修复已放行至 `de797fce`。
 - 当前候选底栏为首页、学习、日程、校园、我的，首页“查看全部”进入日程待办筛选，具体交互见[日程设计](../design/agenda.md)。

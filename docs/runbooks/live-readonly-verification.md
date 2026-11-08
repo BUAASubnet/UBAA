@@ -1,6 +1,6 @@
 # 真实只读验证运行手册
 
-脚本化真实只读验证的网络执行程序是 Core-live，真实 App 验收另行记录。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/live/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
+脚本化真实只读验证的网络执行程序是 Core-live，真实 App 验收另行记录。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/live/core-live.sh` 只负责启动已构建的二进制。二进制默认在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
 
 前置条件：按[统一验收清单](../development/commands.md#来源对照与真实验证)完成对应检查，并具有 [AGENTS 规定的当前会话授权](../../AGENTS.md#真实账号与验收范围)；`.env.local` 仅包含非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称）。该文件被忽略，凭据不会复制、打印或写入参数。
 
@@ -20,6 +20,8 @@ just verify-live feature=cgyy route=direct
 just verify-live feature=cgyy route=webvpn
 ```
 
+`feature=finance` 使用固定为 Direct 或 WebVPN 的 `UbaaClient`，通过 `login_required_route` 复用 App 已支持的图片验证码认证，随后调用 `finance_incomes`。该模式输出 `auth/login` 和 `finance/incomes` 的安全摘要，认证失败时将收入查询标记为 BLOCKED。财务账号需要查询系统权限。使用其他获授权账号时，通过 `UBAA_ENV_FILE` 指向忽略目录内的私有凭据文件，保留原 `.env.local`。
+
 `feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、研讨室和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
 
 图书馆分区详情依赖上游营业窗口：每日 08:30–23:00（`Asia/Shanghai`）。应在该窗口内执行
@@ -28,7 +30,7 @@ just verify-live feature=cgyy route=webvpn
 
 摘要格式为 `route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> [error=<stable-code>] [count=<n>] [reason=<code>] [mapping=embedded_login_state] [source=<upstream|static_fallback>] [global_page_count=<n>] [course_count=<n>] [raw_anchor_count=<n>] [filtered_unique_count=<n>]`。只把这些字段及日期、固定引用提交、退出码记录到 `docs/migration/status.md`，不要保存 stderr 或上游正文。
 
-每条路线只创建并复用一个 `RouteClient`；登录前的 `auth/prepare` 必须与
+默认矩阵每条路线只创建并复用一个 `RouteClient`；登录前的 `auth/prepare` 必须与
 `auth/login` 成对出现。认证失败时，当前功能所需的全部操作都要输出
 `BLOCKED(reason=authentication_failed)`，使矩阵完整且可审计。
 

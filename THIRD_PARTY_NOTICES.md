@@ -10,6 +10,8 @@
 
 UBAA v1 的冻结来源为 [BUAASubnet/UBAA](https://github.com/BUAASubnet/UBAA)，提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`。认证、WebVPN、会话和 DTO 的对照范围见[冻结引用记录](docs/migration/references.md)。Android 桌面课表的 `widgets/WidgetRenderer.kt`、`schedule_widget` 布局、背景和组件元数据移植自该版本，并适配当前只读模型与日期类型。Copyright (c) 2026 BUAASubnet，MIT 全文见 [ubaa-old-MIT.txt](docs/licenses/ubaa-old-MIT.txt)。
 
+财务收入认证、票据交换、分页与字段映射参考 [CoolwindHF/Auto-BUAA-icw](https://github.com/CoolwindHF/Auto-BUAA-icw)，提交 `dca5fcacc57136b906f4ff1140b3c6df276a40f1`。Copyright (c) 2025-2026 CoolwindHF，MIT 许可证原文见 [Auto-BUAA-icw-MIT.txt](docs/licenses/auto-buaa-icw-MIT.txt)。
+
 ## 本地图像识别模型
 
 `crates/ubaa_core/assets/captcha/` 使用 [sml2h3/ddddocr](https://github.com/sml2h3/ddddocr) 的 PyPI `ddddocr==1.6.1` 所附 `common_old.onnx` 和对应字符集。许可证原文见 [ddddocr-MIT.txt](docs/licenses/ddddocr-MIT.txt)。模型不包含本项目用户的验证码或个人数据。

@@ -76,7 +76,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v14 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v15 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -115,3 +115,11 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 `ubaa ihome list` 默认读取公共诉求；`--scope mine|followed|appraised` 切换个人列表，`--page` 和 `--limit` 控制分页，公共列表支持 `--keyword`、`--category-id` 与 `--filter`。`detail <id> --mine` 使用本人详情路径；`config`、`notices` 和 `notice <id>` 读取配置与公告。普通详情省略 `--mine`。CLI不开放关注或支持写入。
 
 数据只包含诉求、部门回复、评价、当前轮次进度和明确的状态/数量；原始用户对象、联系方式字段和业务令牌不进入合同。DTO及来源矩阵见 [iHome对照](../migration/source-parity-ihome-2026-10-25.md)。
+
+## 财务收入
+
+`finance incomes` 读取财务查询系统当前返回范围，只有全部分页完整成功才返回。公开字段包含流水号、项目、摘要、录入日期、年月、金额、税额、实发金额和税率展示值。金额使用整数分，零与缺失分别保留。该接口不提供银行到账确认。
+
+Core 的 `finance_incomes` 提供在线数据，`refresh_cached_finance` 和 `read_finance` 复用账号加密缓存。App 的 `FinanceService.refresh/cached` 由 `AppController.financeService` 提供，账号或路线代次变化后拒绝旧绑定。财务功能尚无 UI 页面。
+
+API Token 仅存路线内存，退出或会话失效即清除。查询不得接受任意用户编号，账号来自已认证财务跳转。证件、银行账号和原始响应不进入 DTO、命令输出或缓存。来源见[财务对照](../migration/source-parity.md#财务收入查询2026-11-08)。
