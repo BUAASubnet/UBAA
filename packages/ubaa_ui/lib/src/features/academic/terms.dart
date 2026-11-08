@@ -5,6 +5,7 @@ import '../../common/error_card.dart' show FriendlyErrorCard;
 import '../../shared/dialogs/sheet.dart';
 import '../../shared/loading.dart';
 import '../../common/tag.dart';
+import '../../common/state_panel.dart';
 
 class AcademicTermDialog extends StatefulWidget {
   const AcademicTermDialog({required this.loader, required this.selected});
@@ -56,13 +57,13 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
             return FriendlyErrorCard(error: error, onRetry: _reload);
           }
           if (snapshot.hasError || result == null) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('暂时无法获取学期，可以重试或手动填写编码。'),
-                TextButton(onPressed: _reload, child: const Text('重试')),
-              ],
+            return UiStatePanel(
+              compact: true,
+              icon: Icons.cloud_off_outlined,
+              title: '学期读取失败',
+              detail: '可以重试，或关闭后手动填写学期编码',
+              action: '重试',
+              onAction: _reload,
             );
           }
           final terms = <String, FeatureDetail>{};
@@ -73,7 +74,12 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
             }
           }
           if (terms.isEmpty)
-            return const Center(child: Text('暂无可选学期，可关闭后手动填写编码。'));
+            return const UiStatePanel(
+              compact: true,
+              icon: Icons.event_busy_outlined,
+              title: '暂无可选学期',
+              detail: '可关闭后手动填写学期编码',
+            );
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [

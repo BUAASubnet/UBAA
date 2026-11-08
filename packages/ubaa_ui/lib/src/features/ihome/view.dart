@@ -107,7 +107,7 @@ class _IhomeViewState extends State<IhomeView> {
         });
     } on Object {
       if (mounted && identical(service, widget.service))
-        setState(() => _configError = '分类和支持设置读取失败');
+        setState(() => _configError = '分类与设置读取失败');
     }
   }
 
@@ -200,7 +200,10 @@ class _IhomeViewState extends State<IhomeView> {
   @override
   Widget build(BuildContext context) {
     if (widget.service == null)
-      return const Center(child: Text('当前客户端暂不支持 iHome'));
+      return const UiStatePanel(
+        icon: Icons.block_outlined,
+        title: '此版本暂不支持 iHome',
+      );
     final empty = _notices ? _announcements.isEmpty : _entries.isEmpty;
     return PullToRefresh(
       onRefresh: () => _load(),

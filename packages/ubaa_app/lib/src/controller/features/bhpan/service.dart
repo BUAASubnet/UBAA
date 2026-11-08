@@ -28,8 +28,8 @@ final class GuardedBhpanService implements BhpanService {
     if (!current())
       throw const UiError(
         code: UbaaErrorCode.operationConflict,
-        title: '会话已变化',
-        message: '账号或路线已变化，请重新打开北航云盘',
+        title: '登录状态已变化',
+        message: '账号或网络已切换，请重新打开北航云盘',
       );
   }
 

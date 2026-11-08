@@ -10,7 +10,7 @@ extension _BhpanContent on _BhpanViewState {
     if (_received)
       return UiStatePanel(
         icon: Icons.link_off,
-        title: '没能打开这个分享',
+        title: '分享打开失败',
         detail: _message(error),
         action: '重新输入链接',
         onAction: _loading ? null : _receivedShare,
@@ -49,7 +49,7 @@ extension _BhpanContent on _BhpanViewState {
       ),
       _ => UiStatePanel(
         icon: Icons.cloud_off_outlined,
-        title: '没能读取这个文件夹',
+        title: '文件夹读取失败',
         detail: _message(error),
         action: '重试',
         onAction: _loading ? null : _load,

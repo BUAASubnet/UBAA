@@ -88,6 +88,6 @@ void main() {
     await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
     expect(result, isNull);
-    expect(find.text('开始时间和结束时间需要同时填写。'), findsOneWidget);
+    expect(find.text('开始时间和结束时间需要同时填写'), findsOneWidget);
   });
 }

@@ -207,7 +207,7 @@ FeatureResult _failure(Object error) => FeatureResult.failure(
       : const UiError(
           code: UbaaErrorCode.internalError,
           title: '读取失败',
-          message: '来源暂时无法更新',
+          message: '暂时无法更新，请稍后重试',
           retryable: true,
         ),
 );

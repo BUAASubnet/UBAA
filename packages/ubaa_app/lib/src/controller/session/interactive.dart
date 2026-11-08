@@ -429,7 +429,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
           issueId: failure.issueId,
           resolvedRoute: failure.resolvedRoute,
           title: '自动连接暂未就绪',
-          message: '可完成另一条路线的验证，或选择“改用${route.label}并继续”。',
+          message: '可在另一种连接方式下完成验证，或选择“改用${route.label}并继续”',
         );
       }
       internalSetInteractivePhase(AppPhase.login);

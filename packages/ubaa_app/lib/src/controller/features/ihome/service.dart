@@ -9,8 +9,8 @@ class GuardedIhomeService implements IhomeService {
     if (!current())
       throw const UiError(
         code: UbaaErrorCode.operationConflict,
-        title: '会话已变化',
-        message: '会话已变化，请返回校园服务重新打开 iHome',
+        title: '登录状态已变化',
+        message: '登录状态已变化，请重新打开 iHome',
       );
   }
 

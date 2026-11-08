@@ -79,7 +79,7 @@ void _registerYgdkFormTests() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('ygdk-photo-preview')), findsOneWidget);
     expect(find.text('已选择照片：photo.png'), findsOneWidget);
-    expect(find.text('无法读取照片，请使用不超过 10 MB 的图片，并检查系统访问权限。'), findsOneWidget);
+    expect(find.text('照片读取失败，请选择 10 MB 以内的图片并检查相册权限'), findsOneWidget);
     expect(find.textContaining('合成原始路径不能显示'), findsNothing);
   });
 

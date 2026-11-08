@@ -223,7 +223,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                   errorBuilder: (_, __, ___) => const SizedBox(
                     width: 180,
                     height: 72,
-                    child: Center(child: Text('照片预览不可用，请重新选择。')),
+                    child: Center(child: Text('照片预览不可用，请重新选择')),
                   ),
                 ),
               ),
@@ -276,7 +276,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
       });
     } on Object {
       if (_valid) {
-        setState(() => _error = '无法读取照片，请使用不超过 10 MB 的图片，并检查系统访问权限。');
+        setState(() => _error = '照片读取失败，请选择 10 MB 以内的图片并检查相册权限');
       }
     } finally {
       if (_valid) setState(() => _picking = false);

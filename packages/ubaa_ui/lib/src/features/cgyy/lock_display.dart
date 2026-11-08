@@ -84,7 +84,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     if (!_visible || _busy) return;
     final open = widget.open;
     if (open == null) {
-      setState(() => _error = '当前无法读取门锁密码，请完成登录后重试。');
+      setState(() => _error = '请登录后再获取门锁密码');
       return;
     }
     final generation = _generation;
@@ -105,7 +105,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
         _subscription = session.cancelled.listen((_) {
           if (!current()) return;
           _close();
-          if (mounted) setState(() => _error = '登录状态已变化，请重新获取密码。');
+          if (mounted) setState(() => _error = '登录状态已变化，请重新获取密码');
         });
       }
       final value = await _session!.read();
@@ -115,7 +115,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
       }
       _value = value;
     } on Object {
-      if (current()) _error = '未能获取门锁信息，请重试。';
+      if (current()) _error = '门锁信息读取失败，请重试';
     } finally {
       if (current()) {
         setState(() => _busy = false);

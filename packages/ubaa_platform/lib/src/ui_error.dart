@@ -157,7 +157,7 @@ class UiErrorMapper {
         code: UbaaErrorCode.internalError,
         kind: UiErrorKind.internal,
         title: '本机安全存储不可用',
-        message: '无法访问本机保存的登录信息，请手动登录。',
+        message: '无法读取本机保存的登录信息，请手动登录',
       );
     }
     if (error is SecureMaterialException) {
@@ -165,7 +165,7 @@ class UiErrorMapper {
         code: UbaaErrorCode.internalError,
         kind: UiErrorKind.internal,
         title: '本机安全存储不可用',
-        message: '无法访问本机安全存储，离线数据暂不可用，请手动登录。',
+        message: '无法读取本机安全存储，离线数据暂不可用，请手动登录',
       );
     }
     final typeName = error.runtimeType.toString().toLowerCase();
@@ -333,18 +333,18 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     actionLabel: '重试',
   ),
   UbaaErrorCode.upstreamChanged => (
-    title: '服务需要更新',
-    message: '服务接口发生变化，请稍后重试',
+    title: '学校系统已更新',
+    message: '暂时无法读取，请等待应用更新',
     actionLabel: null,
   ),
   UbaaErrorCode.parseError => (
     title: '数据异常',
-    message: '服务返回的数据无法识别',
+    message: '学校返回的数据无法识别',
     actionLabel: '重试',
   ),
   UbaaErrorCode.internalError => (
     title: '应用异常',
-    message: '应用内部错误，请稍后重试',
+    message: '出现异常，请稍后重试',
     actionLabel: '重试',
   ),
   UbaaErrorCode.unsupported => (
@@ -354,22 +354,22 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   ),
   UbaaErrorCode.confirmationRequired => (
     title: '需要确认',
-    message: '请先查看并确认本次操作的目标与影响。',
+    message: '请先确认本次操作',
     actionLabel: null,
   ),
   UbaaErrorCode.intentExpired => (
     title: '确认已过期',
-    message: '操作确认已过期，请重新操作。',
+    message: '操作已过期，请重新操作',
     actionLabel: '重新操作',
   ),
   UbaaErrorCode.operationConflict => (
     title: '操作状态已变化',
-    message: '网络或登录状态已变化，请重新操作。',
+    message: '网络或登录状态已变化，请重新操作',
     actionLabel: '重新操作',
   ),
   UbaaErrorCode.outcomeUnknown => (
     title: '结果未确认',
-    message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
+    message: '结果未确认，请刷新后查看，勿重复提交',
     actionLabel: '刷新状态',
   ),
 };

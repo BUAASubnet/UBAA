@@ -29,8 +29,8 @@ void main() {
         message: 'ignored upstream detail',
       );
 
-      expect(error.title, '服务需要更新');
-      expect(error.message, '服务接口发生变化，请稍后重试');
+      expect(error.title, '学校系统已更新');
+      expect(error.message, '暂时无法读取，请等待应用更新');
       expect(error.actionLabel, isNull);
       expect(error.retryable, isFalse);
     });
@@ -90,7 +90,7 @@ void main() {
       final error = mapCoreErrorJson(const {'unexpected': 'value'});
 
       expect(error.code, UbaaErrorCode.internalError);
-      expect(error.message, '应用内部错误，请稍后重试');
+      expect(error.message, '出现异常，请稍后重试');
     });
 
     test('平台超时和网络异常映射为可重试错误', () {

@@ -292,8 +292,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
           start = DateTime(start.year, start.month, start.day);
           end = DateTime(end.year, end.month, end.day);
         }
-        if (!end.isAfter(start))
-          throw const FormatException('结束时间必须晚于开始时间，全天结束日期不包含在内');
+        if (!end.isAfter(start)) throw const FormatException('结束时间必须晚于开始时间');
       } else if (!_undated) {
         due = parse('due');
       }

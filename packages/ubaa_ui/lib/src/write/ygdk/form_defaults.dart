@@ -29,11 +29,11 @@ extension YgdkFormDefaults on _YgdkFormPageState {
           mimeType: 'image/png',
         );
     if (selected == null) {
-      _showError('请选择可提交的运动项目。');
+      _showError('请选择可提交的运动项目');
       return;
     }
     if (draft.start.trim().isEmpty != draft.end.trim().isEmpty) {
-      _showError('开始时间和结束时间需要同时填写。');
+      _showError('开始时间和结束时间需要同时填写');
       return;
     }
     var start = draft.start, end = draft.end;

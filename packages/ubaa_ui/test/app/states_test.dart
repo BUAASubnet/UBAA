@@ -950,11 +950,11 @@ void _registerSharedStateTests() {
       const UiError(
         code: UbaaErrorCode.operationConflict,
         title: '操作状态已变化',
-        message: '网络或登录状态已变化，请重新操作。',
+        message: '网络或登录状态已变化，请重新操作',
       ),
     );
 
-    expect(find.text('网络或登录状态已变化，请重新操作。'), findsOneWidget);
+    expect(find.text('网络或登录状态已变化，请重新操作'), findsOneWidget);
     expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsNothing);
     expect(refreshCalls, 0);
   });

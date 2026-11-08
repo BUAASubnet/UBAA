@@ -110,8 +110,8 @@ final class _PreviewDestination implements BhpanDownloadDestination {
 
 const _previewSessionChanged = UiError(
   code: UbaaErrorCode.operationConflict,
-  title: '会话已变化',
-  message: '账号或路线已变化，文件未交付',
+  title: '登录状态已变化',
+  message: '账号或网络已切换，文件未保存',
 );
 
 /// 桌面直接选择文件位置，移动端通过系统授权交付 Core 暂存文件。
@@ -204,8 +204,8 @@ final class _NativeDestination implements BhpanDownloadDestination {
   final bool ohos;
   static const _sessionChanged = UiError(
     code: UbaaErrorCode.operationConflict,
-    title: '会话已变化',
-    message: '账号或路线已变化，文件未交付',
+    title: '登录状态已变化',
+    message: '账号或网络已切换，文件未保存',
   );
   bool consumed = false;
   @override
@@ -235,14 +235,14 @@ final class _NativeDestination implements BhpanDownloadDestination {
           'exists' => '所选位置已有同名文件，请选择其他名称',
           'cleanup_failed' => '保存失败，部分文件未能清理，请在所选位置删除',
           'unsupported_destination' => '请选择本机文件保存位置',
-          _ => '文件未完成保存，请检查所选位置与权限',
+          _ => '文件保存失败，请检查保存位置和权限',
         },
       );
     } on Object {
       throw const UiError(
         code: UbaaErrorCode.invalidInput,
         title: '文件未保存',
-        message: '文件未完成保存，请检查所选位置与权限',
+        message: '文件保存失败，请检查保存位置和权限',
       );
     }
   }

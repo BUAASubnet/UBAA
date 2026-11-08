@@ -158,7 +158,7 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
         UiError(
           code: UbaaErrorCode.networkError,
           title: '活动类型读取失败',
-          message: '请稍后重试。',
+          message: '请稍后重试',
         ),
       );
     }
@@ -221,7 +221,7 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
         count <= 0) {
       setState(() {
         _submitted = true;
-        error = selected.isEmpty ? '请选择预约时段。' : '请补全标红的信息。';
+        error = selected.isEmpty ? '请选择预约时段' : '请补全标红的信息';
       });
       return;
     }

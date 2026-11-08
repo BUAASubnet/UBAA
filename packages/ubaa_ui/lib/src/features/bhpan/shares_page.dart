@@ -162,7 +162,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
         child: RefreshViewport(
           child: UiStatePanel(
             icon: Icons.cloud_off_outlined,
-            title: '没能读取分享',
+            title: '分享读取失败',
             detail: error is UiError ? error.message : '请检查网络后重试',
             action: '重试',
             onAction: _loading ? null : _load,

@@ -10,8 +10,8 @@ class GuardedCampusAccountService implements CampusAccountService {
     if (!current()) {
       throw const UiError(
         code: UbaaErrorCode.operationConflict,
-        title: '会话已变化',
-        message: '会话已变化，请下拉刷新重新读取',
+        title: '登录状态已变化',
+        message: '登录状态已变化，请下拉刷新',
       );
     }
   }
