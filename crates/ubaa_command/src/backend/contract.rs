@@ -198,6 +198,8 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<EvaluationBatchResult>>;
 
     /// 查询学期。
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>>;
+    async fn grades_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>>;
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>>;
     /// 查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> Result<FeatureResult<Vec<Week>>>;
@@ -384,6 +386,8 @@ pub trait RoutedCliBackend {
     /// 通过 Core 路由获取用户中心资料。
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile>;
     /// 通过 Core 路由查询学期。
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>>;
+    async fn grades_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview>;
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>>;
     /// 通过 Core 路由查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> RoutedResult<Vec<Week>>;

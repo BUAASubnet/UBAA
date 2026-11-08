@@ -176,6 +176,10 @@ class _Cache implements BridgeOfflineCache {
   bool selected = true;
   final scopes = <String>[];
   @override
+  Future<BridgeCachedAcademicTerms?> readExamTerms({
+    required BridgeConnectionMode route,
+  }) => readAcademicTerms(route: route);
+  @override
   Future<BridgeCachedAcademicTerms?> readAcademicTerms({
     required BridgeConnectionMode route,
   }) async => BridgeCachedAcademicTerms(
@@ -309,7 +313,24 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 54;
+  int contractVersion() => 56;
+  @override
+  Future<BridgeRoutedGradeOverview> gradesOverview() async =>
+      const BridgeRoutedGradeOverview(
+        data: BridgeGradeOverview(
+          graduate: false,
+          grades: [],
+          statistics: null,
+          terms: [],
+        ),
+        route: BridgeRouteDecision(
+          policy: BridgeRoutePolicy.direct,
+          resolvedRoute: BridgeConnectionMode.direct,
+          network: BridgeNetworkState.unknown,
+          initialRoute: BridgeConnectionMode.direct,
+          usedFallback: false,
+        ),
+      );
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

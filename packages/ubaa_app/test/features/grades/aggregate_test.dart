@@ -251,20 +251,24 @@ class GradesBackend
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
-  ) async => FeatureResult.success(
-    details: feature == FeatureId.schedule ? terms : [],
-    overview: feature == FeatureId.grades ? grade(query.term!, '95') : null,
-    resolvedRoute: ConnectionMode.direct,
-    evidence: feature == FeatureId.schedule
-        ? DataEvidence(
-            accountId: account!.id,
-            origin: DataOrigin.online,
-            fetchedAt: fetched,
-            complete: !partialIndex,
-            savedForOffline: true,
-          )
-        : null,
-  );
+  ) async => query.view == FeatureQueryView.gradesOverview
+      ? const FeatureResult.empty()
+      : FeatureResult.success(
+          details: feature == FeatureId.schedule ? terms : [],
+          overview: feature == FeatureId.grades
+              ? grade(query.term!, '95')
+              : null,
+          resolvedRoute: ConnectionMode.direct,
+          evidence: feature == FeatureId.schedule
+              ? DataEvidence(
+                  accountId: account!.id,
+                  origin: DataOrigin.online,
+                  fetchedAt: fetched,
+                  complete: !partialIndex,
+                  savedForOffline: true,
+                )
+              : null,
+        );
   @override
   Future<void> logout() async {}
   @override

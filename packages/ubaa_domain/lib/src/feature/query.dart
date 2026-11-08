@@ -32,6 +32,9 @@ enum FeatureQueryView {
   spocDetail,
   judgeDetail,
   judgeBatchDetails,
+  examTerms,
+  gradesTerms,
+  gradesOverview,
 }
 
 /// Judge 批量详情查询使用的公开作业标识。

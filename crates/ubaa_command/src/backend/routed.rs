@@ -226,6 +226,12 @@ impl RoutedCliBackend for UbaaClient {
         UbaaClient::get_user_info(self).await
     }
 
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        UbaaClient::exam_terms(self).await
+    }
+    async fn grades_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> {
+        UbaaClient::grades_overview(self).await
+    }
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         UbaaClient::schedule_terms(self).await
     }

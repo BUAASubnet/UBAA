@@ -48,7 +48,10 @@ class FixtureGradesBackend extends FixtureQueryBackend {
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    if (query.view == FeatureQueryView.scheduleTerms) {
+    if (query.view == FeatureQueryView.gradesOverview)
+      return const FeatureResult.empty();
+    if (query.view == FeatureQueryView.scheduleTerms ||
+        query.view == FeatureQueryView.gradesTerms) {
       if (termResult != null) return termResult!;
       return const FeatureResult.success(
         details: [

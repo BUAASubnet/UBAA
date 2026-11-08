@@ -132,6 +132,7 @@ class _GradesFlowState extends State<GradesFlow> {
     final activeTerm = hasTerms ? terms[termIndex] : null;
     final isCurrentTerm =
         activeTerm == null || activeTerm.code == current.termCode;
+    final currentSuffix = current.statistics == null ? '（本学期）' : '';
     final activeOverview = isCurrentTerm ? current : activeTerm.overview;
     final activeDetails = isCurrentTerm
         ? snapshot.details
@@ -211,7 +212,7 @@ class _GradesFlowState extends State<GradesFlow> {
                                   Text(term.name),
                                   if (term.code == current.termCode)
                                     Text(
-                                      '（本学期）',
+                                      currentSuffix,
                                       style: TextStyle(
                                         color: theme.colorScheme.primary,
                                         fontWeight: FontWeight.bold,
@@ -232,7 +233,7 @@ class _GradesFlowState extends State<GradesFlow> {
                               Flexible(
                                 child: Text(
                                   isCurrentTerm
-                                      ? '${activeTerm?.name ?? current.termCode}（本学期）'
+                                      ? '${activeTerm?.name ?? current.termCode}$currentSuffix'
                                       : activeTerm.name,
                                   style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -265,9 +266,16 @@ class _GradesFlowState extends State<GradesFlow> {
           const SizedBox(height: 12),
         ],
         GradeSummaryCard(
-          title: isCurrentTerm ? '本学期' : activeTerm.name,
+          title: isCurrentTerm
+              ? (activeOverview?.statistics == null ? '本学期' : '最近有成绩的学期')
+              : activeTerm.name,
           statistics: activeOverview != null
-              ? GradeStatistics.calculate(activeOverview.grades)
+              ? (activeOverview.statistics == null
+                    ? GradeStatistics.calculate(activeOverview.grades)
+                    : GradeStatistics.fromGraduate(
+                        activeOverview.statistics!,
+                        activeOverview.grades,
+                      ))
               : null,
           showCourseAndCredits: true,
           overallTitle: '全部学期',

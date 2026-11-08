@@ -191,7 +191,7 @@ Future<void> _show(
           },
           routePolicy: RoutePolicy.auto,
           telemetryEnabled: false,
-          onLoadAcademicTerms: loader,
+          onLoadExamTerms: loader,
           onFeatureQuery: (_, query) async => queries.add(query),
           onRefresh: () async {},
           onRetryFeature: (_) async {},

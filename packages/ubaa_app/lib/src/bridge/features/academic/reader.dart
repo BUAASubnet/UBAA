@@ -27,6 +27,7 @@ import '../../support/mapping.dart'
         bridgeRequiredQueryValue,
         bridgeToConnectionMode;
 part 'cache_read.dart';
+part 'graduate.dart';
 
 Future<FeatureResult> bridgeLoadAcademicFeature(
   BridgeContext backend,
@@ -172,11 +173,12 @@ Future<FeatureResult> _projectAcademicFeature(
           throw const BackendException(UbaaErrorCode.invalidInput);
       }
     case FeatureId.exam:
+      if (query.view == FeatureQueryView.examTerms) return _examTerms(client);
       switch (query.view) {
         case FeatureQueryView.summary:
         case FeatureQueryView.examArranged:
         case FeatureQueryView.examNotArranged:
-          final term = query.term ?? await _selectedTerm(client);
+          final term = query.term ?? await _selectedExamTerm(backend, client);
           if (term == null) return const FeatureResult.empty();
           final result = await client.examArrangement(term: term);
           final exams = <({BridgeExam item, bool arranged})>[
@@ -211,6 +213,16 @@ Future<FeatureResult> _projectAcademicFeature(
           throw const BackendException(UbaaErrorCode.invalidInput);
       }
     case FeatureId.grades:
+      if (client.localRoute == null) {
+        final graduate = await _graduateGrades(backend, query);
+        if (graduate != null) return graduate;
+      }
+      if (query.view == FeatureQueryView.gradesOverview)
+        return const FeatureResult.empty();
+      if (query.view == FeatureQueryView.gradesTerms) {
+        final result = await client.scheduleTerms();
+        return _termOptions(result.data, result.route);
+      }
       switch (query.view) {
         case FeatureQueryView.summary:
         case FeatureQueryView.gradesScored:
@@ -225,6 +237,9 @@ Future<FeatureResult> _projectAcademicFeature(
             GradesTermOverview(
               requestTerm: term,
               termCode: result.data.termCode,
+              statistics: result.data.statistics == null
+                  ? null
+                  : _graduateStats(result.data.statistics!),
               grades: List.unmodifiable(allGrades),
             ),
             query.view,

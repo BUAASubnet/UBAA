@@ -18,6 +18,15 @@ struct ImportTransport {
 #[async_trait]
 impl HttpTransport for ImportTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/personal/frontend/data/info") {
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ));
+        }
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
         }

@@ -232,6 +232,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   ]);
   @internal
   Future<FeatureResult> internalLoadAcademicTerms({
+    FeatureId feature = FeatureId.schedule,
     required bool forceRefresh,
     ReadPriority priority = ReadPriority.interactive,
   });

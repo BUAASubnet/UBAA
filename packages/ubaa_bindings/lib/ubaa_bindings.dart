@@ -60,3 +60,5 @@ export 'src/rust/api/agenda/sync.dart';
 export 'src/rust/api/shared_account.dart';
 export 'src/rust/api/command.dart';
 export 'src/rust/api/command/output.dart';
+
+export 'src/rust/api/read/graduate.dart';

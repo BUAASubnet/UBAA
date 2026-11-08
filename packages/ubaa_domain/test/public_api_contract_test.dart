@@ -29,9 +29,9 @@ void main() {
       FeatureLoadStatus.stale,
       FeatureLoadStatus.failure,
     ]);
-    expect(FeatureQueryView.values, hasLength(29));
+    expect(FeatureQueryView.values, hasLength(32));
     expect(FeatureQueryView.values.first, FeatureQueryView.summary);
-    expect(FeatureQueryView.values.last, FeatureQueryView.judgeBatchDetails);
+    expect(FeatureQueryView.values.last, FeatureQueryView.gradesOverview);
     expect(ConnectionMode.values, <ConnectionMode>[
       ConnectionMode.direct,
       ConnectionMode.webvpn,

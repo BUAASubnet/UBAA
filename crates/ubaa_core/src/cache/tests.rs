@@ -601,6 +601,7 @@ fn 学业范围不串学期周次校区日期() {
         CachePayload::Week(crate::domain::WeeklySchedule::default()),
         CachePayload::Exams(crate::domain::ExamArrangement::default()),
         CachePayload::Grades(GradeData {
+            statistics: None,
             term_code: "2025-2026-1".into(),
             grades: vec![],
         }),
@@ -669,6 +670,7 @@ fn 成绩不能无损保存时保留旧内容() {
     repo.publish(
         &original,
         CachePayload::Grades(GradeData {
+            statistics: None,
             term_code: "2025-2026-1".into(),
             grades: vec![],
         }),
@@ -686,6 +688,7 @@ fn 成绩不能无损保存时保留旧内容() {
             repo.publish(
                 &ticket,
                 CachePayload::Grades(GradeData {
+                    statistics: None,
                     term_code: term.into(),
                     grades: vec![Grade {
                         credit: Some(credit),

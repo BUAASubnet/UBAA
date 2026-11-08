@@ -278,6 +278,8 @@ impl RoutedCliBackend for EvaluationBackend {
         Err(crate::common::test_routed_unavailable())
     }
 
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> { self.schedule_terms().await }
+    async fn grades_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> { Err(crate::common::test_routed_unavailable()) }
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         Err(crate::common::test_routed_unavailable())
     }
@@ -610,6 +612,8 @@ impl CliBackend for FixedEvaluationBackend {
         Err(crate::common::test_unavailable())
     }
 
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> { self.schedule_terms().await }
+    async fn grades_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>> { Err(crate::common::test_unavailable()) }
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         Err(crate::common::test_unavailable())
     }

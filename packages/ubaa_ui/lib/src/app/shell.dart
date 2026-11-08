@@ -79,6 +79,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onReadCacheUsage,
     this.onClearBusinessCache,
     this.onLoadAcademicTerms,
+    this.onLoadExamTerms,
     this.onLoadAcademicWeeks,
     this.scheduleImports = const {},
     this.onSaveScheduleSemester,
@@ -139,10 +140,8 @@ class UbaaMainShell extends StatefulWidget {
     super.key,
   });
   final UserSummary? user;
-
   final Clock? homeClock;
   final Map<FeatureId, FeatureSnapshot> snapshots;
-
   final FeatureSnapshot? ygdkRecordsReadback;
   final HomeState? homeState;
   final ValueChanged<bool>? onHomeVisibilityChanged;
@@ -169,7 +168,6 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
-
   final UiDestination initialDestination;
 
   final CampusAccountService? campusAccountService;
@@ -199,6 +197,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
   final Future<CacheClearOutcome> Function(String)? onClearBusinessCache;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadExamTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
   final Map<String, ScheduleImportState> scheduleImports;
@@ -778,6 +777,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         onNavigate: page.onNavigate,
         onSwitchView: page.onSwitchView,
         onLoadAcademicTerms: widget.onLoadAcademicTerms,
+        onLoadExamTerms: widget.onLoadExamTerms,
         onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
         scheduleImports: widget.scheduleImports,
         onSaveScheduleSemester: widget.onSaveScheduleSemester,

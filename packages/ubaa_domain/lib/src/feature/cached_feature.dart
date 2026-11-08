@@ -90,6 +90,7 @@ FeatureOverview? readonlyFeatureOverview(FeatureOverview? overview) =>
         requestTerm: value.requestTerm,
         termCode: value.termCode,
         grades: List.unmodifiable(value.grades),
+        statistics: value.statistics,
       ),
       SpocTermOverview value => SpocTermOverview(
         termCode: value.termCode,

@@ -66,6 +66,49 @@ final class _AcademicReader {
     );
   }
 
+  Future<AcademicValue<List<BridgeTerm>>> examTerms() async {
+    await bridgeAwaitOfflineScope(backend);
+    final cache = backend.cache.handle;
+    final account = backend.cache.account;
+    final route = localRoute;
+    if (route != null) {
+      if (cache == null || account == null) throw const AcademicCacheMiss();
+      final value = await cache.readExamTerms(route: route);
+      if (value == null) throw const AcademicCacheMiss();
+      record(
+        account,
+        value.fetchedAt.toInt(),
+        value.complete,
+        true,
+        date: null,
+      );
+      return AcademicValue(
+        value.data,
+        bridgeToConnectionMode(value.sourceRoute),
+      );
+    }
+    if (cache != null && account != null) {
+      final value = await backend.client.examTermsCached(cache: cache);
+      record(
+        account,
+        value.fetchedAt.toInt(),
+        value.complete,
+        value.saveError == null,
+        date: null,
+      );
+      return AcademicValue(
+        value.result.data,
+        bridgeToConnectionMode(value.result.route.resolvedRoute),
+      );
+    }
+    final value = await backend.client.examTerms();
+    evidence = null;
+    return AcademicValue(
+      value.data,
+      bridgeToConnectionMode(value.route.resolvedRoute),
+    );
+  }
+
   Future<AcademicValue<List<BridgeWeek>>> scheduleWeeks({
     required String term,
   }) async {

@@ -110,6 +110,31 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 读取考试系统自身的学期。
+    /// # Errors
+    /// 身份、会话、路线或上游请求失败时返回错误。
+    pub async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Exam))?;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::schedule::get_exam_terms(self.runtime_for(resolution.mode)).await
+        );
+        self.finish_routed(resolution, result)
+    }
+    /// 读取研究生完整历史成绩和统计；本科保留原逐学期流程。
+    /// # Errors
+    /// 身份、会话、路线或上游请求失败时返回错误。
+    pub async fn grades_overview(&mut self) -> RoutedResult<crate::domain::GradeOverview> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Grades))?;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::grades::get_overview(self.runtime_for(resolution.mode)).await
+        );
+        self.finish_routed(resolution, result)
+    }
+
     /// 通过空教室路线策略查询可用教室。
     ///
     /// # Errors

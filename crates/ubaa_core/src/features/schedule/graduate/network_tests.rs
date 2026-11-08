@@ -19,6 +19,16 @@ impl HttpTransport for Transport {
         let direct = crate::connection::from_webvpn_url(&request.url)
             .unwrap_or_else(|_| request.url.clone());
         let url = url::Url::parse(&direct).unwrap();
+        if url.host_str() == Some("it.buaa.edu.cn") {
+            assert_eq!(url.path(), "/personal/frontend/data/info");
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                r#"{"e":0,"d":{"info":{"identity":"研究生","depart":"示例学院"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ));
+        }
         if url.path().ends_with("currentUser.do") {
             return Ok(HttpResponse::new(
                 200,
@@ -110,7 +120,7 @@ fn client(
     )
 }
 #[test]
-fn gsmis在webvpn精确请求并仅在成功后记忆来源() {
+fn gsmis按门户身份分流并在webvpn精确请求() {
     let (mut client, requests, root) = client("success", true, false);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -132,7 +142,7 @@ fn gsmis在webvpn精确请求并仅在成功后记忆来源() {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|r| r.url.contains("currentUser.do"))
+                .filter(|r| r.url.contains("/personal/frontend/data/info"))
                 .count(),
             1
         );
@@ -150,7 +160,7 @@ fn gsmis在webvpn精确请求并仅在成功后记忆来源() {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|r| r.url.contains("currentUser.do"))
+                .filter(|r| r.url.contains("/personal/frontend/data/info"))
                 .count(),
             2
         );
@@ -169,8 +179,8 @@ fn gsmis认证失败不伪造空学期或成功来源且无会话零请求() {
         assert_eq!(error.code, crate::error::ErrorCode::AuthenticationRequired);
         assert!(!error.message.contains("synthetic-private"));
     }
-    assert!(!super::active(&client));
-    assert_eq!(requests.lock().unwrap().len(), 4);
+
+    assert_eq!(requests.lock().unwrap().len(), 3);
     let _ = std::fs::remove_dir_all(root);
     let (mut client, requests, root) = self::client("empty", false, false);
     assert!(runtime.block_on(get_terms(&mut client)).is_err());

@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 55;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 56;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -41,6 +41,7 @@ pub enum BridgeErrorCode {
     IntentExpired,
     OperationConflict,
     OutcomeUnknown,
+    Unsupported,
 }
 
 /// bridge 对外的安全错误类别。
@@ -131,6 +132,7 @@ impl From<ErrorCode> for BridgeErrorCode {
             ErrorCode::Timeout => Self::Timeout,
             ErrorCode::UpstreamUnavailable => Self::UpstreamUnavailable,
             ErrorCode::BusinessUnavailable => Self::BusinessUnavailable,
+            ErrorCode::Unsupported => Self::Unsupported,
             ErrorCode::OutcomeUnknown => Self::OutcomeUnknown,
             ErrorCode::UpstreamChanged => Self::UpstreamChanged,
             ErrorCode::ParseError => Self::ParseError,

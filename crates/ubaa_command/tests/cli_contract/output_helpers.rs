@@ -101,6 +101,7 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         (
             CliFeature::Grades,
             serde_json::to_value(GradeData {
+                statistics: None,
                 term_code: "2025-2026-1".into(),
                 grades: vec![Grade {
                     term_code: Some("2025-2026-1".into()),
@@ -112,6 +113,7 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         (
             CliFeature::Grades,
             serde_json::to_value(GradeData {
+                statistics: None,
                 term_code: "2025-2026-1".into(),
                 grades: vec![Grade::default()],
             })

@@ -129,7 +129,7 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 
     assert_eq!(exit, 0, "确定性部分失败仍是已知业务结果");
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 13);
+    assert_eq!(value["schemaVersion"], 14);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], false);
     assert_eq!(value["data"]["outcomeUnknown"], false);
@@ -261,7 +261,7 @@ async fn outcome_unknown_使用唯一带安全_batch_数据的失败信封并固
 
     assert_eq!(exit, 5);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 13);
+    assert_eq!(value["schemaVersion"], 14);
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "outcome_unknown");
     assert_eq!(value["data"]["outcomeUnknown"], true);
@@ -291,7 +291,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 13);
+    assert_eq!(value["schemaVersion"], 14);
     let course = &value["data"]["courses"][0];
     assert_eq!(course["submitEligibility"], "allowed");
     assert_eq!(course["submitTarget"]["rwid"], "safe-rwid");
@@ -316,7 +316,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
 #[test]
 fn cli_评教合同升级为唯一_schema_v10_且失败携带数据仅限未知_batch() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 13);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 14);
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../docs/contracts/cli-json.schema.json"
     ))
@@ -466,7 +466,7 @@ fn authentication_required() -> UbaaError {
 
 fn unknown_envelope() -> serde_json::Value {
     serde_json::json!({
-        "schemaVersion": 13,
+        "schemaVersion": 14,
         "ok": false,
         "data": {
             "items": [{

@@ -811,6 +811,27 @@ impl RouteClient {
     }
 }
 
+impl RouteClient {
+    /// 读取当前身份对应的学业数据。
+    /// # Errors
+    /// 会话、身份、网络或解析失败时返回错误。
+    pub async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::schedule::get_exam_terms(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+    /// 读取当前身份对应的学业数据。
+    /// # Errors
+    /// 会话、身份、网络或解析失败时返回错误。
+    pub async fn grades_overview(&mut self) -> Result<FeatureResult<crate::domain::GradeOverview>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::grades::get_overview(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

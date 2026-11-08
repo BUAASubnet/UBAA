@@ -110,6 +110,64 @@ impl BridgeClient {
     }
 }
 
+impl BridgeOfflineCache {
+    /// 只访问独立本地仓库，不获取网络客户端锁。
+    ///
+    /// # Errors
+    /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+    pub async fn read_exam_terms(
+        &self,
+        route: BridgeConnectionMode,
+    ) -> Result<Option<BridgeCachedAcademicTerms>, BridgeError> {
+        let cache = self.cache.clone();
+        local_task(move || {
+            cache
+                .read_academic(route.into(), &core::AcademicQuery::ExamTerms)
+                .map_err(cache_error)?
+                .map(|record| {
+                    let core::CachePayload::Terms(data) = record.payload else {
+                        return Err(cache_error(core::CacheError::Corrupt));
+                    };
+                    Ok(BridgeCachedAcademicTerms {
+                        data: map_terms(data),
+                        source_route: record.scope.route.into(),
+                        fetched_at: record.fetched_at,
+                        complete: record.completeness == core::CacheCompleteness::Complete,
+                    })
+                })
+                .transpose()
+        })
+        .await
+    }
+}
+impl BridgeClient {
+    /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+    ///
+    /// # Errors
+    /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+    pub async fn exam_terms_cached(
+        &self,
+        cache: &BridgeOfflineCache,
+    ) -> Result<BridgeAcademicTermsRefresh, BridgeError> {
+        let value = self
+            .refresh_academic_record(cache, core::AcademicQuery::ExamTerms)
+            .await?;
+        let core::CachePayload::Terms(data) = value.data else {
+            return Err(cache_error(core::CacheError::Corrupt));
+        };
+        let complete = true;
+        Ok(BridgeAcademicTermsRefresh {
+            result: BridgeRoutedTerms {
+                data: map_terms(data),
+                route: map_route(value.resolution),
+            },
+            fetched_at: value.fetched_at,
+            complete,
+            save_error: value.save_error.map(Into::into),
+        })
+    }
+}
+
 /// 已保存的精确范围，原时间与路线不由当前配置替换。
 #[derive(Clone, Debug)]
 pub struct BridgeCachedAcademicWeeks {
@@ -528,6 +586,7 @@ mod tests {
             .publish(
                 &ticket,
                 core::CachePayload::Grades(core::GradeData {
+                    statistics: None,
                     term_code: "2025-2026-1".into(),
                     grades: vec![core::Grade {
                         course_name: Some("合成课程".into()),

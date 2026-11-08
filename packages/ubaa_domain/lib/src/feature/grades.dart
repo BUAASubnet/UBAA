@@ -17,6 +17,16 @@ final class GradeStatistics {
   final int courseCount;
   final double? totalCredits, gpa, weightedAverage, arithmeticAverage;
 
+  factory GradeStatistics.fromGraduate(
+    GraduateGradeStatistics stats,
+    Iterable<GradePresentation> grades,
+  ) => GradeStatistics(
+    courseCount: grades.length,
+    totalCredits: grades.fold<double>(0, (sum, g) => sum + (g.credit ?? 0)),
+    gpa: stats.gpa,
+    weightedAverage: stats.averageScore,
+  );
+
   factory GradeStatistics.calculate(Iterable<GradePresentation> input) {
     final grades = input.toList();
     var totalCredits = 0.0, participatingCredits = 0.0;
@@ -108,8 +118,10 @@ final class GradesAggregate {
     this.terms = const [],
     this.error,
     this.termsEvidence,
+    this.coreStatistics,
   });
   final DataEvidence? termsEvidence;
+  final GradeStatistics? coreStatistics;
   final List<GradeTermRead> terms;
   final UiError? error;
   int get loadedTerms => terms.where((t) => t.overview != null).length;
@@ -121,9 +133,38 @@ final class GradesAggregate {
   bool get hasSavedData =>
       termsEvidence?.origin == DataOrigin.persisted ||
       terms.any((term) => term.result.evidence?.origin == DataOrigin.persisted);
-  GradeStatistics get statistics => GradeStatistics.calculate(
-    terms.expand((t) => t.overview?.grades ?? const <GradePresentation>[]),
-  );
+  GradeStatistics get statistics {
+    if (coreStatistics != null) return coreStatistics!;
+    final grades = terms
+        .expand((t) => t.overview?.grades ?? const <GradePresentation>[])
+        .toList(growable: false);
+    final stats = terms
+        .map((t) => t.overview?.statistics)
+        .toList(growable: false);
+    if (stats.every((s) => s == null)) return GradeStatistics.calculate(grades);
+    var points = 0.0, scores = 0.0, gpaCredits = 0.0, averageCredits = 0.0;
+    for (final value in stats) {
+      if (value == null)
+        return GradeStatistics(courseCount: grades.length, totalCredits: null);
+      if (value.gpa != null) {
+        points += value.gpa! * value.gpaCredits;
+        gpaCredits += value.gpaCredits;
+      }
+      if (value.averageScore != null) {
+        scores += value.averageScore! * value.averageCredits;
+        averageCredits += value.averageCredits;
+      }
+    }
+    return GradeStatistics.fromGraduate(
+      GraduateGradeStatistics(
+        gpa: gpaCredits > 0 ? points / gpaCredits : null,
+        averageScore: averageCredits > 0 ? scores / averageCredits : null,
+        gpaCredits: gpaCredits,
+        averageCredits: averageCredits,
+      ),
+      grades,
+    );
+  }
 }
 
 /// 本地集合先经回调交付；Future报告本次在线更新结束，二者都不授予写资格。

@@ -21,7 +21,7 @@
       ],
       "properties": {
         "schemaVersion": {
-          "const": 13
+          "const": 14
         },
         "ok": {
           "type": "boolean"
@@ -739,7 +739,7 @@
         "business_unavailable",
         "outcome_unknown",
         "upstream_changed",
-        "parse_error",
+        "parse_error", "unsupported",
         "internal_error"
       ]
     },
@@ -1487,10 +1487,14 @@
       },
       "additionalProperties": false
     },
+    "gradeStatistics": {"type": "object", "required": ["gpa", "averageScore", "gpaCredits", "averageCredits"], "properties": {"gpa": {"anyOf": [{"type": "number"}, {"type": "null"}]}, "averageScore": {"anyOf": [{"type": "number"}, {"type": "null"}]}, "gpaCredits": {"type": "number"}, "averageCredits": {"type": "number"}}, "additionalProperties": false},
+    "gradeTermStatistics": {"type": "object", "required": ["termCode", "termName", "statistics"], "properties": {"termCode": {"type": "string"}, "termName": {"type": "string"}, "statistics": {"$ref": "#/$defs/gradeStatistics"}}, "additionalProperties": false},
+    "gradeOverview": {"type": "object", "required": ["graduate", "grades", "statistics", "terms"], "properties": {"graduate": {"type": "boolean"}, "grades": {"type": "array", "items": {"$ref": "#/$defs/grade"}}, "statistics": {"anyOf": [{"$ref": "#/$defs/gradeStatistics"}, {"type": "null"}]}, "terms": {"type": "array", "items": {"$ref": "#/$defs/gradeTermStatistics"}}}, "additionalProperties": false},
     "gradeData": {
       "type": "object",
-      "required": ["termCode", "grades"],
+      "required": ["termCode", "grades", "statistics"],
       "properties": {
+        "statistics": {"anyOf":[{"$ref":"#/$defs/gradeStatistics"},{"type":"null"}]},
         "termCode": { "type": "string" },
         "grades": { "type": "array", "items": { "$ref": "#/$defs/grade" } }
       },
@@ -1799,7 +1803,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 13 },
+        "schemaVersion": { "const": 14 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1881,13 +1885,13 @@
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "exam" } }, "required": ["feature"] },
-                  "data": { "$ref": "#/$defs/examArrangement" }
+                  "data": { "anyOf": [{ "$ref": "#/$defs/examArrangement" }, { "type":"array", "items":{"$ref":"#/$defs/term"} }] }
                 }
               },
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "grades" } }, "required": ["feature"] },
-                  "data": { "$ref": "#/$defs/gradeData" }
+                  "data": { "anyOf": [{ "$ref": "#/$defs/gradeData" }, {"$ref":"#/$defs/gradeOverview"}] }
                 }
               },
               {
@@ -2000,7 +2004,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 13 },
+        "schemaVersion": { "const": 14 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -2157,7 +2161,7 @@
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
         "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
-        "schemaVersion": { "const": 13 },
+        "schemaVersion": { "const": 14 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -2233,7 +2237,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 13 },
+        "schemaVersion": { "const": 14 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
@@ -2493,7 +2497,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 13
+                "const": 14
               },
               "ok": {
                 "const": true
@@ -2629,7 +2633,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 13
+                "const": 14
               },
               "ok": {
                 "const": false

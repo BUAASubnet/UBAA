@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::UbaaError;
 
-/// 门户的身份与学院，仅用于资料展示。
+/// 门户的身份与学院；Core 使用明确身份选择学业系统。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PortalProfile {

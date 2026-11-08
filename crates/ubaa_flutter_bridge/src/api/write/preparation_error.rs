@@ -48,6 +48,7 @@ pub(crate) fn routed_bridge_error(error: BridgeError) -> core::RoutedError {
         B::Timeout => core::ErrorCode::Timeout,
         B::UpstreamUnavailable => core::ErrorCode::UpstreamUnavailable,
         B::BusinessUnavailable => core::ErrorCode::BusinessUnavailable,
+        B::Unsupported => core::ErrorCode::Unsupported,
         B::UpstreamChanged => core::ErrorCode::UpstreamChanged,
         B::ParseError => core::ErrorCode::ParseError,
         B::OutcomeUnknown => core::ErrorCode::OutcomeUnknown,

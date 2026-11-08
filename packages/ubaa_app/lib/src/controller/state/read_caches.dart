@@ -5,6 +5,8 @@ import 'models.dart';
 /// 快照是否保留 stale 仍由调用方决定，本类不改变可见页面。
 final class ControllerReadCaches {
   final terms = AcademicTermsOwner();
+  final gradeTerms = AcademicTermsOwner();
+  final examTerms = AcademicTermsOwner();
   HomeSupplementCache? home;
   GradesReadCache? grades;
   AcademicWeeksCache? weeks;
@@ -12,6 +14,8 @@ final class ControllerReadCaches {
 
   void invalidate() {
     terms.invalidate();
+    gradeTerms.invalidate();
+    examTerms.invalidate();
     home = null;
     grades = null;
     weeks = null;

@@ -8,6 +8,11 @@
     clippy::similar_names
 )]
 
+pub mod graduate;
+pub use graduate::{
+    BridgeGradeOverview, BridgeGradeStatistics, BridgeGradeTermStatistics,
+    BridgeRoutedGradeOverview,
+};
 mod evaluation;
 mod mappers;
 pub(super) use mappers::{
@@ -127,6 +132,7 @@ pub struct BridgeGrade {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeGradeData {
+    pub statistics: Option<BridgeGradeStatistics>,
     pub term_code: String,
     pub grades: Vec<BridgeGrade>,
 }

@@ -51,6 +51,7 @@ fn 学业缓存按精确参数保存完整结果且磁盘重开不发送网络()
         .unwrap();
     let queries = [
         AcademicQuery::Terms,
+        AcademicQuery::ExamTerms,
         AcademicQuery::Weeks {
             term: "2025-2026-1".into(),
         },
@@ -271,6 +272,15 @@ struct LateCacheTransport {
 #[async_trait]
 impl HttpTransport for LateCacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/personal/frontend/data/info") {
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ));
+        }
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
         }
@@ -385,6 +395,15 @@ struct OfflineTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
 #[async_trait]
 impl HttpTransport for OfflineTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/personal/frontend/data/info") {
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ));
+        }
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
         }
@@ -458,6 +477,15 @@ struct ControlledAcademicTransport {
 #[async_trait]
 impl HttpTransport for ControlledAcademicTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/personal/frontend/data/info") {
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ));
+        }
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
         }

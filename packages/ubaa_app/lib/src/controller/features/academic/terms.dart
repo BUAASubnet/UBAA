@@ -14,6 +14,7 @@ mixin ControllerAcademicTerms on ControllerState {
   @internal
   Future<FeatureResult> internalLoadAcademicTerms({
     required bool forceRefresh,
+    FeatureId feature = FeatureId.schedule,
     ReadPriority priority = ReadPriority.interactive,
   }) {
     if (internalDisposed ||
@@ -36,11 +37,17 @@ mixin ControllerAcademicTerms on ControllerState {
         ),
       );
     }
-    return internalReadCaches.terms.load(
+    final terms = switch (feature) {
+      FeatureId.grades => internalReadCaches.gradeTerms,
+      FeatureId.exam => internalReadCaches.examTerms,
+      _ => internalReadCaches.terms,
+    };
+    return terms.load(
       scope: internalCaptureReadScope(),
       forceRefresh: forceRefresh,
       priority: priority,
       fetch: (current, demand) => internalFetchAcademicTerms(
+        feature: feature,
         backend: backend,
         queryBackend: backend as FeatureQueryBackend,
         ownerCurrent: current,
@@ -53,6 +60,7 @@ mixin ControllerAcademicTerms on ControllerState {
 
   @internal
   Future<FeatureResult> internalFetchAcademicTerms({
+    required FeatureId feature,
     required UbaaBackend backend,
     required FeatureQueryBackend queryBackend,
     required bool Function() ownerCurrent,
@@ -63,12 +71,18 @@ mixin ControllerAcademicTerms on ControllerState {
       // 即使 backend 在返回 Future 前同步抛错，也先建立在途句柄再清理。
       final result = await internalScheduleAuxiliaryRead(
         backend,
-        FeatureId.schedule,
+        feature,
         ReadPriority.interactive,
         current,
         () => queryBackend.loadFeatureQuery(
-          FeatureId.schedule,
-          const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+          feature,
+          FeatureQuery(
+            view: switch (feature) {
+              FeatureId.grades => FeatureQueryView.gradesTerms,
+              FeatureId.exam => FeatureQueryView.examTerms,
+              _ => FeatureQueryView.scheduleTerms,
+            },
+          ),
         ),
         demand: demand,
       );
@@ -78,7 +92,7 @@ mixin ControllerAcademicTerms on ControllerState {
           internalRecordFailure(
             error,
             DiagnosticOperation.read,
-            feature: FeatureId.schedule,
+            feature: feature,
           ),
         );
       }
@@ -125,7 +139,7 @@ mixin ControllerAcademicTerms on ControllerState {
           error,
           DiagnosticOperation.read,
           stackTrace: stackTrace,
-          feature: FeatureId.schedule,
+          feature: feature,
         ),
       );
     }

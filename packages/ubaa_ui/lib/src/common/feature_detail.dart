@@ -90,6 +90,7 @@ class FeatureDetailView extends StatefulWidget {
     this.onSwitchView,
     this.backLabel = '返回功能列表',
     this.onLoadAcademicTerms,
+    this.onLoadExamTerms,
     this.onLoadAcademicWeeks,
     this.scheduleImports = const {},
     this.onSaveScheduleSemester,
@@ -151,6 +152,7 @@ class FeatureDetailView extends StatefulWidget {
   final ValueChanged<FeatureQueryView>? onSwitchView;
   final String backLabel;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadExamTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
   final Map<String, ScheduleImportState> scheduleImports;
@@ -675,7 +677,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         query: widget.query ?? const FeatureQuery(),
         details: widget.snapshot.details,
         onQuery: widget.onQuery,
-        onLoadAcademicTerms: widget.onLoadAcademicTerms,
+        onLoadAcademicTerms: widget.onLoadExamTerms,
         readCacheEpoch: () => widget.readCacheEpoch,
         bykcFilters: widget.bykcFilters,
         onBykcFiltersChanged: widget.onBykcFiltersChanged,

@@ -23,7 +23,9 @@ struct Transport {
 #[async_trait::async_trait]
 impl HttpTransport for Transport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let body = if request.url.contains("currentUser.do") {
+        let body = if request.url.contains("/personal/frontend/data/info") {
+            r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+        } else if request.url.contains("currentUser.do") {
             r#"{"code":"0","datas":{"userId":"fixture-user"}}"#
         } else if request.url.contains("exams.do") {
             self.exam_started.notify_one();

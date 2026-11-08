@@ -1,4 +1,4 @@
-//! 依冻结旧版先本科、失败再实际验证GSMIS；不跨Direct/WebVPN路线。
+//! 使用门户身份选择课表系统，业务失败保留原错误。
 use super::graduate;
 use crate::domain::{Term, TodayClass, Week, WeeklySchedule};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -15,19 +15,19 @@ fn check_term(term: &str) -> Result<()> {
     Ok(())
 }
 pub(crate) async fn get_terms(runtime: &mut ClientRuntime) -> Result<Vec<Term>> {
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_terms_undergraduate(runtime).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_terms_undergraduate(runtime).await;
     }
     Ok(graduate::fetch(runtime, None).await?.terms())
 }
 pub(crate) async fn get_weeks(runtime: &mut ClientRuntime, term: &str) -> Result<Vec<Week>> {
     check_term(term)?;
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_weeks_undergraduate(runtime, term).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_weeks_undergraduate(runtime, term).await;
     }
     graduate::fetch(runtime, Some(term))
         .await?
@@ -38,10 +38,10 @@ pub(crate) async fn get_weeks_for_import(
     term: &str,
 ) -> Result<Vec<Week>> {
     check_term(term)?;
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_weeks_for_import_undergraduate(runtime, term).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_weeks_for_import_undergraduate(runtime, term).await;
     }
     graduate::fetch(runtime, Some(term))
         .await?
@@ -53,10 +53,10 @@ pub(crate) async fn get_week(
     week: i32,
 ) -> Result<WeeklySchedule> {
     check_week(term, week)?;
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_week_undergraduate(runtime, term, week).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_week_undergraduate(runtime, term, week).await;
     }
     graduate::fetch(runtime, Some(term)).await?.weekly(week)
 }
@@ -66,10 +66,10 @@ pub(crate) async fn get_week_for_import(
     week: i32,
 ) -> Result<WeeklySchedule> {
     check_week(term, week)?;
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_week_for_import_undergraduate(runtime, term, week).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_week_for_import_undergraduate(runtime, term, week).await;
     }
     graduate::fetch(runtime, Some(term)).await?.weekly(week)
 }
@@ -96,10 +96,10 @@ pub(crate) async fn get_today_for_date(
     runtime: &mut ClientRuntime,
     date: &str,
 ) -> Result<Vec<TodayClass>> {
-    if !graduate::active(runtime)
-        && let Ok(value) = super::get_today_for_date_undergraduate(runtime, date).await
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Undergraduate
     {
-        return Ok(value);
+        return super::get_today_for_date_undergraduate(runtime, date).await;
     }
     graduate::fetch(runtime, None).await?.today(date)
 }

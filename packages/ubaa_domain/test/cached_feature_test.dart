@@ -2,6 +2,31 @@ import 'package:test/test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('缓存展示冻结保留研究生统计，后续筛选不丢失Core结果', () {
+    const statistics = GraduateGradeStatistics(
+      gpa: 3.2,
+      averageScore: 75,
+      gpaCredits: 2,
+      averageCredits: 4,
+    );
+    final snapshot = CachedFeatureProjection(
+      feature: FeatureId.grades,
+      accountId: 'synthetic',
+      route: ConnectionMode.direct,
+      fetchedAt: DateTime.utc(2026, 11, 8),
+      complete: true,
+      overview: const GradesTermOverview(
+        requestTerm: '20251',
+        termCode: '20251',
+        grades: [],
+        statistics: statistics,
+      ),
+    ).toSnapshot();
+    expect(
+      (snapshot.overview! as GradesTermOverview).statistics,
+      same(statistics),
+    );
+  });
   test('缓存展示投影保持时间来源且不携带学校写动作', () {
     final fetched = DateTime.utc(2026, 9, 21, 1);
     final cached = CachedFeatureProjection(

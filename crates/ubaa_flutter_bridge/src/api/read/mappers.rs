@@ -130,6 +130,7 @@ fn map_grade(v: domain::Grade) -> BridgeGrade {
 }
 pub(crate) fn map_grade_data(v: domain::GradeData) -> BridgeGradeData {
     BridgeGradeData {
+        statistics: v.statistics.map(super::graduate::stats),
         term_code: v.term_code,
         grades: v.grades.into_iter().map(map_grade).collect(),
     }

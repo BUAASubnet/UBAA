@@ -80,6 +80,7 @@ pub fn parse_scores(term_code: &str, body: &str) -> Result<GradeData> {
         ));
     }
     Ok(GradeData {
+        statistics: None,
         term_code: term_code.to_string(),
         grades: response
             .data
@@ -103,6 +104,31 @@ pub(crate) async fn get_grades(
     runtime: &mut crate::runtime::ClientRuntime,
     term_code: &str,
 ) -> Result<GradeData> {
+    if !crate::features::academic::is_term(term_code) && parse_term_code(term_code).is_err() {
+        return Err(invalid_term());
+    }
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Graduate
+    {
+        crate::features::academic::require_term(term_code)?;
+        let overview = crate::features::academic::grades(runtime).await?;
+        return Ok(GradeData {
+            statistics: Some(
+                overview
+                    .terms
+                    .iter()
+                    .find(|t| t.term_code == term_code)
+                    .map(|t| t.statistics.clone())
+                    .unwrap_or_default(),
+            ),
+            term_code: term_code.into(),
+            grades: overview
+                .grades
+                .into_iter()
+                .filter(|g| g.term_code.as_deref() == Some(term_code))
+                .collect(),
+        });
+    }
     let term = parse_term_code(term_code)?;
     let page_url = runtime.url(GRADES_URL)?;
     let page = super::get_with_redirects(
@@ -159,3 +185,15 @@ fn parse_error() -> UbaaError {
 
 #[cfg(test)]
 mod contract_tests;
+
+pub(crate) async fn get_overview(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<crate::domain::GradeOverview> {
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Graduate
+    {
+        crate::features::academic::grades(runtime).await
+    } else {
+        Ok(crate::domain::GradeOverview::default())
+    }
+}

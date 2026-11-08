@@ -42,6 +42,12 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
     let transport = MockTransport::with_sso_checks([
         status(),
         get(
+            "https://it.buaa.edu.cn/personal/frontend/data/info",
+            r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
+                .as_bytes()
+                .to_vec(),
+        ),
+        get(
             "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do",
             br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#.to_vec(),
         ),

@@ -83,6 +83,26 @@ impl BridgeClient {
         .await
     }
 
+    pub async fn exam_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Academic),
+                |client| Box::pin(async move { client.exam_terms().await }),
+                map_terms,
+            )
+            .await?;
+        Ok(BridgeRoutedTerms { data, route })
+    }
+    pub async fn grades_overview(&self) -> Result<super::BridgeRoutedGradeOverview, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Academic),
+                |client| Box::pin(async move { client.grades_overview().await }),
+                super::graduate::map_overview,
+            )
+            .await?;
+        Ok(super::BridgeRoutedGradeOverview { data, route })
+    }
     pub async fn schedule_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
         let (data, route) = self
             .execute_read(

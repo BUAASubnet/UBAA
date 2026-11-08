@@ -45,6 +45,7 @@ mixin ControllerGrades on ControllerState {
     if (internalGradesReadGuard() case final error?) throw error;
     final cache = internalGradesCache();
     final options = await internalLoadAcademicTerms(
+      feature: FeatureId.grades,
       forceRefresh: forceRefresh,
       priority: priority,
     );
@@ -108,6 +109,7 @@ mixin ControllerGrades on ControllerState {
         requestTerm: term,
         termCode: term,
         grades: List.unmodifiable(overview.grades),
+        statistics: overview.statistics,
       ),
       FeatureQueryView.summary,
       result.resolvedRoute,
@@ -132,7 +134,8 @@ mixin ControllerGrades on ControllerState {
         cache.authenticationError != null)
       return null;
     final term =
-        query.term ?? internalCurrentTermsReader.currentTermCode(cache.scope);
+        query.term ??
+        internalReadCaches.gradeTerms.currentTermCode(cache.scope);
     final entry = cache.entries[term];
     final result = entry?.result;
     final overview = result?.overview;
@@ -296,6 +299,7 @@ mixin ControllerGrades on ControllerState {
             requestTerm: term,
             termCode: term,
             grades: List.unmodifiable(overview.grades),
+            statistics: overview.statistics,
           );
           result = result.isEmpty
               ? FeatureResult.empty(
@@ -388,6 +392,50 @@ mixin ControllerGrades on ControllerState {
     GradesReadCache cache, {
     required bool forceRefresh,
   }) async {
+    final backend = internalBackend;
+    if (backend is FeatureQueryBackend) {
+      final all = await internalScheduleAuxiliaryRead(
+        backend,
+        FeatureId.grades,
+        ReadPriority.interactive,
+        () => internalGradesCurrent(cache),
+        () => (backend as FeatureQueryBackend).loadFeatureQuery(
+          FeatureId.grades,
+          const FeatureQuery(view: FeatureQueryView.gradesOverview),
+        ),
+      );
+      if (!internalGradesCurrent(cache))
+        return GradesAggregate(error: internalAcademicTermsConflict().error);
+      if (all.error != null) return GradesAggregate(error: all.error);
+      final overview = all.overview;
+      if (overview is GraduateGradesOverview) {
+        return GradesAggregate(
+          coreStatistics: GradeStatistics.fromGraduate(
+            overview.statistics,
+            overview.grades,
+          ),
+          terms: [
+            for (final term in overview.terms)
+              GradeTermRead(
+                code: term.code,
+                name: term.name,
+                result: projectGrades(
+                  GradesTermOverview(
+                    requestTerm: term.code,
+                    termCode: term.code,
+                    grades: overview.grades
+                        .where((g) => g.termCode == term.code)
+                        .toList(growable: false),
+                    statistics: term.statistics,
+                  ),
+                  FeatureQueryView.summary,
+                  all.resolvedRoute,
+                ),
+              ),
+          ],
+        );
+      }
+    }
     final options = await internalLoadAcademicTerms(forceRefresh: forceRefresh);
     if (!internalGradesCurrent(cache))
       return GradesAggregate(error: internalAcademicTermsConflict().error);

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 pub enum ErrorCode {
     /// 参数或交互输入缺失或无效。
     InvalidInput,
+    /// 当前身份或业务明细尚不支持。
+    Unsupported,
     /// 不存在有效的持久化认证。
     AuthenticationRequired,
     /// SSO 拒绝了提供的凭据。

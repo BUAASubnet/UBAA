@@ -92,11 +92,14 @@ const _supportedViews = <FeatureId, Set<FeatureQueryView>>{
     FeatureQueryView.scheduleWeek,
   },
   FeatureId.exam: <FeatureQueryView>{
+    FeatureQueryView.examTerms,
     FeatureQueryView.summary,
     FeatureQueryView.examArranged,
     FeatureQueryView.examNotArranged,
   },
   FeatureId.grades: <FeatureQueryView>{
+    FeatureQueryView.gradesTerms,
+    FeatureQueryView.gradesOverview,
     FeatureQueryView.summary,
     FeatureQueryView.gradesScored,
     FeatureQueryView.gradesMissing,

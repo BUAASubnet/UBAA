@@ -14,7 +14,10 @@ class GradesOldBackend extends AcademicOldBackend {
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    if (query.view == FeatureQueryView.scheduleTerms) {
+    if (query.view == FeatureQueryView.gradesOverview)
+      return const FeatureResult.empty();
+    if (query.view == FeatureQueryView.scheduleTerms ||
+        query.view == FeatureQueryView.gradesTerms) {
       return const FeatureResult.success(
         resolvedRoute: ConnectionMode.direct,
         details: [

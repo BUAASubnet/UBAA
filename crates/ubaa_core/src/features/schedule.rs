@@ -259,6 +259,11 @@ pub(crate) async fn get_exam(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<ExamArrangement> {
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Graduate
+    {
+        return crate::features::academic::exams(runtime, term).await;
+    }
     ensure_undergraduate_portal(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(EXAM_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("termCode", term);
@@ -438,3 +443,15 @@ mod contract_tests;
 
 #[cfg(test)]
 mod portal_tests;
+
+pub(crate) async fn get_exam_terms(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<Term>> {
+    if crate::features::academic::identity(runtime).await?
+        == crate::features::academic::StudentKind::Graduate
+    {
+        crate::features::academic::exam_terms(runtime).await
+    } else {
+        get_terms_undergraduate(runtime).await
+    }
+}

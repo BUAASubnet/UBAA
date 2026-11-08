@@ -600,6 +600,7 @@ void registerBridgeBackendReadCharacterization() {
       'classroomSearch:campus=2,date=2026-09-04',
       'evaluationAll',
       'examArrangement:term=2026-fall',
+      'gradesOverview',
       'grades:term=2026-fall',
       'judgeAssignment:courseId=course-1,assignmentId=assignment-1',
       'judgeAssignmentDetails:keys=course-2/assignment-2,course-3/assignment-3',

@@ -151,6 +151,9 @@ Future<FeatureResult> bridgeLoadCgyyFeature(
         case FeatureQueryView.scheduleTerms:
         case FeatureQueryView.scheduleWeeks:
         case FeatureQueryView.scheduleWeek:
+        case FeatureQueryView.examTerms:
+        case FeatureQueryView.gradesTerms:
+        case FeatureQueryView.gradesOverview:
         case FeatureQueryView.examArranged:
         case FeatureQueryView.examNotArranged:
         case FeatureQueryView.gradesScored:

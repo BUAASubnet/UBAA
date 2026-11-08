@@ -2,6 +2,46 @@ import 'package:test/test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('研究生离线跨学期统计保留独立分母，不使用本科分数换算', () {
+    final terms = [
+      for (final (code, stats) in [
+        (
+          'a',
+          const GraduateGradeStatistics(
+            gpa: 4,
+            averageScore: 90,
+            gpaCredits: 2,
+            averageCredits: 4,
+          ),
+        ),
+        (
+          'b',
+          const GraduateGradeStatistics(
+            gpa: 2,
+            averageScore: 60,
+            gpaCredits: 6,
+            averageCredits: 2,
+          ),
+        ),
+      ])
+        GradeTermRead(
+          code: code,
+          name: code,
+          result: FeatureResult.success(
+            overview: GradesTermOverview(
+              requestTerm: code,
+              termCode: code,
+              grades: const [GradePresentation(score: '100', credit: 2)],
+              statistics: stats,
+            ),
+          ),
+        ),
+    ];
+    final value = GradesAggregate(terms: terms).statistics;
+    expect(value.gpa, 2.5);
+    expect(value.weightedAverage, 80);
+    expect(value.arithmeticAverage, isNull);
+  });
   GradePresentation grade(String score, double credit) =>
       GradePresentation(score: score, credit: credit);
   test('旧统计按学分加权且不使用逐门原始绩点', () {

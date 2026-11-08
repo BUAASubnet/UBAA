@@ -156,6 +156,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       canClearBusinessCache: _controller.canClearBusinessCache,
       onReadCacheUsage: (id) => _controller.cacheUsage(accountId: id),
       onClearBusinessCache: _clearCacheAndWidgets,
+      onLoadExamTerms: (forceRefresh) => _controller.loadAcademicTerms(
+        feature: FeatureId.exam,
+        forceRefresh: forceRefresh,
+      ),
       onLoadAcademicTerms: (forceRefresh) =>
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
       scheduleImports: _controller.scheduleImports,

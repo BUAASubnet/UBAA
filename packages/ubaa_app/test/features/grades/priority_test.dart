@@ -37,7 +37,7 @@ void main() {
 
   test('学期已知时自动成绩检查让位首页补充来源', () async {
     final (controller, backend, watch) = await setup();
-    await controller.loadAcademicTerms();
+    await controller.loadAcademicTerms(feature: FeatureId.grades);
     backend.events.clear();
     controller.setAppForeground(false);
     final checking = watch.check();
@@ -54,7 +54,7 @@ void main() {
     controller.setAppForeground(false);
     final checking = watch.check();
     final home = controller.loadHomeSupplement(HomeSupplement.bykcChosen);
-    final options = controller.loadAcademicTerms();
+    final options = controller.loadAcademicTerms(feature: FeatureId.grades);
     controller.setAppForeground(true);
     await Future.wait([checking, home, options]);
     expect(backend.events, ['terms', 'home.bykcChosen', 'grades.a']);
@@ -62,7 +62,7 @@ void main() {
 
   test('用户同学期统计读取提升已排队自动检查且保留单次请求', () async {
     final (controller, backend, watch) = await setup();
-    await controller.loadAcademicTerms();
+    await controller.loadAcademicTerms(feature: FeatureId.grades);
     backend.events.clear();
     controller.setAppForeground(false);
     final checking = watch.check();
@@ -78,7 +78,7 @@ void main() {
   for (final started in [false, true]) {
     test('显式成绩视图合并自动检查，已发出=$started且按当前视图投影', () async {
       final (controller, backend, watch) = await setup();
-      await controller.loadAcademicTerms();
+      await controller.loadAcademicTerms(feature: FeatureId.grades);
       backend.events.clear();
       backend.gradeGate = Completer<FeatureResult>();
       controller.setAppForeground(started);
@@ -102,7 +102,7 @@ void main() {
 
   test('先打开成绩页再自动检查同一学期，仍只发送一次', () async {
     final (controller, backend, watch) = await setup();
-    await controller.loadAcademicTerms();
+    await controller.loadAcademicTerms(feature: FeatureId.grades);
     backend.events.clear();
     backend.gradeGate = Completer<FeatureResult>();
     final explicit = controller.refreshFeatureQuery(
@@ -121,7 +121,7 @@ void main() {
 
   test('另一学期独立读取，同页面明确刷新仍产生新观察', () async {
     final (controller, backend, watch) = await setup();
-    await controller.loadAcademicTerms();
+    await controller.loadAcademicTerms(feature: FeatureId.grades);
     backend.events.clear();
     controller.setAppForeground(false);
     final checking = watch.check();
@@ -141,7 +141,7 @@ void main() {
 
   test('退出取消自动检查未发送的读取，不能复活提醒或学校调用', () async {
     final (controller, backend, watch) = await setup();
-    await controller.loadAcademicTerms();
+    await controller.loadAcademicTerms(feature: FeatureId.grades);
     backend.events.clear();
     controller.setAppForeground(false);
     final checking = watch.check();
@@ -188,7 +188,7 @@ class _Backend extends support.FakeRecoveryBackend
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    if (query.view == FeatureQueryView.scheduleTerms) {
+    if (query.view == FeatureQueryView.gradesTerms) {
       events.add('terms');
       return const FeatureResult.success(
         details: [

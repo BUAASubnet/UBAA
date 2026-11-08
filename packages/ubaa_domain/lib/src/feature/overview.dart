@@ -81,9 +81,11 @@ final class GradesTermOverview extends FeatureOverview {
     required this.requestTerm,
     required this.termCode,
     required this.grades,
+    this.statistics,
   });
   final String requestTerm, termCode;
   final List<GradePresentation> grades;
+  final GraduateGradeStatistics? statistics;
 }
 
 /// 已选博雅查询实际使用的学校学期范围，不推断当前学期。
@@ -107,4 +109,38 @@ final class HomeScheduleOverview extends FeatureOverview {
   const HomeScheduleOverview({required this.date, required this.week});
   final String date;
   final WeekPresentation week;
+}
+
+/// Core 对研究生成绩计算的独立加权统计。
+final class GraduateGradeStatistics {
+  const GraduateGradeStatistics({
+    this.gpa,
+    this.averageScore,
+    required this.gpaCredits,
+    required this.averageCredits,
+  });
+  final double? gpa, averageScore;
+  final double gpaCredits, averageCredits;
+}
+
+final class GraduateGradeTerm {
+  const GraduateGradeTerm({
+    required this.code,
+    required this.name,
+    required this.statistics,
+  });
+  final String code, name;
+  final GraduateGradeStatistics statistics;
+}
+
+/// 研究生完整历史成绩，学期列表来自成绩系统。
+final class GraduateGradesOverview extends FeatureOverview {
+  const GraduateGradesOverview({
+    required this.grades,
+    required this.terms,
+    required this.statistics,
+  });
+  final List<GradePresentation> grades;
+  final List<GraduateGradeTerm> terms;
+  final GraduateGradeStatistics statistics;
 }

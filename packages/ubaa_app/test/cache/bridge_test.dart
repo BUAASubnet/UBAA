@@ -160,6 +160,10 @@ class _Cache implements BridgeOfflineCache {
   void dispose() {}
 
   @override
+  Future<BridgeCachedAcademicTerms?> readExamTerms({
+    required BridgeConnectionMode route,
+  }) => readAcademicTerms(route: route);
+  @override
   Future<BridgeCachedAcademicTerms?> readAcademicTerms({
     required BridgeConnectionMode route,
   }) async => null;

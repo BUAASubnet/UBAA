@@ -322,6 +322,8 @@ impl RoutedCliBackend for FakeRoutedBackend {
         })
     }
 
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> { self.schedule_terms().await }
+    async fn grades_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> { Ok(Routed {data:ubaa_core::facade::GradeOverview {graduate:true, statistics:Some(ubaa_core::facade::GradeStatistics::default()), ..Default::default()},resolution:direct_resolution()}) }
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         let resolution = route_resolution(
             RoutePolicy::Direct,

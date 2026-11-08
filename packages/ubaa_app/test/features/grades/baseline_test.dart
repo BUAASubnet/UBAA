@@ -156,7 +156,7 @@ class _Backend extends base.Backend
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    if (query.view == FeatureQueryView.scheduleTerms)
+    if (query.view == FeatureQueryView.gradesTerms)
       return const FeatureResult.success(
         details: [
           FeatureDetail(

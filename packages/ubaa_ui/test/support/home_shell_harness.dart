@@ -111,6 +111,7 @@ class _HomeShellHarnessState extends State<HomeShellHarness> {
       onReadCacheUsage: shell.onReadCacheUsage,
       onClearBusinessCache: shell.onClearBusinessCache,
       onLoadAcademicTerms: shell.onLoadAcademicTerms,
+      onLoadExamTerms: shell.onLoadExamTerms,
       onLoadAcademicWeeks: shell.onLoadAcademicWeeks,
       scheduleImports: shell.scheduleImports,
       onSaveScheduleSemester: shell.onSaveScheduleSemester,

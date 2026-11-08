@@ -163,6 +163,7 @@ UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.networkError => UbaaErrorCode.networkError,
   BridgeErrorCode.timeout => UbaaErrorCode.timeout,
   BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
+  BridgeErrorCode.unsupported => UbaaErrorCode.unsupported,
   BridgeErrorCode.businessUnavailable => UbaaErrorCode.businessUnavailable,
   BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
   BridgeErrorCode.parseError => UbaaErrorCode.parseError,
@@ -194,6 +195,7 @@ UbaaErrorKind bridgeSafeErrorKind(String value) => switch (value) {
 };
 
 UbaaErrorCode bridgeErrorCode(String? code) => switch (code) {
+  'unsupported' => UbaaErrorCode.unsupported,
   'invalidInput' || 'invalid_input' => UbaaErrorCode.invalidInput,
   'authenticationRequired' ||
   'authentication_required' => UbaaErrorCode.authenticationRequired,

@@ -704,6 +704,14 @@ impl RoutedCliBackend for CommandBackend<'_> {
         UbaaClient::get_user_info(client).await
     }
 
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        current_core!(self, guard, client);
+        UbaaClient::exam_terms(client).await
+    }
+    async fn grades_overview(&mut self) -> RoutedResult<core::GradeOverview> {
+        current_core!(self, guard, client);
+        UbaaClient::grades_overview(client).await
+    }
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         current_core!(self, guard, client);
         if let Some(cache) = self.cache {

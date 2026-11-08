@@ -25,6 +25,7 @@ class CourseworkOverview extends StatelessWidget {
             // 成绩概要由成绩页随列表滚动，不进入常驻概要卡。
             HomeScheduleOverview _ => const SizedBox.shrink(),
             ScheduleWeekOverview _ => const SizedBox.shrink(),
+            GraduateGradesOverview _ => const SizedBox.shrink(),
             GradesTermOverview _ => const SizedBox.shrink(),
             EvaluationProgressOverview p => Column(
               crossAxisAlignment: CrossAxisAlignment.start,

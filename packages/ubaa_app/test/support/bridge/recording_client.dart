@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'academic_client.dart';
 import 'bykc_client.dart' show fixtureBykcCatalogRead;
 
 const fixtureWebVpnRoute = BridgeRouteDecision(
@@ -414,6 +415,8 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
             route: fixtureWebVpnRoute,
           ),
         );
+      case #gradesOverview:
+        return Future.value(fixtureUndergraduateOverview(fixtureWebVpnRoute));
       case #grades:
         return Future<BridgeRoutedGrades>.value(
           BridgeRoutedGrades(
@@ -613,6 +616,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
             route: fixtureWebVpnRoute,
           ),
         );
+      case #examTerms:
       case #scheduleTerms:
         return Future<BridgeRoutedTerms>.value(
           BridgeRoutedTerms(
@@ -803,6 +807,8 @@ const _readMembers = <Symbol>{
   #evaluationAllOnRoute,
   #examArrangement,
   #grades,
+  #gradesOverview,
+  #examTerms,
   #judgeAssignment,
   #judgeAssignmentDetails,
   #judgeAssignments,

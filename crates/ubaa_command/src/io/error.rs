@@ -92,6 +92,7 @@ const fn error_code_name(code: ErrorCode) -> &'static str {
         ErrorCode::Timeout => "timeout",
         ErrorCode::UpstreamUnavailable => "upstream_unavailable",
         ErrorCode::BusinessUnavailable => "business_unavailable",
+        ErrorCode::Unsupported => "unsupported",
         ErrorCode::OutcomeUnknown => "outcome_unknown",
         ErrorCode::UpstreamChanged => "upstream_changed",
         ErrorCode::ParseError => "parse_error",

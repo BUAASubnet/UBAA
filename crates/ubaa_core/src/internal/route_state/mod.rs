@@ -17,11 +17,18 @@ pub(crate) use credentials::{
     SigninState, SpocCredential, SpocState, YgdkCredential, YgdkState,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum StudentKind {
+    Undergraduate,
+    Graduate,
+}
+
 /// 仅由一条路线/一个客户端的运行时和读取工作线程共享的状态。
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
     lifecycle_generation: std::sync::Mutex<u64>,
-    pub(crate) graduate_schedule: std::sync::atomic::AtomicU64,
+    pub(crate) academic_identity: std::sync::Mutex<Option<(u64, StudentKind)>>,
+    pub(crate) academic_identity_read: tokio::sync::Mutex<()>,
     pub(crate) bykc: BykcState,
     pub(crate) cgyy: CgyyState,
     pub(crate) libbook: LibBookState,
@@ -55,8 +62,10 @@ impl RouteFeatureState {
     // 代次快照也取生命周期锁，避免新读取组在业务清理尚未完成时捕获新代次。
     fn clear_locked(&self, generation: &mut std::sync::MutexGuard<'_, u64>) {
         **generation = generation.wrapping_add(1);
-        self.graduate_schedule
-            .store(0, std::sync::atomic::Ordering::Release);
+        *self
+            .academic_identity
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
         self.bykc.clear();
         self.cgyy.clear();
         self.libbook.clear();

@@ -88,6 +88,7 @@ pub enum CacheQuery {
     BykcChosen,
     BykcStatistics,
     ScheduleTerms,
+    ExamTerms,
     ScheduleWeeks {
         term: String,
     },
@@ -494,7 +495,7 @@ impl CachePayload {
             | (Self::BykcStatistics(_), CacheQuery::BykcStatistics)
             | (Self::BykcCourses(_), CacheQuery::BykcCourses { .. })
             | (Self::SigninToday(_), CacheQuery::SigninToday { .. })
-            | (Self::Terms(_), CacheQuery::ScheduleTerms)
+            | (Self::Terms(_), CacheQuery::ScheduleTerms | CacheQuery::ExamTerms)
             | (Self::Weeks(_), CacheQuery::ScheduleWeeks { .. })
             | (Self::Exams(_), CacheQuery::Exams { .. })
             | (Self::Today(_), CacheQuery::ScheduleToday { .. })

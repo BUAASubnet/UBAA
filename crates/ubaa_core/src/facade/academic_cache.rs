@@ -8,6 +8,7 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AcademicQuery {
     Terms,
+    ExamTerms,
     Weeks { term: String },
     Week { term: String, week: i32 },
     Exams { term: String },
@@ -20,6 +21,7 @@ impl AcademicQuery {
     pub fn cache_query(&self) -> CacheQuery {
         match self {
             Self::Terms => CacheQuery::ScheduleTerms,
+            Self::ExamTerms => CacheQuery::ExamTerms,
             Self::Weeks { term } => CacheQuery::ScheduleWeeks { term: term.clone() },
             Self::Week { term, week } => CacheQuery::ScheduleWeek {
                 term: term.clone(),
@@ -36,7 +38,7 @@ impl AcademicQuery {
     const fn feature(&self) -> ReadonlyFeature {
         match self {
             Self::Terms | Self::Weeks { .. } | Self::Week { .. } => ReadonlyFeature::Schedule,
-            Self::Exams { .. } => ReadonlyFeature::Exam,
+            Self::ExamTerms | Self::Exams { .. } => ReadonlyFeature::Exam,
             Self::Grades { .. } => ReadonlyFeature::Grades,
             Self::Classrooms { .. } => ReadonlyFeature::Classroom,
         }
@@ -59,6 +61,9 @@ impl UbaaClient {
         let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
             let runtime = self.runtime_for(resolution.mode);
             match query.clone() {
+                AcademicQuery::ExamTerms => crate::features::schedule::get_exam_terms(runtime)
+                    .await
+                    .map(CachePayload::Terms),
                 AcademicQuery::Terms => crate::features::schedule::get_terms(runtime)
                     .await
                     .map(CachePayload::Terms),

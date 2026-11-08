@@ -32,6 +32,8 @@ impl CliBackend for FakeBackend {
         Ok(())
     }
 
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> { self.schedule_terms().await }
+    async fn grades_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>> { Err(crate::common::test_unavailable()) }
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         if self.schedule_success {
             return Ok(FeatureResult {

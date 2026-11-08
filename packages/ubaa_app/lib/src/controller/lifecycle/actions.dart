@@ -294,12 +294,16 @@ mixin ControllerActions on ControllerState {
   }
 
   /// 用户明确请求学期选项，不占用全局课表快照。
-  Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
-      internalLocalFirstOptions(
-        const FeatureQuery(view: FeatureQueryView.scheduleTerms),
-        forceRefresh,
-        () => internalLoadAcademicTerms(forceRefresh: forceRefresh),
-      );
+  Future<FeatureResult> loadAcademicTerms({
+    bool forceRefresh = false,
+    FeatureId feature = FeatureId.schedule,
+  }) => feature != FeatureId.schedule
+      ? internalLoadAcademicTerms(forceRefresh: forceRefresh, feature: feature)
+      : internalLocalFirstOptions(
+          const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+          forceRefresh,
+          () => internalLoadAcademicTerms(forceRefresh: forceRefresh),
+        );
 
   /// 教学周选项按原学期独立读取，不覆盖当前课表或查询草稿。
   Future<FeatureResult> loadAcademicWeeks(

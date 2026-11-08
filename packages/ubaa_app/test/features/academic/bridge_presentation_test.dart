@@ -304,6 +304,19 @@ class _AcademicPresentationClient extends FixtureCharacterizationBridgeClient {
   }
 
   @override
+  Future<BridgeRoutedGradeOverview> gradesOverview() async =>
+      const BridgeRoutedGradeOverview(
+        data: BridgeGradeOverview(
+          graduate: false,
+          grades: [],
+          statistics: null,
+          terms: [],
+        ),
+        route: fixtureWebVpnRoute,
+      );
+  @override
+  Future<BridgeRoutedTerms> examTerms() => scheduleTerms();
+  @override
   Future<BridgeRoutedGrades> grades({required String term}) async {
     calls.add('grades:$term');
     return const BridgeRoutedGrades(

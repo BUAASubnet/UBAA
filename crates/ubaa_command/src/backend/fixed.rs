@@ -221,6 +221,12 @@ impl CliBackend for RouteClient {
         self.evaluation_submit_courses(request).await
     }
 
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.exam_terms().await
+    }
+    async fn grades_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>> {
+        self.grades_overview().await
+    }
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.schedule_terms().await
     }

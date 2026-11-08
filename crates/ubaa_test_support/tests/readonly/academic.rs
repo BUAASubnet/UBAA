@@ -27,26 +27,29 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     let weekly_schedule_url = WEEK_URL;
     let today_url = format!("{TODAY_URL}?rq={}&lxdm=student", shanghai_date());
     let exam_url = format!("{EXAM_URL}?termCode=2025-2026-1");
-    let transport = MockTransport::new([
-        expected_get(current_user, PORTAL_READY),
-        expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
-        expected_get(current_user, PORTAL_READY),
-        expected_get(&weeks_url, readonly_fixture("schedule-weeks.json").unwrap()),
-        expected_get(current_user, PORTAL_READY),
-        ExpectedRequest::new(
-            HttpMethod::Post,
-            weekly_schedule_url,
-            response(
-                200,
+    let transport = academic_transport(
+        false,
+        [
+            expected_get(current_user, PORTAL_READY),
+            expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
+            expected_get(current_user, PORTAL_READY),
+            expected_get(&weeks_url, readonly_fixture("schedule-weeks.json").unwrap()),
+            expected_get(current_user, PORTAL_READY),
+            ExpectedRequest::new(
+                HttpMethod::Post,
                 weekly_schedule_url,
-                readonly_fixture("schedule-week.json").unwrap(),
+                response(
+                    200,
+                    weekly_schedule_url,
+                    readonly_fixture("schedule-week.json").unwrap(),
+                ),
             ),
-        ),
-        expected_get(current_user, PORTAL_READY),
-        expected_get(&today_url, readonly_fixture("schedule-today.json").unwrap()),
-        expected_get(current_user, PORTAL_READY),
-        expected_get(&exam_url, readonly_fixture("exam.json").unwrap()),
-    ]);
+            expected_get(current_user, PORTAL_READY),
+            expected_get(&today_url, readonly_fixture("schedule-today.json").unwrap()),
+            expected_get(current_user, PORTAL_READY),
+            expected_get(&exam_url, readonly_fixture("exam.json").unwrap()),
+        ],
+    );
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
@@ -84,7 +87,7 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     );
 
     observed.assert_exhausted().unwrap();
-    let requests = observed.requests().unwrap();
+    let requests = business_requests(&observed);
     for index in [1, 3, 5, 7] {
         assert_eq!(
             requests[index].headers.get("Referer").map(String::as_str),
@@ -116,19 +119,13 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
 async fn route_client_readonly_authentication_required_clears_the_selected_session() {
     let current_user = CURRENT_USER_URL;
     let terms = TERMS_URL;
-    let transport = MockTransport::new([
-        expected_get(current_user, PORTAL_READY),
-        ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            "https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
-            response(
-                401,
-                "https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
-                "",
-            ),
-        ),
-    ]);
+    let transport = academic_transport(
+        false,
+        [
+            expected_get(current_user, PORTAL_READY),
+            ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
+        ],
+    );
     let observed = transport.clone();
     let store = session_store();
     let mut client =
@@ -150,25 +147,28 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
     let terms = TERMS_URL;
     let aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
     let aas_verify = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
-    let transport = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            current_user,
-            response(
-                200,
-                "https://sso.buaa.edu.cn/login?service=fixture",
-                r#"<form><input name="execution" value="e1s1"></form>"#,
+    let transport = academic_transport(
+        false,
+        [
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                current_user,
+                response(
+                    200,
+                    "https://sso.buaa.edu.cn/login?service=fixture",
+                    r#"<form><input name="execution" value="e1s1"></form>"#,
+                ),
             ),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            aas_login,
-            redirect_from(aas_login, aas_verify),
-        ),
-        expected_get(aas_verify, "AAS ready"),
-        expected_get(current_user, PORTAL_READY),
-        expected_get(terms, readonly_fixture("schedule-terms.json").unwrap()),
-    ]);
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                aas_login,
+                redirect_from(aas_login, aas_verify),
+            ),
+            expected_get(aas_verify, "AAS ready"),
+            expected_get(current_user, PORTAL_READY),
+            expected_get(terms, readonly_fixture("schedule-terms.json").unwrap()),
+        ],
+    );
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
@@ -190,25 +190,28 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
     let terms = to_webvpn_url(direct_terms).unwrap();
     let aas_login = to_webvpn_url(direct_aas_login).unwrap();
     let aas_verify = to_webvpn_url(direct_aas_verify).unwrap();
-    let transport = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &current_user,
-            response(
-                200,
-                &to_webvpn_url("https://sso.buaa.edu.cn/login?service=fixture").unwrap(),
-                r#"<form><input name="execution" value="e1s1"></form>"#,
+    let transport = academic_transport(
+        true,
+        [
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                &current_user,
+                response(
+                    200,
+                    &to_webvpn_url("https://sso.buaa.edu.cn/login?service=fixture").unwrap(),
+                    r#"<form><input name="execution" value="e1s1"></form>"#,
+                ),
             ),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &aas_login,
-            redirect_from(&aas_login, direct_aas_verify),
-        ),
-        expected_get(&aas_verify, "AAS ready"),
-        expected_get(&current_user, PORTAL_READY),
-        expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
-    ]);
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                &aas_login,
+                redirect_from(&aas_login, direct_aas_verify),
+            ),
+            expected_get(&aas_verify, "AAS ready"),
+            expected_get(&current_user, PORTAL_READY),
+            expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
+        ],
+    );
     let observed = transport.clone();
     let mut client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
@@ -233,14 +236,17 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
 #[tokio::test]
 async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     let url = GRADES_URL;
-    let transport = MockTransport::new([
-        expected_get(url, readonly_fixture("grades-page.html").unwrap()),
-        ExpectedRequest::new(
-            HttpMethod::Post,
-            url,
-            response(200, url, readonly_fixture("grades.json").unwrap()),
-        ),
-    ]);
+    let transport = academic_transport(
+        false,
+        [
+            expected_get(url, readonly_fixture("grades-page.html").unwrap()),
+            ExpectedRequest::new(
+                HttpMethod::Post,
+                url,
+                response(200, url, readonly_fixture("grades.json").unwrap()),
+            ),
+        ],
+    );
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
@@ -254,7 +260,7 @@ async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     );
     assert_eq!(result.data.grades[0].score.as_deref(), Some("95"));
     observed.assert_exhausted().unwrap();
-    let requests = observed.requests().unwrap();
+    let requests = business_requests(&observed);
     assert_eq!(requests[0].method, HttpMethod::Get);
     assert_eq!(requests[1].method, HttpMethod::Post);
     assert_eq!(
@@ -332,10 +338,13 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
     let terms = to_webvpn_url(TERMS_URL).unwrap();
     let schedule_referer =
         to_webvpn_url("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html").unwrap();
-    let schedule_transport = MockTransport::new([
-        expected_get(&current_user, PORTAL_READY),
-        expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
-    ]);
+    let schedule_transport = academic_transport(
+        true,
+        [
+            expected_get(&current_user, PORTAL_READY),
+            expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
+        ],
+    );
     let schedule_observed = schedule_transport.clone();
     let mut schedule_client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
@@ -349,14 +358,14 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
     }
     assert_eq!(
-        schedule_observed.requests().unwrap()[0]
+        business_requests(&schedule_observed)[0]
             .headers
             .get("Referer")
             .map(String::as_str),
         Some(schedule_referer.as_str())
     );
     assert_eq!(
-        schedule_observed.requests().unwrap()[1]
+        business_requests(&schedule_observed)[1]
             .headers
             .get("Referer")
             .map(String::as_str),
@@ -396,14 +405,17 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
     );
 
     let grades_url = to_webvpn_url(GRADES_URL).unwrap();
-    let grades_transport = MockTransport::new([
-        expected_get(&grades_url, readonly_fixture("grades-page.html").unwrap()),
-        ExpectedRequest::new(
-            HttpMethod::Post,
-            &grades_url,
-            response(200, &grades_url, readonly_fixture("grades.json").unwrap()),
-        ),
-    ]);
+    let grades_transport = academic_transport(
+        true,
+        [
+            expected_get(&grades_url, readonly_fixture("grades-page.html").unwrap()),
+            ExpectedRequest::new(
+                HttpMethod::Post,
+                &grades_url,
+                response(200, &grades_url, readonly_fixture("grades.json").unwrap()),
+            ),
+        ],
+    );
     let grades_observed = grades_transport.clone();
     let mut grades_client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
@@ -417,7 +429,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
     }
     assert_eq!(
-        grades_observed.requests().unwrap()[1]
+        business_requests(&grades_observed)[1]
             .headers
             .get("Referer")
             .map(String::as_str),
@@ -442,4 +454,30 @@ fn shanghai_date() -> String {
     let month = mp + if mp < 10 { 3 } else { -9 };
     year += i64::from(month <= 2);
     format!("{year:04}-{month:02}-{day:02}")
+}
+
+fn academic_transport(
+    webvpn: bool,
+    expected: impl IntoIterator<Item = ExpectedRequest>,
+) -> MockTransport {
+    let steps: Vec<_> = expected.into_iter().collect();
+    let direct = "https://it.buaa.edu.cn/personal/frontend/data/info";
+    let url = if webvpn {
+        to_webvpn_url(direct).unwrap()
+    } else {
+        direct.into()
+    };
+    let identity = expected_get(
+        &url,
+        r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#,
+    );
+    MockTransport::new(std::iter::once(identity).chain(steps))
+}
+fn business_requests(transport: &MockTransport) -> Vec<ubaa_core::facade::testing::HttpRequest> {
+    transport
+        .requests()
+        .unwrap()
+        .into_iter()
+        .filter(|r| !r.url.contains("/personal/frontend/data/info"))
+        .collect()
 }

@@ -83,6 +83,9 @@ class _Backend extends fixtures.GradesBackend {
     FeatureId feature,
     FeatureQuery query,
   ) async {
+    if (query.view == FeatureQueryView.gradesOverview &&
+        target == FeatureId.schedule)
+      return const FeatureResult.empty();
     if (feature == target) {
       if (!started.isCompleted) started.complete();
       await gate?.future;

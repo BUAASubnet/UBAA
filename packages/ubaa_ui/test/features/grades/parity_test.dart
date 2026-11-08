@@ -7,6 +7,39 @@ import '../assignments/content_test.dart' show showFeature;
 import '../../support/navigation.dart';
 
 void main() {
+  testWidgets('研究生展示Core统计且历史学期不冒充当前学期', (tester) async {
+    const overview = GradesTermOverview(
+      requestTerm: '20251',
+      termCode: '20251',
+      grades: [GradePresentation(courseName: '合成课程', score: '100', credit: 2)],
+      statistics: GraduateGradeStatistics(
+        gpa: 2.5,
+        averageScore: 75,
+        gpaCredits: 2,
+        averageCredits: 2,
+      ),
+    );
+    await showFeature(
+      tester,
+      FeatureId.grades,
+      const [
+        FeatureDetail(
+          title: '合成课程',
+          presentation: GradePresentation(
+            courseName: '合成课程',
+            score: '100',
+            credit: 2,
+          ),
+        ),
+      ],
+      [],
+      overview: overview,
+    );
+    final card = tester.widget<GradeSummaryCard>(find.byType(GradeSummaryCard));
+    expect(card.statistics?.gpa, 2.5);
+    expect(card.statistics?.weightedAverage, 75);
+    expect(card.title, '最近有成绩的学期');
+  });
   testWidgets('本地统计渐进返回后刷新中仍显示分数', (tester) async {
     final pending = Completer<GradesAggregate>();
     void Function(GradesAggregate)? publish;
