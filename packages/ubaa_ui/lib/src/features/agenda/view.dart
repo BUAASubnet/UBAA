@@ -24,6 +24,7 @@ import 'detail_content.dart';
 import '../../shared/create_button.dart';
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
+import '../../shared/sync_status.dart' show UiSyncStatus;
 import '../../common/state_panel.dart';
 import '../../theme.dart';
 part 'details.dart';
@@ -665,14 +666,8 @@ class AgendaViewState extends State<AgendaView> {
             if (!wide) quickFilters(),
             if (available) statusLine(),
             ...notices(),
-            const SizedBox(height: 6),
-            // 只有首次读取在页面内提示；刷新进度显示在标题栏右侧。
-            SizedBox(
-              height: 2,
-              child: loading && result == null
-                  ? const LinearProgressIndicator()
-                  : null,
-            ),
+            // 读取进度统一显示在标题栏右上角，内容区不再画进度条。
+            const SizedBox(height: 8),
           ],
         );
         final fillsWeek = constraints.maxHeight >= 640;

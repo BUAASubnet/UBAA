@@ -36,6 +36,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('09:30'), findsOneWidget);
   });
+  testWidgets('首次读取没有更新时间时更早显示更新中', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: UiSyncStatus(busy: true))),
+    );
+    await tester.pump(const Duration(milliseconds: 149));
+    expect(find.text('更新中'), findsNothing, reason: '缓存秒开时不闪现');
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(find.text('更新中'), findsOneWidget);
+  });
   testWidgets('主动刷新立即反馈且阻止按钮重复提交', (tester) async {
     final gate = Completer<void>();
     var calls = 0;

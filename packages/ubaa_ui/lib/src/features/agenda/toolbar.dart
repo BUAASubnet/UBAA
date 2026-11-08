@@ -24,12 +24,9 @@ extension _AgendaToolbar on AgendaViewState {
                 ),
               ),
             ),
-            // 刷新进度：下拉期间已有下拉指示器，不重复显示。
-            if (loading && result != null && !pulling)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: LoadingGlyph(),
-              ),
+            // 与外壳标题栏同一“更新中”状态，首次读取也在这里显示；
+            // 下拉期间已有下拉指示器，不重复显示。
+            UiSyncStatus(busy: loading && !pulling),
             IconButton(
               tooltip: '搜索日程',
               isSelected: searchVisible,

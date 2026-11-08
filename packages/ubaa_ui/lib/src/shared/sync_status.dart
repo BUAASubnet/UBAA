@@ -14,8 +14,8 @@ bool uiIsTouchPlatformName(String platform) =>
 
 /// 标题栏右侧的统一刷新状态：刷新时转圈并显示“更新中”，空闲时显示“更新于”时间。
 ///
-/// 页面内容区不再显示刷新转圈。短暂的刷新（如会话恢复）在 [_showDelay] 内结束时不显示，
-/// 避免图标闪烁。桌面端另有刷新按钮，触屏端用下拉刷新。
+/// 页面内容区不再显示刷新转圈。已有更新时间时，短暂的刷新（如会话恢复）在 [_showDelay]
+/// 内结束时不显示，避免与时间文字来回闪烁；首次读取没有时间可显示，只等 [_firstShowDelay]。桌面端另有刷新按钮，触屏端用下拉刷新。
 class UiSyncStatus extends StatefulWidget {
   const UiSyncStatus({
     super.key,
@@ -38,6 +38,7 @@ class UiSyncStatus extends StatefulWidget {
 
 class _UiSyncStatusState extends State<UiSyncStatus> {
   static const _showDelay = Duration(milliseconds: 400);
+  static const _firstShowDelay = Duration(milliseconds: 150);
 
   Timer? _timer;
   bool _showBusy = false;
@@ -65,7 +66,8 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
       return;
     }
     if (_showBusy || _timer != null) return;
-    _timer = Timer(_showDelay, () {
+    // 首次读取右上角原本是空的，只需略过缓存秒开的情况；已有时间时等待更久，避免与时间文字来回闪烁。
+    _timer = Timer(widget.updatedAt == null ? _firstShowDelay : _showDelay, () {
       _timer = null;
       if (mounted && _busy) setState(() => _showBusy = true);
     });

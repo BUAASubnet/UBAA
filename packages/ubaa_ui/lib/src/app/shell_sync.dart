@@ -33,7 +33,8 @@ extension UbaaShellSync on _UbaaMainShellState {
             ('feature', feature),
             snapshot?.status == FeatureLoadStatus.loading &&
                 !(snapshot?.refining ?? false),
-            snapshot?.updatedAt,
+            // 只有已保存数据时显示其读取时间，与“更新于”语义一致。
+            snapshot?.updatedAt ?? snapshot?.evidence?.fetchedAt,
           );
         },
       );
