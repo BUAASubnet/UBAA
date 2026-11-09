@@ -37,8 +37,14 @@ void main() {
           credentialVault: MemoryCredentialVault(),
         ),
       );
-      await tester.pumpAndSettle();
-      await backend!.firstRecovery.future.timeout(const Duration(seconds: 10));
+      final waiting = Stopwatch()..start();
+      while (!(backend?.firstRecovery.isCompleted ?? false)) {
+        if (waiting.elapsed > const Duration(seconds: 10)) {
+          throw TimeoutException('首页首帧后的会话恢复未完成', const Duration(seconds: 10));
+        }
+        // 缓存 I/O 完成后还需绘制首页首帧，首帧回调才会启动恢复。
+        await tester.pump(const Duration(milliseconds: 16));
+      }
       await tester.pumpAndSettle();
 
       expect(
@@ -71,6 +77,13 @@ class _ObservedBridgeBackend extends BridgeBackend {
 
   final firstRecovery = Completer<void>();
   BackendException? recoveryFailure;
+
+  @override
+  Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async {
+    // 覆盖磁盘读取晚于当前帧完成的启动过程。
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    return super.readCachedHome(policy);
+  }
 
   @override
   RequiredRecoveryOperation startRequiredRecovery(
