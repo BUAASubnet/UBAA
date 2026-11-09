@@ -4,7 +4,7 @@
 
 ## 主线与候选
 
-2026-11-09 CI 维护：Windows 日程临时目录和存储测试的 Unix 条件编译不再产生未使用变量警告。macOS 首页 smoke 在十秒期限内持续推进帧，并覆盖缓存读取延迟 350 毫秒的启动场景。Rust 依赖已升级到 tract 0.22.5、rusqlite 0.41.1 和 libsqlite3-sys 0.39.1，根工作区与独立编译夹具使用同步锁文件；维护公告和无法合并的重复版本例外见[依赖审计决定](decision-log.md#2026-11-09ci-依赖审计)。Android CI 从固定 Flutter SDK 准备 Wrapper，发行包下载最多尝试三次并使用配置对应的缓存；ShellCheck 下载保留固定版本及摘要校验并增加有限重试。
+2026-11-09 CI 维护：Windows 日程临时目录和存储测试的 Unix 条件编译不再产生未使用变量警告；日程同步测试在清理目录前释放 SQLite 连接。macOS 首页 smoke 在十秒期限内持续推进帧，并覆盖缓存读取延迟 350 毫秒的启动场景。Rust 依赖已升级到 tract 0.22.5、rusqlite 0.41.1 和 libsqlite3-sys 0.39.1，根工作区与独立编译夹具使用同步锁文件；维护公告和无法合并的重复版本例外见[依赖审计决定](decision-log.md#2026-11-09ci-依赖审计)。Android CI 从固定 Flutter SDK 准备 Wrapper，发行包下载最多尝试三次并使用配置对应的缓存；ShellCheck 下载保留固定版本及摘要校验并增加有限重试。
 
 该组合的本机严格 Shell/Clippy、脚本自测、1544 项 Rust 测试、八包 Flutter 2045 项测试和 macOS 原生集成 13 项通过，Rust 保留 3 项既有忽略、Flutter 保留 1 项既有跳过。生产 Core-live/Bridge 构建、Rust 文档与 FRB 生成零漂移检查通过。依赖审计的 advisories、bans、licenses、sources 四类通过，其中维护公告按上述单项例外处理。
 

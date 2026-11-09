@@ -65,7 +65,7 @@ fn fixture() -> (PathBuf, AgendaStore, UbaaClient) {
 }
 #[test]
 fn 独立快照使用本身作用域而旧共享条件覆盖能力保持关闭() {
-    let (root, _store, mut client) = fixture();
+    let (root, store, mut client) = fixture();
     let scratch = root.join("scratch");
     assert_eq!(
         client.bhpan_capabilities().conditional_replace,
@@ -76,7 +76,7 @@ fn 独立快照使用本身作用域而旧共享条件覆盖能力保持关闭()
     assert!(remote.check_current().is_ok());
     assert!(!scratch.exists());
     drop(remote);
-    drop(client);
+    drop((store, client));
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
@@ -92,6 +92,7 @@ fn 不同材料域或共享代次不能绑定同一同步库() {
     assert!(!store.matches_sync_guard(Some(
         &SharedAccountGuard::new(&root.join("other"), 1).unwrap()
     )));
+    drop((store, first));
     std::fs::remove_dir_all(root).unwrap();
 }
 struct ErrorRemote(UbaaError);
@@ -370,7 +371,7 @@ async fn direct同步缺少认证时保留认证错误() {
 
 #[tokio::test]
 async fn 目录未知结果在webvpn核对前返回未验证能力() {
-    let (root, _store, mut client) = fixture();
+    let (root, store, mut client) = fixture();
     client
         .set_default_route_policy(RoutePolicy::WebVpn)
         .unwrap();
@@ -381,7 +382,7 @@ async fn 目录未知结果在webvpn核对前返回未验证能力() {
     assert!(matches!(result, Err(RemoteError::Unverified)));
     assert!(!scratch.exists());
     drop(remote);
-    drop(client);
+    drop((store, client));
     std::fs::remove_dir_all(root).unwrap();
 }
 
