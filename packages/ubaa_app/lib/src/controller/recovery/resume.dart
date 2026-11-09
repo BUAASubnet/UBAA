@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
+import '../state/activity.dart';
+import '../state/recovery_result.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -10,7 +12,7 @@ mixin ControllerDeferredRecovery on ControllerState {
       !internalAppForeground ||
       isLoggingIn ||
       internalInteractiveEngaged ||
-      internalWriteTransitions != 0 ||
+      internalActivities.hasActive ||
       internalWriteCoordinator.hasPendingOperation;
 
   @internal
@@ -79,7 +81,7 @@ mixin ControllerDeferredRecovery on ControllerState {
     internalActiveRecovery = request;
     internalSessionRecoveryFuture = request.completion.future;
     request.targetOnly = internalTargetRecoveryOnly;
-    internalWriteTransitions++;
+    final activity = internalActivities.begin(ControllerActivityKind.recovery);
     internalError = null;
     // 单项目标恢复只标记该功能，全局状态保持已就绪，首页不进入“连接中”。
     if (!request.targetOnly)
@@ -88,32 +90,20 @@ mixin ControllerDeferredRecovery on ControllerState {
         SessionRecoveryStatus.restoring;
     internalWriteCoordinator.invalidate();
     internalNotify();
+    ControllerRecoveryResult? result;
     unawaited(
-      internalPerformSessionRecovery(request).whenComplete(() {
-        if (internalRecoveryIsCurrent(request.epoch)) {
-          internalFeatureRecoveryStates[request.feature] =
-              internalSessionRecoveryStatus;
-          final error = internalError;
-          if (error == null) {
-            internalFeatureRecoveryErrors.remove(request.feature);
-          } else {
-            internalFeatureRecoveryErrors[request.feature] = error;
-          }
-          // 单个功能暂不可用只记在该功能上；账号撤销、中断和重新登录状态保留。
-          if (request.targetOnly &&
-              internalSessionRecoveryStatus ==
-                  SessionRecoveryStatus.unavailable) {
-            internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
-            internalError = null;
-          }
-        }
-        internalWriteTransitions--;
-        internalActiveRecovery = null;
-        internalSessionRecoveryFuture = null;
-        internalFinishRecoveryRetry(request);
-        request.completion.complete();
-        if (!internalDisposed) internalNotify();
-      }),
+      internalPerformSessionRecovery(request)
+          .then<void>((value) {
+            result = value;
+          })
+          .whenComplete(() {
+            activity.finish();
+            internalActiveRecovery = null;
+            internalSessionRecoveryFuture = null;
+            internalFinishRecoveryRetry(request, result);
+            request.completion.complete();
+            if (!internalDisposed) internalNotify();
+          }),
     );
   }
 }

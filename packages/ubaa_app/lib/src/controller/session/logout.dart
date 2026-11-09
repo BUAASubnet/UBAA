@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState, LocalDataOwnerScope;
 import '../state/types.dart'
     show AppPhase, LoginFormState, SessionRecoveryStatus;
@@ -34,7 +35,9 @@ mixin ControllerLogout on ControllerState {
     internalCredentialRestoreAllowed = false;
     internalManualAuthenticationRequired = true;
     internalCancelDeferredRecovery();
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.signOut,
+    );
     internalSessionRecoveryStatus = SessionRecoveryStatus.signedOut;
     internalUser = null;
     internalActiveRoutes = const <ConnectionMode>[];
@@ -166,7 +169,7 @@ mixin ControllerLogout on ControllerState {
     } finally {
       await agendaClosed;
       internalSessionLifecycle.endSignOut();
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 }

@@ -6,6 +6,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/interactive_auth.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart'
     show AppPhase, LoginFormState, SessionRecoveryStatus;
@@ -41,7 +42,9 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       autoLogin: input.autoLogin,
     );
     internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.authentication,
+    );
     try {
       final outcome = await manual.resumeRequiredCaptcha(input, route);
       if (!internalIsCurrentInteractive(interactive, generation, revision)) {
@@ -68,7 +71,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       );
       internalSetInteractivePhase(AppPhase.login);
     } finally {
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 
@@ -131,7 +134,9 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     }
     final generation = internalInteractiveGeneration;
     final credentialRevision = internalLoginCredentialRevision;
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.authentication,
+    );
     internalError = null;
     internalSetInteractivePhase(AppPhase.loggingIn);
     try {
@@ -236,7 +241,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       internalError = failure;
       internalSetInteractivePhase(AppPhase.login);
     } finally {
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 
@@ -345,7 +350,9 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     final generation = internalInteractiveGeneration;
     final credentialRevision = internalLoginCredentialRevision;
     internalExpireCaptcha(route, refreshing: true);
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.authentication,
+    );
     internalSetInteractivePhase(AppPhase.loggingIn);
     try {
       final result = await backend.refreshInteractiveCaptcha(route);
@@ -375,7 +382,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     } finally {
       if (internalIsCurrentInteractive(backend, generation, credentialRevision))
         internalSetInteractivePhase(AppPhase.login);
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 
@@ -396,7 +403,9 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       return;
     final generation = internalInteractiveGeneration;
     final credentialRevision = internalLoginCredentialRevision;
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.authentication,
+    );
     internalError = null;
     internalSetInteractivePhase(AppPhase.loggingIn);
     try {
@@ -434,7 +443,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       }
       internalSetInteractivePhase(AppPhase.login);
     } finally {
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 

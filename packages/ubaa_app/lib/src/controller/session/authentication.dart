@@ -7,6 +7,7 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/interactive_auth.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -39,7 +40,9 @@ mixin ControllerAuthentication on ControllerState {
         await internalInitializeLocalHome())
       return;
     final formRevision = internalLoginFormRevision;
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.initialization,
+    );
     final generation = internalLifecycleEpoch;
     internalError = previousLoginError;
     internalSetPhase(AppPhase.checkingSession);
@@ -112,7 +115,7 @@ mixin ControllerAuthentication on ControllerState {
           : failure;
       internalSetPhase(AppPhase.login);
     } finally {
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
     }
   }
 
@@ -158,14 +161,19 @@ mixin ControllerAuthentication on ControllerState {
     );
     final inPlace = preserveHome && internalPhase == AppPhase.home;
     internalInPlaceLogin = inPlace;
+    final ControllerActivity activity;
     if (inPlace) {
       // 认证使旧在途读取失效，但不销毁当前页面、筛选草稿和返回位置。
-      internalWriteTransitions++;
+      activity = internalActivities.begin(
+        ControllerActivityKind.authentication,
+      );
       internalSessionLifecycle.invalidate();
       internalYgdkGeneration++;
       internalWriteCoordinator.invalidate();
     } else {
-      internalBeginWriteTransition();
+      activity = internalBeginOperationTransition(
+        ControllerActivityKind.authentication,
+      );
     }
     final epoch = internalLifecycleEpoch;
     bool current() => !internalDisposed && epoch == internalLifecycleEpoch;
@@ -216,7 +224,7 @@ mixin ControllerAuthentication on ControllerState {
         internalInPlaceLogin = false;
         internalReleaseLoginSecret();
       }
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
       internalNotify();
     }
   }

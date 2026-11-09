@@ -14,6 +14,7 @@ import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/cgyy_validation.dart';
 import 'package:ubaa_app/src/write/ygdk_validation.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 import '../agenda/school_refresh.dart' show controllerRefreshSchoolAgenda;
@@ -124,7 +125,7 @@ mixin ControllerActions on ControllerState {
         internalRebuildingBackend ||
         isLoggingIn ||
         internalSessionRecoveryFuture != null ||
-        internalWriteTransitions != 0 ||
+        internalActivities.hasActive ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
     // 初始化正在读取旧 backend 的认证/路线状态时，生命周期重建会与旧
@@ -143,7 +144,9 @@ mixin ControllerActions on ControllerState {
     internalCancelLoginVerification(notify: false);
     internalReleaseLoginSecret();
     internalSessionLifecycle.beginRebuild();
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.backendRebuild,
+    );
     internalSetPhase(AppPhase.checkingSession);
     try {
       final replacement = await factory();
@@ -204,7 +207,7 @@ mixin ControllerActions on ControllerState {
       internalSetPhase(AppPhase.login);
       return false;
     } finally {
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
       internalBackendRebuildCompletion = null;
       completion.complete();
       internalSessionLifecycle.endRebuild();
@@ -283,7 +286,7 @@ mixin ControllerActions on ControllerState {
           internalRebuildingBackend ||
           internalSessionRecoveryFuture != null ||
           internalWriteCoordinator.hasPendingOperation ||
-          internalWriteTransitions != 0)
+          internalActivities.hasActive)
         return Future.value();
       if (!internalInteractiveEngaged)
         internalInteractiveInPlace =

@@ -8,6 +8,7 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
 import 'package:ubaa_app/src/write/receipt_verifier.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -22,7 +23,7 @@ mixin ControllerWriteLifecycle on ControllerState {
             internalSessionRecoveryStatus != SessionRecoveryStatus.needsLogin &&
             internalPhase == AppPhase.home &&
             internalUser != null &&
-            internalWriteTransitions == 0 &&
+            !internalActivities.hasActive &&
             (!internalUsesLocalRecovery ||
                 internalSessionRecoveryStatus == SessionRecoveryStatus.ready),
         // 闭包固定创建时的 backend，晚到 prepare 只能在原实例释放意图。
@@ -44,19 +45,22 @@ mixin ControllerWriteLifecycle on ControllerState {
       );
 
   @internal
-  void internalBeginWriteTransition() {
+  ControllerActivity internalBeginOperationTransition(
+    ControllerActivityKind kind,
+  ) {
     internalLockDisplay?.cancel();
     // 必须先禁止入口，再发出 invalidate 通知，覆盖监听器同步重入。
-    internalWriteTransitions++;
+    final activity = internalActivities.begin(kind);
     internalSessionLifecycle.invalidate();
     internalCacheLifecycle.invalidateReads();
     internalYgdkGeneration++;
     internalWriteCoordinator.invalidate();
+    return activity;
   }
 
   @internal
-  void internalEndWriteTransition() {
-    internalWriteTransitions--;
+  void internalEndOperationTransition(ControllerActivity activity) {
+    activity.finish();
     internalDrainDeferredRecovery();
     internalPumpReadTasks();
   }

@@ -10,6 +10,7 @@ import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
 import '../../contracts/session_recovery.dart';
 import 'retry.dart' show controllerTemporaryRecoveryFailure;
+import '../state/recovery_result.dart';
 import '../state/models.dart' show RecoveryRequest;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
@@ -139,24 +140,26 @@ mixin ControllerOfflineStartup on ControllerState {
       epoch == internalLifecycleEpoch &&
       internalPhase == AppPhase.home;
 
+  /// 归属已经变化时不交付结果；其他终态由同一个入口发布。
   @internal
-  Future<void> internalPerformSessionRecovery(
+  Future<ControllerRecoveryResult?> internalPerformSessionRecovery(
     RecoveryRequest request, {
     bool allowRebuild = true,
   }) async {
     final epoch = request.epoch;
     var usesSharedRecovery = false;
+    ControllerRecoveryResult result;
     try {
       if (request.refreshHomeAfter &&
           internalBackend is HomeRecoveryBatchBackend) {
         await (internalBackend as HomeRecoveryBatchBackend)
             .invalidateHomeRecoveryBatch();
-        if (!internalRecoveryIsCurrent(epoch)) return;
+        if (!internalRecoveryIsCurrent(epoch)) return null;
       }
       if (internalBackend case final RouteSettingsBackend settings) {
-        final result = await settings.routeSettings();
-        if (!internalRecoveryIsCurrent(epoch)) return;
-        internalApplyRouteSettings(result);
+        final settingsResult = await settings.routeSettings();
+        if (!internalRecoveryIsCurrent(epoch)) return null;
+        internalApplyRouteSettings(settingsResult);
       }
       final backend = internalBackend;
       usesSharedRecovery =
@@ -169,43 +172,139 @@ mixin ControllerOfflineStartup on ControllerState {
               epoch,
             )
           : await internalRecoverLegacyProfile(epoch);
-      if (!internalRecoveryIsCurrent(epoch)) return;
+      if (!internalRecoveryIsCurrent(epoch)) return null;
       if (profile == null) {
-        internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-        return;
+        result = const ControllerRecoveryStopped(
+          SessionRecoveryStatus.needsLogin,
+        );
+      } else {
+        final expected =
+            internalLocalAccount?.username ?? internalUser?.username;
+        if (expected != null &&
+            profile.username != expected &&
+            profile.schoolId != expected) {
+          await internalRejectMismatchedAccount();
+          return null;
+        }
+        final deliveryScope = backend is RequiredSessionBackend
+            ? internalSharedRecoveryScope
+            : null;
+        await internalRefreshRouteSettings();
+        result = ControllerRecoveredSession(profile, deliveryScope);
       }
-      final expected = internalLocalAccount?.username ?? internalUser?.username;
-      if (expected != null &&
-          profile.username != expected &&
-          profile.schoolId != expected) {
-        // 禁止把另一账号的在线结果绑定到旧账号的本地内容。
-        await internalRejectMismatchedAccount();
-        return;
+      await _publishRecoveryResult(request, result);
+      return result;
+    } on Object catch (caughtError, caughtStackTrace) {
+      Object error = caughtError;
+      StackTrace stackTrace = caughtStackTrace;
+      if (!internalRecoveryIsCurrent(epoch)) return null;
+      if (error is RecoveryInterrupted || error is LocalAccountConflict) {
+        result = ControllerRecoveryStopped(
+          internalAutomaticCredentialBlocked
+              ? SessionRecoveryStatus.needsLogin
+              : SessionRecoveryStatus.idle,
+        );
+      } else {
+        if (allowRebuild && error is BackendException && error.clientDisposed) {
+          try {
+            if (await internalRebuildDuringRecovery(request)) {
+              return await internalPerformSessionRecovery(
+                request,
+                allowRebuild: false,
+              );
+            }
+          } on Object catch (replacementError, replacementTrace) {
+            error = replacementError;
+            stackTrace = replacementTrace;
+          }
+          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+        }
+        if (error is BackendException && error.accountMismatch) {
+          await internalRejectMismatchedAccount();
+          return null;
+        }
+        if (error is BackendException &&
+            error.captchaRequired &&
+            error.resolvedRoute != null) {
+          final input = await internalApprovedRecoveryInput(request.epoch);
+          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+          internalAutomaticCredentialBlocked = true;
+          if (input != null) {
+            result = ControllerRecoveryVerification(
+              input,
+              error.resolvedRoute!,
+            );
+            await _publishRecoveryResult(request, result);
+            return result;
+          }
+        }
+        if (error is BackendException &&
+            (error.code == UbaaErrorCode.invalidCredentials ||
+                error.code == UbaaErrorCode.upstreamChanged)) {
+          internalAutomaticCredentialBlocked = true;
+        }
+        if (error is BackendException &&
+            error.code == UbaaErrorCode.invalidCredentials &&
+            !usesSharedRecovery) {
+          // 共享恢复已按原快照撤销许可，重复 clear 会误删另一进程的新登录。
+          try {
+            await internalCredentialVault.clear();
+          } on Object {
+            /* 原错误仍然保留。 */
+          }
+          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+        }
+        result = ControllerRecoveryStopped(
+          error is CredentialVaultException ||
+                  error is SecureMaterialException ||
+                  (error is BackendException &&
+                      (error.code == UbaaErrorCode.authenticationRequired ||
+                          error.code == UbaaErrorCode.invalidCredentials ||
+                          error.code == UbaaErrorCode.upstreamChanged))
+              ? SessionRecoveryStatus.needsLogin
+              : SessionRecoveryStatus.unavailable,
+          error: internalRecordFailure(
+            error,
+            DiagnosticOperation.initialization,
+            stackTrace: stackTrace,
+          ),
+          transientFailure: controllerTemporaryRecoveryFailure(error),
+        );
       }
-      final deliveryScope = backend is RequiredSessionBackend
-          ? internalSharedRecoveryScope
-          : null;
-      await internalRefreshRouteSettings();
-      void publish() {
-        if (!internalRecoveryIsCurrent(epoch))
-          throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+      await _publishRecoveryResult(request, result);
+      return result;
+    }
+  }
+
+  Future<void> _publishRecoveryResult(
+    RecoveryRequest request,
+    ControllerRecoveryResult result,
+  ) async {
+    final epoch = request.epoch;
+    if (!internalRecoveryIsCurrent(epoch)) return;
+    void publishSession() {
+      if (!internalRecoveryIsCurrent(epoch))
+        throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+      final session = result.forSession(targetOnly: request.targetOnly);
+      internalSessionRecoveryStatus = session.status;
+      internalError = session.error;
+      if (result case ControllerRecoveredSession(:final profile)) {
         internalUser = profile;
-        internalError = null;
-        internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
         internalInvalidateReadPlansAfterLogin(request);
       }
+    }
 
+    if (result case ControllerRecoveredSession(:final deliveryScope)) {
       if (deliveryScope == null) {
-        publish();
+        publishSession();
       } else {
-        // 最后一个 await 后仍须核对实际持久身份，条件核对与发布同步执行。
-        await deliveryScope.commitDelivery(publish);
+        // 最后一个 await 后仍须核对持久身份，并在同一交付边界发布。
+        await deliveryScope.commitDelivery(publishSession);
       }
       if (!internalRecoveryIsCurrent(epoch) ||
           (deliveryScope != null && !deliveryScope.isCurrent))
         return;
       unawaited(internalQueueProfileRefresh());
-      // 共享身份重绑后使用新读取修订，避免合并到已撤销的旧任务。
       unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
       internalNotify();
       for (final entry in request.queriesAfterRebuild.entries) {
@@ -218,75 +317,21 @@ mixin ControllerOfflineStartup on ControllerState {
       }
       request.queriesAfterRebuild.clear();
       if (request.refreshHomeAfter) internalPendingHomeRecoveryEpoch = epoch;
-    } on Object catch (caughtError, caughtStackTrace) {
-      Object error = caughtError;
-      StackTrace stackTrace = caughtStackTrace;
-      if (!internalRecoveryIsCurrent(epoch)) return;
-      if (error is RecoveryInterrupted || error is LocalAccountConflict) {
-        internalSessionRecoveryStatus = internalAutomaticCredentialBlocked
-            ? SessionRecoveryStatus.needsLogin
-            : SessionRecoveryStatus.idle;
-        return;
+    } else {
+      publishSession();
+      if (result case ControllerRecoveryVerification(
+        :final input,
+        :final route,
+      )) {
+        await internalResumeRequiredCaptcha(input, route);
       }
-      if (allowRebuild && error is BackendException && error.clientDisposed) {
-        try {
-          if (await internalRebuildDuringRecovery(request)) {
-            await internalPerformSessionRecovery(request, allowRebuild: false);
-            return;
-          }
-        } on Object catch (replacementError, replacementTrace) {
-          error = replacementError;
-          stackTrace = replacementTrace;
-        }
-        if (!internalRecoveryIsCurrent(request.epoch)) return;
-      }
-      if (error is BackendException && error.accountMismatch) {
-        await internalRejectMismatchedAccount();
-        return;
-      }
-      if (error is BackendException &&
-          error.captchaRequired &&
-          error.resolvedRoute != null) {
-        final input = await internalApprovedRecoveryInput(request.epoch);
-        if (!internalRecoveryIsCurrent(request.epoch)) return;
-        internalAutomaticCredentialBlocked = true;
-        internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-        if (input != null) {
-          await internalResumeRequiredCaptcha(input, error.resolvedRoute!);
-          return;
-        }
-      }
-      request.transientFailure = controllerTemporaryRecoveryFailure(error);
-      if (error is BackendException &&
-          (error.code == UbaaErrorCode.invalidCredentials ||
-              error.code == UbaaErrorCode.upstreamChanged)) {
-        internalAutomaticCredentialBlocked = true;
-      }
-      if (error is BackendException &&
-          error.code == UbaaErrorCode.invalidCredentials &&
-          !usesSharedRecovery) {
-        // 共享恢复已按原快照撤销许可，重复 clear 会误删另一进程的新登录。
-        try {
-          await internalCredentialVault.clear();
-        } on Object {
-          /* 原错误仍然保留。 */
-        }
-        if (!internalRecoveryIsCurrent(request.epoch)) return;
-      }
-      internalError = internalRecordFailure(
-        error,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      internalSessionRecoveryStatus =
-          error is CredentialVaultException ||
-              error is SecureMaterialException ||
-              (error is BackendException &&
-                  (error.code == UbaaErrorCode.authenticationRequired ||
-                      error.code == UbaaErrorCode.invalidCredentials ||
-                      error.code == UbaaErrorCode.upstreamChanged))
-          ? SessionRecoveryStatus.needsLogin
-          : SessionRecoveryStatus.unavailable;
+    }
+    if (!internalRecoveryIsCurrent(epoch)) return;
+    internalFeatureRecoveryStates[request.feature] = result.status;
+    if (result.error case final error?) {
+      internalFeatureRecoveryErrors[request.feature] = error;
+    } else {
+      internalFeatureRecoveryErrors.remove(request.feature);
     }
   }
 

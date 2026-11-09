@@ -82,7 +82,7 @@ mixin ControllerWriteReadbacks on ControllerState {
     if (backend is! WriteReadbackBackend ||
         account == null ||
         !internalReadbackCurrent(backend, account, epoch) ||
-        internalWriteTransitions != 0 ||
+        internalActivities.hasActive ||
         internalWriteCoordinator.hasPendingOperation ||
         internalClearingBusinessCache ||
         !internalWriteReadbacks.any((hint) => hint.id == id)) {

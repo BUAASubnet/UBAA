@@ -27,6 +27,7 @@ import 'models.dart'
         WriteRefreshRequest;
 import 'read_scope.dart';
 import 'lifecycle_owners.dart';
+import 'activity.dart';
 import 'read_caches.dart';
 import 'academic_terms.dart' show CurrentTermsReader;
 import 'operations.dart' show ControllerOperations;
@@ -169,7 +170,7 @@ abstract class ControllerState extends ControllerOperations {
       !internalInteractiveEngaged &&
       !isLoggingIn &&
       !internalRebuildingBackend &&
-      internalWriteTransitions == 0 &&
+      !internalActivities.hasActive &&
       internalActiveRecovery == null &&
       !internalWriteCoordinator.hasPendingOperation;
 
@@ -365,7 +366,7 @@ abstract class ControllerState extends ControllerOperations {
       internalBackend is ScheduleImportBackend;
 
   @internal
-  int internalWriteTransitions = 0;
+  final internalActivities = ControllerActivityOwner();
 
   @internal
   final internalWriteRefreshes = <FeatureId, WriteRefreshRequest>{};
