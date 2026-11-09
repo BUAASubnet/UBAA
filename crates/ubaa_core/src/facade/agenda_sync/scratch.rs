@@ -13,12 +13,14 @@ impl Scratch {
         }
         fs::create_dir_all(root).map_err(|_| failed())?;
         let path = root.join(uuid::Uuid::new_v4().to_string());
-        let mut builder = fs::DirBuilder::new();
+        let builder = fs::DirBuilder::new();
         #[cfg(unix)]
-        {
+        let builder = {
             use std::os::unix::fs::DirBuilderExt;
+            let mut builder = builder;
             builder.mode(0o700);
-        }
+            builder
+        };
         builder.create(&path).map_err(|_| failed())?;
         Ok(Self(path))
     }

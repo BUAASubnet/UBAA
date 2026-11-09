@@ -77,6 +77,8 @@ fn existing_version_zero_database_is_rejected_without_initialization() {
     assert_eq!(std::fs::read(path(&root)).unwrap(), before);
 }
 fn private_file(path: &Path) {
+    #[cfg(not(unix))]
+    let _ = path;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
