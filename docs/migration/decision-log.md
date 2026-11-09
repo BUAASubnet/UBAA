@@ -1,5 +1,13 @@
 # 决策记录
 
+## 2026-11-09：CI 依赖审计
+
+`tract-onnx` 固定为 0.22.5，整个 tract 依赖族随锁文件更新，消除 [RUSTSEC-2026-0217](https://rustsec.org/advisories/RUSTSEC-2026-0217.html)。`rusqlite` 更新为 0.41.1，使用 `libsqlite3-sys` 0.39.1 所附 SQLite 3.54.1，消除 [RUSTSEC-2026-0459](https://rustsec.org/advisories/RUSTSEC-2026-0459.html)。两项漏洞均通过升级处理。
+
+`anymap2` 0.13.0 的 [RUSTSEC-2026-0319](https://rustsec.org/advisories/RUSTSEC-2026-0319.html) 属于停止维护公告。当前 liquid-core 最新发布 0.26.11 仍使用该版本，tract 的 Liquid 依赖同时用于构建模板和 NNEF 支持。保留发布版依赖，对该公告登记单项例外，避免为间接依赖维护私有 Liquid 分支。维护风险仍存在；liquid-core 发布采用 anymap3 的版本后应更新锁文件并删除例外。其他漏洞和停止维护公告继续阻断。
+
+重复版本只豁免无法按上游约束合并的旧版本：prost-derive、tract-data 与 liquid-core 分别要求 itertools 0.10、0.12、0.14；ar_archive_writer 与 backtrace 分别要求 object 0.39、0.40；getrandom 0.3 与 0.4 分别要求 r-efi 5.3、6.0。例外锁定具体旧版本，后续版本变化需要重新核对。
+
 ## 2026-11-09：研究生当前学期采用学校标志
 
 研究生课表默认学期使用 GSMIS 学期接口 `getXnxqList.do` 的唯一 `SFDQXQ=1` 代码，并要求该代码存在于课表接口的候选列表。旧版按代码倒序首选的规则会在下一学期提前开放时选错。现有校历周位图仅表示可查周范围，不能作为学校学期边界，也不按月份猜测开学时间。

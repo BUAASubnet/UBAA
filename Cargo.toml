@@ -44,7 +44,7 @@ rand = "0.8.5"
 reqwest = { version = "0.13.5", features = ["gzip"] }
 rrule = "=0.14.0"
 rsa = "0.9.8"
-rusqlite = { version = "0.38.0", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 same-file = "=1.0.6"
 scraper = "0.27.0"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -56,7 +56,7 @@ tokio = { version = "1.54.1" }
 toml = "1.1.4"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
-tract-onnx = { version = "=0.22.1", default-features = false }
+tract-onnx = { version = "=0.22.5", default-features = false }
 url = "2.5.7"
 uuid = { version = "=1.29.0", features = ["v4", "serde"] }
 zeroize = "1.9.0"
