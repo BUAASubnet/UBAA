@@ -142,7 +142,13 @@ fn local_clear_scrubs_body_and_blocks_new_publication_but_allows_other_device_me
         let mut gui = SyncCoordinator::new(store.clone(), remote);
         gui.run(AgendaSyncAction::Push, now()).await.unwrap();
         assert_eq!(store.clear_local_data().unwrap(), 1);
-        assert!(!store.restore_sync_attempt().unwrap().unwrap().body_retained);
+        assert!(
+            !store
+                .restore_sync_attempt()
+                .unwrap()
+                .unwrap()
+                .retains_body()
+        );
         assert!(store.get(id).unwrap().is_none());
         let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
         let item = event();
@@ -197,7 +203,7 @@ fn local_clear_revokes_a_sent_attempt_before_its_late_result() {
                 .unwrap(),
                 1
             );
-            assert!(!peer.restore_sync_attempt().unwrap().unwrap().body_retained);
+            assert!(!peer.restore_sync_attempt().unwrap().unwrap().retains_body());
             assert!(peer.get(id).unwrap().is_none());
             assert!(matches!(
                 peer.confirm_sync(&old, old.document()),
