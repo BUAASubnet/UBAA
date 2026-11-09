@@ -18,7 +18,7 @@ class GradeScoreBanner extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             color: colors.onPrimaryContainer,
           ),
         ),

@@ -572,7 +572,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                           .textTheme
                                           .titleLarge
                                           ?.copyWith(
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                     ),
                                   ),

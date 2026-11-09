@@ -193,7 +193,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
                   Text(
                     text,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 2),

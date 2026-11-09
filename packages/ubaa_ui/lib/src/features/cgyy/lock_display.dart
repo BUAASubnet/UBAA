@@ -183,7 +183,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
                       code,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     if (value?.dueDate case final due?) Text('有效期至 $due'),

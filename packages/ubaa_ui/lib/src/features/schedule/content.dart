@@ -159,8 +159,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: index == today
-                                        ? FontWeight.bold
-                                        : FontWeight.w500,
+                                        ? FontWeight.w500
+                                        : FontWeight.w400,
                                     color: index == today ? accent : null,
                                   ),
                                 ),
@@ -398,7 +398,7 @@ class _ScheduleCell extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       height: 14 / 12,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: foreground,
                     ),
                   ),

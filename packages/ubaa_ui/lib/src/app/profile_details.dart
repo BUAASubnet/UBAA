@@ -47,7 +47,7 @@ class ProfileIdentityCard extends StatelessWidget {
                       Text(
                         name,
                         style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: scheme.onPrimaryContainer,
                         ),
                       ),

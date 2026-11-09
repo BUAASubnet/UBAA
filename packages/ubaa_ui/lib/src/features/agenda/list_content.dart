@@ -215,8 +215,8 @@ class _AgendaDayHeader extends SliverPersistentHeaderDelegate {
                   style: style.copyWith(
                     color: accent,
                     fontWeight: today || overdue
-                        ? FontWeight.w700
-                        : FontWeight.w600,
+                        ? FontWeight.w500
+                        : FontWeight.w400,
                   ),
                 ),
               ),
@@ -356,7 +356,7 @@ class AgendaEntryTile extends StatelessWidget {
                         top,
                         maxLines: 1,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -412,7 +412,7 @@ class AgendaEntryTile extends StatelessWidget {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w500,
                                     height: 1.35,
                                     decoration: entry.completed
                                         ? TextDecoration.lineThrough

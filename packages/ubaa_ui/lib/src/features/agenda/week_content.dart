@@ -89,7 +89,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                 final titleStyle = TextStyle(
                   fontSize: 10.5,
                   height: 1.2,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: fg,
                 );
                 final placeStyle = TextStyle(
@@ -505,7 +505,7 @@ class _WeekHeaderDay extends StatelessWidget {
                 child: Text(
                   '${day.day}',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                     color: today
                         ? colors.onPrimary
                         : selected

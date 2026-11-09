@@ -172,8 +172,8 @@ class AgendaMonthGrid extends StatelessWidget {
                           '${day.day}',
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: isToday || isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                             color: isToday
                                 ? colors.onPrimary
                                 : inMonth
@@ -222,7 +222,7 @@ class AgendaMonthGrid extends StatelessWidget {
                                 '还有 $hidden 项',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: colors.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),

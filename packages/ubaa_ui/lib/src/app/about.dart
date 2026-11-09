@@ -73,7 +73,7 @@ class _AboutViewState extends State<AboutView> {
                       Text(
                         'UBAA',
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),

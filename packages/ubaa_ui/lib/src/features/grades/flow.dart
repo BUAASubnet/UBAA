@@ -215,7 +215,7 @@ class _GradesFlowState extends State<GradesFlow> {
                                       currentSuffix,
                                       style: TextStyle(
                                         color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                 ],
@@ -236,7 +236,7 @@ class _GradesFlowState extends State<GradesFlow> {
                                       ? '${activeTerm?.name ?? current.termCode}$currentSuffix'
                                       : activeTerm.name,
                                   style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

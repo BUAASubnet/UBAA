@@ -48,7 +48,7 @@ class BykcStatisticsContent extends StatelessWidget {
                 Text(
                   total.totalValidCount?.toString() ?? '未提供',
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),

@@ -99,7 +99,7 @@ class AgendaCacheStatus extends StatelessWidget {
                 Text(
                   '学校数据',
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),

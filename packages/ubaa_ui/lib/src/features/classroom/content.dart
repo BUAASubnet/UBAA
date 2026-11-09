@@ -320,7 +320,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                           .textTheme
                                           .titleSmall
                                           ?.copyWith(
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w500,
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurfaceVariant,
@@ -541,7 +541,7 @@ class _ClassroomTableHeader extends SliverPersistentHeaderDelegate {
         text,
         style: TextStyle(
           fontSize: 10,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w500,
           color: highlight
               ? theme.colorScheme.onPrimary
               : theme.colorScheme.onSurfaceVariant,

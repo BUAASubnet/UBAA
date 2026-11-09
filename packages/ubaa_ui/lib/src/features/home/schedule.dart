@@ -161,7 +161,7 @@ class _CourseCard extends StatelessWidget {
                             times.first,
                             maxLines: 1,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w500,
                               fontFeatures: const [
                                 FontFeature.tabularFigures(),
                               ],
@@ -206,7 +206,7 @@ class _CourseCard extends StatelessWidget {
                       Text(
                         detail.title,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (place != null) ...[

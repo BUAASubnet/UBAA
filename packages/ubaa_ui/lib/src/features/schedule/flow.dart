@@ -507,7 +507,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                            ?.copyWith(fontWeight: FontWeight.w500),
                       ),
                     ),
                     const SizedBox(width: 4),

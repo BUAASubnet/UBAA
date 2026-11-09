@@ -16,7 +16,7 @@ extension CgyyOrderRows on _FeatureDetailListState {
     final navigation = detail.readNavigation;
     final title = Text(
       place.isEmpty ? '研讨室预约' : place,
-      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
     );
     final status = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -27,7 +27,7 @@ extension CgyyOrderRows on _FeatureDetailListState {
       child: Text(
         order.statusText,
         style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),

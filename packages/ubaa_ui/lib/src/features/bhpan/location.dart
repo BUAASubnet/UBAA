@@ -96,7 +96,7 @@ class _BhpanLocationBarState extends State<BhpanLocationBar> {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: last ? colors.onSurface : colors.onSurfaceVariant,
-              fontWeight: last ? FontWeight.w600 : FontWeight.w400,
+              fontWeight: last ? FontWeight.w500 : FontWeight.w400,
             ),
           ),
         ),
@@ -129,7 +129,7 @@ class _BhpanLocationBarState extends State<BhpanLocationBar> {
                       widget.rootLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: colors.onSecondaryContainer,
-                        fontWeight: atRoot ? FontWeight.w600 : null,
+                        fontWeight: atRoot ? FontWeight.w500 : null,
                       ),
                     ),
                     Icon(
@@ -201,7 +201,7 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
       title: Text(
         label,
         style: selected
-            ? TextStyle(color: colors.primary, fontWeight: FontWeight.w600)
+            ? TextStyle(color: colors.primary, fontWeight: FontWeight.w500)
             : null,
       ),
       trailing: selected ? Icon(Icons.check, color: colors.primary) : null,

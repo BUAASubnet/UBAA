@@ -31,7 +31,7 @@ class BykcChosenCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               BykcCardTags(
@@ -63,7 +63,7 @@ class BykcChosenCard extends StatelessWidget {
                   ].join(' · '),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: course.pass == 1 ? theme.colorScheme.primary : null,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

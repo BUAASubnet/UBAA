@@ -47,7 +47,7 @@ class GradeSummaryCard extends StatelessWidget {
           Text(
             value,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
           ),
           Text(label, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
@@ -78,7 +78,7 @@ class GradeSummaryCard extends StatelessWidget {
                 Text(
                   title,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const Spacer(),
@@ -111,7 +111,7 @@ class GradeSummaryCard extends StatelessWidget {
                     overallTitle!,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: muted,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -186,7 +186,7 @@ class GradeCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (meta.isNotEmpty) ...[
@@ -226,7 +226,7 @@ class GradeCard extends StatelessWidget {
                             ? theme.textTheme.titleSmall
                             : theme.textTheme.titleLarge)
                         ?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: score == null
                               ? theme.colorScheme.onSurfaceVariant
                               : _gradeFailed(score)

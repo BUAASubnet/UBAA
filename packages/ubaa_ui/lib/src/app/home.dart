@@ -187,7 +187,7 @@ class HomeViewState extends State<HomeView> {
         // 与课表同一分节标题；刷新状态统一显示在标题栏右侧。
         UiSectionHeader(
           title: '待办',
-          subtitle: tasks.isEmpty ? '近期截止与提醒' : '近期 ${tasks.length} 项',
+          subtitle: tasks.isEmpty ? '近期截止与提醒' : null,
           trailing: tasks.length > limit
               ? TextButton(
                   key: const ValueKey('home-todos-toggle'),

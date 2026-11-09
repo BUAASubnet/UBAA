@@ -122,7 +122,7 @@ class _FinanceSummary extends StatelessWidget {
                 financeYuan(_sum(entries.map((e) => e.paidCents))),
                 maxLines: 1,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: onCard,
                 ),
               ),
@@ -184,7 +184,7 @@ class _FinanceMonth extends StatelessWidget {
                   child: Text(
                     title,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -246,7 +246,7 @@ class _FinanceRow extends StatelessWidget {
                     Text(
                       _title(entry),
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -270,7 +270,7 @@ class _FinanceRow extends StatelessWidget {
                   Text(
                     financeYuan(entry.paidCents),
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
@@ -312,7 +312,7 @@ class _FinanceHeadline extends StatelessWidget {
             financeYuan(entry.paidCents),
             maxLines: 1,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: theme.colorScheme.primary,
             ),
           ),

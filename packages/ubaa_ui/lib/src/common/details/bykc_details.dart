@@ -37,7 +37,7 @@ extension BykcDetails on _FeatureDetailListState {
                   course.courseName,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),

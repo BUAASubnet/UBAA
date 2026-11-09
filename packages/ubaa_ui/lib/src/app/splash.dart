@@ -16,7 +16,7 @@ class UbaaSplashView extends StatelessWidget {
             Text(
               'UBAA',
               style: textTheme.displayLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 72,
               ),
             ),

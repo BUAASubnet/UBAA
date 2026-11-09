@@ -114,7 +114,7 @@ extension _IhomeCards on _IhomeViewState {
                   Text(
                     '处理进度',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),

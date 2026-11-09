@@ -57,7 +57,7 @@ void main() {
         final today = tester.widget<Text>(find.text('周三'));
         final theme = Theme.of(tester.element(find.text('周三')));
         expect(today.style?.color, theme.colorScheme.primary);
-        expect(today.style?.fontWeight, FontWeight.bold);
+        expect(today.style?.fontWeight, FontWeight.w500);
         expect(tester.widget<Text>(find.text('周二')).style?.color, isNull);
         final monday = tester.getCenter(find.text('周一')).dx;
         final tuesday = tester.getCenter(find.text('周二')).dx;

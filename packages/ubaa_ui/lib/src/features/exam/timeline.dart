@@ -130,7 +130,7 @@ class _ExamTimelineRow extends StatelessWidget {
                     d == null ? '待定' : '${d.month}月${d.day}日',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: color,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (d != null)
@@ -214,7 +214,7 @@ class _ExamCompactCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: finished
                             ? theme.colorScheme.onSurfaceVariant
                             : null,
@@ -241,7 +241,7 @@ class _ExamCompactCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                             color: finished
                                 ? theme.colorScheme.onSurfaceVariant
                                 : theme.colorScheme.onPrimaryContainer,

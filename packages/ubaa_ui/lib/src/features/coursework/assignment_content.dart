@@ -85,7 +85,7 @@ class AssignmentContent extends StatelessWidget {
                 child: Text(
                   uiNonBlank(entry.key) ?? '课程名称未提供',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -206,7 +206,7 @@ class AssignmentCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -233,7 +233,7 @@ class AssignmentCard extends StatelessWidget {
                                 color: overdue
                                     ? scheme.error
                                     : UbaaTheme.warning(scheme),
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               )
                             : null,
                       ),
@@ -291,7 +291,7 @@ class _AssignmentDetail extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   height: 1.4,
                 ),
               ),
@@ -325,7 +325,7 @@ class _AssignmentDetail extends StatelessWidget {
                   detail.title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontSize: 20,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     height: 1.4,
                   ),
                 ),
@@ -476,7 +476,7 @@ class _JudgeProblems extends StatelessWidget {
                     Text(
                       problem.name,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         height: 1.5,
                       ),
                     ),

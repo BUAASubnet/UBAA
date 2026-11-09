@@ -36,7 +36,7 @@ class FriendlyErrorCard extends StatelessWidget {
                     error.title,
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: fg,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (!uiErrorMessageRestatesTitle(error.title, message)) ...[

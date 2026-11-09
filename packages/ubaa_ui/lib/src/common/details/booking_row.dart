@@ -39,7 +39,7 @@ extension LibbookBookingRows on _FeatureDetailListState {
                   child: Text(
                     booking.name,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

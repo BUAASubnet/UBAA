@@ -16,7 +16,7 @@ extension _AgendaDataSheet on AgendaViewState {
               text,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           );
@@ -75,7 +75,7 @@ extension _AgendaDataSheet on AgendaViewState {
                             Text(
                               schoolRefreshing ? '正在获取学校数据' : '还没有学校数据',
                               style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 2),

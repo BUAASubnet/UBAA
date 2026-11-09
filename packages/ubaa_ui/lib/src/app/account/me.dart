@@ -121,7 +121,7 @@ class _IdentityHeader extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: scheme.onPrimaryContainer,
                       ),
                     ),
@@ -348,7 +348,7 @@ class _MetricTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final valueStyle =
         (large ? theme.textTheme.headlineSmall : theme.textTheme.titleLarge)
-            ?.copyWith(fontWeight: FontWeight.w600);
+            ?.copyWith(fontWeight: FontWeight.w500);
     final unitStyle = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -520,7 +520,7 @@ class _NetworkProductCard extends StatelessWidget {
                       TextSpan(
                         text: _decimal(amount.value),
                         style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                           color: primary ? scheme.primary : null,
                         ),
                       ),
@@ -554,7 +554,7 @@ class _NetworkProductCard extends StatelessWidget {
                   child: Text(
                     product.productName,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

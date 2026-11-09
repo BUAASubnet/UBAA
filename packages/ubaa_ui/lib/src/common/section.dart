@@ -16,7 +16,7 @@ class UiSectionTitle extends StatelessWidget {
             title,
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
         if (action != null) action!,
@@ -48,7 +48,7 @@ class UiSectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     Widget heading = Text(
       title,
-      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
     );
     if (onTitleTap case final onTap?) {
       heading = Tooltip(
@@ -145,7 +145,7 @@ class UiEntryCard extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (subtitle != null) ...[

@@ -202,7 +202,7 @@ class _SigninCourseCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                               color: window.phase == _SigninPhase.ended && !done
                                   ? scheme.onSurfaceVariant
                                   : null,

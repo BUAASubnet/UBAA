@@ -129,8 +129,8 @@ class UbaaTheme {
           (states) => TextStyle(
             fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w600
-                : FontWeight.w500,
+                ? FontWeight.w500
+                : FontWeight.w400,
             color: states.contains(WidgetState.selected)
                 ? colors.onSurface
                 : colors.onSurfaceVariant,
@@ -186,7 +186,7 @@ class UbaaTheme {
         titleTextStyle: TextStyle(
           color: colors.onSurface,
           fontSize: 26,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

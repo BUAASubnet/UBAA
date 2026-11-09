@@ -20,7 +20,7 @@ class YgdkSummary extends StatelessWidget {
               ? '本学期认定次数 ${p.termCount} / ${p.termTarget}'
               : '本学期认定次数 ${p.termCount} 次',
           style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
         // 有学期目标时用进度条直观显示完成度，达标后改用成功色。

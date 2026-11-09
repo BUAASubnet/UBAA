@@ -103,7 +103,7 @@ class AgendaMonthCalendar extends StatelessWidget {
                                   ? colors.onSurface
                                   : colors.outlineVariant,
                               fontWeight: selected || isToday
-                                  ? FontWeight.bold
+                                  ? FontWeight.w500
                                   : null,
                             ),
                           ),
@@ -223,8 +223,8 @@ class AgendaDateStrip extends StatelessWidget {
                                     ? colors.primary
                                     : colors.onSurfaceVariant,
                                 fontWeight: isToday
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -251,8 +251,8 @@ class AgendaDateStrip extends StatelessWidget {
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     color: number,
                                     fontWeight: isToday || selected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
+                                        ? FontWeight.w500
+                                        : FontWeight.w400,
                                     fontFeatures: const [
                                       FontFeature.tabularFigures(),
                                     ],
