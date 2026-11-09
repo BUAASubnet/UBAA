@@ -1,4 +1,5 @@
 use super::{GraduateSchedule, error, parser};
+use crate::domain::Term;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
@@ -15,11 +16,11 @@ pub(super) async fn fetch(
             .await?;
     checked(&response)?;
     let response = post(runtime, "/modules/xskcb/kfdxnxqcx.do", None).await?;
-    let terms = parser::parse_terms(&checked(&response)?)?;
-    let selected = term
-        .or_else(|| terms.first().map(|t| t.item_code.as_str()))
-        .ok_or_else(error)?
-        .to_owned();
+    let mut terms = parser::parse_terms(&checked(&response)?)?;
+    let selected = match term {
+        Some(term) => term.to_owned(),
+        None => current_term(runtime, &mut terms).await?,
+    };
     if !terms.iter().any(|t| t.item_code == selected) {
         return Err(error());
     }
@@ -34,6 +35,34 @@ pub(super) async fn fetch(
     let response = post(runtime, "/bykb/loadXskbData.do", Some(form)).await?;
     parser::parse_schedule(&checked(&response)?, terms, &selected)
 }
+
+async fn current_term(runtime: &mut ClientRuntime, terms: &mut [Term]) -> Result<String> {
+    let calendar = crate::features::academic::exam_terms(runtime).await?;
+    let mut selected = calendar.iter().filter(|term| term.selected);
+    let current = selected.next();
+    let Some(current) = current.filter(|_| selected.next().is_none()) else {
+        return Err(UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            "研究生系统未提供唯一的当前学期，请刷新学期列表",
+        ));
+    };
+    let Some(term) = terms
+        .iter_mut()
+        .find(|term| term.item_code == current.item_code)
+    else {
+        return Err(UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            "研究生当前学期尚未出现在课表可查询列表中",
+        ));
+    };
+    term.selected = true;
+    Ok(term.item_code.clone())
+}
+
 async fn post(
     runtime: &mut ClientRuntime,
     path: &str,

@@ -114,7 +114,8 @@ fn resolve_feature_redirect(
             | "judge.buaa.edu.cn"
             | "cgyy.buaa.edu.cn"
             | "d.buaa.edu.cn"
-    ) || (feature == "研究生课表" && host.eq_ignore_ascii_case("gsmis.buaa.edu.cn")))
+    ) || (matches!(feature, "研究生课表" | "GSMIS")
+        && host.eq_ignore_ascii_case("gsmis.buaa.edu.cn")))
     {
         return Err(feature_redirect_error(feature));
     }
@@ -274,15 +275,17 @@ mod redirect_tests {
             "ftp://sso.buaa.edu.cn/login",
         ] {
             for location in [target.to_string(), to_webvpn_url(target).unwrap()] {
-                assert!(
-                    resolve_feature_redirect(
-                        "https://byxt.buaa.edu.cn/",
-                        &location,
-                        ConnectionMode::WebVpn,
-                        "schedule"
-                    )
-                    .is_err()
-                );
+                for feature in ["schedule", "GSMIS"] {
+                    assert!(
+                        resolve_feature_redirect(
+                            "https://byxt.buaa.edu.cn/",
+                            &location,
+                            ConnectionMode::WebVpn,
+                            feature
+                        )
+                        .is_err()
+                    );
+                }
             }
         }
     }

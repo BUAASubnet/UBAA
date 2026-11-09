@@ -6,7 +6,7 @@ import '../../support/navigation.dart';
 
 void main() {
   for (final status in [FeatureLoadStatus.loading, FeatureLoadStatus.stale]) {
-    testWidgets('$status已有完整离线索引不等待网络，直接进入已保存周课表', (tester) async {
+    testWidgets('$status离线学期已确定时直接进入已保存周课表', (tester) async {
       final queries = <FeatureQuery>[];
       await _show(tester, queries, status: status);
       await openFeature(
@@ -26,6 +26,107 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('旧缓存学期等待在线核对后选择学校当前学期', (tester) async {
+    final queries = <FeatureQuery>[];
+    FeatureSnapshot snapshot = const FeatureSnapshot(
+      feature: FeatureId.schedule,
+    );
+    late StateSetter update;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return UbaaMainShell(
+              user: const UserSummary(username: 'synthetic'),
+              initialDestination: UiDestination.study,
+              snapshots: {
+                for (final feature in FeatureId.values)
+                  feature: feature == FeatureId.schedule
+                      ? snapshot
+                      : FeatureSnapshot(feature: feature),
+              },
+              routePolicy: RoutePolicy.direct,
+              telemetryEnabled: false,
+              onRefresh: () async {},
+              onRetryFeature: (_) async {},
+              onLogout: () async {},
+              onLogoutAndClearAccount: () async {},
+              onRoutePolicyChanged: (_) {},
+              onTelemetryChanged: (_) {},
+              onLoadAcademicWeeks: (_, _) async => const FeatureResult.empty(),
+              onFeatureQuery: (_, query) async {
+                queries.add(query);
+                if (query.view != FeatureQueryView.scheduleTerms) return;
+                update(
+                  () => snapshot = FeatureSnapshot(
+                    feature: FeatureId.schedule,
+                    status: FeatureLoadStatus.loading,
+                    details: const [
+                      FeatureDetail(
+                        title: '提前开放学期',
+                        presentation: TermPresentation(
+                          code: '20262',
+                          selected: true,
+                          index: 0,
+                        ),
+                      ),
+                    ],
+                    readContext: FeatureReadContext(
+                      query: query,
+                      requestRevision: 1,
+                    ),
+                    evidence: DataEvidence(
+                      accountId: 'synthetic',
+                      origin: DataOrigin.persisted,
+                      fetchedAt: DateTime.utc(2026, 11, 9),
+                      complete: true,
+                      savedForOffline: true,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.schedule, settle: false);
+    expect(queries.map((q) => q.view), [FeatureQueryView.scheduleTerms]);
+    update(
+      () => snapshot = FeatureSnapshot(
+        feature: FeatureId.schedule,
+        status: FeatureLoadStatus.success,
+        details: const [
+          FeatureDetail(
+            title: '下一学期',
+            presentation: TermPresentation(
+              code: '20262',
+              selected: false,
+              index: 0,
+            ),
+          ),
+          FeatureDetail(
+            title: '当前学期',
+            presentation: TermPresentation(
+              code: '20261',
+              selected: true,
+              index: 1,
+            ),
+          ),
+        ],
+        readContext: FeatureReadContext(
+          query: FeatureQuery(view: FeatureQueryView.scheduleTerms),
+          requestRevision: 1,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(queries.last.view, FeatureQueryView.scheduleWeeks);
+    expect(queries.last.term, '20261');
+  });
   testWidgets('部分离线学期索引不能自动选为当前学期', (tester) async {
     final queries = <FeatureQuery>[];
     await _show(
@@ -117,7 +218,9 @@ Future<void> _show(
             update(
               () => snapshot = FeatureSnapshot(
                 feature: FeatureId.schedule,
-                status: status,
+                status: query.view == FeatureQueryView.scheduleTerms
+                    ? FeatureLoadStatus.stale
+                    : status,
                 details: details(query),
                 readContext: FeatureReadContext(
                   query: query,

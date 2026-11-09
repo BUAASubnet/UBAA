@@ -2,6 +2,24 @@
 
 日期：2026-10-02。起点`178a4591`。旧版`examples/ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；示例`examples/buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。本页在生产实现修改前记录。
 
+## 当前学期选择（2026-11-09）
+
+课表候选学期与当前学期分别确定。冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `GsmisSchedule.kt::parseGsmisTerms` 将代码倒序第一项标为当前，`GraduateScheduleUpstream.kt::fetchGraduateSchedule` 在未指定学期时取第一项，`LocalScheduleApi.kt` 的学期列表和今日课表均使用该默认请求。对应测试只有单学期请求样本。提前开放下一学期时，排序无法确定当前学期。
+
+固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/{core,opt,data}.rs`、`request.rs`、`store/{cookies,cred}.rs` 只提供本科当前学期与会话处理，研究生当前学期操作不适用。GSMIS 当前学期标志采用本页已接入的 [PR #98 固定来源记录](https://github.com/BUAASubnet/UBAA/blob/72e46968445b1357b880b53042f1c1ce90ad27db/docs/migration/evidence/2026-09-20-graduate-academic.md)中的 `getXnxqList.do` 与 `SFDQXQ`，复用现行 `academic/gsmis/academic.rs::exam_terms`。
+
+| 操作 | 引导、重定向与会话 | 请求、编码与加密 | 字段与产品行为 | 缓存、并发与错误 |
+|---|---|---|---|---|
+| 课表候选列表 | 原 `wdkbapp/*default/index.do` 引导、同路线重定向及 Cookie | 原空正文 POST `modules/xskcb/kfdxnxqcx.do`，原 Accept/XHR/Referer，无新加密 | 保留 XNXQDM、XNXQDM_DISPLAY、完整性、去重与倒序；排序不产生 selected | 沿原会话、错误处理，不新增持久存储 |
+| 默认学期与今日课表 | 复用 GSMIS `wdksapp/*default/index.do` 引导，沿现行最终地址、认证与同路线 Cookie 检查 | 空表单 POST `modules/ksxxck/getXnxqList.do`；沿该操作 Accept/XHR/Referer 和表单 Content-Type，无新签名 | 在考试学期中取得唯一 SFDQXQ=1 的 DM，必须与课表候选 XNXQDM 精确匹配，再标记课表 selected 并查询该学期；考试候选列表不替代课表候选列表 | 每次默认读取串行核对，不缓存用户选择；标志缺失、多个当前学期或当前代码不在课表列表时明确失败，不回退到最大代码或有课学期 |
+| 指定学期周次与课表 | 原课表引导和当前路线会话 | 原 `loadXskbData.do` 与 ZC/XNXQDM/XH/XQDM 四项表单 | 保留显式学期校验、校历和周课表投影；不改用户指定学期 | 不依赖考试学期读取；不新增重试，课程空结果仍保留为空 |
+
+当前学期的来源取舍见[决策记录](decision-log.md#2026-11-09研究生当前学期采用学校标志)。Direct/WebVPN 的新组合请求尚缺当前候选真实研究生账号证据，需在两条路线分别完成默认学期、指定学期和今日课表只读验收。
+
+`wdksapp` 的 `GSMIS` 引导标签与既有“研究生课表”标签共用 `gsmis.buaa.edu.cn` 重定向主机许可。许可仅补齐已经接入的同主机业务引导，仍保留八跳限制、路线转换与未知主机拒绝。
+
+Flutter 自动选择等待学期索引的在线读取结束，避免 `loading` 状态携带旧缓存 `selected` 时抢先切换查询。离线 `stale` 索引和已确定学期的缓存周课表仍可直接显示。`offline_test.dart` 保留离线自动进入、周课表加载中先显缓存及部分索引拒绝用例，另覆盖旧缓存选择下一学期、在线结果选择当前学期的切换。
+
 ## 适用来源
 
 旧版接口`shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt`、本地`api/local/LocalScheduleApi.kt`的withScheduleAccess/graduateSchedule、`api/feature/GraduateScheduleUpstream.kt`的fetchGraduateSchedule/checkGraduateResponse，以及`model/dto/GsmisSchedule.kt`和`GraduateSchedule.kt`构成协议与转换依据。测试为`shared/src/commonTest/kotlin/cn/edu/ubaa/api/GsmisScheduleTest.kt`、`GraduateScheduleTest.kt`和`GraduateScheduleUpstreamTest.kt`。课表UI与SectionTime来自旧版同名DTO及课表组件。

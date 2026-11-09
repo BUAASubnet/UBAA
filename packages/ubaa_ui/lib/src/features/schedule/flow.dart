@@ -170,6 +170,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     }
     if (_automatic != null && _sameQuery(_expected, widget.query) && _settled) {
       if (_automatic == _ScheduleAutoStage.terms) {
+        // 学期索引核对完成后再自动选择，避免旧缓存的默认值抢先推进查询。
+        if (widget.snapshot.status == FeatureLoadStatus.loading) return;
         final selected = widget.snapshot.details
             .where(
               (d) =>

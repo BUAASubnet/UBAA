@@ -75,7 +75,7 @@ pub(crate) fn parse_terms(body: &str) -> Result<Vec<Term>> {
             Ok(Term {
                 item_code,
                 item_name,
-                selected: index == 0,
+                selected: false,
                 item_index: i32::try_from(index).map_err(|_| error())?,
             })
         })
