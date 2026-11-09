@@ -156,41 +156,21 @@ fn 新增项只读该项详情_同编号标题变化只重读变化项() {
 
 #[test]
 fn 列表不可见变化按期限兜底_临近截止与未知截止缩短期限() {
-    for (label, age, due, expected) in [
-        (
-            "normal-valid",
-            6 * 3600 - 60,
-            Some(deadline_after(7 * 86400)),
-            0,
-        ),
-        (
-            "normal-expired",
-            6 * 3600 + 1,
-            Some(deadline_after(7 * 86400)),
-            3,
-        ),
-        ("near-valid", 14 * 60, Some(deadline_after(3600)), 0),
-        ("near-expired", 15 * 60 + 1, Some(deadline_after(3600)), 3),
-        ("recently-due", 15 * 60 + 1, Some(deadline_after(-3600)), 3),
+    for (label, age, deadline, expected) in [
+        ("normal-valid", 6 * 3600 - 60, Some(Ok(7 * 86400)), 0),
+        ("normal-expired", 6 * 3600 + 1, Some(Ok(7 * 86400)), 3),
+        ("near-valid", 14 * 60, Some(Ok(3600)), 0),
+        ("near-expired", 15 * 60 + 1, Some(Ok(3600)), 3),
+        ("recently-due", 15 * 60 + 1, Some(Ok(-3600)), 3),
         ("unknown", 15 * 60 + 1, None, 3),
         (
             "invalid-deadline",
             15 * 60 + 1,
-            Some("2026-02-30 00:00:00".into()),
+            Some(Err("2026-02-30 00:00:00")),
             3,
         ),
-        (
-            "outside-near-window",
-            30 * 60,
-            Some(deadline_after(86400 + 60)),
-            0,
-        ),
-        (
-            "inside-near-window",
-            30 * 60,
-            Some(deadline_after(86400 - 60)),
-            3,
-        ),
+        ("outside-near-window", 30 * 60, Some(Ok(86400 + 60)), 0),
+        ("inside-near-window", 30 * 60, Some(Ok(86400 - 60)), 3),
     ] {
         let (root, mut client, cache, transport) = setup(&format!("judge-incremental-{label}"));
         tokio::runtime::Builder::new_current_thread()
@@ -199,6 +179,11 @@ fn 列表不可见变化按期限兜底_临近截止与未知截止缩短期限(
             .unwrap()
             .block_on(async {
                 refresh(&mut client, &cache).await;
+                // 每项准备完成后再确定截止时间，前面用例的耗时不占用本项边界余量。
+                let due = deadline.map(|value| match value {
+                    Ok(seconds) => deadline_after(seconds),
+                    Err(text) => text.to_owned(),
+                });
                 age_details(&root, &cache, age, due.as_deref());
                 let before = detail_request_count(&transport);
                 refresh(&mut client, &cache).await;
