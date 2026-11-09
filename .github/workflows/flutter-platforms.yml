@@ -111,6 +111,35 @@ jobs:
             "ndk;$ANDROID_NDK" \
             "cmake;$ANDROID_CMAKE"
 
+      - name: 缓存 Gradle Wrapper 发行包
+        if: matrix.platform == 'android-apk'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: 准备 Gradle Wrapper
+        if: matrix.platform == 'android-apk'
+        shell: bash
+        working-directory: apps/ubaa_flutter/android
+        run: |
+          just flutter precache --android
+          wrapper="$UBAA_FLUTTER_HOME/bin/cache/artifacts/gradle_wrapper"
+          install -m 0755 "$wrapper/gradlew" gradlew
+          install -m 0644 "$wrapper/gradle/wrapper/gradle-wrapper.jar" gradle/wrapper/gradle-wrapper.jar
+          for attempt in 1 2 3; do
+            if ./gradlew --version; then
+              exit 0
+            else
+              status=$?
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              exit "$status"
+            fi
+            printf 'Gradle 发行包准备失败，5 秒后重试（%s/3）\n' "$attempt" >&2
+            sleep 5
+          done
+
       - name: 构建原生宿主
         shell: bash
         env:

@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import unittest
 import sys
 from unittest.mock import patch
@@ -16,6 +17,49 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    def test_Gradle准备仅重试下载且保留最后一次失败(self):
+        workflow = (ROOT / '.github/workflows/flutter-platforms.yml').read_text()
+        step = workflow.split('      - name: 准备 Gradle Wrapper\n', 1)[1]
+        step = step.split('\n      - name:', 1)[0]
+        command = textwrap.dedent(step.split('        run: |\n', 1)[1])
+        fakebin = self.root / 'gradle-bin'
+        fakebin.mkdir()
+        sleeper = fakebin / 'sleep'
+        sleeper.write_text('#!/bin/sh\nexit 0\n')
+        sleeper.chmod(0o755)
+        precache = fakebin / 'just'
+        precache.write_text('#!/bin/sh\ntest "$*" = "flutter precache --android"\n')
+        precache.chmod(0o755)
+        sdk = self.root / 'sdk'
+        template = sdk / 'bin/cache/artifacts/gradle_wrapper'
+        (template / 'gradle/wrapper').mkdir(parents=True)
+        (template / 'gradle/wrapper/gradle-wrapper.jar').write_text('合成 Wrapper')
+        (self.root / 'gradle/wrapper').mkdir(parents=True)
+        wrapper = template / 'gradlew'
+        wrapper.write_text('''#!/bin/sh
+test "$#" -eq 1 && test "$1" = --version || exit 99
+count=0
+test ! -f attempts || count=$(cat attempts)
+count=$((count + 1))
+printf '%s' "$count" > attempts
+test "$count" -gt "$FAILURES" && exit 0
+exit 73
+''')
+        wrapper.chmod(0o755)
+        for failures, status, attempts in [(0, 0, 1), (2, 0, 3), (9, 73, 3)]:
+            with self.subTest(failures=failures):
+                counter = self.root / 'attempts'
+                counter.unlink(missing_ok=True)
+                (self.root / 'gradlew').unlink(missing_ok=True)
+                environment = {**self.environment, 'FAILURES': str(failures),
+                               'UBAA_FLUTTER_HOME': str(sdk),
+                               'PATH': str(fakebin) + os.pathsep + os.environ['PATH']}
+                result = subprocess.run(['bash', '-euo', 'pipefail', '-c', command],
+                                        cwd=self.root, env=environment,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+                self.assertEqual(int(counter.read_text()), attempts)
+
     def test_Cargokit所有模式必须与Rust锁定文件一致(self):
         import importlib.util
         spec = importlib.util.spec_from_file_location('tool_versions', ROOT / 'scripts/check/tool_versions.py')

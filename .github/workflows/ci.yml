@@ -26,7 +26,7 @@ jobs:
           shellcheck_version=$SHELLCHECK_VERSION
           archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
           bin_dir="$RUNNER_TEMP/shellcheck-bin"
-          curl -fsSLo "$archive" \
+          curl --retry 4 --retry-delay 3 --retry-max-time 120 -fsSLo "$archive" \
             "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
           printf '%s  %s\n' \
             "$SHELLCHECK_LINUX_SHA256" \
