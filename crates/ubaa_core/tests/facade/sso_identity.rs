@@ -3,6 +3,9 @@ use std::sync::Mutex;
 use ubaa_core::facade::testing::from_webvpn_url;
 use ubaa_core::facade::{LoginInput, SecretValue, UbaaError};
 
+#[path = "login_retry.rs"]
+mod login_retry;
+
 #[derive(Clone)]
 struct IdentityTransport {
     requests: Arc<Mutex<Vec<String>>>,

@@ -37,7 +37,7 @@ impl UbaaClient {
     /// 在当前账号意图内完成有界自动认证，只将最终人工输入状态投影给宿主。
     ///
     /// # Errors
-    /// 已取消、异实例、账号变化或会话冲突时拒绝，普通网络错误不重放凭据。
+    /// 已取消、异实例、账号变化或会话冲突时拒绝；普通 `WebVPN` 登录失败最多重试一次。
     pub async fn submit_quiet_login(
         &mut self,
         login: &InteractiveLoginHandle,

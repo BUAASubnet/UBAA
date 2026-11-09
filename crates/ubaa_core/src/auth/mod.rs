@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use url::Url;
 
-use crate::domain::{LoginInput, UserProfile};
+use crate::domain::{ConnectionMode, LoginInput, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
@@ -111,6 +111,34 @@ impl AuthWorkflow {
     }
 
     pub(crate) async fn login(
+        &mut self,
+        runtime: &mut ClientRuntime,
+        input: LoginInput,
+    ) -> Result<UserProfile> {
+        runtime.check_authentication_scope()?;
+        let result = self.login_once(runtime, input.clone()).await;
+        if runtime.mode() == ConnectionMode::WebVpn
+            && result.as_ref().is_err_and(|error| {
+                matches!(
+                    (error.code, error.kind),
+                    (ErrorCode::InvalidCredentials, ErrorKind::Authentication)
+                        | (
+                            ErrorCode::NetworkError | ErrorCode::Timeout,
+                            ErrorKind::Network
+                        )
+                        | (ErrorCode::UpstreamUnavailable, ErrorKind::Upstream)
+                )
+            })
+        {
+            runtime.check_authentication_scope()?;
+            // 重新取当前登录页，保留同路线 Cookie，不复用已提交的 execution。
+            self.state.clear();
+            return self.login_once(runtime, input).await;
+        }
+        result
+    }
+
+    async fn login_once(
         &mut self,
         runtime: &mut ClientRuntime,
         input: LoginInput,

@@ -1,5 +1,13 @@
 # 协议来源对照与专项索引
 
+## WebVPN 普通登录失败重试
+
+2026-11-09 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`LocalWebVpnSupport.kt`、`AuthApi.kt`、`model/dto/Auth.kt` 和 `LocalAuthServiceBackendTest.kt`，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 和 `error.rs`。两份来源均没有普通登录失败后自动重试的外层流程。当前产品要求 WebVPN 首次失败后再尝试一次，明确的账号密码错误也纳入重试。
+
+| 操作 | CAS/引导与 service | 跳转与最终地址 | Cookie/会话作用域 | 方法与参数 | 请求头与编码 | 加密/签名 | DTO/解析 | 缓存/并发/重试 | 错误与产品语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| WebVPN 普通登录 | 两源均从 SSO `/login` 获取 execution；网关 service 沿本页 SSO 身份核验对照 | 保留既有网关激活、SSO 验票与跳转限制 | 复用原 WebVPN 运行时和 Cookie，Direct 槽独立 | 重新 GET 登录页，使用新 execution 和同一组账号密码提交原六字段 POST | 原 `application/x-www-form-urlencoded` 与请求头 | 原 WebVPN AES-CFB 编码，无新增签名或密码加密 | 原 UserProfile、登录错误和验票解析 | 网络错误、超时、上游暂时不可用或明确凭据拒绝后，完整普通登录最多追加一次；重试前清除旧准备页并复核当前登录仍有效 | 首次成功立即返回；再次失败返回最后一次错误。取消、会话冲突、无效输入和交互验证要求仍按原流程处理；Direct 不追加重试 |
+
 ## 首页状态与读取编排
 
 本轮冻结引用为旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。核对旧版 `HomeBootstrapCoordinator.kt` 及并发、取消测试，`LocalConnectionAuth.kt` 的会话校验和分路线 Cookie 存储，以及 `LocalScheduleApi.kt` 的学期、教学周和日课表读取。核对 buaa-api 的 `api/user/auth.rs`、`api/aas/{core,opt,data}.rs`、`request.rs` 和 `store/{cookies,cred}.rs`。旧版统一启动来源、分别交付结果；示例没有首页编排或同等的共享账号代次。示例的 Cookie 简化、认证有效期和 TLS 设置不作为当前实现依据。
