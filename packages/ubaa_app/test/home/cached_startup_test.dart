@@ -49,6 +49,8 @@ void main() {
     );
     expect(backend.authCalls, 0);
     expect(backend.readCalls, 0);
+    expect(controller.currentAgendaTerm, 'term');
+    expect(controller.currentAgendaRoute, ConnectionMode.webvpn);
     expect(backend.policies, everyElement(RoutePolicy.webvpn));
     expect(
       controller.homeState.sources[FeatureId.exam]!.evidence!.origin,

@@ -8,12 +8,14 @@ void update(
   HomeCoordinator model, {
   int revision = 0,
   Object owner = 'account',
+  Object? contentScope,
   bool online = false,
   bool readDays = false,
   int epoch = 0,
   Map<FeatureId, FeatureSnapshot>? sources,
 }) => model.update(
   owner: owner,
+  contentScope: contentScope,
   snapshots:
       sources ??
       {for (final f in FeatureId.values) f: FeatureSnapshot(feature: f)},
@@ -36,6 +38,85 @@ HomeTodo item(String title) => HomeTodo(
 );
 
 void main() {
+  test('其他来源和本地日程更新期间保留签到操作，签到来源变化立即撤销', () async {
+    const action = SigninPerformAction(
+      scheduleId: 'synthetic-signin',
+      eligibility: ActionEligibility.allowed,
+    );
+    final todo = HomeTodo(
+      id: 'signin:1',
+      feature: FeatureId.signin,
+      title: '合成课程',
+      subtitle: '',
+      statusLabel: '',
+      timeLabel: '',
+      sortTime: now,
+      signinAction: action,
+    );
+    Completer<HomeTodoProjection>? pending;
+    final model = HomeCoordinator(
+      loadSupplement: (_, _) async => const FeatureResult.empty(),
+      loadDay: (_, _) async => const FeatureResult.empty(),
+      project: (_) =>
+          pending?.future ?? Future.value(HomeTodoProjection([todo])),
+      refreshMain: () async {},
+      retryMain: (_) async {},
+      changed: () {},
+      now: () => now,
+    );
+    addTearDown(model.dispose);
+    const signin = FeatureSnapshot(
+      feature: FeatureId.signin,
+      status: FeatureLoadStatus.success,
+    );
+    final sources = <FeatureId, FeatureSnapshot>{FeatureId.signin: signin};
+    update(model, sources: sources);
+    await model.flushProjection();
+    expect(model.state.todos.single.signinAction, same(action));
+
+    pending = Completer<HomeTodoProjection>();
+    sources[FeatureId.spoc] = const FeatureSnapshot(
+      feature: FeatureId.spoc,
+      status: FeatureLoadStatus.loading,
+    );
+    update(model, sources: sources, revision: 1);
+    await Future<void>.delayed(Duration.zero);
+    expect(model.state.todos.single.signinAction, same(action));
+    pending.complete(HomeTodoProjection([todo]));
+    await model.flushProjection();
+
+    pending = Completer<HomeTodoProjection>();
+    sources[FeatureId.signin] = signin.copyWith(
+      status: FeatureLoadStatus.loading,
+    );
+    update(model, sources: sources, revision: 1);
+    expect(model.state.todos.single.signinAction, isNull);
+    pending.complete(HomeTodoProjection([todo.withoutSigninAction()]));
+    await model.flushProjection();
+    expect(model.state.todos.single.signinAction, isNull);
+
+    pending = null;
+    sources[FeatureId.signin] = signin;
+    update(model, sources: sources, revision: 1);
+    await model.flushProjection();
+    expect(model.state.todos.single.signinAction, same(action));
+    pending = Completer<HomeTodoProjection>();
+    update(model, sources: sources, epoch: 1);
+    expect(model.state.todos.single.signinAction, isNull);
+    update(
+      model,
+      sources: sources,
+      owner: 'new-client',
+      contentScope: 'account',
+    );
+    expect(model.state.todos.single.title, todo.title);
+    expect(model.state.todos.single.signinAction, isNull);
+    update(model, sources: sources, owner: 'other-account');
+    expect(model.state.todos, isEmpty);
+    pending.complete(HomeTodoProjection([]));
+    await model.flushProjection();
+  });
+
   test('全页刷新和联网失败始终保留预读的明日空课表', () async {
     final network = Completer<FeatureResult>();
     final cached = FeatureResult.empty(

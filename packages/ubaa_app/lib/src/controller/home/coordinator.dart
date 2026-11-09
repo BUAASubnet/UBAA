@@ -41,6 +41,7 @@ final class HomeCoordinator {
   late String _observedToday = homeDateKey(homeCampusTime(clock()));
   Map<FeatureId, FeatureSnapshot> _snapshots = const {};
   Object? _owner;
+  Object? _contentScope;
   int _epoch = -1, _generation = 0, _agenda = -1;
   bool _active = false, _online = false, _blocked = false, _disposed = false;
   bool _readDays = false;
@@ -58,6 +59,7 @@ final class HomeCoordinator {
 
   void update({
     required Object owner,
+    Object? contentScope,
     required Map<FeatureId, FeatureSnapshot> snapshots,
     required int epoch,
     required int agenda,
@@ -69,23 +71,33 @@ final class HomeCoordinator {
   }) {
     if (_disposed) return;
     final newOwner = owner != _owner;
+    final nextContentScope = contentScope ?? owner;
+    final newContentScope = nextContentScope != _contentScope;
     final newEpoch = epoch != _epoch;
     final contentChanged = !mapEquals(snapshots, _snapshots);
+    final signinChanged =
+        snapshots[FeatureId.signin] != _snapshots[FeatureId.signin];
     final agendaChanged = agenda != _agenda;
     if (newOwner) {
       _generation++;
       _owner = owner;
+      _contentScope = nextContentScope;
       _observedToday = homeDateKey(homeCampusTime(clock()));
-      _supplements.clear();
       _cachedWeekTask = null;
       _cachedDayTasks.clear();
-      _supplementTimes.clear();
       _refresh = null;
       _supplementTasks.clear();
-      _days.clear();
       _dayTasks.clear();
-      _todos = const [];
-      _projected = false;
+      if (newContentScope) {
+        _supplements.clear();
+        _supplementTimes.clear();
+        _days.clear();
+        _todos = const [];
+        _projected = false;
+      } else {
+        // 同账号客户端恢复保留只读内容，旧客户端的签到操作立即撤销。
+        _todos = _todos.map((todo) => todo.withoutSigninAction()).toList();
+      }
       _projectionFailure = null;
       _projectionRetry?.cancel();
     }
@@ -126,7 +138,9 @@ final class HomeCoordinator {
         unblocked) {
       _agenda = agenda;
       _dirtyProjection = true;
-      if (_todos.any((todo) => todo.signinAction != null)) {
+      // 其他来源重算不改变签到资格；读取范围或签到来源变化才撤销旧操作。
+      if ((newEpoch || signinChanged) &&
+          _todos.any((todo) => todo.signinAction != null)) {
         _todos = _todos
             .map(
               (todo) =>

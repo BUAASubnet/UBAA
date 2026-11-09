@@ -52,6 +52,12 @@ mixin ControllerHomePresentation on ControllerState {
         internalUser?.username,
         internalRoutePolicyGeneration,
       ),
+      contentScope: (
+        internalLocalAccount?.id,
+        internalUser?.username,
+        internalBusinessCacheEpoch,
+        internalRoutePolicyGeneration,
+      ),
       snapshots: homeSnapshots,
       epoch: internalReadCacheEpoch,
       agenda: internalAgendaEpoch,

@@ -6,6 +6,29 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import 'fakes.dart';
 
 void main() {
+  test('同账号刷新重建客户端时保留已展示待办，退出后立即清空', () async {
+    final first = _TodoBackend()..dead = true;
+    final next = _TodoBackend();
+    final controller = AppController(
+      backend: first,
+      backendFactory: () => next,
+      localAccountStore: await support.savedAccounts(),
+    );
+    controller.attachHomePresentation(visible: false);
+    addTearDown(controller.dispose);
+    await cachedHome(controller, first);
+    expect(controller.homeState.todos.single.title, '缓存待办');
+    final visible = <List<String>>[];
+    controller.addListener(() {
+      visible.add(controller.homeState.todos.map((t) => t.title).toList());
+    });
+    await controller.resumeSession();
+    await next.cached.future;
+    expect(visible, everyElement(['缓存待办']));
+    await controller.logout();
+    expect(controller.homeState.todos, isEmpty);
+  });
+
   test('明确已释放句柄只重建一次，恢复期间缓存首页和时间不消失', () async {
     final first = Backend()..dead = true;
     final next = Backend();
@@ -158,4 +181,20 @@ void main() {
       }
     });
   }
+}
+
+class _TodoBackend extends Backend implements HomeTodoBackend {
+  @override
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async =>
+      HomeTodoProjection([
+        HomeTodo(
+          id: 'exam:cached',
+          feature: FeatureId.exam,
+          title: '缓存待办',
+          subtitle: '',
+          statusLabel: '',
+          timeLabel: '',
+          sortTime: request.now,
+        ),
+      ]);
 }

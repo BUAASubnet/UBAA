@@ -66,6 +66,16 @@ Future<FeatureResult?> _cachedHomeCalendar(
       term: term,
     );
     if (week == null) return null;
+    final school = owner.internalAgendaSchoolScope;
+    if (!includeCourses && (school == null || !school.scope.isCurrent)) {
+      owner.internalAgendaSchoolScope = (
+        scope: owner.internalCaptureSessionScope(),
+        term: term,
+        route: weeks.resolvedRoute,
+      );
+      owner.internalAgendaEpoch++;
+      owner.internalNotify();
+    }
     if (includeCourses) {
       final weekly = await read(
         FeatureQuery(
