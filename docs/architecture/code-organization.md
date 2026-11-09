@@ -54,6 +54,8 @@ AppController 仍是一个 ChangeNotifier 实例。ControllerState 拥有共享�
 
 操作与状态提交进一步按 [ADR 0007](../adr/0007-operation-scopes-and-verification.md) 收窄：认证完成 token 不依赖验证码状态；SessionScope/ReadScope 集中后端与代次有效性；AcademicTermsOwner 独占学期缓存与在途合并，成绩借 CurrentTermsReader；ControllerReadCaches 提供统一失效入口。`@internal` 只约束包外访问，不能替代同包内所有权。
 
+活动占用、恢复结果及内部流程状态按 [ADR 0008](../adr/0008-internal-state-ownership.md) 管理。ControllerActivityOwner 记录具名活动并集中放行规则，单次恢复以明确结果交给统一发布入口。Core 的 Agenda 未决操作使用具名状态并保持原存储格式，JudgeScanCursor 独占课程与详情的推进；网络读取、缓存复用和在线扫描通过相同游标操作协作。
+
 Bridge 领域函数借用 BridgeContext，不能反向导入 BridgeBackend。缓存句柄、账号、串行尾链和失效代次归 BridgeCacheState；交互挑战归 BridgeAuthenticationState。不得为单个领域另建账号会话或写状态机。
 
 UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State 的紧密实现，不再聚合整个应用。公共 barrel 显式导出原组件，不批量公开内部实现。照片、锁码等专属生命周期独立管理。
