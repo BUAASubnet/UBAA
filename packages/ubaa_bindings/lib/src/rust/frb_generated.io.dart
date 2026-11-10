@@ -9,6 +9,8 @@ import 'api/agenda/home.dart';
 import 'api/agenda/models.dart';
 import 'api/agenda/school.dart';
 import 'api/agenda/sync.dart';
+import 'api/app_service.dart';
+import 'api/app_service/models.dart';
 import 'api/bhpan.dart';
 import 'api/bhpan/models.dart';
 import 'api/cache_management.dart';
@@ -73,6 +75,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeAgendaSyncServicePtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeAppServicePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppServicePtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeBhpanTransferPtr => wire
@@ -173,6 +179,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaSyncService
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAppService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
     dynamic raw,
   );
 
@@ -327,6 +339,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppService
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    dynamic raw,
+  );
+
+  @protected
   BridgeBhpanTransfer
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     dynamic raw,
@@ -467,6 +485,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaSyncService
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAppService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
     dynamic raw,
   );
 
@@ -1189,6 +1213,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAgendaUpstreamStatus dco_decode_bridge_agenda_upstream_status(
     dynamic raw,
   );
+
+  @protected
+  BridgeAppServiceConsent dco_decode_bridge_app_service_consent(dynamic raw);
+
+  @protected
+  BridgeAppServiceEraseOutcome dco_decode_bridge_app_service_erase_outcome(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAppServicePlatform dco_decode_bridge_app_service_platform(dynamic raw);
+
+  @protected
+  BridgeAppServiceState dco_decode_bridge_app_service_state(dynamic raw);
+
+  @protected
+  BridgeAppServiceSurface dco_decode_bridge_app_service_surface(dynamic raw);
+
+  @protected
+  BridgeAppServiceUpload dco_decode_bridge_app_service_upload(dynamic raw);
 
   @protected
   BridgeBhpanCapabilities dco_decode_bridge_bhpan_capabilities(dynamic raw);
@@ -2403,6 +2447,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeTeachingWeekRule dco_decode_bridge_teaching_week_rule(dynamic raw);
 
   @protected
+  BridgeTelemetryBucket dco_decode_bridge_telemetry_bucket(dynamic raw);
+
+  @protected
+  BridgeTelemetryCounter dco_decode_bridge_telemetry_counter(dynamic raw);
+
+  @protected
+  BridgeTelemetryError dco_decode_bridge_telemetry_error(dynamic raw);
+
+  @protected
+  BridgeTelemetryFeature dco_decode_bridge_telemetry_feature(dynamic raw);
+
+  @protected
+  BridgeTelemetryResult dco_decode_bridge_telemetry_result(dynamic raw);
+
+  @protected
+  BridgeTelemetryRoute dco_decode_bridge_telemetry_route(dynamic raw);
+
+  @protected
+  BridgeTelemetryTiming dco_decode_bridge_telemetry_timing(dynamic raw);
+
+  @protected
   BridgeTerm dco_decode_bridge_term(dynamic raw);
 
   @protected
@@ -3235,6 +3300,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBhpanTransfer
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
@@ -3385,6 +3456,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppService
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBhpanTransfer
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
@@ -3525,6 +3602,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaSyncService
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
     SseDeserializer deserializer,
   );
 
@@ -4431,6 +4514,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaUpstreamStatus sse_decode_bridge_agenda_upstream_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServiceConsent sse_decode_bridge_app_service_consent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServiceEraseOutcome sse_decode_bridge_app_service_erase_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServicePlatform sse_decode_bridge_app_service_platform(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServiceState sse_decode_bridge_app_service_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServiceSurface sse_decode_bridge_app_service_surface(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppServiceUpload sse_decode_bridge_app_service_upload(
     SseDeserializer deserializer,
   );
 
@@ -6021,6 +6134,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeTelemetryBucket sse_decode_bridge_telemetry_bucket(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryCounter sse_decode_bridge_telemetry_counter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryError sse_decode_bridge_telemetry_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryFeature sse_decode_bridge_telemetry_feature(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryResult sse_decode_bridge_telemetry_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryRoute sse_decode_bridge_telemetry_route(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTelemetryTiming sse_decode_bridge_telemetry_timing(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeTerm sse_decode_bridge_term(SseDeserializer deserializer);
 
   @protected
@@ -7067,6 +7215,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    BridgeAppService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     BridgeBhpanTransfer self,
     SseSerializer serializer,
@@ -7242,6 +7397,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    BridgeAppService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     BridgeBhpanTransfer self,
     SseSerializer serializer,
@@ -7405,6 +7567,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
     BridgeAgendaSyncService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    BridgeAppService self,
     SseSerializer serializer,
   );
 
@@ -8452,6 +8621,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_agenda_upstream_status(
     BridgeAgendaUpstreamStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_consent(
+    BridgeAppServiceConsent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_erase_outcome(
+    BridgeAppServiceEraseOutcome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_platform(
+    BridgeAppServicePlatform self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_state(
+    BridgeAppServiceState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_surface(
+    BridgeAppServiceSurface self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_service_upload(
+    BridgeAppServiceUpload self,
     SseSerializer serializer,
   );
 
@@ -10415,6 +10620,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_telemetry_bucket(
+    BridgeTelemetryBucket self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_counter(
+    BridgeTelemetryCounter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_error(
+    BridgeTelemetryError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_feature(
+    BridgeTelemetryFeature self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_result(
+    BridgeTelemetryResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_route(
+    BridgeTelemetryRoute self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_telemetry_timing(
+    BridgeTelemetryTiming self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_term(BridgeTerm self, SseSerializer serializer);
 
   @protected
@@ -11726,6 +11973,40 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppServicePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppServicePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppServicePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppService =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAppServicePtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
