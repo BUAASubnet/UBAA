@@ -10,7 +10,52 @@
   "logpush": false,
   "observability": {
     "enabled": false,
-    "logs": { "enabled": false },
-    "traces": { "enabled": false }
-  }
+    "logs": {
+      "enabled": false
+    },
+    "traces": {
+      "enabled": false
+    }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ubaa-app-service",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "APP_CONFIG"
+    }
+  ],
+  "secrets": {
+    "required": ["USER_KEY_SECRET"]
+  },
+  "ratelimits": [
+    {
+      "name": "TELEMETRY_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "ERASE_LIMIT",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
+    },
+    {
+      "name": "BOOTSTRAP_LIMIT",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 600,
+        "period": 60
+      }
+    }
+  ]
 }

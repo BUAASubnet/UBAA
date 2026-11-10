@@ -1,16 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { expect, it } from "vitest";
 
-declare global {
-  namespace Cloudflare {
-    interface Env {
-      DB: D1Database;
-      APP_CONFIG: KVNamespace;
-      USER_KEY_SECRET: string;
-    }
-  }
-}
-
 it("Worker 对未知路径返回空的 404", async () => {
   const response = await exports.default.fetch(
     "https://app-service.invalid/unknown",
