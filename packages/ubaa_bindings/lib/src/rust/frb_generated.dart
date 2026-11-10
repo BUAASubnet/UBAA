@@ -17892,7 +17892,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 4)
       throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return BridgeCachedProfile(
-      data: dco_decode_bridge_masked_profile(arr[0]),
+      data: dco_decode_bridge_user_profile(arr[0]),
       sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
       fetchedAt: dco_decode_i_64(arr[2]),
       complete: dco_decode_bool(arr[3]),
@@ -20144,19 +20144,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeLoginReadiness dco_decode_bridge_login_readiness(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeLoginReadiness.values[raw as int];
-  }
-
-  @protected
-  BridgeMaskedProfile dco_decode_bridge_masked_profile(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return BridgeMaskedProfile(
-      maskedUsername: dco_decode_opt_String(arr[0]),
-      maskedName: dco_decode_opt_String(arr[1]),
-      maskedSchoolId: dco_decode_opt_String(arr[2]),
-    );
   }
 
   @protected
@@ -27247,7 +27234,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_data = sse_decode_bridge_masked_profile(deserializer);
+    var var_data = sse_decode_bridge_user_profile(deserializer);
     var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
     var var_fetchedAt = sse_decode_i_64(deserializer);
     var var_complete = sse_decode_bool(deserializer);
@@ -29927,21 +29914,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return BridgeLoginReadiness.values[inner];
-  }
-
-  @protected
-  BridgeMaskedProfile sse_decode_bridge_masked_profile(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_maskedUsername = sse_decode_opt_String(deserializer);
-    var var_maskedName = sse_decode_opt_String(deserializer);
-    var var_maskedSchoolId = sse_decode_opt_String(deserializer);
-    return BridgeMaskedProfile(
-      maskedUsername: var_maskedUsername,
-      maskedName: var_maskedName,
-      maskedSchoolId: var_maskedSchoolId,
-    );
   }
 
   @protected
@@ -37564,7 +37536,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_bridge_masked_profile(self.data, serializer);
+    sse_encode_bridge_user_profile(self.data, serializer);
     sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
     sse_encode_i_64(self.fetchedAt, serializer);
     sse_encode_bool(self.complete, serializer);
@@ -39550,17 +39522,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
-  }
-
-  @protected
-  void sse_encode_bridge_masked_profile(
-    BridgeMaskedProfile self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_String(self.maskedUsername, serializer);
-    sse_encode_opt_String(self.maskedName, serializer);
-    sse_encode_opt_String(self.maskedSchoolId, serializer);
   }
 
   @protected
@@ -44966,7 +44927,7 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
   Future<BridgeRoutedUserProfile> userInfo() =>
       RustLib.instance.api.crateApiClientBridgeClientUserInfo(that: this);
 
-  /// 在线资料保持完整映射，仅持久化遮罩投影；待确认写入禁止隐式恢复。
+  /// 在线资料与缓存使用相同展示字段；待确认写入禁止隐式恢复。
   ///
   /// # Errors
   /// 保留原读取、身份及退出错误。
@@ -46039,7 +46000,7 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
     endTime: endTime,
   );
 
-  /// 仅本地遮罩资料，不等待网络锁。
+  /// 仅本地展示资料，不等待网络锁。
   ///
   /// # Errors
   /// 损坏、退出或本地存储失败保持稳定错误。

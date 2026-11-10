@@ -525,3 +525,10 @@ Bridge v33 在既有安全错误上增加可选本地故障分类。持久计划
 Core/Bridge 增加独立的单次恢复控制，期限从构造时按单调时钟计算，最大两分钟。控制覆盖 Bridge 锁排队与 Core 请求边界，取消不依赖 `dispose` 取得网络锁。中断清理目标路线的准备状态并拒绝后续请求，保留已原子保存的会话，不执行共享注销。具体接口和错误分类见[Bridge v46 合同](flutter-bridge.md#v46所需路线恢复的按操作控制)。
 
 本单元仅为共同无感恢复提供底层能力。共同 Dart 服务、GUI 与命令消费者接入、自动登录许可核对和跨进程协调仍按[共享服务计划](../design/desktop-shared-state.md)分阶段完成。原凭据策略、账号别名、CacheKey、业务缓存加密和日程明文规则保持。
+
+
+## 同账号资料的连续展示
+
+`DisplayProfile` 保存 username、name、schoolId、phone、email 五个展示字段，使用现有账号 AES-GCM 缓存。联系人保留学校原始展示值，不还原遮罩部分。证件号码、证件类型、凭据及原始响应不进入该载荷。SQLite schema v8 不变，新增具名查询与载荷；读取优先使用 DisplayProfile，缺失时兼容旧 MaskedProfile，下一次成功刷新写入 DisplayProfile。旧遮罩资料无法还原完整字段，升级后的首次在线刷新补齐展示内容。
+
+Bridge v59 的缓存资料复用在线展示 DTO。`displayUser` 与认证 `user` 保持分离，缓存仍不能授予会话或写入资格。同一本机 accountScope 的姓名、学号更新不重新加载常用功能与博雅筛选。

@@ -37,28 +37,19 @@ void main() {
     expect(source, contains('maintenanceError'));
   });
 
-  test('离线资料类型不能承载完整身份或联系方式', () {
-    final source = File(
+  test('离线资料沿用展示白名单，不公开证件号码和认证材料', () {
+    final cached = File(
       'lib/src/rust/api/offline_profile.dart',
     ).readAsStringSync();
+    expect(cached, contains('final BridgeUserProfile data;'));
+    final source = File('lib/src/rust/api/client.dart').readAsStringSync();
     final body = RegExp(
-      r'class BridgeMaskedProfile \{(?<body>.*?)\n\}',
+      r'class BridgeUserProfile \{(?<body>.*?)\n\}',
       dotAll: true,
     ).firstMatch(source)!.namedGroup('body')!;
-    for (final field in [
-      'username',
-      'name',
-      'schoolId',
-      'email',
-      'phone',
-      'idCardNumber',
-      'idCardTypeName',
-    ]) {
+    for (final field in ['idCardNumber', 'password', 'cookie', 'token']) {
       expect(body, isNot(contains('final String? $field;')));
     }
-    expect(body, contains('maskedUsername'));
-    expect(body, contains('maskedName'));
-    expect(body, contains('maskedSchoolId'));
   });
 
   test('阳光记录页使用独立时间且分类索引不冒充数据新鲜度', () {

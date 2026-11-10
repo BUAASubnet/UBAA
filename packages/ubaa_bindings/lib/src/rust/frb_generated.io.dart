@@ -2135,9 +2135,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeLoginReadiness dco_decode_bridge_login_readiness(dynamic raw);
 
   @protected
-  BridgeMaskedProfile dco_decode_bridge_masked_profile(dynamic raw);
-
-  @protected
   BridgeNetworkProductUsage dco_decode_bridge_network_product_usage(
     dynamic raw,
   );
@@ -5666,11 +5663,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeLoginReadiness sse_decode_bridge_login_readiness(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  BridgeMaskedProfile sse_decode_bridge_masked_profile(
     SseDeserializer deserializer,
   );
 
@@ -9993,12 +9985,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_login_readiness(
     BridgeLoginReadiness self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_bridge_masked_profile(
-    BridgeMaskedProfile self,
     SseSerializer serializer,
   );
 

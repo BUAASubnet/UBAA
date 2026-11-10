@@ -42,7 +42,7 @@ mod ygdk_records;
 pub use ygdk_records::{CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection};
 
 mod profile;
-pub use profile::CachedMaskedProfile;
+pub use profile::{CachedDisplayProfile, CachedMaskedProfile};
 
 mod campus;
 pub use campus::{CachedCampusItem, CachedCampusMetrics};

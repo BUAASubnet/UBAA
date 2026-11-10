@@ -1,4 +1,4 @@
-//! 资料缓存与在线身份使用不同类型，遮罩值不能恢复认证。
+//! 展示资料从账号缓存恢复，不恢复认证或写入资格。
 use super::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, BridgeUserProfile,
     catch_panic, disposed_error, map_profile, map_route,
@@ -8,14 +8,8 @@ use super::offline::{
 };
 use ubaa_core::facade as core;
 #[derive(Clone, Debug)]
-pub struct BridgeMaskedProfile {
-    pub masked_username: Option<String>,
-    pub masked_name: Option<String>,
-    pub masked_school_id: Option<String>,
-}
-#[derive(Clone, Debug)]
 pub struct BridgeCachedProfile {
-    pub data: BridgeMaskedProfile,
+    pub data: BridgeUserProfile,
     pub source_route: BridgeConnectionMode,
     pub fetched_at: i64,
     pub complete: bool,
@@ -29,7 +23,7 @@ pub struct BridgeProfileRefresh {
     pub save_error: Option<BridgeCacheFailure>,
 }
 impl BridgeOfflineCache {
-    /// 仅本地遮罩资料，不等待网络锁。
+    /// 仅本地展示资料，不等待网络锁。
     ///
     /// # Errors
     /// 损坏、退出或本地存储失败保持稳定错误。
@@ -43,15 +37,18 @@ impl BridgeOfflineCache {
                 .read_profile(route.into())
                 .map_err(cache_error)?
                 .map(|record| {
-                    let core::CachePayload::MaskedProfile(value) = record.payload else {
-                        return Err(cache_error(core::CacheError::Corrupt));
+                    let profile = match record.payload {
+                        core::CachePayload::DisplayProfile(value) => value.into_profile(),
+                        core::CachePayload::MaskedProfile(value) => core::UserProfile {
+                            username: value.masked_username().map(str::to_owned),
+                            name: value.masked_name().map(str::to_owned),
+                            school_id: value.masked_school_id().map(str::to_owned),
+                            ..core::UserProfile::default()
+                        },
+                        _ => return Err(cache_error(core::CacheError::Corrupt)),
                     };
                     Ok(BridgeCachedProfile {
-                        data: BridgeMaskedProfile {
-                            masked_username: value.masked_username().map(str::to_owned),
-                            masked_name: value.masked_name().map(str::to_owned),
-                            masked_school_id: value.masked_school_id().map(str::to_owned),
-                        },
+                        data: map_profile(profile),
                         source_route: record.scope.route.into(),
                         fetched_at: record.fetched_at,
                         complete: record.completeness == core::CacheCompleteness::Complete,
@@ -63,7 +60,7 @@ impl BridgeOfflineCache {
     }
 }
 impl BridgeClient {
-    /// 在线资料保持完整映射，仅持久化遮罩投影；待确认写入禁止隐式恢复。
+    /// 在线资料与缓存使用相同展示字段；待确认写入禁止隐式恢复。
     ///
     /// # Errors
     /// 保留原读取、身份及退出错误。
@@ -150,8 +147,8 @@ mod tests {
         .unwrap()
         .unwrap()
         .unwrap();
-        assert_eq!(value.data.masked_username.as_deref(), Some("s***r"));
-        assert_eq!(value.data.masked_name.as_deref(), Some("合***字"));
+        assert_eq!(value.data.username.as_deref(), Some("s***r"));
+        assert_eq!(value.data.name.as_deref(), Some("合***字"));
         assert_eq!(value.fetched_at, 100);
         assert!(
             cache

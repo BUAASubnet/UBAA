@@ -1,11 +1,11 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
-use super::CachedCampusMetrics;
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
     CachedCgyyOrdersPage, CachedEvaluationCourses, CachedGradeScoreBaseline,
     CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
     CachedSigninClass, CachedYgdkOverview, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
 };
+use super::{CachedCampusMetrics, CachedDisplayProfile};
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
     ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, LibBookArea,
@@ -27,6 +27,7 @@ pub enum CacheQuery {
         term: String,
     },
     MaskedProfile,
+    DisplayProfile,
     YgdkRecordsSelection,
     YgdkRecords {
         classify_id: i32,
@@ -163,6 +164,7 @@ pub struct CacheScope {
 pub enum CachePayload {
     ImportedSchedules(Vec<CachedSemesterSchedule>),
     MaskedProfile(CachedMaskedProfile),
+    DisplayProfile(CachedDisplayProfile),
     YgdkRecordsSelection(CachedYgdkRecordsSelection),
     YgdkRecords(CachedYgdkRecordsPage),
     EvaluationCurrent(CachedEvaluationCourses),
@@ -464,6 +466,7 @@ impl CachePayload {
                 super::schedule::valid_collection(values)
             }
             (Self::MaskedProfile(value), CacheQuery::MaskedProfile) => value.valid(),
+            (Self::DisplayProfile(value), CacheQuery::DisplayProfile) => value.valid(),
             (Self::YgdkRecordsSelection(v), CacheQuery::YgdkRecordsSelection) => v.classify_id > 0,
             (
                 Self::YgdkRecords(v),

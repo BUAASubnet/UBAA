@@ -1,10 +1,10 @@
-//! 资料在线结果保持原合同，离线只保存遮罩后的最小投影。
+//! 资料在线与离线使用相同展示字段，缓存不提供认证资格。
 use super::{
-    CacheError, CachePayload, CacheQuery, CacheScope, CachedMaskedProfile, ConnectionMode,
+    CacheError, CachePayload, CacheQuery, CacheScope, CachedDisplayProfile, ConnectionMode,
     OfflineCache, OfflineReadError, OfflineRefresh, UbaaClient, UserProfile,
 };
 impl OfflineCache {
-    /// 读取已保存的遮罩资料，不恢复会话或授予身份。
+    /// 优先读取展示资料；旧账号缓存保留遮罩资料直至在线更新。
     ///
     /// # Errors
     /// 本地损坏、账号关闭或存储失败按缓存错误返回。
@@ -12,6 +12,16 @@ impl OfflineCache {
         &self,
         route: ConnectionMode,
     ) -> super::CacheResult<Option<super::CacheRecord>> {
+        let current = self.read(
+            &CacheScope {
+                route,
+                query: CacheQuery::DisplayProfile,
+            },
+            chrono::Utc::now().timestamp(),
+        )?;
+        if current.is_some() {
+            return Ok(current);
+        }
         self.read(
             &CacheScope {
                 route,
@@ -22,7 +32,7 @@ impl OfflineCache {
     }
 }
 impl UbaaClient {
-    /// 按默认User路线核对身份后取资料，只将遮罩投影写入账号缓存。
+    /// 按默认 User 路线核对身份后取资料，将展示字段写入账号加密缓存。
     ///
     /// # Errors
     /// 原认证与业务错误保留；资料身份不符、退出或票据被替代不降级。
@@ -43,7 +53,7 @@ impl UbaaClient {
         verify_identity(cache, &authenticated.data.user, resolution)?;
         let mut scope = CacheScope {
             route: resolution.mode,
-            query: CacheQuery::MaskedProfile,
+            query: CacheQuery::DisplayProfile,
         };
         let (mut ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
         let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
@@ -73,7 +83,7 @@ impl UbaaClient {
         }
         if let Some(ticket) = &ticket {
             let payload =
-                CachePayload::MaskedProfile(CachedMaskedProfile::from_profile(&read.data));
+                CachePayload::DisplayProfile(CachedDisplayProfile::from_profile(&read.data));
             match cache.publish(ticket, payload, fetched_at) {
                 Ok(()) => {}
                 Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {

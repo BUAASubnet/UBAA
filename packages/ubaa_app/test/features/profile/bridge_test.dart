@@ -19,12 +19,31 @@ void main() {
   });
 
   setUpAll(() => RustLib.initMock(api: _Api()));
+  test('旧缓存仅有学号时仍保留姓名与展示字段', () async {
+    final previous = _Cache.data;
+    addTearDown(() => _Cache.data = previous);
+    _Cache.data = const BridgeUserProfile(
+      name: '合成姓名',
+      schoolId: 'T***1',
+      phone: '000****0000',
+      email: 's***t@example.invalid',
+    );
+    final backend = await open(_Client());
+    final display = (await backend.readCachedProfile(
+      RoutePolicy.auto,
+    )).profile!.toDisplay();
+    expect(display.username, 'T***1');
+    expect(display.displayName, '合成姓名');
+    expect(display.phone, '000****0000');
+    expect(display.email, 's***t@example.invalid');
+  });
+
   test('资料本地通道跨路线共用最新记录且不借遮罩值建立身份', () async {
     final backend = await open(_Client());
     final result = await backend.readCachedProfile(RoutePolicy.auto);
     final value = result.profile!;
     expect(value.route, ConnectionMode.webvpn);
-    expect(value.maskedUsername, 's***c');
+    expect(value.profile.username, 's***c');
     expect(value.fetchedAt.millisecondsSinceEpoch, 200000);
     final display = value.toDisplay();
     expect(display.profileEvidence!.origin, DataOrigin.persisted);
@@ -72,6 +91,11 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  static BridgeUserProfile data = const BridgeUserProfile(
+    username: 's***c',
+    name: '合***名',
+    schoolId: 'T***1',
+  );
   @override
   Future<void> close() async {}
 
@@ -84,11 +108,7 @@ class _Cache implements BridgeOfflineCache {
   Future<BridgeCachedProfile?> readProfile({
     required BridgeConnectionMode route,
   }) async => BridgeCachedProfile(
-    data: const BridgeMaskedProfile(
-      maskedUsername: 's***c',
-      maskedName: '合***名',
-      maskedSchoolId: 'T***1',
-    ),
+    data: data,
     sourceRoute: BridgeConnectionMode.webVpn,
     fetchedAt: 200,
     complete: true,

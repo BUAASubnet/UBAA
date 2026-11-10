@@ -2,7 +2,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'backend.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
-/// 本地遮罩与在线完整资料分别返回；遮罩字段不能用作登录身份。
+/// 展示资料独立于认证身份；本地和在线使用相同字段。
 abstract interface class ProfileCacheBackend {
   Future<OfflineProfileRead> readCachedProfile(RoutePolicy policy);
   Future<ProfileRefresh> refreshProfile({required LocalAccount account});
@@ -20,28 +20,23 @@ final class CachedProfile {
     required this.route,
     required this.fetchedAt,
     required this.complete,
-    this.maskedUsername,
-    this.maskedName,
-    this.maskedSchoolId,
+    required this.profile,
   });
   final String accountId;
-  final String? maskedUsername, maskedName, maskedSchoolId;
+  final UserSummary profile;
   final ConnectionMode route;
   final DateTime fetchedAt;
   final bool complete;
-  UserSummary toDisplay() => UserSummary(
-    username: maskedUsername ?? maskedSchoolId ?? '本机账号',
-    displayName: maskedName,
-    schoolId: maskedSchoolId,
-    profileRoute: route,
-    accountScope: accountId,
-    profileEvidence: DataEvidence(
+  UserSummary toDisplay() => profileDisplay(
+    profile,
+    DataEvidence(
       accountId: accountId,
       origin: DataOrigin.persisted,
       fetchedAt: fetchedAt,
       complete: complete,
       savedForOffline: true,
     ),
+    route,
   );
 }
 

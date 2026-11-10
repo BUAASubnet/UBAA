@@ -1070,7 +1070,7 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 客户端已销毁、未认证或 Core 读取资料失败时返回安全错误。
   Future<BridgeRoutedUserProfile> userInfo();
 
-  /// 在线资料保持完整映射，仅持久化遮罩投影；待确认写入禁止隐式恢复。
+  /// 在线资料与缓存使用相同展示字段；待确认写入禁止隐式恢复。
   ///
   /// # Errors
   /// 保留原读取、身份及退出错误。

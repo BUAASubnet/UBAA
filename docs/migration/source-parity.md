@@ -1237,3 +1237,14 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 | 本地缓存 | 同账号跨路线共用业务结果，认证材料按路线隔离。 | 无额外学校请求，复用现有加密仓库与读取票据。 | 所有分页完整成功才替换缓存；失败保留旧结果。记录表示财务录入，不推断银行到账。查询返回范围不额外声明全部历史。 |
 
 参考脚本每轮重新登录、明文配置及状态文件、SMTP 通知不纳入本功能。Direct/WebVPN 的生产入口验收分别记录，探针观察不代替生产验收。
+
+
+## 同账号展示连续性与资料缓存
+
+2026-11-10，冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 与 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。本轮读取旧版 `api/auth/AuthApi.kt`、`model/dto/UserInfo.kt`、`api/local/LocalConnectionAuth.kt` 及 `commonTest/kotlin/cn/edu/ubaa/api/LocalAuthSessionStoreTest.kt`，并读取 buaa-api `api/user/{mod,auth,opt}.rs`、`request.rs` 与 `store/cred.rs`。
+
+| 操作 | 引导与 service、重定向 | Cookie 与身份范围 | 方法与参数、头与编码、加密 | DTO 与解析 | 缓存、并发与重试 | 错误、退出与产品语义 |
+|---|---|---|---|---|---|---|
+| 用户资料读取与缓存 | 旧版 UC 激活后读取 `https://uc.buaa.edu.cn/api/uc/userinfo`，保留“用户资料”九列矩阵的既有引导、最终地址与重定向规则。buaa-api 只有 UC status 与激活接口，没有等价 userinfo 操作，其资料协议列不适用。 | 沿当前 Core 的 SSO 验票、响应身份核对及路线会话隔离。展示缓存不提供认证身份或写资格。 | 旧版 GET，无查询参数、请求正文或额外加密；当前请求、头及编码保持。buaa-api 不适用。 | 旧版 nullable String 的 username/name/schoolid/phone/email 与已有 Bridge 投影一致。只缓存这五个展示字段；手机、邮箱保留上游返回值，不推测被遮盖部分。证件号码、证件类型与原始响应不进入新增载荷。 | 在现有 AES-GCM 账号缓存中新增 DisplayProfile 标签，SQLite schema v8 不变；旧 MaskedProfile 可读，新在线成功结果保存展示投影。复用请求票据、成功时间、调度与重试。旧版和示例均无等价加密离线投影，持久化策略为本产品决定。 | 保留既有身份冲突、退出与迟到结果处理。普通读取失败保留上次内容。首次升级的旧遮罩资料在成功在线刷新后更新为展示资料。 |
+
+本轮其余调整只改变已取得资料、页面状态和本地偏好的持有方式，不增加学校接口、参数或自动写入。

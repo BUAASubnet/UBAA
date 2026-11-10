@@ -85,7 +85,30 @@ fn setup(root: &std::path::Path) -> (UbaaClient, OfflineCache, ProfileTransport)
     (client, cache, transport)
 }
 #[test]
-fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
+fn 离线资料保留在线展示字段() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let root = test_root("profile-display");
+        let (mut client, cache, _) = setup(&root);
+        let fresh = client.refresh_cached_profile(&cache).await.unwrap();
+        let record = cache.read_profile(ConnectionMode::Direct).unwrap().unwrap();
+        let payload = serde_json::to_value(&record.payload).unwrap();
+        let shown = &payload["DisplayProfile"];
+        assert_eq!(shown["username"], fresh.data.username.unwrap());
+        assert_eq!(shown["name"], fresh.data.name.unwrap());
+        assert_eq!(shown["schoolId"], fresh.data.school_id.unwrap());
+        assert_eq!(shown["phone"], fresh.data.phone.unwrap());
+        assert_eq!(shown["email"], fresh.data.email.unwrap());
+        drop(cache);
+        drop(client);
+        let _ = std::fs::remove_dir_all(root);
+    });
+}
+#[test]
+fn 资料缓存保留展示字段且失败保留成功范围() {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -98,23 +121,17 @@ fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
         assert_eq!(fresh.data.phone.as_deref(), Some("PHONE-REDACTED"));
         assert_eq!(transport.calls.load(Ordering::SeqCst), 2);
         let old = cache.read_profile(ConnectionMode::Direct).unwrap().unwrap();
-        let CachePayload::MaskedProfile(value) = &old.payload else {
+        let CachePayload::DisplayProfile(value) = &old.payload else {
             panic!("资料类型错误")
         };
-        assert_eq!(value.masked_username(), Some("f***r"));
-        assert_eq!(value.masked_name(), Some("F***r"));
-        assert_eq!(value.masked_school_id(), Some("T***1"));
-        let json = serde_json::to_string(value).unwrap();
-        for forbidden in [
-            "phone",
-            "email",
-            "idCard",
-            "fixture-user",
-            "Fixture User",
-            "TEST-0001",
-        ] {
-            assert!(!json.contains(forbidden));
-        }
+        let shown = value.clone().into_profile();
+        assert_eq!(shown.username, fresh.data.username);
+        assert_eq!(shown.name, fresh.data.name);
+        assert_eq!(shown.school_id, fresh.data.school_id);
+        assert_eq!(shown.phone, fresh.data.phone);
+        assert_eq!(shown.email, fresh.data.email);
+        assert!(shown.id_card_number.is_none());
+        assert!(shown.id_card_type.is_none());
         assert!(
             cache
                 .read_profile(ConnectionMode::WebVpn)
@@ -128,7 +145,7 @@ fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
         assert_eq!(old.fetched_at, after.fetched_at);
         transport.mode.store(4, Ordering::SeqCst);
         client.refresh_cached_profile(&cache).await.unwrap();
-        let CachePayload::MaskedProfile(value) = cache
+        let CachePayload::DisplayProfile(value) = cache
             .read_profile(ConnectionMode::Direct)
             .unwrap()
             .unwrap()
@@ -136,8 +153,9 @@ fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
         else {
             panic!("资料类型错误")
         };
-        assert_eq!(value.masked_name(), None);
-        assert_eq!(value.masked_school_id(), None);
+        let shown = value.into_profile();
+        assert_eq!(shown.name, None);
+        assert_eq!(shown.school_id, None);
         transport.mode.store(6, Ordering::SeqCst);
         let failure = client.refresh_cached_profile(&cache).await;
         assert!(matches!(failure, Err(OfflineReadError::Read(error)) if error.error.code == ErrorCode::UpstreamChanged));

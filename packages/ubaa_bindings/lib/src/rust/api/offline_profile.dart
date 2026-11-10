@@ -8,10 +8,10 @@ import 'client.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
 
 class BridgeCachedProfile {
-  final BridgeMaskedProfile data;
+  final BridgeUserProfile data;
   final BridgeConnectionMode sourceRoute;
   final PlatformInt64 fetchedAt;
   final bool complete;
@@ -39,31 +39,6 @@ class BridgeCachedProfile {
           sourceRoute == other.sourceRoute &&
           fetchedAt == other.fetchedAt &&
           complete == other.complete;
-}
-
-class BridgeMaskedProfile {
-  final String? maskedUsername;
-  final String? maskedName;
-  final String? maskedSchoolId;
-
-  const BridgeMaskedProfile({
-    this.maskedUsername,
-    this.maskedName,
-    this.maskedSchoolId,
-  });
-
-  @override
-  int get hashCode =>
-      maskedUsername.hashCode ^ maskedName.hashCode ^ maskedSchoolId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is BridgeMaskedProfile &&
-          runtimeType == other.runtimeType &&
-          maskedUsername == other.maskedUsername &&
-          maskedName == other.maskedName &&
-          maskedSchoolId == other.maskedSchoolId;
 }
 
 class BridgeProfileRefresh {

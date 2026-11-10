@@ -1,6 +1,48 @@
-//! 资料缓存仅保存可辨认账号的遮罩，不是身份或认证材料。
+//! 账号加密缓存中的展示资料，不作为身份或认证材料。
 use crate::domain::UserProfile;
 use serde::{Deserialize, Serialize};
+
+/// 与在线界面相同的展示字段；不包含证件号码、凭据或原始响应。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CachedDisplayProfile {
+    username: Option<String>,
+    name: Option<String>,
+    school_id: Option<String>,
+    email: Option<String>,
+    phone: Option<String>,
+}
+impl CachedDisplayProfile {
+    #[must_use]
+    pub fn from_profile(value: &UserProfile) -> Self {
+        Self {
+            username: value.username.clone(),
+            name: value.name.clone(),
+            school_id: value.school_id.clone(),
+            email: value.email.clone(),
+            phone: value.phone.clone(),
+        }
+    }
+    #[must_use]
+    pub fn into_profile(self) -> UserProfile {
+        UserProfile {
+            username: self.username,
+            name: self.name,
+            school_id: self.school_id,
+            email: self.email,
+            phone: self.phone,
+            ..UserProfile::default()
+        }
+    }
+    pub(super) fn valid(&self) -> bool {
+        [self.username.as_deref(), self.school_id.as_deref()]
+            .into_iter()
+            .flatten()
+            .any(|value| !value.trim().is_empty())
+    }
+}
+
+/// 兼容已保存的旧遮罩资料，下一次在线成功时写入展示资料。
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

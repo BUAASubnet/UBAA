@@ -22172,8 +22172,7 @@ impl SseDecode for crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord {
 impl SseDecode for crate::api::offline_profile::BridgeCachedProfile {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_data =
-            <crate::api::offline_profile::BridgeMaskedProfile>::sse_decode(deserializer);
+        let mut var_data = <crate::api::client::BridgeUserProfile>::sse_decode(deserializer);
         let mut var_sourceRoute =
             <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
         let mut var_fetchedAt = <i64>::sse_decode(deserializer);
@@ -24961,20 +24960,6 @@ impl SseDecode for crate::api::client::BridgeLoginReadiness {
             1 => crate::api::client::BridgeLoginReadiness::Partial,
             2 => crate::api::client::BridgeLoginReadiness::NoneReady,
             _ => unreachable!("Invalid variant for BridgeLoginReadiness: {}", inner),
-        };
-    }
-}
-
-impl SseDecode for crate::api::offline_profile::BridgeMaskedProfile {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_maskedUsername = <Option<String>>::sse_decode(deserializer);
-        let mut var_maskedName = <Option<String>>::sse_decode(deserializer);
-        let mut var_maskedSchoolId = <Option<String>>::sse_decode(deserializer);
-        return crate::api::offline_profile::BridgeMaskedProfile {
-            masked_username: var_maskedUsername,
-            masked_name: var_maskedName,
-            masked_school_id: var_maskedSchoolId,
         };
     }
 }
@@ -38092,28 +38077,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::client::BridgeLoginReadiness>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::offline_profile::BridgeMaskedProfile {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.masked_username.into_into_dart().into_dart(),
-            self.masked_name.into_into_dart().into_dart(),
-            self.masked_school_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::offline_profile::BridgeMaskedProfile
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_profile::BridgeMaskedProfile>
-    for crate::api::offline_profile::BridgeMaskedProfile
-{
-    fn into_into_dart(self) -> crate::api::offline_profile::BridgeMaskedProfile {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::campus::BridgeNetworkProductUsage {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -42570,7 +42533,7 @@ impl SseEncode for crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord {
 impl SseEncode for crate::api::offline_profile::BridgeCachedProfile {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::offline_profile::BridgeMaskedProfile>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeUserProfile>::sse_encode(self.data, serializer);
         <crate::api::client::BridgeConnectionMode>::sse_encode(self.source_route, serializer);
         <i64>::sse_encode(self.fetched_at, serializer);
         <bool>::sse_encode(self.complete, serializer);
@@ -44507,15 +44470,6 @@ impl SseEncode for crate::api::client::BridgeLoginReadiness {
             },
             serializer,
         );
-    }
-}
-
-impl SseEncode for crate::api::offline_profile::BridgeMaskedProfile {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<String>>::sse_encode(self.masked_username, serializer);
-        <Option<String>>::sse_encode(self.masked_name, serializer);
-        <Option<String>>::sse_encode(self.masked_school_id, serializer);
     }
 }
 

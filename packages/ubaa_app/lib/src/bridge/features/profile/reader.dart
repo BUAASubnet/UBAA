@@ -29,9 +29,15 @@ Future<OfflineProfileRead> bridgeReadCachedProfile(
         route: bridgeToConnectionMode(value.sourceRoute),
         fetchedAt: bridgeCacheTime(value.fetchedAt.toInt()),
         complete: value.complete,
-        maskedUsername: value.data.maskedUsername,
-        maskedName: value.data.maskedName,
-        maskedSchoolId: value.data.maskedSchoolId,
+        profile:
+            bridgeProfileSummary(value.data) ??
+            UserSummary(
+              username: value.data.schoolId ?? '本机账号',
+              displayName: value.data.name,
+              schoolId: value.data.schoolId,
+              email: value.data.email,
+              phone: value.data.phone,
+            ),
       );
     }
   } on BridgeError catch (error) {

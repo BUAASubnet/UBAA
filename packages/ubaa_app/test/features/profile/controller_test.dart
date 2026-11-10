@@ -255,9 +255,11 @@ class _Backend extends support.FakeRecoveryBackend
         route: ConnectionMode.direct,
         fetchedAt: DateTime.fromMillisecondsSinceEpoch(100000),
         complete: true,
-        maskedUsername: 'f***r',
-        maskedName: '已***名',
-        maskedSchoolId: 'T***1',
+        profile: const UserSummary(
+          username: 'f***r',
+          displayName: '已***名',
+          schoolId: 'T***1',
+        ),
       ),
     );
   }

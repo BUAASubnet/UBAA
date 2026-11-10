@@ -414,7 +414,7 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     required String endTime,
   });
 
-  /// 仅本地遮罩资料，不等待网络锁。
+  /// 仅本地展示资料，不等待网络锁。
   ///
   /// # Errors
   /// 损坏、退出或本地存储失败保持稳定错误。
