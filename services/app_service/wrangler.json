@@ -8,6 +8,9 @@
   "preview_urls": false,
   "send_metrics": false,
   "logpush": false,
+  "triggers": {
+    "crons": ["0 19 * * *"]
+  },
   "observability": {
     "enabled": false,
     "logs": {
