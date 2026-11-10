@@ -8,7 +8,11 @@
     "docs:preview": "vitepress preview docs/site"
   },
   "devDependencies": {
-    "vitepress": "2.0.0-alpha.21"
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "markdown-it": "15.0.3",
+    "vitepress": "2.0.0-alpha.21",
+    "yaml": "2.9.1"
   },
   "engines": {
     "node": ">=22.12.0"

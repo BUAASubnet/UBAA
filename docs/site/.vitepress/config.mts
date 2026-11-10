@@ -10,6 +10,7 @@ export default defineConfig({
   head: [['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }]],
   lastUpdated: true,
   cleanUrls: true,
+  srcExclude: ['announcements/[0-9]*.md'],
   themeConfig: {
     skipToContentLabel: '跳转到正文',
     sidebarMenuLabel: '目录',

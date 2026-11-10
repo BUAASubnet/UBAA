@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'docs/site/**'
+      - 'docs/contracts/app-service.schema.json'
+      - 'scripts/check/app_service/content.mjs'
+      - 'services/app_service/src/version.mjs'
       - '.github/actions/**'
       - 'scripts/tools/versions.env'
       - 'package.json'
@@ -13,6 +16,9 @@ on:
     branches: [ubaa2, main, dev]
     paths:
       - 'docs/site/**'
+      - 'docs/contracts/app-service.schema.json'
+      - 'scripts/check/app_service/content.mjs'
+      - 'services/app_service/src/version.mjs'
       - '.github/actions/**'
       - 'scripts/tools/versions.env'
       - 'package.json'
