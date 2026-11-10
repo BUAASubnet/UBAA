@@ -37,6 +37,7 @@ just check-changed base=<阶段开始提交>
 | 根目录或已知工程目录中的 Markdown、文档图片 | refs、敏感扫描、差异空白、合同版本、文档断链、静态 Cargo 命令锁定扫描；文档站及其 npm 配置另运行站点构建 |
 | 普通脚本、justfile、workflow | refs、敏感扫描、差异空白和 `just script-check`，不启动 Rust、Flutter 或 FRB 编译 |
 | 应用服务 Worker、配置、Schema、共享样例及相关门禁脚本 | 在原有检查范围上增加 `just app-service-check`；Schema 和共享样例仍触发完整验收 |
+| 网站隐私政策或应用内政策生成物 | 检查正文摘要、元数据和生成物；完整与脚本门禁已包含政策检查 |
 | 普通 Rust / CLI 展示代码 | refs、敏感扫描、差异空白和 `just check`；共用脚本、布局、版本与文档检查已包含其中 |
 | 普通 Dart 展示代码、资源或测试 | 共用静态检查及布局检查；生产代码沿本地普通依赖和开发依赖选择消费者，普通测试只检查所属包 |
 | 原生平台目录或原生测试 | 提交前检查所属 Flutter 包，推送前或 CI 执行原生集成及对应平台专项；涉及 FFI 或安全边界时立即完整验收 |
@@ -75,6 +76,8 @@ just check-changed base=<阶段开始提交> mode=full
 | `just dependency-audit` | 显式联网运行锁定版本的 cargo-deny，检查 Rust advisories、licenses、bans 和 sources；缺少固定工具或版本不符失败 |
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性；应用服务 Schema、Core、Worker 与文档的版本一致性 |
 | `just app-service-check` | 检查 `feature` 与 `error_kind` 枚举，按 Worker 独立锁文件安装 npm 依赖，运行格式、类型、构建、Schema 样例与本地 Workers 测试。使用 `scripts/tools/versions.env` 中的 Node 主版本 |
+| `just privacy-policy-check` | 使用固定 Python 工具只读核对网站政策的版本、正文摘要、变更要点和应用内生成物；由按改动检查、`script-check` 与 `check-strict` 调用 |
+| `just privacy-policy-generate` | 更新应用内的 Dart 政策常量，供各宿主编译使用。修改正文后按校验提示更新来源摘要，按[合同第 3.1 节](../contracts/app-service.md#31-状态)判断是否升版，再生成并提交。正文使用标题、段落、无序列表及普通行内标记；外部链接地址作为可读文字保留 |
 | `python3 scripts/tests/app_service/http_e2e.py` | 显式联调 Core 的遥测与删除。先运行 `just app-service-check` 准备依赖，再用本地 Worker 和 D1 验证真实 HTTP、丢响应重试及晚到上报；本机 `openssl` 生成临时自签证书以检查 TLS 拒绝；CI 不运行 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just cargo-lock-check` | 静态扫描文档、Shell、workflow 与 justfile 中的 Cargo 命令锁定要求，与 CLI 二进制合同使用相同范围和规则，无需编译 Rust |

@@ -1,6 +1,6 @@
 # 应用服务合同
 
-状态：已接受，Core 与 Worker 已实现上报和删除，宿主接线、启动配置、更新门控与定时汇总待实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
+状态：已接受，Core、Worker 和宿主已接通上报与删除。隐私交互界面、启动配置、更新门控与定时汇总待实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
 
 ## 1. 范围
 
@@ -64,7 +64,8 @@
 - **首启弹窗**必须明确说明：遥测默认开启并可以关闭；数据传输至境外服务（Cloudflare）；收集项目链接到隐私政策全文。政策更新弹窗另外说明变更要点和当前开关状态。
 - **隐私政策只有一份来源**，即 `docs/site/tech/privacy-policy.md`：
   - frontmatter 中的 `policy_version` 是正整数，`policy_body_sha256` 是去掉 frontmatter 后正文的 SHA-256；
-  - 构建时把正文和版本嵌入应用，首次选择之前不联网也能查看全文；GUI 和命令模式使用同一构建中的同一个版本号；
+  - frontmatter 中的 `policy_changes` 是非空纯文本字符串列表，记录当前版本相对上一版的变更要点，供政策更新弹窗显示；
+  - 构建时把正文、版本和变更要点嵌入应用，首次选择之前不联网也能查看全文；GUI 和命令模式使用同一构建中的同一个版本号；
   - 收集项目、目的、接收方、存储地点、保留期或用户权利发生变化时，`policy_version` 加一，已同意旧版本的用户进入 `reconsent_required`；
   - 错别字和措辞修订不升版，但正文的任何改动都必须同步更新 `policy_body_sha256`。仓库检查强制这一点，使每次修改在审阅时都可见，由审阅者判断是否应当升版。
 - **非 `agreed` 状态**下，除应用服务以外的功能照常可用，不得因此拒绝提供学校功能。更新门控只在 `agreed` 状态下生效（第 9 节）。
@@ -130,6 +131,8 @@
 |---|---|---|
 | GUI | 同意后启动时；前台时距上次尝试满 6 小时；移动端进入后台时尽力发送一次 | 单次请求 10 秒 |
 | 命令模式 | 命令输出和退出码写出之后，如果距上次尝试满 6 小时 | 2 秒，超时直接放弃，不影响退出码 |
+
+GUI 与命令模式共用 Core 持久化的最近请求尝试时间；没有发出请求时不更新。GUI 启动和移动端进入后台可跳过六小时间隔。
 
 ## 5. 遥测上报 `POST /v1/telemetry`
 
@@ -537,7 +540,7 @@ confirm_text: 知道了
 | Core | 使用可注入 transport 的确定性测试，覆盖第 3 节全部状态转换、第 2 节的停用与硬关闭条件、批次拆分上限、批次重发与 `batch_id` 去重、队列上限、7 天丢弃、门控的设置与解除条件、启动配置响应的向前兼容解析、派生标识与年级解析（合成学号）、请求不含 Cookie 且不跟随跳转 |
 | Bridge / Dart | 白名单过滤、开关和删除流程、设置页文案、首启弹窗和基础模式、门控横幅与学校操作拦截，以及 Noop 不误报开启 |
 | Worker | 用本地 Workers 运行时测试：Schema 正反例、未知字段拒绝、重复与并发批次、限流、删除、定时汇总、清理与漏跑补算、启动配置的过滤与版本比较（含预发布版本）。测试不访问真实 Cloudflare 资源 |
-| 仓库检查 | Schema 的 `feature`、`error_kind` 枚举分别与 `FeatureId`、Core `ErrorKind` 一致；隐私政策正文与 `policy_body_sha256` 一致，应用内嵌入的正文和版本与来源一致 |
+| 仓库检查 | Schema 的 `feature`、`error_kind` 枚举分别与 `FeatureId`、Core `ErrorKind` 一致；隐私政策正文与 `policy_body_sha256` 一致，`policy_changes` 是字符串列表，应用内嵌入的正文、版本和变更要点与来源一致 |
 | 端到端 | 对本地 `wrangler dev` 的联调另行记录，必须断言本地 D1 有写入，不能代替真实部署的验收 |
 
 以下场景必须有专门的测试：

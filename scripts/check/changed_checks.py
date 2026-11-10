@@ -175,18 +175,23 @@ APP_SERVICE_INPUTS = {
     '.github/workflows/ci.yml', '.github/actions/versions/action.yml',
     'scripts/tools/versions.env', 'justfile',
 }
+PRIVACY_POLICY_INPUTS = {
+    'docs/site/tech/privacy-policy.md',
+    'packages/ubaa_domain/lib/src/privacy/bundled_policy.dart',
+}
 
 
 def select_checks(root, paths, mode='commit', previous=None):
     if mode not in {'commit', 'push', 'full'}:
         raise ValueError('检查模式只接受 commit、push 或 full')
     selected, production = set(), set()
-    rust = scripts = native = site = strict_rust = app_service = False
+    rust = scripts = native = site = strict_rust = app_service = privacy_policy = False
     full = mode == 'full'
     codegen = full
     notes = set()
     for path in paths:
         site |= path.startswith('docs/site/') or path in {'package.json', 'package-lock.json'}
+        privacy_policy |= path in PRIVACY_POLICY_INPUTS
         app_service |= path in APP_SERVICE_INPUTS or path.startswith((
             'services/app_service/', 'fixtures/app_service/', 'crates/ubaa_core/src/app_service/',
             'scripts/check/app_service/', 'scripts/tests/app_service/',
@@ -266,6 +271,7 @@ def select_checks(root, paths, mode='commit', previous=None):
     return {'rust': rust, 'scripts': scripts, 'full': full, 'strict': full or strict_rust or mode == 'push',
             'native': native and (full or mode == 'push'),
             'app_service': app_service or full,
+            'privacy_policy': privacy_policy,
             'packages': [name for name in PACKAGES if name in selected],
             'extra': ([CODEGEN] if codegen else []) + ([['npm', 'run', 'docs:build']] if site else []),
             'notes': sorted(notes)}
@@ -283,6 +289,8 @@ def commands(plan):
     else:
         result.extend([['just', 'contract-version-check'], ['just', 'docs-link-check'],
                        ['just', 'cargo-lock-check']])
+        if plan['privacy_policy']:
+            result.append(['just', 'privacy-policy-check'])
         if plan['packages']:
             result.append(['just', 'layout-check'])
     if plan['packages']:

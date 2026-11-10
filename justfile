@@ -95,6 +95,7 @@ _script-contracts:
     bash ./scripts/tests/maintenance-gates.sh
     just layout-check
     just contract-version-check
+    just privacy-policy-check
     just docs-link-check
     just tool-version-check
     just cargo-lock-check
@@ -130,6 +131,14 @@ app-service-check:
     python3 scripts/check/app_service/enums.py
     npm --prefix services/app_service ci --no-audit --no-fund
     npm --prefix services/app_service run check
+
+# 只读核对网站正文摘要和应用内嵌入的政策。
+privacy-policy-check:
+    bash scripts/tools/python.sh scripts/check/app_service/privacy_policy.py
+
+# 显式更新应用内政策；修改正文后须先更新来源中登记的摘要。
+privacy-policy-generate:
+    bash scripts/tools/python.sh scripts/check/app_service/privacy_policy.py --write
 
 docs-link-check:
     python3 scripts/check/docs_links.py
@@ -193,6 +202,7 @@ source-files:
 script-test:
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/app_service/enums_test.py
+    bash scripts/tools/python.sh scripts/tests/app_service/privacy_policy_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py
     python3 scripts/tests/checks/ohos_native_library_test.py

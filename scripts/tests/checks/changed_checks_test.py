@@ -177,6 +177,12 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertNotIn(['just', 'check-changed'], commands)
         self.assertNotIn(['just', 'docs-link-check'], commands)
 
+    def test_policy_only_changes_select_policy_check(self):
+        plan = self.plan('docs/site/tech/privacy-policy.md')
+        self.assertIn(['just', 'privacy-policy-check'], gates.commands(plan))
+        self.assertIn(['npm', 'run', 'docs:build'], gates.commands(plan))
+        self.assertNotIn(['just', 'app-service-check'], gates.commands(plan))
+
     def test_app_service_only_changes_propagate_worker_check_failure(self):
         for path in ['services/app_service/src/index.ts', 'fixtures/app_service/bootstrap.json']:
             with self.subTest(path=path), tempfile.TemporaryDirectory() as folder:
