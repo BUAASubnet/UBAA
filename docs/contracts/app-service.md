@@ -1,6 +1,6 @@
 # 应用服务合同
 
-状态：已接受，Core、Worker 和宿主已接通上报与删除。隐私交互界面、启动配置、更新门控与定时汇总待实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
+状态：已实施，生产部署未执行。测试结果见[应用服务验收对照](../migration/status.md#应用服务验收对照)，决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
 
 ## 1. 范围
 
