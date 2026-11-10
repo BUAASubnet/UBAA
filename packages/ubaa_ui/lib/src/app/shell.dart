@@ -30,6 +30,7 @@ import '../features/home/shell_helpers.dart';
 import '../theme.dart';
 import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
+import 'app_service/settings.dart' show AppServiceControls;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
 import '../common/read_navigator.dart'
@@ -50,14 +51,12 @@ class UbaaMainShell extends StatefulWidget {
     required this.user,
     required this.snapshots,
     required this.routePolicy,
-    required this.telemetryEnabled,
-    this.telemetryAvailable = true,
+    this.appService,
     required this.onRefresh,
     required this.onRetryFeature,
     required this.onLogout,
     required this.onLogoutAndClearAccount,
     required this.onRoutePolicyChanged,
-    required this.onTelemetryChanged,
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
     this.bhpanService,
@@ -165,14 +164,12 @@ class UbaaMainShell extends StatefulWidget {
   final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
   final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
-  final bool telemetryEnabled;
-  final bool telemetryAvailable;
+  final AppServiceControls? appService;
   final Future<void> Function() onRefresh;
   final Future<void> Function(FeatureId feature) onRetryFeature;
   final Future<void> Function() onLogout;
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
-  final ValueChanged<bool> onTelemetryChanged;
   final UiDestination initialDestination;
 
   final CampusAccountService? campusAccountService;

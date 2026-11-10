@@ -428,12 +428,11 @@ void _registerCallbackTests() {
     );
 
     shell.onRoutePolicyChanged(RoutePolicy.webvpn);
-    shell.onTelemetryChanged(true);
     await tester.pumpAndSettle();
     shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.routePolicy, RoutePolicy.webvpn);
-    expect(shell.telemetryEnabled, isFalse);
-    expect(shell.telemetryAvailable, isFalse);
+    // 未接入应用服务的后端不提供隐私与统计条目。
+    expect(shell.appService, isNull);
     await shell.onRefreshEvaluationAfterWrite!(
       expectedRoute: evaluationIntent.resolvedRoute,
     );

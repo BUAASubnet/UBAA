@@ -217,13 +217,11 @@ class _HarnessState extends State<_Harness> {
     readCacheEpoch: epoch,
     businessCacheEpoch: businessEpoch,
     routePolicy: RoutePolicy.auto,
-    telemetryEnabled: false,
     onRefresh: () async {},
     onRetryFeature: (_) async {},
     onFeatureQuery: query,
     onLogout: () async {},
     onLogoutAndClearAccount: () async {},
     onRoutePolicyChanged: (_) {},
-    onTelemetryChanged: (_) {},
   );
 }

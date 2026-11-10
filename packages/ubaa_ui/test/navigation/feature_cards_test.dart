@@ -135,7 +135,6 @@ Future<List<FeatureId>> _showGroup(
             ),
         },
         routePolicy: RoutePolicy.direct,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (feature) async => reads.add(feature),
         onFeatureQuery: (feature, _) async => reads.add(feature),
@@ -143,7 +142,6 @@ Future<List<FeatureId>> _showGroup(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

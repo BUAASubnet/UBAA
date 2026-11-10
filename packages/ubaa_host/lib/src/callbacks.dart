@@ -223,8 +223,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onCancelWrite: _controller.writeCoordinator.cancelForUi,
       onConfirmWrite: _controller.writeCoordinator.confirmForUi,
       initialDestination: widget.initialDestination,
-      telemetryEnabled: _controller.telemetryEnabled,
-      telemetryAvailable: _controller.telemetryAvailable,
+      appService: _appServiceControls,
       onRefresh: _controller.refreshSchoolAgenda,
       onRetryFeature: _controller.retryFeature,
       onOpenLockDisplay: _controller.openLockDisplay,
@@ -268,9 +267,6 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onLogoutAndClearAccount: () => _logoutAndClearLocalData(localOwner),
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
-      },
-      onTelemetryChanged: (value) {
-        unawaited(_controller.setTelemetryEnabled(value));
       },
     );
   }

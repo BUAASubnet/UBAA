@@ -306,7 +306,6 @@ Future<void> _pumpCgyyCancellationShell(
           ),
       },
       routePolicy: RoutePolicy.auto,
-      telemetryEnabled: false,
       onRefresh: () async {},
       onRetryFeature: (_) async {},
       onPrepareCgyyCancelWrite: onPrepare,
@@ -317,7 +316,6 @@ Future<void> _pumpCgyyCancellationShell(
       onLogout: () async {},
       onLogoutAndClearAccount: () async {},
       onRoutePolicyChanged: (_) {},
-      onTelemetryChanged: (_) {},
     ),
   ),
 );

@@ -26,7 +26,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onFeatureQuery: (feature, query) async {
@@ -36,7 +35,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -84,7 +82,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareSigninWrite: (_) async {
@@ -94,7 +91,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -148,7 +144,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareSigninWrite: (_) async {
@@ -158,7 +153,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -195,7 +189,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onFeatureQuery: (feature, query) async {
@@ -205,7 +198,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -237,7 +229,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onFeatureQuery: (feature, query) async {
@@ -247,7 +238,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -279,7 +269,6 @@ void _registerQueryTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onFeatureQuery: (feature, query) async {
@@ -289,7 +278,6 @@ void _registerQueryTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );

@@ -47,13 +47,11 @@ void main() {
                   ),
               },
               routePolicy: RoutePolicy.direct,
-              telemetryEnabled: false,
               onRefresh: () async {},
               onRetryFeature: (_) async {},
               onLogout: () async {},
               onLogoutAndClearAccount: () async {},
               onRoutePolicyChanged: (_) {},
-              onTelemetryChanged: (_) {},
               onPrepareBykcSignWrite: (_) async {
                 prepares++;
                 return WriteIntent(

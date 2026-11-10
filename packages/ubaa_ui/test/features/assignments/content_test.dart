@@ -340,7 +340,6 @@ Future<void> showFeature(
                 : FeatureSnapshot(feature: id),
         },
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onLoadAllGrades: onLoadAllGrades,
         onRetryFeature: (_) async {},
@@ -350,7 +349,6 @@ Future<void> showFeature(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

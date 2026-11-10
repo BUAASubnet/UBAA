@@ -221,7 +221,6 @@ Future<void> _open(
             ),
         },
         routePolicy: RoutePolicy.direct,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onFeatureQuery: (_, __) async {},
@@ -234,7 +233,6 @@ Future<void> _open(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

@@ -41,7 +41,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcWrite: (operation, courseId) async {
@@ -61,7 +60,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -114,14 +112,12 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcWrite: (_, _) async => throw StateError('已满课程不应触发准备回调'),
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -202,7 +198,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcWrite: (_, __) async {
@@ -212,7 +207,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -274,7 +268,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcSignWrite: (action) async {
@@ -297,7 +290,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -385,7 +377,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcSignWrite: (_) async {
@@ -395,7 +386,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -449,7 +439,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcSignWrite: (_) async =>
@@ -457,7 +446,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -508,7 +496,6 @@ void _registerBykcStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcWrite: (operation, courseId) async {
@@ -531,7 +518,6 @@ void _registerBykcStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -652,7 +638,6 @@ void _registerCgyyStateTest() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareCgyyCancelWrite: (_) async {
@@ -661,7 +646,6 @@ void _registerCgyyStateTest() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -707,7 +691,6 @@ void _registerSharedStateTests() {
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
           activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {
             retryCalls++;
@@ -715,7 +698,6 @@ void _registerSharedStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -828,13 +810,11 @@ void _registerSharedStateTests() {
             user: const UserSummary(username: 'student'),
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async => retryCalls++,
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           ),
         ),
       );
@@ -915,7 +895,6 @@ void _registerSharedStateTests() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcWrite: (_, __) async => intent,
@@ -930,7 +909,6 @@ void _registerSharedStateTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );

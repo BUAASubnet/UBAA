@@ -105,13 +105,11 @@ Widget _menu() => UbaaMainShell(
       feature: FeatureSnapshot(feature: feature),
   },
   routePolicy: RoutePolicy.auto,
-  telemetryEnabled: false,
   onRefresh: () async {},
   onRetryFeature: (_) async {},
   onLogout: () async {},
   onLogoutAndClearAccount: () async {},
   onRoutePolicyChanged: (_) {},
-  onTelemetryChanged: (_) {},
 );
 
 const _courses = [

@@ -33,7 +33,6 @@ void main() {
                 ),
             },
             routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
             onPrepareBykcWrite: (_, _) async => throw StateError('不应准备'),
             onRunWritePrepare: missing == 'prepare'
                 ? null
@@ -45,7 +44,6 @@ void main() {
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           ),
         ),
       );

@@ -353,7 +353,6 @@ Future<void> _pumpLibbookCancelShell(
         user: const UserSummary(username: 'student'),
         snapshots: _libbookSnapshots(details),
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onPrepareLibbookCancelWrite: onPrepare,
@@ -362,7 +361,6 @@ Future<void> _pumpLibbookCancelShell(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );
@@ -428,7 +426,6 @@ Future<void> _pumpLibbookShell(
         user: const UserSummary(username: 'student'),
         snapshots: snapshots,
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onPrepareLibbookReserveWrite: onPrepare,
@@ -437,7 +434,6 @@ Future<void> _pumpLibbookShell(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

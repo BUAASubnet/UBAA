@@ -145,13 +145,11 @@ Future<void> mount(
             for (final f in FeatureId.values) f: FeatureSnapshot(feature: f),
           },
           routePolicy: RoutePolicy.direct,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
           cacheAccountId: id,
           onReadCacheUsage:
               onRead ??

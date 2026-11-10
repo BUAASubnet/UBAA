@@ -166,7 +166,6 @@ Future<void> mount(
             ),
         },
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (id) {
           expect(id, feature);
@@ -175,7 +174,6 @@ Future<void> mount(
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

@@ -243,7 +243,6 @@ void main() {
               f: FeatureSnapshot(feature: f, status: FeatureLoadStatus.empty),
           },
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           connectionStatus: status,
           connecting: connecting,
           onCompleteLogin: login
@@ -256,7 +255,6 @@ void main() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );

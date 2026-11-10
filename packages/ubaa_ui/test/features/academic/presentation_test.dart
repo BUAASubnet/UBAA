@@ -317,13 +317,11 @@ Future<void> _show(
             ),
         },
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

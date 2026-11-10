@@ -82,13 +82,11 @@ Future<void> _open(WidgetTester tester, String id) async {
             ),
         },
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
       ),
     ),
   );

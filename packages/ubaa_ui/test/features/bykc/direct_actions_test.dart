@@ -177,7 +177,6 @@ Future<Scenario> mount(
           return coordinatedShell(
             user: const UserSummary(username: 'synthetic'),
             routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
             snapshots: {
               for (final feature in FeatureId.values)
                 feature: feature == FeatureId.bykc
@@ -214,7 +213,6 @@ Future<Scenario> mount(
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           );
         },
       ),

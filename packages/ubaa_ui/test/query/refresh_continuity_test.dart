@@ -203,7 +203,6 @@ Future<void> _mount(
                     ),
           },
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async => fail('本地状态操作不得全量刷新'),
           onRetryFeature: (_) async => fail('本地状态操作不得默认刷新'),
           onFeatureQuery: (_, query) async {
@@ -213,7 +212,6 @@ Future<void> _mount(
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     ),

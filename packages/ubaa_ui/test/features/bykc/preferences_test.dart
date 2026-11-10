@@ -210,13 +210,11 @@ Future<void> _mount(WidgetTester tester, _Scenario state) async {
             },
             onFeatureQuery: (_, _) async => state.queries++,
             routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           );
         },
       ),

@@ -20,13 +20,11 @@ Future<void> mount(
             f: FeatureSnapshot(feature: f, status: FeatureLoadStatus.empty),
         },
         routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
         onLoadRecentFeatures: load,
         onSaveRecentFeatures: save,
       ),
@@ -59,13 +57,11 @@ void main() {
               for (final f in FeatureId.values) f: FeatureSnapshot(feature: f),
             },
             routePolicy: RoutePolicy.auto,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
             onLoadRecentFeatures: () async {
               reads++;
               return [FeatureId.grades, FeatureId.exam];

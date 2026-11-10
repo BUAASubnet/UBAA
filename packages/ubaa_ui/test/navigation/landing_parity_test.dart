@@ -212,7 +212,6 @@ class _HarnessState extends State<_Harness> {
         id: id == widget.feature ? snapshot : FeatureSnapshot(feature: id),
     },
     routePolicy: RoutePolicy.auto,
-    telemetryEnabled: false,
     onRefresh: () async {},
     onRetryFeature: (_) async {},
     onFeatureQuery: (_, query) async {
@@ -253,6 +252,5 @@ class _HarnessState extends State<_Harness> {
     onLogout: () async {},
     onLogoutAndClearAccount: () async {},
     onRoutePolicyChanged: (_) {},
-    onTelemetryChanged: (_) {},
   );
 }

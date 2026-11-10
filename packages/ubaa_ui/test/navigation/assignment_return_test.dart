@@ -177,14 +177,12 @@ class _HarnessState extends State<_Harness> {
               : FeatureSnapshot(feature: feature),
       },
       routePolicy: RoutePolicy.auto,
-      telemetryEnabled: false,
       onRefresh: () async {},
       onRetryFeature: (feature) => query(feature, const FeatureQuery()),
       onFeatureQuery: query,
       onLogout: () async {},
       onLogoutAndClearAccount: () async {},
       onRoutePolicyChanged: (_) {},
-      onTelemetryChanged: (_) {},
     ),
   );
 }

@@ -599,7 +599,6 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
                       ),
             },
             routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
             onFeatureQuery: (_, query) => state.load(query),
@@ -614,7 +613,6 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           );
         },
       ),

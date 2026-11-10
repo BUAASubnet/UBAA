@@ -33,7 +33,6 @@ Future<void> fixturePumpYgdkShell(
       user: const UserSummary(username: 'student'),
       snapshots: fixtureYgdkSnapshots(),
       routePolicy: RoutePolicy.auto,
-      telemetryEnabled: false,
       onRefresh: () async {},
       onRetryFeature: (_) async {},
       onPrepareYgdkSubmitWrite: prepare,
@@ -45,7 +44,6 @@ Future<void> fixturePumpYgdkShell(
       onLogout: () async {},
       onLogoutAndClearAccount: () async {},
       onRoutePolicyChanged: (_) {},
-      onTelemetryChanged: (_) {},
     ),
   ),
 );

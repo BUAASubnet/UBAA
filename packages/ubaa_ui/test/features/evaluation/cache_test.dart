@@ -62,12 +62,10 @@ Widget _page(FeatureLoadStatus status) => MaterialApp(
         ),
     },
     routePolicy: RoutePolicy.direct,
-    telemetryEnabled: false,
     onRefresh: () async {},
     onRetryFeature: (_) async {},
     onLogout: () async {},
     onLogoutAndClearAccount: () async {},
     onRoutePolicyChanged: (_) {},
-    onTelemetryChanged: (_) {},
   ),
 );

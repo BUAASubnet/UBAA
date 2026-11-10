@@ -66,13 +66,11 @@ Future<void> mount(
             feature: FeatureSnapshot(feature: feature),
         },
         routePolicy: RoutePolicy.direct,
-        telemetryEnabled: false,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
-        onTelemetryChanged: (_) {},
         writeReadbacks: [
           WriteReadbackHint(
             id: '0123456789abcdef0123456789abcdef',

@@ -11,6 +11,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 import 'crash_handlers.dart';
 
+part 'app_service.dart';
 part 'callbacks.dart';
 part 'lifecycle.dart';
 part 'startup.dart';

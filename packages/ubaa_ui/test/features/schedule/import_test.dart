@@ -46,13 +46,11 @@ void main() {
                       ),
                   },
                   routePolicy: RoutePolicy.direct,
-                  telemetryEnabled: false,
                   onRefresh: () async {},
                   onRetryFeature: (_) async {},
                   onLogout: () async {},
                   onLogoutAndClearAccount: () async {},
                   onRoutePolicyChanged: (_) {},
-                  onTelemetryChanged: (_) {},
                   onFeatureQuery: (feature, query) async {
                     queries.add(query);
                   },

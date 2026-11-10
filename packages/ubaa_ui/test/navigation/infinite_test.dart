@@ -244,13 +244,11 @@ class _HarnessState extends State<_Harness> {
         id: id == FeatureId.bykc ? snapshot : FeatureSnapshot(feature: id),
     },
     routePolicy: RoutePolicy.auto,
-    telemetryEnabled: false,
     onRefresh: () async {},
     onRetryFeature: (_) async {},
     onFeatureQuery: read,
     onLogout: () async {},
     onLogoutAndClearAccount: () async {},
     onRoutePolicyChanged: (_) {},
-    onTelemetryChanged: (_) {},
   );
 }

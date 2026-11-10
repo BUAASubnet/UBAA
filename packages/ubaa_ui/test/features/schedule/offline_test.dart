@@ -47,13 +47,11 @@ void main() {
                       : FeatureSnapshot(feature: feature),
               },
               routePolicy: RoutePolicy.direct,
-              telemetryEnabled: false,
               onRefresh: () async {},
               onRetryFeature: (_) async {},
               onLogout: () async {},
               onLogoutAndClearAccount: () async {},
               onRoutePolicyChanged: (_) {},
-              onTelemetryChanged: (_) {},
               onLoadAcademicWeeks: (_, _) async => const FeatureResult.empty(),
               onFeatureQuery: (_, query) async {
                 queries.add(query);
@@ -199,13 +197,11 @@ Future<void> _show(
                   : FeatureSnapshot(feature: feature),
           },
           routePolicy: RoutePolicy.direct,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
           onLoadAcademicWeeks: (term, _) async => FeatureResult.success(
             details: details(
               FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),

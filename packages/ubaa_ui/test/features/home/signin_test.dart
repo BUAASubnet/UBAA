@@ -191,7 +191,6 @@ Future<Scenario> mount(
             user: const UserSummary(username: 'synthetic'),
             snapshots: snapshots,
             routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (id) async {
               state.refreshes++;
@@ -222,7 +221,6 @@ Future<Scenario> mount(
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           );
         },
       ),

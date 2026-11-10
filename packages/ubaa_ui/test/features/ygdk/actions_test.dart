@@ -144,7 +144,6 @@ void _registerYgdkWriteResultTests() {
                 user: const UserSummary(username: 'student'),
                 snapshots: fixtureYgdkSnapshots(),
                 routePolicy: RoutePolicy.auto,
-                telemetryEnabled: false,
                 onRefresh: () async {},
                 onRetryFeature: (_) async {},
                 onPrepareYgdkSubmitWrite: unavailable == 'prepare'
@@ -173,7 +172,6 @@ void _registerYgdkWriteResultTests() {
                 onLogout: () async {},
                 onLogoutAndClearAccount: () async {},
                 onRoutePolicyChanged: (_) {},
-                onTelemetryChanged: (_) {},
               ),
             ),
           ),
@@ -244,7 +242,6 @@ void _registerYgdkWriteResultTests() {
             user: const UserSummary(username: 'student'),
             snapshots: fixtureYgdkSnapshots(),
             routePolicy: RoutePolicy.auto,
-            telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
             onPrepareYgdkSubmitWrite: (_) async => _validYgdkIntent(),
@@ -257,7 +254,6 @@ void _registerYgdkWriteResultTests() {
             onLogout: () async {},
             onLogoutAndClearAccount: () async {},
             onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
           ),
         ),
       ),
@@ -379,7 +375,6 @@ void _registerYgdkWriteResultTests() {
           user: const UserSummary(username: 'student'),
           snapshots: fixtureYgdkSnapshots(),
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareYgdkSubmitWrite: (input) async {
@@ -405,7 +400,6 @@ void _registerYgdkWriteResultTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -438,7 +432,6 @@ void _registerYgdkWriteResultTests() {
           user: const UserSummary(username: 'student'),
           snapshots: fixtureYgdkSnapshots(),
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareYgdkSubmitWrite: (_) async => WriteIntent(
@@ -468,7 +461,6 @@ void _registerYgdkWriteResultTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );
@@ -491,7 +483,6 @@ void _registerYgdkWriteResultTests() {
           user: const UserSummary(username: 'student'),
           snapshots: fixtureYgdkSnapshots(),
           routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareYgdkSubmitWrite: (_) async => throw StateError('不应 prepare'),
@@ -502,7 +493,6 @@ void _registerYgdkWriteResultTests() {
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
+import 'app_service/settings.dart' show AppServiceControls, AppServiceSettings;
 import 'cache_settings.dart' show CacheSettings;
 import 'profile_details.dart' show ProfileIdentityCard;
 import '../common/error_card.dart' show uiShowDiagnosticsDialog;
@@ -13,10 +14,8 @@ class ProfileView extends StatelessWidget {
   const ProfileView({
     required this.user,
     required this.routePolicy,
-    required this.telemetryEnabled,
-    this.telemetryAvailable = true,
+    this.appService,
     required this.onRoutePolicyChanged,
-    required this.onTelemetryChanged,
     required this.onLogout,
     required this.onLogoutAndClearAccount,
     required this.activeRoutes,
@@ -42,10 +41,10 @@ class ProfileView extends StatelessWidget {
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final UserSummary? user;
   final RoutePolicy routePolicy;
-  final bool telemetryEnabled;
-  final bool telemetryAvailable;
+
+  /// 构建接入应用服务时由宿主提供；为 null 时不显示隐私与统计条目。
+  final AppServiceControls? appService;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
-  final ValueChanged<bool> onTelemetryChanged;
   final Future<void> Function() onLogout;
   final Future<void> Function() onLogoutAndClearAccount;
   final List<ConnectionMode> activeRoutes;
@@ -170,19 +169,13 @@ class ProfileView extends StatelessWidget {
                   enabled: canClearBusinessCache,
                   inCard: false,
                 ),
-              // 未启用统计的版本不显示这个永远灰着的开关。
-              if (telemetryAvailable) ...[
+              // 未接入应用服务的构建不显示政策、同意和统计条目。
+              if (appService case final controls?) ...[
                 if (hasCache) const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.insights_outlined),
-                  title: const Text('匿名产品改进统计'),
-                  subtitle: const Text('仅统计功能使用次数，不收集账号、成绩或请求内容'),
-                  value: telemetryEnabled,
-                  onChanged: onTelemetryChanged,
-                ),
+                AppServiceSettings(controls: controls),
               ],
               if (onReadDiagnostics != null) ...[
-                if (hasCache || telemetryAvailable) const Divider(height: 1),
+                if (hasCache || appService != null) const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: const Text('诊断信息'),

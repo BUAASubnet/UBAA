@@ -98,7 +98,6 @@ void main() {
                 if (detail != null) FeatureId.spoc: detail!,
               },
               routePolicy: RoutePolicy.direct,
-              telemetryEnabled: false,
               onFeatureQuery: (_, query) async {
                 queries.add(query);
                 redraw(
@@ -118,7 +117,6 @@ void main() {
               onLogout: () async {},
               onLogoutAndClearAccount: () async {},
               onRoutePolicyChanged: (_) {},
-              onTelemetryChanged: (_) {},
             ),
           ),
         ),
