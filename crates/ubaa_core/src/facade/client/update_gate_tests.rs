@@ -11,6 +11,9 @@ use crate::{
     session::FileSessionStore,
 };
 use std::{
+    io::{BufRead, BufReader, Write as _},
+    path::PathBuf,
+    process::{Command, Stdio},
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
@@ -75,11 +78,25 @@ impl crate::connection::GatewayProbe for Probe {
     }
 }
 
+fn directory() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/app_service/test_gate")
+        .join(uuid::Uuid::new_v4().to_string())
+}
+
+fn service_config() -> AppServiceConfig {
+    AppServiceConfig::from_build(
+        Some("http://127.0.0.1:8787"),
+        Some("github"),
+        Some("2.1.0+1"),
+        Platform::Macos,
+        false,
+    )
+}
+
 #[tokio::test]
 async fn 门控拒绝学校发送与路由探测并保留本机缓存日程和导出() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_gate")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = directory();
     {
         let school = School::default();
         let mut client = UbaaClient::with_routing(
@@ -90,13 +107,7 @@ async fn 门控拒绝学校发送与路由探测并保留本机缓存日程和�
             Probe,
         )
         .unwrap();
-        let config = AppServiceConfig::from_build(
-            Some("http://127.0.0.1:8787"),
-            Some("github"),
-            Some("2.1.0+1"),
-            Platform::Macos,
-            false,
-        );
+        let config = service_config();
         let gui = open_installation(&root, config.clone(), Surface::Gui, 1).unwrap();
         let command = open_installation(&root, config, Surface::Command, 1).unwrap();
         gui.agree(1).unwrap();
@@ -148,6 +159,116 @@ async fn 门控拒绝学校发送与路由探测并保留本机缓存日程和�
             503
         );
         assert_eq!(school.0.load(Ordering::SeqCst), 1);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn 门控读锁超时放行学校请求且不删除已保存门控() {
+    let root = directory();
+    {
+        let school = School::default();
+        let mut client = UbaaClient::with_routing(
+            school.clone(),
+            school.clone(),
+            FileSessionStore::new(&root).unwrap(),
+            RouteConfig::default(),
+            Probe,
+        )
+        .unwrap();
+        let gui = open_installation(&root, service_config(), Surface::Gui, 1).unwrap();
+        gui.agree(1).unwrap();
+        gui.refresh_bootstrap_with(&Bootstrap, true).await.unwrap();
+        let command = open_installation(&root, service_config(), Surface::Command, 1).unwrap();
+        client.bind_app_service(Arc::new(command));
+        let lock = rusqlite::Connection::open(root.join("app_service.sqlite3")).unwrap();
+        let url = "https://school.example.test/request";
+        assert_eq!(
+            client.check_school_requests().unwrap_err().code,
+            ErrorCode::UpdateRequired
+        );
+        for (index, consent) in [
+            Consent::Agreed(1),
+            Consent::ReconsentRequired(2),
+            Consent::Basic,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            match consent {
+                Consent::ReconsentRequired(2) => gui.require_policy(2).unwrap(),
+                Consent::Basic => gui.enter_basic().unwrap(),
+                _ => {}
+            }
+            assert_eq!(gui.snapshot().unwrap().consent, consent);
+            lock.execute_batch("BEGIN EXCLUSIVE").unwrap();
+            let response = client.direct_runtime.request(HttpRequest::get(url)).await;
+            lock.execute_batch("ROLLBACK").unwrap();
+            assert_eq!(response.unwrap().status, 503);
+            assert_eq!(school.0.load(Ordering::SeqCst), index + 1);
+            if consent == Consent::Agreed(1) {
+                assert_eq!(
+                    client.check_school_requests().unwrap_err().code,
+                    ErrorCode::UpdateRequired
+                );
+            }
+        }
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+const LOCK_TEST_ROOT: &str = "UBAA_APP_SERVICE_LOCK_TEST_ROOT";
+
+#[test]
+fn 数据库持锁子进程() {
+    let Some(root) = std::env::var_os(LOCK_TEST_ROOT) else {
+        return;
+    };
+    let connection =
+        rusqlite::Connection::open(Path::new(&root).join("app_service.sqlite3")).unwrap();
+    connection.execute_batch("BEGIN EXCLUSIVE").unwrap();
+    println!("安装数据库已持锁");
+    std::io::stdout().flush().unwrap();
+    // 持锁时间超过原打开等待 250 毫秒，仍在宿主的打开预算内。
+    std::thread::sleep(Duration::from_millis(550));
+    connection.execute_batch("ROLLBACK").unwrap();
+}
+
+#[tokio::test]
+async fn 独立进程短暂持锁时打开安装服务仍保留命令门控() {
+    let root = directory();
+    {
+        let gui = open_installation(&root, service_config(), Surface::Gui, 1).unwrap();
+        gui.agree(1).unwrap();
+        gui.refresh_bootstrap_with(&Bootstrap, true).await.unwrap();
+        let (_, module) = module_path!().split_once("::").unwrap();
+        let mut holder = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                &format!("{module}::数据库持锁子进程"),
+                "--nocapture",
+            ])
+            .env(LOCK_TEST_ROOT, &root)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut ready = BufReader::new(holder.stdout.take().unwrap());
+        let mut line = String::new();
+        while ready.read_line(&mut line).unwrap() != 0 && !line.contains("安装数据库已持锁")
+        {
+            line.clear();
+        }
+        let command = open_installation(&root, service_config(), Surface::Command, 1);
+        assert!(holder.wait().unwrap().success());
+        assert!(line.contains("安装数据库已持锁"));
+        let mut client = UbaaClient::open(&root).unwrap();
+        client.bind_app_service(Arc::new(
+            command.expect("暂时争用不能导致命令模式丢失安装服务"),
+        ));
+        assert_eq!(
+            client.check_school_requests().unwrap_err().code,
+            ErrorCode::UpdateRequired
+        );
     }
     std::fs::remove_dir_all(root).unwrap();
 }

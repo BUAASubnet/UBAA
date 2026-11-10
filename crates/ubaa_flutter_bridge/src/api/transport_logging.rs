@@ -1,10 +1,11 @@
-//! Flutter Bridge 的默认安全传输日志接线。
+//! Flutter Bridge 的默认安全诊断日志接线。
 
 use tracing::{Level, Metadata, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 
 const TRANSPORT_TARGET: &str = "ubaa::transport";
+const SCHOOL_GATE_TARGET: &str = "ubaa::app_service::school_gate";
 const SAFE_FIELDS: [&str; 4] = ["message", "stage", "reason", "elapsed_ms"];
 
 pub(super) fn install_default() {
@@ -19,15 +20,24 @@ fn default_subscriber() -> impl Subscriber + Send + Sync {
             .with_ansi(false)
             .with_target(false)
             .with_writer(std::io::stderr)
-            .with_filter(filter_fn(is_safe_transport_event)),
+            .with_filter(filter_fn(is_safe_diagnostic_event)),
     )
 }
 
-fn is_safe_transport_event(metadata: &Metadata<'_>) -> bool {
-    metadata.target() == TRANSPORT_TARGET
-        && metadata.level() == &Level::DEBUG
-        && metadata.fields().iter().count() == SAFE_FIELDS.len()
-        && SAFE_FIELDS
-            .iter()
-            .all(|name| metadata.fields().field(name).is_some())
+fn is_safe_diagnostic_event(metadata: &Metadata<'_>) -> bool {
+    let fields = metadata.fields();
+    match metadata.target() {
+        TRANSPORT_TARGET => {
+            metadata.level() == &Level::DEBUG
+                && fields.iter().count() == SAFE_FIELDS.len()
+                && SAFE_FIELDS.iter().all(|name| fields.field(name).is_some())
+        }
+        SCHOOL_GATE_TARGET => {
+            metadata.is_event()
+                && metadata.level() == &Level::WARN
+                && fields.iter().count() == 1
+                && fields.field("message").is_some()
+        }
+        _ => false,
+    }
 }

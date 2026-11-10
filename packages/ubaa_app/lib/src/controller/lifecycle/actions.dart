@@ -23,8 +23,9 @@ import '../write/evaluation_readback.dart'
         controllerNormalizeEvaluationTarget,
         controllerRefreshEvaluationAfterWrite;
 import '../write/ygdk_readback.dart' show controllerRefreshYgdkAfterWrite;
+import 'app_service.dart' show ControllerAppService;
 
-mixin ControllerActions on ControllerState {
+mixin ControllerActions on ControllerState, ControllerAppService {
   Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
       internalReadCacheUsage(accountId);
 
@@ -315,9 +316,10 @@ mixin ControllerActions on ControllerState {
         if (internalDisposed) return;
         if (internalAppServiceView.consent == AppServiceConsent.agreed &&
             internalAppServiceView.update?.gateActive == true) {
-          final view = await refreshAppService();
+          final view = await internalReadAppService();
           if (internalDisposed) return;
-          if (view.consent == AppServiceConsent.agreed &&
+          if (view != null &&
+              view.consent == AppServiceConsent.agreed &&
               view.update?.gateActive == true) {
             internalError = internalRecordFailure(
               const BackendException(

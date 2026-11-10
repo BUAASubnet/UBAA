@@ -163,6 +163,25 @@ void main() {
     expect(gui.phase, AppPhase.home);
   });
 
+  test('门控状态读取失败时缓存横幅不阻止提交登录', () async {
+    final store = _Store()
+      ..consent = AppServiceConsent.agreed
+      ..gateActive = true;
+    final backend = _Backend(store);
+    final gui = AppController(backend: backend);
+    addTearDown(gui.dispose);
+    await gui.initialize();
+    await gui.refreshAppBootstrap(force: true);
+    expect(gui.appUpdate?.gateActive, isTrue);
+
+    store.rejectRead = true;
+    gui.setUsername('synthetic-user');
+    gui.setPassword('synthetic-password');
+    await gui.submitLogin();
+    expect(backend.loginCalls, 1);
+    expect(gui.phase, AppPhase.home);
+  });
+
   test('撤回同意不等待在途启动配置，迟到的刷新不会重开界面', () async {
     final store = _Store()..consent = AppServiceConsent.agreed;
     final gui = AppController(backend: _Backend(store));
@@ -185,6 +204,7 @@ void main() {
 
 class _Store {
   bool rejectAgreement = false;
+  bool rejectRead = false;
   bool enabled = false;
   var consent = AppServiceConsent.unasked;
   bool installed = false;
@@ -270,31 +290,35 @@ class _Backend extends DemoBackend implements AppBootstrapBackend {
   ];
 
   @override
-  Future<AppServiceView> appServiceState() async => AppServiceView(
-    available: true,
-    telemetryAllowed: true,
-    consent: store.consent,
-    policyVersion: 1,
-    agreedPolicyVersion: store.consent == AppServiceConsent.agreed ? 1 : null,
-    telemetryEnabled: store.enabled,
-    canErase: store.installed,
-    erase: store.erase,
-    update: store.bootstrapForces.isEmpty
-        ? null
-        : AppUpdateView(
-            status: store.gateActive
-                ? AppUpdateStatus.updateRequired
-                : AppUpdateStatus.updateAvailable,
-            latestVersion: '2.3.0+15',
-            gateActive: store.gateActive,
-            availableDismissed: store.dismissed == '2.3.0+15',
-          ),
-    announcements: store.bootstrapForces.isEmpty
-        ? const []
-        : _announcements
-              .where((item) => !store.read.contains(item.id))
-              .toList(),
-  );
+  Future<AppServiceView> appServiceState() async => store.rejectRead
+      ? throw StateError('合成持久化读取失败')
+      : AppServiceView(
+          available: true,
+          telemetryAllowed: true,
+          consent: store.consent,
+          policyVersion: 1,
+          agreedPolicyVersion: store.consent == AppServiceConsent.agreed
+              ? 1
+              : null,
+          telemetryEnabled: store.enabled,
+          canErase: store.installed,
+          erase: store.erase,
+          update: store.bootstrapForces.isEmpty
+              ? null
+              : AppUpdateView(
+                  status: store.gateActive
+                      ? AppUpdateStatus.updateRequired
+                      : AppUpdateStatus.updateAvailable,
+                  latestVersion: '2.3.0+15',
+                  gateActive: store.gateActive,
+                  availableDismissed: store.dismissed == '2.3.0+15',
+                ),
+          announcements: store.bootstrapForces.isEmpty
+              ? const []
+              : _announcements
+                    .where((item) => !store.read.contains(item.id))
+                    .toList(),
+        );
 
   @override
   Future<void> refreshAppBootstrap({required bool force}) async {

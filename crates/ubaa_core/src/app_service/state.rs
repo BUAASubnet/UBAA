@@ -130,6 +130,15 @@ impl StoredState {
     }
 }
 
+pub(super) fn require_policy(tx: &Transaction<'_>, version: u32) -> AppServiceResult<()> {
+    tx.execute(
+        "UPDATE app_service_state SET policy_version = ?1,
+            bootstrap_consent_epoch = bootstrap_consent_epoch + 1 WHERE policy_version < ?1",
+        [version],
+    )?;
+    Ok(())
+}
+
 impl AppService {
     /// 读取供宿主显示的最新状态。
     ///
@@ -162,14 +171,7 @@ impl AppService {
         if version == 0 {
             return Err(AppServiceError::InvalidPolicy);
         }
-        self.store.write(|tx| {
-            tx.execute(
-                "UPDATE app_service_state SET policy_version = ?1,
-                    bootstrap_consent_epoch = bootstrap_consent_epoch + 1 WHERE policy_version < ?1",
-                [version],
-            )?;
-            Ok(())
-        })
+        self.store.write(|tx| require_policy(tx, version))
     }
 
     /// 同意当前版本。仅 GUI 能写入同意，旧构建不能覆盖新版政策。

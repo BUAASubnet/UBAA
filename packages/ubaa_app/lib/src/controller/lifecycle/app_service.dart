@@ -76,34 +76,38 @@ mixin ControllerAppService on ControllerState {
     DiagnosticOperation.telemetry,
   );
 
-  Future<AppServiceView> _queueState(
+  Future<AppServiceView?> _queueState(
     Future<AppServiceView> Function(AppServiceBackend?) operation,
   ) {
     final service = _service;
     final next = _stateTail.then((_) async {
-      if (!_current(service)) return appService;
+      if (!_current(service)) return null;
       try {
         final state = await operation(service);
-        if (_current(service)) {
-          _show(
-            (_manualErase != null && state.canErase) ||
-                    (_retryingErase &&
-                        state.erase == AppServiceEraseStatus.pending)
-                ? state.withEraseStatus(AppServiceEraseStatus.running)
-                : state,
-          );
-        }
+        if (!_current(service)) return null;
+        _show(
+          (_manualErase != null && state.canErase) ||
+                  (_retryingErase &&
+                      state.erase == AppServiceEraseStatus.pending)
+              ? state.withEraseStatus(AppServiceEraseStatus.running)
+              : state,
+        );
+        return appService;
       } on Object {
         if (_current(service)) _failure();
+        return null;
       }
-      return appService;
     });
     _stateTail = next.then<void>((_) {});
     return next;
   }
 
   @override
-  Future<AppServiceView> refreshAppService() => _queueState(
+  Future<AppServiceView> refreshAppService() async =>
+      await internalReadAppService() ?? appService;
+
+  /// 只返回本次读取的视图；失败时保留显示，但不把缓存当作门控依据。
+  Future<AppServiceView?> internalReadAppService() => _queueState(
     (service) async =>
         await service?.appServiceState() ??
         AppServiceView.unavailable(privacyPolicy.version),
@@ -147,16 +151,18 @@ mixin ControllerAppService on ControllerState {
 
   Future<AppServiceView> _change(
     Future<AppServiceView> Function(AppServiceBackend) action,
-  ) => _queueState((service) async {
-    if (service == null)
-      return AppServiceView.unavailable(privacyPolicy.version);
-    try {
-      return await action(service);
-    } on Object {
-      if (_current(service)) _failure();
-      return service.appServiceState();
-    }
-  });
+  ) async =>
+      await _queueState((service) async {
+        if (service == null)
+          return AppServiceView.unavailable(privacyPolicy.version);
+        try {
+          return await action(service);
+        } on Object {
+          if (_current(service)) _failure();
+          return service.appServiceState();
+        }
+      }) ??
+      appService;
 
   Future<AppServiceView> agreePrivacyPolicy() async {
     final previous = appService.consent;

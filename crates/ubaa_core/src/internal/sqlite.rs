@@ -3,12 +3,14 @@
 use rusqlite::{Connection, OpenFlags};
 use std::{path::Path, time::Duration};
 
+pub(crate) const BUSY_TIMEOUT: Duration = Duration::from_millis(250);
+
 pub(crate) fn open(path: &Path, mode: OpenFlags) -> rusqlite::Result<Connection> {
     let db = Connection::open_with_flags(
         path,
         mode | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW,
     )?;
-    db.busy_timeout(Duration::from_millis(250))?;
+    db.busy_timeout(BUSY_TIMEOUT)?;
     Ok(db)
 }
 

@@ -1,4 +1,4 @@
-use super::{ClientRuntime, ErrorCode, ErrorKind, Result, UbaaError};
+use super::{ClientRuntime, Result, UbaaError};
 
 impl ClientRuntime {
     pub(crate) fn has_sent_write(&self) -> bool {
@@ -9,17 +9,15 @@ impl ClientRuntime {
     pub(crate) fn check_school_requests(&self) -> Result<()> {
         self.check_operation_controls()?;
         if let Some(service) = &self.app_service {
-            let active = service.update_gate_active().map_err(|error| {
-                UbaaError::new(
-                    ErrorCode::InternalError,
-                    ErrorKind::Internal,
-                    false,
-                    error.to_string(),
-                )
-            })?;
+            let active = service.update_gate_active();
             self.check_operation_controls()?;
-            if active {
-                return Err(UbaaError::update_required());
+            match active {
+                Ok(true) => return Err(UbaaError::update_required()),
+                Ok(false) => {}
+                Err(_) => tracing::warn!(
+                    target: "ubaa::app_service::school_gate",
+                    "无法读取应用服务门控状态，本次学校请求继续"
+                ),
             }
         }
         Ok(())

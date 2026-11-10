@@ -52,17 +52,14 @@ impl AppService {
         if policy_version == 0 {
             return Err(AppServiceError::InvalidPolicy);
         }
-        let service = Self {
-            store: Store::open(config_dir)?,
+        let policy = config.available().map(|_| policy_version);
+        Ok(Self {
+            store: Store::open(config_dir, policy)?,
             config,
             surface,
             telemetry_hard_closed: config::telemetry_hard_closed,
             now: Arc::new(Utc::now),
-        };
-        if service.config.available().is_some() {
-            service.require_policy(policy_version)?;
-        }
-        Ok(service)
+        })
     }
 
     #[cfg(test)]

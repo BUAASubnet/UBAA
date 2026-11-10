@@ -17,7 +17,7 @@ fn failed_migration_leaves_both_databases_intact() {
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch("CREATE TABLE app_service_pending (value INTEGER); INSERT INTO app_service_pending VALUES (9)").unwrap();
 
-    assert!(Store::open(&root).is_err());
+    assert!(Store::open(&root, None).is_err());
     assert_eq!(
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
@@ -44,7 +44,7 @@ fn failed_migration_leaves_both_databases_intact() {
         .pragma_update(None, "user_version", 99)
         .unwrap();
     assert!(matches!(
-        Store::open(&root),
+        Store::open(&root, None),
         Err(AppServiceError::UnsupportedSchema)
     ));
     assert_eq!(

@@ -27,7 +27,7 @@ impl UbaaClient {
     /// 宿主在为学校操作撤销旧绑定前，可先检查取消状态和已保存的更新门控。
     ///
     /// # Errors
-    /// 操作已停止、门控生效或安装存储不可用时返回安全错误。
+    /// 操作已停止或确认门控生效时返回错误。安装存储读取失败只记诊断。
     pub fn check_school_requests(&self) -> crate::error::Result<()> {
         self.direct_runtime.check_school_requests()
     }

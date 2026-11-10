@@ -42,7 +42,7 @@ mod tests {
     }
 
     #[test]
-    fn bridge_initialization_只接收安全传输_target() {
+    fn bridge_initialization_只接收安全传输和门控诊断() {
         let output = run_ignored_child("api::simple::tests::bridge_logging_filter_child");
         assert!(output.status.success(), "隔离子进程必须成功退出");
         let stderr = String::from_utf8(output.stderr).expect("日志必须是 UTF-8");
@@ -51,10 +51,13 @@ mod tests {
         assert!(stderr.contains("stage=\"send\""));
         assert!(stderr.contains("reason=\"timeout\""));
         assert!(stderr.contains("elapsed_ms=7"));
+        assert!(stderr.contains("无法读取应用服务门控状态，本次学校请求继续"));
         for forbidden in [
             "core-secret",
             "third-party-secret",
             "same-target-secret",
+            "gate-detail-secret",
+            "gate-wrong-level",
             "ubaa::cgyy",
         ] {
             assert!(!stderr.contains(forbidden), "Bridge 日志泄露了 {forbidden}");
@@ -125,6 +128,19 @@ mod tests {
             reason = "timeout",
             elapsed_ms = 7_u64,
             "HTTP 传输失败"
+        );
+        tracing::warn!(
+            target: "ubaa::app_service::school_gate",
+            "无法读取应用服务门控状态，本次学校请求继续"
+        );
+        tracing::warn!(
+            target: "ubaa::app_service::school_gate",
+            detail = "gate-detail-secret",
+            "带额外字段的门控事件"
+        );
+        tracing::debug!(
+            target: "ubaa::app_service::school_gate",
+            "gate-wrong-level"
         );
         tracing::debug!(
             target: "ubaa::cgyy",
