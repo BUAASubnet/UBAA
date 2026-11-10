@@ -79,6 +79,7 @@ fn enqueue(app: &AppService) {
 struct ScriptedTransport {
     statuses: Mutex<VecDeque<Option<u16>>>,
     requests: Mutex<Vec<HttpRequest>>,
+    gone_body: &'static [u8],
 }
 
 impl ScriptedTransport {
@@ -86,6 +87,7 @@ impl ScriptedTransport {
         Self {
             statuses: Mutex::new(statuses.into_iter().collect()),
             requests: Mutex::new(Vec::new()),
+            gone_body: br#""install_erased""#,
         }
     }
 
@@ -106,6 +108,7 @@ impl HttpTransport for ScriptedTransport {
             .pop_front()
             .expect("收到意外请求")
         {
+            Some(410) => Ok(HttpResponse::new(410, url, self.gone_body.to_vec())),
             Some(status) => Ok(HttpResponse::new(status, url, Vec::new())),
             None => Err(UbaaError::new(
                 ErrorCode::NetworkError,
@@ -160,6 +163,36 @@ async fn 可重试响应保留原批次终态响应删除批次() {
         assert_eq!(result.last_batch, Some(disposition));
         assert!(gui.freeze_next().unwrap().is_none());
     }
+}
+
+#[tokio::test]
+async fn 未确认安装已删除的410保留原批次() {
+    let root = TestDirectory::new();
+    let gui = root.open(Surface::Gui, false);
+    gui.agree(1).unwrap();
+    enqueue(&gui);
+    let original = gui.freeze_next().unwrap().unwrap();
+    let transport = ScriptedTransport {
+        gone_body: "目标地址不再提供服务".as_bytes(),
+        ..ScriptedTransport::new([Some(410), Some(204)])
+    };
+
+    assert_eq!(
+        gui.upload_with(&transport).await.unwrap().last_batch,
+        Some(BatchDisposition::Retry)
+    );
+    assert_eq!(
+        gui.upload_with(&transport).await.unwrap().last_batch,
+        Some(BatchDisposition::Accepted)
+    );
+    assert!(gui.freeze_next().unwrap().is_none());
+    let requests = transport.take_requests();
+    assert_eq!(requests.len(), 2);
+    assert!(
+        requests
+            .iter()
+            .all(|request| request.body == original.body())
+    );
 }
 
 #[tokio::test]
@@ -431,4 +464,77 @@ async fn 最近交付尝试跨宿主共享且六小时后才能重试() {
         1
     );
     assert_eq!(transport.take_requests().len(), 2);
+}
+
+#[tokio::test]
+async fn 手动删除不受间隔限制且推迟两个宿主的自动重试() {
+    let root = TestDirectory::new();
+    let gui = root.open(Surface::Gui, false);
+    gui.agree(1).unwrap();
+    let install = gui.begin_erase().unwrap().unwrap();
+    let transport = ScriptedTransport::new([None, Some(503), Some(204)]);
+    assert_eq!(
+        gui.send_erase(
+            &transport,
+            gui.endpoint().unwrap(),
+            Some(install),
+            None,
+            true
+        )
+        .await
+        .unwrap(),
+        EraseAttempt::Pending
+    );
+    assert_eq!(transport.take_requests().len(), 1);
+    for surface in [Surface::Gui, Surface::Command] {
+        let reopened = root.open(surface, false);
+        assert_eq!(
+            reopened
+                .upload_scheduled_with(&transport, false, None)
+                .await
+                .unwrap(),
+            UploadAttempt::default()
+        );
+    }
+    assert!(transport.take_requests().is_empty());
+
+    let gui = gui.with_runtime(|| "2026-11-11T01:00:00Z".parse().unwrap(), false);
+    assert_eq!(
+        gui.send_erase(
+            &transport,
+            gui.endpoint().unwrap(),
+            Some(install),
+            None,
+            true
+        )
+        .await
+        .unwrap(),
+        EraseAttempt::Pending
+    );
+    let command = root
+        .open(Surface::Command, false)
+        .with_runtime(|| "2026-11-11T06:59:59Z".parse().unwrap(), false);
+    assert_eq!(
+        command
+            .upload_scheduled_with(&transport, false, None)
+            .await
+            .unwrap(),
+        UploadAttempt::default()
+    );
+    let command = command.with_runtime(|| "2026-11-11T07:00:00Z".parse().unwrap(), false);
+    assert_eq!(
+        command
+            .upload_scheduled_with(&transport, false, None)
+            .await
+            .unwrap()
+            .erase,
+        EraseAttempt::Completed
+    );
+    let requests = transport.take_requests();
+    assert_eq!(requests.len(), 2);
+    assert!(
+        requests
+            .iter()
+            .all(|request| request.url == format!("{ORIGIN}/v1/telemetry/erase"))
+    );
 }

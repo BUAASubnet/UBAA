@@ -4,7 +4,9 @@ use super::{
     APP_SERVICE_SCHEMA_VERSION, AppService, AppServiceResult, BatchDisposition, Surface,
     transport::AppServiceTransport,
 };
-use crate::ports::{HttpRequest, HttpTransport, record_telemetry_rejection, same_url};
+use crate::ports::{
+    HttpRequest, HttpResponse, HttpTransport, record_telemetry_rejection, same_url,
+};
 use rusqlite::{Transaction, params};
 use serde::Serialize;
 use std::{
@@ -58,7 +60,7 @@ impl AppService {
         };
         self.deliver(
             &AppServiceTransport::new(endpoint)?,
-            None,
+            true,
             self.command_deadline(None),
         )
         .await
@@ -80,7 +82,7 @@ impl AppService {
         };
         self.deliver(
             &AppServiceTransport::new(endpoint)?,
-            Some(force && self.surface == Surface::Gui),
+            force && self.surface == Surface::Gui,
             deadline,
         )
         .await
@@ -99,7 +101,7 @@ impl AppService {
             return Ok(EraseAttempt::NotAttempted);
         };
         let transport = AppServiceTransport::new(endpoint)?;
-        self.send_erase(&transport, endpoint, Some(install), None, None)
+        self.send_erase(&transport, endpoint, Some(install), None, true)
             .await
     }
 
@@ -110,7 +112,7 @@ impl AppService {
 
     #[cfg(test)]
     async fn upload_with(&self, transport: &dyn HttpTransport) -> AppServiceResult<UploadAttempt> {
-        self.deliver(transport, None, self.command_deadline(None))
+        self.deliver(transport, true, self.command_deadline(None))
             .await
     }
 
@@ -123,7 +125,7 @@ impl AppService {
     ) -> AppServiceResult<UploadAttempt> {
         self.deliver(
             transport,
-            Some(force && self.surface == Surface::Gui),
+            force && self.surface == Surface::Gui,
             self.command_deadline(budget),
         )
         .await
@@ -132,7 +134,7 @@ impl AppService {
     async fn deliver(
         &self,
         transport: &dyn HttpTransport,
-        schedule: Option<bool>,
+        force: bool,
         command_deadline: Option<Instant>,
     ) -> AppServiceResult<UploadAttempt> {
         let mut attempt = UploadAttempt::default();
@@ -141,12 +143,12 @@ impl AppService {
         };
         if deadline_expired(command_deadline)
             || (self.surface == Surface::Command && (self.telemetry_hard_closed)())
-            || (schedule == Some(false) && !self.delivery_due()?)
+            || (!force && !self.delivery_due()?)
         {
             return Ok(attempt);
         }
         attempt.erase = self
-            .send_erase(transport, endpoint, None, command_deadline, schedule)
+            .send_erase(transport, endpoint, None, command_deadline, force)
             .await?;
         if attempt.erase != EraseAttempt::NotAttempted {
             return Ok(attempt);
@@ -165,7 +167,7 @@ impl AppService {
                 Poll::Ready(
                     self.with_batch_for_send_in(id, |tx, batch| {
                         if deadline_expired(command_deadline)
-                            || (attempt.batches_sent == 0 && !self.claim_delivery(tx, schedule)?)
+                            || (attempt.batches_sent == 0 && !self.claim_delivery(tx, force)?)
                         {
                             return Ok(None);
                         }
@@ -183,16 +185,24 @@ impl AppService {
             })
             .await?;
             let Some(response) = handed_off else { break };
-            let status = response.await;
-            let disposition = match status {
-                Some(204) => BatchDisposition::Accepted,
-                Some(410) => BatchDisposition::InstallErased,
-                Some(400 | 413) => BatchDisposition::InvalidPayload,
+            let response = response.await;
+            let disposition = match &response {
+                Some(HttpResponse { status: 204, .. }) => BatchDisposition::Accepted,
+                Some(HttpResponse {
+                    status: 410, body, ..
+                }) if serde_json::from_slice::<String>(body)
+                    .is_ok_and(|code| code == "install_erased") =>
+                {
+                    BatchDisposition::InstallErased
+                }
+                Some(HttpResponse {
+                    status: 400 | 413, ..
+                }) => BatchDisposition::InvalidPayload,
                 _ => BatchDisposition::Retry,
             };
             let finished = self.finish_batch(id, disposition)?;
-            if let Some(status) = status.filter(|_| finished) {
-                record_telemetry_rejection(status, started.elapsed());
+            if let Some(response) = response.filter(|_| finished) {
+                record_telemetry_rejection(response.status, started.elapsed());
             }
             attempt.batches_sent += 1;
             attempt.last_batch = Some(disposition);
@@ -218,14 +228,7 @@ impl AppService {
         })
     }
 
-    fn claim_delivery(
-        &self,
-        tx: &Transaction<'_>,
-        schedule: Option<bool>,
-    ) -> AppServiceResult<bool> {
-        let Some(force) = schedule else {
-            return Ok(true);
-        };
+    fn claim_delivery(&self, tx: &Transaction<'_>, force: bool) -> AppServiceResult<bool> {
         let now = self.now().timestamp_millis();
         Ok(tx.execute(
             "UPDATE app_service_state SET last_delivery_attempt = ?1 WHERE id = 1
@@ -240,7 +243,7 @@ impl AppService {
         endpoint: &Url,
         expected: Option<Uuid>,
         command_deadline: Option<Instant>,
-        schedule: Option<bool>,
+        force: bool,
     ) -> AppServiceResult<EraseAttempt> {
         let handed_off = poll_fn(|cx| {
             Poll::Ready(self.store.write(|tx| {
@@ -250,7 +253,7 @@ impl AppService {
                 }) else {
                     return Ok(None);
                 };
-                if deadline_expired(command_deadline) || !self.claim_delivery(tx, schedule)? {
+                if deadline_expired(command_deadline) || !self.claim_delivery(tx, force)? {
                     return Ok(None);
                 }
                 let body = serde_json::to_vec(&ErasePayload {
@@ -267,7 +270,10 @@ impl AppService {
         let Some((install_id, response)) = handed_off else {
             return Ok(EraseAttempt::NotAttempted);
         };
-        if response.await == Some(204) {
+        if response
+            .await
+            .is_some_and(|response| response.status == 204)
+        {
             self.finish_erase(install_id)?;
             return Ok(EraseAttempt::Completed);
         }
@@ -288,7 +294,7 @@ fn start_request<'a>(
     body: Vec<u8>,
     command_deadline: Option<Instant>,
     cx: &mut Context<'_>,
-) -> Option<impl Future<Output = Option<u16>> + use<'a>> {
+) -> Option<impl Future<Output = Option<HttpResponse>> + use<'a>> {
     let deadline = command_deadline.unwrap_or_else(|| Instant::now() + GUI_TIMEOUT);
     if Instant::now() >= deadline {
         return None;
@@ -306,7 +312,7 @@ fn start_request<'a>(
         }
         .ok()?
         .ok()?;
-        same_url(url.as_str(), &response.final_url).then_some(response.status)
+        same_url(url.as_str(), &response.final_url).then_some(response)
     })
 }
 
