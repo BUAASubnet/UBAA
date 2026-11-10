@@ -26,6 +26,8 @@
 
 应用服务客户端收到 `410` 时，只将合同机器码 `install_erased` 视为已删除；其他 `410` 保留原批次重试。手动删除记入 GUI 与命令模式共享的最近交付时间；用户可以立即手动重试，自动前台与命令模式继续使用六小时间隔。定时任务按校园日汇总 D1 并清理明细，不请求学校。主动刷新若复用写后核对的在途读取，仍收到同一次门控拒绝提示；自动核对保持静默，学校读取协议不变。本地 HTTP 与 D1 结果见[应用服务验收对照](status.md#应用服务验收对照)。
 
+复审后的本机协调仍使用上表的操作边界：读取门控失败时放行本次学校请求并保留门控记录，GUI 定期复查共享状态，Core 继续按最近尝试时间节流上传、删除和启动配置。旧版 `AnnouncementRoutes.kt` 与服务端 `AnnouncementService.kt` 只读取单条公告且没有版本筛选，固定 buaa-api 没有对应操作。公告上限缺省构建号时包含同版全部构建，沿用原启动配置的请求、响应字段和缓存规则。
+
 ## WebVPN 普通登录失败重试
 
 2026-11-09 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`LocalWebVpnSupport.kt`、`AuthApi.kt`、`model/dto/Auth.kt` 和 `LocalAuthServiceBackendTest.kt`，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 和 `error.rs`。两份来源均没有普通登录失败后自动重试的外层流程。当前产品要求 WebVPN 首次失败后再尝试一次，明确的账号密码错误也纳入重试。

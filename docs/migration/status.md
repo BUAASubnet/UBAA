@@ -4,11 +4,13 @@
 
 ## 主线与候选
 
-2026-11-11 应用服务工程实现完成，代码候选 `cd933c66`。Core、Bridge v61、GUI、App 命令模式、Worker 和发布工具已接线。应用服务 Schema v1、安装级 SQLite v3、隐私政策 v1、CLI JSON Schema v16。GUI 与命令模式共用同意、开关、删除、队列与门控记录。Worker 接收遥测和删除，返回按渠道及平台过滤的更新与公告，按校园日汇总并清理 D1 明细。网站和 App 共用公告来源。生产部署未执行，操作见[应用服务部署手册](../runbooks/app-service.md)。
+2026-11-11 应用服务工程验收完成，代码候选 `4653d7b7`。Core、Bridge v61、GUI、App 命令模式、Worker 和发布工具已接线。应用服务 Schema v1、安装级 SQLite v3、隐私政策 v1、CLI JSON Schema v16。GUI 与命令模式共用同意、开关、删除、队列与门控记录。Worker 接收遥测和删除，返回按渠道及平台过滤的更新与公告，按校园日汇总并清理 D1 明细。网站和 App 共用公告来源。生产部署未执行，操作见[应用服务部署手册](../runbooks/app-service.md)。
 
-以 `defc0ab0072e85a360cd30c3499de37d9ccedc76` 为基线，`just check-changed mode=full` 和 `just app-service-e2e` 通过。[验收对照](#应用服务验收对照)记录合同第 13 节的 20 个专门场景。完整检查覆盖 107 项本地 Workers 测试、严格 Rust 与脚本门禁、八个 Flutter 包 2,104 项（1 项既有跳过）、macOS 原生集成 13 项、FRB 生成零漂移及文档站构建。
+以 `defc0ab0072e85a360cd30c3499de37d9ccedc76` 为基线，`just check-changed mode=full` 和 `just app-service-e2e` 通过。[验收对照](#应用服务验收对照)记录合同第 13 节的 20 个专门场景。完整检查覆盖 18 项内容和发布边界测试、112 项本地 Workers 测试、严格 Rust 与脚本门禁、八个 Flutter 包 2,107 项通过（另有 1 项既有跳过）、macOS 原生集成 13 项、FRB 生成零漂移及文档站构建。
 
-macOS 原生 About 专项另有 11 项通过，实际读取安装包版本 `0.1.0+1`。iOS 模拟器目标与 Android Debug 构建及产物检查通过，OHOS 无签名 Debug 编译通过。未执行 iOS/Android 模拟器运行、Windows/Linux 原生验收、实体设备安装、学校请求或远端 CI。生产数据位置、真实 Cron 和商店发布留待目标环境验收。
+复审回归覆盖门控读取故障放行与脱敏诊断、短暂跨进程争用后保留门控、前台六小时到期后的首次检查、状态读取恢复后的删除重试、公告构建号上限及 D1 分批补算。D1 合成负载验证了长窗口的单批耗时下降。故障注入验证汇总失败时保留明细和成功日期，重跑覆盖而不累加。
+
+步骤七代码候选 `cd933c66` 的 macOS 原生 About 专项另有 11 项通过，实际读取安装包版本 `0.1.0+1`。该候选的 iOS 模拟器目标与 Android Debug 构建及产物检查通过，OHOS 无签名 Debug 编译通过。未执行 iOS/Android 模拟器运行、Windows/Linux 原生验收、实体设备安装、学校请求或远端 CI。生产数据位置、真实 Cron 和商店发布留待目标环境验收。
 
 2026-11-10 同账号展示连续性：离线资料与在线资料使用相同的展示字段，Bridge 升级为 v59，账号加密缓存与 SQLite schema v8 保持。首页常用功能和博雅筛选按本机账号归属，学号补齐不再触发清空。本地偏好使用稳定用户名键，已有学号键迁移时保留新键上的选择。旧 MaskedProfile 缓存继续可读，完整字段需要一次成功的在线资料刷新补齐。
 
