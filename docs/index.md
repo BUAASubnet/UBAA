@@ -32,7 +32,7 @@
 
 - [认证与用户](contracts/auth-and-user.md)、[连接与会话](contracts/connection-and-session.md)、[路由策略](contracts/route-policy.md)
 - [只读功能](contracts/readonly-features.md)、[Flutter Bridge](contracts/flutter-bridge.md)、[CLI JSON Schema](contracts/cli-json.schema.json)
-- [离线缓存与恢复](contracts/offline-cache-and-recovery.md)
+- [离线缓存与恢复](contracts/offline-cache-and-recovery.md)、[应用服务（遥测、更新与公告）](contracts/app-service.md)
 - [冻结参考](migration/references.md)、[来源对照矩阵及后续专项](migration/source-parity.md)
 
 界面设计依据见 [Flutter UI 规格](design/flutter-ui-spec.md)、[配色](design/color-system.md)和[首页](design/home-layout.md)，具体实现与验收按当前候选记录。
@@ -48,6 +48,7 @@
 - [ADR 0005：六平台宿主](adr/0005-flutter-frb-six-platforms.md)
 - [ADR 0006：显式 Dart 模块](adr/0006-explicit-dart-modules.md)
 - [ADR 0007：操作作用域与验证闭包](adr/0007-operation-scopes-and-verification.md)
+- [ADR 0008：应用服务 Worker](adr/0008-app-service-worker.md)
 - [历史决策索引](migration/decision-log.md)
 
 ## 验证与运行
@@ -58,6 +59,7 @@
 
 ## 近期实施与历史记录
 
+- [应用服务实施计划](design/app-service-implementation.md)：遥测、更新、公告与无人值守工程验收。
 - [2026-10-29 首页业务并发](migration/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](migration/source-parity-home-performance-2026-10-29.md)
 - [2026-10-28 界面回归](migration/history/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](migration/history/integration-repair-2026-10-27.md)
 - [2026-10-21 认证修复](migration/history/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/history/docs-site-2026-10-29.md)
