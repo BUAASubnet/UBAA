@@ -225,6 +225,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onConfirmWrite: _controller.writeCoordinator.confirmForUi,
       initialDestination: widget.initialDestination,
       appService: _appServiceControls,
+      appNotices: _appServiceNotices,
       onRefresh: _controller.refreshSchoolAgenda,
       onRetryFeature: _controller.retryFeature,
       onOpenLockDisplay: _controller.openLockDisplay,

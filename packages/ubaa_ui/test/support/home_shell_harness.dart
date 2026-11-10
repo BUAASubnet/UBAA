@@ -80,6 +80,7 @@ class _HomeShellHarnessState extends State<HomeShellHarness> {
       snapshots: shell.snapshots,
       routePolicy: shell.routePolicy,
       appService: shell.appService,
+      appNotices: shell.appNotices,
       onRefresh: shell.onRefresh,
       onRetryFeature: shell.onRetryFeature,
       onLogout: shell.onLogout,

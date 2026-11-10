@@ -9,6 +9,7 @@ import '../features/home/todo_card.dart';
 import '../features/home/todo_grid.dart';
 import '../shared/loading.dart' show LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
+import 'app_service/notices.dart' show AppServiceNoticeList, AppServiceNotices;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../shared/refresh.dart' show PullToRefresh;
 
@@ -29,6 +30,7 @@ class HomeView extends StatefulWidget {
     this.onOpenGradeNotice,
     this.onDismissGradeNotice,
     this.writeReadbackNotice,
+    this.appNotices,
     this.homeClock,
     this.onViewAllTodos,
     this.recentFeatures = const [],
@@ -47,6 +49,9 @@ class HomeView extends StatefulWidget {
   final ConnectionMode? gradeCheckRoute;
   final VoidCallback? onOpenGradeNotice, onDismissGradeNotice, onViewAllTodos;
   final Widget? writeReadbackNotice;
+
+  /// 应用服务的更新与公告横幅，排在首页最前。
+  final AppServiceNotices? appNotices;
   final Clock? homeClock;
   final List<FeatureId> recentFeatures;
   final Future<void> Function(Future<void> Function() refresh)? onPullRefresh;
@@ -312,6 +317,8 @@ class HomeViewState extends State<HomeView> {
         key: const ValueKey('home-scroll'),
         padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
+          if (widget.appNotices case final notices? when !notices.isEmpty)
+            AppServiceNoticeList(notices: notices),
           if (widget.writeReadbackNotice case final notice?) ...[
             notice,
             const SizedBox(height: 12),

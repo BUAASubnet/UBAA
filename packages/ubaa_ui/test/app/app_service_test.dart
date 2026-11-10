@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/app/app_service/notices.dart';
 import 'package:ubaa_ui/src/app/app_service/privacy.dart';
 import 'package:ubaa_ui/src/app/app_service/settings.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
@@ -298,6 +299,113 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(AlertDialog), findsNothing);
       expect(calls.log, ['erase']);
+    });
+  });
+
+  group('首页更新与公告提示', () {
+    final url = Uri.parse('https://example.invalid/update');
+    AppUpdateView update({
+      AppUpdateStatus status = AppUpdateStatus.updateAvailable,
+      bool gate = false,
+      bool dismissed = false,
+    }) => AppUpdateView(
+      status: status,
+      latestVersion: '2.1.0+16',
+      minSupportedVersion: gate ? '2.1.0' : null,
+      url: url,
+      releaseNotes: '合成更新说明',
+      gateActive: gate,
+      availableDismissed: dismissed,
+    );
+
+    Future<List<String>> mountNotices(
+      WidgetTester tester,
+      AppUpdateView? view,
+    ) async {
+      final log = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: Scaffold(
+            body: AppServiceNoticeList(
+              notices: AppServiceNotices(
+                update: view,
+                onOpenUrl: (url) async => log.add('open:$url'),
+                onDismissUpdate: () async => log.add('dismiss'),
+                onDismissAnnouncement: (id) async => log.add('read:$id'),
+              ),
+            ),
+          ),
+        ),
+      );
+      return log;
+    }
+
+    testWidgets('新版本提示可查看说明后前往更新，也可忽略', (tester) async {
+      final log = await mountNotices(tester, update());
+      await tester.tap(find.text('查看'));
+      await tester.pumpAndSettle();
+      expect(find.text('合成更新说明'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, '前往更新'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('忽略'));
+      await tester.pumpAndSettle();
+      expect(log, ['open:$url', 'dismiss']);
+    });
+
+    test('已忽略的新版本、已是最新或服务未给判断时没有首页提示', () {
+      for (final view in [
+        update(dismissed: true),
+        update(status: AppUpdateStatus.upToDate),
+        update(status: AppUpdateStatus.unknown),
+        null,
+      ]) {
+        final notices = AppServiceNotices(
+          update: view,
+          onOpenUrl: (_) async {},
+          onDismissUpdate: () async {},
+          onDismissAnnouncement: (_) async {},
+        );
+        expect(notices.isEmpty, isTrue, reason: '$view');
+      }
+    });
+
+    testWidgets('门控生效时只显示更新要求，服务未给判断也保持', (tester) async {
+      final log = await mountNotices(
+        tester,
+        update(status: AppUpdateStatus.unknown, gate: true),
+      );
+      expect(
+        find.byKey(const ValueKey('home-update-required')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('home-update-available')), findsNothing);
+      await tester.tap(find.text('前往更新'));
+      await tester.pumpAndSettle();
+      expect(log, ['open:$url']);
+    });
+
+    testWidgets('更新提示弹窗返回与前往更新分别给出结果', (tester) async {
+      final results = <bool>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async =>
+                  results.add(await uiShowUpdateRequired(context)),
+              child: const Text('合成学校操作'),
+            ),
+          ),
+        ),
+      );
+      for (final choice in ['返回', '前往更新']) {
+        await tester.tap(find.text('合成学校操作'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(choice));
+        await tester.pumpAndSettle();
+      }
+      expect(results, [false, true]);
     });
   });
 }

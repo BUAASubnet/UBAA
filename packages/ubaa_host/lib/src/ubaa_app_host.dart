@@ -147,6 +147,7 @@ class UbaaAppHost extends StatefulWidget {
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
     this.scheduleWidgetGateway,
+    this.urlOpener,
     super.key,
   });
 
@@ -185,8 +186,11 @@ class UbaaAppHost extends StatefulWidget {
   final void Function(bool persisted)? onGradeCheckComplete;
   final ScheduleWidgetGateway? scheduleWidgetGateway;
 
-  /// 供宿主的更新和公告回调使用；链接由系统浏览器打开。
-  Future<bool> openExternalUrl(Uri url) => platform.openExternalUrl(url);
+  /// 打开更新和公告链接；测试可以注入，默认只接受 HTTPS 并交给系统浏览器。
+  final Future<bool> Function(Uri url)? urlOpener;
+
+  Future<bool> openExternalUrl(Uri url) =>
+      (urlOpener ?? platform.openExternalUrl)(url);
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

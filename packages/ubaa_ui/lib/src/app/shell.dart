@@ -30,6 +30,7 @@ import '../features/home/shell_helpers.dart';
 import '../theme.dart';
 import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
+import 'app_service/notices.dart' show AppServiceNotices;
 import 'app_service/settings.dart' show AppServiceControls;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
@@ -52,6 +53,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.snapshots,
     required this.routePolicy,
     this.appService,
+    this.appNotices,
     required this.onRefresh,
     required this.onRetryFeature,
     required this.onLogout,
@@ -166,6 +168,9 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
   final AppServiceControls? appService;
+
+  /// 首页的更新与公告横幅；未接入应用服务或无需提示时为 null。
+  final AppServiceNotices? appNotices;
   final Future<void> Function() onRefresh;
   final Future<void> Function(FeatureId feature) onRetryFeature;
   final Future<void> Function() onLogout;
@@ -911,6 +916,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 _recordFeatureVisit(feature);
               },
             ),
+      appNotices: widget.appNotices,
       gradeScoreNotice: widget.gradeScoreNotice,
       gradeCheckRoute: widget.gradeCheckRoute,
       onOpenGradeNotice: _openGradeNotice,

@@ -21,6 +21,9 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   DialogRoute<void>? _captchaDialogRoute;
   DialogRoute<void>? _consentRoute;
   bool _consentScheduled = false;
+  StreamSubscription<void>? _updatePromptSubscription;
+  bool _updatePromptOpen = false;
+  bool _announcementOpen = false;
   ModalRoute<dynamic>? _loginSheetRoute;
   bool _captchaDialogScheduled = false;
   UiError? _scheduledHomeFeedback;
@@ -268,6 +271,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
     _controller.addListener(_syncConsentPrompt);
+    _controller.addListener(_syncAnnouncementPopup);
+    _updatePromptSubscription = _controller.updatePromptRequests.listen(
+      (_) => unawaited(_showUpdatePrompt()),
+    );
     final widgetGateway =
         widget.scheduleWidgetGateway ??
         (Platform.isAndroid &&
@@ -310,6 +317,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncCaptchaDialog);
     _controller.removeListener(_syncConsentPrompt);
+    _controller.removeListener(_syncAnnouncementPopup);
+    unawaited(_updatePromptSubscription?.cancel());
     _controller.removeListener(_syncScheduleWidgets);
     _scheduleWidgetPublisher?.dispose();
     _gradeWatch.dispose();

@@ -138,6 +138,7 @@ class _WriteHarnessState extends State<_WriteHarness> {
           snapshots: shell.snapshots,
           routePolicy: shell.routePolicy,
           appService: shell.appService,
+          appNotices: shell.appNotices,
           onRefresh: shell.onRefresh,
           onRetryFeature: shell.onRetryFeature,
           onLogout: shell.onLogout,
