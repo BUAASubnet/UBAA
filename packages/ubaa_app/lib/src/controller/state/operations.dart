@@ -362,6 +362,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<void> internalRecoverSession({
     FeatureId feature = FeatureId.schedule,
     bool refreshHomeAfter = true,
+    bool forceConnectionCheck = false,
   });
   @internal
   bool internalRecoveryIsCurrent(int epoch);

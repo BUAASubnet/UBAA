@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/recovery.dart';
 import '../state/models.dart'
     show RecoveryRequest, RecoveryRetry, controllerRecoveryRetryDelays;
 import '../state/state.dart' show ControllerState;
@@ -124,7 +125,17 @@ mixin ControllerRecoveryRetry on ControllerState {
         internalSessionRecoveryStatus == SessionRecoveryStatus.needsLogin ||
         internalNetworkWakeCooldown != null)
       return;
-    // 接口变化不代表认证成功；只唤醒临时失败的恢复和读取。
+    // Auto 网络变化先准备当前网络需要的会话；由 Core 重新探测并选择路线。
+    if (internalBackend is RequiredTargetSessionBackend &&
+        internalLoginForm.routePolicy == RoutePolicy.auto &&
+        (internalSessionRecoveryStatus == SessionRecoveryStatus.ready ||
+            internalSessionRecoveryStatus == SessionRecoveryStatus.restoring)) {
+      internalNetworkWakeCooldown = Timer(const Duration(seconds: 30), () {
+        internalNetworkWakeCooldown = null;
+      });
+      unawaited(internalRecoverSession(forceConnectionCheck: true));
+    }
+    // 同时唤醒临时失败的读取。
     for (final snapshot in [
       ...internalHomeDefaults.values,
       ...internalSnapshots.values,
@@ -150,7 +161,7 @@ mixin ControllerRecoveryRetry on ControllerState {
       retry.timer = null;
       if (!retry.running) retry.due = true;
     }
-    internalNetworkWakeCooldown = Timer(const Duration(seconds: 30), () {
+    internalNetworkWakeCooldown ??= Timer(const Duration(seconds: 30), () {
       internalNetworkWakeCooldown = null;
     });
     for (final retry in internalRecoveryRetries.values) {

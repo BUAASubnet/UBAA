@@ -36,6 +36,17 @@ void main() {
     expect(client.loginRoute, BridgeConnectionMode.webVpn);
     expect(api.controls.length, 2);
   });
+  test('连接恢复经过生产后端传给 Core，并保留其选择的 WebVPN 路线', () async {
+    final client = _RequiredClient();
+    final backend = BridgeBackend(client);
+    final recovered = await backend.recoverTargetSession(
+      RecoveryTarget.connection,
+    );
+    expect(client.feature, BridgeRecoveryFeature.connection);
+    expect(recovered.route, ConnectionMode.webvpn);
+    expect(recovered.profile.username, 'fixture-user');
+    expect(api.controls.length, 1);
+  });
   test('状态只提供已核实学号时仍可作为恢复身份，不能借用本机资料填空', () async {
     final client = _RequiredClient()
       ..profile = const BridgeUserProfile(schoolId: 'fixture-user');

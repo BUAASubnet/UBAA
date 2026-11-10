@@ -169,3 +169,126 @@ async fn 域名记录重启后复用且到期重新直连_两路失败不记录(
         let _ = std::fs::remove_dir_all(root);
     }
 }
+
+#[tokio::test]
+async fn 校内单路线会话移到校外后恢复实际缺失的_webvpn() {
+    let root = test_root("campus-transition");
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1000,
+                last_activity: 1000,
+            }),
+            None,
+        ))
+        .unwrap();
+    let visits = Arc::new(Mutex::new(Vec::new()));
+    let transport = |route| DomainTransport {
+        route,
+        visits: visits.clone(),
+        direct_error: ErrorCode::NetworkError,
+        vpn_error: None,
+    };
+    let mut client = UbaaClient::with_routing(
+        transport(ConnectionMode::Direct),
+        transport(ConnectionMode::WebVpn),
+        store,
+        RouteConfig::default(),
+        CountingProbe(Arc::default()),
+    )
+    .unwrap();
+    // 会话仍有效，但业务直连已不可达，第一次回退缺少 WebVPN 会话。
+    let failed = client
+        .fork_parallel_readonly()
+        .unwrap()
+        .signin_today()
+        .await
+        .unwrap_err();
+    assert_eq!(failed.error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(failed.resolution.unwrap().mode, ConnectionMode::WebVpn);
+    let recovery = client
+        .recover_required_session(ReadonlyFeature::Signin)
+        .await;
+    assert!(
+        recovery.is_err(),
+        "不能把 Direct 验票成功当作 WebVPN 恢复成功"
+    );
+    let error = recovery.unwrap_err();
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(error.resolution.unwrap().mode, ConnectionMode::WebVpn);
+    assert_eq!(*visits.lock().unwrap(), [ConnectionMode::Direct]);
+    assert!(!root.join("domain_routes.json").exists());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[derive(Clone)]
+struct MovingNetwork(Arc<AtomicUsize>);
+impl GatewayProbe for MovingNetwork {
+    fn probe(&self, _: Duration) -> NetworkState {
+        if self.0.load(Ordering::SeqCst) == 0 {
+            NetworkState::Campus
+        } else {
+            NetworkState::OffCampus
+        }
+    }
+}
+
+#[tokio::test]
+async fn 网络恢复撤销校内探测缓存并保留显式路线() {
+    for policy in [RoutePolicy::Auto, RoutePolicy::Direct, RoutePolicy::WebVpn] {
+        let root = test_root("network-session");
+        let store = FileSessionStore::new(&root).unwrap();
+        store
+            .save_dual(&DualSessionSnapshot::new(
+                Some(RouteSessionSnapshot {
+                    cookies: vec![],
+                    authenticated_at: 1000,
+                    last_activity: 1000,
+                }),
+                None,
+            ))
+            .unwrap();
+        let network = Arc::new(AtomicUsize::new(0));
+        let visits = Arc::new(Mutex::new(vec![]));
+        let transport = |route| DomainTransport {
+            route,
+            visits: visits.clone(),
+            direct_error: ErrorCode::NetworkError,
+            vpn_error: None,
+        };
+        let mut config = RouteConfig::default();
+        config.default = policy;
+        let mut client = UbaaClient::with_routing(
+            transport(ConnectionMode::Direct),
+            transport(ConnectionMode::WebVpn),
+            store,
+            config,
+            MovingNetwork(network.clone()),
+        )
+        .unwrap();
+        if policy != RoutePolicy::WebVpn {
+            assert_eq!(
+                client
+                    .recover_connection_session()
+                    .await
+                    .unwrap()
+                    .resolution
+                    .mode,
+                ConnectionMode::Direct
+            );
+        }
+        network.store(1, Ordering::SeqCst);
+        let recovered = client.recover_connection_session().await;
+        if policy == RoutePolicy::Direct {
+            assert_eq!(recovered.unwrap().resolution.mode, ConnectionMode::Direct);
+        } else {
+            let error = recovered.unwrap_err();
+            assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+            assert_eq!(error.resolution.unwrap().mode, ConnectionMode::WebVpn);
+        }
+        assert!(visits.lock().unwrap().is_empty(), "准备会话不读取业务网站");
+        let _ = std::fs::remove_dir_all(root);
+    }
+}

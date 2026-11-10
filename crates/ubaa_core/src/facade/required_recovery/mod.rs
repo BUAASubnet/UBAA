@@ -9,6 +9,30 @@ use super::{
 use crate::error::Result;
 
 impl UbaaClient {
+    /// 重新检测当前网络并核验所需连接；Auto 校外准备 `WebVPN` 会话。
+    /// # Errors
+    /// 缺少会话、认证或所有权失败保留实际需要的路线。
+    pub async fn recover_connection_session(&mut self) -> RoutedResult<AuthStatus> {
+        self.probe.invalidate();
+        self.invalidate_read_recovery_batch();
+        let resolution = self.resolve_operation(super::types::Operation::ConnectionRecovery)?;
+        self.recover_resolved_session(resolution).await
+    }
+
+    /// 在当前恢复控制范围内重新检测网络并核验所需连接。
+    /// # Errors
+    /// 取消、期限、会话或认证失败保留原分类。
+    pub async fn recover_connection_session_controlled(
+        &mut self,
+        operation: RequiredRecoveryOperation,
+    ) -> RoutedResult<AuthStatus> {
+        self.recover_operation_session_controlled(
+            super::types::Operation::ConnectionRecovery,
+            operation,
+        )
+        .await
+    }
+
     /// 校验云盘所需会话，先执行云盘专用路线能力判断。
     /// # Errors
     /// 未支持路线、认证、取消或期限错误保留实际路线。
@@ -50,11 +74,8 @@ impl UbaaClient {
         &mut self,
         operation: RequiredRecoveryOperation,
     ) -> RoutedResult<AuthStatus> {
-        self.recover_operation_session_controlled(
-            super::types::Operation::Authentication,
-            operation,
-        )
-        .await
+        self.recover_operation_session_controlled(super::types::Operation::User, operation)
+            .await
     }
 
     /// 校验用户资料所需路线，不提交密码。
@@ -62,7 +83,7 @@ impl UbaaClient {
     /// # Errors
     /// 路线不可用或会话过期时保留原错误。
     pub async fn recover_user_session(&mut self) -> RoutedResult<AuthStatus> {
-        let resolution = self.resolve_operation(super::types::Operation::Authentication)?;
+        let resolution = self.resolve_recovery_operation(super::types::Operation::User)?;
         self.recover_resolved_session(resolution).await
     }
 
@@ -76,7 +97,11 @@ impl UbaaClient {
             error,
             resolution: None,
         })?;
-        let resolved = self.resolve_operation(target);
+        if matches!(target, super::types::Operation::ConnectionRecovery) {
+            self.probe.invalidate();
+            self.invalidate_read_recovery_batch();
+        }
+        let resolved = self.resolve_recovery_operation(target);
         let known_resolution = match &resolved {
             Ok(resolution) => Some(*resolution),
             Err(error) => error.resolution,

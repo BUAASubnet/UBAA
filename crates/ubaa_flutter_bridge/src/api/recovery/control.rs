@@ -59,6 +59,7 @@ impl BridgeClient {
             }
             let recovered = match feature {
                 BridgeRecoveryFeature::Bhpan => client.recover_bhpan_session_controlled(operation).await,
+                BridgeRecoveryFeature::Connection => client.recover_connection_session_controlled(operation).await,
                 _ => match feature.feature() {
                 Some(feature) => client.recover_required_session_controlled(feature, operation).await,
                 None => client.recover_user_session_controlled(operation).await,

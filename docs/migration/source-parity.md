@@ -40,6 +40,16 @@
 域名路线记录、24 小时期限及业务缓存去除路线分区是本机编排规则，两份冻结参考没有相同操作，CAS、方法、请求参数、加密和 DTO 列不适用。业务请求继续使用本索引各功能已有的逐操作协议；回退只重放读取及其必要业务认证，不改变参数、日期和分页，不重放业务写入。旧版 `LocalWebVpnSupport.kt`、`LocalConnectionAuth.kt` 与固定 buaa-api `api/sso/auth.rs`、`utils/net.rs`、`store/cookies.rs` 分别提供 URL 包装、独立 SSO 和校园网探测依据。路线记录按实际失败的上游域名保存，仅在同域名 WebVPN 读取成功后生效；同域名功能共用记录。
 
 
+## 校园网变化后的会话准备
+
+2026-11-10 对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`LocalWebVpnSupport.kt`、认证 DTO 与测试，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `utils/net.rs`、`api/sso/auth.rs`、`store/cookies.rs` 和 `store/cred.rs`。
+
+| 操作 | 两份来源与当前行为 |
+| --- | --- |
+| 网络重新检测 | buaa-api 使用 `gw.buaa.edu.cn:80` 与 500 ms TCP 探测；旧版本地按选择路线认证，没有同等双槽位网络恢复。Core 沿现有探测目标、私网地址过滤与总预算，前台连接恢复撤销旧探测缓存。此操作不提交凭据，没有 CAS、正文编码、加密或业务 DTO。 |
+| 校外会话准备 | 两源的普通 SSO、WebVPN 网关 service、重定向、方法、表单字段、Cookie、验证码和错误来源沿本页前两节。只改变本机调用时机：Auto 校外准备 WebVPN，校内准备 Direct，显式路线保持原选择。凭据仍由共同恢复服务按已有自动登录许可取得，账号、取消、写意图、验证码预算及退出规则不变。 |
+| 读取失败后的恢复 | 两源没有同等的双运行时按域名回退恢复，新增协议列不适用。Core 只在内存共享已发生网络回退的域名，按该域名恢复 WebVPN；成功读取后才保存原有 24 小时偏好。临时恢复需求不写入持久配置，业务请求、参数、响应解析、身份核验和一次只读重试保持原合同。 |
+
 ## SSO 图像验证码静默处理
 
 2026-11-06 实现前核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`AuthApi.kt`、`model/dto/Auth.kt` 及 `LocalAuthServiceBackendTest.kt`，固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 与 `error.rs`。基础协议九列沿用[交互验证码来源对照](source-parity-ui-sensitive-displays.md)和[SSO 传输对照](source-parity-auth-2026-10-21.md)。buaa-api 无同协议图像验证码操作，该分支不适用，不能从普通 SSO 推断验证码字段或错误分类。

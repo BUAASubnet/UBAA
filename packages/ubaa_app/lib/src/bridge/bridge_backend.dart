@@ -11,7 +11,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 import '../../runtime.dart'
-    show ControlledRequiredSessionBackend, RequiredRecoveryOperation;
+    show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
 import 'auth/required_session.dart';
 import 'auth/shared_logout.dart';
 import 'auth/session.dart'
@@ -79,7 +79,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 57;
+const _supportedBridgeContractVersion = 58;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -116,7 +116,7 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
-        ControlledRequiredSessionBackend,
+        ControlledRequiredTargetSessionBackend,
         HomeRecoveryBatchBackend,
         OfflineCacheBackend,
         ProfileCacheBackend,
@@ -358,6 +358,19 @@ class BridgeBackend
   @override
   Future<FeatureResult> readSigninAfterWrite() =>
       bridgeLoadSigninHome(_context, const FeatureQuery(), useCache: false);
+
+  @override
+  RequiredRecoveryOperation startTargetRecovery(
+    RecoveryTarget target,
+    Duration limit,
+  ) => BridgeRequiredSessionBackend(
+    _context.client,
+  ).startTargetRecovery(target, limit);
+  @override
+  Future<RecoveredRouteSession> recoverTargetSession(RecoveryTarget target) =>
+      BridgeRequiredSessionBackend(
+        _context.client,
+      ).recoverTargetSession(target);
 
   @override
   RequiredRecoveryOperation startRequiredRecovery(

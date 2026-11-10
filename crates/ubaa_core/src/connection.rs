@@ -144,6 +144,12 @@ impl<P> CachingGatewayProbe<P> {
         }
     }
 
+    pub(crate) fn invalidate(&self) {
+        if let Ok(mut cached) = self.cached.lock() {
+            *cached = None;
+        }
+    }
+
     /// 只读取仍可供下一次路线解析复用的观察，不等待正在进行的探测。
     pub(crate) fn cached_network(&self) -> Option<NetworkState> {
         let (at, state) = (*self.cached.try_lock().ok()?)?;

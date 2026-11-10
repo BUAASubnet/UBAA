@@ -120,8 +120,13 @@ mixin ControllerRequiredRecovery on ControllerState {
     if (scope.accountAlias != (account?.id ?? ''))
       throw const RecoveryInterrupted(RecoveryStopReason.superseded);
     internalSharedRecoveryScope = scope;
-    final result = await service.ensureRequiredSession(
-      feature: feature,
+    final target =
+        internalActiveRecovery?.refreshHomeAfter == true &&
+            backend is RequiredTargetSessionBackend
+        ? RecoveryTarget.connection
+        : RecoveryTarget.fromFeature(feature);
+    final result = await service.ensureTargetSession(
+      target: target,
       scope: scope,
       deadline: DateTime.now().add(const Duration(minutes: 2)),
     );

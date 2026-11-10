@@ -17,6 +17,23 @@ Future<AppController> start(fixtures.FakeRecoveryBackend backend) async {
 }
 
 void main() {
+  testWidgets('已就绪的 Auto 会话在网络变化后主动恢复并合并重复通知', (tester) async {
+    final backend = _NetworkWakeBackend();
+    final controller = await start(backend);
+    addTearDown(controller.dispose);
+    final before = backend.authCalls;
+    backend.gate = Completer<AuthStatus>();
+    controller.onNetworkChanged();
+    controller.onNetworkChanged();
+    await tester.pump();
+    expect(backend.authCalls, before + 1);
+    backend.gate!.complete(AuthStatus.signedIn);
+    await tester.pumpAndSettle();
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+    expect(backend.authCalls, before + 1);
+    controller.dispose();
+  });
+
   testWidgets('临时恢复失败前台按30秒60秒5分钟退避，成功后停止', (tester) async {
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(UbaaErrorCode.networkError);
@@ -198,4 +215,27 @@ class _QueryBackend extends fixtures.FakeRecoveryBackend
       details: [FeatureDetail(title: '合成成绩')],
     );
   }
+}
+
+class _NetworkWakeBackend extends fixtures.FakeRecoveryBackend
+    implements RequiredTargetSessionBackend {
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
+      recoverTargetSession(RecoveryTarget.fromFeature(feature));
+  @override
+  Future<RecoveredRouteSession> recoverTargetSession(
+    RecoveryTarget target,
+  ) async {
+    await authStatus();
+    return RecoveredRouteSession(
+      route: ConnectionMode.direct,
+      profile: (await userInfo())!,
+    );
+  }
+
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) async => throw StateError('本测试不应提交密码');
 }

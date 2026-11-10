@@ -128,6 +128,10 @@ impl UbaaClient {
         else {
             return Ok(None);
         };
+        self.domain_routes
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .require_webvpn(domain.clone());
         self.guard_latest_session_ownership()?;
         if !self.webvpn_runtime.has_local_session() {
             return Err(authentication_required());
@@ -212,6 +216,41 @@ impl UbaaClient {
         );
     }
 
+    pub(super) fn resolve_recovery_operation(
+        &mut self,
+        operation: Operation,
+    ) -> std::result::Result<RouteResolution, RoutedError> {
+        let resolved = self.resolve_operation(operation);
+        let resolution = match &resolved {
+            Ok(value) => *value,
+            Err(error) if error.error.code == ErrorCode::AuthenticationRequired => {
+                let Some(value) = error.resolution else {
+                    return resolved;
+                };
+                value
+            }
+            Err(_) => return resolved,
+        };
+        if resolution.policy == RoutePolicy::Auto
+            && resolution.diagnostic.network == crate::connection::NetworkState::OffCampus
+            && self
+                .domain_routes
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .needs_webvpn(operation)
+        {
+            let mut selected = resolution;
+            selected.mode = ConnectionMode::WebVpn;
+            selected.diagnostic.mode = ConnectionMode::WebVpn;
+            selected.diagnostic.used_fallback = true;
+            if !self.route_is_ready(ConnectionMode::WebVpn) {
+                return Err(routed_error(authentication_required(), selected));
+            }
+            return Ok(selected);
+        }
+        resolved
+    }
+
     pub(super) fn resolve_operation(
         &mut self,
         operation: Operation,
@@ -222,9 +261,10 @@ impl UbaaClient {
                 resolution: None,
             })?;
         let (policy, row) = match operation {
-            Operation::Authentication | Operation::User | Operation::Bhpan => {
-                (self.config.default, FeatureRouteConfig::SAFE_DEFAULT)
-            }
+            Operation::Authentication
+            | Operation::ConnectionRecovery
+            | Operation::User
+            | Operation::Bhpan => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
             Operation::Feature(feature) => (
                 self.config.feature(feature),
                 FeatureRouteConfig::for_feature(feature),
@@ -243,6 +283,13 @@ impl UbaaClient {
                 resolution.diagnostic.mode = ConnectionMode::WebVpn;
                 resolution.diagnostic.used_fallback = true;
             }
+        }
+        if matches!(operation, Operation::ConnectionRecovery)
+            && policy == RoutePolicy::Auto
+            && resolution.diagnostic.network == crate::connection::NetworkState::OffCampus
+        {
+            resolution.mode = ConnectionMode::WebVpn;
+            resolution.diagnostic.mode = ConnectionMode::WebVpn;
         }
         let initial_route = resolution.mode;
         if initial_route == ConnectionMode::Direct

@@ -1,5 +1,5 @@
 //! 同一上游域名的临时 `WebVPN` 偏好，不保存账号或请求材料。
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use super::super::types::Operation;
@@ -11,6 +11,7 @@ const TTL: i64 = 24 * 60 * 60;
 pub(in crate::facade) struct DomainRoutes {
     path: Option<PathBuf>,
     expires: BTreeMap<String, i64>,
+    recovery: BTreeSet<String>,
 }
 
 impl DomainRoutes {
@@ -23,6 +24,7 @@ impl DomainRoutes {
         Self {
             path: Some(path),
             expires,
+            recovery: BTreeSet::new(),
         }
     }
 
@@ -34,14 +36,26 @@ impl DomainRoutes {
         })
     }
 
+    pub(in crate::facade) fn require_webvpn(&mut self, domain: String) {
+        self.recovery.insert(domain);
+    }
+
+    pub(in crate::facade) fn needs_webvpn(&self, operation: Operation) -> bool {
+        domains(operation)
+            .iter()
+            .any(|domain| self.recovery.contains(*domain))
+    }
+
     pub(in crate::facade) fn remember(&mut self, domain: String, now: i64) {
         self.expires
             .retain(|_, expires| *expires > now && *expires - now <= TTL);
+        self.recovery.remove(&domain);
         self.expires.insert(domain, now.saturating_add(TTL));
         self.save();
     }
 
     pub(in crate::facade) fn campus(&mut self) {
+        self.recovery.clear();
         if !self.expires.is_empty() {
             self.expires.clear();
             self.save();
@@ -99,7 +113,7 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
 fn domains(operation: Operation) -> &'static [&'static str] {
     match operation {
         Operation::User => &["uc.buaa.edu.cn"],
-        Operation::Bhpan | Operation::Authentication => &[],
+        Operation::Bhpan | Operation::Authentication | Operation::ConnectionRecovery => &[],
         Operation::Feature(feature) => match feature {
             ReadonlyFeature::Schedule | ReadonlyFeature::Exam | ReadonlyFeature::Grades => {
                 &["byxt.buaa.edu.cn", "gsmis.buaa.edu.cn"]

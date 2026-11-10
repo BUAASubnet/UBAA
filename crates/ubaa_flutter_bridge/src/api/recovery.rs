@@ -68,11 +68,12 @@ pub enum BridgeRecoveryFeature {
     Cgyy,
     Ygdk,
     Evaluation,
+    Connection,
 }
 impl BridgeRecoveryFeature {
     pub(crate) fn feature(self) -> Option<ReadonlyFeature> {
         Some(match self {
-            Self::User | Self::Bhpan => return None,
+            Self::User | Self::Bhpan | Self::Connection => return None,
             Self::Portal => ReadonlyFeature::Portal,
             Self::Network => ReadonlyFeature::Network,
             Self::Finance => ReadonlyFeature::Finance,
@@ -115,6 +116,7 @@ impl BridgeClient {
             self.ensure_recovery_allowed().await?;
             let recovered = match feature {
                 BridgeRecoveryFeature::Bhpan => client.recover_bhpan_session().await,
+                BridgeRecoveryFeature::Connection => client.recover_connection_session().await,
                 _ => match feature.feature() {
                     Some(feature) => client.recover_required_session(feature).await,
                     None => client.recover_user_session().await,

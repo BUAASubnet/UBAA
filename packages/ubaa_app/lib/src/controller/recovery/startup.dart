@@ -110,6 +110,7 @@ mixin ControllerOfflineStartup on ControllerState {
   Future<void> internalRecoverSession({
     FeatureId feature = FeatureId.schedule,
     bool refreshHomeAfter = true,
+    bool forceConnectionCheck = false,
   }) {
     if (internalDisposed ||
         internalIsSigningOut ||
@@ -118,7 +119,10 @@ mixin ControllerOfflineStartup on ControllerState {
         internalPhase != AppPhase.home)
       return Future<void>.value();
     final active = internalActiveRecovery;
-    if (active != null && active.feature == feature) {
+    if (active != null &&
+        active.feature == feature &&
+        !forceConnectionCheck &&
+        (active.refreshHomeAfter || !refreshHomeAfter)) {
       active.refreshHomeAfter |= refreshHomeAfter;
       active.interactive |= !refreshHomeAfter;
       return active.completion.future;

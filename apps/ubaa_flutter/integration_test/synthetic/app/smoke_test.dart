@@ -18,55 +18,64 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('真实 FRB/Core 打开本地首页并将缺会话结果显示为需要登录', (tester) async {
-    await initializeRustLibrary();
-    final directory = await Directory.systemTemp.createTemp('ubaa-host-smoke-');
-    final accounts = await fixtures.savedAccounts();
-    final account = (await accounts.read())!.account!;
-    _ObservedBridgeBackend? backend;
-    try {
-      await tester.pumpWidget(
-        UbaaFlutterApp(
-          backendFactory: () async {
-            final client = await BridgeClient.open(configDir: directory.path);
-            await client.setDefaultRoutePolicy(
-              policy: BridgeRoutePolicy.direct,
+    await tester.runAsync(() async {
+      await initializeRustLibrary();
+      final directory = await Directory.systemTemp.createTemp(
+        'ubaa-host-smoke-',
+      );
+      final accounts = await fixtures.savedAccounts();
+      final account = (await accounts.read())!.account!;
+      _ObservedBridgeBackend? backend;
+      try {
+        await tester.pumpWidget(
+          UbaaFlutterApp(
+            backendFactory: () async {
+              final client = await BridgeClient.open(configDir: directory.path);
+              await client.setDefaultRoutePolicy(
+                policy: BridgeRoutePolicy.direct,
+              );
+              return backend = _ObservedBridgeBackend(client, directory.path);
+            },
+            localAccountStore: accounts,
+            credentialVault: MemoryCredentialVault(),
+          ),
+        );
+        final waiting = Stopwatch()..start();
+        while (!(backend?.firstRecovery.isCompleted ?? false) ||
+            find.byTooltip('完成登录').evaluate().isEmpty) {
+          if (waiting.elapsed > const Duration(seconds: 10)) {
+            throw TimeoutException(
+              '首页首帧后的会话恢复未完成',
+              const Duration(seconds: 10),
             );
-            return backend = _ObservedBridgeBackend(client, directory.path);
-          },
-          localAccountStore: accounts,
-          credentialVault: MemoryCredentialVault(),
-        ),
-      );
-      final waiting = Stopwatch()..start();
-      while (!(backend?.firstRecovery.isCompleted ?? false)) {
-        if (waiting.elapsed > const Duration(seconds: 10)) {
-          throw TimeoutException('首页首帧后的会话恢复未完成', const Duration(seconds: 10));
+          }
+          // 同时等待 Core 结果和宿主发布恢复状态，覆盖首帧与共享账号检查后的异步交付。
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+          await tester.pump(const Duration(milliseconds: 16));
         }
-        // 缓存 I/O 完成后还需绘制首页首帧，首帧回调才会启动恢复。
-        await tester.pump(const Duration(milliseconds: 16));
-      }
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(
-        backend!.recoveryFailure?.code,
-        UbaaErrorCode.authenticationRequired,
-      );
-      expect(backend!.recoveryFailure?.resolvedRoute, ConnectionMode.direct);
-      final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-      expect(shell.user?.username, account.username);
-      expect(shell.connectionStatus, '需要登录，当前页面会保留');
-      expect(find.byTooltip('完成登录'), findsOneWidget);
-      expect(
-        (await backend!.cacheUsage(accountId: account.id)).accountId,
-        account.id,
-      );
-      expect(tester.takeException(), isNull);
-    } finally {
-      await tester.pumpWidget(const SizedBox.shrink());
-      await backend?.deactivateOfflineAccount();
-      await backend?.dispose();
-      await directory.delete(recursive: true);
-    }
+        expect(
+          backend!.recoveryFailure?.code,
+          UbaaErrorCode.authenticationRequired,
+        );
+        expect(backend!.recoveryFailure?.resolvedRoute, ConnectionMode.direct);
+        final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+        expect(shell.user?.username, account.username);
+        expect(shell.connectionStatus, '需要登录，当前页面会保留');
+        expect(find.byTooltip('完成登录'), findsOneWidget);
+        expect(
+          (await backend!.cacheUsage(accountId: account.id)).accountId,
+          account.id,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await backend?.deactivateOfflineAccount();
+        await backend?.dispose();
+        await directory.delete(recursive: true);
+      }
+    });
   });
 }
 
@@ -86,11 +95,11 @@ class _ObservedBridgeBackend extends BridgeBackend {
   }
 
   @override
-  RequiredRecoveryOperation startRequiredRecovery(
-    FeatureId feature,
+  RequiredRecoveryOperation startTargetRecovery(
+    RecoveryTarget target,
     Duration limit,
   ) {
-    final operation = super.startRequiredRecovery(feature, limit);
+    final operation = super.startTargetRecovery(target, limit);
     final result = () async {
       try {
         return await operation.result;

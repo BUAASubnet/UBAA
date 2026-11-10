@@ -35,12 +35,19 @@ enum RecoveryTarget {
   bykc,
   cgyy,
   ygdk,
-  evaluation;
+  evaluation,
+  connection;
 
   static RecoveryTarget fromFeature(FeatureId feature) =>
       RecoveryTarget.values.byName(feature.name);
   FeatureId? get feature => switch (this) {
-    user || portal || network || finance || ihome || bhpan => null,
+    user ||
+    portal ||
+    network ||
+    finance ||
+    ihome ||
+    bhpan ||
+    connection => null,
     _ => FeatureId.values.byName(name),
   };
 }

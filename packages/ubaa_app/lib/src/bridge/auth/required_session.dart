@@ -102,6 +102,7 @@ final class _BridgeOperation implements RequiredRecoveryOperation {
 }
 
 BridgeRecoveryFeature _target(RecoveryTarget target) => switch (target) {
+  RecoveryTarget.connection => BridgeRecoveryFeature.connection,
   RecoveryTarget.bhpan => BridgeRecoveryFeature.bhpan,
   RecoveryTarget.user => BridgeRecoveryFeature.user,
   RecoveryTarget.portal => BridgeRecoveryFeature.portal,

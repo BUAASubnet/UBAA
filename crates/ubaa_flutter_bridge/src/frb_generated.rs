@@ -25159,6 +25159,7 @@ impl SseDecode for crate::api::recovery::BridgeRecoveryFeature {
             15 => crate::api::recovery::BridgeRecoveryFeature::Cgyy,
             16 => crate::api::recovery::BridgeRecoveryFeature::Ygdk,
             17 => crate::api::recovery::BridgeRecoveryFeature::Evaluation,
+            18 => crate::api::recovery::BridgeRecoveryFeature::Connection,
             _ => unreachable!("Invalid variant for BridgeRecoveryFeature: {}", inner),
         };
     }
@@ -38376,6 +38377,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::recovery::BridgeRecoveryFeatu
             Self::Cgyy => 15.into_dart(),
             Self::Ygdk => 16.into_dart(),
             Self::Evaluation => 17.into_dart(),
+            Self::Connection => 18.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -44645,6 +44647,7 @@ impl SseEncode for crate::api::recovery::BridgeRecoveryFeature {
                 crate::api::recovery::BridgeRecoveryFeature::Cgyy => 15,
                 crate::api::recovery::BridgeRecoveryFeature::Ygdk => 16,
                 crate::api::recovery::BridgeRecoveryFeature::Evaluation => 17,
+                crate::api::recovery::BridgeRecoveryFeature::Connection => 18,
                 _ => {
                     unimplemented!("");
                 }
