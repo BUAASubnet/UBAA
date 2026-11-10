@@ -80,7 +80,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just app-service-content-check` | 按站点 npm 锁文件安装依赖，校验渠道配置与正式公告；用合成公告验证网站构建和列表，用假 Wrangler 验证发布、部署的写入前置条件 |
 | `just privacy-policy-check` | 使用固定 Python 工具只读核对网站政策的版本、正文摘要、变更要点和应用内生成物；由按改动检查、`script-check` 与 `check-strict` 调用 |
 | `just privacy-policy-generate` | 更新应用内的 Dart 政策常量，供各宿主编译使用。修改正文后按校验提示更新来源摘要，按[合同第 3.1 节](../contracts/app-service.md#31-状态)判断是否升版，再生成并提交。正文使用标题、段落、无序列表及普通行内标记；外部链接地址作为可读文字保留 |
-| `python3 scripts/tests/app_service/http_e2e.py` | 显式联调 Core 的遥测、删除和启动配置。先运行 `just app-service-check` 准备依赖，再用本地 Worker、D1 和 KV 验证 HTTP、丢响应重试、晚到上报和命令模式共享更新门控；本机 `openssl` 生成临时自签证书以检查 TLS 拒绝；CI 不运行 |
+| `just app-service-e2e` | 显式联调 Core、真实 Dart FFI 与宿主。先准备锁定 Node 主版本、Worker 依赖（`just app-service-check`）和 Flutter 依赖（`just flutter-dependencies`）。用 Debug 构建、回环 HTTP 和隔离的本地 D1/KV 验证上传、丢响应重试、关闭清理、删除交错、跨进程重启、更新门控及公告已读；用本机 `openssl` 生成自签证书检查 TLS 拒绝。`CI` 非空或 `UBAA_TELEMETRY=0` 时直接失败，普通检查和 CI 不调用 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just cargo-lock-check` | 静态扫描文档、Shell、workflow 与 justfile 中的 Cargo 命令锁定要求，与 CLI 二进制合同使用相同范围和规则，无需编译 Rust |
 | `just script-check` | 严格 ShellCheck、脚本自测、Shell 合同、布局、原生清单、文档、版本和 Cargo 命令锁定检查 |
@@ -172,7 +172,7 @@ verify-live 从被忽略的 `.env.local` 安全读取非空主名称凭据，经
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Workers、D1 与 KV，不访问或写入 Cloudflare 资源。
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
 - `just app-service-publish` 和 `just app-service-deploy` 是显式远端写入命令。前者写 KV，后者先迁移 D1 再发布 Worker。两者完成本地校验且明确目标和环境凭据后才执行远端命令；普通检查及 CI 不运行这两个命令，也不接收生产凭据。
-- `python3 scripts/tests/app_service/http_e2e.py` 在 `.ubaa_local/app_service/` 创建隔离配置、本地 D1 和 KV，临时监听回环地址。脚本只用合成数据，不访问学校或 Cloudflare 资源；`CI` 非空或遥测硬关闭时直接失败。
+- `just app-service-e2e` 在 `.ubaa_local/app_service/` 创建私有隔离配置、本地 D1 和 KV，临时监听回环地址。脚本只用合成数据，不访问学校或 Cloudflare 资源；`CI` 非空或遥测硬关闭时直接失败。
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存。门禁 recipe 统一设置 `CARGO_INCREMENTAL=0`，不积累只用一次的增量缓存；日常 Rust 与 Flutter 运行保留增量。开发构建只带行号调试信息，需要查看变量时临时设 `CARGO_PROFILE_DEV_DEBUG=true`。FRB 生成检查的现有写入副作用已在上表说明，不能称所有 check 都只读。
 - 日志、stdout/stderr 和报告遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，禁止全局 trace。仅在已获授权的窄范围诊断使用 RUST_LOG，原始 stderr 不进入共享文档。
 - 锁文件、parser、lint 或生成检查失败时定位原因，不通过放宽规则、删除测试或手改生成物获得通过。upstream_changed 只表示响应不满足已证明合同，不能据此猜字段或绕过挑战。

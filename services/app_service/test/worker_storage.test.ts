@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { beforeAll, expect, it } from "vitest";
+import { beforeAll, expect, it, vi } from "vitest";
 import { campusDay } from "../src/campus_time";
 import { reportTelemetry } from "../src/telemetry";
 import {
@@ -82,20 +82,55 @@ it("仅接受校园日期窗口中的条目，窗口两端均包含", async () =
   expect(await detailCounts(payload.install_id)).toEqual([3, 3, 3, 3]);
 });
 
-it("只落库 HMAC 用户标识，保留版本和合并入口", async () => {
+it("离线八天且期间升级，拆成八加一个组合后全部落库", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  const groups = Array.from({ length: 8 }, (_, i) => ({
+    ...day,
+    day: `2025-02-0${i + 1}`,
+    app_version: "2.1.0-rc.1+15",
+  }));
+  groups.push({ ...day, day: "2025-02-08", app_version: "2.1.0+16" });
+  vi.setSystemTime(new Date("2025-02-08T04:00:00Z"));
+  try {
+    const response = await reportTelemetry(
+      uploadRequest({ ...payload, days: groups }),
+      env,
+    );
+    expect(response.status).toBe(400);
+    expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
+    for (const days of [groups.slice(0, 8), groups.slice(8)]) {
+      const response = await reportTelemetry(
+        uploadRequest({ ...payload, batch_id: crypto.randomUUID(), days }),
+        env,
+      );
+      expect(response.status).toBe(204);
+    }
+  } finally {
+    vi.useRealTimers();
+  }
+  expect(await detailCounts(payload.install_id)).toEqual([9, 9, 9, 9]);
+});
+
+it("只落库 HMAC 用户标识，旧版本批次晚到仍保留两个版本并合并入口", async () => {
   const payload = createBatch();
   const [day] = payload.days;
   const key = await syntheticKey();
   day.users = [{ key, cohort_type: "undergrad", cohort_year: 2024 }];
-  expect((await postTelemetry(payload)).status).toBe(204);
+  const upgrade = { ...day, app_version: "2.1.0", surfaces: ["command"] };
+  expect((await postTelemetry({ ...payload, days: [upgrade] })).status).toBe(
+    204,
+  );
   const next = { ...day, surfaces: ["command"] };
-  const upgrade = { ...next, app_version: "2.1.0" };
+  expect(
+    (await postTelemetry({ ...payload, batch_id: crypto.randomUUID() })).status,
+  ).toBe(204);
   expect(
     (
       await postTelemetry({
         ...payload,
         batch_id: crypto.randomUUID(),
-        days: [next, upgrade],
+        days: [next],
       })
     ).status,
   ).toBe(204);

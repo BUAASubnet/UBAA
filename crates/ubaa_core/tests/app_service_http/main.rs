@@ -4,6 +4,7 @@ use std::{
     env, fs,
     net::Ipv4Addr,
     path::{Path, PathBuf},
+    process::Command,
     time::Duration,
 };
 use ubaa_core::facade::{
@@ -109,6 +110,14 @@ async fn upload_retry_and_erase_over_http() {
     let port = test_port("UBAA_APP_SERVICE_TEST_PORT");
     let url = format!("http://{}:{port}", Ipv4Addr::LOCALHOST);
     let root = PathBuf::from(env::var_os("UBAA_APP_SERVICE_TEST_STATE").expect("缺少隔离配置目录"));
+    if env::var_os("UBAA_APP_SERVICE_TEST_ERASE_CHILD").is_some() {
+        let client = UbaaClient::open(&root).unwrap();
+        let gui = client
+            .open_app_service(test_config(&url), Surface::Gui, 1)
+            .unwrap();
+        assert_eq!(gui.erase_once().await.unwrap(), EraseAttempt::Pending);
+        return;
+    }
     reject_untrusted_certificate(&root).await;
     let config = test_config(&url);
     let client = UbaaClient::open(&root).expect("打开隔离配置目录");
@@ -159,29 +168,11 @@ async fn upload_retry_and_erase_over_http() {
     assert!(gui.freeze_next().unwrap().is_none());
 
     assert!(gui.enqueue(&counter, Some(&account)).unwrap());
-    let relay = reqwest::Client::builder()
-        .no_proxy()
-        .timeout(Duration::from_secs(10))
-        .build()
-        .unwrap();
-    let (late, lost_erase) = tokio::join!(gui.upload_once(), async {
-        // 等 HTTP 中继收到旧批次再发删除；中继等 D1 删除提交后才转发旧批次。
-        assert_eq!(
-            relay
-                .get(format!("{url}/inflight"))
-                .send()
-                .await
-                .unwrap()
-                .status(),
-            204,
-        );
-        gui.erase_once().await.unwrap()
-    });
+    let (late, ()) = tokio::join!(gui.upload_once(), erase_in_another_process(&url));
     assert_eq!(
         late.unwrap().last_batch,
         Some(BatchDisposition::InstallErased)
     );
-    assert_eq!(lost_erase, EraseAttempt::Pending);
     assert!(gui.snapshot().unwrap().erasing_install_id == old_install);
     gui.enter_basic().unwrap();
     drop(gui);
@@ -201,6 +192,34 @@ async fn upload_retry_and_erase_over_http() {
     assert_eq!(state.consent, Consent::Basic);
     assert!(state.install_id.is_some() && state.install_id != old_install);
     assert!(state.erasing_install_id.is_none());
+}
+
+async fn erase_in_another_process(url: &str) {
+    let relay = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap();
+    // 中继收到旧批次后再启动另一个进程删除；D1 删除提交后才转发旧批次。
+    assert_eq!(
+        relay
+            .get(format!("{url}/inflight"))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        204,
+    );
+    let status = tokio::task::spawn_blocking(|| {
+        Command::new(env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "upload_retry_and_erase_over_http"])
+            .env("UBAA_APP_SERVICE_TEST_ERASE_CHILD", "1")
+            .status()
+            .unwrap()
+    })
+    .await
+    .unwrap();
+    assert!(status.success());
 }
 
 fn test_port(name: &str) -> u16 {

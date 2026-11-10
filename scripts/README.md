@@ -20,6 +20,8 @@
 
 `check/app_service/content.mjs` 校验渠道配置与正式公告，发布脚本和文档站共用公告解析器。内容检查使用合成公告和假 CLI，不写入远端。
 
+`tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `.ubaa_local/app_service/` 下创建私有临时目录，写入合成本地配置、迁移 D1、填充 KV、启动回环 Worker、查询 D1，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
+
 `tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 统一配置语法，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
 `lib/repo.sh` 与 `lib/repo.py` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装解析工具配置。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。

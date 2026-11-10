@@ -158,6 +158,79 @@ fn facade_uses_shared_install_and_discards_revoked_account() {
 }
 
 #[test]
+fn 校园午夜后原会话再次登记同一用户和年级() {
+    use crate::facade::{SharedAccountGuard, UbaaClient, app_service::*};
+    use chrono::{DateTime, TimeDelta, Utc};
+    use std::sync::{Arc, Mutex};
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/app_service/test_sqlite")
+        .join(uuid::Uuid::new_v4().to_string());
+    {
+        let client = UbaaClient::open(&root).unwrap();
+        let config = AppServiceConfig::from_build(
+            Some("http://[::1]:8787"),
+            Some("github"),
+            Some("2.0.0"),
+            Platform::Macos,
+            false,
+        );
+        let clock = Arc::new(Mutex::new(
+            "2026-11-10T15:59:59Z".parse::<DateTime<Utc>>().unwrap(),
+        ));
+        let gui_clock = Arc::clone(&clock);
+        let gui = client
+            .open_app_service(config.clone(), Surface::Gui, 1)
+            .unwrap()
+            .with_runtime(move || *gui_clock.lock().unwrap(), false);
+        gui.agree(1).unwrap();
+        for (name, value) in [
+            ("materials.lock", ""),
+            ("transaction.v1", "UBAA1:C"),
+            ("account-generation.v1", "UBAA1:1"),
+        ] {
+            std::fs::write(root.join(name), value).unwrap();
+        }
+        let confirmed = ConfirmedAccount::from_bound_account(
+            SharedAccountGuard::new(&root, 1).unwrap(),
+            format!("TQ{}{:04}", 24, 1),
+        );
+        let event = TelemetryEvent::Counter(CounterDimensions {
+            event: CounterEvent::FeatureLoaded,
+            feature: Feature::Schedule,
+            route: Route::None,
+            result: CounterResult::Success,
+        });
+        assert!(gui.enqueue(&event, Some(&confirmed)).unwrap());
+
+        // 不重新登录：前台句柄继续使用原绑定，另一宿主也复用已确认会话。
+        *clock.lock().unwrap() += TimeDelta::seconds(1);
+        assert!(gui.enqueue(&event, Some(&confirmed)).unwrap());
+        let reopened = UbaaClient::open(&root).unwrap();
+        let command = reopened
+            .open_app_service(config, Surface::Command, 1)
+            .unwrap()
+            .with_runtime(move || *clock.lock().unwrap(), false);
+        assert!(command.enqueue(&event, Some(&confirmed)).unwrap());
+
+        let batch = command.freeze_next().unwrap().unwrap();
+        let body: serde_json::Value = serde_json::from_slice(batch.body()).unwrap();
+        let days = body["days"].as_array().unwrap();
+        assert_eq!(days.len(), 2);
+        for (day, date, count) in [(&days[0], "2026-11-10", 1), (&days[1], "2026-11-11", 2)] {
+            assert_eq!(day["day"], date);
+            assert_eq!(day["counters"][0]["count"], count);
+            assert_eq!(day["users"].as_array().unwrap().len(), 1);
+            assert_eq!(day["users"][0]["cohort_type"], "TQ");
+            assert_eq!(day["users"][0]["cohort_year"], 2024);
+        }
+        // 派生标识不进入失败输出。
+        assert!(days[0]["users"][0]["key"] == days[1]["users"][0]["key"]);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn 既有安装数据库迁移保留同意开关和交付时间() {
     for version in [1, 2] {
         check_migration(version);

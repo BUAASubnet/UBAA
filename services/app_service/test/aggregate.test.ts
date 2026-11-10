@@ -157,7 +157,14 @@ it("月底第七天晚间上报进入日表和月表；八日定稿后删除不�
 
 it("漏跑一天补算错过的定稿日期和月份，忽略晚到的旧触发", async () => {
   await scheduled("2025-02-06T19:00:00Z");
-  await active("2025-01-31", "late-device").run();
+  const batch = createBatch();
+  batch.days[0].day = "2025-01-31";
+  vi.setSystemTime(new Date("2025-02-07T15:45:00Z"));
+  try {
+    expect((await reportTelemetry(uploadRequest(batch), env)).status).toBe(204);
+  } finally {
+    vi.useRealTimers();
+  }
   // 2 月 8 日漏跑；2 月 9 日正常窗口起点本应是 2 月 1 日。
   await scheduled("2025-02-08T19:00:00Z");
   expect((await groups("2025-01-31"))["all/"]).toEqual([0, 1]);

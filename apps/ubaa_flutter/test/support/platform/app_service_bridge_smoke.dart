@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show ExternalLibrary;
@@ -9,29 +10,31 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  const directory = String.fromEnvironment('UBAA_APP_SERVICE_TEST_STATE');
+  final directory = Platform.environment['UBAA_CONFIG_DIR'];
   const library = String.fromEnvironment('UBAA_APP_SERVICE_TEST_LIBRARY');
   const reopened = bool.fromEnvironment('UBAA_APP_SERVICE_TEST_REOPEN');
-  test(reopened ? '重启后恢复删除、门控和公告已读状态' : '同意后刷新配置、标记公告已读并真实上传', () async {
-    if (directory.isEmpty || library.isEmpty) {
-      fail('请从 scripts/tests/app_service/bridge_e2e.py 执行本地联调');
+  test(reopened ? '基础模式重启后只重试删除' : '刷新门控和公告、上传并清理待重试数据', () async {
+    if (directory == null || directory.isEmpty || library.isEmpty) {
+      fail('请从 just app-service-e2e 执行本地联调');
     }
     await RustLib.init(externalLibrary: ExternalLibrary.open(library));
-    Future<BridgeAppService> open(BridgeAppServiceSurface surface) async =>
-        (await openConfiguredAppService(
-          configDirectory: directory,
-          surface: surface,
-          release: false,
-          readVersion: () async => '2.1.0-rc.1+15',
-          budget: const Duration(seconds: 15),
-        ))!;
-    final gui = AppController(
-      backend: await BridgeBackend.open(
-        directory,
-        appService: await open(BridgeAppServiceSurface.gui),
+    Future<String> readVersion() async => '2.1.0-rc.1+15';
+    final backend = await createProductionBackend(
+      openAppService: (configDirectory) => openConfiguredAppService(
+        configDirectory: configDirectory,
+        surface: BridgeAppServiceSurface.gui,
+        release: false,
+        readVersion: readVersion,
       ),
     );
-    final command = await open(BridgeAppServiceSurface.command);
+    expect(backend, isA<BridgeBackend>());
+    final gui = AppController(backend: backend);
+    final command = (await openConfiguredAppService(
+      configDirectory: directory,
+      surface: BridgeAppServiceSurface.command,
+      release: false,
+      readVersion: readVersion,
+    ))!;
     final bootstrapArrived = Completer<void>();
     void observeBootstrap() {
       if (gui.appUpdate != null && !bootstrapArrived.isCompleted) {
@@ -47,12 +50,26 @@ void main() {
           AppServiceEraseStatus.pending,
         );
         expect(gui.appService.telemetryEnabled, isFalse);
-        expect(gui.appUpdate?.gateActive, isTrue);
+        expect(gui.appService.consent, AppServiceConsent.basic);
+        expect(gui.appUpdate, isNull);
         expect(gui.pendingAnnouncements, isEmpty);
         expect((await command.state()).erasePending, isTrue);
-        await gui.uploadAppService(force: true);
+        await Future.wait([
+          gui.uploadAppService(force: true),
+          uploadConfiguredCommandAppService(
+            resolveDirectory: () async => directory,
+            budget: const Duration(seconds: 2),
+            release: false,
+            readVersion: readVersion,
+          ),
+        ]);
         expect(gui.appService.erase, AppServiceEraseStatus.idle);
         expect((await command.state()).erasePending, isFalse);
+        // 只恢复 SQLite 中的同意，读取上次启动配置，不触发控制器重新拉取。
+        await (backend as AppServiceBackend).agreeAppService();
+        final restored = await command.state();
+        expect(restored.update?.gateActive, isTrue);
+        expect(restored.announcements, isEmpty);
         return;
       }
 
@@ -77,9 +94,10 @@ void main() {
       expect(commandState.update?.gateActive, isTrue);
       expect(commandState.announcements.single.id, notice.id);
       // 隔离目录从未登录。即使门控失效，无本机会话的状态检查也不会访问学校。
-      final schoolClient = await BridgeClient.openWithAppService(
-        configDir: directory,
-        appService: command,
+      final schoolClient = await openConfiguredCommandClient(
+        configDirectory: directory,
+        release: false,
+        readVersion: readVersion,
       );
       try {
         await expectLater(
@@ -100,6 +118,8 @@ void main() {
       await gui.markAnnouncementRead(notice.id);
       expect(gui.pendingAnnouncements, isEmpty);
       expect((await command.state()).announcements, isEmpty);
+      await gui.recordAppCrash(StateError('合成错误消息'), null);
+      await gui.uploadAppService(force: true);
       expect(
         (await gui.setProductTelemetryEnabled(false)).telemetryEnabled,
         isFalse,
@@ -115,6 +135,16 @@ void main() {
         isFalse,
       );
       expect((await command.upload(force: false)).batchesSent, 0);
+      expect(
+        (await gui.setProductTelemetryEnabled(true)).telemetryEnabled,
+        isTrue,
+      );
+      await gui.uploadAppService(force: true);
+      await gui.setProductTelemetryEnabled(false);
+      expect(
+        (await gui.withdrawPrivacyConsent()).consent,
+        AppServiceConsent.basic,
+      );
       expect(
         await gui.eraseUploadedTelemetry(),
         AppServiceEraseOutcome.pending,

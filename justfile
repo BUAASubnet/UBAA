@@ -132,6 +132,10 @@ app-service-check:
     npm --prefix services/app_service ci --no-audit --no-fund
     npm --prefix services/app_service run check
 
+# 显式启动回环 Worker，联调 Core、Bridge 和宿主；不进入 CI。
+app-service-e2e:
+    python3 scripts/tests/app_service/e2e.py
+
 # 校验发布内容，并用合成内容构建网站、用假 CLI 验证发布边界。
 app-service-content-check:
     npm ci --no-audit --no-fund

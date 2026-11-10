@@ -43,6 +43,8 @@ SELECT (SELECT count(*) FROM batches) AS batches,
        (SELECT coalesce(sum(count), 0) FROM error_days) AS errors,
        (SELECT coalesce(sum(count), 0) FROM timing_days) AS timings
 """
+EMPTY = dict(batches=0, tombstones=0, active=0, user_key=None, counters=0, errors=0, timings=0)
+ERASED = dict(EMPTY, batches=1, tombstones=1)
 
 
 def require(condition, message):
@@ -50,9 +52,9 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def run(command, *, cwd, env=None, capture=False):
+def run(command, *, cwd, env=None, capture=False, timeout=240):
     return subprocess.run(command, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
-                          check=True, capture_output=capture, text=True, timeout=240)
+                          check=True, capture_output=capture, text=True, timeout=timeout)
 
 
 @contextmanager
@@ -212,6 +214,7 @@ def relay(port, query, secret):
                 if self.path == UPLOAD and attempt == 3:
                     require(status == 410 and json.loads(response) == "install_erased",
                             "Worker 没有按合同拒收晚到批次")
+                    require(query() == ERASED, "晚到批次改变了删除后的 D1 数据")
                 else:
                     require(status == 204 and not response,
                             f"本地 Worker 返回了 {status}，预期为空的 204")
@@ -227,6 +230,7 @@ def relay(port, query, secret):
                                         counters=2, errors=1, timings=1),
                             "D1 明细与 Rust 批次不符，或重复累加")
                 if self.path == ERASE and attempt == 1:
+                    require(query() == ERASED, "Worker 确认删除后 D1 仍有旧明细")
                     erased.set()
                 # 确认 Worker 已完成提交，只断开客户端一侧的连接。
                 if attempt == 1:
@@ -270,7 +274,7 @@ def seed_bootstrap(directory, env_file, env):
              *env_file], cwd=SERVICE, env=env)
 
 
-def main():
+def prepare():
     require(not os.environ.get("CI"), "本地应用服务联调不在 CI 运行")
     require(os.environ.get("UBAA_TELEMETRY") != "0", "遥测已硬关闭，不能联调")
     locked = read_values(ROOT / "scripts/tools/versions.env")["NODE_VERSION"]
@@ -279,19 +283,24 @@ def main():
     require(WRANGLER.is_file(), "缺少本地 Wrangler，请先运行 just app-service-check")
     run(["node", "scripts/compile-schema.mjs"], cwd=SERVICE)
 
+
+@contextmanager
+def local_worker(name):
     parent = ROOT / ".ubaa_local/app_service"
     parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="http_e2e_", dir=parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix=f"{name}_e2e_", dir=parent) as temporary:
         directory = Path(temporary)
         secret = secrets.token_hex(32)
         vars_file = directory / ".env"
         vars_file.write_text(f"USER_KEY_SECRET={secret}\n")
-        env = dict(os.environ, WRANGLER_LOG_PATH=str(directory / "wrangler_logs"),
+        env = {key: value for key, value in os.environ.items()
+               if not key.startswith(("CLOUDFLARE_", "CF_", "WRANGLER_"))
+               and key != "USER_KEY_SECRET"}
+        env.update(WRANGLER_LOG_PATH=str(directory / "wrangler_logs"),
                    WRANGLER_HIDE_BANNER="true", WRANGLER_SEND_METRICS="false",
                    WRANGLER_SEND_ERROR_REPORTS="false", CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV="true")
-        env.pop("USER_KEY_SECRET", None)
         # 开发服务和查询只使用隔离目录中的本地 KV、D1 和合成配置。
-        env_file = ["--env-file", str(vars_file)]
+        env_file = ["--config", str(SERVICE / "wrangler.json"), "--env-file", str(vars_file)]
         database = ["DB", "--local", "--persist-to", str(directory / "d1")]
         run([str(WRANGLER), "d1", "migrations", "apply", *database, *env_file], cwd=SERVICE, env=env)
         seed_bootstrap(directory, env_file, env)
@@ -302,18 +311,29 @@ def main():
                          cwd=SERVICE, env=env, capture=True)
             return json.loads(result.stdout)[0]["results"][0]
 
+        require(query() == EMPTY, "联调开始前隔离 D1 已有数据")
+        with worker(env_file, env, directory) as port:
+            yield directory, port, query, secret
+
+
+def main():
+    with local_worker("http") as (directory, port, query, secret):
         core = directory / "core"
         core.mkdir()
-        with worker(env_file, env, directory) as port, untrusted_tls_listener(directory) as tls_port:
+        with untrusted_tls_listener(directory) as tls_port:
             server, sent, errors = relay(port, query, secret)
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                run(["cargo", "test", "--locked", "-p", "ubaa-core", "--features", "test-contract",
-                     "--test", "app_service_http", "--", "--ignored"], cwd=ROOT,
-                    env=dict(os.environ, UBAA_APP_SERVICE_TEST_PORT=str(server.server_port),
-                             UBAA_APP_SERVICE_TEST_TLS_PORT=str(tls_port),
-                             UBAA_APP_SERVICE_TEST_STATE=str(core)))
+                command = ["cargo", "test", "--locked", "-p", "ubaa-core", "--features",
+                           "test-contract", "--test", "app_service_http", "--", "--ignored", "--exact"]
+                env = dict(os.environ, UBAA_APP_SERVICE_TEST_PORT=str(server.server_port),
+                           UBAA_APP_SERVICE_TEST_TLS_PORT=str(tls_port),
+                           UBAA_APP_SERVICE_TEST_STATE=str(core))
+                run([*command, "bootstrap_and_gate_over_http"], cwd=ROOT, env=env, timeout=1200)
+                require(sent == {UPLOAD: 0, ERASE: 0, BOOTSTRAP: 1} and query() == EMPTY,
+                        "更新门控或公告已读期间发生了额外请求或 D1 写入")
+                run([*command, "upload_retry_and_erase_over_http"], cwd=ROOT, env=env)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -322,8 +342,7 @@ def main():
                     raise ValueError("；".join(errors))
             require(sent == {UPLOAD: 3, ERASE: 2, BOOTSTRAP: 1},
                     "实际 HTTP 请求数与重试、GUI 刷新及命令模式约定不符")
-            require(query() == dict(batches=1, tombstones=1, active=0, user_key=None,
-                                    counters=0, errors=0, timings=0),
+            require(query() == ERASED,
                     "删除后 D1 仍有旧明细，或晚到批次写入了去重行")
     print("本地 HTTP 与 D1 联调通过：重发一次计数，删除重启恢复，晚到批次返回 410")
     print("本地 HTTP 与 KV 联调通过：启动配置仅发送四个参数，命令模式共享门控且未请求启动配置")
@@ -331,6 +350,7 @@ def main():
 
 if __name__ == "__main__":
     try:
+        prepare()
         main()
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         raise SystemExit(str(error)) from None
