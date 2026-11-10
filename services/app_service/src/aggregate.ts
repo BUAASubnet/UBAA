@@ -2,6 +2,7 @@ import { campusDay, shiftDay } from "./campus_time";
 
 const JOB = "aggregate";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DAILY_BATCH_DAYS = 10;
 const LAST_SUCCESS = `(SELECT last_success_day FROM job_state WHERE job = '${JOB}')`;
 
 // L−8 已定稿，L−7 是上次成功之后第一个仍可能变化的日期。
@@ -63,15 +64,29 @@ function activeStatements(prepare: Prepare, monthly: boolean) {
   ];
 }
 
-function countStatements(prepare: Prepare) {
-  return Object.entries(COUNT_KEYS).flatMap(([name, key]) => [
+function countStatements(prepare: Prepare, name: string, key: string) {
+  return [
     prepare(`DELETE FROM ${name}_daily WHERE ${DAILY_RANGE}`),
     prepare(`
       INSERT INTO ${name}_daily (${key}, count, devices)
       SELECT ${key}, SUM(count), COUNT(DISTINCT install_id)
       FROM ${name}_days WHERE ${DAILY_RANGE} GROUP BY ${key}
     `),
-  ]);
+  ];
+}
+
+function* dailyWindows(first: string, last: string) {
+  for (let start = first; start <= last;) {
+    const end = shiftDay(start, DAILY_BATCH_DAYS - 1);
+    yield [start, end < last ? end : last] as const;
+    start = shiftDay(end, 1);
+  }
+}
+
+function nextMonthStart(day: string): string {
+  const date = new Date(`${day.slice(0, 7)}-01T00:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + 1);
+  return date.toISOString().slice(0, 10);
 }
 
 function activeRetentionStart(day: string): string {
@@ -93,11 +108,22 @@ export async function runAggregation(
   const lastDay = shiftDay(day, 1);
   const activeCutoff = activeRetentionStart(day);
   const countCutoff = shiftDay(day, -90);
+  const lastSuccess = await db
+    .prepare("SELECT last_success_day FROM job_state WHERE job = ?")
+    .bind(JOB)
+    .first<string>("last_success_day");
+  if (lastSuccess !== null && lastSuccess > day) return;
+  const firstUnfinalized =
+    lastSuccess === null ? firstDay : shiftDay(lastSuccess, -7);
+  const activeFirst =
+    activeCutoff > firstUnfinalized ? activeCutoff : firstUnfinalized;
+  const countFirst =
+    countCutoff > firstUnfinalized ? countCutoff : firstUnfinalized;
+  // 用 L 规划批次范围；每批 SQL 再检查 L，较旧的触发不会改写已定稿结果。
   const prepare =
-    (cutoff: string): Prepare =>
+    (start: string, end: string): Prepare =>
     (sql) =>
-      db.prepare(BOUNDS + sql).bind(day, firstDay, cutoff, lastDay);
-  const prepareActive = prepare(activeCutoff);
+      db.prepare(BOUNDS + sql).bind(day, firstDay, start, end);
   const timestampCutoff = (days: number) =>
     new Date(scheduledTime - days * DAY_MS).toISOString();
   const cleanup = (
@@ -114,11 +140,26 @@ export async function runAggregation(
       )
       .bind(cutoff, day, day);
 
-  // 先覆盖整段聚合，再清理其明细。任一语句失败时，D1 回滚整个 batch。
+  // 每批只覆盖一张表的有限日期范围，避免漏跑时整个汇总超过 D1 批次时限。
+  for (const [start, end] of dailyWindows(activeFirst, lastDay)) {
+    await db.batch(activeStatements(prepare(start, end), false));
+  }
+  for (const [name, key] of Object.entries(COUNT_KEYS)) {
+    for (const [start, end] of dailyWindows(countFirst, lastDay)) {
+      await db.batch(countStatements(prepare(start, end), name, key));
+    }
+  }
+  for (let start = activeFirst; start <= lastDay;) {
+    const next = nextMonthStart(start);
+    const end = shiftDay(next, -1);
+    await db.batch(
+      activeStatements(prepare(start, end < lastDay ? end : lastDay), true),
+    );
+    start = next;
+  }
+
+  // 已写入的聚合可覆盖重算；只有全部汇总成功，才原子地清理和推进 L。
   await db.batch([
-    ...activeStatements(prepareActive, false),
-    ...countStatements(prepare(countCutoff)),
-    ...activeStatements(prepareActive, true),
     cleanup("active_days", "day", activeCutoff),
     ...Object.keys(COUNT_KEYS).map((name) =>
       cleanup(`${name}_days`, "day", countCutoff),

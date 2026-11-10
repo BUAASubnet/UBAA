@@ -242,10 +242,13 @@ function insertCounters(day: string) {
   ];
 }
 
-async function column(table: string, name: string) {
+async function column<T extends string | number = string>(
+  table: string,
+  name: string,
+) {
   const { results } = await env.DB.prepare(
     `SELECT DISTINCT ${name} AS value FROM ${table} ORDER BY ${name}`,
-  ).all<{ value: string }>();
+  ).all<{ value: T }>();
   return results.map(({ value }) => value);
 }
 
@@ -296,13 +299,18 @@ it.each([
   ["DELETE", "batches"],
   ["UPDATE", "job_state"],
 ])(
-  "%s %s 失败回滚汇总、清理与成功日期，下一轮可重算",
+  "%s %s 失败保留已完成的汇总，跳过清理与成功日期更新，下一轮覆盖重算",
   async (operation, table) => {
     await scheduled("2025-04-30T19:00:00Z");
     await env.DB.batch([
+      active("2025-04-30", "previous-month-device"),
       active("2025-05-01", "current-device"),
       active("2024-01-01", "expired-device"),
       ...insertCounters("2024-12-31"),
+      ...insertCounters("2025-05-01"),
+      env.DB.prepare(
+        "INSERT INTO active_monthly VALUES ('2025-05', 'all', '', 0, 7)",
+      ),
       env.DB.prepare(
         "INSERT INTO batches VALUES ('old', 'synthetic', '2025-01-01T00:00:00.000Z')",
       ),
@@ -311,6 +319,7 @@ it.each([
       ),
       env.DB
         .prepare(`CREATE TRIGGER fail_aggregate BEFORE ${operation} ON ${table}
+      ${table === "active_monthly" ? "WHEN NEW.month = '2025-05'" : ""}
       BEGIN SELECT RAISE(ABORT, '合成数据库故障'); END`),
     ]);
     try {
@@ -318,14 +327,22 @@ it.each([
         "统计汇总任务失败",
       );
       expect(await lastSuccess()).toBe("2025-05-01");
-      expect(await groups("2025-05-01")).toEqual({});
-      expect(await groups("2025-05")).toEqual({});
+      expect((await groups("2025-05-01"))["all/"]).toEqual([0, 1]);
+      expect((await groups("2025-04"))["all/"]).toEqual([0, 1]);
+      expect((await groups("2025-05"))["all/"]).toEqual([
+        0,
+        table === "active_monthly" ? 7 : 1,
+      ]);
       expect(await column("active_days", "day")).toEqual([
         "2024-01-01",
+        "2025-04-30",
         "2025-05-01",
       ]);
       for (const name of countTables) {
-        expect(await column(`${name}_days`, "day")).toEqual(["2024-12-31"]);
+        expect(await column(`${name}_days`, "day")).toEqual([
+          "2024-12-31",
+          "2025-05-01",
+        ]);
       }
       expect(await column("batches", "batch_id")).toEqual(["old"]);
       expect(await column("erased_installs", "install_id")).toEqual(["old"]);
@@ -335,7 +352,16 @@ it.each([
     await scheduled("2025-05-02T19:00:00Z");
     expect(await lastSuccess()).toBe("2025-05-03");
     expect((await groups("2025-05-01"))["all/"]).toEqual([0, 1]);
-    expect(await column("active_days", "day")).toEqual(["2025-05-01"]);
+    expect((await groups("2025-05"))["all/"]).toEqual([0, 1]);
+    expect(
+      await Promise.all(
+        countTables.map((name) => column<number>(`${name}_daily`, "count")),
+      ),
+    ).toEqual([[3], [1], [2]]);
+    expect(await column("active_days", "day")).toEqual([
+      "2025-04-30",
+      "2025-05-01",
+    ]);
     expect(await column("batches", "batch_id")).toEqual([]);
     expect(await column("erased_installs", "install_id")).toEqual([]);
   },
