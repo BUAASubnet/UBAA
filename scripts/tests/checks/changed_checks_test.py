@@ -169,7 +169,8 @@ class ChangedChecksTest(unittest.TestCase):
     def test_full_mode_executes_each_heavy_gate_once(self):
         plan = gates.select_checks(ROOT, ['AGENTS.md'], mode='full')
         commands = gates.commands(plan)
-        for recipe in ['check-strict', 'integration-test', 'app-service-check']:
+        for recipe in ['check-strict', 'integration-test', 'app-service-check',
+                       'app-service-content-check']:
             self.assertEqual(commands.count(['just', recipe]), 1)
         self.assertEqual(commands.count(gates.CODEGEN), 1)
         self.assertNotIn(['just', 'check'], commands)
@@ -182,6 +183,28 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertIn(['just', 'privacy-policy-check'], gates.commands(plan))
         self.assertIn(['npm', 'run', 'docs:build'], gates.commands(plan))
         self.assertNotIn(['just', 'app-service-check'], gates.commands(plan))
+
+    def test_app_service_content_and_release_changes_select_only_local_checks(self):
+        for path in [
+                'docs/site/announcements/2026-11-10-001.md',
+                'docs/site/announcements/history.md',
+                'services/app_service/config/channels.json',
+                'services/app_service/src/version.mjs',
+                'scripts/check/app_service/content.mjs',
+                'scripts/tests/app_service/content_test.mjs',
+                'scripts/tests/app_service/announcements_site_test.mjs',
+                'scripts/tests/app_service/release_test.mjs',
+                'scripts/release/app_service/release.mjs',
+                'package-lock.json']:
+            with self.subTest(path=path):
+                commands = gates.commands(self.plan(path))
+                self.assertIn(['just', 'app-service-content-check'], commands)
+                self.assertNotIn(['just', 'app-service-publish'], commands)
+                self.assertNotIn(['just', 'app-service-deploy'], commands)
+        for path in ['scripts/check/app_service/content.mjs', 'services/app_service/src/version.mjs']:
+            self.assertIn(['npm', 'run', 'docs:build'], gates.commands(self.plan(path)))
+        self.assertNotIn(['just', 'app-service-content-check'],
+                         gates.commands(self.plan('services/app_service/src/aggregate.ts')))
 
     def test_app_service_only_changes_propagate_worker_check_failure(self):
         for path in ['services/app_service/src/index.ts', 'fixtures/app_service/bootstrap.json']:

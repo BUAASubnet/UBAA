@@ -54,7 +54,7 @@
 ## 验证与运行
 
 - [本地诊断](runbooks/local-diagnostics.md)、[真实认证](runbooks/live-auth-verification.md)、[真实只读](runbooks/live-readonly-verification.md)
-- [发布流程](runbooks/flutter-release.md)
+- [发布流程](runbooks/flutter-release.md)、[应用服务部署与维护](runbooks/app-service.md)
 - [UI 证据规则](design/evidence/README.md)、[历史采集批次](design/evidence/batches.md)
 
 ## 近期实施与历史记录

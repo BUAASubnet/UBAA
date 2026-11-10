@@ -95,7 +95,11 @@ jobs:
         with:
           node-version: ${{ steps.versions.outputs.node }}
           cache: npm
-          cache-dependency-path: services/app_service/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            services/app_service/package-lock.json
+      - name: 校验应用服务发布内容与发布边界
+        run: just app-service-content-check
       - name: 检查应用服务合同与本地 Worker
         run: just app-service-check
 

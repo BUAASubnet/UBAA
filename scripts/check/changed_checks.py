@@ -166,7 +166,7 @@ OHOS = ('apps/ubaa_ohos/', 'packages/flutter_secure_storage_ohos/',
 DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'crates/ubaa_command/', 'tools/core_live/',
                   'crates/ubaa_core/', 'crates/ubaa_flutter_bridge/', 'crates/ubaa_test_support/',
                   *OHOS, *(folder + '/' for folder in PACKAGES.values()))
-SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
+SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.mjs', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
 APP_SERVICE_INPUTS = {
     'docs/contracts/app-service.schema.json', 'docs/contracts/app-service.md',
     'scripts/check/contract-versions.sh', 'scripts/tests/contract-versions.sh',
@@ -179,6 +179,22 @@ PRIVACY_POLICY_INPUTS = {
     'docs/site/tech/privacy-policy.md',
     'packages/ubaa_domain/lib/src/privacy/bundled_policy.dart',
 }
+SITE_INPUTS = {
+    'package.json', 'package-lock.json', 'docs/contracts/app-service.schema.json',
+    'scripts/check/app_service/content.mjs', 'services/app_service/src/version.mjs',
+}
+APP_SERVICE_CONTENT_INPUTS = SITE_INPUTS | {
+    'docs/contracts/app-service.md', 'services/app_service/config/channels.json',
+    'scripts/tests/app_service/content_test.mjs', 'scripts/tests/app_service/announcements_site_test.mjs',
+    'scripts/tests/app_service/release_test.mjs',
+    'justfile', 'scripts/lib/recipe.py',
+    'scripts/check/changed_checks.py', 'scripts/tests/checks/changed_checks_test.py',
+    '.github/workflows/ci.yml', '.github/workflows/docs.yml',
+}
+APP_SERVICE_CONTENT_PATHS = (
+    'docs/site/announcements/', 'docs/site/.vitepress/',
+    'scripts/release/app_service/', 'fixtures/app_service/announcements/',
+)
 
 
 def select_checks(root, paths, mode='commit', previous=None):
@@ -186,11 +202,14 @@ def select_checks(root, paths, mode='commit', previous=None):
         raise ValueError('检查模式只接受 commit、push 或 full')
     selected, production = set(), set()
     rust = scripts = native = site = strict_rust = app_service = privacy_policy = False
+    app_service_content = False
     full = mode == 'full'
     codegen = full
     notes = set()
     for path in paths:
-        site |= path.startswith('docs/site/') or path in {'package.json', 'package-lock.json'}
+        site |= path.startswith('docs/site/') or path in SITE_INPUTS
+        app_service_content |= (path in APP_SERVICE_CONTENT_INPUTS
+                                or path.startswith(APP_SERVICE_CONTENT_PATHS))
         privacy_policy |= path in PRIVACY_POLICY_INPUTS
         app_service |= path in APP_SERVICE_INPUTS or path.startswith((
             'services/app_service/', 'fixtures/app_service/', 'crates/ubaa_core/src/app_service/',
@@ -271,6 +290,7 @@ def select_checks(root, paths, mode='commit', previous=None):
     return {'rust': rust, 'scripts': scripts, 'full': full, 'strict': full or strict_rust or mode == 'push',
             'native': native and (full or mode == 'push'),
             'app_service': app_service or full,
+            'app_service_content': app_service_content or full,
             'privacy_policy': privacy_policy,
             'packages': [name for name in PACKAGES if name in selected],
             'extra': ([CODEGEN] if codegen else []) + ([['npm', 'run', 'docs:build']] if site else []),
@@ -279,6 +299,8 @@ def select_checks(root, paths, mode='commit', previous=None):
 
 def commands(plan):
     result = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check']]
+    if plan['app_service_content']:
+        result.append(['just', 'app-service-content-check'])
     if plan['app_service']:
         result.append(['just', 'app-service-check'])
     if plan['rust']:

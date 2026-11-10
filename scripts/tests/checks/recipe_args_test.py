@@ -53,6 +53,19 @@ class RecipeArgsTest(unittest.TestCase):
         self.assertEqual(recipe.values('release-preflight', ['mode=report', 'report_dir=/tmp/report']),
                          ['/tmp/report', 'report'])
 
+    def test_应用服务写入命令必须传入目标并保留路径(self):
+        target = '.ubaa_local/app_service/测试 目标.json'
+        for operation in ('publish', 'deploy'):
+            with self.subTest(operation=operation):
+                name = f'app-service-{operation}'
+                with self.assertRaises(ValueError):
+                    recipe.values(name, [])
+                with patch.object(recipe.sys, 'argv', ['recipe.py', name, f'target={target}']), \
+                        patch.object(recipe.os, 'chdir'), patch.object(recipe, 'hand_off') as hand_off:
+                    recipe.main()
+                self.assertEqual(hand_off.call_args.args[0],
+                                 ['node', 'scripts/release/app_service/release.mjs', operation, '--target', target])
+
     def test_missing_duplicate_unknown_and_extra_arguments_fail(self):
         for name, args in [('flutter-test', []), ('flutter-build', ['platform=linux', 'platform=macos']),
                            ('check-plan', ['unknown=value']), ('flutter-build', ['a','b','c'])]:

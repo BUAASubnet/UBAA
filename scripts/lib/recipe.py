@@ -12,6 +12,8 @@ SPECS = {
     'check-plan': [('base', ''), ('mode', 'commit')],
     'check-changed': [('base', ''), ('mode', 'commit')],
     'release-preflight': [('report_dir', ''), ('mode', 'strict')],
+    'app-service-publish': [('target', None)],
+    'app-service-deploy': [('target', None)],
     'flutter-test': [('package', None), ('path', 'test')],
     'flutter-build': [('platform', 'host'), ('mode', 'debug')],
     'flutter-artifact-check': [('platform', None), ('artifact', None)],
@@ -59,6 +61,9 @@ def main():
             commands[name].append('--run')
     if name == 'integration-test':
         commands[name] += ['--suite', args[0], '--platform', args[1], '--device', args[2]]
+    if name in {'app-service-publish', 'app-service-deploy'}:
+        commands[name] = ['node', 'scripts/release/app_service/release.mjs',
+                          name.removeprefix('app-service-'), '--target', args[0]]
     os.chdir(ROOT)
     hand_off(commands[name], os.environ)
 

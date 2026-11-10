@@ -132,6 +132,22 @@ app-service-check:
     npm --prefix services/app_service ci --no-audit --no-fund
     npm --prefix services/app_service run check
 
+# 校验发布内容，并用合成内容构建网站、用假 CLI 验证发布边界。
+app-service-content-check:
+    npm ci --no-audit --no-fund
+    node scripts/check/app_service/content.mjs
+    node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
+
+# 显式写入目标 KV；普通检查不调用。
+[positional-arguments]
+app-service-publish *args:
+    @python3 scripts/lib/recipe.py app-service-publish "$@"
+
+# 显式迁移目标 D1 并部署 Worker；普通检查不调用。
+[positional-arguments]
+app-service-deploy *args:
+    @python3 scripts/lib/recipe.py app-service-deploy "$@"
+
 # 只读核对网站正文摘要和应用内嵌入的政策。
 privacy-policy-check:
     bash scripts/tools/python.sh scripts/check/app_service/privacy_policy.py
