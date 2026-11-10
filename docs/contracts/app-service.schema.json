@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ubaa:app-service:json:schema:1",
+  "title": "UBAA 应用服务载荷",
+  "oneOf": [
+    {"$ref": "#/$defs/telemetryRequest"},
+    {"$ref": "#/$defs/eraseRequest"},
+    {"$ref": "#/$defs/bootstrapRequest"},
+    {"$ref": "#/$defs/bootstrapResponse"},
+    {"$ref": "#/$defs/telemetryErrorResponse"}
+  ],
+  "$defs": {
+    "schemaVersion": {"type": "integer", "const": 1},
+    "uuidV4": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["android", "ios", "ohos", "macos", "windows", "linux"]
+    },
+    "channel": {"type": "string", "enum": ["github", "app_store", "app_gallery"]},
+    "appVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+\\d+)?$",
+      "maxLength": 48
+    },
+    "stableVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(\\+\\d+)?$",
+      "maxLength": 48
+    },
+    "feature": {
+      "type": "string",
+      "enum": [
+        "app", "auth", "schedule", "exam", "grades", "bykc", "classroom", "spoc",
+        "judge", "libbook", "signin", "cgyy", "ygdk", "evaluation"
+      ]
+    },
+    "route": {"type": "string", "enum": ["direct", "webvpn", "none"]},
+    "errorKind": {
+      "type": "string",
+      "enum": ["input", "authentication", "network", "upstream", "parse", "internal"]
+    },
+    "count": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "cohort_type", "cohort_year"],
+      "properties": {
+        "key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "cohort_type": {"type": "string", "pattern": "^(?:undergrad|[A-Z]{2}|unknown)$"},
+        "cohort_year": {
+          "description": "当年加一的上限由 Worker 按当前校园日期检查。",
+          "anyOf": [
+            {"type": "integer", "minimum": 2000, "maximum": 2099},
+            {"type": "null"}
+          ]
+        }
+      },
+      "if": {"properties": {"cohort_type": {"const": "unknown"}}},
+      "then": {"properties": {"cohort_year": {"type": "null"}}},
+      "else": {"properties": {"cohort_year": {"type": "integer"}}}
+    },
+    "counter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "feature", "route", "result", "count"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": ["app_started", "auth_started", "auth_succeeded", "session_expired", "route_resolved", "feature_loaded"]
+        },
+        "feature": {"$ref": "#/$defs/feature"},
+        "route": {"$ref": "#/$defs/route"},
+        "result": {"type": "string", "enum": ["success", "empty", "failure"]},
+        "count": {"$ref": "#/$defs/count"}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "feature", "route", "error_code", "error_kind", "retryable", "count"],
+      "properties": {
+        "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "ui_error_shown", "crash"]},
+        "feature": {"$ref": "#/$defs/feature"},
+        "route": {"$ref": "#/$defs/route"},
+        "error_code": {"type": "string"},
+        "error_kind": {"$ref": "#/$defs/errorKind"},
+        "retryable": {"type": "boolean"},
+        "source": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^(?:package:ubaa_[a-z_]+/[A-Za-z0-9_/]+\\.dart:\\d+|crates/ubaa_[a-z_]+/src/[A-Za-z0-9_/]+\\.rs:\\d+)$"
+        },
+        "count": {"$ref": "#/$defs/count"}
+      },
+      "if": {"properties": {"event": {"const": "crash"}}},
+      "then": {"properties": {"error_code": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"}}},
+      "else": {"properties": {"error_code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,47}$"}}}
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "feature", "route", "bucket", "count"],
+      "properties": {
+        "metric": {"type": "string", "enum": ["cold_start", "first_content", "auth", "feature_load"]},
+        "feature": {"$ref": "#/$defs/feature"},
+        "route": {"$ref": "#/$defs/route"},
+        "bucket": {
+          "type": "string",
+          "enum": ["lt_250", "lt_500", "lt_1000", "lt_2000", "lt_5000", "lt_10000", "ge_10000"]
+        },
+        "count": {"$ref": "#/$defs/count"}
+      }
+    },
+    "day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["day", "app_version", "surfaces", "users", "counters", "errors", "timings"],
+      "properties": {
+        "day": {"type": "string", "format": "date"},
+        "app_version": {"$ref": "#/$defs/appVersion"},
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "enum": ["gui", "command"]}
+        },
+        "users": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/user"}},
+        "counters": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/counter"}},
+        "errors": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/error"}},
+        "timings": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/timing"}}
+      }
+    },
+    "telemetryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "batch_id", "install_id", "platform", "channel", "days"],
+      "properties": {
+        "schema": {"$ref": "#/$defs/schemaVersion"},
+        "batch_id": {"$ref": "#/$defs/uuidV4"},
+        "install_id": {"$ref": "#/$defs/uuidV4"},
+        "platform": {"$ref": "#/$defs/platform"},
+        "channel": {"$ref": "#/$defs/channel"},
+        "days": {
+          "description": "同一校园日期与版本的组合不可重复。接收窗口及组合唯一性由 Worker 检查。",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {"$ref": "#/$defs/day"}
+        }
+      }
+    },
+    "telemetryErrorResponse": {"type": "string", "enum": ["invalid_payload", "install_erased"]},
+    "eraseRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "install_id"],
+      "properties": {
+        "schema": {"$ref": "#/$defs/schemaVersion"},
+        "install_id": {"$ref": "#/$defs/uuidV4"}
+      }
+    },
+    "bootstrapRequest": {
+      "description": "已解码的查询参数，参数值都是字符串。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "platform", "channel", "version"],
+      "properties": {
+        "schema": {"type": "string", "const": "1"},
+        "platform": {"$ref": "#/$defs/platform"},
+        "channel": {"$ref": "#/$defs/channel"},
+        "version": {"$ref": "#/$defs/appVersion"}
+      }
+    },
+    "httpsUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^[Hh][Tt][Tt][Pp][Ss]://(?:[^@/?#]*@)?(?:\\[[^\\]]+\\]|[^:@/?#]+)(?::[0-9]+)?(?:[/?#]|$)"
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status", "latest_version", "min_supported_version", "url", "release_notes"],
+      "properties": {
+        "status": {
+          "description": "当前取值为 up_to_date、update_available、update_required、unknown。其余字符串按 unknown 处理。",
+          "type": "string"
+        },
+        "latest_version": {"anyOf": [{"$ref": "#/$defs/stableVersion"}, {"type": "null"}]},
+        "min_supported_version": {"anyOf": [{"$ref": "#/$defs/stableVersion"}, {"type": "null"}]},
+        "url": {"anyOf": [{"$ref": "#/$defs/httpsUrl"}, {"type": "null"}]},
+        "release_notes": {"anyOf": [{"type": "string", "maxLength": 2000}, {"type": "null"}]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "unknown"}}},
+          "then": {
+            "properties": {
+              "latest_version": {"type": "null"},
+              "min_supported_version": {"type": "null"},
+              "url": {"type": "null"},
+              "release_notes": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["up_to_date", "update_available", "update_required"]}}},
+          "then": {"properties": {"url": {"$ref": "#/$defs/httpsUrl"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "up_to_date"}}},
+          "then": {"properties": {"release_notes": {"type": "null"}}}
+        }
+      ]
+    },
+    "announcement": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "level", "title", "body", "starts_at"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}-\\d{3}$"},
+        "level": {"type": "string", "enum": ["popup", "banner"]},
+        "title": {"type": "string", "maxLength": 40},
+        "body": {"type": "string", "maxLength": 1000},
+        "link_url": {"$ref": "#/$defs/httpsUrl"},
+        "link_text": {"type": "string"},
+        "confirm_text": {"type": "string"},
+        "starts_at": {"type": "string", "format": "date-time"},
+        "ends_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "bootstrapResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema", "update", "announcements"],
+      "properties": {
+        "schema": {"$ref": "#/$defs/schemaVersion"},
+        "update": {"$ref": "#/$defs/update"},
+        "announcements": {
+          "description": "单条公告分别按 announcement 校验，不合规则的条目丢弃，其他内容保留。",
+          "type": "array",
+          "maxItems": 5
+        }
+      }
+    }
+  }
+}

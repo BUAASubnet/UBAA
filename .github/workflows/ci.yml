@@ -82,6 +82,23 @@ jobs:
           CARGO_BUILD_JOBS: 1
         run: just flutter-codegen-check
 
+  app-service-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - id: versions
+        uses: ./.github/actions/versions
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        with:
+          tool: just@${{ steps.versions.outputs.just }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          cache: npm
+          cache-dependency-path: services/app_service/package-lock.json
+      - name: 检查应用服务合同与本地 Worker
+        run: just app-service-check
+
   flutter-contracts:
     # 既有 golden 使用 macOS 渲染；完整测试固定同类宿主，保持逐像素比较。
     runs-on: macos-15

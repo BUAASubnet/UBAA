@@ -1,0 +1,27 @@
+{
+  "name": "ubaa-app-service",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "format:check": "prettier --check package.json tsconfig.json wrangler.json vitest.config.ts src test scripts",
+    "generate": "node scripts/compile-schema.mjs && wrangler types .generated/worker-configuration.d.ts --env-file test/.env.example",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run generate && esbuild src/index.ts src/schema.ts --bundle --format=esm --platform=browser --target=es2022 --outdir=.generated/build",
+    "test": "vitest run",
+    "check": "npm run format:check && npm run build && npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.7.0",
+    "@types/node": "22.20.5",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "esbuild": "0.28.2",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0",
+    "wrangler": "4.160.0"
+  }
+}

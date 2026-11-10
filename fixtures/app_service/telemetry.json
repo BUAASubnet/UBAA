@@ -1,0 +1,107 @@
+{
+  "cases": [
+    {
+      "name": "最小匿名批次",
+      "schema": "telemetryRequest",
+      "valid": true,
+      "payload": {
+        "schema": 1,
+        "batch_id": "00000000-0000-4000-8000-000000000001",
+        "install_id": "00000000-0000-4000-8000-000000000002",
+        "platform": "linux",
+        "channel": "github",
+        "days": [
+          {
+            "day": "2024-02-29",
+            "app_version": "2.0.0",
+            "surfaces": ["command"],
+            "users": [],
+            "counters": [],
+            "errors": [],
+            "timings": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "完整遥测批次",
+      "schema": "telemetryRequest",
+      "valid": true,
+      "payload": {
+        "schema": 1,
+        "batch_id": "00000000-0000-4000-8000-000000000003",
+        "install_id": "00000000-0000-4000-8000-000000000002",
+        "platform": "android",
+        "channel": "github",
+        "days": [
+          {
+            "day": "2026-11-10",
+            "app_version": "2.1.0-rc.1+15",
+            "surfaces": ["gui", "command"],
+            "users": [
+              {"key": null, "cohort_type": "undergrad", "cohort_year": 2024}
+            ],
+            "counters": [
+              {"event": "feature_loaded", "feature": "schedule", "route": "direct", "result": "success", "count": 100000}
+            ],
+            "errors": [
+              {"event": "feature_failed", "feature": "grades", "route": "webvpn", "error_code": "parse_error", "error_kind": "upstream", "retryable": false, "source": "package:ubaa_app/src/bridge/read/grades.dart:120", "count": 1},
+              {"event": "crash", "feature": "app", "route": "none", "error_code": "StateError", "error_kind": "internal", "retryable": false, "count": 1},
+              {"event": "crash", "feature": "app", "route": "none", "error_code": "panic", "error_kind": "internal", "retryable": false, "source": "crates/ubaa_core/src/error/mod.rs:44", "count": 1}
+            ],
+            "timings": [
+              {"metric": "feature_load", "feature": "schedule", "route": "direct", "bucket": "lt_1000", "count": 2}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "已删除安装机器码",
+      "schema": "telemetryErrorResponse",
+      "valid": true,
+      "payload": "install_erased"
+    },
+    {
+      "name": "校验失败机器码",
+      "schema": "telemetryErrorResponse",
+      "valid": true,
+      "payload": "invalid_payload"
+    }
+  ],
+  "mutations": [
+    {"name": "顶层未知字段", "caseIndex": 0, "path": ["unexpected"], "value": "synthetic"},
+    {"name": "日期条目未知字段", "caseIndex": 0, "path": ["days", 0, "unexpected"], "value": true},
+    {"name": "计数条目未知字段", "caseIndex": 1, "path": ["days", 0, "counters", 0, "unexpected"], "value": 1},
+    {"name": "错误条目未知字段", "caseIndex": 1, "path": ["days", 0, "errors", 0, "unexpected"], "value": 1},
+    {"name": "耗时条目未知字段", "caseIndex": 1, "path": ["days", 0, "timings", 0, "unexpected"], "value": 1},
+    {"name": "用户条目未知字段", "caseIndex": 1, "path": ["days", 0, "users", 0, "unexpected"], "value": 1},
+    {"name": "未知功能", "caseIndex": 1, "path": ["days", 0, "counters", 0, "feature"], "value": "future_feature"},
+    {"name": "未知错误分类", "caseIndex": 1, "path": ["days", 0, "errors", 0, "error_kind"], "value": "future_error_kind"},
+    {"name": "普通错误不能使用异常类型名", "caseIndex": 1, "path": ["days", 0, "errors", 0, "error_code"], "value": "StateError"},
+    {"name": "源码位置不能为 null", "caseIndex": 1, "path": ["days", 0, "errors", 0, "source"], "value": null},
+    {"name": "拒绝本机源码路径", "caseIndex": 1, "path": ["days", 0, "errors", 0, "source"], "value": "/var/tmp/synthetic/source.dart:10"},
+    {"name": "非法闰日", "caseIndex": 0, "path": ["days", 0, "day"], "value": "2026-02-29"},
+    {"name": "日期不能为时间戳", "caseIndex": 0, "path": ["days", 0, "day"], "value": "2026-11-10T00:00:00+08:00"},
+    {"name": "日期不能为空", "caseIndex": 0, "path": ["days", 0, "day"], "value": null},
+    {"name": "日期列表不能为空", "caseIndex": 0, "path": ["days"], "value": []},
+    {"name": "入口不能重复", "caseIndex": 0, "path": ["days", 0, "surfaces"], "value": ["gui", "gui"]},
+    {"name": "用户数组不能为 null", "caseIndex": 0, "path": ["days", 0, "users"], "value": null},
+    {"name": "版本超过 48 字符", "caseIndex": 0, "path": ["days", 0, "app_version"], "value": "2.1.0+1000000000000000000000000000000000000000000"},
+    {"name": "计数不能为零", "caseIndex": 1, "path": ["days", 0, "counters", 0, "count"], "value": 0},
+    {"name": "计数超过上限", "caseIndex": 1, "path": ["days", 0, "counters", 0, "count"], "value": 100001},
+    {"name": "未知年级不能带年份", "caseIndex": 1, "path": ["days", 0, "users", 0, "cohort_type"], "value": "unknown"},
+    {"name": "已知年级年份不能为 null", "caseIndex": 1, "path": ["days", 0, "users", 0, "cohort_year"], "value": null},
+    {"name": "接口版本不能使用字符串", "caseIndex": 0, "path": ["schema"], "value": "1"},
+    {"name": "安装标识必须为小写 UUIDv4", "caseIndex": 0, "path": ["install_id"], "value": "00000000-0000-4000-8000-00000000000A"}
+  ],
+  "constraints": [
+    {"name": "正文恰为 128 KiB", "kind": "bodyBytes", "bytes": 131072, "valid": true},
+    {"name": "正文超过 128 KiB 一字节", "kind": "bodyBytes", "bytes": 131073, "valid": false},
+    {"name": "年份可以为当前校园年份加一", "kind": "campusYear", "campusYear": 2026, "payload": {"cohort_type": "undergrad", "cohort_year": 2027}, "valid": true},
+    {"name": "未知年级的年份为 null", "kind": "campusYear", "campusYear": 2026, "payload": {"cohort_type": "unknown", "cohort_year": null}, "valid": true},
+    {"name": "年份不得超过当前校园年份加一", "kind": "campusYear", "campusYear": 2026, "payload": {"cohort_type": "SY", "cohort_year": 2028}, "valid": false},
+    {"name": "同日不同版本", "kind": "dayVersionUnique", "payload": [{"day": "2026-11-10", "app_version": "2.1.0"}, {"day": "2026-11-10", "app_version": "2.1.0+1"}], "valid": true},
+    {"name": "同一日期版本组合重复", "kind": "dayVersionUnique", "payload": [{"day": "2026-11-10", "app_version": "2.1.0"}, {"day": "2026-11-10", "app_version": "2.1.0"}], "valid": false}
+  ]
+}

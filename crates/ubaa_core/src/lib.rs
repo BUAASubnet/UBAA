@@ -7,6 +7,7 @@
 //! ```
 
 mod agenda;
+mod app_service;
 mod auth;
 mod cache;
 mod config;

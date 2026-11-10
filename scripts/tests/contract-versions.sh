@@ -30,6 +30,7 @@ new_fixture() {
   local name=$1
   local fixture="$test_root/$name"
   mkdir -p \
+    "$fixture/crates/ubaa_core/src/app_service" \
     "$fixture/crates/ubaa_command/src/io" \
     "$fixture/crates/ubaa_flutter_bridge/src/api" \
     "$fixture/packages/ubaa_app/lib/src/bridge" \
@@ -39,6 +40,7 @@ new_fixture() {
     "$fixture/docs/development" \
     "$fixture/docs/migration" \
     "$fixture/docs/runbooks" \
+    "$fixture/services/app_service/src" \
     "$fixture/scripts/check"
   cp "$checker_source" "$fixture/scripts/check/contract-versions.sh"
   chmod +x "$fixture/scripts/check/contract-versions.sh"
@@ -49,6 +51,24 @@ new_fixture() {
     >"$fixture/crates/ubaa_flutter_bridge/src/api/client.rs"
   printf '%s\n' 'const _supportedBridgeContractVersion = 9;' \
     >"$fixture/packages/ubaa_app/lib/src/bridge/bridge_backend.dart"
+  printf '%s\n' 'pub const APP_SERVICE_SCHEMA_VERSION: u32 = 1;' \
+    >"$fixture/crates/ubaa_core/src/app_service/mod.rs"
+  printf '%s\n' 'export const APP_SERVICE_SCHEMA_VERSION = 1;' \
+    >"$fixture/services/app_service/src/schema.ts"
+  cat >"$fixture/docs/contracts/app-service.schema.json" <<'JSON'
+{
+  "$defs": {
+    "schemaVersion": {"type": "integer", "const": 1},
+    "telemetryRequest": {"properties": {"schema": {"$ref": "#/$defs/schemaVersion"}}},
+    "eraseRequest": {"properties": {"schema": {"$ref": "#/$defs/schemaVersion"}}},
+    "bootstrapResponse": {"properties": {"schema": {"$ref": "#/$defs/schemaVersion"}}},
+    "bootstrapRequest": {"properties": {"schema": {"type": "string", "const": "1"}}}
+  }
+}
+JSON
+  # shellcheck disable=SC2016
+  printf '%s\n' '接口载荷版本为 `schema: 1`。' \
+    >"$fixture/docs/contracts/app-service.md"
   printf '%s\n' \
     '{"properties":{"schemaVersion":{"const":10}}}' \
     >"$fixture/docs/contracts/cli-json.schema.json"
@@ -101,6 +121,22 @@ run_checker() {
   UBAA_CONTRACT_ROOT="$fixture" bash "$fixture/scripts/check/contract-versions.sh"
 }
 
+change_app_service_schema_version() {
+  python3 - "$1/docs/contracts/app-service.schema.json" "$2" "$3" <<'JSON'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+schema = json.loads(path.read_text())
+definition = schema["$defs"][sys.argv[2]]
+version = json.loads(sys.argv[3])
+if "properties" in definition:
+    definition["properties"]["schema"] = version
+else:
+    definition.update(version)
+path.write_text(json.dumps(schema))
+JSON
+}
+
 expect_pass() {
   local name=$1
   local fixture=$2
@@ -137,6 +173,23 @@ expect_rejected() {
 
 fixture=$(new_fixture matching)
 expect_pass '源码、schema 与当前文档版本一致时通过' "$fixture"
+
+fixture=$(new_fixture app-service-worker-mismatch)
+printf '%s\n' 'export const APP_SERVICE_SCHEMA_VERSION = 2;' \
+  >"$fixture/services/app_service/src/schema.ts"
+expect_rejected '应用服务 Worker 版本与 Core 不同时拒绝' "$fixture" 'services/app_service/src/schema.ts'
+
+fixture=$(new_fixture app-service-schema-mismatch)
+change_app_service_schema_version "$fixture" schemaVersion '{"const":2}'
+expect_rejected '应用服务 JSON 载荷版本与 Core 不同时拒绝' "$fixture" 'docs/contracts/app-service.schema.json'
+
+fixture=$(new_fixture app-service-bootstrap-mismatch)
+change_app_service_schema_version "$fixture" bootstrapRequest '{"type":"string","const":"2"}'
+expect_rejected '启动配置查询版本与 Core 不同时拒绝' "$fixture" 'bootstrapRequest'
+
+fixture=$(new_fixture app-service-erase-mismatch)
+change_app_service_schema_version "$fixture" eraseRequest '{"type":"integer","const":2}'
+expect_rejected '删除请求改用不一致的版本定义时拒绝' "$fixture" 'eraseRequest'
 
 fixture=$(new_fixture multiline-schema)
 python3 - "$fixture/docs/contracts/cli-json.schema.json" <<'JSON'

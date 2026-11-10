@@ -1,0 +1,173 @@
+{
+  "cases": [
+    {
+      "name": "四个启动配置参数",
+      "schema": "bootstrapRequest",
+      "valid": true,
+      "payload": {"schema": "1", "platform": "android", "channel": "github", "version": "2.1.0-rc.1+15"}
+    },
+    {
+      "name": "启动配置请求未知字段",
+      "schema": "bootstrapRequest",
+      "valid": false,
+      "payload": {"schema": "1", "platform": "android", "channel": "github", "version": "2.1.0", "unexpected": "synthetic"}
+    },
+    {
+      "name": "启动配置渠道未知",
+      "schema": "bootstrapRequest",
+      "valid": false,
+      "payload": {"schema": "1", "platform": "android", "channel": "future_store", "version": "2.1.0"}
+    },
+    {
+      "name": "未配置渠道返回空更新字段",
+      "schema": "bootstrapResponse",
+      "valid": true,
+      "effectiveStatus": "unknown",
+      "acceptedAnnouncementIds": [],
+      "payload": {
+        "schema": 1,
+        "update": {"status": "unknown", "latest_version": null, "min_supported_version": null, "url": null, "release_notes": null},
+        "announcements": []
+      }
+    },
+    {
+      "name": "更新和公告",
+      "schema": "bootstrapResponse",
+      "valid": true,
+      "effectiveStatus": "update_available",
+      "acceptedAnnouncementIds": ["2026-11-10-001"],
+      "payload": {
+        "schema": 1,
+        "update": {
+          "status": "update_available",
+          "latest_version": "2.1.0+15",
+          "min_supported_version": "2.0.0",
+          "url": "https://example.invalid/releases",
+          "release_notes": "合成更新说明。"
+        },
+        "announcements": [
+          {
+            "id": "2026-11-10-001",
+            "level": "popup",
+            "title": "合成标题",
+            "body": "合成公告。\n\n第二段。",
+            "link_url": "https://example.invalid/detail",
+            "link_text": "查看详情",
+            "confirm_text": "知道了",
+            "starts_at": "2026-11-10T08:00:00+08:00",
+            "ends_at": "2026-11-17T00:00:00+08:00"
+          }
+        ]
+      }
+    },
+    {
+      "name": "未知顶层字段不妨碍识别更新要求",
+      "schema": "bootstrapResponse",
+      "valid": true,
+      "effectiveStatus": "update_required",
+      "acceptedAnnouncementIds": [],
+      "payload": {
+        "schema": 1,
+        "update": {
+          "status": "update_required",
+          "latest_version": "2.1.0",
+          "min_supported_version": "2.0.0",
+          "url": "https://example.invalid/releases",
+          "release_notes": null,
+          "future_update_field": {"example": true}
+        },
+        "announcements": [],
+        "future_field": ["synthetic"]
+      }
+    },
+    {
+      "name": "未知状态和无法识别的单条公告",
+      "schema": "bootstrapResponse",
+      "valid": true,
+      "effectiveStatus": "unknown",
+      "acceptedAnnouncementIds": ["2026-11-10-001"],
+      "payload": {
+        "schema": 1,
+        "update": {
+          "status": "future_update_status",
+          "latest_version": "2.1.0",
+          "min_supported_version": null,
+          "url": "https://example.invalid/releases",
+          "release_notes": null
+        },
+        "announcements": [
+          {
+            "id": "2026-11-10-001",
+            "level": "banner",
+            "title": "兼容公告",
+            "body": "保留这条公告。",
+            "starts_at": "2026-11-10T00:00:00Z",
+            "future_announcement_field": true
+          },
+          {
+            "id": "2026-11-10-002",
+            "level": "future_level",
+            "title": "未知级别",
+            "body": "丢弃这条公告。",
+            "starts_at": "2026-11-10T00:00:00Z"
+          },
+          {
+            "id": "2026-11-10-003",
+            "level": "popup",
+            "title": "缺少正文",
+            "starts_at": "2026-11-10T00:00:00Z"
+          },
+          {
+            "id": "2026-11-10-004",
+            "level": "banner",
+            "title": "非法链接",
+            "body": "丢弃这条公告。",
+            "link_url": "http://example.invalid/",
+            "starts_at": "2026-11-10T00:00:00Z"
+          }
+        ],
+        "future_field": true
+      }
+    },
+    {
+      "name": "已知版本字段不是正式版本",
+      "schema": "bootstrapResponse",
+      "valid": false,
+      "payload": {
+        "schema": 1,
+        "update": {"status": "update_available", "latest_version": "2.1.0-rc.1", "min_supported_version": null, "url": "https://example.invalid/releases", "release_notes": null},
+        "announcements": []
+      }
+    },
+    {
+      "name": "已知状态字段类型错误",
+      "schema": "bootstrapResponse",
+      "valid": false,
+      "payload": {
+        "schema": 1,
+        "update": {"status": 1, "latest_version": null, "min_supported_version": null, "url": null, "release_notes": null},
+        "announcements": []
+      }
+    },
+    {
+      "name": "已知更新链接缺少主机",
+      "schema": "bootstrapResponse",
+      "valid": false,
+      "payload": {
+        "schema": 1,
+        "update": {"status": "update_available", "latest_version": "2.1.0", "min_supported_version": null, "url": "https://:443", "release_notes": null},
+        "announcements": []
+      }
+    },
+    {
+      "name": "已知接口版本错误",
+      "schema": "bootstrapResponse",
+      "valid": false,
+      "payload": {
+        "schema": 2,
+        "update": {"status": "unknown", "latest_version": null, "min_supported_version": null, "url": null, "release_notes": null},
+        "announcements": []
+      }
+    }
+  ]
+}

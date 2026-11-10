@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "name": "删除安装",
+      "schema": "eraseRequest",
+      "valid": true,
+      "payload": {"schema": 1, "install_id": "00000000-0000-4000-8000-000000000002"}
+    },
+    {
+      "name": "删除请求未知字段",
+      "schema": "eraseRequest",
+      "valid": false,
+      "payload": {"schema": 1, "install_id": "00000000-0000-4000-8000-000000000002", "unexpected": true}
+    },
+    {
+      "name": "删除请求错误版本",
+      "schema": "eraseRequest",
+      "valid": false,
+      "payload": {"schema": 2, "install_id": "00000000-0000-4000-8000-000000000002"}
+    },
+    {
+      "name": "删除请求缺少安装标识",
+      "schema": "eraseRequest",
+      "valid": false,
+      "payload": {"schema": 1}
+    }
+  ]
+}

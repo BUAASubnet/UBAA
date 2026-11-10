@@ -21,7 +21,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 | ripgrep | 提供 `rg --files` | `just source-files` |
 | zip、unzip、file、tar、curl | 平台可用版本；tar 支持 xz | 合同夹具、归档、产物检查和显式工具下载 |
 | SHA-256 工具 | `shasum -a 256` 或 `sha256sum` | 产物、源码和发布锁文件摘要共用同一回退逻辑 |
-| Node.js、npm | Node 22，至少 22.12.0；npm 支持 `npm ci` | 根 `package.json` 仅用于 VitePress 文档站 |
+| Node.js、npm | Node 22，至少 22.12.0；npm 支持 `npm ci` | 根 `package.json` 用于 VitePress 文档站；应用服务使用独立的 npm 项目 |
 | OHOS Flutter | tag `3.41.10-ohos-1.0.1`，commit `adaf911c35c9136a7d18fc424d714c9ec7724e60` | OHOS 独立 SDK，不能用官方 SDK 替代 |
 | DevEco / SDK | DevEco/CLI 26.0.0.821（26 Beta2）、API26；Hvigor 6.26.4、ohpm 26.0.0.630 | OHOS 检查与构建；支持 Studio `tools/` 和 CLI `tool/` 布局 |
 | JDK | 17+ | OHOS 预检；Android 使用对应 Gradle/Flutter 支持的 JDK |
@@ -55,7 +55,7 @@ Cargokit 使用 `crates/ubaa_flutter_bridge/cargokit.yaml` 中各构建模式的
 
 Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无须再设置 `CL=/utf-8`。本机有多套 Visual Studio 时，仍需选择包含 ATL 的实例。
 
-文档站另执行 `npm ci` 和 `npm run docs:build`。原生构建再安装对应平台工具，并执行 `just flutter doctor -v`。OHOS 另行安装上述 fork 与 DevEco/API26，配置下表路径，然后安装 `rustup target add aarch64-unknown-linux-ohos`，先运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
+文档站另执行 `npm ci` 和 `npm run docs:build`。`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。原生构建再安装对应平台工具，并执行 `just flutter doctor -v`。OHOS 另行安装上述 fork 与 DevEco/API26，配置下表路径，然后安装 `rustup target add aarch64-unknown-linux-ohos`，先运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
 
 ## UBAA 环境变量
 

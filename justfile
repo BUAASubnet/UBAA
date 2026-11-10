@@ -121,9 +121,15 @@ layout-check:
     bash ./scripts/check/layout.sh
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/check/directory_names.py
 
-# 纯静态交叉校验 CLI/Bridge 常量、schema、Dart 接受版本和当前文档声明。
+# 纯静态交叉校验 CLI、Bridge 和应用服务的合同版本。
 contract-version-check:
     bash ./scripts/check/contract-versions.sh
+
+# 用锁定依赖构建 Worker，并在本地 Workers 运行时验证接口合同。
+app-service-check:
+    python3 scripts/check/app_service/enums.py
+    npm --prefix services/app_service ci --no-audit --no-fund
+    npm --prefix services/app_service run check
 
 docs-link-check:
     python3 scripts/check/docs_links.py
@@ -186,6 +192,7 @@ source-files:
 # 不访问学校或设备的 Python 行为合同。
 script-test:
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
+    python3 scripts/tests/app_service/enums_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py
     python3 scripts/tests/checks/ohos_native_library_test.py

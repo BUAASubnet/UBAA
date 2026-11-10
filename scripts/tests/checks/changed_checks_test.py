@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """按改动选择门禁的行为测试，覆盖漏选和 Git 路径边界。"""
+from contextlib import redirect_stdout
 import importlib.util
+import io
+import os
 from pathlib import Path
 import subprocess
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('changed_checks', ROOT / 'scripts/check/changed_checks.py')
@@ -165,13 +169,37 @@ class ChangedChecksTest(unittest.TestCase):
     def test_full_mode_executes_each_heavy_gate_once(self):
         plan = gates.select_checks(ROOT, ['AGENTS.md'], mode='full')
         commands = gates.commands(plan)
-        for recipe in ['check-strict', 'integration-test']:
+        for recipe in ['check-strict', 'integration-test', 'app-service-check']:
             self.assertEqual(commands.count(['just', recipe]), 1)
         self.assertEqual(commands.count(gates.CODEGEN), 1)
         self.assertNotIn(['just', 'check'], commands)
         self.assertNotIn(['just', 'script-check'], commands)
         self.assertNotIn(['just', 'check-changed'], commands)
         self.assertNotIn(['just', 'docs-link-check'], commands)
+
+    def test_app_service_only_changes_propagate_worker_check_failure(self):
+        for path in ['services/app_service/src/index.ts', 'fixtures/app_service/bootstrap.json']:
+            with self.subTest(path=path), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                subprocess.run(['git', 'init', '-q', str(root)], check=True)
+                subprocess.run(['git', '-C', str(root), '-c', 'user.name=测试',
+                                '-c', 'user.email=test@example.invalid', 'commit', '-qm', '基线',
+                                '--allow-empty'], check=True)
+                target = root / path
+                target.parent.mkdir(parents=True)
+                target.write_text('合成改动\n')
+                bin_dir = root / '.git' / 'bin'
+                bin_dir.mkdir()
+                just = bin_dir / 'just'
+                just.write_text('#!/bin/sh\nif [ "$1" = app-service-check ]; then exit 23; fi\n')
+                just.chmod(0o700)
+                with patch.object(gates, 'ROOT', root), patch.object(gates.sys, 'argv', ['check', '--run']), \
+                        patch.dict(os.environ, {'PATH': f'{bin_dir}{os.pathsep}{os.environ["PATH"]}'}), \
+                        redirect_stdout(io.StringIO()):
+                    with self.assertRaises(subprocess.CalledProcessError) as failure:
+                        gates.main()
+                self.assertEqual(failure.exception.cmd, ['just', 'app-service-check'])
+                self.assertEqual(failure.exception.returncode, 23)
 
     def test_mixed_paths_merge_without_repeating_common_checks(self):
         plan = self.plan('AGENTS.md', 'scripts/check/changed_checks.py',

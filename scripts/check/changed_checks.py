@@ -167,18 +167,32 @@ DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'crates/ubaa_command/', 'tool
                   'crates/ubaa_core/', 'crates/ubaa_flutter_bridge/', 'crates/ubaa_test_support/',
                   *OHOS, *(folder + '/' for folder in PACKAGES.values()))
 SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
+APP_SERVICE_INPUTS = {
+    'docs/contracts/app-service.schema.json', 'docs/contracts/app-service.md',
+    'scripts/check/contract-versions.sh', 'scripts/tests/contract-versions.sh',
+    'scripts/check/changed_checks.py', 'scripts/tests/checks/changed_checks_test.py',
+    'crates/ubaa_core/src/error/mod.rs', 'packages/ubaa_domain/lib/src/feature/catalog.dart',
+    '.github/workflows/ci.yml', '.github/actions/versions/action.yml',
+    'scripts/tools/versions.env', 'justfile',
+}
 
 
 def select_checks(root, paths, mode='commit', previous=None):
     if mode not in {'commit', 'push', 'full'}:
         raise ValueError('检查模式只接受 commit、push 或 full')
     selected, production = set(), set()
-    rust = scripts = native = site = strict_rust = False
+    rust = scripts = native = site = strict_rust = app_service = False
     full = mode == 'full'
     codegen = full
     notes = set()
     for path in paths:
         site |= path.startswith('docs/site/') or path in {'package.json', 'package-lock.json'}
+        app_service |= path in APP_SERVICE_INPUTS or path.startswith((
+            'services/app_service/', 'fixtures/app_service/', 'crates/ubaa_core/src/app_service/',
+            'scripts/check/app_service/', 'scripts/tests/app_service/',
+        ))
+        if path.startswith('services/app_service/'):
+            continue
         # Markdown 与已知文档资源无需编译。合同 schema、未知扩展仍保守处理。
         if ((path.endswith('.md') and ('/' not in path or path.startswith(DOCUMENT_ROOTS)))
                 or path.startswith('docs/site/')
@@ -251,6 +265,7 @@ def select_checks(root, paths, mode='commit', previous=None):
         notes.add('原生改动：提交前检查所属包，推送前 mode=push 或 CI 执行原生集成及对应平台专项。')
     return {'rust': rust, 'scripts': scripts, 'full': full, 'strict': full or strict_rust or mode == 'push',
             'native': native and (full or mode == 'push'),
+            'app_service': app_service or full,
             'packages': [name for name in PACKAGES if name in selected],
             'extra': ([CODEGEN] if codegen else []) + ([['npm', 'run', 'docs:build']] if site else []),
             'notes': sorted(notes)}
@@ -258,6 +273,8 @@ def select_checks(root, paths, mode='commit', previous=None):
 
 def commands(plan):
     result = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check']]
+    if plan['app_service']:
+        result.append(['just', 'app-service-check'])
     if plan['rust']:
         # check 已包含脚本、布局、合同和文档检查，不能再展开一次公共检查。
         result.append(['just', 'check-strict' if plan['strict'] else 'check'])

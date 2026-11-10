@@ -1,0 +1,10 @@
+[
+  {"left": "2.1.0-rc.1+15", "right": "2.1.0+16", "order": -1},
+  {"left": "2.1.0-rc.1+15", "right": "2.0.5+14", "order": 1},
+  {"left": "2.1.0-rc.2", "right": "2.1.0-rc.10", "order": -1},
+  {"left": "2.1.0-rc", "right": "2.1.0-rc.1", "order": -1},
+  {"left": "2.1.0-10", "right": "2.1.0-alpha", "order": -1},
+  {"left": "2.1.0-Alpha", "right": "2.1.0-alpha", "order": -1},
+  {"left": "2.1.0", "right": "2.1.0+0", "order": 0},
+  {"left": "2.1.0+9", "right": "2.1.0+10", "order": -1}
+]

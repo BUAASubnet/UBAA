@@ -1,6 +1,6 @@
 # 应用服务合同
 
-状态：已接受，尚未实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，实现时另行提交 `docs/contracts/app-service.schema.json`，并纳入 `just contract-version-check`。
+状态：已接受，接口 Schema 已建立，业务尚未实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
 
 ## 1. 范围
 
@@ -156,13 +156,13 @@
         {"key": "<64 位小写十六进制>", "cohort_type": "undergrad", "cohort_year": 2024}
       ],
       "counters": [
-        {"event": "feature_loaded", "feature": "agenda", "route": "direct", "result": "success", "count": 3}
+        {"event": "feature_loaded", "feature": "schedule", "route": "direct", "result": "success", "count": 3}
       ],
       "errors": [
         {"event": "feature_failed", "feature": "grades", "route": "webvpn", "error_code": "parse_error", "error_kind": "upstream", "retryable": false, "source": "package:ubaa_app/src/bridge/read/grades.dart:120", "count": 1}
       ],
       "timings": [
-        {"metric": "feature_load", "feature": "agenda", "route": "direct", "bucket": "lt_1000", "count": 2}
+        {"metric": "feature_load", "feature": "schedule", "route": "direct", "bucket": "lt_1000", "count": 2}
       ]
     }
   ]

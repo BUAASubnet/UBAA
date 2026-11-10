@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 纯静态校验 CLI/Bridge 版本常量、JSON Schema 与当前合同文档一致；不调用构建工具或访问网络。
+# 纯静态校验 CLI、Bridge 和应用服务版本；不调用构建工具或访问网络。
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
@@ -143,9 +143,61 @@ if [[ -n $bridge_version ]]; then
   require_literal 'docs/development/engineering-standards.md' "Flutter bridge 当前 contract 为 v${bridge_version}"
 fi
 
+app_service_version=
+if read_single_version \
+  'crates/ubaa_core/src/app_service/mod.rs' \
+  's/^pub const APP_SERVICE_SCHEMA_VERSION: u32 = ([0-9]+);$/\1/p' \
+  'APP_SERVICE_SCHEMA_VERSION'; then
+  app_service_version=$extracted_version
+fi
+
+worker_schema_path='services/app_service/src/schema.ts'
+if read_single_version \
+  "$worker_schema_path" \
+  's/^export const APP_SERVICE_SCHEMA_VERSION = ([0-9]+);$/\1/p' \
+  'APP_SERVICE_SCHEMA_VERSION' && [[ -n $app_service_version && $app_service_version != "$extracted_version" ]]; then
+  report_error "${worker_schema_path} 声明 v${extracted_version}，但 Rust Core 为 v${app_service_version}"
+fi
+
+if [[ -n $app_service_version ]]; then
+  require_literal 'docs/contracts/app-service.md' "接口载荷版本为 \`schema: ${app_service_version}\`"
+  app_schema_path='docs/contracts/app-service.schema.json'
+  if ! app_schema_error=$(python3 - "$contract_root/$app_schema_path" "$app_service_version" 2>&1 <<'JSON'
+import json
+from pathlib import Path
+import sys
+
+
+def check_version(path, expected):
+    definitions = json.loads(path.read_text(encoding="utf-8"))["$defs"]
+    version = definitions["schemaVersion"]["const"]
+    if type(version) is not int or version != expected:
+        raise ValueError(f"schemaVersion 必须声明整数 const {expected}")
+
+    for name in ("telemetryRequest", "eraseRequest", "bootstrapResponse"):
+        field = definitions[name]["properties"]["schema"]
+        if field.get("$ref") != "#/$defs/schemaVersion" or "const" in field:
+            raise ValueError(f"{name} 的 schema 必须引用共用的 schemaVersion")
+
+    query = definitions["bootstrapRequest"]["properties"]["schema"]
+    if query.get("const") != str(expected):
+        raise ValueError(f"bootstrapRequest 的 schema 必须声明字符串 const {expected}")
+
+
+try:
+    check_version(Path(sys.argv[1]), int(sys.argv[2]))
+except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+    sys.exit(str(error))
+JSON
+  ); then
+    report_error "${app_schema_path}：${app_schema_error}"
+  fi
+fi
+
 if [[ $error_count -ne 0 ]]; then
   printf 'contract version check failed: %d 个问题\n' "$error_count" >&2
   exit 1
 fi
 
-printf 'contract version check passed: CLI v%s / Bridge v%s\n' "$cli_version" "$bridge_version"
+printf 'contract version check passed: CLI v%s / Bridge v%s / 应用服务 v%s\n' \
+  "$cli_version" "$bridge_version" "$app_service_version"

@@ -6,15 +6,18 @@
 - 服务端：`server/.../version/AppVersionService.kt`、`AppVersionRoutes.kt`、`announcement/AnnouncementService.kt` 和 `metrics/LoginMetrics.kt`；
 - 客户端：`shared/.../api/auth/UpdateService.kt`、`AnnouncementService.kt` 和 `api/storage/AnnouncementReadStore.kt`。
 
-同时核对了固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，其中没有应用自身的更新、公告或遥测服务。
+实施接口检查时复核了旧版的 `AnnouncementRoutes.kt`、`AuthService.kt` 中的统计调用和更新、公告、统计测试。旧版只有中转服务器的版本与公告接口；活跃统计是中转服务器登录成功后的内部写入，不存在客户端批次或按安装 ID 删除接口。
 
-应用服务是 UBAA 自己的 Cloudflare Worker，不是学校协议。下表各学校协议列均为“不适用”。旧版只作为产品行为参考，不借用其 URL、字段或哈希方式。决定见 [ADR 0008](../adr/0008-app-service-worker.md)，行为见[应用服务合同](../contracts/app-service.md)。
+固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 列出学校 API；其中 `api/app/{core,opt,data}.rs` 使用北航 App 的 CAS 和考试接口。`api/sso/auth.rs`、`api/user/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 和 `error.rs` 提供学校认证与请求支持。该提交没有 UBAA 客户端自身的更新、公告、遥测或删除操作。
+
+应用服务是 UBAA 自己的 Cloudflare Worker。下表四项操作的学校 CAS 与 service、跳转与最终地址、Cookie/会话/Token、方法与参数、请求头与正文、加密与签名、DTO 与解析、缓存与重试、错误与产品语义均不适用；表中接口和行为均指 UBAA 应用服务。旧版只作为产品行为参考。决定见 [ADR 0008](../adr/0008-app-service-worker.md)，行为见[应用服务合同](../contracts/app-service.md)。
 
 | 操作 | 旧版行为 | buaa-api | CAS/service、重定向、Cookie/会话、加密 | 方法、参数与 DTO | 缓存、并发、重试与错误 |
 | --- | --- | --- | --- | --- | --- |
 | 更新检查 | 中转服务器 `GET /api/v1/app/version?clientVersion=`，返回状态、单一下载地址和缓存的 Release 说明；客户端失败时返回 null | 不适用 | 不适用，不携带学校 Cookie | 新接口 `GET /v1/bootstrap`，按渠道返回版本与链接，增加最低可用版本 | Worker 缓存 300 秒；失败时静默；只有成功的响应才能改变门控 |
 | 公告 | 服务器 `announcement.json` 单条公告；客户端按 ID 记录已读 | 不适用 | 不适用 | 并入 `GET /v1/bootstrap`，支持多条、定向和两级展示 | 已读状态只在本机；来源改为仓库 Markdown 同步到 KV |
 | 活跃统计 | 登录成功后在服务端对学号做无密钥哈希，写入 Redis HyperLogLog，按窗口和路线计数 | 不适用 | 不适用；改为客户端加盐哈希，再由 Worker 做 HMAC | 新接口 `POST /v1/telemetry`，按天聚合，字段按白名单 | `batch_id` 去重；D1 精确去重；明细按保留期清理 |
+| 删除统计 | 无按安装 ID 删除操作 | 不适用 | 不适用 | 新接口 `POST /v1/telemetry/erase`，只接收合同版本与安装 ID | 幂等；用墓碑阻止晚到批次重新写入 |
 
 ## WebVPN 普通登录失败重试
 
