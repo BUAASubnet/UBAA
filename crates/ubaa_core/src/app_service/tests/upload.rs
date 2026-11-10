@@ -377,3 +377,58 @@ async fn 配置停用时不发删除或上传请求() {
     assert!(transport.take_requests().is_empty());
     assert!(gui.snapshot().unwrap().erasing_install_id.is_some());
 }
+
+#[tokio::test]
+async fn 最近交付尝试跨宿主共享且六小时后才能重试() {
+    let root = TestDirectory::new();
+    let gui = root.open(Surface::Gui, false);
+    gui.agree(1).unwrap();
+    let transport = ScriptedTransport::new([Some(503), Some(204)]);
+    // 没有数据时不占用之后的交付机会。
+    assert_eq!(
+        gui.upload_scheduled_with(&transport, false, None)
+            .await
+            .unwrap()
+            .batches_sent,
+        0
+    );
+    enqueue(&gui);
+    assert_eq!(
+        gui.upload_scheduled_with(&transport, true, None)
+            .await
+            .unwrap()
+            .batches_sent,
+        1
+    );
+    let command = root
+        .open(Surface::Command, false)
+        .with_runtime(|| "2026-11-11T05:59:59Z".parse().unwrap(), false);
+    assert_eq!(
+        command
+            .upload_scheduled_with(&transport, true, None)
+            .await
+            .unwrap()
+            .batches_sent,
+        0
+    );
+    let command = root
+        .open(Surface::Command, false)
+        .with_runtime(|| "2026-11-11T06:00:00Z".parse().unwrap(), false);
+    assert_eq!(
+        command
+            .upload_scheduled_with(&transport, false, Some(Duration::ZERO))
+            .await
+            .unwrap()
+            .batches_sent,
+        0
+    );
+    assert_eq!(
+        command
+            .upload_scheduled_with(&transport, false, None)
+            .await
+            .unwrap()
+            .batches_sent,
+        1
+    );
+    assert_eq!(transport.take_requests().len(), 2);
+}

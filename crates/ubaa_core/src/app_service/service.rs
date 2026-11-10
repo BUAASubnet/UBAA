@@ -59,7 +59,9 @@ impl AppService {
             telemetry_hard_closed: config::telemetry_hard_closed,
             now: Arc::new(Utc::now),
         };
-        service.require_policy(policy_version)?;
+        if service.config.available().is_some() {
+            service.require_policy(policy_version)?;
+        }
         Ok(service)
     }
 
@@ -80,8 +82,12 @@ impl AppService {
         self.config.available().map(|available| &available.url)
     }
 
+    pub(super) fn now(&self) -> DateTime<Utc> {
+        (self.now)()
+    }
+
     pub(super) fn today(&self) -> NaiveDate {
-        (self.now)().with_timezone(&Shanghai).date_naive()
+        self.now().with_timezone(&Shanghai).date_naive()
     }
 
     /// 在同一事务中检查权限、累加白名单计数并登记仍有效的已确认账号。
@@ -156,6 +162,14 @@ impl AppService {
         id: Uuid,
         handoff: impl FnOnce(FrozenBatch) -> R,
     ) -> AppServiceResult<Option<R>> {
+        self.with_batch_for_send_in(id, |_, batch| Ok(handoff(batch)))
+    }
+
+    pub(super) fn with_batch_for_send_in<R>(
+        &self,
+        id: Uuid,
+        handoff: impl FnOnce(&rusqlite::Transaction<'_>, FrozenBatch) -> AppServiceResult<R>,
+    ) -> AppServiceResult<Option<R>> {
         self.store.write(|tx| {
             let state = self.permissions(tx)?;
             let batch = match state.install_id {
@@ -164,7 +178,7 @@ impl AppService {
                 }
                 _ => Ok(None),
             }?;
-            Ok(batch.map(handoff))
+            batch.map(|batch| handoff(tx, batch)).transpose()
         })
     }
 

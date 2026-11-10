@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 59;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 60;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

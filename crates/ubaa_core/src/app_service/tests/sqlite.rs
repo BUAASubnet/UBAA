@@ -156,3 +156,42 @@ fn facade_uses_shared_install_and_discards_revoked_account() {
     }
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn 安装状态从版本一迁移时保留同意和开关() {
+    use super::{AppService, AppServiceConfig, Consent, Surface, queue, state};
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/app_service/test_sqlite")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
+    installation.execute_batch(state::SCHEMA).unwrap();
+    installation.execute_batch(queue::SCHEMA).unwrap();
+    installation.pragma_update(None, "user_version", 1).unwrap();
+    let previous = uuid::Uuid::new_v4();
+    installation.execute(
+        "UPDATE app_service_state SET accepted_policy = 1, telemetry_enabled = 0, install_id = ?1 WHERE id = 1",
+        [previous.to_string()],
+    ).unwrap();
+    let service = AppService::open(
+        &root,
+        AppServiceConfig::from_build(None, None, None, super::Platform::Macos, false),
+        Surface::Gui,
+        1,
+    )
+    .unwrap();
+    let snapshot = service.snapshot().unwrap();
+    assert_eq!(snapshot.consent, Consent::Agreed(1));
+    assert_eq!(snapshot.telemetry_enabled, Some(false));
+    assert_eq!(snapshot.install_id, Some(previous));
+    assert_eq!(
+        installation
+            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+            .unwrap(),
+        2
+    );
+    drop(service);
+    drop(installation);
+    std::fs::remove_dir_all(root).unwrap();
+}

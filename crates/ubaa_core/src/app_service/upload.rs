@@ -5,6 +5,7 @@ use super::{
     transport::AppServiceTransport,
 };
 use crate::ports::{HttpRequest, HttpTransport, record_telemetry_rejection, same_url};
+use rusqlite::{Transaction, params};
 use serde::Serialize;
 use std::{
     future::{Future, poll_fn},
@@ -19,6 +20,7 @@ const TELEMETRY_PATH: &str = "/v1/telemetry";
 const ERASE_PATH: &str = "/v1/telemetry/erase";
 const GUI_TIMEOUT: Duration = Duration::from_secs(10);
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(2);
+const DELIVERY_INTERVAL_MS: i64 = 6 * 60 * 60 * 1000;
 
 /// 本次尝试对待删除标记的处理结果。
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -54,7 +56,34 @@ impl AppService {
         let Some(endpoint) = self.endpoint() else {
             return Ok(UploadAttempt::default());
         };
-        self.upload_with(&AppServiceTransport::new(endpoint)?).await
+        self.deliver(
+            &AppServiceTransport::new(endpoint)?,
+            None,
+            self.command_deadline(None),
+        )
+        .await
+    }
+
+    /// 按安装级最近交付时间触发。只有 GUI 的启动与移动端后台可以跳过间隔。
+    /// 命令模式的剩余预算包含共享状态复核、冻结和请求。
+    ///
+    /// # Errors
+    /// 存储不可用或独立传输无法初始化时返回错误。
+    pub async fn upload_scheduled(
+        &self,
+        force: bool,
+        budget: Option<Duration>,
+    ) -> AppServiceResult<UploadAttempt> {
+        let deadline = self.command_deadline(budget);
+        let Some(endpoint) = self.endpoint() else {
+            return Ok(UploadAttempt::default());
+        };
+        self.deliver(
+            &AppServiceTransport::new(endpoint)?,
+            Some(force && self.surface == Surface::Gui),
+            deadline,
+        )
+        .await
     }
 
     /// 从 GUI 发起或手动重试删除。先持久化标记，本次只发送删除。
@@ -70,26 +99,61 @@ impl AppService {
             return Ok(EraseAttempt::NotAttempted);
         };
         let transport = AppServiceTransport::new(endpoint)?;
-        self.send_erase(&transport, endpoint, Some(install), None)
+        self.send_erase(&transport, endpoint, Some(install), None, None)
             .await
     }
 
+    fn command_deadline(&self, budget: Option<Duration>) -> Option<Instant> {
+        (self.surface == Surface::Command)
+            .then(|| Instant::now() + budget.unwrap_or(COMMAND_TIMEOUT).min(COMMAND_TIMEOUT))
+    }
+
+    #[cfg(test)]
     async fn upload_with(&self, transport: &dyn HttpTransport) -> AppServiceResult<UploadAttempt> {
+        self.deliver(transport, None, self.command_deadline(None))
+            .await
+    }
+
+    #[cfg(test)]
+    async fn upload_scheduled_with(
+        &self,
+        transport: &dyn HttpTransport,
+        force: bool,
+        budget: Option<Duration>,
+    ) -> AppServiceResult<UploadAttempt> {
+        self.deliver(
+            transport,
+            Some(force && self.surface == Surface::Gui),
+            self.command_deadline(budget),
+        )
+        .await
+    }
+
+    async fn deliver(
+        &self,
+        transport: &dyn HttpTransport,
+        schedule: Option<bool>,
+        command_deadline: Option<Instant>,
+    ) -> AppServiceResult<UploadAttempt> {
         let mut attempt = UploadAttempt::default();
         let Some(endpoint) = self.endpoint() else {
             return Ok(attempt);
         };
-        let command_deadline =
-            (self.surface == Surface::Command).then(|| Instant::now() + COMMAND_TIMEOUT);
+        if deadline_expired(command_deadline)
+            || (self.surface == Surface::Command && (self.telemetry_hard_closed)())
+            || (schedule == Some(false) && !self.delivery_due()?)
+        {
+            return Ok(attempt);
+        }
         attempt.erase = self
-            .send_erase(transport, endpoint, None, command_deadline)
+            .send_erase(transport, endpoint, None, command_deadline, schedule)
             .await?;
         if attempt.erase != EraseAttempt::NotAttempted {
             return Ok(attempt);
         }
         let limit = if self.surface == Surface::Gui { 4 } else { 1 };
         for _ in 0..limit {
-            if command_deadline.is_some_and(|end| Instant::now() >= end) {
+            if deadline_expired(command_deadline) {
                 break;
             }
             let Some(batch) = self.freeze_next()? else {
@@ -99,15 +163,20 @@ impl AppService {
             let started = std::time::Instant::now();
             let handed_off = poll_fn(|cx| {
                 Poll::Ready(
-                    self.with_batch_for_send(id, |batch| {
-                        start_request(
+                    self.with_batch_for_send_in(id, |tx, batch| {
+                        if deadline_expired(command_deadline)
+                            || (attempt.batches_sent == 0 && !self.claim_delivery(tx, schedule)?)
+                        {
+                            return Ok(None);
+                        }
+                        Ok(start_request(
                             transport,
                             endpoint,
                             TELEMETRY_PATH,
                             batch.into_body(),
                             command_deadline,
                             cx,
-                        )
+                        ))
                     })
                     .map(Option::flatten),
                 )
@@ -137,12 +206,41 @@ impl AppService {
         Ok(attempt)
     }
 
+    fn delivery_due(&self) -> AppServiceResult<bool> {
+        let cutoff = self.now().timestamp_millis() - DELIVERY_INTERVAL_MS;
+        self.store.read(|tx| {
+            Ok(tx.query_row(
+                "SELECT last_delivery_attempt IS NULL OR last_delivery_attempt <= ?1
+                FROM app_service_state WHERE id = 1",
+                [cutoff],
+                |row| row.get(0),
+            )?)
+        })
+    }
+
+    fn claim_delivery(
+        &self,
+        tx: &Transaction<'_>,
+        schedule: Option<bool>,
+    ) -> AppServiceResult<bool> {
+        let Some(force) = schedule else {
+            return Ok(true);
+        };
+        let now = self.now().timestamp_millis();
+        Ok(tx.execute(
+            "UPDATE app_service_state SET last_delivery_attempt = ?1 WHERE id = 1
+                AND (?2 OR last_delivery_attempt IS NULL OR last_delivery_attempt <= ?3)",
+            params![now, force, now - DELIVERY_INTERVAL_MS],
+        )? == 1)
+    }
+
     async fn send_erase(
         &self,
         transport: &dyn HttpTransport,
         endpoint: &Url,
         expected: Option<Uuid>,
         command_deadline: Option<Instant>,
+        schedule: Option<bool>,
     ) -> AppServiceResult<EraseAttempt> {
         let handed_off = poll_fn(|cx| {
             Poll::Ready(self.store.write(|tx| {
@@ -152,6 +250,9 @@ impl AppService {
                 }) else {
                     return Ok(None);
                 };
+                if deadline_expired(command_deadline) || !self.claim_delivery(tx, schedule)? {
+                    return Ok(None);
+                }
                 let body = serde_json::to_vec(&ErasePayload {
                     schema: APP_SERVICE_SCHEMA_VERSION,
                     install_id,
@@ -172,6 +273,10 @@ impl AppService {
         }
         Ok(EraseAttempt::Pending)
     }
+}
+
+fn deadline_expired(deadline: Option<Instant>) -> bool {
+    deadline.is_some_and(|end| Instant::now() >= end)
 }
 
 // 首次轮询与共享状态的复核在同一短事务中完成。事务结束后继续等待，

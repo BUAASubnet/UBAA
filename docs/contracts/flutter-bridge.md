@@ -1,6 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v59。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v60。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+
+v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
 
 v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。
 
@@ -21,7 +23,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 v55 增加首页只读批次的开始、结束与失效接口。批次只保存已核实身份，按实际路线、认证代次与路线配置代次复用；每个操作仍检查当前持久身份。批次结束或强制恢复后重新校验，不改变会话持久格式和有效期，不授予写入资格。
 
-- 合同版本为 `59`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `60`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -49,7 +51,7 @@ v55 增加首页只读批次的开始、结束与失效接口。批次只保存�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=59` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=60` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -859,3 +861,11 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 本地识别使用随应用分发的 ddddocr 默认模型、左右各 5 像素白边与纯 Rust 推理，不需要用户安装 Python。仅已证实的带图像挑战统一拒绝可以换图重试；网络中断或未知响应不重放凭据。三次耗尽产生专用 `captcha_required`，App 保留保存的凭据与自动登录许可，通过 `resume_required_captcha` 接续当前路线的人工挑战，不重新开始三次尝试或修改全局路线策略。
 
 手动登录、已授权的自动登录和会话恢复只显示普通加载状态。需要人工输入时由 Host 显示统一验证弹窗；取消、刷新、后台、过期或账号变化释放图片与答案。旧非交互 Core-live/CLI 入口的交互拒绝行为保持。模型来源、转换方法与许可证见[第三方声明](../../THIRD_PARTY_NOTICES.md)，平台验证结果见[迁移状态](../migration/status.md)。
+
+## 应用服务
+
+`BridgeAppService.open` 接收与 GUI 或 App 命令模式相同的配置目录、宿主类型、构建期服务地址和渠道、实际平台与安装包版本，以及内嵌政策版本。不初始化学校客户端。所有请求、队列和共享状态由 Core 管理，详细规则见[应用服务合同](app-service.md)。
+
+- `state` 读取持久状态；`agree`、`enterBasic` 和 `setTelemetry` 执行操作后返回最新状态。状态不包含安装 ID、账号或其他请求数据。
+- `enqueueCounter`、`enqueueError`、`enqueueTiming` 只接收对应白名单维度。已确认账号可复用 `BridgeSharedAccount` 绑定，Core 入队时复核共享代次；身份撤销后只计设备。
+- `upload` 按宿主节奏交付，`erase` 先持久化删除标记再发送。`erasePending` 表示标记仍在；操作结果区分成功、等待重试和未尝试。

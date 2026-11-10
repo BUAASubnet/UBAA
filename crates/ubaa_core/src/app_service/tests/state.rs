@@ -443,6 +443,17 @@ fn 丢弃响应只移除相应批次() {
 }
 
 #[test]
+fn 停用构建不会推进共享政策版本() {
+    let root = TestDirectory::new();
+    let gui = open(root.path(), Surface::Gui);
+    gui.agree(1).unwrap();
+    let config = AppServiceConfig::from_build(None, None, None, Platform::Macos, false);
+    let disabled = AppService::open(root.path(), config, Surface::Gui, 2).unwrap();
+    assert!(!disabled.snapshot().unwrap().available);
+    assert_eq!(gui.snapshot().unwrap().consent, Consent::Agreed(1));
+}
+
+#[test]
 fn 构建期配置无效时所有应用服务请求均停用() {
     let root = TestDirectory::new();
     let gui = open(root.path(), Surface::Gui);

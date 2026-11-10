@@ -1,3 +1,4 @@
+pub mod app_service;
 pub mod client;
 pub mod command;
 #[path = "client/initialization.rs"]

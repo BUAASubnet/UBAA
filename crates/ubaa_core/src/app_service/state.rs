@@ -30,6 +30,7 @@ pub enum Consent {
 #[derive(Clone, Copy)]
 pub struct AppServiceState {
     pub consent: Consent,
+    pub agreed_policy_version: Option<u32>,
     pub telemetry_enabled: Option<bool>,
     pub install_id: Option<Uuid>,
     pub erasing_install_id: Option<Uuid>,
@@ -143,6 +144,7 @@ impl AppService {
         let consent = state.consent();
         Ok(AppServiceState {
             consent,
+            agreed_policy_version: state.accepted_policy,
             telemetry_enabled: state.telemetry_enabled,
             install_id: state.install_id,
             erasing_install_id: state.erasing_install_id,

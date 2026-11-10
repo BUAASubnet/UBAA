@@ -11,11 +11,13 @@ pub fn bridge_hello() -> String {
 pub fn init_app() {
     // 初始化 FRB 的平台日志与 panic 支持；业务日志仍遵守 Core 脱敏规则。
     flutter_rust_bridge::setup_default_user_utils();
+    super::app_service::install_panic_hook();
     transport_logging::install_default();
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::app_service::{BridgeAppServiceSurface, suppress_panic_for_test, tests};
     use std::process::{Command, Output};
 
     const CHILD_MARKER: &str = "UBAA_BRIDGE_LOG_CHILD";
@@ -27,6 +29,9 @@ mod tests {
             .arg("--ignored")
             .arg("--nocapture")
             .env(CHILD_MARKER, "1")
+            // 隔离子进程只检查合成数据是否入队，不运行任何请求。
+            .env_remove("CI")
+            .env_remove("UBAA_TELEMETRY")
             .output()
             .expect("应能启动隔离测试子进程")
     }
@@ -62,6 +67,49 @@ mod tests {
         assert!(output.status.success(), "隔离子进程必须成功退出");
         let stderr = String::from_utf8(output.stderr).expect("日志必须是 UTF-8");
         assert!(stderr.contains("host-subscriber-marker"));
+    }
+
+    #[test]
+    fn bridge_panic_保留_frb_与宿主钩子且只交付安全位置() {
+        let output = run_ignored_child("api::simple::tests::bridge_panic_chain_child");
+        assert!(output.status.success(), "隔离子进程必须成功退出");
+    }
+
+    #[ignore = "由父测试在子进程中隔离全局 panic 钩子"]
+    #[tokio::test]
+    async fn bridge_panic_chain_child() {
+        if std::env::var_os(CHILD_MARKER).is_none() {
+            return;
+        }
+        let (host, host_calls) = std::sync::mpsc::channel();
+        std::panic::set_hook(Box::new(move |_| {
+            let _ = host.send(());
+        }));
+        super::init_app();
+        let directory = tests::TestDirectory::new();
+        let service = directory.open(BridgeAppServiceSurface::Gui, 1, true).await;
+        service.agree().await.unwrap();
+        let result = flutter_rust_bridge::PanicBacktrace::catch_unwind(|| {
+            suppress_panic_for_test(|| panic!("不得重复采集遥测自身的合成故障"));
+        });
+        assert!(result.err().unwrap().backtrace.is_some());
+        host_calls.try_recv().unwrap();
+        let line = line!() + 2;
+        let result = flutter_rust_bridge::PanicBacktrace::catch_unwind(|| {
+            panic!("不得进入遥测的合成消息");
+        });
+        assert!(result.err().unwrap().backtrace.is_some());
+        host_calls.try_recv().unwrap();
+        let payload = tests::panic_payload(&service);
+        let payload = std::str::from_utf8(&payload).unwrap();
+        assert!(payload.contains(r#""error_code":"panic""#));
+        assert_eq!(payload.matches(r#""event":"crash""#).count(), 1);
+        assert!(payload.contains(&format!(
+            "crates/ubaa_flutter_bridge/src/api/simple.rs:{line}"
+        )));
+        assert!(!payload.contains("不得进入遥测的合成消息"));
+        assert!(!payload.contains("backtrace"));
+        assert!(host_calls.try_recv().is_err());
     }
 
     #[test]
