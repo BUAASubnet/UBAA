@@ -55,6 +55,16 @@ void main() {
     await uiOpenUtility(tester, '关于');
   }
 
+  Future<void> leave(WidgetTester tester) async {
+    final back = find.byTooltip('返回').hitTestable();
+    await tap(
+      tester,
+      back.evaluate().isNotEmpty
+          ? back
+          : uiDestinationFinder(tester, UiDestination.study),
+    );
+  }
+
   for (final brightness in Brightness.values) {
     for (final state in [
       'normal',
@@ -78,7 +88,7 @@ void main() {
         expect(find.byType(TextField), findsNothing);
         expect(find.byType(NavigationBar), findsNothing);
         final card = find.ancestor(
-          of: find.text('UBAA 应用'),
+          of: find.text('北航校园生活助手'),
           matching: find.byType(Card),
         );
         expect(
@@ -92,7 +102,7 @@ void main() {
           expect(find.text('版本信息暂不可用'), findsOneWidget);
           await tap(tester, find.text('重新读取版本'));
           expect(info.reads, 2);
-          expect(find.text('版本：0.1.0+1'), findsOneWidget);
+          expect(find.text('版本 0.1.0+1'), findsOneWidget);
           await shot('version-retry', '版本不可用不猜版本号，显式重试恢复');
         }
         if (state == 'pending') {
@@ -100,14 +110,14 @@ void main() {
           await tap(tester, find.text(AppLink.project.label));
           expect(
             tester
-                .widget<TextButton>(
-                  find.widgetWithText(TextButton, AppLink.project.label),
+                .widget<ListTile>(
+                  find.widgetWithText(ListTile, AppLink.project.label),
                 )
-                .onPressed,
-            isNull,
+                .enabled,
+            isFalse,
           );
           await shot('opening', '外链打开中不重复请求');
-          await tap(tester, find.byTooltip('返回'));
+          await leave(tester);
           info.pending!.complete(false);
           await tester.pumpAndSettle();
           expect(find.text('链接未能打开'), findsNothing);
@@ -116,21 +126,23 @@ void main() {
             await tap(tester, find.text(link.label));
             if (state == 'open-error') {
               expect(find.text(link.url), findsOneWidget);
+              expect(find.text('复制地址'), findsOneWidget);
               await shot('failed-${link.name}', '打不开时显示准确公开地址与复制入口，不泄露平台原始错误');
-              await tap(tester, find.text('关闭'));
+              await tester.tapAt(const Offset(4, 4));
+              await tester.pumpAndSettle();
             }
           }
           expect(info.links, AppLink.values);
-          await tap(tester, find.byTooltip('返回'));
+          await leave(tester);
         }
-        expect(find.text('UBAA 应用'), findsNothing);
+        expect(find.widgetWithText(AppBar, '关于'), findsNothing);
         await shot('back', '返回原三导航功能列表，无学校写入');
       });
     }
   }
   testWidgets('关于读取当前原生安装包版本', (tester) async {
     await open(tester, _Information('system'));
-    expect(find.text('版本：0.1.0+1'), findsOneWidget);
+    expect(find.text('版本 0.1.0+1'), findsOneWidget);
     await _shot(
       binding,
       tester,
