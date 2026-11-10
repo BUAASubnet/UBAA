@@ -116,61 +116,83 @@ class _HomeNotice extends StatelessWidget {
         ? colors.errorContainer
         : colors.surfaceContainerHigh;
     final foreground = emphasis ? colors.onErrorContainer : colors.onSurface;
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: foreground,
+          ),
+        ),
+        if (body case final body?) ...[
+          const SizedBox(height: 4),
+          Text(
+            body,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(color: foreground),
+          ),
+        ],
+      ],
+    );
+    final leading = Padding(
+      padding: const EdgeInsets.only(top: 2, right: 10),
+      child: Icon(icon, size: 20, color: foreground),
+    );
+    final layout = LayoutBuilder(
+      // 宽窗口里按钮与文字同行，窄窗口或大字号时按钮另起一行靠右。
+      builder: (context, constraints) =>
+          actions.isNotEmpty &&
+              constraints.maxWidth >= 560 &&
+              MediaQuery.textScalerOf(context).scale(14) <= 16.8
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+              child: Row(
+                children: [
+                  leading,
+                  Expanded(child: text),
+                  const SizedBox(width: 12),
+                  ...actions,
+                ],
+              ),
+            )
+          : Padding(
+              padding: EdgeInsets.fromLTRB(14, 12, 8, actions.isEmpty ? 12 : 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      leading,
+                      Expanded(child: text),
+                    ],
+                  ),
+                  if (actions.isNotEmpty)
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Wrap(children: actions),
+                    ),
+                ],
+              ),
+            ),
+    );
     return Material(
       color: background,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 8, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Icon(icon, size: 20, color: foreground),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: foreground,
-                        ),
-                      ),
-                      if (body case final body?) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          body,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: foreground,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (actions.isNotEmpty)
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: Wrap(children: actions),
-              )
-            else
-              const SizedBox(height: 8),
-          ],
-        ),
-      ),
+      // 更新要求的按钮沿用横幅前景色，深浅色下都与错误容器配套。
+      child: emphasis
+          ? TextButtonTheme(
+              data: TextButtonThemeData(
+                style: TextButton.styleFrom(foregroundColor: foreground),
+              ),
+              child: layout,
+            )
+          : layout,
     );
   }
 }
