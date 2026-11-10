@@ -254,8 +254,11 @@ void main() {
       outcome: TelemetryOutcome.success,
       latency: const Duration(milliseconds: 100),
     );
-    expect(telemetry.events.single.properties['feature'], 'schedule');
-    expect(telemetry.events.single.properties.containsKey('password'), isFalse);
+    final [count, timing] = telemetry.events;
+    expect(count.name, TelemetryEvents.featureLoaded);
+    expect(count.properties, {'feature': 'schedule', 'result': 'success'});
+    expect(timing.name, TelemetryMetrics.featureLoad);
+    expect(timing.properties, {'feature': 'schedule', 'bucket': 'lt_250'});
     await telemetry.setEnabled(false);
     expect(telemetry.events, isEmpty);
   });

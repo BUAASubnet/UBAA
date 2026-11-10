@@ -6,6 +6,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import '../../contracts/app_service.dart';
 import 'package:ubaa_app/src/contracts/schedule_import.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
@@ -485,10 +486,21 @@ abstract class ControllerState extends ControllerOperations {
 
   UiError? get error => internalError;
 
-  bool get telemetryEnabled => internalTelemetryEnabled;
+  @internal
+  AppServiceView internalAppServiceView = AppServiceView.unavailable(
+    bundledPrivacyPolicy.version,
+  );
+
+  bool get telemetryEnabled => internalBackend is AppServiceBackend
+      ? telemetryAvailable && internalAppServiceView.telemetryEnabled
+      : internalTelemetryEnabled;
 
   /// 实际客户端能力与本地开关分离；关闭本地开关不销毁已配置的客户端。
-  bool get telemetryAvailable => internalTelemetry.enabled;
+  bool get telemetryAvailable => internalBackend is AppServiceBackend
+      ? internalAppServiceView.available &&
+            internalAppServiceView.telemetryAllowed &&
+            internalAppServiceView.consent == AppServiceConsent.agreed
+      : internalTelemetry.enabled;
 
   bool get credentialPersistenceAvailable =>
       internalCredentialVault.isAvailable;

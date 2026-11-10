@@ -15,8 +15,9 @@ mixin ControllerAuthenticationCompletion on ControllerState {
   Future<void> internalCompleteAuthenticatedLogin(
     LoginInput input,
     UserSummary? profile,
-    int epoch,
-  ) async {
+    int epoch, {
+    ConnectionMode? resolvedRoute,
+  }) async {
     final scope = internalCaptureSessionScope();
     if (!scope.isCurrent || scope.lifecycle != epoch) return;
     final token = Object();
@@ -33,15 +34,26 @@ mixin ControllerAuthenticationCompletion on ControllerState {
           const BackendException(UbaaErrorCode.authenticationRequired),
           DiagnosticOperation.login,
         );
+        internalEndAuthTelemetry(error: internalError, route: resolvedRoute);
         await internalRejectMismatchedAccount();
         return;
       }
       await _acceptAuthenticatedLogin(input, profile, scope, current);
+      if (current()) {
+        internalEndAuthTelemetry(
+          route: resolvedRoute ?? internalActiveRoutes.singleOrNull,
+        );
+      }
     } on Object catch (error, stackTrace) {
       if (!current()) return;
       internalError = internalRecordFailure(
         error,
         DiagnosticOperation.login,
+        stackTrace: stackTrace,
+      );
+      internalEndAuthTelemetry(
+        error: internalError,
+        route: resolvedRoute,
         stackTrace: stackTrace,
       );
       internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
@@ -129,7 +141,6 @@ mixin ControllerAuthenticationCompletion on ControllerState {
     _releaseCompletionLoading();
     internalSetPhase(AppPhase.home);
     unawaited(internalQueueProfileRefresh(force: true));
-    await internalRecordAppOpen();
     if (current()) unawaited(refreshHome());
   }
 }

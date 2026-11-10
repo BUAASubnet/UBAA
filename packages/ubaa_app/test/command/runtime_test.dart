@@ -384,6 +384,52 @@ void main() {
   final api = _Api();
   setUpAll(() => RustLib.initMock(api: api));
   setUp(() => api.timeouts.clear());
+  for (final hangs in [false, true]) {
+    test(hangs ? '统计挂起在退出预算内结束' : '统计拒绝不改已交付的业务结果', () async {
+      final fixture = await _fixture();
+      final io = _IO();
+      final command = _Command(BridgeCommandClass.readonly);
+      final result = _Result('business-result');
+      final client = _Client((_) async => _Attempt(result));
+      final pending = Completer<void>();
+      final observations = <(String?, Duration, bool, List<int>)>[];
+      try {
+        final runtime = CommandRuntime(
+          io: io,
+          parse: ({required argv, required remainingMillis}) => command,
+          openMaterials: (_) async => fixture.environment,
+          openClient: ({required configDir}) async => client,
+          uploadAppService: (context) async {
+            observations.add((
+              context.directory,
+              context.budget,
+              result.delivery.acknowledged,
+              List.of(io.out),
+            ));
+            if (hangs) return pending.future;
+            throw StateError('合成统计失败');
+          },
+        );
+        expect(
+          await runtime
+              .run(['ubaa', 'user', 'show'])
+              .timeout(const Duration(seconds: 3)),
+          0,
+        );
+        final (directory, remaining, acknowledged, output) =
+            observations.single;
+        expect(directory, fixture.environment.directory);
+        expect(acknowledged, true);
+        expect(jsonDecode(utf8.decode(output)), {'result': 'business-result'});
+        expect(remaining, greaterThan(Duration.zero));
+        expect(remaining, lessThanOrEqualTo(const Duration(seconds: 2)));
+        expect(io.err, isEmpty);
+      } finally {
+        if (!pending.isCompleted) pending.complete();
+        await fixture.root.delete(recursive: true);
+      }
+    });
+  }
   test('日程同步使用独立一次作业，未验证保持失败且不进入认证恢复或普通命令重跑', () async {
     final fixture = await _fixture();
     final client = _Client((_) async => throw StateError('日程同步不能进入普通命令尝试'));

@@ -45,6 +45,11 @@ fi
 (
   cd "$app_root"
   hap_args=(--"$mode" --target-platform ohos-arm64)
+  for key in UBAA_APP_SERVICE_URL UBAA_DISTRIBUTION_CHANNEL; do
+    if [[ -n "${!key:-}" ]]; then
+      hap_args+=("--dart-define=$key=${!key}")
+    fi
+  done
   if [[ "${UBAA_OHOS_NO_CODESIGN:-0}" == "1" ]]; then
     if [[ "$mode" != "debug" ]]; then
       printf 'error: UBAA_OHOS_NO_CODESIGN=1 只允许 debug 构建\n' >&2

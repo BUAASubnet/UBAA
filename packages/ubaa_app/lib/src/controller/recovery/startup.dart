@@ -1,3 +1,4 @@
+import '../../contracts/app_service.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
@@ -208,6 +209,9 @@ mixin ControllerOfflineStartup on ControllerState {
       if (!internalRecoveryIsCurrent(epoch) ||
           (deliveryScope != null && !deliveryScope.isCurrent))
         return;
+      if (backend case final ConfirmedAppServiceAccountBackend service) {
+        service.confirmAppServiceAccount();
+      }
       unawaited(internalQueueProfileRefresh());
       // 共享身份重绑后使用新读取修订，避免合并到已撤销的旧任务。
       unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
@@ -340,6 +344,9 @@ mixin ControllerOfflineStartup on ControllerState {
         }
       }
       internalLocalAccount = index.account;
+      if (scope.backend case final ConfirmedAppServiceAccountBackend service) {
+        service.confirmAppServiceAccount();
+      }
       internalUsesLocalRecovery = true;
       if (index.account != null) {
         // 手动登录已沿原userInfo读取完整资料；不让随后开启的磁盘读取倒退展示。

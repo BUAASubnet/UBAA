@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:ubaa_app/app_service_host.dart';
 import 'package:ubaa_app/command.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -19,6 +20,19 @@ Future<void> runEngineCommand(
     await RustLib.init();
     final runtime = CommandRuntime(
       io: _EngineIO(),
+      uploadAppService: (context) => uploadConfiguredCommandAppService(
+        resolveDirectory: () async {
+          if (context.directory case final configured?) {
+            return Directory(configured).absolute.path;
+          }
+          await initializePrivateDirectory();
+          return defaultConfigDirectory();
+        },
+        budget: context.budget,
+        account: context.account,
+        release: kReleaseMode,
+        readVersion: SystemAppInformation().version,
+      ),
       openMaterials:
           openMaterials ??
           (configured) async {

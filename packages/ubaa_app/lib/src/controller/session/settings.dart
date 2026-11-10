@@ -83,10 +83,9 @@ mixin ControllerSettings on ControllerState {
   }
 
   @internal
-  Future<void> internalSetTelemetryEnabledController(bool value) async {
+  void internalSetLegacyTelemetryEnabled(bool value) {
     // Noop不能把本地布尔值当作统计已开启；可用客户端仍在调用边界开关。
     internalTelemetryEnabled = value && telemetryAvailable;
-    if (!value) await internalFlushTelemetry();
     internalNotify();
   }
 }

@@ -2,6 +2,7 @@
 """构建共同命令入口；Linux 只编译 Dart AOT、Rust 和 Secret Service 适配。"""
 from pathlib import Path
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,14 +17,22 @@ def run(arguments, environment):
     subprocess.run(arguments, cwd=ROOT, env=environment, check=True)
 
 
-def compile_linux(output, environment):
+def compile_linux(output, environment, mode, *, standalone=False):
     (output / 'lib').mkdir(parents=True, exist_ok=True)
     flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'libsecret-1'], text=True).split()
     run(['c++', '-std=c++17', '-fPIC', '-shared', '-fvisibility=hidden',
          str(ROOT / 'packages/ubaa_platform/native/linux/command_materials.cc'),
          '-o', str(output / 'lib/libubaa_command_materials.so'), *flags], environment)
+    defines = [f'-DUBAA_COMMAND_RELEASE={str(mode == "release").lower()}']
+    for name in ('UBAA_APP_SERVICE_URL', 'UBAA_DISTRIBUTION_CHANNEL'):
+        if value := environment.get(name):
+            defines.append(f'-D{name}={value}')
+    if standalone:
+        metadata = (ROOT / 'apps/ubaa_flutter/pubspec.yaml').read_text(encoding='utf-8')
+        if version := re.search(r'^version:\s*(\S+)', metadata, re.MULTILINE):
+            defines.append(f'-DUBAA_COMMAND_APP_VERSION={version[1]}')
     run(['just', 'dart', 'compile', 'exe', '--packages=.dart_tool/package_config.json',
-         'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(output / 'ubaa')], environment)
+         *defines, 'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(output / 'ubaa')], environment)
     print(f'命令入口：{output / "ubaa"}')
 
 
@@ -41,7 +50,7 @@ def main():
         output = Path(sys.argv[3]).resolve()
         if not (output / 'lib/libubaa_flutter_bridge.so').is_file():
             raise ValueError('Linux App 缺少已构建的 Rust 库')
-        compile_linux(output, environment)
+        compile_linux(output, environment, mode)
         return
     if platform in {'macos', 'windows'}:
         run(['just', 'flutter-build', f'platform={platform}', f'mode={mode}'], environment)
@@ -67,7 +76,7 @@ def main():
     run(cargo, environment)
     target = Path(environment.get('CARGO_TARGET_DIR', ROOT / 'target'))
     shutil.copy2(target / mode / 'libubaa_flutter_bridge.so', output / 'lib')
-    compile_linux(output, environment)
+    compile_linux(output, environment, mode, standalone=True)
 
 
 if __name__ == '__main__':

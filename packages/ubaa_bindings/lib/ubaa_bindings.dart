@@ -2,6 +2,8 @@ library;
 
 export 'src/rust/api/bhpan/models.dart';
 export 'src/rust/api/bhpan.dart';
+export 'src/rust/api/app_service.dart';
+export 'src/rust/api/app_service/models.dart';
 
 export 'src/rust/api/simple.dart';
 export 'src/rust/api/client.dart';

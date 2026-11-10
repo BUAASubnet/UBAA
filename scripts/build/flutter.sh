@@ -16,11 +16,18 @@ flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter 
 flutter_bin=$flutter_root/bin/flutter
 app_root=$repo_root/apps/ubaa_flutter
 
+app_service_defines=()
+for key in UBAA_APP_SERVICE_URL UBAA_DISTRIBUTION_CHANNEL; do
+  if [[ -n "${!key:-}" ]]; then
+    app_service_defines+=("--dart-define=$key=${!key}")
+  fi
+done
+
 flutter_build() {
   if [[ ${UBAA_FLUTTER_VERBOSE:-0} == 1 ]]; then
-    "$flutter_bin" build "$@" -v
+    "$flutter_bin" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"} -v
   else
-    "$flutter_bin" build "$@"
+    "$flutter_bin" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"}
   fi
 }
 

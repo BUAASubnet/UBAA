@@ -269,6 +269,7 @@ mixin ControllerProgressive on ControllerState {
                 error.code != UbaaErrorCode.authenticationRequired ||
                 !internalHasScheduledTargetRecovery)
               rethrow;
+            internalRecordSessionExpired(feature, error.resolvedRoute);
             authenticationRetried = true;
             internalFeatureRecoveryStates[feature] =
                 SessionRecoveryStatus.needsLogin;

@@ -24,6 +24,7 @@ import 'features/refresh.dart' show ControllerRefresh;
 import 'features/schedule/import.dart' show ControllerScheduleImport;
 import 'features/schedule/widgets.dart' show ControllerScheduleWidgets;
 import 'lifecycle/actions.dart' show ControllerActions;
+import 'lifecycle/app_service.dart' show ControllerAppService;
 import 'lifecycle/diagnostics.dart' show ControllerDiagnostics;
 import 'reads/progressive.dart' show ControllerProgressive;
 import 'reads/readback.dart' show ControllerReadbackDispatch;
@@ -71,6 +72,7 @@ class AppController extends ControllerState
         ControllerWriteCache,
         ControllerWriteReadbacks,
         ControllerDiagnostics,
+        ControllerAppService,
         ControllerOfflineStartup,
         ControllerOfflineCache,
         ControllerAgenda,

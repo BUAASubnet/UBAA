@@ -63,7 +63,6 @@ mixin ControllerAuthentication on ControllerState {
           internalUser = user;
           internalReleaseLoginSecret();
           internalSetPhase(AppPhase.home);
-          await internalRecordAppOpen();
           if (internalIsCurrentAuthentication(generation))
             unawaited(refreshHome());
           return;
@@ -156,6 +155,7 @@ mixin ControllerAuthentication on ControllerState {
       autoLogin: internalLoginForm.autoLogin,
       routePolicy: internalLoginForm.routePolicy,
     );
+    internalBeginAuthTelemetry();
     final inPlace = preserveHome && internalPhase == AppPhase.home;
     internalInPlaceLogin = inPlace;
     if (inPlace) {
@@ -207,6 +207,7 @@ mixin ControllerAuthentication on ControllerState {
         DiagnosticOperation.login,
         stackTrace: stackTrace,
       );
+      internalEndAuthTelemetry(error: internalError, stackTrace: stackTrace);
       internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
       internalInPlaceLogin = false;
       internalReleaseLoginSecret();

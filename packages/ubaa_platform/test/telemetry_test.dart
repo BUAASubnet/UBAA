@@ -46,6 +46,28 @@ void main() {
       await expectLater(client.track(TelemetryEvents.featureLoaded), completes);
     });
 
+    test('白名单拒绝看似允许的字段中夹带的消息、路线策略和本机路径', () async {
+      final client = MockTelemetryClient();
+      await client.track(
+        TelemetryEvents.authFailed,
+        properties: const {
+          'feature': 'auth',
+          'error_code': 'network_error',
+          'error_kind': 'network',
+          'retryable': true,
+          'route': 'auto',
+          'source': '/private/example.dart:42',
+          'result': '完整错误消息',
+        },
+      );
+      expect(client.records.single.properties, {
+        'feature': 'auth',
+        'error_code': 'network_error',
+        'error_kind': 'network',
+        'retryable': true,
+      });
+    });
+
     test('自定义策略只能收窄事件和字段白名单', () async {
       final client = MockTelemetryClient(
         policy: TelemetryPolicy(

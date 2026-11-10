@@ -2,6 +2,7 @@ import Cocoa
 import Darwin
 import FlutterMacOS
 import flutter_secure_storage_darwin
+import package_info_plus
 
 func runCommand(_ arguments: [String]) {
   var terminalMode = termios()
@@ -20,6 +21,7 @@ func runCommand(_ arguments: [String]) {
   project.dartEntrypointArguments = ["ubaa"] + arguments
   let engine = FlutterEngine(name: "ubaa_command", project: project, allowHeadlessExecution: true)
   FlutterSecureStorageDarwinPlugin.register(with: engine.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
+  FPPPackageInfoPlusPlugin.register(with: engine.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
   let channel = FlutterMethodChannel(name: "cn.edu.ubaa/command", binaryMessenger: engine.binaryMessenger)
   var localCommand = false
   channel.setMethodCallHandler { call, result in

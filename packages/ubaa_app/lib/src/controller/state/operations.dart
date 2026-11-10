@@ -351,10 +351,27 @@ abstract class ControllerOperations extends ChangeNotifier {
     bool empty = false,
     UiError? error,
     Duration? latency,
+    ConnectionMode? route,
+    StackTrace? stackTrace,
   });
 
   @internal
-  Future<void> internalFlushTelemetry();
+  Future<AppServiceView> refreshAppService();
+  void internalRecordColdStart();
+  void internalRecordFirstContent();
+  void internalRecordVisibleError(UiError error);
+  void internalBeginAuthTelemetry();
+  void internalEndAuthTelemetry({
+    UiError? error,
+    ConnectionMode? route,
+    StackTrace? stackTrace,
+  });
+  void internalCancelAuthTelemetry();
+  void internalRecordSessionExpired(FeatureId feature, ConnectionMode? route);
+  Future<void> internalTrackTelemetry(
+    String event, {
+    Map<String, Object?> properties = const {},
+  });
 
   @internal
   Future<bool> internalInitializeLocalHome();
@@ -503,8 +520,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<void> internalCompleteAuthenticatedLogin(
     LoginInput input,
     UserSummary? profile,
-    int epoch,
-  );
+    int epoch, {
+    ConnectionMode? resolvedRoute,
+  });
   @internal
   Future<void> internalMutateCredential(
     int epoch,
@@ -513,7 +531,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<void> internalSetRoutePolicyController(RoutePolicy value);
   @internal
-  Future<void> internalSetTelemetryEnabledController(bool value);
+  void internalSetLegacyTelemetryEnabled(bool value);
 
   @internal
   Future<void> internalSubmitInteractiveLogin(InteractiveLoginBackend backend);

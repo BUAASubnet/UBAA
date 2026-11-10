@@ -1,3 +1,4 @@
+import '../contracts/app_service.dart';
 import 'dart:async';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../contracts/backend.dart';
@@ -418,6 +419,9 @@ final class _RecoveryJob {
             await backend.bindSharedAccount(binding);
           }
         }
+      }
+      if (owner.backend case final ConfirmedAppServiceAccountBackend backend) {
+        backend.confirmAppServiceAccount();
       }
       final published = scope.sharedSnapshot?.state;
       if (published != null)

@@ -42,6 +42,7 @@ mixin ControllerActions on ControllerState {
 
   /// 宿主在首页首帧之后调用；旧自动登录选项不参与是否开始检查的判断。
   void onHomeFirstFrame() {
+    if (internalPhase == AppPhase.home) internalRecordFirstContent();
     if (internalHomeFrameReported ||
         !internalUsesLocalRecovery ||
         internalPhase != AppPhase.home)
@@ -110,7 +111,11 @@ mixin ControllerActions on ControllerState {
   /// 只导出本次运行允许字段，不读取凭据、业务输入或磁盘会话。
   String exportDiagnostics() => internalDiagnostics.exportText();
 
-  Future<void> initialize() => internalInitializeController();
+  Future<void> initialize() async {
+    unawaited(refreshAppService().then((_) => internalRecordAppOpen()));
+    await internalInitializeController();
+    internalRecordColdStart();
+  }
 
   /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
   ///
@@ -175,6 +180,7 @@ mixin ControllerActions on ControllerState {
         return false;
       }
       internalSessionLifecycle.replaceBackend(replacement);
+      unawaited(refreshAppService());
       internalReplaceWriteCoordinator(replacement);
       internalInitialized = false;
       internalUser = null;
@@ -623,13 +629,6 @@ mixin ControllerActions on ControllerState {
     clearSavedCredential: clearSavedCredential,
     clearLocalData: clearLocalData,
   );
-
-  Future<void> setTelemetryEnabled(bool value) =>
-      internalSetTelemetryEnabledController(value);
-
-  Future<void> clearTelemetryQueue() async {
-    await internalFlushTelemetry();
-  }
 
   void clearError() {
     internalClearError();

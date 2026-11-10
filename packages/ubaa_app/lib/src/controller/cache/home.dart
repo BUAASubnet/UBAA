@@ -1,3 +1,4 @@
+import '../../contracts/app_service.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
@@ -50,6 +51,11 @@ mixin ControllerOfflineCache on ControllerState {
         return;
       if (readEpoch != profileEpoch)
         unawaited(internalRestoreCachedProfile(backend, account, readEpoch));
+      if (projections.any((projection) => projection.accountId == account.id) &&
+          backend is ConfirmedAppServiceAccountBackend) {
+        (backend as ConfirmedAppServiceAccountBackend)
+            .confirmAppServiceAccount();
+      }
       for (final projection in projections) {
         final supplement =
             (projection.feature == FeatureId.bykc &&

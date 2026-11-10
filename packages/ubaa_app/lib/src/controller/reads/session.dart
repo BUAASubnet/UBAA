@@ -143,6 +143,7 @@ mixin ControllerScheduledSession on ControllerState {
           error.accountMismatch ||
           !internalHasScheduledTargetRecovery)
         rethrow;
+      internalRecordSessionExpired(feature, error.resolvedRoute);
       internalFeatureRecoveryStates[feature] = SessionRecoveryStatus.needsLogin;
       // 只读请求最多恢复一次；认证错误、缺材料或第二次读取失败直接交付。
       await internalScheduleReadAuthentication(

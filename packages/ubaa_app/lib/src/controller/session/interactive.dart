@@ -24,6 +24,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
         internalWriteCoordinator.hasPendingOperation) {
       return;
     }
+    internalBeginAuthTelemetry();
     final manual = backend as ManualCaptchaBackend;
     final interactive = backend as InteractiveLoginBackend;
     internalInteractiveGeneration++;
@@ -66,6 +67,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
         DiagnosticOperation.login,
         stackTrace: stackTrace,
       );
+      internalEndAuthTelemetry(error: internalError, stackTrace: stackTrace);
       internalSetInteractivePhase(AppPhase.login);
     } finally {
       internalEndWriteTransition();
@@ -122,6 +124,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     final beginning = !internalInteractiveEngaged;
     if (!beginning && !(internalLoginVerification?.canSubmit ?? false)) return;
     if (beginning) {
+      internalBeginAuthTelemetry();
       internalCredentialRestoreAllowed = false;
       internalManualAuthenticationRequired = true;
       internalInteractiveGeneration++;
@@ -234,6 +237,9 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       }
       if (!internalIsCurrentInteractiveGeneration(generation)) return;
       internalError = failure;
+      if (!hasRecoverableState) {
+        internalEndAuthTelemetry(error: internalError, stackTrace: stackTrace);
+      }
       internalSetInteractivePhase(AppPhase.login);
     } finally {
       internalEndWriteTransition();
@@ -460,6 +466,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       internalInteractiveInput(form),
       completion.user,
       internalLifecycleEpoch,
+      resolvedRoute: route,
     );
   }
 
@@ -482,6 +489,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     if (!internalInteractiveEngaged && internalLoginVerification == null)
       return;
     internalInteractiveGeneration++;
+    internalCancelAuthTelemetry();
     internalClearVerificationState();
     if (internalBackend case final InteractiveLoginBackend backend) {
       backend.cancelInteractiveLogin();

@@ -1,12 +1,21 @@
 part of 'ubaa_app_host.dart';
 
 extension _BackendStartup on _UbaaAppHostState {
+  Future<UbaaBackend> _createBackend() => createProductionBackend(
+    openAppService: (directory) => openConfiguredAppService(
+      configDirectory: directory,
+      surface: BridgeAppServiceSurface.gui,
+      release: kReleaseMode,
+      readVersion: (widget.appInformation ?? SystemAppInformation()).version,
+    ),
+  );
+
   Future<void> _openBackend() async {
     final generation = ++_startupGeneration;
     _updateStartup(() => _startupError = null);
     UbaaBackend? opened;
     try {
-      final factory = widget.backendFactory ?? createProductionBackend;
+      final factory = widget.backendFactory ?? _createBackend;
       opened = await Future<UbaaBackend>.sync(factory);
       if (_disposed || generation != _startupGeneration) {
         if (opened is BackendLifecycle)

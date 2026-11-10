@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show ExternalLibrary;
+import 'package:ubaa_app/app_service_host.dart';
 import 'package:ubaa_app/command.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
@@ -16,6 +17,19 @@ Future<void> main(List<String> arguments) async {
     final io = ConsoleCommandIO();
     final runtime = CommandRuntime(
       io: io,
+      uploadAppService: (context) => uploadConfiguredCommandAppService(
+        resolveDirectory: () async => switch (context.directory) {
+          final configured? => Directory(configured).absolute.path,
+          null => linuxCommandDirectory(),
+        },
+        budget: context.budget,
+        account: context.account,
+        release: const bool.fromEnvironment(
+          'UBAA_COMMAND_RELEASE',
+          defaultValue: true,
+        ),
+        readVersion: linuxCommandAppVersion,
+      ),
       openMaterials: (configured) async {
         final directory = configured == null
             ? await linuxCommandDirectory()

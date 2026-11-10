@@ -15,3 +15,5 @@ export 'src/controller/read_scheduler.dart'
         ReadPriority,
         ReadLane,
         ReadOperation;
+
+export 'src/contracts/app_service.dart';

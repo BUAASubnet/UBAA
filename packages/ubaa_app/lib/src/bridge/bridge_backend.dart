@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'agenda/backend.dart';
+import 'app_service.dart';
+import '../contracts/app_service.dart';
 import 'ihome/service.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
@@ -79,7 +81,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 59;
+const _supportedBridgeContractVersion = 60;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -132,12 +134,19 @@ class BridgeBackend
         ScheduleImportBackend,
         BackendLifecycle,
         SharedAccountBackend,
-        SharedAccountLogoutBackend {
-  BridgeBackend(BridgeClient client, {String? configDirectory})
-    : _context = BridgeContext(client, configDirectory: configDirectory) {
+        SharedAccountLogoutBackend,
+        AppServiceBackend,
+        ConfirmedAppServiceAccountBackend {
+  BridgeBackend(
+    BridgeClient client, {
+    String? configDirectory,
+    BridgeAppService? appService,
+  }) : _appService = appService,
+       _context = BridgeContext(client, configDirectory: configDirectory) {
     final contractVersion = client.contractVersion();
     if (contractVersion != _supportedBridgeContractVersion &&
         contractVersion != _previousBridgeContractVersion) {
+      _appService?.dispose();
       _disposeIncompatibleBridgeClient(client);
       throw const InitializationException(
         InitializationFailure.bridgeIncompatible,
@@ -162,11 +171,92 @@ class BridgeBackend
       : client.invalidateReadRecoveryBatch();
 
   /// 从平台已经解析好的应用私有目录打开 Core。
-  static Future<BridgeBackend> open(String configDirectory) async =>
-      BridgeBackend(
-        await BridgeClient.open(configDir: configDirectory),
-        configDirectory: configDirectory,
+  static Future<BridgeBackend> open(
+    String configDirectory, {
+    BridgeAppService? appService,
+  }) async {
+    final BridgeClient client;
+    try {
+      client = await BridgeClient.open(configDir: configDirectory);
+    } on Object {
+      appService?.dispose();
+      rethrow;
+    }
+    return BridgeBackend(
+      client,
+      configDirectory: configDirectory,
+      appService: appService,
+    );
+  }
+
+  final BridgeAppService? _appService;
+
+  Future<AppServiceView> _appServiceView(
+    Future<BridgeAppServiceState> Function(BridgeAppService) read,
+  ) async {
+    final service = _appService;
+    return service == null || _context.closed
+        ? AppServiceView.unavailable(bundledPrivacyPolicy.version)
+        : bridgeAppServiceView(await read(service));
+  }
+
+  @override
+  Future<AppServiceView> appServiceState() =>
+      _appServiceView((service) => service.state());
+  @override
+  Future<AppServiceView> agreeAppService() =>
+      _appServiceView((service) => service.agree());
+  @override
+  Future<AppServiceView> enterBasicAppService() =>
+      _appServiceView((service) => service.enterBasic());
+  @override
+  Future<AppServiceView> setAppServiceTelemetry(bool enabled) =>
+      _appServiceView((service) => service.setTelemetry(enabled: enabled));
+
+  @override
+  Future<AppServiceEraseOutcome> eraseAppService() async {
+    final service = _appService;
+    if (service == null || _context.closed)
+      return AppServiceEraseOutcome.unavailable;
+    return bridgeAppServiceErase(await service.erase());
+  }
+
+  @override
+  Future<void> uploadAppService({required bool force}) async {
+    if (!_context.closed) await _appService?.upload(force: force);
+  }
+
+  @override
+  Future<void> recordAppService(TelemetryRecord record) async {
+    if (_appService case final service? when !_context.closed) {
+      await bridgeRecordAppService(service, record);
+    }
+  }
+
+  @override
+  void confirmAppServiceAccount() {
+    final scope = _context.nativeAccount;
+    final binding = _context.sharedAccount;
+    if (_context.closed || scope == null || binding == null) return;
+    try {
+      _appService?.bindAccount(
+        scope: scope,
+        expectedUsername: binding.account.username,
       );
+    } on Object {
+      // 统计账号绑定失败不改变登录、恢复和本机缓存的业务结果。
+    }
+  }
+
+  @override
+  void clearAppServiceAccount() {
+    if (_context.closed) return;
+    try {
+      _appService?.clearAccount();
+    } on Object {
+      // Core 在入队时仍按共享代次校验账号。
+    }
+  }
 
   @override
   Future<void> bindSharedAccount(SharedAccountBinding binding) async {
@@ -233,6 +323,7 @@ class BridgeBackend
     SharedAccountBinding revoked, {
     required bool clearCache,
   }) async {
+    clearAppServiceAccount();
     await agenda.close();
     return bridgeSharedLogout(_context, revoked, clearCache: clearCache);
   }
@@ -455,7 +546,10 @@ class BridgeBackend
   Future<void> login(LoginInput input) => bridgeLogin(_context, input);
 
   @override
-  Future<void> logout() => bridgeLogout(_context);
+  Future<void> logout() {
+    clearAppServiceAccount();
+    return bridgeLogout(_context);
+  }
 
   @override
   Future<ScheduleImportTask> beginScheduleImport(String term) =>
@@ -557,6 +651,7 @@ class BridgeBackend
   Future<void> dispose() {
     if (_closing != null) return _closing!;
     _context.closed = true;
+    _appService?.dispose();
     _context.cache.generation++;
     _context.cache.targetAccountId = null;
     final agendaClosed = agenda.dispose();
@@ -700,7 +795,9 @@ void _disposeIncompatibleBridgeClient(BridgeClient client) {
 }
 
 /// 创建生产后端；任何初始化失败都保持明确的不可用状态，不回退到 Demo。
-Future<UbaaBackend> createProductionBackend() async {
+Future<UbaaBackend> createProductionBackend({
+  Future<BridgeAppService?> Function(String directory)? openAppService,
+}) async {
   final String directory;
   try {
     directory = defaultConfigDirectory();
@@ -709,8 +806,14 @@ Future<UbaaBackend> createProductionBackend() async {
       failure: InitializationFailure.configuration,
     );
   }
+  BridgeAppService? appService;
   try {
-    return await BridgeBackend.open(directory);
+    appService = await openAppService?.call(directory);
+  } on Object {
+    // 可选统计初始化失败时仍然打开学校业务后端。
+  }
+  try {
+    return await BridgeBackend.open(directory, appService: appService);
   } on BridgeInitializationError catch (error) {
     return UnavailableBackend(
       failure: switch (error.failure) {

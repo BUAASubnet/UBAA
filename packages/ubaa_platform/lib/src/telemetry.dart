@@ -18,6 +18,7 @@ abstract final class TelemetryEvents {
   static const featureLoaded = 'feature_loaded';
   static const featureFailed = 'feature_failed';
   static const uiErrorShown = 'ui_error_shown';
+  static const crash = 'crash';
 
   /// 生产默认事件白名单。
   static const Set<String> allowed = <String>{
@@ -30,6 +31,7 @@ abstract final class TelemetryEvents {
     featureLoaded,
     featureFailed,
     uiErrorShown,
+    crash,
   };
 }
 
@@ -40,9 +42,9 @@ abstract final class TelemetryEvents {
 class TelemetryPolicy {
   TelemetryPolicy({Set<String>? allowedEvents, Set<String>? allowedFields})
     : allowedEvents = Set.unmodifiable(
-        (allowedEvents ?? TelemetryEvents.allowed).where(
-          TelemetryEvents.allowed.contains,
-        ),
+        (allowedEvents ??
+                {...TelemetryEvents.allowed, ...TelemetryMetrics.allowed})
+            .where(isTelemetryEventAllowed),
       ),
       allowedFields = Set.unmodifiable(
         (allowedFields ?? _defaultAllowedFields).where(
@@ -57,53 +59,79 @@ class TelemetryPolicy {
 
   bool allowsEvent(String name) => allowedEvents.contains(name);
 
-  bool allowsField(String name) =>
-      allowedFields.contains(name) && !_isSensitiveField(name);
+  bool allowsField(String name) => allowedFields.contains(name);
 }
 
-const Set<String> _defaultAllowedFields = <String>{
-  'platform',
-  'app_version',
+/// 耗时与普通事件使用同一个入口，Core 分别聚合到 timings 和计数数组。
+abstract final class TelemetryMetrics {
+  static const coldStart = 'cold_start';
+  static const firstContent = 'first_content';
+  static const auth = 'auth';
+  static const featureLoad = 'feature_load';
+
+  static const allowed = {coldStart, firstContent, auth, featureLoad};
+
+  static String bucket(Duration duration) {
+    final ms = duration.inMilliseconds;
+    for (final upper in [250, 500, 1000, 2000, 5000, 10000]) {
+      if (ms < upper) return 'lt_$upper';
+    }
+    return 'ge_10000';
+  }
+}
+
+const Set<String> _defaultAllowedFields = {
   'route',
-  'route_policy',
-  'readiness',
   'feature',
   'error_code',
   'error_kind',
   'retryable',
-  'surface',
   'source',
   'result',
-  'latency_ms',
+  'bucket',
 };
 
-/// 即使自定义策略错误地加入，也必须始终拒绝的字段。
-const Set<String> _sensitiveFieldNames = <String>{
-  'password',
-  'passwd',
-  'secret',
-  'token',
-  'access_token',
-  'refresh_token',
-  'cookie',
-  'set_cookie',
-  'authorization',
-  'username',
-  'account',
-  'email',
-  'phone',
-  'id_card_number',
-  'idcard',
-  'raw',
-  'body',
-  'url',
+final _features = {'app', 'auth', ...FeatureId.values.map((f) => f.wireName)};
+const _routes = {'direct', 'webvpn', 'none'};
+const _results = {'success', 'empty', 'failure'};
+const _errorKinds = {
+  'input',
+  'authentication',
+  'network',
+  'upstream',
+  'parse',
+  'internal',
 };
+const _buckets = {
+  'lt_250',
+  'lt_500',
+  'lt_1000',
+  'lt_2000',
+  'lt_5000',
+  'lt_10000',
+  'ge_10000',
+};
+final _errorCode = RegExp(r'^[a-z][a-z0-9_]{0,47}$');
+final _crashCode = RegExp(r'^[A-Za-z_][A-Za-z0-9_]{0,63}$');
+final _source = RegExp(r'^package:ubaa_[a-z_]+/[A-Za-z0-9_/]+\.dart:\d+$');
+final _frame = RegExp(
+  r'\((package:ubaa_[a-z_]+/[A-Za-z0-9_/]+\.dart:\d+)(?::\d+)?\)\s*$',
+);
 
-bool _isSensitiveField(String name) {
-  final normalized = name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
-  return _sensitiveFieldNames.any(
-    (candidate) => normalized.contains(candidate.replaceAll('_', '')),
-  );
+/// 仅取第一个仓库内 Dart 帧，去掉列号；不接受异常消息或本机路径。
+String? telemetrySource(StackTrace? stackTrace) {
+  if (stackTrace == null) return null;
+  try {
+    final stack = stackTrace.toString();
+    final sample = stack.length <= 8192 ? stack : stack.substring(0, 8192);
+    for (final line in sample.split('\n')) {
+      final source = _frame.firstMatch(line)?.group(1);
+      if (source != null && source.length <= 128) return source;
+    }
+  } on Object {
+    // 栈无法格式化时仍可记录稳定错误码。
+  }
+  return null;
 }
 
 /// 已净化的遥测事件。
@@ -233,12 +261,15 @@ class CallbackTelemetryClient extends TelemetryClient {
     required TelemetrySink sink,
     TelemetryPolicy? policy,
     bool enabled = true,
+    void Function()? onFailure,
   }) : _sink = sink,
+       _onFailure = onFailure,
        _enabled = enabled,
        policy = policy ?? TelemetryPolicy.defaultPolicy,
        super._();
 
   final TelemetrySink _sink;
+  final void Function()? _onFailure;
   final bool _enabled;
 
   @override
@@ -256,9 +287,11 @@ class CallbackTelemetryClient extends TelemetryClient {
     final record = sanitizeTelemetryRecord(event, properties, policy: policy);
     if (record == null) return;
     try {
-      await _sink(record);
+      await Future<void>.sync(
+        () => _sink(record),
+      ).timeout(const Duration(seconds: 2));
     } catch (_) {
-      // 遥测失败不能改变登录或只读请求结果。
+      _onFailure?.call();
     }
   }
 }
@@ -314,28 +347,30 @@ class InMemoryTelemetryClient extends TelemetryClient {
     if (record != null) _events.add(record);
   }
 
-  Future<void> recordAppOpen({String? platform, String? appVersion}) => track(
-    TelemetryEvents.appStarted,
-    properties: <String, Object?>{
-      if (platform != null) 'platform': platform,
-      if (appVersion != null) 'app_version': appVersion,
-    },
-  );
+  Future<void> recordAppOpen({String? platform, String? appVersion}) =>
+      track(TelemetryEvents.appStarted);
 
   Future<void> recordFeatureUsed(
     FeatureId feature, {
     required TelemetryOutcome outcome,
     Duration? latency,
-  }) => track(
-    outcome == TelemetryOutcome.failure
-        ? TelemetryEvents.featureFailed
-        : TelemetryEvents.featureLoaded,
-    properties: <String, Object?>{
-      'feature': feature.wireName,
-      'result': outcome.wireName,
-      if (latency != null) 'latency_ms': latency.inMilliseconds,
-    },
-  );
+  }) async {
+    await track(
+      outcome == TelemetryOutcome.failure
+          ? TelemetryEvents.featureFailed
+          : TelemetryEvents.featureLoaded,
+      properties: {'feature': feature.wireName, 'result': outcome.wireName},
+    );
+    if (latency != null) {
+      await track(
+        TelemetryMetrics.featureLoad,
+        properties: {
+          'feature': feature.wireName,
+          'bucket': TelemetryMetrics.bucket(latency),
+        },
+      );
+    }
+  }
 
   void reset() => _events.clear();
 }
@@ -352,31 +387,28 @@ TelemetryRecord? sanitizeTelemetryRecord(
   final clean = <String, Object?>{};
   properties.forEach((key, value) {
     if (!effectivePolicy.allowsField(key)) return;
-    final sanitized = _sanitizeValue(value);
-    if (sanitized is _RejectedValue) return;
-    clean[key] = sanitized;
+    final accepted = switch (key) {
+      'feature' => _features.contains(value),
+      'route' => _routes.contains(value),
+      'result' => _results.contains(value),
+      'bucket' => _buckets.contains(value),
+      'error_kind' => _errorKinds.contains(value),
+      'retryable' => value is bool,
+      'error_code' =>
+        value is String &&
+            (event == TelemetryEvents.crash ? _crashCode : _errorCode).hasMatch(
+              value,
+            ),
+      'source' =>
+        value is String && value.length <= 128 && _source.hasMatch(value),
+      _ => false,
+    };
+    if (accepted) clean[key] = value;
   });
   return TelemetryRecord(name: event, properties: clean);
 }
 
-/// 判断事件名称是否在默认白名单中。
+/// 判断名称是否为合同事件或耗时指标。
 bool isTelemetryEventAllowed(String event) =>
-    TelemetryEvents.allowed.contains(event);
-
-const _RejectedValue _rejectedValue = _RejectedValue();
-
-Object? _sanitizeValue(Object? value) {
-  if (value == null || value is bool) return value;
-  if (value is int) return value;
-  if (value is double && value.isFinite) return value;
-  if (value is String) {
-    final trimmed = value.trim();
-    if (trimmed.length > 128) return trimmed.substring(0, 128);
-    return trimmed;
-  }
-  return _rejectedValue;
-}
-
-class _RejectedValue {
-  const _RejectedValue();
-}
+    TelemetryEvents.allowed.contains(event) ||
+    TelemetryMetrics.allowed.contains(event);

@@ -1,12 +1,23 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'package:ubaa_app/src/controller/error_mapper.dart';
-import '../state/state.dart' show ControllerState;
+
+import '../../contracts/app_service.dart';
+import '../error_mapper.dart';
+import '../state/state.dart';
 
 mixin ControllerDiagnostics on ControllerState {
+  final _startup = Stopwatch()..start();
+  Stopwatch? _authentication;
+  final _shownErrors = Expando<bool>();
+  final _errorSources = Expando<String>();
+  final _expiredRoutes = <(FeatureId, ConnectionMode?)>{};
+  bool _started = false;
+  bool _coldStart = false;
+  bool _firstContent = false;
+
   @internal
   UiError internalRecordFailure(
     Object cause,
@@ -18,7 +29,7 @@ mixin ControllerDiagnostics on ControllerState {
     final error = UbaaErrorMapper.fromObject(cause);
     if (internalDisposed) return error;
     try {
-      return internalDiagnostics.record(
+      final recorded = internalDiagnostics.record(
         operation: operation,
         error: error,
         feature: feature,
@@ -26,16 +37,100 @@ mixin ControllerDiagnostics on ControllerState {
         cause: cause,
         stackTrace: stackTrace,
       );
+      if (telemetrySource(stackTrace) case final source?
+          when operation != DiagnosticOperation.telemetry) {
+        _errorSources[recorded] = source;
+      }
+      return recorded;
     } on Object {
-      // 可选诊断失败不覆盖原业务错误，也不递归记录自身故障。
+      // 诊断失败不覆盖业务结果，也不产生遥测。
       return error;
     }
   }
 
   @internal
   Future<void> internalRecordAppOpen() async {
-    if (internalTelemetryEnabled)
-      unawaited(internalTrackTelemetry(TelemetryEvents.appStarted));
+    if (_started || !telemetryEnabled || internalDisposed) return;
+    _started = true;
+    await internalTrackTelemetry(TelemetryEvents.appStarted);
+  }
+
+  @internal
+  void internalRecordColdStart() {
+    if (_coldStart || internalDisposed) return;
+    _coldStart = true;
+    _timing(TelemetryMetrics.coldStart, 'app', null, _startup.elapsed);
+  }
+
+  @internal
+  void internalRecordFirstContent() {
+    if (_firstContent || internalDisposed) return;
+    _firstContent = true;
+    _timing(TelemetryMetrics.firstContent, 'app', null, _startup.elapsed);
+  }
+
+  @internal
+  void internalBeginAuthTelemetry() {
+    if (internalBackend case final ConfirmedAppServiceAccountBackend service) {
+      service.clearAppServiceAccount();
+    }
+    _authentication = Stopwatch()..start();
+    _counter(TelemetryEvents.authStarted, 'auth');
+  }
+
+  @internal
+  void internalCancelAuthTelemetry() {
+    _authentication = null;
+  }
+
+  @internal
+  void internalEndAuthTelemetry({
+    UiError? error,
+    ConnectionMode? route,
+    StackTrace? stackTrace,
+  }) {
+    final elapsed = _authentication?.elapsed;
+    _authentication = null;
+    if (elapsed == null) return;
+    final resolved = error?.resolvedRoute ?? route;
+    if (error == null) {
+      _expiredRoutes.clear();
+      _counter(TelemetryEvents.authSucceeded, 'auth', route: resolved);
+    } else {
+      _error(
+        TelemetryEvents.authFailed,
+        'auth',
+        error,
+        route: resolved,
+        stackTrace: stackTrace,
+      );
+    }
+    _resolved('auth', resolved, error == null);
+    _timing(TelemetryMetrics.auth, 'auth', resolved, elapsed);
+  }
+
+  @internal
+  void internalRecordSessionExpired(FeatureId feature, ConnectionMode? route) {
+    if (route == null && _expiredRoutes.any((entry) => entry.$1 == feature))
+      return;
+    if (route != null && _expiredRoutes.remove((feature, null))) {
+      _expiredRoutes.add((feature, route));
+      return;
+    }
+    if (!_expiredRoutes.add((feature, route))) return;
+    _counter(
+      TelemetryEvents.sessionExpired,
+      feature.wireName,
+      route: route,
+      result: 'failure',
+    );
+  }
+
+  @internal
+  void internalRecordVisibleError(UiError error) {
+    if (_shownErrors[error] == true) return;
+    _shownErrors[error] = true;
+    _error(TelemetryEvents.uiErrorShown, 'app', error);
   }
 
   @internal
@@ -45,73 +140,146 @@ mixin ControllerDiagnostics on ControllerState {
     bool empty = false,
     UiError? error,
     Duration? latency,
+    ConnectionMode? route,
+    StackTrace? stackTrace,
   }) async {
-    if (!internalTelemetryEnabled) return;
-    unawaited(
-      internalTrackTelemetry(
-        error == null
-            ? TelemetryEvents.featureLoaded
-            : TelemetryEvents.featureFailed,
-        properties: {
-          'feature': feature.wireName,
-          'result': success
-              ? 'success'
-              : empty
-              ? 'empty'
-              : 'failure',
-          if (error != null) 'error_code': error.code.wireName,
-          if (error != null) 'error_kind': error.kind.name,
-          if (error != null) 'retryable': error.retryable,
-          if (error?.resolvedRoute != null) 'route': error!.resolvedRoute!.name,
-          if (latency != null) 'source': internalLatencyBucket(latency),
-        },
-      ),
-    );
+    final name = feature.wireName;
+    final resolved = error?.resolvedRoute ?? route;
+    if (error == null) {
+      _expiredRoutes.removeWhere(
+        (entry) =>
+            entry.$1 == feature &&
+            (resolved == null || entry.$2 == resolved || entry.$2 == null),
+      );
+      _counter(
+        TelemetryEvents.featureLoaded,
+        name,
+        route: resolved,
+        result: success
+            ? 'success'
+            : empty
+            ? 'empty'
+            : 'failure',
+      );
+    } else {
+      _error(
+        TelemetryEvents.featureFailed,
+        name,
+        error,
+        route: resolved,
+        stackTrace: stackTrace,
+      );
+      if (error.code == UbaaErrorCode.authenticationRequired &&
+          resolved != null) {
+        internalRecordSessionExpired(feature, resolved);
+      }
+    }
+    _resolved(name, resolved, error == null);
+    if (latency != null) {
+      _timing(TelemetryMetrics.featureLoad, name, resolved, latency);
+    }
   }
+
+  void _resolved(String feature, ConnectionMode? route, bool success) {
+    if (route != null) {
+      _counter(
+        TelemetryEvents.routeResolved,
+        feature,
+        route: route,
+        result: success ? 'success' : 'failure',
+      );
+    }
+  }
+
+  void _counter(
+    String event,
+    String feature, {
+    ConnectionMode? route,
+    String result = 'success',
+  }) => unawaited(
+    internalTrackTelemetry(
+      event,
+      properties: {
+        'feature': feature,
+        'route': route?.name ?? 'none',
+        'result': result,
+      },
+    ),
+  );
+
+  void _error(
+    String event,
+    String feature,
+    UiError error, {
+    ConnectionMode? route,
+    StackTrace? stackTrace,
+  }) => unawaited(
+    internalTrackTelemetry(
+      event,
+      properties: {
+        'feature': feature,
+        'route': (error.resolvedRoute ?? route)?.name ?? 'none',
+        'error_code': error.code.wireName,
+        'error_kind': error.kind == UbaaErrorKind.unknown
+            ? 'internal'
+            : error.kind.name,
+        'retryable': error.retryable,
+        if ((telemetrySource(stackTrace) ?? _errorSources[error])
+            case final source?)
+          'source': source,
+      },
+    ),
+  );
+
+  void _timing(
+    String metric,
+    String feature,
+    ConnectionMode? route,
+    Duration elapsed,
+  ) => unawaited(
+    internalTrackTelemetry(
+      metric,
+      properties: {
+        'feature': feature,
+        'route': route?.name ?? 'none',
+        'bucket': TelemetryMetrics.bucket(elapsed),
+      },
+    ),
+  );
 
   @internal
   Future<void> internalTrackTelemetry(
     String event, {
     Map<String, Object?> properties = const {},
   }) async {
+    if (internalDisposed) return;
     final epoch = internalLifecycleEpoch;
-    try {
-      // 遥测不阻塞业务；截止预算限制失效 sink 对控制器生命周期的持有。
-      await internalTelemetry
-          .track(event, properties: properties)
-          .timeout(const Duration(seconds: 2));
-    } on Object catch (error, stackTrace) {
-      if (epoch == internalLifecycleEpoch) {
+    final backend = internalBackend;
+    void failed() {
+      if (!internalDisposed &&
+          epoch == internalLifecycleEpoch &&
+          identical(backend, internalBackend)) {
         internalRecordFailure(
-          error,
+          StateError('遥测入队未完成'),
           DiagnosticOperation.telemetry,
-          stackTrace: stackTrace,
         );
       }
     }
-  }
 
-  @internal
-  Future<void> internalFlushTelemetry() async {
-    final epoch = internalLifecycleEpoch;
-    try {
-      await internalTelemetry.flush().timeout(const Duration(seconds: 2));
-    } on Object catch (error, stackTrace) {
-      if (epoch == internalLifecycleEpoch) {
-        internalRecordFailure(
-          error,
-          DiagnosticOperation.telemetry,
-          stackTrace: stackTrace,
-        );
+    if (backend case final AppServiceBackend service) {
+      // GUI 和命令进程共享状态；每次入队由 Core 重新读取许可。
+      await CallbackTelemetryClient(
+        sink: service.recordAppService,
+        onFailure: failed,
+      ).track(event, properties: properties);
+    } else if (internalTelemetryEnabled) {
+      try {
+        await internalTelemetry
+            .track(event, properties: properties)
+            .timeout(const Duration(seconds: 2));
+      } on Object {
+        failed();
       }
     }
-  }
-
-  @internal
-  String internalLatencyBucket(Duration latency) {
-    if (latency < const Duration(milliseconds: 500)) return 'lt_500ms';
-    if (latency < const Duration(seconds: 2)) return '500ms_2s';
-    if (latency < const Duration(seconds: 5)) return '2s_5s';
-    return 'gte_5s';
   }
 }

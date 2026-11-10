@@ -160,6 +160,9 @@ void main() {
       await login;
     }
     expect(controller.phase, AppPhase.home);
+    // 等待新账号日程的真实读取，避免依赖登录收尾与日程打开的微任务次序。
+    backend.data.countGate = null;
+    expect(await backend.agenda.unsyncedCount(), 5);
     expect(backend.data.accounts, hasLength(2));
     expect(backend.data.accounts.first, isNot(backend.data.accounts.last));
   });

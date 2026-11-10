@@ -108,6 +108,37 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
+  static const _appServiceInterval = Duration(hours: 6);
+  Timer? _appServiceTimer;
+  bool _appServiceBusy = false;
+  DartCrashHandlers? _crashHandlers;
+  bool get _mobile =>
+      Platform.isAndroid ||
+      Platform.isIOS ||
+      Platform.operatingSystem == 'ohos';
+
+  Future<void> _attemptAppService({
+    required bool force,
+    bool startup = false,
+  }) async {
+    if (_disposed || _appServiceBusy || _readyController == null) return;
+    _appServiceBusy = true;
+    try {
+      await _controller.refreshAppService();
+      if (_disposed || !_controller.appService.available) return;
+      if (startup) await _controller.recordAppStarted();
+      if (_disposed) return;
+      _appServiceTimer ??= Timer.periodic(_appServiceInterval, (_) {
+        if (!_wasBackgrounded) unawaited(_attemptAppService(force: false));
+      });
+      await _controller.uploadAppService(force: force);
+    } on Object {
+      // 统计服务失败不影响启动、前台恢复或业务输出。
+    } finally {
+      _appServiceBusy = false;
+    }
+  }
+
   ScheduleWidgetPublisher? _scheduleWidgetPublisher;
   void _checkHomeGrades() {
     if (_disposed ||
@@ -185,7 +216,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         (backend != null || widget.backendFactory != null
             ? MemoryYgdkReminderStore()
             : PreferencesYgdkReminderStore(scope: defaultConfigDirectory()));
-    final backendFactory = widget.backendFactory ?? createProductionBackend;
+    final backendFactory = widget.backendFactory ?? _createBackend;
     _readyController = AppController(
       backend: opened,
       backendFactory: backend == null ? backendFactory : null,
@@ -249,12 +280,18 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? LocalNetworkMonitor().changes
             : null);
     _listenNetworkChanges();
+    if (widget.backend == null && widget.backendFactory == null) {
+      _crashHandlers = DartCrashHandlers.install(_controller.recordAppCrash);
+    }
     unawaited(_controller.initialize());
+    unawaited(_attemptAppService(force: true, startup: true));
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _appServiceTimer?.cancel();
+    _crashHandlers?.dispose();
     _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
     if (_readyController == null) {
@@ -278,7 +315,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
+      final enteringBackground = !_wasBackgrounded;
       _wasBackgrounded = true;
+      if (enteringBackground && _mobile) {
+        unawaited(_attemptAppService(force: true));
+      }
       _stopNetworkChanges();
       _readyController?.setAppForeground(false);
       return;
@@ -292,6 +333,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (_readyController == null) return;
       _listenNetworkChanges();
       _controller.setAppForeground(true);
+      unawaited(_attemptAppService(force: false));
       if (_recoveryInFlight) return;
       _resumeRecoveryPending = true;
       _retryPendingRecovery();
@@ -341,6 +383,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       final messenger = _messengerKey.currentState;
       if (messenger == null) return;
       // 首页绘制完成后消费一次，避免各只读来源的刷新反复显示同一提示。
+      _controller.recordPresentedError(error);
       _controller.clearError();
       UbaaFeedback.showOn(
         messenger,

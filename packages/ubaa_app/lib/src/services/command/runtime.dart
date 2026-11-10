@@ -27,6 +27,13 @@ final class CommandMaterials {
   final SecureMaterialStore materials;
 }
 
+/// 已完成的命令交给安装级应用服务的剩余预算与已确认账号。
+typedef CommandAppServiceContext = ({
+  String? directory,
+  Duration budget,
+  ({BridgeSharedAccount scope, String expectedUsername})? account,
+});
+
 /// 命令只调度既有服务。参数、业务执行、错误信封和最终输出都保留在 Rust。
 final class CommandRuntime {
   CommandRuntime({
@@ -34,8 +41,13 @@ final class CommandRuntime {
     required this.openMaterials,
     this.openClient = BridgeClient.open,
     this.parse = BridgeCommand.parse,
+    this.uploadAppService,
   });
   final CommandIO io;
+
+  /// 在业务输出和退出码确定后执行；默认的无宿主运行不打开应用服务。
+  final Future<void> Function(CommandAppServiceContext context)?
+  uploadAppService;
   final Future<CommandMaterials> Function(String? configured) openMaterials;
   final Future<BridgeClient> Function({required String configDir}) openClient;
   final BridgeCommand Function({
@@ -50,6 +62,8 @@ final class CommandRuntime {
   bool _deadline = false;
   bool _local = false;
   bool _progressOutputFailed = false;
+  static const _appServiceBudget = Duration(seconds: 2);
+  Stopwatch? _sinceOutput;
   Future<void> get stopped => _stopped.future;
   int get stoppedExitCode => _deadline && !_local ? 5 : 7;
   void expire() {
@@ -99,8 +113,10 @@ final class CommandRuntime {
     if (budget <= Duration.zero) expire();
     _CommandBackend? backend;
     SharedAccountConsumer? consumer;
+    String? appServiceDirectory;
     try {
       final requirements = command.requirements();
+      appServiceDirectory = requirements.configDirectory;
       _local = requirements.class_ == BridgeCommandClass.local;
       await _wait(io.configure(local: _local));
       var input = <int>[];
@@ -133,6 +149,7 @@ final class CommandRuntime {
       final environment = await _wait(
         openMaterials(requirements.configDirectory),
       );
+      appServiceDirectory = environment.directory;
       final accounts = SecureLocalAccountStore(environment.materials);
       if (!environment.materials.isAvailable)
         return await _deliver(await command.fail(authentication: false));
@@ -190,10 +207,12 @@ final class CommandRuntime {
                 : attempt.result,
           );
         }
-        if (snapshot != null)
+        if (snapshot != null) {
           await _wait(
             consumer.bind(accounts, snapshot!, requireRestore: false),
           );
+          backend.confirmAppServiceAccount();
+        }
         return await _deliver(await attempt.result.registrationSucceeded());
       }
       if (requirements.auth == BridgeCommandAuth.status &&
@@ -295,6 +314,7 @@ final class CommandRuntime {
           ),
         );
         await _wait((recovered.scope ?? scope).validatePersistent());
+        backend!.confirmAppServiceAccount();
       }
 
       if (requirements.class_ == BridgeCommandClass.schoolWrite) {
@@ -402,6 +422,7 @@ final class CommandRuntime {
     } finally {
       _closed = true;
       timer.cancel();
+      final appServiceAccount = backend?.appServiceAccount;
       if (consumer != null) {
         await consumer.close(grace: const Duration(seconds: 1));
       } else if (backend != null) {
@@ -411,6 +432,37 @@ final class CommandRuntime {
         );
       }
       _command = null;
+      final upload = uploadAppService;
+      final sinceOutput = _sinceOutput;
+      if (upload != null && sinceOutput != null && !_stopped.isCompleted) {
+        await _uploadAfterOutput(
+          upload,
+          appServiceDirectory,
+          budget - elapsed.elapsed,
+          _appServiceBudget - sinceOutput.elapsed,
+          appServiceAccount,
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAfterOutput(
+    Future<void> Function(CommandAppServiceContext) upload,
+    String? directory,
+    Duration remaining,
+    Duration remainingAfterOutput,
+    ({BridgeSharedAccount scope, String expectedUsername})? account,
+  ) async {
+    final budget = remaining < remainingAfterOutput
+        ? remaining
+        : remainingAfterOutput;
+    if (budget <= Duration.zero) return;
+    try {
+      await Future<void>.sync(
+        () => upload((directory: directory, budget: budget, account: account)),
+      ).timeout(budget);
+    } on Object {
+      // 应用服务不能改变已经交付的输出、退出码或取消语义。
     }
   }
 
@@ -475,6 +527,7 @@ final class CommandRuntime {
     try {
       await Future.wait([copy(true), copy(false)]);
       final code = await delivery.finish();
+      if (!_progressOutputFailed) _sinceOutput = Stopwatch()..start();
       return _progressOutputFailed ? 7 : code;
     } on Object {
       return stoppedExitCode;
@@ -517,6 +570,17 @@ final class _CommandBackend
   BridgeClient? _client;
   BridgeSharedAccount? native;
   SharedAccountBinding? binding;
+  ({BridgeSharedAccount scope, String expectedUsername})? appServiceAccount;
+
+  void confirmAppServiceAccount() {
+    if ((native, binding) case (final scope?, final confirmed?)) {
+      appServiceAccount = (
+        scope: scope,
+        expectedUsername: confirmed.account.username,
+      );
+    }
+  }
+
   BridgeAgendaStore? _agenda;
   BridgeOfflineCache? _cache;
   bool closed = false;
@@ -544,6 +608,7 @@ final class _CommandBackend
     if (closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);
     if (_client != null) await _client!.bindSharedAccount(scope: captured);
     await value.validate();
+    if (binding?.generation != value.generation) appServiceAccount = null;
     native = captured;
     binding = value;
   }

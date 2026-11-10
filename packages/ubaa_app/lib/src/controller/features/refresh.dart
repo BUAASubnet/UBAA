@@ -462,6 +462,7 @@ mixin ControllerRefresh on ControllerState {
             result.evidence?.complete != false,
         empty: result.isEmpty && result.evidence?.complete != false,
         error: internalSnapshots[feature]!.error,
+        route: result.resolvedRoute,
         latency: DateTime.now().difference(started),
       );
     } on Object catch (error, stackTrace) {
@@ -509,6 +510,7 @@ mixin ControllerRefresh on ControllerState {
       await internalRecordFeature(
         feature,
         error: uiError,
+        stackTrace: stackTrace,
         latency: DateTime.now().difference(started),
       );
     } finally {

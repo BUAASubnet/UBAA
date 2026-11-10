@@ -4,32 +4,43 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
   Widget _buildLoginView({
     bool inPlace = false,
     VoidCallback? onAuthenticated,
-  }) => UbaaLoginView(
-    username: _controller.loginForm.username,
-    password: _controller.loginForm.password,
-    captcha: _controller.loginForm.captcha,
-    verification: _controller.loginVerification,
-    rememberPassword: _controller.loginForm.rememberPassword,
-    autoLogin: _controller.loginForm.autoLogin,
-    routePolicy: _controller.loginForm.routePolicy,
-    error: _controller.error,
-    onOpenAppLink: (widget.appInformation ?? SystemAppInformation()).open,
-    onReadDiagnostics: _controller.exportDiagnostics,
-    isLoading: _controller.isLoggingIn,
-    credentialPersistenceAvailable: _controller.credentialPersistenceAvailable,
-    onUsernameChanged: _controller.setUsername,
-    onPasswordChanged: _controller.setPassword,
-    onCaptchaChanged: _controller.setCaptcha,
-    onRememberPasswordChanged: _controller.setRememberPassword,
-    onAutoLoginChanged: _controller.setAutoLogin,
-    onSubmit: () => unawaited(() async {
-      await _controller.submitLogin(preserveHome: inPlace);
-      if (!_disposed &&
-          _controller.sessionRecoveryStatus == SessionRecoveryStatus.ready) {
-        onAuthenticated?.call();
-      }
-    }()),
-  );
+  }) {
+    final presentedError = _controller.error;
+    if (presentedError != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed && identical(_controller.error, presentedError)) {
+          _controller.recordPresentedError(presentedError);
+        }
+      });
+    }
+    return UbaaLoginView(
+      username: _controller.loginForm.username,
+      password: _controller.loginForm.password,
+      captcha: _controller.loginForm.captcha,
+      verification: _controller.loginVerification,
+      rememberPassword: _controller.loginForm.rememberPassword,
+      autoLogin: _controller.loginForm.autoLogin,
+      routePolicy: _controller.loginForm.routePolicy,
+      error: _controller.error,
+      onOpenAppLink: (widget.appInformation ?? SystemAppInformation()).open,
+      onReadDiagnostics: _controller.exportDiagnostics,
+      isLoading: _controller.isLoggingIn,
+      credentialPersistenceAvailable:
+          _controller.credentialPersistenceAvailable,
+      onUsernameChanged: _controller.setUsername,
+      onPasswordChanged: _controller.setPassword,
+      onCaptchaChanged: _controller.setCaptcha,
+      onRememberPasswordChanged: _controller.setRememberPassword,
+      onAutoLoginChanged: _controller.setAutoLogin,
+      onSubmit: () => unawaited(() async {
+        await _controller.submitLogin(preserveHome: inPlace);
+        if (!_disposed &&
+            _controller.sessionRecoveryStatus == SessionRecoveryStatus.ready) {
+          onAuthenticated?.call();
+        }
+      }()),
+    );
+  }
 
   void _showInPlaceLogin(BuildContext context) {
     unawaited(

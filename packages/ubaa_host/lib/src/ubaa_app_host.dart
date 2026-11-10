@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'package:ubaa_app/app_service_host.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+
+import 'crash_handlers.dart';
 
 part 'callbacks.dart';
 part 'lifecycle.dart';
@@ -148,7 +152,7 @@ class UbaaAppHost extends StatefulWidget {
   final Stream<void>? networkChanges;
 
   /// 仅在没有显式 [backend] 时使用；同一工厂也负责宿主恢复后的 backend
-  /// 重建。为空时使用 [createProductionBackend]。
+  /// 重建。为空时打开生产后端和应用服务。
   final BackendFactory? backendFactory;
 
   final CredentialVault? credentialVault;
