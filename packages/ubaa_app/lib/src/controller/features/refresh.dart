@@ -514,8 +514,9 @@ mixin ControllerRefresh on ControllerState {
         latency: DateTime.now().difference(started),
       );
     } finally {
-      if (completed && scope.valid && !writeReadback) {
-        internalReportSchoolRejection(outcome);
+      if (completed && scope.valid) {
+        // 写后核对本身不提示，明确加入该读取的用户操作仍接收拒绝结果。
+        if (!writeReadback) internalReportSchoolRejection(outcome);
         for (final report in scope.joinedSchoolPrompts) {
           report(outcome);
         }

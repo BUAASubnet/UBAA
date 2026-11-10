@@ -110,6 +110,36 @@ void main() {
     expect(prompts, 2);
   });
 
+  for (final writeReadback in [false, true]) {
+    test('主动下拉加入${writeReadback ? '写后自动核对' : '自动读取'}，门控只提示一次', () async {
+      final backend = _PendingGateBackend();
+      final gui = AppController(backend: backend);
+      addTearDown(gui.dispose);
+      var prompts = 0;
+      final subscription = gui.updatePromptRequests.listen((_) => prompts++);
+      addTearDown(subscription.cancel);
+      await gui.initialize();
+      gui.setUsername('synthetic-user');
+      gui.setPassword('synthetic-password');
+      await gui.submitLogin();
+      await gui.refreshHome();
+
+      backend.holdSignin = true;
+      final automatic = writeReadback
+          ? gui.internalRefreshAfterWrite(WriteOperation.signinPerform)
+          : gui.internalRefreshHome(only: [FeatureId.signin]);
+      await backend.started.future;
+      final manual = gui.refreshHomePage();
+      await Future<void>.delayed(Duration.zero);
+      expect(prompts, 0);
+      backend.reject.complete();
+      await Future.wait([automatic, manual]);
+      await Future<void>.delayed(Duration.zero);
+      expect(backend.deniedReads, 1, reason: '主动与自动操作共用同一次读取');
+      expect(prompts, 1);
+    });
+  }
+
   test('已知门控时主动登录保留会话，撤回后可重新提交', () async {
     final store = _Store()
       ..consent = AppServiceConsent.agreed
@@ -166,6 +196,31 @@ class _Store {
   String? dismissed;
   bool gateActive = false;
   Completer<void>? bootstrapReply;
+}
+
+class _PendingGateBackend extends _Backend implements ProgressiveReadBackend {
+  _PendingGateBackend() : super(_Store());
+
+  bool holdSignin = false;
+  final started = Completer<void>();
+  final reject = Completer<void>();
+
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async => null;
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    if (holdSignin && feature == FeatureId.signin) {
+      if (!started.isCompleted) started.complete();
+      await reject.future;
+      deniedReads++;
+      throw const BackendException(UbaaErrorCode.updateRequired);
+    }
+    return super.loadFeature(feature);
+  }
 }
 
 class _Backend extends DemoBackend implements AppBootstrapBackend {
