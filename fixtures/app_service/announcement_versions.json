@@ -1,0 +1,37 @@
+[
+  {
+    "name": "缺省上限构建号包含该版本的高构建号",
+    "min": "2.0.9+12",
+    "max": "2.0.9",
+    "validRange": true,
+    "versions": [["2.0.9+11", false], ["2.0.9+12", true], ["2.0.9+99", true], ["2.0.10", false]]
+  },
+  {
+    "name": "明确的上限构建号按原规则比较",
+    "min": "2.0.9",
+    "max": "2.0.9+12",
+    "validRange": true,
+    "versions": [["2.0.9", true], ["2.0.9+12", true], ["2.0.9+13", false]]
+  },
+  {
+    "name": "预发布上限只覆盖同一及更早的预发布版本",
+    "min": "2.1.0-rc.1",
+    "max": "2.1.0-rc.2",
+    "validRange": true,
+    "versions": [["2.1.0-rc.2+12", true], ["2.1.0-rc.10", false], ["2.1.0", false]]
+  },
+  {
+    "name": "缺省上限构建号不能跨正式版本",
+    "min": "2.0.10",
+    "max": "2.0.9",
+    "validRange": false,
+    "versions": [["2.0.10", false]]
+  },
+  {
+    "name": "明确的上限构建号低于下限时区间为空",
+    "min": "2.0.9+13",
+    "max": "2.0.9+12",
+    "validRange": false,
+    "versions": [["2.0.9+13", false]]
+  }
+]

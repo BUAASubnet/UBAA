@@ -5,7 +5,10 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import MarkdownIt from "markdown-it";
 import { parse } from "yaml";
-import { compareVersions } from "../../../services/app_service/src/version.mjs";
+import {
+  compareVersions,
+  withinAnnouncementMaximum,
+} from "../../../services/app_service/src/version.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const contract = JSON.parse(
@@ -214,7 +217,10 @@ export function parseAnnouncement(filename, text) {
   if (
     announcement.min_version !== undefined &&
     announcement.max_version !== undefined &&
-    compareVersions(announcement.min_version, announcement.max_version) > 0
+    !withinAnnouncementMaximum(
+      announcement.min_version,
+      announcement.max_version,
+    )
   ) {
     throw new Error("max_version 不能低于 min_version");
   }

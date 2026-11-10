@@ -41,3 +41,9 @@ export function compareVersions(left, right) {
   }
   return order(a.build, b.build);
 }
+
+// 公告上限省略构建号时，同一 SemVer 优先级下的所有构建都符合。
+export function withinAnnouncementMaximum(version, max) {
+  const comparedVersion = max.includes("+") ? version : version.split("+")[0];
+  return compareVersions(comparedVersion, max) <= 0;
+}

@@ -4,7 +4,7 @@ import {
   validateHttpsUrl,
   validateStableVersion,
 } from "./schema";
-import { compareVersions } from "./version.mjs";
+import { compareVersions, withinAnnouncementMaximum } from "./version.mjs";
 
 export const CHANNELS_KEY = "channels";
 export const ANNOUNCEMENTS_KEY = "announcements";
@@ -130,7 +130,7 @@ function matchesVersionRange(
     (max === undefined ||
       (typeof max === "string" &&
         validateAppVersion(max) &&
-        compareVersions(version, max) <= 0))
+        withinAnnouncementMaximum(version, max)))
   );
 }
 

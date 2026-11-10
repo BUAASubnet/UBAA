@@ -4,6 +4,7 @@ import {
   waitOnExecutionContext,
 } from "cloudflare:test";
 import { beforeEach, expect, it } from "vitest";
+import announcementVersions from "../../../fixtures/app_service/announcement_versions.json";
 import worker from "../src/index";
 import { validateBootstrapResponse } from "../src/schema";
 
@@ -183,6 +184,24 @@ it("依次筛选定向、生效时间、网站专属和非法公告，最多保�
   );
   expect(payload).not.toHaveProperty("announcements.0.app");
   expect(payload).not.toHaveProperty("announcements.1.min_version");
+});
+
+it.each(announcementVersions)("$name", async ({ min, max, versions }) => {
+  const announcement = makeAnnouncement(1, {
+    min_version: min,
+    max_version: max,
+  });
+  await putConfig({ github: null }, [announcement]);
+  for (const [version, expected] of versions) {
+    const { response, payload } = await send(
+      `schema=1&platform=android&channel=github&version=${encodeURIComponent(String(version))}`,
+    );
+    expect(response.status).toBe(200);
+    expect(payload).toHaveProperty(
+      "announcements",
+      expected ? [expect.objectContaining({ id: announcement.id })] : [],
+    );
+  }
 });
 
 it("按同一组四参数共用 300 秒缓存；平台、渠道和版本各自隔离", async () => {

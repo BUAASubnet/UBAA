@@ -14,6 +14,9 @@ const fixtures = join(root, "fixtures/app_service/announcements");
 const filename = "2000-01-03-001.md";
 const source = readFileSync(join(fixtures, filename), "utf8");
 const parse = (input, name = filename) => parseAnnouncement(name, input);
+const announcementVersions = JSON.parse(
+  readFileSync(join(fixtures, "../announcement_versions.json"), "utf8"),
+);
 const config = {
   latest_version: "2.0.0+12",
   min_supported_version: "2.0.0",
@@ -45,6 +48,21 @@ test("公告生效区间包含开始时刻但不包含结束时刻", () => {
   assert.ok(isCurrentAnnouncement(note, Date.parse(note.starts_at)));
   assert.ok(!isCurrentAnnouncement(note, Date.parse(note.ends_at)));
 });
+
+for (const { name, min, max, validRange } of announcementVersions) {
+  test(name, () => {
+    const input = source
+      .replace(/^min_version: .+$/m, `min_version: ${min}`)
+      .replace(/^max_version: .+$/m, `max_version: ${max}`);
+    if (validRange) {
+      const announcement = parse(input);
+      assert.equal(announcement.min_version, min);
+      assert.equal(announcement.max_version, max);
+    } else {
+      assert.throws(() => parse(input), /max_version/);
+    }
+  });
+}
 
 test("公告文件名、字符限制、定向和时间错误均拒绝发布", () => {
   assert.throws(() => parse(source, "2000-02-30-001.md"), /文件名/);
