@@ -69,7 +69,7 @@ impl SharedAccountGuard {
         if self.revoked.load(Ordering::SeqCst) {
             return Err(UbaaError::shared_account_conflict());
         }
-        match self.acquire_inner() {
+        match self.acquire_inner(Duration::from_secs(5)) {
             Ok(permit) => Ok(permit),
             Err(error) => {
                 self.revoked.store(true, Ordering::SeqCst);
@@ -77,14 +77,20 @@ impl SharedAccountGuard {
             }
         }
     }
-    fn acquire_inner(&self) -> Result<SharedAccountPermit> {
+    pub(crate) fn try_acquire_for_telemetry(&self) -> Result<SharedAccountPermit> {
+        if self.revoked.load(Ordering::SeqCst) {
+            return Err(UbaaError::shared_account_conflict());
+        }
+        self.acquire_inner(Duration::ZERO)
+    }
+    fn acquire_inner(&self, timeout: Duration) -> Result<SharedAccountPermit> {
         let root = self.directory.as_ref();
         let metadata = std::fs::symlink_metadata(root).map_err(conflict)?;
         if !metadata.is_dir() || metadata.file_type().is_symlink() {
             return Err(UbaaError::shared_account_conflict());
         }
         let file = open_regular(&root.join("materials.lock"))?;
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + timeout;
         while !try_shared(&file)? {
             #[cfg(test)]
             if let Some(hook) = &self.wait_hook {

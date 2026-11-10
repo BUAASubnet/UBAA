@@ -267,7 +267,7 @@ impl RouteConfig {
     }
 }
 
-fn validate_config_directory(dir: &Path, missing_allowed: bool) -> Result<bool> {
+pub(crate) fn validate_config_directory(dir: &Path, missing_allowed: bool) -> Result<bool> {
     match std::fs::symlink_metadata(dir) {
         Ok(metadata) if metadata.file_type().is_dir() => Ok(true),
         Err(error) if missing_allowed && error.kind() == std::io::ErrorKind::NotFound => Ok(false),
@@ -275,7 +275,7 @@ fn validate_config_directory(dir: &Path, missing_allowed: bool) -> Result<bool> 
     }
 }
 
-fn validate_config_target(path: &Path) -> Result<bool> {
+pub(crate) fn validate_config_target(path: &Path) -> Result<bool> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_file() => Ok(true),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
@@ -283,7 +283,7 @@ fn validate_config_target(path: &Path) -> Result<bool> {
     }
 }
 
-fn restrict_config_directory(dir: &Path) -> Result<()> {
+pub(crate) fn restrict_config_directory(dir: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -347,7 +347,7 @@ fn remove_temporary_config(path: &Path) {
     let _ = std::fs::remove_file(path);
 }
 
-fn restrict_file_creation(options: &mut OpenOptions) {
+pub(crate) fn restrict_file_creation(options: &mut OpenOptions) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt as _;

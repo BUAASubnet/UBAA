@@ -10,6 +10,8 @@ pub use verified_identity::VerifiedLoginIdentity;
 mod agenda_sync;
 pub mod bhpan;
 pub use crate::agenda::sync::AgendaSyncError;
+#[path = "client/app_service.rs"]
+pub mod app_service;
 pub use crate::app_service::APP_SERVICE_SCHEMA_VERSION;
 pub use agenda_sync::{AgendaSyncScope, AgendaSyncService};
 mod client;

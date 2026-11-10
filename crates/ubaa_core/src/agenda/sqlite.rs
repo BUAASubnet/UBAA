@@ -11,7 +11,6 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
-    time::Duration,
 };
 use uuid::Uuid;
 pub(super) const SCHEMA: i64 = 4;
@@ -19,12 +18,9 @@ const RECORD_LIMIT: usize = 16 * 1024 * 1024;
 
 pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
     let (path, created) = database_path(root, account)?;
-    let flags = OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW;
     if !created {
         // 先用只读连接检查，旧版、未知版及损坏库不执行配置、建表或写入。
-        let mut check =
-            Connection::open_with_flags(&path, flags | OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-        check.busy_timeout(Duration::from_millis(250))?;
+        let mut check = crate::internal::sqlite::open(&path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         let tx = check.transaction_with_behavior(TransactionBehavior::Deferred)?;
         load_existing(&tx, account)?;
         let result: String = tx
@@ -35,8 +31,7 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
         }
         tx.commit()?;
     }
-    let mut db = Connection::open_with_flags(&path, flags | OpenFlags::SQLITE_OPEN_READ_WRITE)?;
-    db.busy_timeout(Duration::from_millis(250))?;
+    let mut db = crate::internal::sqlite::open(&path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
     if created {
         let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
         tx.execute_batch("CREATE TABLE agenda_meta(id INTEGER PRIMARY KEY CHECK(id=1),schema_version INTEGER NOT NULL,account_alias TEXT NOT NULL,active INTEGER NOT NULL CHECK(active IN (0,1)));
@@ -74,7 +69,7 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
         tx.commit()?;
     }
     // 不改变已有库的 journal_mode；这些设置只作用于当前连接。
-    db.execute_batch("PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA temp_store=MEMORY; PRAGMA trusted_schema=OFF;")?;
+    crate::internal::sqlite::configure_private_store(&db)?;
     Ok(db)
 }
 pub(super) fn load(tx: &Transaction<'_>, account: &str) -> CacheResult<AgendaData> {
