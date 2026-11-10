@@ -39,6 +39,8 @@ pub(super) enum FailureReason {
     Body,
     Decode,
     ResponseTooLarge,
+    TelemetryInvalidPayload,
+    TelemetryPayloadTooLarge,
     Unknown,
 }
 
@@ -61,6 +63,8 @@ impl FailureReason {
             Self::Body => "body",
             Self::Decode => "decode",
             Self::ResponseTooLarge => "response_too_large",
+            Self::TelemetryInvalidPayload => "telemetry_invalid_payload",
+            Self::TelemetryPayloadTooLarge => "telemetry_payload_too_large",
             Self::Unknown => "unknown",
         }
     }

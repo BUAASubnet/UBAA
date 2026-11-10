@@ -470,6 +470,18 @@ fn 构建期配置无效时所有应用服务请求均停用() {
             true,
         ),
         (
+            Some("http://localhost.."),
+            Some(CHANNEL),
+            Some(VERSION),
+            false,
+        ),
+        (
+            Some("https://example.workers.dev.."),
+            Some(CHANNEL),
+            Some(VERSION),
+            true,
+        ),
+        (
             Some("https://example.workers.dev"),
             Some(CHANNEL),
             Some(VERSION),

@@ -6,13 +6,16 @@ mod queue;
 mod service;
 mod sqlite;
 mod state;
+mod transport;
 mod types;
+mod upload;
 
 pub use config::AppServiceConfig;
 pub use queue::{BatchDisposition, FrozenBatch};
 pub use service::{AppService, ConfirmedAccount};
 pub use state::{AppServiceState, Consent};
 pub use types::*;
+pub use upload::{EraseAttempt, UploadAttempt};
 
 /// Core 与应用服务 Worker 交换的接口载荷版本。
 pub const APP_SERVICE_SCHEMA_VERSION: u32 = 1;
@@ -27,6 +30,7 @@ pub enum AppServiceError {
     InvalidPolicy,
     GuiRequired,
     InvalidPayload,
+    TransportUnavailable,
 }
 
 impl std::fmt::Display for AppServiceError {
@@ -37,6 +41,7 @@ impl std::fmt::Display for AppServiceError {
             Self::InvalidPolicy => "隐私政策版本无效或过旧",
             Self::GuiRequired => "此操作需要图形界面",
             Self::InvalidPayload => "遥测载荷无法编码",
+            Self::TransportUnavailable => "应用服务传输不可用",
         })
     }
 }

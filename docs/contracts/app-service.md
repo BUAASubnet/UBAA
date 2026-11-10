@@ -1,6 +1,6 @@
 # 应用服务合同
 
-状态：已接受，接口 Schema 已建立，业务尚未实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
+状态：已接受，Core 与 Worker 已实现上报和删除，宿主接线、启动配置、更新门控与定时汇总待实现。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
 
 ## 1. 范围
 
@@ -483,7 +483,7 @@ confirm_text: 知道了
 | `counter_daily` / `error_daily` / `timing_daily` | 对应明细表的主键去掉 `install_id` | `count, devices` | 长期 |
 | `job_state` | `job` | `last_success_day` | 长期 |
 
-- **`active_days`**：没有绑定账号的设备也写一行，`user_key` 为空字符串。同一用户同一天使用多个版本时，每个版本各占一行，迟到的旧版本批次不会覆盖新版本的记录。
+- **`active_days`**：没有绑定账号的设备也写一行，`user_key` 为空字符串。同一用户同一天使用多个版本时，每个版本各占一行，迟到的旧版本批次不会覆盖新版本的记录。`surface_mask` 中 GUI 为 `1`，命令模式为 `2`；合并同一行的使用方式时按位或。
 - **活跃聚合**：`users` 是非空 `user_key` 的去重数，`devices` 是 `install_id` 的去重数。`dimension` 有以下取值：
 
 | `dimension` | `value` |

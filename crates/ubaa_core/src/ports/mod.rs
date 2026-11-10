@@ -5,6 +5,7 @@ mod reqwest_transport;
 pub use object_transfer::{HttpFileRange, HttpTransferObserver};
 
 pub use reqwest_transport::ReqwestTransport;
+pub(crate) use reqwest_transport::{execute_with_client, record_telemetry_rejection};
 
 use std::collections::BTreeMap;
 use std::fmt;

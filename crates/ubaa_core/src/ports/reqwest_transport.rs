@@ -98,62 +98,80 @@ impl HttpTransport for ReqwestTransport {
     }
 
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let started = Instant::now();
         let body_limit = response_body_limit(request.method, &request.url);
-        let method = match request.method {
-            HttpMethod::Get => reqwest::Method::GET,
-            HttpMethod::Post => reqwest::Method::POST,
-            HttpMethod::Put => reqwest::Method::PUT,
-            HttpMethod::Delete => reqwest::Method::DELETE,
-        };
-        tracing::debug!(target: "ubaa::transport", method = ?method, "HTTP 请求发送");
-        let mut builder = self.client.request(method, &request.url);
-        for (name, value) in request.headers {
-            builder = builder.header(name, value);
-        }
-        if !request.body.is_empty() {
-            builder = builder.body(request.body);
-        }
-        let mut response = builder.send().await.map_err(|error| {
-            tracing::debug!(
-                target: "ubaa::transport",
-                timeout = error.is_timeout(),
-                connect = error.is_connect(),
-                "HTTP 请求发送失败"
-            );
-            diagnostic::record_reqwest_failure(
-                diagnostic::TransportStage::Send,
-                &error,
-                started.elapsed(),
-            );
-            transport_error(&error)
-        })?;
-        let status = response.status().as_u16();
-        let final_url = response.url().to_string();
-        let mut headers = BTreeMap::<String, Vec<String>>::new();
-        for (name, value) in response.headers() {
-            if let Ok(value) = value.to_str() {
-                headers
-                    .entry(name.as_str().to_string())
-                    .or_default()
-                    .push(value.to_string());
-            }
-        }
-        let body = collect_response_body(&mut response, started, body_limit).await?;
+        execute_with_client(&self.client, request, body_limit).await
+    }
+}
+
+/// 使用调用方独立配置的客户端执行一次请求，沿用有界正文读取和安全诊断。
+pub(crate) async fn execute_with_client(
+    client: &reqwest::Client,
+    request: HttpRequest,
+    body_limit: usize,
+) -> Result<HttpResponse> {
+    let started = Instant::now();
+    let method = match request.method {
+        HttpMethod::Get => reqwest::Method::GET,
+        HttpMethod::Post => reqwest::Method::POST,
+        HttpMethod::Put => reqwest::Method::PUT,
+        HttpMethod::Delete => reqwest::Method::DELETE,
+    };
+    tracing::debug!(target: "ubaa::transport", method = ?method, "HTTP 请求发送");
+    let mut builder = client.request(method, &request.url);
+    for (name, value) in request.headers {
+        builder = builder.header(name, value);
+    }
+    if !request.body.is_empty() {
+        builder = builder.body(request.body);
+    }
+    let mut response = builder.send().await.map_err(|error| {
         tracing::debug!(
             target: "ubaa::transport",
-            status = status,
-            body_bytes = body.len(),
-            elapsed = ?started.elapsed(),
-            "HTTP 响应完成"
+            timeout = error.is_timeout(),
+            connect = error.is_connect(),
+            "HTTP 请求发送失败"
         );
-        Ok(HttpResponse {
-            status,
-            final_url,
-            headers,
-            body,
-        })
+        diagnostic::record_reqwest_failure(
+            diagnostic::TransportStage::Send,
+            &error,
+            started.elapsed(),
+        );
+        transport_error(&error)
+    })?;
+    let status = response.status().as_u16();
+    let final_url = response.url().to_string();
+    let mut headers = BTreeMap::<String, Vec<String>>::new();
+    for (name, value) in response.headers() {
+        if let Ok(value) = value.to_str() {
+            headers
+                .entry(name.as_str().to_string())
+                .or_default()
+                .push(value.to_string());
+        }
     }
+    let body = collect_response_body(&mut response, started, body_limit).await?;
+    tracing::debug!(
+        target: "ubaa::transport",
+        status = status,
+        body_bytes = body.len(),
+        elapsed = ?started.elapsed(),
+        "HTTP 响应完成"
+    );
+    Ok(HttpResponse {
+        status,
+        final_url,
+        headers,
+        body,
+    })
+}
+
+pub(crate) fn record_telemetry_rejection(status: u16, elapsed: std::time::Duration) {
+    let reason = match status {
+        400 => diagnostic::FailureReason::TelemetryInvalidPayload,
+        413 => diagnostic::FailureReason::TelemetryPayloadTooLarge,
+        _ => return,
+    };
+    diagnostic::record_known_failure(diagnostic::TransportStage::Receive, reason, elapsed);
 }
 
 fn response_body_limit(method: HttpMethod, request_url: &str) -> usize {

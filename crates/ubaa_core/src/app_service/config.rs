@@ -55,7 +55,13 @@ fn valid_endpoint(url: &Url, release: bool) -> bool {
         return false;
     }
     let domain = match url.host() {
-        Some(Host::Domain(domain)) => Some(domain.trim_end_matches('.')),
+        Some(Host::Domain(domain)) => {
+            let domain = domain.strip_suffix('.').unwrap_or(domain);
+            if domain.ends_with('.') {
+                return false;
+            }
+            Some(domain)
+        }
         _ => None,
     };
     if release {

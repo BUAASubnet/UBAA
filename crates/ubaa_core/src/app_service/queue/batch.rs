@@ -34,6 +34,10 @@ impl FrozenBatch {
     pub fn body(&self) -> &[u8] {
         &self.body
     }
+
+    pub(in crate::app_service) fn into_body(self) -> Vec<u8> {
+        self.body
+    }
 }
 
 pub(in crate::app_service) fn batch_for_send(
