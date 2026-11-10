@@ -1,8 +1,13 @@
+import { bootstrap } from "./bootstrap";
 import { eraseTelemetry } from "./erase";
 import { reportTelemetry } from "./telemetry";
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const { origin, pathname } = new URL(request.url);
     const requestOrigin = request.headers.get("Origin");
     if (requestOrigin !== null && requestOrigin !== origin) {
@@ -17,10 +22,7 @@ export default {
           return await eraseTelemetry(request, env);
       }
       if (request.method === "GET" && pathname === "/v1/bootstrap") {
-        const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
-        if (!(await env.BOOTSTRAP_LIMIT.limit({ key })).success) {
-          return new Response(null, { status: 429 });
-        }
+        return await bootstrap(request, env, ctx);
       }
       return new Response(null, { status: 404 });
     } catch {

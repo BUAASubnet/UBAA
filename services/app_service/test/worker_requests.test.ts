@@ -132,13 +132,14 @@ it("上报按安装 ID 限流，删除使用独立的安装 ID 限流绑定", as
 
 it("启动配置按 IP 限流，其他 IP 不受影响", async () => {
   function bootstrap(ip: string) {
-    return exports.default.fetch("https://app-service.invalid/v1/bootstrap", {
-      headers: { "CF-Connecting-IP": ip },
-    });
+    return exports.default.fetch(
+      "https://app-service.invalid/v1/bootstrap?schema=1&platform=android&channel=github&version=2.0.0",
+      { headers: { "CF-Connecting-IP": ip } },
+    );
   }
   for (let i = 0; i < 600; i++) {
-    expect((await bootstrap("192.0.2.25")).status).toBe(404);
+    expect((await bootstrap("192.0.2.25")).status).toBe(200);
   }
   expect((await bootstrap("192.0.2.25")).status).toBe(429);
-  expect((await bootstrap("192.0.2.26")).status).toBe(404);
+  expect((await bootstrap("192.0.2.26")).status).toBe(200);
 });

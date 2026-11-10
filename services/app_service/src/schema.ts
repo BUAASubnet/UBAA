@@ -5,8 +5,11 @@ import {
 
 export {
   validateAnnouncement,
+  validateAppVersion,
   validateBootstrapRequest,
   validateBootstrapResponse,
+  validateHttpsUrl,
+  validateStableVersion,
   validateTelemetryErrorResponse,
 } from "../.generated/validators.mjs";
 

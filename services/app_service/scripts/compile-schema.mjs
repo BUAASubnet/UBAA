@@ -24,6 +24,9 @@ const definitions = {
   validateBootstrapRequest: "bootstrapRequest",
   validateBootstrapResponse: "bootstrapResponse",
   validateAnnouncement: "announcement",
+  validateAppVersion: "appVersion",
+  validateStableVersion: "stableVersion",
+  validateHttpsUrl: "httpsUrl",
   validateTelemetryErrorResponse: "telemetryErrorResponse",
 };
 const references = Object.fromEntries(
