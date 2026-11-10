@@ -26,7 +26,7 @@ pub struct BridgeAppService {
 }
 
 struct Inner {
-    core: core::AppService,
+    core: Arc<core::AppService>,
     account: Mutex<Option<Arc<core::ConfirmedAccount>>>,
 }
 
@@ -62,7 +62,7 @@ impl BridgeAppService {
             )?;
             let available = service.endpoint().is_some();
             let inner = Arc::new(Inner {
-                core: service,
+                core: Arc::new(service),
                 account: Mutex::default(),
             });
             if available {
@@ -74,6 +74,10 @@ impl BridgeAppService {
             })
         })
         .await
+    }
+
+    pub(super) fn core(&self) -> Arc<core::AppService> {
+        self.inner.core.clone()
     }
 
     /// 读取共享持久化状态；不返回安装 ID 或账号。
@@ -122,9 +126,46 @@ impl BridgeAppService {
             Ok(BridgeAppServiceState::from_core(
                 inner.core.snapshot()?,
                 policy,
+                inner.core.bootstrap_view()?,
             ))
         })
         .await
+    }
+
+    /// 刷新更新与公告。启动和重新同意可跳过前台间隔，失败保留已保存的配置。
+    ///
+    /// # Errors
+    /// 本机存储不可用时返回安全错误。
+    pub async fn refresh_bootstrap(
+        &self,
+        force: bool,
+    ) -> Result<BridgeAppServiceState, BridgeError> {
+        panic_telemetry::suppress_async(self.inner.core.refresh_bootstrap(force)).await?;
+        self.state().await
+    }
+
+    /// 仅在本机标记公告已读，并返回更新后的状态。
+    ///
+    /// # Errors
+    /// 本机存储不可用时返回安全错误。
+    pub async fn mark_announcement_read(
+        &self,
+        id: String,
+    ) -> Result<BridgeAppServiceState, BridgeError> {
+        self.change(move |service, _| service.mark_announcement_read(&id))
+            .await
+    }
+
+    /// 忽略用户实际看到的新版本，随后出现的更高版本可再次提示。
+    ///
+    /// # Errors
+    /// 本机存储不可用时返回安全错误。
+    pub async fn dismiss_update_available(
+        &self,
+        latest_version: String,
+    ) -> Result<BridgeAppServiceState, BridgeError> {
+        self.change(move |service, _| service.dismiss_update_available(&latest_version))
+            .await
     }
 
     /// 使用宿主已确认的本机账号绑定；每次入队仍由 Core 复核共享代次。

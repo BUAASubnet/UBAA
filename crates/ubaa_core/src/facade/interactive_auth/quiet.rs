@@ -19,6 +19,8 @@ impl UbaaClient {
         &mut self,
         login: &InteractiveLoginHandle,
     ) -> Result<InteractiveLoginOutcome> {
+        login.ensure_owner(&self.interactive.cancellation)?;
+        self.check_school_requests()?;
         let resolution = resolve_route(
             self.config.default,
             FeatureRouteConfig::SAFE_DEFAULT,
@@ -44,6 +46,7 @@ impl UbaaClient {
         input: DualLoginInput,
     ) -> Result<InteractiveLoginOutcome> {
         self.ensure_interactive(login)?;
+        self.check_school_requests()?;
         if input.username.trim() != login.username() || input.password.expose_secret().is_empty() {
             return Err(invalid_interaction());
         }

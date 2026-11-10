@@ -11,11 +11,13 @@ import '../../theme.dart';
 class UbaaCgyyLockDisplayView extends StatefulWidget {
   const UbaaCgyyLockDisplayView({
     required this.open,
+    this.read,
     this.visible = true,
     this.refreshRevision = 0,
     super.key,
   });
-  final Future<CgyyLockDisplaySession> Function()? open;
+  final CgyyLockDisplayOpen? open;
+  final CgyyLockDisplayRead? read;
   final bool visible;
   final int refreshRevision;
   @override
@@ -36,7 +38,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_refresh());
+    unawaited(_refresh(userInitiated: true));
   }
 
   @override
@@ -48,7 +50,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     }
     if (!oldWidget.visible ||
         oldWidget.refreshRevision != widget.refreshRevision)
-      unawaited(_refresh());
+      unawaited(_refresh(userInitiated: true));
   }
 
   @override
@@ -80,7 +82,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     _busy = false;
   }
 
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool userInitiated = false}) async {
     if (!_visible || _busy) return;
     final open = widget.open;
     if (open == null) {
@@ -96,7 +98,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     });
     try {
       if (_session == null) {
-        final session = await open();
+        final session = await open(userInitiated: userInitiated);
         if (!current()) {
           session.cancel();
           return;
@@ -108,7 +110,10 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
           if (mounted) setState(() => _error = '登录状态已变化，请重新获取密码');
         });
       }
-      final value = await _session!.read();
+      final read = widget.read;
+      final value = await (read == null
+          ? _session!.read()
+          : read(_session!, userInitiated: userInitiated));
       if (!current()) {
         value.release();
         return;
@@ -141,7 +146,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     final theme = Theme.of(context);
     final code = value?.code;
     return PullToRefresh(
-      onRefresh: _refresh,
+      onRefresh: () => _refresh(userInitiated: true),
       child: ListView(
         padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
@@ -152,7 +157,9 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
                 ? (_busy ? const LoadingGlyph() : null)
                 : IconButton(
                     tooltip: '刷新密码',
-                    onPressed: _busy ? null : _refresh,
+                    onPressed: _busy
+                        ? null
+                        : () => _refresh(userInitiated: true),
                     icon: _busy
                         ? const LoadingGlyph()
                         : const Icon(Icons.refresh),

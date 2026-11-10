@@ -30,6 +30,27 @@ void main() {
       everyElement(PreferredLaunchMode.externalApplication),
     );
   });
+
+  test('应用服务外链只允许 HTTPS，使用系统浏览器并保留原地址', () async {
+    final original = UrlLauncherPlatform.instance;
+    final launcher = _Launcher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = original);
+    for (final value in [
+      'http://example.invalid/update',
+      'mailto:user@example.invalid',
+      '/update',
+      'https:relative',
+    ]) {
+      expect(await openExternalUrl(Uri.parse(value)), isFalse);
+    }
+    final safe = Uri.parse('https://example.invalid/update?version=2%2B10');
+    expect(await openExternalUrl(safe), isTrue);
+    expect(launcher.urls, [safe.toString()]);
+    expect(launcher.modes, [PreferredLaunchMode.externalApplication]);
+    launcher.result = false;
+    expect(await openExternalUrl(safe), isFalse);
+  });
 }
 
 class _Launcher extends UrlLauncherPlatform {
@@ -37,10 +58,11 @@ class _Launcher extends UrlLauncherPlatform {
   get linkDelegate => null;
   final urls = <String>[];
   final modes = <PreferredLaunchMode>[];
+  bool result = true;
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     urls.add(url);
     modes.add(options.mode);
-    return true;
+    return result;
   }
 }

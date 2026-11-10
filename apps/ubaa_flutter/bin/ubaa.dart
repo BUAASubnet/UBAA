@@ -17,6 +17,14 @@ Future<void> main(List<String> arguments) async {
     final io = ConsoleCommandIO();
     final runtime = CommandRuntime(
       io: io,
+      openClient: ({required configDir}) => openConfiguredCommandClient(
+        configDirectory: configDir,
+        release: const bool.fromEnvironment(
+          'UBAA_COMMAND_RELEASE',
+          defaultValue: true,
+        ),
+        readVersion: linuxCommandAppVersion,
+      ),
       uploadAppService: (context) => uploadConfiguredCommandAppService(
         resolveDirectory: () async => switch (context.directory) {
           final configured? => Directory(configured).absolute.path,

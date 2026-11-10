@@ -100,7 +100,12 @@ async fn resolve_spoc_business_authentication_failure<T>(
 ) -> crate::error::Result<T> {
     let mut preserve_primary_workflow = || {};
     match crate::features::user::validate_status(runtime, &mut preserve_primary_workflow).await {
-        Err(error) if is_authentication_error(&error) => Err(error),
+        Err(error)
+            if is_authentication_error(&error)
+                || error.code == crate::error::ErrorCode::UpdateRequired =>
+        {
+            Err(error)
+        }
         Ok(_) | Err(_) => Err(spoc_business_authentication_error()),
     }
 }

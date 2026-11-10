@@ -27,7 +27,7 @@ EvaluationBatchResult bridgeMapEvaluationBatchResult(
   }
   final targetKeys = <String>{};
   final items = <EvaluationCourseResult>[];
-  var sawUnknown = false;
+  var stopped = false;
   for (final item in batch.items) {
     final target = bridgeMapEvaluationSubmitTarget(item.target);
     if (target == null || !targetKeys.add(target.selectionKey)) {
@@ -41,11 +41,11 @@ EvaluationBatchResult bridgeMapEvaluationBatchResult(
       BridgeEvaluationCourseOutcome.unattempted =>
         EvaluationCourseOutcome.unattempted,
     };
-    if ((sawUnknown && outcome != EvaluationCourseOutcome.unattempted) ||
-        (!sawUnknown && outcome == EvaluationCourseOutcome.unattempted)) {
+    final unattempted = outcome == EvaluationCourseOutcome.unattempted;
+    if ((stopped && !unattempted) || (items.isEmpty && unattempted)) {
       throw const BackendException(UbaaErrorCode.outcomeUnknown);
     }
-    if (outcome == EvaluationCourseOutcome.outcomeUnknown) sawUnknown = true;
+    stopped |= unattempted || outcome == EvaluationCourseOutcome.outcomeUnknown;
     items.add(
       EvaluationCourseResult(
         target: target,

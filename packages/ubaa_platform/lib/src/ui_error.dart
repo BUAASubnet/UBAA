@@ -91,7 +91,9 @@ class UiErrorMapper {
   }) {
     final code = _parseCode(payload.code);
     final template = _templateFor(code);
-    final retryable = code == UbaaErrorCode.outcomeUnknown
+    final retryable =
+        code == UbaaErrorCode.outcomeUnknown ||
+            code == UbaaErrorCode.updateRequired
         ? false
         : payload.retryable ?? _defaultRetryable(code);
     final issueId = _safeIssueId(payload.issueId);
@@ -257,7 +259,8 @@ UiErrorKind _parseKind(String? raw, String code) {
     UbaaErrorCode.upstreamUnavailable ||
     UbaaErrorCode.businessUnavailable ||
     UbaaErrorCode.outcomeUnknown => UiErrorKind.network,
-    UbaaErrorCode.upstreamChanged => UiErrorKind.upstream,
+    UbaaErrorCode.upstreamChanged ||
+    UbaaErrorCode.updateRequired => UiErrorKind.upstream,
     UbaaErrorCode.parseError => UiErrorKind.parse,
     UbaaErrorCode.internalError ||
     UbaaErrorCode.unsupported => UiErrorKind.internal,
@@ -281,7 +284,8 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.confirmationRequired ||
   UbaaErrorCode.intentExpired ||
   UbaaErrorCode.operationConflict ||
-  UbaaErrorCode.outcomeUnknown => false,
+  UbaaErrorCode.outcomeUnknown ||
+  UbaaErrorCode.updateRequired => false,
 };
 
 ({String title, String message, String? actionLabel}) _templateFor(
@@ -366,6 +370,11 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     title: '操作状态已变化',
     message: '网络或登录状态已变化，请重新操作',
     actionLabel: '重新操作',
+  ),
+  UbaaErrorCode.updateRequired => (
+    title: '需要更新',
+    message: appUpdateRequiredMessage,
+    actionLabel: null,
   ),
   UbaaErrorCode.outcomeUnknown => (
     title: '结果未确认',

@@ -528,7 +528,11 @@ pub(super) fn map_evaluation_batch(
                     ),
                     domain::EvaluationCourseOutcome::Unattempted => (
                         BridgeEvaluationCourseOutcome::Unattempted,
-                        "前序课程结果未知，本课程未尝试",
+                        if batch.outcome_unknown {
+                            "前序课程结果未知，本课程未尝试"
+                        } else {
+                            "请先更新客户端，本课程未尝试"
+                        },
                     ),
                 };
                 BridgeEvaluationCourseResult {

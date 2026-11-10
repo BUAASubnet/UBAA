@@ -2,9 +2,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 绑定创建时的账号与路线代次，页面不能复用切号前的读取或写入准备。
 final class GuardedBhpanService implements BhpanService {
-  GuardedBhpanService(this.delegate, this.current);
+  GuardedBhpanService(this.delegate, this.current, {this.onRejected});
   final BhpanService delegate;
   final bool Function() current;
+  final void Function(Object)? onRejected;
   @override
   Future<BhpanDownloadReceipt> download(
     List<String> handles,
@@ -35,9 +36,14 @@ final class GuardedBhpanService implements BhpanService {
 
   Future<T> _run<T>(Future<T> Function() call) async {
     _check();
-    final value = await call();
-    _check();
-    return value;
+    try {
+      final value = await call();
+      _check();
+      return value;
+    } on Object catch (error) {
+      if (current()) onRejected?.call(error);
+      rethrow;
+    }
   }
 
   @override

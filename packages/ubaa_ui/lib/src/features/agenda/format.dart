@@ -101,12 +101,14 @@ final class AgendaAccess {
     this.failure,
     this.term = '',
     this.onChanged,
+    this.prepareSync,
     this.saveFile,
   });
   final AgendaService? service;
   final AgendaFailure? failure;
   final String term;
   final void Function()? onChanged;
+  final AgendaSyncPrepare? prepareSync;
   final Future<String?> Function(AgendaExportResult, String, bool Function())?
   saveFile;
 }

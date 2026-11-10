@@ -142,7 +142,7 @@ fn assert_json_and_human_streams(case: ExitCase) {
         "stdout contains multiple JSON values"
     );
     assert_cli_schema(&envelope);
-    assert_eq!(envelope["schemaVersion"], 15);
+    assert_eq!(envelope["schemaVersion"], 16);
     assert_eq!(envelope["ok"], false);
     assert!(envelope.get("data").is_none());
     assert_eq!(envelope["error"]["code"], case.wire_code);
@@ -205,4 +205,16 @@ fn error_fixture_uses_stable_code_and_exit_mapping() {
         assert_json_and_human_streams(case);
     }
     assert_writer_failures_return_internal_exit();
+}
+
+#[test]
+fn 更新门控使用独立退出码并输出不可重试错误() {
+    let error_code = serde_json::from_str(r#""update_required""#).unwrap();
+    assert_json_and_human_streams(ExitCase {
+        error_code,
+        error_kind: ErrorKind::Upstream,
+        wire_code: "update_required",
+        wire_kind: "upstream",
+        exit: 8,
+    });
 }

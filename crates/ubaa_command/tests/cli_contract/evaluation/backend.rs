@@ -23,6 +23,7 @@ enum BatchFixture {
     Success,
     Partial,
     OutcomeUnknown,
+    UpdateRequired,
 }
 
 #[derive(Default)]
@@ -357,6 +358,7 @@ impl RoutedCliBackend for EvaluationBackend {
 #[derive(Default)]
 struct FixedEvaluationBackend {
     courses: Vec<EvaluationCourse>,
+    batch: BatchFixture,
     submit_calls: usize,
     readback_calls: usize,
     submitted: Option<EvaluationSubmitCoursesRequest>,
@@ -405,7 +407,7 @@ impl CliBackend for FixedEvaluationBackend {
             return Err(authentication_required());
         }
         Ok(FeatureResult {
-            data: batch(BatchFixture::Success, &request.targets),
+            data: batch(self.batch, &request.targets),
             resolved_route: ConnectionMode::Direct,
         })
     }

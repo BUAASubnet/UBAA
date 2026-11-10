@@ -20,7 +20,47 @@ AppServiceView bridgeAppServiceView(BridgeAppServiceState state) =>
       erase: state.erasePending
           ? AppServiceEraseStatus.pending
           : AppServiceEraseStatus.idle,
+      update: state.update == null ? null : _updateView(state.update!),
+      announcements: List.unmodifiable(state.announcements.map(_announcement)),
     );
+
+AppUpdateView _updateView(BridgeAppUpdate update) => AppUpdateView(
+  status: switch (update.status) {
+    BridgeAppUpdateStatus.upToDate => AppUpdateStatus.upToDate,
+    BridgeAppUpdateStatus.updateAvailable => AppUpdateStatus.updateAvailable,
+    BridgeAppUpdateStatus.updateRequired => AppUpdateStatus.updateRequired,
+    BridgeAppUpdateStatus.unknown => AppUpdateStatus.unknown,
+  },
+  latestVersion: update.latestVersion,
+  minSupportedVersion: update.minSupportedVersion,
+  url: _httpsUrl(update.url),
+  releaseNotes: update.releaseNotes,
+  gateActive: update.gateActive,
+  availableDismissed: update.availableDismissed,
+);
+
+AppAnnouncement _announcement(BridgeAppAnnouncement item) => AppAnnouncement(
+  id: item.id,
+  level: switch (item.level) {
+    BridgeAppAnnouncementLevel.popup => AppAnnouncementLevel.popup,
+    BridgeAppAnnouncementLevel.banner => AppAnnouncementLevel.banner,
+  },
+  title: item.title,
+  body: item.body,
+  linkUrl: _httpsUrl(item.linkUrl),
+  linkText: item.linkText,
+  confirmText: item.confirmText,
+  startsAt: DateTime.parse(item.startsAt),
+  endsAt: item.endsAt == null ? null : DateTime.parse(item.endsAt!),
+);
+
+Uri? _httpsUrl(String? value) {
+  if (value == null) return null;
+  final url = Uri.tryParse(value);
+  return url != null && url.isScheme('https') && url.host.isNotEmpty
+      ? url
+      : null;
+}
 
 AppServiceEraseOutcome bridgeAppServiceErase(
   BridgeAppServiceEraseOutcome outcome,

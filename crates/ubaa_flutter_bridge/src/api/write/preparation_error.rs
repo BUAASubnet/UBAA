@@ -52,6 +52,7 @@ pub(crate) fn routed_bridge_error(error: BridgeError) -> core::RoutedError {
         B::UpstreamChanged => core::ErrorCode::UpstreamChanged,
         B::ParseError => core::ErrorCode::ParseError,
         B::OutcomeUnknown => core::ErrorCode::OutcomeUnknown,
+        B::UpdateRequired => core::ErrorCode::UpdateRequired,
         B::InvalidInput | B::ConfirmationRequired | B::IntentExpired => {
             core::ErrorCode::InvalidInput
         }

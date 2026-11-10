@@ -86,7 +86,7 @@ mixin ControllerOfflineStartup on ControllerState {
       if (internalHomeFrameReported) {
         // backend 在已展示首页后被显式替换时不会再产生新的首帧；仍须
         // 沿既有恢复任务重新核对继任实例的会话和身份。
-        unawaited(recoverSession());
+        unawaited(internalAutomaticSchoolAction(internalRecoverSession));
       }
       return true;
     } on Object catch (error, stackTrace) {
@@ -212,7 +212,7 @@ mixin ControllerOfflineStartup on ControllerState {
       if (backend case final ConfirmedAppServiceAccountBackend service) {
         service.confirmAppServiceAccount();
       }
-      unawaited(internalQueueProfileRefresh());
+      unawaited(internalAutomaticSchoolAction(internalQueueProfileRefresh));
       // 共享身份重绑后使用新读取修订，避免合并到已撤销的旧任务。
       unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
       internalNotify();
@@ -222,7 +222,11 @@ mixin ControllerOfflineStartup on ControllerState {
               entry.value,
             ) ==
             true)
-          unawaited(refreshFeatureQuery(entry.key, entry.value));
+          unawaited(
+            internalAutomaticSchoolAction(
+              () => internalRefreshFeatureQuery(entry.key, entry.value),
+            ),
+          );
       }
       request.queriesAfterRebuild.clear();
       if (request.refreshHomeAfter) internalPendingHomeRecoveryEpoch = epoch;

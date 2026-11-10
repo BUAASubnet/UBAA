@@ -43,7 +43,10 @@ pub(crate) async fn get_assignments_diagnostics(
             "SPOC 当前学期缺失",
         ));
     }
-    let courses = course_map(runtime, &term_code).await.unwrap_or_default();
+    let courses = match course_map(runtime, &term_code).await {
+        Err(error) if error.code == crate::error::ErrorCode::UpdateRequired => return Err(error),
+        result => result.unwrap_or_default(),
+    };
 
     let mut assignments = Vec::new();
     let mut page_num = 1;

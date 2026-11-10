@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../state/state.dart';
@@ -28,10 +29,14 @@ mixin ControllerHomePresentation on ControllerState {
     readCachedWeek: internalReadCachedHomeWeek,
     readCachedDay: internalReadCachedHomeDay,
     changed: internalNotify,
+    reportUserRejection: internalReportSchoolRejection,
+    scheduleBackground: (action) =>
+        internalAutomaticSchoolAction(() => scheduleMicrotask(action)),
   );
   HomeState get homeState => _home.state;
-  Future<void> refreshHomePage() => _home.refresh();
-  Future<void> retryHomeSource(FeatureId feature) => _home.retry(feature);
+  Future<void> refreshHomePage() => internalUserSchoolAction(_home.refresh);
+  Future<void> retryHomeSource(FeatureId feature) =>
+      internalUserSchoolAction(() => _home.retry(feature));
   void setHomeReminder(YgdkReminderSettings? value) => _home.setReminder(value);
   void setHomeVisible(bool value) {
     if (_homeVisible == value) return;

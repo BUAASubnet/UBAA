@@ -49,17 +49,43 @@ mixin ControllerActions on ControllerState {
       return;
     internalHomeFrameReported = true;
     if (internalSessionRecoveryStatus == SessionRecoveryStatus.idle) {
-      unawaited(recoverSession());
+      unawaited(internalRecoverSession());
     }
   }
 
   Future<void> recoverSession({
     FeatureId feature = FeatureId.schedule,
     bool refreshHomeAfter = true,
-  }) => internalRecoverSession(
-    feature: feature,
-    refreshHomeAfter: refreshHomeAfter,
-  );
+  }) {
+    final epoch = internalLifecycleEpoch;
+    final before = internalFeatureRecoveryErrors[feature];
+    final pending = internalRecoverSession(
+      feature: feature,
+      refreshHomeAfter: refreshHomeAfter,
+    );
+    if (_promptRecoveries[pending] != true) {
+      _promptRecoveries[pending] = true;
+      unawaited(
+        pending.then(
+          (_) {
+            if (!internalDisposed && epoch == internalLifecycleEpoch) {
+              final after = internalFeatureRecoveryErrors[feature];
+              if (!identical(before, after))
+                internalReportUserSchoolRejection(after);
+            }
+          },
+          onError: (Object error) {
+            if (!internalDisposed && epoch == internalLifecycleEpoch) {
+              internalReportUserSchoolRejection(error);
+            }
+          },
+        ),
+      );
+    }
+    return pending;
+  }
+
+  final _promptRecoveries = Expando<bool>();
 
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
@@ -86,11 +112,11 @@ mixin ControllerActions on ControllerState {
       internalUsesLocalRecovery = true;
       internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
     }
-    return internalRecoverSession();
+    return internalAutomaticSchoolAction(internalRecoverSession);
   }
 
   Future<void> saveScheduleSemester(String term) =>
-      internalSaveScheduleSemester(term);
+      internalUserSchoolAction(() => internalSaveScheduleSemester(term));
 
   void cancelScheduleImport(String term) => internalCancelScheduleImport(term);
 
@@ -98,13 +124,15 @@ mixin ControllerActions on ControllerState {
       internalSetCaptchaAnswer(route, answer);
 
   Future<void> refreshCaptcha(ConnectionMode route) =>
-      internalRefreshCaptcha(route);
+      internalUserSchoolAction(() => internalRefreshCaptcha(route));
 
   Future<void> continueReadyLogin(ConnectionMode route) =>
-      internalContinueReadyLogin(route);
+      internalUserSchoolAction(() => internalContinueReadyLogin(route));
 
   Future<void> continueWithFixedReadyRoute(ConnectionMode route) =>
-      internalContinueReadyLogin(route, pinRoute: true);
+      internalUserSchoolAction(
+        () => internalContinueReadyLogin(route, pinRoute: true),
+      );
 
   void cancelLoginVerification() => internalCancelLoginVerification();
 
@@ -280,94 +308,140 @@ mixin ControllerActions on ControllerState {
   }
 
   Future<void> setRoutePolicy(RoutePolicy value) =>
-      internalSetRoutePolicyController(value);
+      internalUserSchoolAction(() => internalSetRoutePolicyController(value));
 
-  Future<void> submitLogin({bool preserveHome = false}) {
-    if (internalBackend case final InteractiveLoginBackend backend) {
-      if (internalDisposed ||
-          internalIsSigningOut ||
-          internalRebuildingBackend ||
-          internalSessionRecoveryFuture != null ||
-          internalWriteCoordinator.hasPendingOperation ||
-          internalWriteTransitions != 0)
-        return Future.value();
-      if (!internalInteractiveEngaged)
-        internalInteractiveInPlace =
-            preserveHome && internalPhase == AppPhase.home;
-      return internalSubmitInteractiveLogin(backend);
-    }
-    return internalSubmitLoginController(preserveHome: preserveHome);
-  }
+  Future<void> submitLogin({bool preserveHome = false}) =>
+      internalUserSchoolAction(() async {
+        if (internalDisposed) return;
+        if (internalAppServiceView.consent == AppServiceConsent.agreed &&
+            internalAppServiceView.update?.gateActive == true) {
+          final view = await refreshAppService();
+          if (internalDisposed) return;
+          if (view.consent == AppServiceConsent.agreed &&
+              view.update?.gateActive == true) {
+            internalError = internalRecordFailure(
+              const BackendException(
+                UbaaErrorCode.updateRequired,
+                retryable: false,
+              ),
+              DiagnosticOperation.login,
+            );
+            internalNotify();
+            return;
+          }
+        }
+        if (internalBackend case final InteractiveLoginBackend backend) {
+          if (internalDisposed ||
+              internalIsSigningOut ||
+              internalRebuildingBackend ||
+              internalSessionRecoveryFuture != null ||
+              internalWriteCoordinator.hasPendingOperation ||
+              internalWriteTransitions != 0)
+            return Future.value();
+          if (!internalInteractiveEngaged)
+            internalInteractiveInPlace =
+                preserveHome && internalPhase == AppPhase.home;
+          return internalSubmitInteractiveLogin(backend);
+        }
+        return internalSubmitLoginController(preserveHome: preserveHome);
+      });
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({
     bool forceRefresh = false,
     FeatureId feature = FeatureId.schedule,
-  }) => feature != FeatureId.schedule
-      ? internalLoadAcademicTerms(forceRefresh: forceRefresh, feature: feature)
-      : internalLocalFirstOptions(
-          const FeatureQuery(view: FeatureQueryView.scheduleTerms),
-          forceRefresh,
-          () => internalLoadAcademicTerms(forceRefresh: forceRefresh),
-        );
+  }) => internalUserSchoolAction(
+    () => feature != FeatureId.schedule
+        ? internalLoadAcademicTerms(
+            forceRefresh: forceRefresh,
+            feature: feature,
+          )
+        : internalLocalFirstOptions(
+            const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+            forceRefresh,
+            () => internalLoadAcademicTerms(forceRefresh: forceRefresh),
+          ),
+  );
 
   /// 教学周选项按原学期独立读取，不覆盖当前课表或查询草稿。
   Future<FeatureResult> loadAcademicWeeks(
     String term, {
     bool forceRefresh = false,
-  }) => internalLocalFirstOptions(
-    FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
-    forceRefresh,
-    () => internalLoadAcademicWeeks(term, forceRefresh: forceRefresh),
+  }) => internalUserSchoolAction(
+    () => internalLocalFirstOptions(
+      FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+      forceRefresh,
+      () => internalLoadAcademicWeeks(term, forceRefresh: forceRefresh),
+    ),
   );
 
   /// 活动类型独立读取，不覆盖研讨室日时段和已选目标。
   Future<FeatureResult> loadCgyyPurposes({bool forceRefresh = false}) =>
-      internalLocalFirstOptions(
-        const FeatureQuery(view: FeatureQueryView.cgyyPurposeTypes),
-        forceRefresh,
-        () => internalLoadCgyyPurposes(forceRefresh: forceRefresh),
-        feature: FeatureId.cgyy,
+      internalUserSchoolAction(
+        () => internalLocalFirstOptions(
+          const FeatureQuery(view: FeatureQueryView.cgyyPurposeTypes),
+          forceRefresh,
+          () => internalLoadCgyyPurposes(forceRefresh: forceRefresh),
+          feature: FeatureId.cgyy,
+        ),
       );
 
   /// 成绩统计的独立读取，不改变当前页面的查询或详情帧。
   Future<FeatureResult> loadGradeTerm(
     String term, {
     bool forceRefresh = false,
-  }) => internalLoadGradeTerm(term, forceRefresh: forceRefresh);
+  }) => internalUserSchoolAction(
+    () => internalLoadGradeTerm(term, forceRefresh: forceRefresh),
+  );
 
   Future<GradesAggregate> loadAllGrades({
     bool forceRefresh = false,
     void Function(GradesAggregate)? onProgress,
-  }) => internalLoadGradesWithCache(
-    forceRefresh: forceRefresh,
-    onProgress: onProgress,
+  }) => internalUserSchoolAction(
+    () => internalLoadGradesWithCache(
+      forceRefresh: forceRefresh,
+      onProgress: onProgress,
+    ),
   );
 
   /// 首页变化检查只读取唯一标为当前的学期；缺失时不猜第一项。
   Future<GradeTermRead?> loadCurrentGrades({
     bool forceRefresh = false,
     bool background = false,
-  }) => internalLoadCurrentGrades(
-    forceRefresh: forceRefresh,
-    priority: background ? ReadPriority.background : ReadPriority.interactive,
-  );
+  }) => background
+      ? internalAutomaticSchoolAction(
+          () => internalLoadCurrentGrades(
+            forceRefresh: forceRefresh,
+            priority: ReadPriority.background,
+          ),
+        )
+      : internalUserSchoolAction(
+          () => internalLoadCurrentGrades(
+            forceRefresh: forceRefresh,
+            priority: ReadPriority.interactive,
+          ),
+        );
 
   Future<FeatureResult> loadHomeDaySchedule(
     String date, {
     bool forceRefresh = false,
-  }) => internalLoadHomeDaySchedule(date, forceRefresh: forceRefresh);
+  }) => internalUserSchoolAction(
+    () => internalLoadHomeDaySchedule(date, forceRefresh: forceRefresh),
+  );
 
   Future<FeatureResult> loadHomeSupplement(
     HomeSupplement source, {
     bool forceRefresh = false,
-  }) => internalLoadHomeSupplement(source, forceRefresh: forceRefresh);
+  }) => internalUserSchoolAction(
+    () => internalLoadHomeSupplement(source, forceRefresh: forceRefresh),
+  );
 
   Future<void> refreshHome({Iterable<FeatureId>? only}) =>
-      internalRefreshHome(only: only);
+      internalUserSchoolAction(() => internalRefreshHome(only: only));
 
   /// 刷新日程学校来源，不依赖首页是否仍挂在界面中。
-  Future<void> refreshSchoolAgenda() => controllerRefreshSchoolAgenda(this);
+  Future<void> refreshSchoolAgenda() =>
+      internalUserSchoolAction(() => controllerRefreshSchoolAgenda(this));
 
   Future<void> retryFeature(FeatureId feature) {
     final query = internalSnapshots[feature]?.readContext?.query;
@@ -378,13 +452,15 @@ mixin ControllerActions on ControllerState {
 
   /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
   Future<void> refreshFeatureQuery(FeatureId feature, FeatureQuery query) =>
-      internalRefreshFeatureQuery(feature, query);
+      internalUserSchoolAction(
+        () => internalRefreshFeatureQuery(feature, query),
+      );
 
   /// 准备博雅选课/退选的 typed 一次性意图；准备本身不提交写请求。
   Future<WriteIntent> prepareBykcWrite(
     WriteOperation operation,
     int courseId,
-  ) async {
+  ) => internalUserSchoolAction(() async {
     final backend = internalBackend;
     if (backend is! BykcWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
@@ -402,7 +478,7 @@ mixin ControllerActions on ControllerState {
       ),
       _ => throw const BackendException(UbaaErrorCode.invalidInput),
     };
-  }
+  });
 
   /// 准备博雅签到/签退；仅接受冻结合同的 signType 1/2 和完整有效坐标对。
   Future<WriteIntent> prepareBykcSignWrite(
@@ -410,7 +486,7 @@ mixin ControllerActions on ControllerState {
     int signType, {
     double? lat,
     double? lng,
-  }) async {
+  }) => internalUserSchoolAction(() async {
     final backend = internalBackend;
     if (backend is! BykcWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
@@ -437,116 +513,119 @@ mixin ControllerActions on ControllerState {
       lng: lng,
       signType: signType,
     );
-  }
+  });
 
   /// 准备课堂签到的 typed 一次性意图；目标和资格必须来自读取白名单。
-  Future<WriteIntent> prepareSigninWrite(SigninPerformAction action) async {
-    final backend = internalBackend;
-    if (backend is! SigninWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    final writer = backend as SigninWriteBackend;
-    final normalized = action.scheduleId.trim();
-    if (normalized.isEmpty || action.eligibility != ActionEligibility.allowed) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    return writer.prepareSigninPerform(courseId: normalized);
-  }
+  Future<WriteIntent> prepareSigninWrite(SigninPerformAction action) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! SigninWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        final writer = backend as SigninWriteBackend;
+        final normalized = action.scheduleId.trim();
+        if (normalized.isEmpty ||
+            action.eligibility != ActionEligibility.allowed) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        return writer.prepareSigninPerform(courseId: normalized);
+      });
 
   /// 准备研讨室取消的一次性意图；只接受 Core 给出的 typed 目标。
-  Future<WriteIntent> prepareCgyyCancelWrite(CgyyCancelAction action) async {
-    final backend = internalBackend;
-    if (backend is! CancellationWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    if (!action.hasCanonicalTarget) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    return (backend as CancellationWriteBackend).prepareCgyyCancelOrder(
-      id: action.orderId,
-    );
-  }
+  Future<WriteIntent> prepareCgyyCancelWrite(CgyyCancelAction action) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! CancellationWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        if (!action.hasCanonicalTarget) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        return (backend as CancellationWriteBackend).prepareCgyyCancelOrder(
+          id: action.orderId,
+        );
+      });
 
   /// 准备图书馆取消意图；目标、资格与分页上下文全部来自 Core typed 读取。
-  Future<WriteIntent> prepareLibbookCancelWrite(
-    LibbookCancelAction action,
-  ) async {
-    final backend = internalBackend;
-    if (backend is! CancellationWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    final bookingId = action.bookingId.trim();
-    if (action.eligibility != ActionEligibility.allowed ||
-        bookingId.isEmpty ||
-        action.page <= 0 ||
-        action.limit <= 0) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    final writer = backend as CancellationWriteBackend;
-    return writer.prepareLibbookCancelBooking(
-      id: bookingId,
-      page: action.page,
-      limit: action.limit,
-    );
-  }
+  Future<WriteIntent> prepareLibbookCancelWrite(LibbookCancelAction action) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! CancellationWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        final bookingId = action.bookingId.trim();
+        if (action.eligibility != ActionEligibility.allowed ||
+            bookingId.isEmpty ||
+            action.page <= 0 ||
+            action.limit <= 0) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        final writer = backend as CancellationWriteBackend;
+        return writer.prepareLibbookCancelBooking(
+          id: bookingId,
+          page: action.page,
+          limit: action.limit,
+        );
+      });
 
   /// 准备图书馆预约的 typed 一次性意图；只接受读取白名单中的完整目标。
-  Future<WriteIntent> prepareLibbookReserveWrite(
-    LibbookReserveAction action,
-  ) async {
-    final backend = internalBackend;
-    if (backend is! LibbookWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    final values = <String>[
-      action.areaId,
-      action.seatId,
-      action.day,
-      action.segment,
-      action.startTime,
-      action.endTime,
-    ].map((value) => value.trim()).toList(growable: false);
-    if (action.eligibility != ActionEligibility.allowed ||
-        values.any((value) => value.isEmpty)) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    final writer = backend as LibbookWriteBackend;
-    return writer.prepareLibbookReserve(
-      areaId: values[0],
-      seatId: values[1],
-      day: values[2],
-      segment: values[3],
-      startTime: values[4],
-      endTime: values[5],
-    );
-  }
+  Future<WriteIntent> prepareLibbookReserveWrite(LibbookReserveAction action) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! LibbookWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        final values = <String>[
+          action.areaId,
+          action.seatId,
+          action.day,
+          action.segment,
+          action.startTime,
+          action.endTime,
+        ].map((value) => value.trim()).toList(growable: false);
+        if (action.eligibility != ActionEligibility.allowed ||
+            values.any((value) => value.isEmpty)) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        final writer = backend as LibbookWriteBackend;
+        return writer.prepareLibbookReserve(
+          areaId: values[0],
+          seatId: values[1],
+          day: values[2],
+          segment: values[3],
+          startTime: values[4],
+          endTime: values[5],
+        );
+      });
 
   /// 准备阳光打卡写意图；照片字节只复制到本次内存请求，不落盘或写日志。
-  Future<WriteIntent> prepareYgdkWrite(YgdkSubmitInput input) async {
-    final backend = internalBackend;
-    if (backend is! YgdkWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    return (backend as YgdkWriteBackend).prepareYgdkSubmit(
-      validateYgdkSubmitInput(input),
-    );
-  }
+  Future<WriteIntent> prepareYgdkWrite(YgdkSubmitInput input) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! YgdkWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        return (backend as YgdkWriteBackend).prepareYgdkSubmit(
+          validateYgdkSubmitInput(input),
+        );
+      });
 
   /// 准备研讨室预约写意图；只接受 Core 已核对的 typed actions。
-  Future<WriteIntent> prepareCgyySubmitWrite(CgyySubmitInput input) async {
-    final backend = internalBackend;
-    if (backend is! CgyyWriteBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    return (backend as CgyyWriteBackend).prepareCgyySubmitReservation(
-      validateCgyySubmitInput(input),
-    );
-  }
+  Future<WriteIntent> prepareCgyySubmitWrite(CgyySubmitInput input) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! CgyyWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        return (backend as CgyyWriteBackend).prepareCgyySubmitReservation(
+          validateCgyySubmitInput(input),
+        );
+      });
 
   /// 准备教学评教写意图；仅接受读取 action 中的 typed 目标。
   Future<WriteIntent> prepareEvaluationWrite(
     List<EvaluationSubmitTarget> targets,
-  ) async {
+  ) => internalUserSchoolAction(() async {
     final backend = internalBackend;
     if (backend is! EvaluationWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
@@ -563,11 +642,13 @@ mixin ControllerActions on ControllerState {
     return (backend as EvaluationWriteBackend).prepareEvaluationSubmitCourses(
       normalized,
     );
-  }
+  });
 
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
   Future<WriteCommitResult> commitWrite(String intentId) =>
-      internalCommitWriteWithBackend(internalBackend, intentId);
+      internalUserSchoolAction(
+        () => internalCommitWriteWithBackend(internalBackend, intentId),
+      );
 
   /// 释放尚未确认的一次性意图；该操作不提交任何上游写请求。
   Future<void> discardWriteIntent(String intentId) =>
@@ -696,7 +777,7 @@ mixin ControllerActions on ControllerState {
   }
 
   @internal
-  void internalNotify() {
+  void internalNotify() => internalAutomaticSchoolAction(() {
     internalSyncHome();
     internalLockDisplay?.validate();
     for (final service in internalRequiredRecoveryServices.values) {
@@ -706,7 +787,7 @@ mixin ControllerActions on ControllerState {
     internalDrainDeferredRecovery();
     internalPumpReadTasks();
     if (!internalDisposed) notifyListeners();
-  }
+  });
 
   @internal
   Future<void> internalDisposeBackendOnce(UbaaBackend backend) {
@@ -743,6 +824,8 @@ mixin ControllerActions on ControllerState {
   void dispose() {
     if (internalDisposed) return;
     internalDisposeHome();
+    internalDisposeAppService();
+    internalDisposeUpdatePrompts();
     internalCancelLoginVerification(notify: false);
     // 密码释放属于销毁操作，不能等待已撤销的登录任务迟到收尾。
     internalReleaseLoginSecret();

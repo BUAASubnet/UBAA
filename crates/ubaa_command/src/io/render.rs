@@ -4,7 +4,7 @@ use std::io::Write;
 
 use serde_json::Value;
 use ubaa_core::facade::ConnectionMode;
-use ubaa_core::facade::{ErrorCode, ErrorKind, EvaluationBatchResult, Result, UbaaError};
+use ubaa_core::facade::{EvaluationBatchResult, EvaluationCourseOutcome, Result, UbaaError};
 use ubaa_core::facade::{RouteResolution, Routed, RoutedError, RoutedResult};
 
 use crate::io::error::{CliJsonError, EVALUATION_OUTCOME_UNKNOWN_MESSAGE};
@@ -28,8 +28,8 @@ pub(crate) fn render_routed_result<O: Write, E: Write>(
         Ok(Routed {
             data: CommandOutput::EvaluationBatch { data, route },
             resolution,
-        }) if data.outcome_unknown => {
-            render_evaluation_outcome_unknown(json_mode, data, route, resolution, stdout, stderr)
+        }) if evaluation_batch_incomplete(&data) => {
+            render_incomplete_evaluation_batch(json_mode, data, route, resolution, stdout, stderr)
         }
         Ok(Routed { data, resolution }) => {
             if json_mode {
@@ -86,8 +86,10 @@ pub(crate) fn render_result<O: Write, E: Write>(
     stderr: &mut E,
 ) -> i32 {
     match result {
-        Ok(CommandOutput::EvaluationBatch { data, route }) if data.outcome_unknown => {
-            render_evaluation_outcome_unknown(
+        Ok(CommandOutput::EvaluationBatch { data, route })
+            if evaluation_batch_incomplete(&data) =>
+        {
+            render_incomplete_evaluation_batch(
                 json_mode,
                 data,
                 route,
@@ -145,7 +147,15 @@ pub(crate) fn render_result<O: Write, E: Write>(
     }
 }
 
-fn render_evaluation_outcome_unknown<O: Write, E: Write>(
+fn evaluation_batch_incomplete(data: &EvaluationBatchResult) -> bool {
+    data.outcome_unknown
+        || data
+            .items
+            .iter()
+            .any(|item| item.outcome == EvaluationCourseOutcome::Unattempted)
+}
+
+fn render_incomplete_evaluation_batch<O: Write, E: Write>(
     json_mode: bool,
     data: EvaluationBatchResult,
     route: ConnectionMode,
@@ -153,18 +163,19 @@ fn render_evaluation_outcome_unknown<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let error = UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        EVALUATION_OUTCOME_UNKNOWN_MESSAGE,
-    );
+    let error = if data.outcome_unknown {
+        UbaaError::outcome_unknown(EVALUATION_OUTCOME_UNKNOWN_MESSAGE)
+    } else {
+        // 已发送结果确定，只有更新门控会让剩余课程处于未尝试状态。
+        UbaaError::update_required()
+    };
+    let code = exit_code(error.code) as i32;
     if json_mode {
         let Ok(data) = serde_json::to_value(data) else {
             return ExitCode::Internal as i32;
         };
         let meta = ResolvedRoutedJsonMeta::from_resolution(CliFeature::Evaluation, resolution);
-        let envelope = RoutedJsonEnvelope::evaluation_outcome_unknown(
+        let envelope = RoutedJsonEnvelope::evaluation_incomplete_batch(
             data,
             CliJsonError::from_core(error),
             meta,
@@ -180,7 +191,7 @@ fn render_evaluation_outcome_unknown<O: Write, E: Write>(
             return ExitCode::Internal as i32;
         }
     }
-    ExitCode::Network as i32
+    code
 }
 
 fn render_resolved_error<O: Write, E: Write>(

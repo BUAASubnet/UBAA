@@ -55,6 +55,7 @@ class FeatureDetailView extends StatefulWidget {
     this.hasMore = false,
     this.onLoadMore,
     this.onOpenLockDisplay,
+    this.onReadLockDisplay,
     this.lockRefreshRevision = 0,
     this.visible = true,
     this.onLoadAllGrades,
@@ -112,7 +113,8 @@ class FeatureDetailView extends StatefulWidget {
   final ValueChanged<String?>? onScheduleTitle;
   final bool isLanding, isBykcChosenDetail;
   final bool visible;
-  final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
+  final CgyyLockDisplayOpen? onOpenLockDisplay;
+  final CgyyLockDisplayRead? onReadLockDisplay;
   final int lockRefreshRevision;
   final GradesAggregateLoader? onLoadAllGrades;
   final BykcCoursePresentation? bykcListCourse;
@@ -301,6 +303,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         widget.query?.view == FeatureQueryView.cgyyLockCode) {
       return UbaaCgyyLockDisplayView(
         open: widget.onOpenLockDisplay,
+        read: widget.onReadLockDisplay,
         visible: widget.visible,
         refreshRevision: widget.lockRefreshRevision,
       );

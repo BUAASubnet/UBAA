@@ -44,6 +44,27 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('启动配置启动和前台刷新，不等待统计且不在后台刷新', (tester) async {
+    final backend = _ServiceBackend()..consent = AppServiceConsent.agreed;
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    expect(backend.uploads, [true]);
+    expect(backend.bootstraps, [true]);
+    await tester.pump(const Duration(hours: 6));
+    expect(backend.bootstraps, [true, false]);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump(const Duration(hours: 6));
+    expect(backend.bootstraps, [true, false]);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(backend.bootstraps, [true, false, false]);
+    expect(backend.uploads, [true]);
+
+    backend.firstUpload.complete();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('首次启动弹出隐私选择，同意后设置页的统计开关为开启', (tester) async {
     final backend = _ConsentBackend();
     await tester.pumpWidget(UbaaAppHost(backend: backend));
@@ -61,6 +82,24 @@ void main() {
       find.byKey(const ValueKey('settings-product-telemetry')),
     );
     expect(tile.value, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('前台自动恢复被更新门控拒绝时不弹出既有错误提示', (tester) async {
+    final backend = _ServiceBackend()
+      ..consent = AppServiceConsent.agreed
+      ..firstUpload.complete();
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    backend.rejectRecovery = true;
+    for (var i = 1; i <= 2; i++) {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(backend.rejectedRecoveries, i);
+      expect(find.byType(SnackBar), findsNothing);
+    }
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -151,16 +190,29 @@ class _Backend extends DemoBackend {
       const FeatureResult.empty();
 }
 
-class _ServiceBackend extends _Backend implements AppServiceBackend {
+class _ServiceBackend extends _Backend implements AppBootstrapBackend {
   final uploads = <bool>[];
+  final bootstraps = <bool>[];
   final firstUpload = Completer<void>();
   var status = AppServiceEraseStatus.pending;
+  var consent = AppServiceConsent.basic;
+  bool rejectRecovery = false;
+  int rejectedRecoveries = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async {
+    if (rejectRecovery) {
+      rejectedRecoveries++;
+      throw const BackendException(UbaaErrorCode.updateRequired);
+    }
+    return super.authStatus();
+  }
 
   @override
   Future<AppServiceView> appServiceState() async => AppServiceView(
     available: true,
     telemetryAllowed: true,
-    consent: AppServiceConsent.basic,
+    consent: consent,
     policyVersion: bundledPrivacyPolicy.version,
     agreedPolicyVersion: null,
     telemetryEnabled: false,
@@ -174,6 +226,18 @@ class _ServiceBackend extends _Backend implements AppServiceBackend {
     if (uploads.length == 1) return firstUpload.future;
     status = AppServiceEraseStatus.idle;
   }
+
+  @override
+  Future<void> refreshAppBootstrap({required bool force}) async {
+    if (consent == AppServiceConsent.agreed) bootstraps.add(force);
+  }
+
+  @override
+  Future<AppServiceView> markAppAnnouncementRead(String id) =>
+      appServiceState();
+  @override
+  Future<AppServiceView> dismissAppUpdateAvailable(String latestVersion) =>
+      appServiceState();
 
   @override
   Future<AppServiceView> agreeAppService() => throw UnimplementedError();

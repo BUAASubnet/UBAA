@@ -7,6 +7,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 class _Session implements CgyyLockDisplaySession {
   final events = StreamController<void>.broadcast(sync: true);
   final requests = <Completer<CgyyLockDisplay>>[];
+  final origins = <bool>[];
   bool closed = false;
   @override
   Stream<void> get cancelled => events.stream;
@@ -36,7 +37,11 @@ Widget _view(
   theme: ThemeData(platform: platform),
   home: Scaffold(
     body: UbaaCgyyLockDisplayView(
-      open: () async => session,
+      open: ({required userInitiated}) async => session,
+      read: (session, {required userInitiated}) {
+        (session as _Session).origins.add(userInitiated);
+        return session.read();
+      },
       visible: visible,
       refreshRevision: refreshRevision,
     ),
@@ -56,11 +61,13 @@ void main() {
     await tester.pump();
     expect(find.text('001234'), findsNothing);
     expect(session.requests, hasLength(2));
+    expect(session.origins, [true, true]);
     await tester.pumpWidget(
       _view(session, platform: TargetPlatform.macOS, refreshRevision: 2),
     );
     await tester.pump();
     expect(session.requests, hasLength(2));
+    expect(session.origins, [true, true]);
     session.requests.last.complete(CgyyLockDisplay(code: '005678'));
     await tester.pump();
     expect(find.text('005678'), findsOneWidget);
@@ -89,6 +96,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     expect(find.text('001234'), findsNothing);
     expect(session.requests, hasLength(2));
+    expect(session.origins, [true, false]);
     await tester.tap(find.byTooltip('刷新密码'));
     await tester.pump();
     expect(session.requests, hasLength(2));

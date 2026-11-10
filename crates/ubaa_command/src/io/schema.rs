@@ -16,7 +16,7 @@ use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;
 
 /// CLI 唯一支持的 JSON 架构版本。
-pub const CLI_JSON_SCHEMA_VERSION: u32 = 15;
+pub const CLI_JSON_SCHEMA_VERSION: u32 = 16;
 
 /// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -215,9 +215,9 @@ impl RoutedJsonEnvelope<serde_json::Value> {
         }
     }
 
-    /// 构造评教 batch 结果未知的唯一“失败且携带安全数据”信封。
+    /// 评教批次中止时保留每门课程的安全结果和中止原因。
     #[must_use]
-    pub(crate) fn evaluation_outcome_unknown(
+    pub(crate) fn evaluation_incomplete_batch(
         data: serde_json::Value,
         error: impl Into<CliJsonError>,
         meta: ResolvedRoutedJsonMeta,

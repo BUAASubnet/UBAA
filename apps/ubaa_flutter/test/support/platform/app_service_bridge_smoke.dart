@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show ExternalLibrary;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +12,7 @@ void main() {
   const directory = String.fromEnvironment('UBAA_APP_SERVICE_TEST_STATE');
   const library = String.fromEnvironment('UBAA_APP_SERVICE_TEST_LIBRARY');
   const reopened = bool.fromEnvironment('UBAA_APP_SERVICE_TEST_REOPEN');
-  test(reopened ? '重启后恢复删除' : '同意后真实上传，关闭统计并保留失败的删除', () async {
+  test(reopened ? '重启后恢复删除、门控和公告已读状态' : '同意后刷新配置、标记公告已读并真实上传', () async {
     if (directory.isEmpty || library.isEmpty) {
       fail('请从 scripts/tests/app_service/bridge_e2e.py 执行本地联调');
     }
@@ -30,6 +32,14 @@ void main() {
       ),
     );
     final command = await open(BridgeAppServiceSurface.command);
+    final bootstrapArrived = Completer<void>();
+    void observeBootstrap() {
+      if (gui.appUpdate != null && !bootstrapArrived.isCompleted) {
+        bootstrapArrived.complete();
+      }
+    }
+
+    gui.addListener(observeBootstrap);
     try {
       if (reopened) {
         expect(
@@ -37,6 +47,8 @@ void main() {
           AppServiceEraseStatus.pending,
         );
         expect(gui.appService.telemetryEnabled, isFalse);
+        expect(gui.appUpdate?.gateActive, isTrue);
+        expect(gui.pendingAnnouncements, isEmpty);
         expect((await command.state()).erasePending, isTrue);
         await gui.uploadAppService(force: true);
         expect(gui.appService.erase, AppServiceEraseStatus.idle);
@@ -53,6 +65,41 @@ void main() {
       expect((await command.state()).consent, BridgeAppServiceConsent.agreed);
       await gui.recordAppStarted();
       await gui.uploadAppService(force: true);
+      await bootstrapArrived.future.timeout(const Duration(seconds: 10));
+      expect(gui.appUpdate?.status, AppUpdateStatus.updateRequired);
+      expect(gui.appUpdate?.latestVersion, '2.2.0+17');
+      expect(gui.appUpdate?.gateActive, isTrue);
+      final notice = gui.pendingAnnouncements.single;
+      expect(notice.level, AppAnnouncementLevel.popup);
+      expect(notice.body, '合成公告正文');
+      final commandState = await command.refreshBootstrap(force: true);
+      expect(commandState.update?.status, BridgeAppUpdateStatus.updateRequired);
+      expect(commandState.update?.gateActive, isTrue);
+      expect(commandState.announcements.single.id, notice.id);
+      // 隔离目录从未登录。即使门控失效，无本机会话的状态检查也不会访问学校。
+      final schoolClient = await BridgeClient.openWithAppService(
+        configDir: directory,
+        appService: command,
+      );
+      try {
+        await expectLater(
+          schoolClient.authStatus(),
+          throwsA(
+            isA<BridgeError>()
+                .having(
+                  (error) => error.code,
+                  '错误码',
+                  BridgeErrorCode.updateRequired,
+                )
+                .having((error) => error.retryable, '可重试', isFalse),
+          ),
+        );
+      } finally {
+        await schoolClient.dispose();
+      }
+      await gui.markAnnouncementRead(notice.id);
+      expect(gui.pendingAnnouncements, isEmpty);
+      expect((await command.state()).announcements, isEmpty);
       expect(
         (await gui.setProductTelemetryEnabled(false)).telemetryEnabled,
         isFalse,
@@ -74,6 +121,7 @@ void main() {
       );
       expect(gui.appService.erase, AppServiceEraseStatus.pending);
     } finally {
+      gui.removeListener(observeBootstrap);
       gui.dispose();
       command.dispose();
     }

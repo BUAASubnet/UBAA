@@ -123,6 +123,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onConfirmWrite,
     this.onFeatureQuery,
     this.onOpenLockDisplay,
+    this.onReadLockDisplay,
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
     this.onPrepareSigninWrite,
@@ -222,7 +223,8 @@ class UbaaMainShell extends StatefulWidget {
   final List<ConnectionMode> activeRoutes;
 
   final String Function()? onReadDiagnostics;
-  final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
+  final CgyyLockDisplayOpen? onOpenLockDisplay;
+  final CgyyLockDisplayRead? onReadLockDisplay;
   final WriteState writeState;
   final WritePreparationRunner? onRunWritePrepare;
   final WriteCancellationRunner? onCancelWrite;
@@ -763,6 +765,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         key: page.pageKey,
         isLanding: page.isLanding,
         onOpenLockDisplay: widget.onOpenLockDisplay,
+        onReadLockDisplay: widget.onReadLockDisplay,
         lockRefreshRevision: _lockRefreshRevision,
         visible: _openedFeature == feature && page.isCurrent,
         onLoadAllGrades: widget.onLoadAllGrades,
@@ -923,6 +926,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
     2 => AgendaView(
       service: widget.agenda.service,
+      prepareSync: widget.agenda.prepareSync,
       syncScopeKey: widget.routePolicy,
       failure: widget.agenda.failure,
       scopeKey: (widget.cacheAccountId, widget.routePolicy),

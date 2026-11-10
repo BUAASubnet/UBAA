@@ -2,9 +2,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 绑定创建时的账号代次；账号或会话变化后，旧页面的请求与结果都被拒绝。
 class GuardedCampusAccountService implements CampusAccountService {
-  GuardedCampusAccountService(this.delegate, this.current);
+  GuardedCampusAccountService(this.delegate, this.current, {this.onRejected});
   final CampusAccountService delegate;
   final bool Function() current;
+  final void Function(Object)? onRejected;
 
   void _check() {
     if (!current()) {
@@ -18,9 +19,14 @@ class GuardedCampusAccountService implements CampusAccountService {
 
   Future<T> _run<T>(Future<T> Function() call) async {
     _check();
-    final result = await call();
-    _check();
-    return result;
+    try {
+      final result = await call();
+      _check();
+      return result;
+    } on Object catch (error) {
+      if (current()) onRejected?.call(error);
+      rethrow;
+    }
   }
 
   /// 本机快照只在账号代次未变时交给页面，失效时返回空快照。

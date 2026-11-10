@@ -515,6 +515,12 @@ mixin ControllerRefresh on ControllerState {
       );
     } finally {
       if (completed && scope.valid && !writeReadback) {
+        internalReportSchoolRejection(outcome);
+        for (final report in scope.joinedSchoolPrompts) {
+          report(outcome);
+        }
+      }
+      if (completed && scope.valid && !writeReadback) {
         internalFinishBusinessAttempt(
           feature,
           query,

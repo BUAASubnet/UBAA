@@ -55,8 +55,12 @@ fn wire_enums_match_the_worker_schema() {
         TimingBucket::ALL,
         &definitions["timing"]["properties"]["bucket"],
     );
+    for platform in Platform::ALL {
+        assert_eq!(serde_json::to_value(platform).unwrap(), platform.wire());
+    }
     for channel in Channel::ALL {
         let wire = serde_json::to_value(channel).unwrap();
+        assert_eq!(wire, channel.wire());
         assert_eq!(Channel::parse(wire.as_str().unwrap()), Some(*channel));
     }
 }

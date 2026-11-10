@@ -26,8 +26,12 @@ mixin ControllerProgressive on ControllerState {
           FeatureReadContext(
             query: scope.query,
             requestRevision: 0,
-          ).hasSameQuery(query))
+          ).hasSameQuery(query)) {
+        if (internalSchoolPrompt case final report?) {
+          scope.joinedSchoolPrompts.add(report);
+        }
         return firstBatch ? scope.firstResult.future : scope.completion.future;
+      }
     }
     return null;
   }

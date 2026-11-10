@@ -59,6 +59,7 @@ impl UbaaClient {
         self.verified_login = None;
         self.direct_runtime.ensure_primary_client()?;
         login.ensure_owner(&self.interactive.cancellation)?;
+        self.check_school_requests()?;
         login.claim_preparation()?;
         self.guard_latest_session_ownership()?;
         // 这里只清旧上下文，不能撤销刚刚同步登记的当前意图。
@@ -101,6 +102,7 @@ impl UbaaClient {
         answers: Vec<CaptchaAnswer>,
     ) -> Result<InteractiveLoginOutcome> {
         self.ensure_interactive(login)?;
+        self.check_school_requests()?;
         if input.username.trim() != login.username() || input.password.expose_secret().is_empty() {
             return Err(invalid_interaction());
         }
@@ -238,6 +240,7 @@ impl UbaaClient {
         route: ConnectionMode,
     ) -> Result<InteractiveLoginOutcome> {
         self.ensure_interactive(login)?;
+        self.check_school_requests()?;
         let index = route_index(route);
         if self
             .interactive

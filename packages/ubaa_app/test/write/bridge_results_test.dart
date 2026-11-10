@@ -319,6 +319,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       BridgeErrorCode.intentExpired: UbaaErrorCode.intentExpired,
       BridgeErrorCode.operationConflict: UbaaErrorCode.operationConflict,
       BridgeErrorCode.outcomeUnknown: UbaaErrorCode.outcomeUnknown,
+      BridgeErrorCode.updateRequired: UbaaErrorCode.updateRequired,
     };
     expect(expectedCodes.keys.toSet(), BridgeErrorCode.values.toSet());
     for (final entry in expectedCodes.entries) {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/src/backend.dart';
+import '../../support/mapping.dart' show bridgeMapError;
 
 class BridgeLockDisplaySession implements CgyyLockDisplaySession {
   BridgeLockDisplaySession(this.client, this.lease);
@@ -17,7 +18,12 @@ class BridgeLockDisplaySession implements CgyyLockDisplaySession {
     if (_closed) throw const BackendException(UbaaErrorCode.invalidInput);
     _last?.release();
     _last = null;
-    final value = await client.readCgyyLockDisplay(lease: lease);
+    final BridgeCgyyLockDisplay value;
+    try {
+      value = await client.readCgyyLockDisplay(lease: lease);
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
     if (_closed) throw const BackendException(UbaaErrorCode.invalidInput);
     return _last = CgyyLockDisplay(
       code: value.code,

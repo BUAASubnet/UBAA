@@ -136,8 +136,10 @@ fn optional_success_response(response: Result<String>) -> Result<(String, bool)>
             Err(_) => Ok((EMPTY_SUCCESS_ENVELOPE.to_owned(), false)),
         },
         Err(error)
-            if error.code == ErrorCode::AuthenticationRequired
-                || is_pre_send_credential_error(&error) =>
+            if matches!(
+                error.code,
+                ErrorCode::AuthenticationRequired | ErrorCode::UpdateRequired
+            ) || is_pre_send_credential_error(&error) =>
         {
             Err(error)
         }

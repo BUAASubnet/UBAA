@@ -70,3 +70,12 @@ abstract interface class CgyyLockDisplaySession {
   Future<CgyyLockDisplay> read();
   void cancel();
 }
+
+typedef CgyyLockDisplayOpen =
+    Future<CgyyLockDisplaySession> Function({required bool userInitiated});
+
+typedef CgyyLockDisplayRead =
+    Future<CgyyLockDisplay> Function(
+      CgyyLockDisplaySession session, {
+      required bool userInitiated,
+    });

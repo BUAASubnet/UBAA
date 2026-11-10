@@ -297,7 +297,14 @@ async fn resolve_judge_business_authentication_failure<T>(
     let mut preserve_primary_workflow = || {};
     match crate::features::user::validate_status(runtime, &mut preserve_primary_workflow).await {
         Err(error) if is_authentication_error(&error) => Err(error),
-        Err(error) if error.code == crate::error::ErrorCode::InternalError => Err(error),
+        Err(error)
+            if matches!(
+                error.code,
+                crate::error::ErrorCode::InternalError | crate::error::ErrorCode::UpdateRequired
+            ) =>
+        {
+            Err(error)
+        }
         Ok(_) | Err(_) => Err(judge_business_authentication_error()),
     }
 }

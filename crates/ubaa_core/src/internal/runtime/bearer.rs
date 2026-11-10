@@ -34,6 +34,7 @@ impl ClientRuntime {
             .transpose()?;
         self.check_operation_controls()?;
         pre_send(self)?;
+        self.check_school_requests()?;
         if write {
             self.non_idempotent_boundary_crossed = true;
             if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {

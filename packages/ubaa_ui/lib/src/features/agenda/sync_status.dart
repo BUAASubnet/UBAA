@@ -10,16 +10,18 @@ class AgendaSyncStatusCard extends StatelessWidget {
     required this.now,
     required this.boundary,
     required this.isCurrent,
+    this.prepareSync,
   });
   final AgendaService service;
   final AgendaTime now;
   final Widget Function(Widget) boundary;
   final bool Function() isCurrent;
+  final AgendaSyncPrepare? prepareSync;
   Future<void> _run(BuildContext context, AgendaSyncAction action) async {
     if (!isCurrent()) return;
     final AgendaSyncJob job;
     try {
-      job = service.prepareSync(action, now);
+      job = (prepareSync ?? service.prepareSync)(action, now);
     } on Object catch (error) {
       final failure = error is AgendaException ? error.failure : null;
       UbaaFeedback.show(context, switch (failure) {

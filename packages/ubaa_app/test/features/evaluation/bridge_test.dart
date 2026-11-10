@@ -465,6 +465,57 @@ void fixtureRegisterEvaluationBridgeBackendTests() {
     );
   });
 
+  test('批量评教中途被门控时保留已确认提交及未尝试的课程', () async {
+    final client = _EvaluationBridgeClient(
+      response: const BridgeEvaluationCoursesResponse(
+        courses: <BridgeEvaluationCourse>[],
+        progress: BridgeEvaluationProgress(
+          totalCourses: 0,
+          evaluatedCourses: 0,
+          pendingCourses: 0,
+        ),
+      ),
+      commitResult: _evaluationCommitResult(
+        batch: BridgeEvaluationBatchResult(
+          items: [
+            _evaluationBridgeItem(
+              rwid: 'attempted',
+              suffix: 'attempted',
+              outcome: BridgeEvaluationCourseOutcome.success,
+            ),
+            for (final id in ['denied', 'remaining'])
+              _evaluationBridgeItem(
+                rwid: id,
+                suffix: id,
+                outcome: BridgeEvaluationCourseOutcome.unattempted,
+              ),
+          ],
+          success: false,
+          outcomeUnknown: false,
+        ),
+      ),
+    );
+
+    final controller = AppController(backend: BridgeBackend(client));
+    addTearDown(controller.dispose);
+    var prompts = 0;
+    final subscription = controller.updatePromptRequests.listen(
+      (_) => prompts++,
+    );
+    addTearDown(subscription.cancel);
+    final result = await controller.commitWrite('intent-evaluation');
+    await Future<void>.delayed(Duration.zero);
+    expect(prompts, 1);
+    expect(result.success, isFalse);
+    expect(result.outcomeUnknown, isFalse);
+    expect(result.message, appUpdateRequiredMessage);
+    expect(result.evaluationResult?.items.map((item) => item.outcome), [
+      EvaluationCourseOutcome.success,
+      EvaluationCourseOutcome.unattempted,
+      EvaluationCourseOutcome.unattempted,
+    ]);
+  });
+
   test('BridgeBackend 评教畸形 batch 一律闭合为 outcomeUnknown', () async {
     final malformedResults = <BridgeWriteCommitResult>[
       _evaluationCommitResult(batch: null),
@@ -527,6 +578,20 @@ void fixtureRegisterEvaluationBridgeBackendTests() {
               suffix: 'unattempted',
               outcome: BridgeEvaluationCourseOutcome.unattempted,
             ),
+          ],
+          success: false,
+          outcomeUnknown: false,
+        ),
+      ),
+      _evaluationCommitResult(
+        batch: BridgeEvaluationBatchResult(
+          items: [
+            for (final (id, outcome) in [
+              ('attempted', BridgeEvaluationCourseOutcome.success),
+              ('skipped', BridgeEvaluationCourseOutcome.unattempted),
+              ('after-skip', BridgeEvaluationCourseOutcome.success),
+            ])
+              _evaluationBridgeItem(rwid: id, suffix: id, outcome: outcome),
           ],
           success: false,
           outcomeUnknown: false,

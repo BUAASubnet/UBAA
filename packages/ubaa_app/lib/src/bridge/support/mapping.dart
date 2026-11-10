@@ -173,6 +173,7 @@ UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.intentExpired => UbaaErrorCode.intentExpired,
   BridgeErrorCode.operationConflict => UbaaErrorCode.operationConflict,
   BridgeErrorCode.outcomeUnknown => UbaaErrorCode.outcomeUnknown,
+  BridgeErrorCode.updateRequired => UbaaErrorCode.updateRequired,
 };
 
 UbaaErrorKind _typedErrorKind(BridgeErrorKind kind) => switch (kind) {
@@ -219,5 +220,6 @@ UbaaErrorCode bridgeErrorCode(String? code) => switch (code) {
   'operationConflict' ||
   'operation_conflict' => UbaaErrorCode.operationConflict,
   'outcomeUnknown' || 'outcome_unknown' => UbaaErrorCode.outcomeUnknown,
+  'updateRequired' || 'update_required' => UbaaErrorCode.updateRequired,
   _ => UbaaErrorCode.internalError,
 };

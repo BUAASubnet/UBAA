@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v60。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v61。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
+v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
 
 v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。
 
@@ -23,7 +23,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 v55 增加首页只读批次的开始、结束与失效接口。批次只保存已核实身份，按实际路线、认证代次与路线配置代次复用；每个操作仍检查当前持久身份。批次结束或强制恢复后重新校验，不改变会话持久格式和有效期，不授予写入资格。
 
-- 合同版本为 `60`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `61`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -51,7 +51,7 @@ v55 增加首页只读批次的开始、结束与失效接口。批次只保存�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=60` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=61` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -455,7 +455,7 @@ fresh preflight，commit 消费 intent 后调用 expected-route 原子入口再�
 Evaluation commit 的 `evaluationResult` 固定为
 `{items:[{target,courseName,outcome,message}],success,outcomeUnknown}`，outcome 只允许
 `success/failure/outcomeUnknown/unattempted`。逐课程保持输入顺序；确定 failure 可继续，首个 unknown 停止，
-其后项目必须为 unattempted；只有全部 success 时批次 success。App 不信任 raw message，只显示固定安全文案。
+其后项目必须为 unattempted。更新门控若在批次已经发出课程后生效，保留已有结果，未发出的后缀也标为 unattempted；没有未知课程时 outcomeUnknown 保持 false。只有全部 success 时批次 success。App 不信任 raw message，只显示固定安全文案。
 确定结果、unknown 或 commit 抛错都至多沿 intent 原路线调用一次 `evaluationAllOnRoute`；回读只更新页面，
 不得改变任何提交 outcome、自动重发或重新 Auto/fallback。
 
@@ -865,6 +865,10 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 ## 应用服务
 
 `BridgeAppService.open` 接收与 GUI 或 App 命令模式相同的配置目录、宿主类型、构建期服务地址和渠道、实际平台与安装包版本，以及内嵌政策版本。不初始化学校客户端。所有请求、队列和共享状态由 Core 管理，详细规则见[应用服务合同](app-service.md)。
+
+`BridgeClient.openWithAppService` 将相同安装级句柄绑定到学校客户端。两条路线及其派生读取共享同一份门控。门控拒绝时返回 `BridgeErrorCode.updateRequired`，分类为 `upstream`，不可重试；写操作尚未交付传输时不会标记已发送。
+
+`BridgeAppService.state`、同意状态修改和 `refreshBootstrap(force)` 返回 typed 更新视图和未读公告。GUI 启动和重新同意传入 `force=true`，返回前台传入 `false`。公告时间以 RFC 3339 字符串返回，显示前再次检查本机时间。`markAnnouncementRead(id)` 和 `dismissUpdateAvailable(latestVersion)` 只保存本机状态，并返回更新后的视图。
 
 - `state` 读取持久状态；`agree`、`enterBasic` 和 `setTelemetry` 执行操作后返回最新状态。状态不包含安装 ID、账号或其他请求数据。
 - `enqueueCounter`、`enqueueError`、`enqueueTiming` 只接收对应白名单维度。已确认账号可复用 `BridgeSharedAccount` 绑定，Core 入队时复核共享代次；身份撤销后只计设备。

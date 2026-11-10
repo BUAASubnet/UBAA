@@ -77,6 +77,8 @@ impl ClientRuntime {
         self.check_operation_controls()?;
         transfer.ensure_active()?;
         pre_send()?;
+        self.check_school_requests()?;
+        transfer.ensure_active()?;
         self.non_idempotent_boundary_crossed = true;
         if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
             observer.store(true, Ordering::SeqCst);
@@ -119,7 +121,7 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
-        self.check_operation_controls()?;
+        self.check_school_requests()?;
         transfer.ensure_active()?;
         let pending = self.transport.download(request, file, observer);
         drop(permit);

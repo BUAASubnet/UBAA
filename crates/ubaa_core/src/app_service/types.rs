@@ -64,7 +64,28 @@ wire_enum! {
     }
 }
 
+impl Platform {
+    pub(super) fn wire(self) -> &'static str {
+        match self {
+            Self::Android => "android",
+            Self::Ios => "ios",
+            Self::Ohos => "ohos",
+            Self::Macos => "macos",
+            Self::Windows => "windows",
+            Self::Linux => "linux",
+        }
+    }
+}
+
 impl Channel {
+    pub(super) fn wire(self) -> &'static str {
+        match self {
+            Self::Github => "github",
+            Self::AppStore => "app_store",
+            Self::AppGallery => "app_gallery",
+        }
+    }
+
     /// 解析合同规定的分发渠道。
     #[must_use]
     pub fn parse(value: &str) -> Option<Self> {

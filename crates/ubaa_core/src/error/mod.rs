@@ -34,6 +34,8 @@ pub enum ErrorCode {
     UpstreamChanged,
     /// 无法安全解析响应。
     ParseError,
+    /// 需要更新应用才能继续访问学校服务。
+    UpdateRequired,
     /// 内部不变量失效。
     InternalError,
 }
@@ -169,6 +171,17 @@ impl UbaaError {
             ErrorKind::Upstream,
             true,
             message,
+        )
+    }
+
+    /// 构造学校请求被更新门控拒绝的错误。
+    #[must_use]
+    pub fn update_required() -> Self {
+        Self::new(
+            ErrorCode::UpdateRequired,
+            ErrorKind::Upstream,
+            false,
+            "请更新应用后再使用学校功能",
         )
     }
 

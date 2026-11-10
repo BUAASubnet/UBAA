@@ -95,6 +95,8 @@ Future<WriteCommitResult> bridgeCommitWrite(
           ? '评教成功'
           : evaluationResult.outcomeUnknown
           ? '评教结果未确认，请刷新后查看'
+          : evaluationResult.stoppedForUpdate
+          ? appUpdateRequiredMessage
           : '部分课程评教失败，请重试',
       outcomeUnknown: result.outcomeUnknown,
       resolvedRoute: result.resolvedRoute == null

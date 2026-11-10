@@ -531,7 +531,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<void> internalSetRoutePolicyController(RoutePolicy value);
   @internal
-  void internalSetLegacyTelemetryEnabled(bool value);
+  void internalDisposeAppService();
 
   @internal
   Future<void> internalSubmitInteractiveLogin(InteractiveLoginBackend backend);

@@ -1,12 +1,12 @@
 //! 安装级 `SQLite` 连接和迁移。
 
-use super::{AppServiceError, AppServiceResult, queue, state};
+use super::{AppServiceError, AppServiceResult, bootstrap, queue, state};
 use crate::{config, internal::sqlite};
 use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 use std::{fs::OpenOptions, io::ErrorKind, path::Path, sync::Mutex};
 
 pub(super) const DATABASE_NAME: &str = "app_service.sqlite3";
-const SCHEMA: u32 = 2;
+const SCHEMA: u32 = 3;
 
 pub(super) struct Store(Mutex<Connection>);
 
@@ -42,13 +42,16 @@ impl Store {
                     tx.execute_batch(state::SCHEMA)?;
                     tx.execute_batch(queue::SCHEMA)?;
                 }
-                1 | SCHEMA => {}
+                1..=SCHEMA => {}
                 _ => return Err(AppServiceError::UnsupportedSchema),
             }
-            if version < SCHEMA {
+            if version < 2 {
                 tx.execute_batch(
                     "ALTER TABLE app_service_state ADD COLUMN last_delivery_attempt INTEGER;",
                 )?;
+            }
+            if version < SCHEMA {
+                tx.execute_batch(bootstrap::SCHEMA)?;
                 tx.pragma_update(None, "user_version", SCHEMA)?;
             }
             state::StoredState::load(tx)?;

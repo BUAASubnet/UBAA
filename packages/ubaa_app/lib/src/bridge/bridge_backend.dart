@@ -63,7 +63,7 @@ import 'features/ygdk/reader.dart'
 import 'home/reader.dart' show bridgeReadCachedHome;
 import 'read/cache_query.dart' show bridgeReadCachedQuery;
 import 'read/dispatch.dart' show bridgeLoadFeatureQuery;
-import 'support/mapping.dart' show bridgeDateOnly;
+import 'support/mapping.dart' show bridgeDateOnly, bridgeMapError;
 import 'write/operations.dart'
     show
         bridgeCommitWrite,
@@ -81,7 +81,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 60;
+const _supportedBridgeContractVersion = 61;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -135,7 +135,7 @@ class BridgeBackend
         BackendLifecycle,
         SharedAccountBackend,
         SharedAccountLogoutBackend,
-        AppServiceBackend,
+        AppBootstrapBackend,
         ConfirmedAppServiceAccountBackend {
   BridgeBackend(
     BridgeClient client, {
@@ -155,8 +155,16 @@ class BridgeBackend
   }
 
   @override
-  Future<CgyyLockDisplaySession> openLockDisplay() async =>
-      BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
+  Future<CgyyLockDisplaySession> openLockDisplay() async {
+    try {
+      return BridgeLockDisplaySession(
+        client,
+        await client.openCgyyLockDisplay(),
+      );
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
+  }
 
   @override
   Future<int> beginHomeRecoveryBatch() => client.contractVersion() < 55
@@ -177,7 +185,12 @@ class BridgeBackend
   }) async {
     final BridgeClient client;
     try {
-      client = await BridgeClient.open(configDir: configDirectory);
+      client = appService == null
+          ? await BridgeClient.open(configDir: configDirectory)
+          : await BridgeClient.openWithAppService(
+              configDir: configDirectory,
+              appService: appService,
+            );
     } on Object {
       appService?.dispose();
       rethrow;
@@ -212,6 +225,22 @@ class BridgeBackend
   @override
   Future<AppServiceView> setAppServiceTelemetry(bool enabled) =>
       _appServiceView((service) => service.setTelemetry(enabled: enabled));
+
+  @override
+  Future<void> refreshAppBootstrap({required bool force}) async {
+    if (!_context.closed) await _appService?.refreshBootstrap(force: force);
+  }
+
+  @override
+  Future<AppServiceView> markAppAnnouncementRead(String id) =>
+      _appServiceView((service) => service.markAnnouncementRead(id: id));
+
+  @override
+  Future<AppServiceView> dismissAppUpdateAvailable(String latestVersion) =>
+      _appServiceView(
+        (service) =>
+            service.dismissUpdateAvailable(latestVersion: latestVersion),
+      );
 
   @override
   Future<AppServiceEraseOutcome> eraseAppService() async {

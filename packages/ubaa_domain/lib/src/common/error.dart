@@ -48,7 +48,11 @@ enum UbaaErrorCode {
   intentExpired,
   operationConflict,
   outcomeUnknown,
+  updateRequired,
 }
+
+/// 更新门控的默认提示；页面可根据当前交互补充说明。
+const appUpdateRequiredMessage = '请更新应用后再使用学校功能';
 
 extension UbaaErrorCodeText on UbaaErrorCode {
   String get wireName => switch (this) {
@@ -70,6 +74,7 @@ extension UbaaErrorCodeText on UbaaErrorCode {
     UbaaErrorCode.intentExpired => 'intent_expired',
     UbaaErrorCode.operationConflict => 'operation_conflict',
     UbaaErrorCode.outcomeUnknown => 'outcome_unknown',
+    UbaaErrorCode.updateRequired => 'update_required',
   };
 }
 

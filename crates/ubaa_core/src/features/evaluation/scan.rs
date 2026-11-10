@@ -2,7 +2,7 @@
 use super::parser::{
     AuthorityEntry, CourseContext, EvaluationAuthoritySnapshot, canonical_string, parse_course_rows,
 };
-use super::{is_authentication_error, read};
+use super::{must_propagate, read};
 use crate::{
     domain::{ActionEligibility, EvaluationCoursesResponse},
     error::Result,
@@ -74,7 +74,7 @@ impl Cursor {
         match self.stage {
             Stage::Activation => match read::activate(runtime).await {
                 Ok(()) => self.stage = Stage::Tasks,
-                Err(error) if !is_authentication_error(&error) => {
+                Err(error) if !must_propagate(&error) => {
                     self.incomplete = true;
                     self.error.get_or_insert(error);
                     self.finish();
@@ -95,7 +95,7 @@ impl Cursor {
     ) -> Result<Value> {
         match read::fetch_result(runtime, url, true).await {
             Ok(value) => Ok(value),
-            Err(error) if !is_authentication_error(&error) => {
+            Err(error) if !must_propagate(&error) => {
                 *complete = false;
                 self.error.get_or_insert(error);
                 Ok(Value::Array(Vec::new()))
@@ -163,7 +163,7 @@ impl Cursor {
                 entry.authority = None;
                 entry
             })),
-            Err(error) if !is_authentication_error(&error) => complete = false,
+            Err(error) if !must_propagate(&error) => complete = false,
             Err(error) => return Err(error),
         }
         self.incomplete |= !complete;

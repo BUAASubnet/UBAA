@@ -10,23 +10,16 @@ void main() {
   test('无统计客户端时不能把开关显示为启用', () async {
     final controller = AppController(backend: _SuccessfulReadBackend());
     addTearDown(controller.dispose);
-    await controller.setTelemetryEnabled(true);
-    expect(controller.telemetryEnabled, isFalse);
+    final view = await controller.setProductTelemetryEnabled(true);
+    expect((view.available, view.telemetryEnabled), (false, false));
   });
-  test('可用统计客户端关闭后不记录，再开启仍记录白名单事件', () async {
+  test('注入的统计客户端只记录白名单事件', () async {
     final telemetry = MockTelemetryClient();
     final controller = AppController(
       backend: _SuccessfulReadBackend(),
       telemetry: telemetry,
     );
     addTearDown(controller.dispose);
-    await controller.refreshHome(only: [FeatureId.schedule]);
-    expect(telemetry.records, isNotEmpty);
-    telemetry.reset();
-    await controller.setTelemetryEnabled(false);
-    await controller.refreshHome(only: [FeatureId.schedule]);
-    expect(telemetry.records, isEmpty);
-    await controller.setTelemetryEnabled(true);
     await controller.refreshHome(only: [FeatureId.schedule]);
     expect(telemetry.records.map((record) => record.name), [
       TelemetryEvents.featureLoaded,

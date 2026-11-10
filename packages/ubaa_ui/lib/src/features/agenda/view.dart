@@ -53,6 +53,7 @@ class AgendaView extends StatefulWidget {
     this.now,
     this.failure,
     this.onRefreshSchool,
+    this.prepareSync,
     this.onImportSchedule,
   });
   final AgendaService? service;
@@ -75,6 +76,7 @@ class AgendaView extends StatefulWidget {
   final DateTime? now;
   final AgendaFailure? failure;
   final Future<void> Function()? onRefreshSchool;
+  final AgendaSyncPrepare? prepareSync;
   final VoidCallback? onImportSchedule;
   @override
   State<AgendaView> createState() => AgendaViewState();
@@ -268,6 +270,7 @@ class AgendaViewState extends State<AgendaView> {
     final token = generation.value;
     return AgendaSyncStatusCard(
       service: service,
+      prepareSync: widget.prepareSync,
       now: agendaTime(now),
       boundary: bound,
       isCurrent: () => current(token),

@@ -260,6 +260,10 @@ impl UbaaClient {
                 error,
                 resolution: None,
             })?;
+        self.check_school_requests().map_err(|error| RoutedError {
+            error,
+            resolution: None,
+        })?;
         let (policy, row) = match operation {
             Operation::Authentication
             | Operation::ConnectionRecovery
@@ -355,6 +359,7 @@ impl UbaaClient {
 
     pub(super) fn guard_caller_pinned_route(&mut self, route: ConnectionMode) -> Result<()> {
         self.guard_latest_session_ownership()?;
+        self.runtime_for(route).check_school_requests()?;
         if !self.route_is_ready(route) {
             return Err(authentication_required());
         }

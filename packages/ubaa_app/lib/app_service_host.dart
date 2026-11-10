@@ -70,6 +70,29 @@ Future<BridgeAppService?> openConfiguredAppService({
   }
 }
 
+/// 命令学校客户端读取共享门控；打开本机句柄不发送启动配置请求。
+Future<BridgeClient> openConfiguredCommandClient({
+  required String configDirectory,
+  required bool release,
+  required Future<String?> Function() readVersion,
+}) async {
+  final service = await openConfiguredAppService(
+    configDirectory: configDirectory,
+    surface: BridgeAppServiceSurface.command,
+    release: release,
+    readVersion: readVersion,
+  );
+  if (service == null) return BridgeClient.open(configDir: configDirectory);
+  try {
+    return await BridgeClient.openWithAppService(
+      configDir: configDirectory,
+      appService: service,
+    );
+  } finally {
+    service.dispose();
+  }
+}
+
 /// Linux 无 Engine 命令读取同一安装包的版本清单。
 /// 独立 AOT 产物由构建入口嵌入版本，不依赖 Flutter 插件。
 Future<String?> linuxCommandAppVersion() async {

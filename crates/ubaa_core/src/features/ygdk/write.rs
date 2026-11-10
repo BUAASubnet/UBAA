@@ -251,7 +251,8 @@ fn sanitize_authority_error(error: UbaaError) -> UbaaError {
         | ErrorCode::BusinessUnavailable
         | ErrorCode::InvalidCredentials
         | ErrorCode::PasswordRiskConfirmationFailed
-        | ErrorCode::PermissionDenied => return error,
+        | ErrorCode::PermissionDenied
+        | ErrorCode::UpdateRequired => return error,
     };
     UbaaError::new(error.code, error.kind, error.retryable, safe_message)
 }

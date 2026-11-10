@@ -151,6 +151,51 @@ fn revise_non_authentication_failure_is_best_effort_and_continues() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn 门控拒绝首门时保留错误而在提交一门后保留已确认结果() {
+    for earlier in [false, true] {
+        let mut scenario = two_courses();
+        scenario.revise_replies = if earlier {
+            vec![ReviseReply::Success, ReviseReply::UpdateRequired]
+        } else {
+            vec![ReviseReply::UpdateRequired]
+        };
+        let transport = EvaluationMock::new(scenario);
+        let label = if earlier {
+            "update-after-submit"
+        } else {
+            "update-before-submit"
+        };
+        let (mut client, root) = route_client(label, transport.clone());
+
+        let result = runtime().block_on(client.evaluation_submit_courses(two_course_request()));
+        if earlier {
+            let result = result.unwrap().data;
+            assert_eq!(result.items[0].outcome, EvaluationCourseOutcome::Success);
+            assert_eq!(
+                result.items[1].outcome,
+                EvaluationCourseOutcome::Unattempted
+            );
+            assert!(!result.success);
+            assert!(!result.outcome_unknown);
+        } else {
+            let error = result.unwrap_err();
+            assert_eq!(error.code, ErrorCode::UpdateRequired);
+            assert!(!error.retryable);
+        }
+        assert_eq!(
+            count_path(&transport, "getQuestionnaireTopic"),
+            usize::from(earlier)
+        );
+        assert_eq!(
+            count_path(&transport, "submitSaveEvaluation"),
+            usize::from(earlier)
+        );
+        drop(client);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
 fn two_courses() -> Scenario {
     let mut scenario = Scenario::one_course();
     scenario.course_rounds = vec![vec![

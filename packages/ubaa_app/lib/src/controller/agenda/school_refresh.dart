@@ -29,6 +29,9 @@ Future<void> controllerRefreshSchoolAgenda(ControllerState owner) async {
   );
   await Future.wait([defaults, chosen, orders, week]);
   if (!scope.isCurrent) return;
+  for (final result in [await chosen, await orders, await week]) {
+    owner.internalReportSchoolRejection(result.error);
+  }
   await _refreshOrderPages(owner, scope, await orders);
   if (scope.isCurrent) await owner.internalWaitHomeSchoolCache();
 }

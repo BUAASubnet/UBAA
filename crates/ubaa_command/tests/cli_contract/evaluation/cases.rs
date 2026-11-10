@@ -129,7 +129,7 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 
     assert_eq!(exit, 0, "确定性部分失败仍是已知业务结果");
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 15);
+    assert_eq!(value["schemaVersion"], 16);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], false);
     assert_eq!(value["data"]["outcomeUnknown"], false);
@@ -237,7 +237,7 @@ async fn 单路线_commit_错误同样回读一次且保持主错误() {
 }
 
 #[tokio::test]
-async fn outcome_unknown_使用唯一带安全_batch_数据的失败信封并固定路线回读() {
+async fn outcome_unknown_使用带安全_batch_数据的失败信封并固定路线回读() {
     let route = ConnectionMode::WebVpn;
     let mut backend = EvaluationBackend {
         courses: vec![
@@ -261,7 +261,7 @@ async fn outcome_unknown_使用唯一带安全_batch_数据的失败信封并固
 
     assert_eq!(exit, 5);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 15);
+    assert_eq!(value["schemaVersion"], 16);
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "outcome_unknown");
     assert_eq!(value["data"]["outcomeUnknown"], true);
@@ -273,6 +273,58 @@ async fn outcome_unknown_使用唯一带安全_batch_数据的失败信封并固
     for forbidden in ["cookie", "token", "payload", "question", "answer"] {
         assert!(!value.to_string().to_ascii_lowercase().contains(forbidden));
     }
+}
+
+#[tokio::test]
+async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
+    fn assert_gated_batch(exit: i32, value: &serde_json::Value, stderr: &[u8]) {
+        assert_eq!(exit, 8);
+        assert_cli_schema(value);
+        assert_eq!(value["ok"], false);
+        assert_eq!(value["error"]["code"], "update_required");
+        assert_eq!(value["error"]["retryable"], false);
+        assert_eq!(value["data"]["outcomeUnknown"], false);
+        assert_eq!(value["data"]["success"], false);
+        assert_eq!(value["data"]["items"][0]["outcome"], "success");
+        assert_eq!(value["data"]["items"][1]["outcome"], "failure");
+        assert_eq!(value["data"]["items"][2]["outcome"], "unattempted");
+        assert!(stderr.is_empty());
+    }
+
+    let courses: Vec<_> = ["first", "second", "third"]
+        .into_iter()
+        .map(|id| pending_course(id, ActionEligibility::Allowed, Some(target(id, None))))
+        .collect();
+    let route = ConnectionMode::WebVpn;
+    let mut routed = EvaluationBackend {
+        courses: courses.clone(),
+        batch: BatchFixture::UpdateRequired,
+        route: Some(route),
+        ..EvaluationBackend::default()
+    };
+    let (exit, value, stderr) = run_json(submit_pending_cli(), &mut routed).await;
+    assert_gated_batch(exit, &value, &stderr);
+    assert_eq!(routed.submit_calls, 1);
+    assert_eq!(routed.readback_routes, vec![route]);
+
+    let mut fixed = FixedEvaluationBackend {
+        courses,
+        batch: BatchFixture::UpdateRequired,
+        ..FixedEvaluationBackend::default()
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let exit = run_with_backend(
+        submit_pending_cli(),
+        &mut fixed,
+        &mut Cursor::new(Vec::<u8>::new()),
+        &mut stdout,
+        &mut stderr,
+    )
+    .await;
+    assert_gated_batch(exit, &serde_json::from_slice(&stdout).unwrap(), &stderr);
+    assert_eq!(fixed.submit_calls, 1);
+    assert_eq!(fixed.readback_calls, 1);
 }
 
 #[tokio::test]
@@ -291,7 +343,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 15);
+    assert_eq!(value["schemaVersion"], 16);
     let course = &value["data"]["courses"][0];
     assert_eq!(course["submitEligibility"], "allowed");
     assert_eq!(course["submitTarget"]["rwid"], "safe-rwid");
@@ -315,8 +367,8 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 }
 
 #[test]
-fn cli_评教合同升级为唯一_schema_v10_且失败携带数据仅限未知_batch() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 15);
+fn cli_评教失败仅在结果未知或更新门控中止批次时携带数据() {
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 16);
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../docs/contracts/cli-json.schema.json"
     ))
@@ -341,6 +393,28 @@ fn cli_评教合同升级为唯一_schema_v10_且失败携带数据仅限未知_
     let mut known_batch = unknown;
     known_batch["data"]["outcomeUnknown"] = false.into();
     assert!(!validator.is_valid(&known_batch));
+
+    let mut gated_batch = known_batch;
+    gated_batch["error"]["code"] = "update_required".into();
+    let items = gated_batch["data"]["items"].as_array_mut().unwrap();
+    items[0]["outcome"] = "success".into();
+    let mut unattempted = items[0].clone();
+    unattempted["outcome"] = "unattempted".into();
+    items.push(unattempted);
+    assert!(validator.is_valid(&gated_batch));
+
+    let mut retryable = gated_batch.clone();
+    retryable["error"]["retryable"] = true.into();
+    assert!(!validator.is_valid(&retryable));
+
+    let mut no_remaining = gated_batch.clone();
+    no_remaining["data"]["items"][1]["outcome"] = "failure".into();
+    assert!(!validator.is_valid(&no_remaining));
+
+    let mut false_success = gated_batch;
+    false_success["ok"] = true.into();
+    false_success.as_object_mut().unwrap().remove("error");
+    assert!(!validator.is_valid(&false_success));
 }
 
 async fn run_json(cli: Cli, backend: &mut EvaluationBackend) -> (i32, serde_json::Value, Vec<u8>) {
@@ -414,14 +488,13 @@ fn batch(fixture: BatchFixture, targets: &[EvaluationSubmitTarget]) -> Evaluatio
         .iter()
         .enumerate()
         .map(|(index, target)| {
-            let outcome = match fixture {
-                BatchFixture::Success => EvaluationCourseOutcome::Success,
-                BatchFixture::Partial if index == 0 => EvaluationCourseOutcome::Success,
-                BatchFixture::Partial => EvaluationCourseOutcome::Failure,
-                BatchFixture::OutcomeUnknown if index == 0 => {
-                    EvaluationCourseOutcome::OutcomeUnknown
+            let outcome = match (fixture, index) {
+                (BatchFixture::Success, _) | (BatchFixture::Partial | BatchFixture::UpdateRequired, 0) => {
+                    EvaluationCourseOutcome::Success
                 }
-                BatchFixture::OutcomeUnknown => EvaluationCourseOutcome::Unattempted,
+                (BatchFixture::Partial, _) | (BatchFixture::UpdateRequired, 1) => EvaluationCourseOutcome::Failure,
+                (BatchFixture::OutcomeUnknown, 0) => EvaluationCourseOutcome::OutcomeUnknown,
+                (BatchFixture::OutcomeUnknown | BatchFixture::UpdateRequired, _) => EvaluationCourseOutcome::Unattempted,
             };
             EvaluationCourseResult {
                 target: target.clone(),
@@ -431,6 +504,11 @@ fn batch(fixture: BatchFixture, targets: &[EvaluationSubmitTarget]) -> Evaluatio
                     EvaluationCourseOutcome::Success => "评教已提交",
                     EvaluationCourseOutcome::Failure => "评教未提交，请刷新课程后重试",
                     EvaluationCourseOutcome::OutcomeUnknown => "评教提交结果未知，请刷新课程后核对",
+                    EvaluationCourseOutcome::Unattempted
+                        if matches!(fixture, BatchFixture::UpdateRequired) =>
+                    {
+                        "请先更新客户端，本课程未尝试"
+                    }
                     EvaluationCourseOutcome::Unattempted => "前序课程结果未知，本课程未尝试",
                 }
                 .into(),
@@ -466,7 +544,7 @@ fn authentication_required() -> UbaaError {
 
 fn unknown_envelope() -> serde_json::Value {
     serde_json::json!({
-        "schemaVersion": 15,
+        "schemaVersion": 16,
         "ok": false,
         "data": {
             "items": [{

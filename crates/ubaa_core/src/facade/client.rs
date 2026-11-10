@@ -78,6 +78,9 @@ impl UbaaClient {
         reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
         reopened.webvpn_runtime.consumer_closed = self.webvpn_runtime.consumer_closed.clone();
         reopened.bind_shared_account(self.shared_account_guard());
+        if let Some(service) = &self.direct_runtime.app_service {
+            reopened.bind_app_service(service.clone());
+        }
         reopened.direct_runtime.ensure_session_revision()?;
         reopened.webvpn_runtime.ensure_session_revision()?;
         Ok(reopened)

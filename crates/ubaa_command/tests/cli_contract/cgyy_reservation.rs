@@ -142,7 +142,7 @@ fn with_schema_version(mut value: Value, version: u32) -> Value {
 
 #[test]
 fn cli_唯一_json_schema_版本为_11() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 15);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 16);
 }
 
 #[test]
@@ -181,7 +181,7 @@ fn 四类_cli_信封只接受_schema_v13_并拒绝旧_v11() {
     let validator = contract_validator();
 
     for (kind, envelope) in envelopes {
-        let current = with_schema_version(envelope, 15);
+        let current = with_schema_version(envelope, 16);
         assert!(
             validator.is_valid(&current),
             "schema v13 应接受 {kind} 信封：{current}"

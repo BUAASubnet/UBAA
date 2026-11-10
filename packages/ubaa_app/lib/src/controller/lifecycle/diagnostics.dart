@@ -28,6 +28,7 @@ mixin ControllerDiagnostics on ControllerState {
   }) {
     final error = UbaaErrorMapper.fromObject(cause);
     if (internalDisposed) return error;
+    internalReportSchoolRejection(error);
     try {
       final recorded = internalDiagnostics.record(
         operation: operation,
@@ -50,7 +51,14 @@ mixin ControllerDiagnostics on ControllerState {
 
   @internal
   Future<void> internalRecordAppOpen() async {
-    if (_started || !telemetryEnabled || internalDisposed) return;
+    final view = internalAppServiceView;
+    final enabled = internalBackend is AppServiceBackend
+        ? view.available &&
+              view.telemetryAllowed &&
+              view.telemetryEnabled &&
+              view.consent == AppServiceConsent.agreed
+        : internalTelemetry.enabled;
+    if (_started || !enabled || internalDisposed) return;
     _started = true;
     await internalTrackTelemetry(TelemetryEvents.appStarted);
   }
@@ -272,7 +280,7 @@ mixin ControllerDiagnostics on ControllerState {
         sink: service.recordAppService,
         onFailure: failed,
       ).track(event, properties: properties);
-    } else if (internalTelemetryEnabled) {
+    } else if (internalTelemetry.enabled) {
       try {
         await internalTelemetry
             .track(event, properties: properties)

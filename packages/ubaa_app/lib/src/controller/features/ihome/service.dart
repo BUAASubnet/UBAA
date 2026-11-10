@@ -2,9 +2,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 页面持有的服务绑定创建时账号代次，账号切换后拒绝旧页面继续请求。
 class GuardedIhomeService implements IhomeService {
-  GuardedIhomeService(this.delegate, this.current);
+  GuardedIhomeService(this.delegate, this.current, {this.onRejected});
   final IhomeService delegate;
   final bool Function() current;
+  final void Function(Object)? onRejected;
   void _check() {
     if (!current())
       throw const UiError(
@@ -16,9 +17,14 @@ class GuardedIhomeService implements IhomeService {
 
   Future<T> _run<T>(Future<T> Function() call) async {
     _check();
-    final result = await call();
-    _check();
-    return result;
+    try {
+      final result = await call();
+      _check();
+      return result;
+    } on Object catch (error) {
+      if (current()) onRejected?.call(error);
+      rethrow;
+    }
   }
 
   @override

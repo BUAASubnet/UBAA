@@ -60,14 +60,15 @@ extension _HomeSources on HomeCoordinator {
     return sources;
   }
 
-  Future<void> _load(HomeSupplement source, {bool force = false}) {
+  Future<UiError?> _load(HomeSupplement source, {bool force = false}) {
     if (_supplementTasks[source] case final pending?) return pending;
     final generation = _generation, epoch = _epoch;
-    final done = Completer<void>();
+    final done = Completer<UiError?>();
     _supplementTasks[source] = done.future;
     _supplementAttempts.add(source);
     _publish();
     unawaited(() async {
+      UiError? outcome;
       try {
         final result = await loadSupplement(source, force);
         if (_disposed || generation != _generation) return;
@@ -75,22 +76,25 @@ extension _HomeSources on HomeCoordinator {
           _supplementAttempts.remove(source);
           if (_active && !_blocked && (_online || _refresh != null)) {
             _supplementTasks.remove(source);
-            await _load(source, force: force || _refresh != null);
+            outcome = await _load(source, force: force || _refresh != null);
           }
           return;
         }
+        outcome = result.error;
         final old = _supplements[source];
         _supplements[source] = _retain(result, old);
         if (result.error == null) _supplementTimes[source] = clock();
         _dirtyProjection = true;
       } on Object catch (error) {
         if (!_disposed && generation == _generation) {
-          _supplements[source] = _retain(_failure(error), _supplements[source]);
+          final failure = _failure(error);
+          outcome = failure.error;
+          _supplements[source] = _retain(failure, _supplements[source]);
         }
       } finally {
         if (identical(_supplementTasks[source], done.future))
           _supplementTasks.remove(source);
-        done.complete();
+        done.complete(outcome);
         _schedule();
       }
     }());
@@ -155,14 +159,15 @@ extension _HomeSources on HomeCoordinator {
     );
   }
 
-  Future<void> _loadDay(String date, {bool force = false}) {
+  Future<UiError?> _loadDay(String date, {bool force = false}) {
     if (_dayTasks[date] case final pending?) return pending;
     final generation = _generation, epoch = _epoch;
-    final done = Completer<void>();
+    final done = Completer<UiError?>();
     _dayTasks[date] = done.future;
     _dayAttempts.add(date);
     _publish();
     unawaited(() async {
+      UiError? outcome;
       try {
         var result = await loadDay(date, force);
         if (_disposed || generation != _generation) return;
@@ -182,18 +187,17 @@ extension _HomeSources on HomeCoordinator {
             ),
           );
         }
+        outcome = result.error;
         _days[date] = _snapshot(FeatureId.schedule, result, _days[date]);
       } on Object catch (error) {
         if (!_disposed && generation == _generation) {
-          _days[date] = _snapshot(
-            FeatureId.schedule,
-            _failure(error),
-            _days[date],
-          );
+          final failure = _failure(error);
+          outcome = failure.error;
+          _days[date] = _snapshot(FeatureId.schedule, failure, _days[date]);
         }
       } finally {
         if (identical(_dayTasks[date], done.future)) _dayTasks.remove(date);
-        done.complete();
+        done.complete(outcome);
         _schedule();
       }
     }());

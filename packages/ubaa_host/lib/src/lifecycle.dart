@@ -131,7 +131,9 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (startup) await _controller.recordAppStarted();
       if (_disposed) return;
       _appServiceTimer ??= Timer.periodic(_appServiceInterval, (_) {
-        if (!_wasBackgrounded) unawaited(_attemptAppService(force: false));
+        if (_wasBackgrounded) return;
+        unawaited(_attemptAppService(force: false));
+        unawaited(_controller.refreshAppBootstrap());
       });
       await _controller.uploadAppService(force: force);
     } on Object {
@@ -288,6 +290,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     }
     unawaited(_controller.initialize());
     unawaited(_attemptAppService(force: true, startup: true));
+    unawaited(_controller.refreshAppBootstrap(force: true));
   }
 
   @override
@@ -338,6 +341,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _listenNetworkChanges();
       _controller.setAppForeground(true);
       unawaited(_attemptAppService(force: false));
+      unawaited(_controller.refreshAppBootstrap());
       if (_recoveryInFlight) return;
       _resumeRecoveryPending = true;
       _retryPendingRecovery();
@@ -384,6 +388,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
           _controller.phase != AppPhase.home ||
           !identical(_controller.error, error))
         return;
+      if (error.code == UbaaErrorCode.updateRequired) {
+        // 门控由应用服务状态和主动操作信号呈现；清掉全局错误以允许下次恢复。
+        _controller.clearError();
+        return;
+      }
       final messenger = _messengerKey.currentState;
       if (messenger == null) return;
       // 首页绘制完成后消费一次，避免各只读来源的刷新反复显示同一提示。

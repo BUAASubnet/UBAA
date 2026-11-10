@@ -17,6 +17,8 @@ final class HomeCoordinator {
     required this.changed,
     this.readCachedWeek,
     this.readCachedDay,
+    this.reportUserRejection,
+    this.scheduleBackground = scheduleMicrotask,
     DateTime Function()? now,
   }) : clock = now ?? DateTime.now;
   final Future<FeatureResult> Function(HomeSupplement, bool) loadSupplement;
@@ -26,13 +28,15 @@ final class HomeCoordinator {
   final Future<void> Function(FeatureId) retryMain;
   final Future<FeatureResult?> Function(DateTime)? readCachedWeek;
   final Future<FeatureResult?> Function(String)? readCachedDay;
+  final void Function(Object?)? reportUserRejection;
+  final void Function(void Function()) scheduleBackground;
   final VoidCallback changed;
   final DateTime Function() clock;
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _supplementTimes = <HomeSupplement, DateTime>{};
-  final _supplementTasks = <HomeSupplement, Future<void>>{};
+  final _supplementTasks = <HomeSupplement, Future<UiError?>>{};
   final _days = <String, FeatureSnapshot>{};
-  final _dayTasks = <String, Future<void>>{};
+  final _dayTasks = <String, Future<UiError?>>{};
   final _dayAttempts = <String>{};
   final _supplementAttempts = <HomeSupplement>{};
   Future<void>? _projectionDone;
@@ -186,7 +190,7 @@ final class HomeCoordinator {
   void _schedule() {
     if (_scheduled || _disposed) return;
     _scheduled = true;
-    scheduleMicrotask(() {
+    scheduleBackground(() {
       _scheduled = false;
       if (_disposed) return;
       _now = clock();
@@ -258,14 +262,15 @@ final class HomeCoordinator {
         await Future.wait([
           main,
           for (final source in HomeSupplement.values)
-            _load(source, force: true),
+            _report(_load(source, force: true)),
         ]);
         if (_disposed || generation != _generation || !_active) {
           complete.complete();
           return;
         }
         final schedule = _scheduleState();
-        if (schedule.remote) await _loadDay(schedule.date, force: true);
+        if (schedule.remote)
+          await _report(_loadDay(schedule.date, force: true));
         await flushProjection();
         complete.complete();
       } on Object catch (error, stack) {
@@ -281,19 +286,24 @@ final class HomeCoordinator {
   Future<void> retry(FeatureId feature) async {
     switch (feature) {
       case FeatureId.bykc:
-        await _load(HomeSupplement.bykcChosen, force: true);
+        await _report(_load(HomeSupplement.bykcChosen, force: true));
       case FeatureId.cgyy:
-        await _load(HomeSupplement.cgyyOrders, force: true);
+        await _report(_load(HomeSupplement.cgyyOrders, force: true));
       case FeatureId.schedule:
         final schedule = _scheduleState();
         if (schedule.remote) {
-          await _loadDay(schedule.date, force: true);
+          await _report(_loadDay(schedule.date, force: true));
         } else {
           await retryMain(feature);
         }
       default:
         await retryMain(feature);
     }
+  }
+
+  Future<void> _report(Future<UiError?> result) async {
+    final error = await result;
+    reportUserRejection?.call(error);
   }
 
   Future<void> flushProjection() => _flushProjection();

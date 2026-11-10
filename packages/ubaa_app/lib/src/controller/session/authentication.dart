@@ -64,7 +64,7 @@ mixin ControllerAuthentication on ControllerState {
           internalReleaseLoginSecret();
           internalSetPhase(AppPhase.home);
           if (internalIsCurrentAuthentication(generation))
-            unawaited(refreshHome());
+            unawaited(internalAutomaticSchoolAction(internalRefreshHome));
           return;
         }
       }

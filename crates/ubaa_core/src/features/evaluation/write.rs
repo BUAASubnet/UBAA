@@ -17,7 +17,7 @@ use super::parser::{EvaluationCourseAuthority, result_value};
 use super::payload::{build_evaluation_payload, build_submit_body};
 use super::read::read_authority;
 use super::{
-    REVISE_URL, SUBMIT_URL, TOPIC_URL, authority_error, invalid_input, is_authentication_error,
+    REVISE_URL, SUBMIT_URL, TOPIC_URL, authority_error, invalid_input, must_propagate,
     upstream_error,
 };
 
@@ -79,14 +79,14 @@ pub(crate) async fn submit_courses(
     validate_submit_courses_request(&request)?;
     let snapshot = read_authority(runtime, true).await?;
     let mut items = Vec::with_capacity(request.targets.len());
-    let mut stopped = false;
+    let mut stop_message = None;
 
     for target in &request.targets {
-        if stopped {
-            items.push(course_result(
+        if let Some(message) = stop_message {
+            items.push(unattempted(
                 target,
                 snapshot.course_name_for(target),
-                EvaluationCourseOutcome::Unattempted,
+                message,
             ));
             continue;
         }
@@ -100,8 +100,19 @@ pub(crate) async fn submit_courses(
         };
         let course_name = course.kcmc.clone();
         let authority = authority.clone();
-        let outcome = submit_one_course(runtime, &authority).await?;
-        stopped = outcome == EvaluationCourseOutcome::OutcomeUnknown;
+        let outcome = match submit_one_course(runtime, &authority).await {
+            Err(error) if error.code == ErrorCode::UpdateRequired && runtime.has_sent_write() => {
+                // 已发出的课程结果仍需交付；剩余课程未尝试，不可自动重放。
+                let message = "请先更新客户端，本课程未尝试";
+                stop_message = Some(message);
+                items.push(unattempted(target, Some(course_name), message));
+                continue;
+            }
+            outcome => outcome?,
+        };
+        if outcome == EvaluationCourseOutcome::OutcomeUnknown {
+            stop_message = Some("前序课程结果未知，本课程未尝试");
+        }
         items.push(course_result(target, Some(course_name), outcome));
     }
 
@@ -125,14 +136,14 @@ async fn submit_one_course(
     revise_questionnaire_pattern(runtime, course).await?;
     let topic = match fetch_questionnaire_topic(runtime, course).await {
         Ok(topic) => topic,
-        Err(error) if is_authentication_error(&error) => return Err(error),
+        Err(error) if must_propagate(&error) => return Err(error),
         Err(_) => return Ok(EvaluationCourseOutcome::Failure),
     };
     let question_index = rand::thread_rng().r#gen::<usize>();
     let Ok(payload) = build_evaluation_payload(course, &topic, question_index) else {
         return Ok(EvaluationCourseOutcome::Failure);
     };
-    Ok(submit_final(runtime, &payload).await)
+    submit_final(runtime, &payload).await
 }
 
 async fn revise_questionnaire_pattern(
@@ -158,7 +169,7 @@ async fn revise_questionnaire_pattern(
     }
     .await;
     match result {
-        Err(error) if is_authentication_error(&error) => Err(error),
+        Err(error) if must_propagate(&error) => Err(error),
         Err(_) | Ok(()) => Ok(()),
     }
 }
@@ -213,21 +224,25 @@ async fn fetch_questionnaire_topic(
         .ok_or_else(|| upstream_error("评教题目结果结构无效"))
 }
 
-async fn submit_final(runtime: &mut ClientRuntime, pjjglist: &[Value]) -> EvaluationCourseOutcome {
+async fn submit_final(
+    runtime: &mut ClientRuntime,
+    pjjglist: &[Value],
+) -> Result<EvaluationCourseOutcome> {
     let Ok(body) = build_submit_body(pjjglist) else {
-        return EvaluationCourseOutcome::Failure;
+        return Ok(EvaluationCourseOutcome::Failure);
     };
     let request = match runtime.url(SUBMIT_URL) {
         Ok(url) => HttpRequest::post(url, body).with_header("Content-Type", "application/json"),
-        Err(_) => return EvaluationCourseOutcome::Failure,
+        Err(_) => return Ok(EvaluationCourseOutcome::Failure),
     };
     let expected = request.url.clone();
     match runtime.request_non_idempotent(request).await {
-        Ok(response) => classify_submit_response(&response, &expected),
+        Ok(response) => Ok(classify_submit_response(&response, &expected)),
+        Err(error) if error.code == ErrorCode::UpdateRequired => Err(error),
         Err(error) if error.code == ErrorCode::OutcomeUnknown => {
-            EvaluationCourseOutcome::OutcomeUnknown
+            Ok(EvaluationCourseOutcome::OutcomeUnknown)
         }
-        Err(_) => EvaluationCourseOutcome::Failure,
+        Err(_) => Ok(EvaluationCourseOutcome::Failure),
     }
 }
 
@@ -258,6 +273,19 @@ fn classify_submit_response(
             }
         }
         _ => EvaluationCourseOutcome::OutcomeUnknown,
+    }
+}
+
+fn unattempted(
+    target: &EvaluationSubmitTarget,
+    course_name: Option<String>,
+    message: &str,
+) -> EvaluationCourseResult {
+    EvaluationCourseResult {
+        target: target.clone(),
+        course_name: course_name.unwrap_or_else(|| "评教课程".into()),
+        outcome: EvaluationCourseOutcome::Unattempted,
+        message: message.into(),
     }
 }
 

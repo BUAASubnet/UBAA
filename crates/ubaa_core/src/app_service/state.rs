@@ -164,7 +164,8 @@ impl AppService {
         }
         self.store.write(|tx| {
             tx.execute(
-                "UPDATE app_service_state SET policy_version = ?1 WHERE policy_version < ?1",
+                "UPDATE app_service_state SET policy_version = ?1,
+                    bootstrap_consent_epoch = bootstrap_consent_epoch + 1 WHERE policy_version < ?1",
                 [version],
             )?;
             Ok(())
@@ -189,6 +190,7 @@ impl AppService {
             tx.execute(
                 "UPDATE app_service_state SET policy_version = ?1, accepted_policy = ?1,
                     basic = 0, telemetry_enabled = COALESCE(telemetry_enabled, 1),
+                    bootstrap_consent_epoch = bootstrap_consent_epoch + (accepted_policy IS NOT ?1),
                     install_id = ?2 WHERE id = 1",
                 params![version, install_id],
             )?;
@@ -204,7 +206,8 @@ impl AppService {
         self.require_gui()?;
         self.store.write(|tx| {
             tx.execute(
-                "UPDATE app_service_state SET basic = 1, accepted_policy = NULL WHERE id = 1",
+                "UPDATE app_service_state SET basic = 1, accepted_policy = NULL,
+                    bootstrap_consent_epoch = bootstrap_consent_epoch + (basic = 0) WHERE id = 1",
                 [],
             )?;
             queue::clear(tx)

@@ -191,6 +191,7 @@ class AppController extends ControllerState
             internalWriteTransitions == 0 &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        onRejected: internalReportUserSchoolRejection,
       );
     }
     return _ihomeService;
@@ -216,6 +217,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        onRejected: internalReportUserSchoolRejection,
       );
     }
     return _bhpanService;
@@ -241,6 +243,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        onRejected: internalReportUserSchoolRejection,
       );
     }
     return _campusService;
@@ -267,6 +270,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        onRejected: internalReportUserSchoolRejection,
       );
     }
     return _financeService;
@@ -292,7 +296,17 @@ class AppController extends ControllerState
 }
 
 extension AppControllerLockDisplay on AppController {
-  Future<CgyyLockDisplaySession> openLockDisplay() => internalOpenLockDisplay();
+  Future<CgyyLockDisplaySession> openLockDisplay({bool userInitiated = true}) =>
+      userInitiated
+      ? internalUserSchoolAction(internalOpenLockDisplay)
+      : internalAutomaticSchoolAction(internalOpenLockDisplay);
+
+  Future<CgyyLockDisplay> readLockDisplay(
+    CgyyLockDisplaySession session, {
+    required bool userInitiated,
+  }) => userInitiated
+      ? internalUserSchoolAction(session.read)
+      : internalAutomaticSchoolAction(session.read);
 }
 
 extension ScheduleWidgetCache on AppController {

@@ -26,7 +26,9 @@ mixin ControllerWriteLifecycle on ControllerState {
             (!internalUsesLocalRecovery ||
                 internalSessionRecoveryStatus == SessionRecoveryStatus.ready),
         // 闭包固定创建时的 backend，晚到 prepare 只能在原实例释放意图。
-        commit: (intentId) => internalCommitWriteWithBackend(backend, intentId),
+        commit: (intentId) => internalUserSchoolAction(
+          () => internalCommitWriteWithBackend(backend, intentId),
+        ),
         discard: (intentId) =>
             internalDiscardWriteWithBackend(backend, intentId),
         receiptVerifier: WriteReceiptVerifier(

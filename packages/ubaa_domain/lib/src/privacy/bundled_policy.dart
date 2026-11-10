@@ -8,7 +8,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '本政策说明 UBAA 如何处理学校账号、会话、业务数据和产品改进统计。',
+      text: '本政策说明 UBAA 如何处理学校账号、会话、业务数据、更新与公告请求和产品改进统计。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -66,6 +66,17 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text: '本次运行诊断保存在内存中，用于说明本次运行的错误类别，不会自动上传。反馈问题前请检查拟发送的文字和截图。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.heading,
+      level: 2,
+      text: '更新检查与公告',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text:
+          '您同意本政策后，图形界面会向 UBAA 应用服务请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -182,5 +193,9 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>['首次说明产品改进统计的收集范围、境外处理和保留期限。', '说明如何关闭统计、撤回同意和删除已上传的统计数据。'],
+  changes: <String>[
+    '首次说明产品改进统计的收集范围、境外处理和保留期限。',
+    '说明更新检查和公告请求发送的版本与平台信息。',
+    '说明如何关闭统计、撤回同意和删除已上传的统计数据。',
+  ],
 );

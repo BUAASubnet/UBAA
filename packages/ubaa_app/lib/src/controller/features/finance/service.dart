@@ -2,9 +2,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 页面前的数据服务，账号或路线代次变化后拒绝旧结果。
 class GuardedFinanceService implements FinanceService {
-  GuardedFinanceService(this.delegate, this.current);
+  GuardedFinanceService(this.delegate, this.current, {this.onRejected});
   final FinanceService delegate;
   final bool Function() current;
+  final void Function(Object)? onRejected;
   void _check() {
     if (!current())
       throw const UiError(
@@ -25,8 +26,13 @@ class GuardedFinanceService implements FinanceService {
   @override
   Future<FinanceSnapshot> refresh() async {
     _check();
-    final value = await delegate.refresh();
-    _check();
-    return value;
+    try {
+      final value = await delegate.refresh();
+      _check();
+      return value;
+    } on Object catch (error) {
+      if (current()) onRejected?.call(error);
+      rethrow;
+    }
   }
 }

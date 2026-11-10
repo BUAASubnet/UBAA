@@ -79,13 +79,10 @@ mixin ControllerSettings on ControllerState {
       // 旧请求也可能是最后一个 transition；收尾必须通知首页恢复纯投影。
       internalNotify();
     }
-    unawaited(internalQueueProfileRefresh(force: true));
-  }
-
-  @internal
-  void internalSetLegacyTelemetryEnabled(bool value) {
-    // Noop不能把本地布尔值当作统计已开启；可用客户端仍在调用边界开关。
-    internalTelemetryEnabled = value && telemetryAvailable;
-    internalNotify();
+    unawaited(
+      internalAutomaticSchoolAction(
+        () => internalQueueProfileRefresh(force: true),
+      ),
+    );
   }
 }

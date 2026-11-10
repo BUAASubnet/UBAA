@@ -6,7 +6,6 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
-import '../../contracts/app_service.dart';
 import 'package:ubaa_app/src/contracts/schedule_import.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
@@ -33,6 +32,8 @@ import 'academic_terms.dart' show CurrentTermsReader;
 import 'operations.dart' show ControllerOperations;
 import 'types.dart' show AppPhase, LoginFormState, SessionRecoveryStatus;
 
+final _schoolPromptZone = Object();
+
 abstract class ControllerState extends ControllerOperations {
   ControllerState({
     required UbaaBackend backend,
@@ -48,8 +49,6 @@ abstract class ControllerState extends ControllerOperations {
        internalLocalAccountStore = localAccountStore,
        internalTelemetry = telemetry ?? const NoopTelemetryClient(),
        internalDiagnostics = diagnostics ?? LocalDiagnostics(),
-       internalTelemetryEnabled =
-           (telemetry ?? const NoopTelemetryClient()).enabled,
        internalSnapshots = {
          for (final feature in FeatureId.values)
            feature: FeatureSnapshot(feature: feature),
@@ -447,9 +446,6 @@ abstract class ControllerState extends ControllerOperations {
   int internalYgdkGeneration = 0;
 
   @internal
-  bool internalTelemetryEnabled;
-
-  @internal
   YgdkReadbackState internalYgdkReadbackState = const YgdkReadbackState.empty();
 
   @internal
@@ -491,16 +487,82 @@ abstract class ControllerState extends ControllerOperations {
     bundledPrivacyPolicy.version,
   );
 
-  bool get telemetryEnabled => internalBackend is AppServiceBackend
-      ? telemetryAvailable && internalAppServiceView.telemetryEnabled
-      : internalTelemetryEnabled;
+  final _updatePrompts = StreamController<void>.broadcast();
+  Stream<void> get updatePromptRequests => _updatePrompts.stream;
 
-  /// 实际客户端能力与本地开关分离；关闭本地开关不销毁已配置的客户端。
-  bool get telemetryAvailable => internalBackend is AppServiceBackend
-      ? internalAppServiceView.available &&
-            internalAppServiceView.telemetryAllowed &&
-            internalAppServiceView.consent == AppServiceConsent.agreed
-      : internalTelemetry.enabled;
+  /// 一个主动操作可能并行读取多个来源；只发送一次提示。
+  @internal
+  Future<T> internalUserSchoolAction<T>(Future<T> Function() action) {
+    Future<T> run() async {
+      try {
+        final value = await action();
+        internalReportSchoolRejection(switch (value) {
+          final FeatureResult result => result.error,
+          final GradesAggregate result =>
+            result.error?.code == UbaaErrorCode.updateRequired
+                ? result.error
+                : result.terms
+                      .map((term) => term.result.error)
+                      .where(
+                        (error) => error?.code == UbaaErrorCode.updateRequired,
+                      )
+                      .firstOrNull,
+          final GradeTermRead read => read.result.error,
+          final WriteCommitResult result
+              when result.evaluationResult?.stoppedForUpdate == true =>
+            const BackendException(
+              UbaaErrorCode.updateRequired,
+              retryable: false,
+            ),
+          _ => null,
+        });
+        return value;
+      } on Object catch (error) {
+        internalReportSchoolRejection(error);
+        rethrow;
+      }
+    }
+
+    if (internalSchoolPrompt != null) return run();
+    var reported = false;
+    void report(Object? error) {
+      if (reported || !_updateRejection(error)) return;
+      reported = true;
+      internalReportUserSchoolRejection(error);
+    }
+
+    return runZoned(run, zoneValues: {_schoolPromptZone: report});
+  }
+
+  @internal
+  T internalAutomaticSchoolAction<T>(T Function() action) =>
+      internalSchoolPrompt == null
+      ? action()
+      : runZoned(action, zoneValues: {_schoolPromptZone: false});
+
+  @internal
+  void Function(Object?)? get internalSchoolPrompt {
+    final value = Zone.current[_schoolPromptZone];
+    return value is void Function(Object?) ? value : null;
+  }
+
+  @internal
+  void internalReportSchoolRejection(Object? error) =>
+      internalSchoolPrompt?.call(error);
+
+  bool _updateRejection(Object? error) => switch (error) {
+    final BackendException value => value.code == UbaaErrorCode.updateRequired,
+    final UiError value => value.code == UbaaErrorCode.updateRequired,
+    _ => false,
+  };
+
+  @internal
+  void internalReportUserSchoolRejection(Object? error) {
+    if (!internalDisposed && _updateRejection(error)) _updatePrompts.add(null);
+  }
+
+  @internal
+  void internalDisposeUpdatePrompts() => unawaited(_updatePrompts.close());
 
   bool get credentialPersistenceAvailable =>
       internalCredentialVault.isAvailable;

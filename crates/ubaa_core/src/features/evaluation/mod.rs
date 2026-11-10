@@ -40,12 +40,13 @@ pub(super) fn invalid_input(message: &'static str) -> UbaaError {
     UbaaError::invalid_input(message)
 }
 
-pub(super) fn is_authentication_error(error: &UbaaError) -> bool {
+pub(super) fn must_propagate(error: &UbaaError) -> bool {
     matches!(
         error.code,
         ErrorCode::AuthenticationRequired
             | ErrorCode::InvalidCredentials
             | ErrorCode::PermissionDenied
+            | ErrorCode::UpdateRequired
     )
 }
 

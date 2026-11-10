@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 60;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 61;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,6 +42,7 @@ pub enum BridgeErrorCode {
     OperationConflict,
     OutcomeUnknown,
     Unsupported,
+    UpdateRequired,
 }
 
 /// bridge 对外的安全错误类别。
@@ -134,6 +135,7 @@ impl From<ErrorCode> for BridgeErrorCode {
             ErrorCode::BusinessUnavailable => Self::BusinessUnavailable,
             ErrorCode::Unsupported => Self::Unsupported,
             ErrorCode::OutcomeUnknown => Self::OutcomeUnknown,
+            ErrorCode::UpdateRequired => Self::UpdateRequired,
             ErrorCode::UpstreamChanged => Self::UpstreamChanged,
             ErrorCode::ParseError => Self::ParseError,
             ErrorCode::InternalError => Self::InternalError,
@@ -277,15 +279,32 @@ impl BridgeClient {
     pub fn open(
         config_dir: String,
     ) -> Result<Self, super::initialization::BridgeInitializationError> {
-        let client = super::initialization::open(&config_dir)?;
-        Ok(Self {
+        Ok(Self::from_core(super::initialization::open(&config_dir)?))
+    }
+
+    /// 绑定同一宿主的安装状态后打开学校客户端。
+    ///
+    /// # Errors
+    /// 配置、会话或组件故障返回安全初始化错误。
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn open_with_app_service(
+        config_dir: String,
+        app_service: &super::app_service::BridgeAppService,
+    ) -> Result<Self, super::initialization::BridgeInitializationError> {
+        let mut client = super::initialization::open(&config_dir)?;
+        client.bind_app_service(app_service.core());
+        Ok(Self::from_core(client))
+    }
+
+    fn from_core(client: ubaa_core::facade::UbaaClient) -> Self {
+        Self {
             close_control: client.close_control(),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
             bhpan_transfers: std::sync::Mutex::new(Vec::new()),
             inner: super::read_pool::ClientPool::new(client),
             write_intents: tokio::sync::Mutex::new(HashMap::new()),
-        })
+        }
     }
 
     /// 返回 bridge 合同版本。

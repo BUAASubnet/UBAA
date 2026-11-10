@@ -61,6 +61,7 @@ pub enum BridgeCommandFailure {
     CacheMissing,
     CacheCorrupt,
     AgendaCorrupt,
+    UpdateRequired,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCommandInput {
@@ -568,6 +569,7 @@ fn failure_error(failure: BridgeCommandFailure) -> UbaaError {
             ErrorKind::Upstream,
             "服务响应已变化",
         ),
+        F::UpdateRequired => return UbaaError::update_required(),
         F::Cancelled => (ErrorCode::InternalError, ErrorKind::Internal, "命令已取消"),
         _ => (
             ErrorCode::InternalError,

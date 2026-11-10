@@ -238,7 +238,7 @@ impl From<core::EraseAttempt> for BridgeAppServiceEraseOutcome {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(clippy::struct_excessive_bools)] // 布尔值分别表示配置、硬关闭、保存值和删除标记。
 pub struct BridgeAppServiceState {
     pub available: bool,
@@ -249,10 +249,21 @@ pub struct BridgeAppServiceState {
     pub telemetry_enabled: bool,
     pub can_erase: bool,
     pub erase_pending: bool,
+    pub update: Option<BridgeAppUpdate>,
+    pub announcements: Vec<BridgeAppAnnouncement>,
 }
 
 impl BridgeAppServiceState {
-    pub(super) fn from_core(value: core::AppServiceState, policy_version: u32) -> Self {
+    pub(super) fn from_core(
+        value: core::AppServiceState,
+        policy_version: u32,
+        bootstrap: core::AppBootstrapView,
+    ) -> Self {
+        let bootstrap = if matches!(value.consent, core::Consent::Agreed(_)) {
+            bootstrap
+        } else {
+            core::AppBootstrapView::default()
+        };
         Self {
             available: value.available,
             telemetry_allowed: !value.telemetry_hard_closed,
@@ -267,6 +278,12 @@ impl BridgeAppServiceState {
             telemetry_enabled: value.telemetry_enabled.unwrap_or(false),
             can_erase: value.install_id.is_some(),
             erase_pending: value.erasing_install_id.is_some(),
+            update: bootstrap.update.map(Into::into),
+            announcements: bootstrap
+                .announcements
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -275,4 +292,81 @@ impl BridgeAppServiceState {
 pub struct BridgeAppServiceUpload {
     pub erase: BridgeAppServiceEraseOutcome,
     pub batches_sent: u8,
+}
+
+/// 启动配置的更新判断，未知服务端状态归为 Unknown。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BridgeAppUpdateStatus {
+    UpToDate,
+    UpdateAvailable,
+    UpdateRequired,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BridgeAppUpdate {
+    pub status: BridgeAppUpdateStatus,
+    pub latest_version: Option<String>,
+    pub min_supported_version: Option<String>,
+    pub url: Option<String>,
+    pub release_notes: Option<String>,
+    pub gate_active: bool,
+    pub available_dismissed: bool,
+}
+
+impl From<core::AppUpdateView> for BridgeAppUpdate {
+    fn from(value: core::AppUpdateView) -> Self {
+        Self {
+            status: match value.status {
+                core::AppUpdateStatus::UpToDate => BridgeAppUpdateStatus::UpToDate,
+                core::AppUpdateStatus::UpdateAvailable => BridgeAppUpdateStatus::UpdateAvailable,
+                core::AppUpdateStatus::UpdateRequired => BridgeAppUpdateStatus::UpdateRequired,
+                core::AppUpdateStatus::Unknown => BridgeAppUpdateStatus::Unknown,
+            },
+            latest_version: value.latest_version,
+            min_supported_version: value.min_supported_version,
+            url: value.url,
+            release_notes: value.release_notes,
+            gate_active: value.gate_active,
+            available_dismissed: value.available_dismissed,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BridgeAppAnnouncementLevel {
+    Popup,
+    Banner,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BridgeAppAnnouncement {
+    pub id: String,
+    pub level: BridgeAppAnnouncementLevel,
+    pub title: String,
+    pub body: String,
+    pub link_url: Option<String>,
+    pub link_text: Option<String>,
+    pub confirm_text: Option<String>,
+    pub starts_at: String,
+    pub ends_at: Option<String>,
+}
+
+impl From<core::AppAnnouncement> for BridgeAppAnnouncement {
+    fn from(value: core::AppAnnouncement) -> Self {
+        Self {
+            id: value.id,
+            level: match value.level {
+                core::AppAnnouncementLevel::Popup => BridgeAppAnnouncementLevel::Popup,
+                core::AppAnnouncementLevel::Banner => BridgeAppAnnouncementLevel::Banner,
+            },
+            title: value.title,
+            body: value.body,
+            link_url: value.link_url,
+            link_text: value.link_text,
+            confirm_text: value.confirm_text,
+            starts_at: value.starts_at.to_rfc3339(),
+            ends_at: value.ends_at.map(|value| value.to_rfc3339()),
+        }
+    }
 }

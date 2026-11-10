@@ -22,6 +22,7 @@ pub(crate) struct ClientRuntime {
     pub(crate) reached_domains: std::collections::BTreeSet<String>,
     mode: ConnectionMode,
     transport: Arc<dyn HttpTransport>,
+    pub(crate) app_service: Option<Arc<crate::app_service::AppService>>,
     store: Arc<dyn SessionStore>,
     jar: CookieJar,
     authenticated_at: Option<i64>,
@@ -100,6 +101,7 @@ impl ClientRuntime {
             reached_domains: std::collections::BTreeSet::default(),
             mode,
             transport,
+            app_service: None,
             store,
             jar,
             authenticated_at,
@@ -149,6 +151,7 @@ impl ClientRuntime {
             reached_domains: std::collections::BTreeSet::default(),
             mode: self.mode,
             transport: Arc::clone(&self.transport),
+            app_service: self.app_service.clone(),
             store: Arc::clone(&self.store),
             jar,
             authenticated_at: self.authenticated_at,
@@ -334,7 +337,7 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
-        self.check_operation_controls()?;
+        self.check_school_requests()?;
         let request_url = request.url.clone();
         let pending = self.transport.execute(request);
         drop(permit);
@@ -405,7 +408,7 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
-        self.check_operation_controls()?;
+        self.check_school_requests()?;
         self.non_idempotent_boundary_crossed = true;
         if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
             observer.store(true, Ordering::SeqCst);
@@ -977,3 +980,6 @@ mod bearer;
 
 #[path = "runtime/object.rs"]
 mod object;
+
+#[path = "runtime/school_gate.rs"]
+mod school_gate;

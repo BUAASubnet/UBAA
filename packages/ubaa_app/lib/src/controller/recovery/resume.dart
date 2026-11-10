@@ -65,7 +65,8 @@ mixin ControllerDeferredRecovery on ControllerState {
     if (internalQueuedRecoveries.isEmpty) {
       final epoch = internalPendingHomeRecoveryEpoch;
       internalPendingHomeRecoveryEpoch = null;
-      if (epoch == internalLifecycleEpoch) unawaited(refreshHome());
+      if (epoch == internalLifecycleEpoch)
+        unawaited(internalAutomaticSchoolAction(internalRefreshHome));
       return;
     }
     // 已发送检查不可抢占；下个安全边界先处理用户显式目标。

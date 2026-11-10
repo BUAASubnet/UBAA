@@ -80,7 +80,11 @@ final class AgendaService {
       Future.sync(() => prepareSync(action, now)());
 
   /// 在进入确认和排队之前固定账号代次与后端作用域。
-  AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) {
+  AgendaSyncJob prepareSync(
+    AgendaSyncAction action,
+    AgendaTime now, {
+    void Function(Object)? onRejected,
+  }) {
     final backend = _backend;
     if (backend is! AgendaSyncBackend) {
       throw const AgendaException(AgendaFailure.unavailable);
@@ -89,11 +93,13 @@ final class AgendaService {
     AgendaSyncJob work;
     try {
       work = (backend as AgendaSyncBackend).prepareSync(action, now);
-    } on AgendaException catch (error) {
+    } on Object catch (error) {
       if (action == AgendaSyncAction.createConfirmed &&
+          error is AgendaException &&
           error.failure == AgendaFailure.superseded) {
         _setSync(AgendaSyncState(report: _syncState.report, error: error));
       }
+      if (generation == _generation && !_disposed) onRejected?.call(error);
       rethrow;
     }
     var started = false;
@@ -142,10 +148,12 @@ final class AgendaService {
             );
             return report;
           } on Object catch (error) {
-            if (generation == _generation && !_disposed)
+            if (generation == _generation && !_disposed) {
               _setSync(
                 AgendaSyncState(report: _syncState.report, error: error),
               );
+              onRejected?.call(error);
+            }
             rethrow;
           }
         });

@@ -76,10 +76,11 @@ impl BridgeClient {
         if self.is_disposed.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(super::client::disposed_error());
         }
-        inner
-            .as_mut()
-            .ok_or_else(super::client::disposed_error)?
-            .bind_shared_account(None);
+        let client = inner.as_mut().ok_or_else(super::client::disposed_error)?;
+        client
+            .check_school_requests()
+            .map_err(|error| BridgeError::from_core(error, None))?;
+        client.bind_shared_account(None);
         self.inner.clear_readers().await;
         self.write_intents.lock().await.clear();
         Ok(())

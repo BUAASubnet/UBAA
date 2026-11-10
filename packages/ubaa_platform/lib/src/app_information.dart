@@ -23,14 +23,16 @@ final class SystemAppInformation implements PlatformAppInformation {
   }
 
   @override
-  Future<bool> open(AppLink link) async {
-    try {
-      return await launchUrl(
-        Uri.parse(link.url),
-        mode: LaunchMode.externalApplication,
-      );
-    } on Object {
-      return false;
-    }
+  Future<bool> open(AppLink link) => openExternalUrl(Uri.parse(link.url));
+}
+
+/// 只把有效的 HTTPS 地址交给系统浏览器。
+Future<bool> openExternalUrl(Uri url) async {
+  if (!url.isScheme('https') || !url.hasAuthority || url.host.isEmpty)
+    return false;
+  try {
+    return await launchUrl(url, mode: LaunchMode.externalApplication);
+  } on Object {
+    return false;
   }
 }

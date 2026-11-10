@@ -12,6 +12,7 @@ pub(crate) enum ExitCode {
     Network = 5,
     Upstream = 6,
     Internal = 7,
+    UpdateRequired = 8,
 }
 
 pub(crate) const fn exit_code(code: ErrorCode) -> ExitCode {
@@ -30,6 +31,7 @@ pub(crate) const fn exit_code(code: ErrorCode) -> ExitCode {
             ExitCode::Upstream
         }
         ErrorCode::InternalError => ExitCode::Internal,
+        ErrorCode::UpdateRequired => ExitCode::UpdateRequired,
     }
 }
 
@@ -46,6 +48,7 @@ pub(crate) fn safe_error_exit_code(error: &SafeError) -> i32 {
         | "business_unavailable"
         | "outcome_unknown" => ExitCode::Network as i32,
         "unsupported" | "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
+        "update_required" => ExitCode::UpdateRequired as i32,
         _ => ExitCode::Internal as i32,
     }
 }

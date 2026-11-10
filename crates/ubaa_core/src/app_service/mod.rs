@@ -1,5 +1,7 @@
 //! 应用服务的安装状态和遥测队列。
 
+mod bootstrap;
+mod bootstrap_response;
 mod config;
 mod privacy;
 mod queue;
@@ -9,7 +11,11 @@ mod state;
 mod transport;
 mod types;
 mod upload;
+mod version;
 
+pub use bootstrap_response::{
+    AppAnnouncement, AppAnnouncementLevel, AppBootstrapView, AppUpdateStatus, AppUpdateView,
+};
 pub use config::AppServiceConfig;
 pub use queue::{BatchDisposition, FrozenBatch};
 pub use service::{AppService, ConfirmedAccount};
@@ -40,7 +46,7 @@ impl std::fmt::Display for AppServiceError {
             Self::UnsupportedSchema => "应用服务数据库版本不受支持",
             Self::InvalidPolicy => "隐私政策版本无效或过旧",
             Self::GuiRequired => "此操作需要图形界面",
-            Self::InvalidPayload => "遥测载荷无法编码",
+            Self::InvalidPayload => "应用服务载荷无效",
             Self::TransportUnavailable => "应用服务传输不可用",
         })
     }

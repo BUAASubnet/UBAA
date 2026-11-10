@@ -23,7 +23,15 @@ class GuardedLockDisplaySession implements CgyyLockDisplaySession {
     validate();
     if (_closed)
       throw const BackendException(UbaaErrorCode.authenticationRequired);
-    final value = await inner.read();
+    final CgyyLockDisplay value;
+    try {
+      value = await inner.read();
+    } on Object {
+      validate();
+      if (_closed)
+        throw const BackendException(UbaaErrorCode.authenticationRequired);
+      rethrow;
+    }
     validate();
     if (_closed) {
       value.release();
@@ -63,6 +71,7 @@ final class ProgressiveScope {
   bool restartRequested = false;
   final completion = Completer<void>();
   Completer<void> firstResult = Completer<void>();
+  final joinedSchoolPrompts = <void Function(Object?)>{};
   bool cancelled = false;
   bool get valid => !cancelled && current();
   void cancel() {

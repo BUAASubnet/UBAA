@@ -8,6 +8,54 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import '../recovery/backend_rebuild/fakes.dart' as rebuild;
 
 void main() {
+  test('手动日程同步的准备和确认拒绝都提示，本机修改触发的自动同步不提示', () async {
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await backend.agenda.unsyncedCount();
+    final service = controller.agenda!;
+    final now = AgendaTime(
+      rfc3339: '2026-11-10T08:00:00+08:00',
+      timezone: 'Asia/Shanghai',
+    );
+    const denied = BackendException(UbaaErrorCode.updateRequired);
+    var prompts = 0;
+    final subscription = controller.updatePromptRequests.listen(
+      (_) => prompts++,
+    );
+    addTearDown(subscription.cancel);
+
+    backend.data.rejectPrepare = true;
+    expect(
+      () => controller.prepareAgendaSync(AgendaSyncAction.createConfirmed, now),
+      throwsA(same(denied)),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(prompts, 1);
+    backend.data.rejectPrepare = false;
+
+    final job = controller.prepareAgendaSync(AgendaSyncAction.pull, now);
+    await expectLater(job(), throwsA(same(denied)));
+    await Future<void>.delayed(Duration.zero);
+    expect(prompts, 2);
+
+    final background = service.syncUpdates.firstWhere(
+      (state) => identical(state.error, denied),
+    );
+    await service.complete('synthetic-local-item', null, true, now);
+    await background;
+    expect(backend.data.localCompletions, 1);
+    expect(backend.data.syncRuns, [
+      AgendaSyncAction.pull,
+      AgendaSyncAction.push,
+    ]);
+    expect(prompts, 2);
+  });
+
   test('退出等待旧写入时安全索引先禁止恢复', () async {
     final accounts = _ObservedAccounts(await support.savedAccounts());
     final backend = _Backend();
@@ -369,7 +417,7 @@ class _Backend extends support.FakeRecoveryBackend
   late final AgendaService agenda = AgendaService(data);
 }
 
-class _Agenda implements AgendaBackend {
+class _Agenda implements AgendaBackend, AgendaSyncBackend {
   final accounts = <String>[];
   Object? openError;
   Completer<int>? countGate;
@@ -381,6 +429,33 @@ class _Agenda implements AgendaBackend {
   Completer<void>? writeGate;
   final writeStarted = Completer<void>();
   int rows = 5;
+  bool rejectPrepare = false;
+  int localCompletions = 0;
+  final syncRuns = <AgendaSyncAction>[];
+
+  @override
+  Future<bool> syncEnabled() async => true;
+
+  @override
+  AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) {
+    const denied = BackendException(UbaaErrorCode.updateRequired);
+    if (rejectPrepare) throw denied;
+    return () async {
+      syncRuns.add(action);
+      throw denied;
+    };
+  }
+
+  @override
+  Future<void> complete(
+    String itemId,
+    AgendaTime? at,
+    bool completed,
+    AgendaTime now,
+  ) async {
+    localCompletions++;
+  }
+
   @override
   Future<int> clearLocalData() async {
     if (!writeStarted.isCompleted) writeStarted.complete();

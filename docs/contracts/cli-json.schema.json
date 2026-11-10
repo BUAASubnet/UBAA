@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ubaa:cli:json:schema:13",
+  "$id": "urn:ubaa:cli:json:schema:16",
   "title": "UBAA CLI JSON envelope",
   "oneOf": [
     { "$ref": "#/$defs/resolvedRoutedEnvelope" },
@@ -21,7 +21,7 @@
       ],
       "properties": {
         "schemaVersion": {
-          "const": 15
+          "const": 16
         },
         "ok": {
           "type": "boolean"
@@ -763,6 +763,7 @@
         "timeout",
         "upstream_unavailable",
         "business_unavailable",
+        "update_required",
         "outcome_unknown",
         "upstream_changed",
         "parse_error", "unsupported",
@@ -1236,7 +1237,7 @@
             "properties": {
               "items": {
                 "items": {
-                  "properties": { "outcome": { "enum": ["success", "failure"] } },
+                  "properties": { "outcome": { "enum": ["success", "failure", "unattempted"] } },
                   "required": ["outcome"]
                 }
               }
@@ -1260,7 +1261,15 @@
       "anyOf": [
         { "$ref": "#/$defs/evaluationCoursesResponse" },
         { "type": "array", "items": { "$ref": "#/$defs/evaluationCourse" } },
-        { "$ref": "#/$defs/evaluationBatchResult" }
+        {
+          "$ref": "#/$defs/evaluationBatchResult",
+          "properties": {
+            "outcomeUnknown": { "const": false },
+            "items": {
+              "items": { "properties": { "outcome": { "enum": ["success", "failure"] } } }
+            }
+          }
+        }
       ]
     },
     "cgyyVenueSite": {
@@ -1829,7 +1838,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 15 },
+        "schemaVersion": { "const": 16 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -2008,19 +2017,33 @@
                     "properties": { "feature": { "const": "evaluation" } },
                     "required": ["feature"]
                   },
-                  "error": {
-                    "allOf": [
-                      { "$ref": "#/$defs/error" },
-                      { "properties": { "code": { "const": "outcome_unknown" } }, "required": ["code"] }
-                    ]
+                  "data": { "$ref": "#/$defs/evaluationBatchResult" }
+                },
+                "oneOf": [
+                  {
+                    "properties": {
+                      "error": { "properties": { "code": { "const": "outcome_unknown" } } },
+                      "data": { "properties": { "outcomeUnknown": { "const": true } } }
+                    }
                   },
-                  "data": {
-                    "allOf": [
-                      { "$ref": "#/$defs/evaluationBatchResult" },
-                      { "properties": { "outcomeUnknown": { "const": true } }, "required": ["outcomeUnknown"] }
-                    ]
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": { "code": { "const": "update_required" }, "retryable": { "const": false } }
+                      },
+                      "data": {
+                        "properties": {
+                          "success": { "const": false },
+                          "outcomeUnknown": { "const": false },
+                          "items": {
+                            "prefixItems": [{ "properties": { "outcome": { "enum": ["success", "failure"] } } }],
+                            "contains": { "properties": { "outcome": { "const": "unattempted" } } }
+                          }
+                        }
+                      }
+                    }
                   }
-                }
+                ]
               },
               {
                 "not": { "required": ["data"] },
@@ -2036,7 +2059,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 15 },
+        "schemaVersion": { "const": 16 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -2193,7 +2216,7 @@
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
         "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
-        "schemaVersion": { "const": 15 },
+        "schemaVersion": { "const": 16 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -2269,7 +2292,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 15 },
+        "schemaVersion": { "const": 16 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
@@ -2529,7 +2552,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 15
+                "const": 16
               },
               "ok": {
                 "const": true
@@ -2665,7 +2688,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 15
+                "const": 16
               },
               "ok": {
                 "const": false

@@ -180,6 +180,11 @@ class EvaluationBatchResult {
   final List<EvaluationCourseResult> items;
   final bool success;
   final bool outcomeUnknown;
+
+  /// 已确认的结果之后只剩未尝试的课程，说明更新门控中止了批次。
+  bool get stoppedForUpdate =>
+      !outcomeUnknown &&
+      items.any((item) => item.outcome == EvaluationCourseOutcome.unattempted);
 }
 
 /// 写入提交后的安全结果；不携带上游原始正文。

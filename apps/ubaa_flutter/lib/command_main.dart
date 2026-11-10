@@ -20,6 +20,11 @@ Future<void> runEngineCommand(
     await RustLib.init();
     final runtime = CommandRuntime(
       io: _EngineIO(),
+      openClient: ({required configDir}) => openConfiguredCommandClient(
+        configDirectory: configDir,
+        release: kReleaseMode,
+        readVersion: SystemAppInformation().version,
+      ),
       uploadAppService: (context) => uploadConfiguredCommandAppService(
         resolveDirectory: () async {
           if (context.directory case final configured?) {

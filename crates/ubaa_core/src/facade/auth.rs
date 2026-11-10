@@ -51,6 +51,7 @@ impl UbaaClient {
         self.verified_login = None;
         self.guard_latest_session_ownership()?;
         let (runtime, auth) = self.route_parts_for(route);
+        runtime.check_school_requests()?;
         let result = auth.login_automatically(runtime, input).await;
         self.clear_on_session_conflict()?;
         result.map(|data| super::types::CallerPinned {
@@ -61,7 +62,10 @@ impl UbaaClient {
 
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
-        if let Err(error) = self.guard_latest_session_ownership() {
+        if let Err(error) = self
+            .guard_latest_session_ownership()
+            .and_then(|()| self.check_school_requests())
+        {
             return failed_preparation(&error);
         }
         self.clear_interactive_context();
@@ -91,6 +95,7 @@ impl UbaaClient {
     /// 双路线会话所有权或协调状态发生冲突时返回错误；单路线认证失败保留在返回结果中。
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
         self.guard_latest_session_ownership()?;
+        self.check_school_requests()?;
         self.clear_interactive_context();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
@@ -189,6 +194,7 @@ impl UbaaClient {
     /// 双路线协调器已进入冲突终态时返回错误；单路线校验失败保留在返回结果中。
     pub async fn auth_status(&mut self) -> Result<LoginOutcome> {
         self.clear_on_session_conflict()?;
+        self.check_school_requests()?;
         // 仅清交互准备状态前增加所有权预检，普通 status 保留既有首路线校验顺序。
         if self.interactive.current_login.is_some() {
             self.guard_latest_session_ownership()?;

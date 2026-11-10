@@ -7,6 +7,9 @@ import 'package:ubaa_app/app_service_host.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_platform/ubaa_platform.dart'
+    as platform
+    show openExternalUrl;
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 import 'crash_handlers.dart';
@@ -181,6 +184,9 @@ class UbaaAppHost extends StatefulWidget {
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
   final ScheduleWidgetGateway? scheduleWidgetGateway;
+
+  /// 供宿主的更新和公告回调使用；链接由系统浏览器打开。
+  Future<bool> openExternalUrl(Uri url) => platform.openExternalUrl(url);
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

@@ -11,9 +11,24 @@ mixin ControllerAppService on ControllerState {
   Future<void>? _upload;
   bool _retryingErase = false;
   Future<void> _stateTail = Future.value();
+  Timer? _announcementTimer;
 
   AppServiceView get appService => internalAppServiceView;
   PrivacyPolicyDocument get privacyPolicy => bundledPrivacyPolicy;
+  AppUpdateView? get appUpdate =>
+      appService.consent == AppServiceConsent.agreed ? appService.update : null;
+
+  List<AppAnnouncement> get pendingAnnouncements {
+    if (appService.consent != AppServiceConsent.agreed) return const [];
+    final now = DateTime.now();
+    return List.unmodifiable(
+      appService.announcements.where(
+        (item) =>
+            !now.isBefore(item.startsAt) &&
+            (item.endsAt == null || now.isBefore(item.endsAt!)),
+      ),
+    );
+  }
 
   AppServiceBackend? get _service => switch (internalBackend) {
     final AppServiceBackend service => service,
@@ -26,8 +41,35 @@ mixin ControllerAppService on ControllerState {
   void _show(AppServiceView view) {
     if (internalDisposed || appService == view) return;
     internalAppServiceView = view;
+    _scheduleAnnouncementBoundary();
     internalNotify();
   }
+
+  void _scheduleAnnouncementBoundary() {
+    _announcementTimer?.cancel();
+    _announcementTimer = null;
+    if (appService.consent != AppServiceConsent.agreed) return;
+    final now = DateTime.now();
+    DateTime? next;
+    for (final item in appService.announcements) {
+      for (final time in [item.startsAt, item.endsAt]) {
+        if (time != null &&
+            now.isBefore(time) &&
+            (next == null || time.isBefore(next))) {
+          next = time;
+        }
+      }
+    }
+    if (next == null) return;
+    _announcementTimer = Timer(next.difference(now), () {
+      if (internalDisposed) return;
+      _scheduleAnnouncementBoundary();
+      internalNotify();
+    });
+  }
+
+  @override
+  void internalDisposeAppService() => _announcementTimer?.cancel();
 
   void _failure() => internalRecordFailure(
     StateError('应用服务操作未完成'),
@@ -60,11 +102,48 @@ mixin ControllerAppService on ControllerState {
     return next;
   }
 
+  @override
   Future<AppServiceView> refreshAppService() => _queueState(
     (service) async =>
         await service?.appServiceState() ??
         AppServiceView.unavailable(privacyPolicy.version),
   );
+
+  /// 网络等待与同意状态的写入分开，撤回不会等待启动配置请求完成。
+  Future<void> refreshAppBootstrap({bool force = false}) async {
+    final service = _service;
+    if (service is! AppBootstrapBackend || internalDisposed) return;
+    try {
+      await service.refreshAppBootstrap(force: force);
+    } on Object {
+      if (_current(service)) _failure();
+    }
+    if (_current(service)) await refreshAppService();
+  }
+
+  Future<void> markAnnouncementRead(String id) async {
+    await _change(
+      (service) => service is AppBootstrapBackend
+          ? service.markAppAnnouncementRead(id)
+          : service.appServiceState(),
+    );
+  }
+
+  Future<void> dismissUpdateAvailable() async {
+    final view = appUpdate;
+    if (view == null ||
+        view.status != AppUpdateStatus.updateAvailable ||
+        view.availableDismissed) {
+      return;
+    }
+    final latest = view.latestVersion;
+    if (latest == null) return;
+    await _change(
+      (service) => service is AppBootstrapBackend
+          ? service.dismissAppUpdateAvailable(latest)
+          : service.appServiceState(),
+    );
+  }
 
   Future<AppServiceView> _change(
     Future<AppServiceView> Function(AppServiceBackend) action,
@@ -84,6 +163,7 @@ mixin ControllerAppService on ControllerState {
     final state = await _change((service) => service.agreeAppService());
     if (previous != AppServiceConsent.agreed &&
         state.consent == AppServiceConsent.agreed) {
+      unawaited(refreshAppBootstrap(force: true));
       // 首次同意之前没有入队，也不会为等待上传阻塞同意结果。
       unawaited(() async {
         await internalRecordAppOpen();
@@ -178,14 +258,4 @@ mixin ControllerAppService on ControllerState {
   void recordPresentedError(UiError error) => internalRecordVisibleError(error);
 
   Future<void> recordAppStarted() => internalRecordAppOpen();
-
-  Future<void> setTelemetryEnabled(bool enabled) async {
-    if (_service != null) {
-      await setProductTelemetryEnabled(enabled);
-    } else {
-      internalSetLegacyTelemetryEnabled(enabled);
-    }
-  }
-
-  Future<void> clearTelemetryQueue() => setTelemetryEnabled(false);
 }

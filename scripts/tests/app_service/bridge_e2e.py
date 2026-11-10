@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""显式联调控制器、Dart FFI、Core 和本地 D1；不进入 CI。"""
+"""显式联调控制器、Dart FFI、Core、本地 D1 与 KV；不进入 CI。"""
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -9,9 +9,11 @@ import secrets
 import sys
 import tempfile
 from threading import Thread
+from urllib.parse import urlsplit
 
 sys.dont_write_bytecode = True
-from http_e2e import ERASE, LOOPBACK, QUERY, ROOT, SERVICE, UPLOAD, WRANGLER, exchange, require, run, worker
+from http_e2e import (BOOTSTRAP, ERASE, LOOPBACK, QUERY, ROOT, SERVICE, UPLOAD,
+                      WRANGLER, exchange, require, run, seed_bootstrap, worker)
 
 
 def main():
@@ -39,21 +41,33 @@ def main():
         env_file = ["--env-file", str(vars_file)]
         database = ["DB", "--local", "--persist-to", str(directory / "d1")]
         run([str(WRANGLER), "d1", "migrations", "apply", *database, *env_file], cwd=SERVICE, env=env)
+        seed_bootstrap(directory, env_file, env)
 
         def query():
             response = run([str(WRANGLER), "d1", "execute", *database, "--json",
                             "--command", QUERY, *env_file], cwd=SERVICE, env=env, capture=True)
             return json.loads(response.stdout)[0]["results"][0]
 
-        sent = {UPLOAD: 0, ERASE: 0}
+        sent = {UPLOAD: 0, ERASE: 0, BOOTSTRAP: 0}
         observations = []
         with worker(env_file, env, directory) as port:
             class Relay(BaseHTTPRequestHandler):
                 def log_message(self, *_args):
                     pass
 
+                def do_GET(self):
+                    if urlsplit(self.path).path == BOOTSTRAP and self.has_no_identity():
+                        sent[BOOTSTRAP] += 1
+                        status, body = exchange(port, self.path)
+                    else:
+                        status, body = 400, b""
+                    self.reply(status, body)
+
+                def has_no_identity(self):
+                    return "Cookie" not in self.headers and "Authorization" not in self.headers
+
                 def do_POST(self):
-                    if self.path not in sent or self.headers.get("Cookie"):
+                    if self.path not in {UPLOAD, ERASE} or not self.has_no_identity():
                         status = 400
                     else:
                         sent[self.path] += 1
@@ -63,9 +77,16 @@ def main():
                             status = 503
                         else:
                             status, _ = exchange(port, self.path, body)
+                    self.reply(status)
+
+                def reply(self, status, body=b""):
                     self.send_response(status)
-                    self.send_header("Content-Length", "0")
+                    if body:
+                        self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(body)))
                     self.end_headers()
+                    if body:
+                        self.wfile.write(body)
 
             with ThreadingHTTPServer((LOOPBACK, 0), Relay) as server:
                 thread = Thread(target=server.serve_forever, daemon=True)
@@ -78,12 +99,14 @@ def main():
                                f"--dart-define=UBAA_APP_SERVICE_TEST_STATE={directory / 'state'}"]
                     test = "apps/ubaa_flutter/test/support/platform/app_service_bridge_smoke.dart"
                     run([*command, test], cwd=ROOT)
-                    require(sent == {UPLOAD: 1, ERASE: 1}, "退出前请求顺序与状态不符")
+                    require(sent == {UPLOAD: 1, ERASE: 1, BOOTSTRAP: 1},
+                            "首次进程的请求数与上报、删除及同意后刷新不符")
                     run([*command, "--dart-define=UBAA_APP_SERVICE_TEST_REOPEN=true", test], cwd=ROOT)
                 finally:
                     server.shutdown()
                     thread.join()
-            require(sent == {UPLOAD: 1, ERASE: 2}, "应有一次上报、一次删除失败和一次成功重试")
+            require(sent == {UPLOAD: 1, ERASE: 2, BOOTSTRAP: 1},
+                    "应有一次启动配置刷新、一次上报、一次删除失败和一次成功重试")
             require(len(observations) == 1 and observations[0]["active"] == 1
                     and observations[0]["counters"] == 1 and observations[0]["tombstones"] == 0,
                     "删除前 D1 未收到 Dart Bridge 生成的实际计数")
@@ -91,6 +114,7 @@ def main():
                                     counters=0, errors=0, timings=0),
                     "删除重试成功后本地 D1 仍有明细")
     print("Dart Bridge 与本地 D1 联调通过：同意后真实上报，关闭共享开关，重启完成删除")
+    print("Dart Bridge 与本地 KV 联调通过：同意后收到门控和公告，命令模式拦截认证，公告已读可重启恢复")
 
 
 if __name__ == "__main__":

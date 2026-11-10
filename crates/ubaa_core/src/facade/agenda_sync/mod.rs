@@ -52,6 +52,8 @@ impl UbaaClient {
     /// # Errors
     /// 当前路线无法确认或不支持创建时，调用方应先重新拉取。
     pub fn agenda_sync_scope(&self) -> Result<AgendaSyncScope, AgendaSyncError> {
+        self.check_school_requests()
+            .map_err(AgendaSyncError::Remote)?;
         let policy = self.default_route_policy();
         let network = if policy == RoutePolicy::Auto {
             self.probe.cached_network().ok_or(CacheError::Superseded)?
@@ -134,6 +136,9 @@ impl AgendaSyncService {
         {
             return Err(crate::cache::CacheError::Superseded.into());
         }
+        client
+            .check_school_requests()
+            .map_err(AgendaSyncError::Remote)?;
         if action == AgendaSyncAction::CreateConfirmed
             && client.default_route_policy() != RoutePolicy::WebVpn
         {

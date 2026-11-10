@@ -105,6 +105,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         failure: _controller.localAgendaFailure,
         term: _controller.currentAgendaTerm,
         onChanged: _controller.notifyAgendaChanged,
+        prepareSync: _controller.prepareAgendaSync,
         saveFile: (result, name, current) async {
           final saved = await widget.agendaFileSaver.save(
             result.ics,
@@ -227,6 +228,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onRefresh: _controller.refreshSchoolAgenda,
       onRetryFeature: _controller.retryFeature,
       onOpenLockDisplay: _controller.openLockDisplay,
+      onReadLockDisplay: _controller.readLockDisplay,
       onFeatureQuery: (feature, query) {
         return _controller.refreshFeatureQuery(feature, query);
       },

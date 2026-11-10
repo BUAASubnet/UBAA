@@ -140,7 +140,12 @@ mixin ControllerAuthenticationCompletion on ControllerState {
     internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
     _releaseCompletionLoading();
     internalSetPhase(AppPhase.home);
-    unawaited(internalQueueProfileRefresh(force: true));
-    if (current()) unawaited(refreshHome());
+    unawaited(
+      internalAutomaticSchoolAction(
+        () => internalQueueProfileRefresh(force: true),
+      ),
+    );
+    if (current())
+      unawaited(internalAutomaticSchoolAction(internalRefreshHome));
   }
 }

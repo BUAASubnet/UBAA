@@ -15,6 +15,7 @@ pub(super) enum ReviseReply {
     Success,
     NonAuthenticationFailure,
     AuthenticationFailure,
+    UpdateRequired,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -141,6 +142,7 @@ impl HttpTransport for EvaluationMock {
                     ReviseReply::AuthenticationFailure => {
                         response(&request, 401, "authentication required")
                     }
+                    ReviseReply::UpdateRequired => return Err(UbaaError::update_required()),
                 }
             }
             "/pjxt/evaluationMethodSix/getQuestionnaireTopic" => {

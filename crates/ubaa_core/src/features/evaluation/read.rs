@@ -10,9 +10,7 @@ use crate::runtime::ClientRuntime;
 use super::parser::{
     CourseContext, EvaluationAuthoritySnapshot, canonical_string, parse_course_rows, result_value,
 };
-use super::{
-    CAS_URL, COURSES_URL, QUESTIONNAIRES_URL, TASKS_URL, is_authentication_error, upstream_error,
-};
+use super::{CAS_URL, COURSES_URL, QUESTIONNAIRES_URL, TASKS_URL, must_propagate, upstream_error};
 
 pub(crate) async fn get_all(runtime: &mut ClientRuntime) -> Result<EvaluationCoursesResponse> {
     read_authority(runtime, false)
@@ -26,7 +24,7 @@ pub(super) async fn read_authority(
 ) -> Result<EvaluationAuthoritySnapshot> {
     super::super::require_session(runtime)?;
     if let Err(error) = activate(runtime).await {
-        if !strict && !is_authentication_error(&error) {
+        if !strict && !must_propagate(&error) {
             return Ok(EvaluationAuthoritySnapshot::default());
         }
         return Err(error);
@@ -57,7 +55,7 @@ pub(super) async fn read_authority(
                 fetch_result(runtime, courses_url(runtime, &context.wjid)?, strict).await?;
             match parse_course_rows(&courses, &context) {
                 Ok(parsed) => entries.extend(parsed),
-                Err(error) if !strict && !is_authentication_error(&error) => {}
+                Err(error) if !strict && !must_propagate(&error) => {}
                 Err(error) => return Err(error),
             }
         }
@@ -134,7 +132,7 @@ pub(super) async fn fetch_result(
     .await;
     match result {
         Ok(value) => Ok(value),
-        Err(error) if !strict && !is_authentication_error(&error) => Ok(Value::Array(Vec::new())),
+        Err(error) if !strict && !must_propagate(&error) => Ok(Value::Array(Vec::new())),
         Err(error) => Err(error),
     }
 }

@@ -38,6 +38,8 @@ final class AgendaSyncState {
 }
 
 typedef AgendaSyncJob = Future<AgendaSyncReport> Function();
+typedef AgendaSyncPrepare =
+    AgendaSyncJob Function(AgendaSyncAction action, AgendaTime now);
 
 /// 通过共用 Core 服务同步，不从日程领域层构造云盘请求。
 abstract interface class AgendaSyncBackend {

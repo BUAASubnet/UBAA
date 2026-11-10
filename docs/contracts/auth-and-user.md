@@ -14,11 +14,11 @@
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
-隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v15；CLI 不再
+隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v16；CLI 不再
 输出 schema-v9 或更早 envelope。历史 schema v4 首次承载 Signin typed 写结果，v5–v7 分别承载
 LibBook 预约、LibBook 取消与 Cgyy 预约合同，v8 承载 Cgyy typed 取消资格与安全结果，v9 再承载
 Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读，v10 承载 Evaluation typed target、四态批量
-结果与 caller-pinned 回读。这不改变
+结果与 caller-pinned 回读。v16 增加更新门控错误；评教批次发出部分课程后遇到门控时，保留已发课程结果，将未发出的后缀标为 `unattempted`。这不改变
 `config.toml` 或 `session.json` 的版本化迁移读取器，磁盘
 `session.json` 仍为 schema v2。密码绝不会
 进入持久化会话或普通输出。
@@ -35,7 +35,7 @@ revision。
 
 研讨室预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。冻结 `ubaa_old` 与固定 `examples/buaa-api` 对该 WebVPN 网关同步没有等价实现；具体证据和边界记录在 `docs/migration/source-parity.md` 与决策日志中。
 
-CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:13`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
+CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:16`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
 
 ## CLI 宿主
 
@@ -47,7 +47,7 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 `config.toml`、`session.json` 及其锁文件的目录；未指定时使用平台用户配置目录。需要认证的
 命令在发起网络请求前拒绝缺少本地会话；`auth status` 向 SSO 取得新票据并验证身份后再报告成功。
 
-稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
+稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败，8 表示更新门控生效（`update_required`，`kind=upstream`，`retryable=false`）。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
 
 本机日程通过 App 命令入口使用同一安全索引、随机别名和资料空间，不创建学校客户端。普通显式聚合登录在认证完成后，以 Core 不可构造的身份能力核实并一次性消费登记。`agendaRegistration` 与原有认证 `ok/data/error` 分开报告，登记失败保持认证结果并返回非零退出码。固定路线诊断登录不产生登记。Core 身份能力绑定双路线认证代次，新交互意图或依赖会话清理立即使旧能力失效，正常活动刷新和临时错误保持原行为。共享身份、缓存缺口与本机错误码见[日程命令合同](agenda.md#app-日程命令)。
 

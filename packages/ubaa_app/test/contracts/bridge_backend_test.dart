@@ -15,7 +15,7 @@ import '../support/bridge/fixtures.dart'
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(60);
+    final client = FixtureContractVersionClient(61);
 
     final backend = BridgeBackend(client);
 

@@ -168,14 +168,14 @@ final class CommandRuntime {
         recovery: recovery,
       );
       if (requirements.auth == BridgeCommandAuth.login) {
+        final client = await _wait(backend.ensureClient());
+        await _wait(client.releaseSharedAccountForLogin());
         snapshot = await _wait(
           environment.materials.coordinate(() async {
             await accounts.signOut();
             return accounts.capture();
           }),
         );
-        final client = await _wait(backend.ensureClient());
-        await _wait(client.releaseSharedAccountForLogin());
         final attempt = await _wait(client.executeCommand(command: command));
         try {
           final identity = await _wait(client.takeCommandLoginIdentity());
@@ -404,6 +404,14 @@ final class CommandRuntime {
       return await _deliver(await command.fail(authentication: true));
     } on _LocalFailure catch (error) {
       return await _deliver(await command.failure(failure: error.failure));
+    } on BridgeError catch (error) {
+      return await _deliver(
+        await command.failure(
+          failure: error.code == BridgeErrorCode.updateRequired
+              ? BridgeCommandFailure.updateRequired
+              : BridgeCommandFailure.materialUnavailable,
+        ),
+      );
     } on BridgeAgendaError catch (error) {
       return await _deliver(
         await command.failure(
@@ -543,6 +551,7 @@ BridgeCommandFailure _recoveryFailure(
   BackendException error,
 ) => switch (error.code) {
   UbaaErrorCode.authenticationRequired => BridgeCommandFailure.authentication,
+  UbaaErrorCode.updateRequired => BridgeCommandFailure.updateRequired,
   UbaaErrorCode.invalidCredentials => BridgeCommandFailure.invalidCredentials,
   UbaaErrorCode.permissionDenied => BridgeCommandFailure.permissionDenied,
   UbaaErrorCode.networkError ||
