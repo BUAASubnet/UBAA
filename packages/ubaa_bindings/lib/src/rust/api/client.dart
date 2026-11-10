@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'agenda/models.dart';
 import 'agenda/sync.dart';
+import 'app_service.dart';
 import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
@@ -41,7 +42,7 @@ import 'shared_account.dart';
 import 'write.dart';
 import 'write/cache.dart';
 
-// These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
+// These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>>
@@ -883,6 +884,18 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 已销毁、路线或会话无效时返回安全错误。
   Future<BridgeCgyyLockDisplayLease> openCgyyLockDisplay();
 
+  /// 绑定同一宿主的安装状态后打开学校客户端。
+  ///
+  /// # Errors
+  /// 配置、会话或组件故障返回安全初始化错误。
+  static Future<BridgeClient> openWithAppService({
+    required String configDir,
+    required BridgeAppService appService,
+  }) => RustLib.instance.api.crateApiClientBridgeClientOpenWithAppService(
+    configDir: configDir,
+    appService: appService,
+  );
+
   /// 在线读取门户身份与学院，不写业务缓存。
   Future<BridgePortalProfileResult> portalProfile();
 
@@ -1187,6 +1200,7 @@ enum BridgeErrorCode {
   operationConflict,
   outcomeUnknown,
   unsupported,
+  updateRequired,
 }
 
 /// bridge 对外的安全错误类别。

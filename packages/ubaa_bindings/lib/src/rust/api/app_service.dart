@@ -10,7 +10,7 @@ import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'shared_account.dart';
 
-// These functions are ignored because they are not marked as `pub`: `change`, `enqueue`, `local_task`
+// These functions are ignored because they are not marked as `pub`: `change`, `core`, `enqueue`, `local_task`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Inner`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
 
@@ -30,6 +30,14 @@ abstract class BridgeAppService implements RustOpaqueInterface {
 
   /// 退出、切换账号或丢失已确认绑定时清除本进程的账号引用。
   void clearAccount();
+
+  /// 忽略用户实际看到的新版本，随后出现的更高版本可再次提示。
+  ///
+  /// # Errors
+  /// 本机存储不可用时返回安全错误。
+  Future<BridgeAppServiceState> dismissUpdateAvailable({
+    required String latestVersion,
+  });
 
   /// 聚合一条普通计数。
   ///
@@ -79,6 +87,12 @@ abstract class BridgeAppService implements RustOpaqueInterface {
   /// 命令模式或无法读取共享删除标记时返回安全错误。
   Future<BridgeAppServiceEraseOutcome> erase();
 
+  /// 仅在本机标记公告已读，并返回更新后的状态。
+  ///
+  /// # Errors
+  /// 本机存储不可用时返回安全错误。
+  Future<BridgeAppServiceState> markAnnouncementRead({required String id});
+
   /// 使用宿主构建信息和同一配置目录打开安装级状态。
   ///
   /// # Errors
@@ -102,6 +116,12 @@ abstract class BridgeAppService implements RustOpaqueInterface {
     surface: surface,
     policyVersion: policyVersion,
   );
+
+  /// 刷新更新与公告。启动和重新同意可跳过前台间隔，失败保留已保存的配置。
+  ///
+  /// # Errors
+  /// 本机存储不可用时返回安全错误。
+  Future<BridgeAppServiceState> refreshBootstrap({required bool force});
 
   /// 保存统计开关；关闭时同步清理待发数据。
   ///

@@ -7,7 +7,60 @@ import '../../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `from_core`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+
+class BridgeAppAnnouncement {
+  final String id;
+  final BridgeAppAnnouncementLevel level;
+  final String title;
+  final String body;
+  final String? linkUrl;
+  final String? linkText;
+  final String? confirmText;
+  final String startsAt;
+  final String? endsAt;
+
+  const BridgeAppAnnouncement({
+    required this.id,
+    required this.level,
+    required this.title,
+    required this.body,
+    this.linkUrl,
+    this.linkText,
+    this.confirmText,
+    required this.startsAt,
+    this.endsAt,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      level.hashCode ^
+      title.hashCode ^
+      body.hashCode ^
+      linkUrl.hashCode ^
+      linkText.hashCode ^
+      confirmText.hashCode ^
+      startsAt.hashCode ^
+      endsAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeAppAnnouncement &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          level == other.level &&
+          title == other.title &&
+          body == other.body &&
+          linkUrl == other.linkUrl &&
+          linkText == other.linkText &&
+          confirmText == other.confirmText &&
+          startsAt == other.startsAt &&
+          endsAt == other.endsAt;
+}
+
+enum BridgeAppAnnouncementLevel { popup, banner }
 
 enum BridgeAppServiceConsent { unasked, agreed, reconsentRequired, basic }
 
@@ -24,6 +77,8 @@ class BridgeAppServiceState {
   final bool telemetryEnabled;
   final bool canErase;
   final bool erasePending;
+  final BridgeAppUpdate? update;
+  final List<BridgeAppAnnouncement> announcements;
 
   const BridgeAppServiceState({
     required this.available,
@@ -34,6 +89,8 @@ class BridgeAppServiceState {
     required this.telemetryEnabled,
     required this.canErase,
     required this.erasePending,
+    this.update,
+    required this.announcements,
   });
 
   @override
@@ -45,7 +102,9 @@ class BridgeAppServiceState {
       agreedPolicyVersion.hashCode ^
       telemetryEnabled.hashCode ^
       canErase.hashCode ^
-      erasePending.hashCode;
+      erasePending.hashCode ^
+      update.hashCode ^
+      announcements.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -59,7 +118,9 @@ class BridgeAppServiceState {
           agreedPolicyVersion == other.agreedPolicyVersion &&
           telemetryEnabled == other.telemetryEnabled &&
           canErase == other.canErase &&
-          erasePending == other.erasePending;
+          erasePending == other.erasePending &&
+          update == other.update &&
+          announcements == other.announcements;
 }
 
 enum BridgeAppServiceSurface { gui, command }
@@ -83,6 +144,57 @@ class BridgeAppServiceUpload {
           runtimeType == other.runtimeType &&
           erase == other.erase &&
           batchesSent == other.batchesSent;
+}
+
+class BridgeAppUpdate {
+  final BridgeAppUpdateStatus status;
+  final String? latestVersion;
+  final String? minSupportedVersion;
+  final String? url;
+  final String? releaseNotes;
+  final bool gateActive;
+  final bool availableDismissed;
+
+  const BridgeAppUpdate({
+    required this.status,
+    this.latestVersion,
+    this.minSupportedVersion,
+    this.url,
+    this.releaseNotes,
+    required this.gateActive,
+    required this.availableDismissed,
+  });
+
+  @override
+  int get hashCode =>
+      status.hashCode ^
+      latestVersion.hashCode ^
+      minSupportedVersion.hashCode ^
+      url.hashCode ^
+      releaseNotes.hashCode ^
+      gateActive.hashCode ^
+      availableDismissed.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeAppUpdate &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          latestVersion == other.latestVersion &&
+          minSupportedVersion == other.minSupportedVersion &&
+          url == other.url &&
+          releaseNotes == other.releaseNotes &&
+          gateActive == other.gateActive &&
+          availableDismissed == other.availableDismissed;
+}
+
+/// 启动配置的更新判断，未知服务端状态归为 Unknown。
+enum BridgeAppUpdateStatus {
+  upToDate,
+  updateAvailable,
+  updateRequired,
+  unknown,
 }
 
 enum BridgeTelemetryBucket {

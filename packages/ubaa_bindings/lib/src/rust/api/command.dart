@@ -148,6 +148,7 @@ enum BridgeCommandFailure {
   cacheMissing,
   cacheCorrupt,
   agendaCorrupt,
+  updateRequired,
 }
 
 class BridgeCommandInput {

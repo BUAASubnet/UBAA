@@ -684,6 +684,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAgendaTime dco_decode_box_autoadd_bridge_agenda_time(dynamic raw);
 
   @protected
+  BridgeAppUpdate dco_decode_box_autoadd_bridge_app_update(dynamic raw);
+
+  @protected
   BridgeBhpanItem dco_decode_box_autoadd_bridge_bhpan_item(dynamic raw);
 
   @protected
@@ -1215,6 +1218,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppAnnouncement dco_decode_bridge_app_announcement(dynamic raw);
+
+  @protected
+  BridgeAppAnnouncementLevel dco_decode_bridge_app_announcement_level(
+    dynamic raw,
+  );
+
+  @protected
   BridgeAppServiceConsent dco_decode_bridge_app_service_consent(dynamic raw);
 
   @protected
@@ -1233,6 +1244,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAppServiceUpload dco_decode_bridge_app_service_upload(dynamic raw);
+
+  @protected
+  BridgeAppUpdate dco_decode_bridge_app_update(dynamic raw);
+
+  @protected
+  BridgeAppUpdateStatus dco_decode_bridge_app_update_status(dynamic raw);
 
   @protected
   BridgeBhpanCapabilities dco_decode_bridge_bhpan_capabilities(dynamic raw);
@@ -2571,6 +2588,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeAgendaTime> dco_decode_list_bridge_agenda_time(dynamic raw);
 
   @protected
+  List<BridgeAppAnnouncement> dco_decode_list_bridge_app_announcement(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeBhpanItem> dco_decode_list_bridge_bhpan_item(dynamic raw);
 
   @protected
@@ -2914,6 +2936,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaTime? dco_decode_opt_box_autoadd_bridge_agenda_time(dynamic raw);
+
+  @protected
+  BridgeAppUpdate? dco_decode_opt_box_autoadd_bridge_app_update(dynamic raw);
 
   @protected
   BridgeBhpanItem? dco_decode_opt_box_autoadd_bridge_bhpan_item(dynamic raw);
@@ -3815,6 +3840,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppUpdate sse_decode_box_autoadd_bridge_app_update(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBhpanItem sse_decode_box_autoadd_bridge_bhpan_item(
     SseDeserializer deserializer,
   );
@@ -4518,6 +4548,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAppAnnouncement sse_decode_bridge_app_announcement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppAnnouncementLevel sse_decode_bridge_app_announcement_level(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeAppServiceConsent sse_decode_bridge_app_service_consent(
     SseDeserializer deserializer,
   );
@@ -4544,6 +4584,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAppServiceUpload sse_decode_bridge_app_service_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppUpdate sse_decode_bridge_app_update(SseDeserializer deserializer);
+
+  @protected
+  BridgeAppUpdateStatus sse_decode_bridge_app_update_status(
     SseDeserializer deserializer,
   );
 
@@ -6306,6 +6354,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeAppAnnouncement> sse_decode_list_bridge_app_announcement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeBhpanItem> sse_decode_list_bridge_bhpan_item(
     SseDeserializer deserializer,
   );
@@ -6725,6 +6778,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaTime? sse_decode_opt_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAppUpdate? sse_decode_opt_box_autoadd_bridge_app_update(
     SseDeserializer deserializer,
   );
 
@@ -7815,6 +7873,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_app_update(
+    BridgeAppUpdate self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_bhpan_item(
     BridgeBhpanItem self,
     SseSerializer serializer,
@@ -8625,6 +8689,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_app_announcement(
+    BridgeAppAnnouncement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_announcement_level(
+    BridgeAppAnnouncementLevel self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_app_service_consent(
     BridgeAppServiceConsent self,
     SseSerializer serializer,
@@ -8657,6 +8733,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_app_service_upload(
     BridgeAppServiceUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_update(
+    BridgeAppUpdate self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_app_update_status(
+    BridgeAppUpdateStatus self,
     SseSerializer serializer,
   );
 
@@ -10830,6 +10918,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_app_announcement(
+    List<BridgeAppAnnouncement> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_bhpan_item(
     List<BridgeBhpanItem> self,
     SseSerializer serializer,
@@ -11354,6 +11448,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_agenda_time(
     BridgeAgendaTime? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_app_update(
+    BridgeAppUpdate? self,
     SseSerializer serializer,
   );
 
