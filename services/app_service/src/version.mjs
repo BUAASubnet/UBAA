@@ -1,10 +1,10 @@
 const numeric = /^[0-9]+$/;
 
-function order<T extends string | bigint>(left: T, right: T): number {
+function order(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function parts(version: string) {
+function parts(version) {
   const [release, build = "0"] = version.split("+");
   const suffix = release.indexOf("-");
   return {
@@ -17,7 +17,7 @@ function parts(version: string) {
 }
 
 // 输入先按合同校验。构建号只在 SemVer 优先级相同时比较。
-export function compareVersions(left: string, right: string): number {
+export function compareVersions(left, right) {
   const a = parts(left);
   const b = parts(right);
   for (let i = 0; i < a.core.length; i++) {

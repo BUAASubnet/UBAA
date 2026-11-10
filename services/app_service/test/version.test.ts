@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import cases from "../../../fixtures/app_service/version_order.json";
-import { compareVersions } from "../src/version";
+import { compareVersions } from "../src/version.mjs";
 
 describe("应用服务版本比较共用样例", () => {
   it.each(cases)(

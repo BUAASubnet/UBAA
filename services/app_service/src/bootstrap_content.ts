@@ -4,7 +4,7 @@ import {
   validateHttpsUrl,
   validateStableVersion,
 } from "./schema";
-import { compareVersions } from "./version";
+import { compareVersions } from "./version.mjs";
 
 export const CHANNELS_KEY = "channels";
 export const ANNOUNCEMENTS_KEY = "announcements";
