@@ -34,9 +34,11 @@ import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
 import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
+import 'account/campus_account_loader.dart';
+
 part 'shell_write.dart';
 part 'shell_navigation.dart';
-part 'account/campus_account_loader.dart';
+
 part 'shell_sync.dart';
 part 'bykc_preferences.dart';
 part 'preferences/recent_features.dart';
@@ -75,6 +77,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
     this.businessCacheEpoch = 0,
+    this.localPreferencesRevision = 0,
     this.cacheAccountId,
     this.canClearBusinessCache = true,
     this.onReadCacheUsage,
@@ -194,6 +197,7 @@ class UbaaMainShell extends StatefulWidget {
 
   final int readCacheEpoch;
   final int businessCacheEpoch;
+  final int localPreferencesRevision;
   final String? cacheAccountId;
   final bool canClearBusinessCache;
   final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
@@ -254,6 +258,13 @@ class UbaaMainShell extends StatefulWidget {
 }
 
 class _UbaaMainShellState extends State<UbaaMainShell> {
+  // 页面内容只随账号、路线策略和明确清理变化；网络请求代次独立推进。
+  int _contentEpoch = 0;
+  Object get _pageContentScope => (
+    widget.cacheAccountId ?? widget.user?.accountScope ?? widget.user?.username,
+    widget.routePolicy,
+    widget.businessCacheEpoch,
+  );
   List<FeatureId> _recentFeatures = [];
   int _recentRevision = 0;
   void _setRecentFeatures(List<FeatureId> value) {
@@ -299,12 +310,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  CampusAccountOverview? _campusOverview;
-  Future<void>? _campusRefresh;
-  DateTime? _campusRefreshedAt;
-  int _campusRevision = 0;
-  void _setCampusOverview(CampusAccountOverview value) =>
-      setState(() => _campusOverview = value);
+  late final _campusLoader = CampusAccountLoader(
+    service: widget.campusAccountService,
+    now: () => (widget.homeClock ?? clock).now(),
+    changed: () {
+      if (mounted) setState(() {});
+    },
+  );
   void _changeNavigation(VoidCallback change) => setState(change);
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
@@ -336,9 +348,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   void didUpdateWidget(covariant UbaaMainShell oldWidget) {
     super.didUpdateWidget(oldWidget);
+    Object? account(UbaaMainShell shell) =>
+        shell.cacheAccountId ??
+        shell.user?.accountScope ??
+        shell.user?.username;
     final accountChanged =
-        (oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
-        (widget.user?.accountScope ?? widget.user?.username);
+        account(oldWidget) != account(widget) ||
+        (widget.cacheAccountId == null &&
+            widget.user?.accountScope == null &&
+            oldWidget.user?.schoolId != null &&
+            widget.user?.schoolId != null &&
+            oldWidget.user?.schoolId != widget.user?.schoolId);
+    final contentChanged =
+        accountChanged ||
+        oldWidget.routePolicy != widget.routePolicy ||
+        oldWidget.businessCacheEpoch != widget.businessCacheEpoch;
+    if (contentChanged) _contentEpoch++;
     _updatePlaces(oldWidget, accountChanged);
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
@@ -351,12 +376,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           oldWidget.campusAccountService,
           widget.campusAccountService,
         )) {
-      _resetCampusAccount();
+      _resetCampusAccount(keepContent: !contentChanged);
       if (_onMeTab) {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => mounted ? _ensureCampusAccountLoaded() : null,
         );
       }
+    }
+    if (oldWidget.connecting && !widget.connecting && _onMeTab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _ensureCampusAccountLoaded();
+      });
     }
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
@@ -378,7 +408,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _utilityPage = null;
       _visiblePage.value = null;
     }
-    if (accountChanged || oldWidget.user?.schoolId != widget.user?.schoolId) {
+    if (accountChanged) {
       _recentRevision++;
       _recentFeatures = [];
       unawaited(_loadRecentFeatures());
@@ -386,11 +416,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _bykcFilterError = null;
       _bykcFilterRevision++;
       unawaited(_loadBykcFilters());
+    } else if (oldWidget.localPreferencesRevision !=
+        widget.localPreferencesRevision) {
+      _recentRevision++;
+      _bykcFilterRevision++;
+      _reminderRevision++;
+      unawaited(_loadRecentFeatures());
+      unawaited(_loadBykcFilters());
+      unawaited(_loadReminderSettings());
     }
   }
 
   Future<void> _loadReminderSettings() async {
     final generation = _accountGeneration;
+    final revision = _reminderRevision;
     final load = widget.onLoadYgdkReminder;
     if (load == null) {
       _reminderSettings = const YgdkReminderSettings();
@@ -399,12 +438,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
     try {
       final value = await load();
-      if (mounted && generation == _accountGeneration) {
+      if (mounted &&
+          generation == _accountGeneration &&
+          revision == _reminderRevision) {
         setState(() => _reminderSettings = value);
         widget.onHomeReminderChanged?.call(value);
       }
     } on Object {
-      if (mounted && generation == _accountGeneration)
+      if (mounted &&
+          generation == _accountGeneration &&
+          revision == _reminderRevision)
         setState(() => _reminderError = '提醒设置读取失败');
     }
   }
@@ -467,6 +510,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   @override
   void dispose() {
+    _campusLoader.dispose();
     _bhpanModalScope.value++;
     _bhpanModalScope.dispose();
     _visiblePage.dispose();
@@ -700,7 +744,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     },
     snapshot: widget.snapshots[feature]!,
     cacheEpoch: widget.readCacheEpoch,
-    businessCacheEpoch: widget.businessCacheEpoch,
+    businessCacheEpoch: _contentEpoch,
     onExit: () => setState(() => _openedFeature = null),
     onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
@@ -765,7 +809,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         onCgyyShowAll: () => setState(() => _cgyyOnlyAvailable = false),
         onSaveCgyyDefaults: widget.onSaveCgyyDefaults,
         onScheduleTitle: page.onScheduleTitle,
-        readCacheEpoch: widget.readCacheEpoch + widget.businessCacheEpoch,
+        readCacheEpoch: _contentEpoch,
         onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
             ? null
             : _startBykcWrite,

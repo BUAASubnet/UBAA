@@ -160,6 +160,9 @@ abstract class ControllerState extends ControllerOperations {
   @internal
   int internalBusinessCacheEpoch = 0;
 
+  @internal
+  int internalLocalDataGeneration = 0;
+
   bool get isClearingBusinessCache => internalClearingBusinessCache;
 
   bool get canClearBusinessCache =>
@@ -246,17 +249,23 @@ abstract class ControllerState extends ControllerOperations {
   AgendaFailure? get localAgendaFailure => internalAgendaFailure;
 
   @internal
-  ({SessionScope scope, String term, ConnectionMode? route})?
+  ({
+    String? accountId,
+    int routeGeneration,
+    String term,
+    ConnectionMode? route,
+  })?
   internalAgendaSchoolScope;
 
   /// 保留当前会话最后确认的学期，普通刷新不改变日程作用域。
   String get currentAgendaTerm {
     final school = internalAgendaSchoolScope;
     if (internalDisposed ||
-        internalReadTransitionBlocked ||
         internalPhase != AppPhase.home ||
         school == null ||
-        !school.scope.isCurrent)
+        school.accountId !=
+            (internalLocalAccount?.id ?? internalUser?.username) ||
+        school.routeGeneration != internalRoutePolicyGeneration)
       return '';
     return school.term;
   }
@@ -521,10 +530,13 @@ abstract class ControllerState extends ControllerOperations {
 final class LocalDataOwnerScope {
   @internal
   LocalDataOwnerScope.capture(this._controller)
-    : _epoch = _controller.internalLifecycleEpoch,
-      accountKey = _controller.internalUser?.schoolId?.trim().isNotEmpty == true
-          ? _controller.internalUser!.schoolId!
-          : (_controller.internalUser?.username ?? ''),
+    : _epoch = _controller.internalLocalDataGeneration,
+      _accountId = _controller.internalLocalAccount?.id,
+      accountKey =
+          _controller.internalLocalAccount?.username ??
+          (_controller.internalUser?.schoolId?.trim().isNotEmpty == true
+              ? _controller.internalUser!.schoolId!
+              : (_controller.internalUser?.username ?? '')),
       identities = Set.unmodifiable(
         {
           _controller.internalLocalAccount?.username,
@@ -535,6 +547,7 @@ final class LocalDataOwnerScope {
 
   final ControllerState _controller;
   final int _epoch;
+  final String? _accountId;
   final String accountKey;
   final Set<String> identities;
 
@@ -543,7 +556,14 @@ final class LocalDataOwnerScope {
     if (c.internalDisposed ||
         c.internalIsSigningOut ||
         c.internalPhase != AppPhase.home ||
-        c.internalLifecycleEpoch != _epoch) {
+        c.internalUser == null ||
+        c.internalLocalDataGeneration != _epoch ||
+        c.internalLocalAccount?.id != _accountId ||
+        (_accountId == null &&
+            (c.internalUser?.schoolId?.trim().isNotEmpty == true
+                    ? c.internalUser!.schoolId!
+                    : c.internalUser?.username) !=
+                accountKey)) {
       throw const BackendException(UbaaErrorCode.operationConflict);
     }
   }

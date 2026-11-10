@@ -53,8 +53,7 @@ mixin ControllerHomePresentation on ControllerState {
         internalRoutePolicyGeneration,
       ),
       contentScope: (
-        internalLocalAccount?.id,
-        internalUser?.username,
+        internalLocalAccount?.id ?? internalUser?.username,
         internalBusinessCacheEpoch,
         internalRoutePolicyGeneration,
       ),
@@ -62,9 +61,10 @@ mixin ControllerHomePresentation on ControllerState {
       epoch: internalReadCacheEpoch,
       agenda: internalAgendaEpoch,
       active:
-          internalPhase == AppPhase.home ||
-          (internalPhase == AppPhase.checkingSession &&
-              internalLocalAccount != null),
+          !internalIsSigningOut &&
+          (internalPhase == AppPhase.home ||
+              (internalPhase == AppPhase.checkingSession &&
+                  internalLocalAccount != null)),
       online:
           _homeVisible &&
           internalPhase == AppPhase.home &&

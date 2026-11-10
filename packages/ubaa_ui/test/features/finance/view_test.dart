@@ -56,17 +56,76 @@ class Service implements FinanceService {
   }
 }
 
-Future<void> pump(WidgetTester tester, FinanceService? service) async {
+Future<void> pump(
+  WidgetTester tester,
+  FinanceService? service, {
+  Object? scopeKey,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ThemeData(platform: TargetPlatform.macOS),
-      home: Scaffold(body: FinanceView(service: service)),
+      home: Scaffold(
+        body: FinanceView(service: service, scopeKey: scopeKey),
+      ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('连接恢复期间立即展示财务缓存，连接就绪后在线刷新', (tester) async {
+    final records = snapshot([income('cached')], fromCache: true);
+    final service = Service()
+      ..onCached = (() async => records)
+      ..onRefresh = () async => records;
+    Future<void> mount(bool connecting) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FinanceView(
+            service: service,
+            scopeKey: 'same-account',
+            connecting: connecting,
+          ),
+        ),
+      ),
+    );
+    await mount(true);
+    await tester.pumpAndSettle();
+    expect(find.text('国家助学金'), findsOneWidget);
+    expect(service.refreshes, 0);
+    await mount(false);
+    await tester.pumpAndSettle();
+    expect(find.text('国家助学金'), findsOneWidget);
+    expect(service.refreshes, 1);
+  });
+
+  testWidgets('同账号重建服务期间保留财务记录与年份选择', (tester) async {
+    final records = snapshot([
+      income('new'),
+      income('old', year: '2025', month: '12', description: '历史合成收入'),
+    ]);
+    final first = Service()..onRefresh = () async => records;
+    await pump(tester, first, scopeKey: 'same-account');
+    await tester.tap(find.widgetWithText(ChoiceChip, '2025年'));
+    await tester.pumpAndSettle();
+    final pending = Completer<FinanceSnapshot>();
+    final second = Service()..onRefresh = () => pending.future;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: Scaffold(
+          body: FinanceView(service: second, scopeKey: 'same-account'),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('历史合成收入'), findsOneWidget);
+    expect(find.text('2025年实发合计'), findsOneWidget);
+    pending.complete(records);
+    await tester.pumpAndSettle();
+    expect(find.text('2025年实发合计'), findsOneWidget);
+  });
+
   test('金额按整数分显示千分位，缺失与零值分开', () {
     expect(financeYuan(123456789), '¥1,234,567.89');
     expect(financeYuan(5), '¥0.05');

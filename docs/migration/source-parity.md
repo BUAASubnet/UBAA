@@ -1247,4 +1247,13 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 |---|---|---|---|---|---|---|
 | 用户资料读取与缓存 | 旧版 UC 激活后读取 `https://uc.buaa.edu.cn/api/uc/userinfo`，保留“用户资料”九列矩阵的既有引导、最终地址与重定向规则。buaa-api 只有 UC status 与激活接口，没有等价 userinfo 操作，其资料协议列不适用。 | 沿当前 Core 的 SSO 验票、响应身份核对及路线会话隔离。展示缓存不提供认证身份或写资格。 | 旧版 GET，无查询参数、请求正文或额外加密；当前请求、头及编码保持。buaa-api 不适用。 | 旧版 nullable String 的 username/name/schoolid/phone/email 与已有 Bridge 投影一致。只缓存这五个展示字段；手机、邮箱保留上游返回值，不推测被遮盖部分。证件号码、证件类型与原始响应不进入新增载荷。 | 在现有 AES-GCM 账号缓存中新增 DisplayProfile 标签，SQLite schema v8 不变；旧 MaskedProfile 可读，新在线成功结果保存展示投影。复用请求票据、成功时间、调度与重试。旧版和示例均无等价加密离线投影，持久化策略为本产品决定。 | 保留既有身份冲突、退出与迟到结果处理。普通读取失败保留上次内容。首次升级的旧遮罩资料在成功在线刷新后更新为展示资料。 |
 
-本轮其余调整只改变已取得资料、页面状态和本地偏好的持有方式，不增加学校接口、参数或自动写入。
+同账号分页恢复沿已有查询重新读取已展示的页数，整批成功后替换列表。逐操作复用下表所链接的九列协议，CAS/引导、重定向、Cookie/令牌范围、方法与参数、请求头与编码、加密、DTO 和错误映射均保持；变化只在 UI 的只读查询顺序与展示缓存。旧内容在恢复期间撤销动作资格，失败或页码不前进时保留旧列表并等待手动重试。
+
+| 操作 | 本次核对的冻结实现 | 现有完整协议对照 |
+|---|---|---|
+| 博雅课程列表 | 旧版 `LocalBykcApi.getCourses/queryStudentSemesterCourseByPage` 与 buaa-api `boya/opt.rs::query_courses` 均使用 `pageNumber/pageSize`；筛选、加密及返回映射沿当前 Core。 | [博雅课程只读查询](#博雅课程只读查询) |
+| 场馆订单 | 旧版 `LocalCgyyApi.getMyOrders/getMineOrders` 使用 GET `/api/orders/mine` 和 page/size，保留零基请求与 UI 一基页码的既有转换。buaa-api 无同等模块，协议列不适用。 | [场馆预约只读查询](#场馆预约只读查询) |
+| 图书馆预约 | 旧版 `LocalLibBookApi.getBookings` 使用 `member/seat`，正文 type/page/limit，保留 current_page/per_page/total 解析。buaa-api 无同等模块，协议列不适用。 | [图书馆座位只读查询](#图书馆座位只读查询) |
+| 阳光打卡记录 | 旧版 `LocalYgdkApi.getRecords/fetchRecords` 使用 page/limit/classify_id/user_id 和既有表单入口，保留分页与 hasMore 计算。buaa-api 无同等模块，协议列不适用。 | [阳光打卡只读查询](#阳光打卡只读查询) |
+
+其余调整改变已取得资料、页面状态和本地偏好的持有方式，不增加学校接口、参数或自动写入。

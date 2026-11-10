@@ -12,6 +12,11 @@ abstract interface class PreferenceValues {
   Future<void> remove(String key);
 }
 
+/// 将旧学号键中的普通偏好移到本机账号的稳定键。
+abstract interface class AccountPreferenceMigration {
+  Future<bool> migrateAccount(String previous, String current);
+}
+
 final class PluginPreferenceValues implements PreferenceValues {
   PluginPreferenceValues({bool? isOhos})
     : _isOhos = isOhos ?? Platform.operatingSystem == 'ohos';
@@ -88,6 +93,19 @@ final class AccountPreferences<T> {
   }
 
   Future<T?> read(String account) => _serial(account, _read);
+  Future<bool> migrateAccount(String previous, String current) {
+    if (previous == current) return Future.value(false);
+    return _serial(current, (key) async {
+      final oldKey = _key(previous);
+      final old = await _read(oldKey);
+      if (old == null) return false;
+      final exists = await _read(key) != null;
+      if (!exists) await values.write(key, jsonEncode(encode(old)));
+      await values.remove(oldKey);
+      return !exists;
+    });
+  }
+
   Future<void> write(String account, T value) => _serial(account, (key) async {
     await _read(key); // 损坏偏好不被普通保存静默覆盖。
     await values.write(key, jsonEncode(encode(value)));

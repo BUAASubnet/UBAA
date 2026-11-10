@@ -6,6 +6,17 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
+  test('同一本机账号恢复学号后保持偏好存储键', () async {
+    final backend = _Backend()..schoolId = 'school-fixture';
+    final controller = await setup(backend);
+    final before = controller.localDataOwnerScope.accountKey;
+    await controller.recoverSession();
+    expect(controller.localDataOwnerScope.accountKey, before);
+    expect(
+      controller.localDataOwnerScope.identities,
+      contains('school-fixture'),
+    );
+  });
   test('首页磁盘读取挂起不阻塞独立遮罩资料', () async {
     final backend = _Backend()..homeGate = Completer<void>();
     final controller = await setup(backend);
@@ -218,9 +229,13 @@ class _Backend extends support.FakeRecoveryBackend
   Future<WriteCommitResult> commitWrite(String intentId) async =>
       throw StateError('资料测试禁止学校写入');
   String? manualName;
+  String? schoolId;
   @override
-  Future<UserSummary?> userInfo() async =>
-      UserSummary(username: username, displayName: manualName);
+  Future<UserSummary?> userInfo() async => UserSummary(
+    username: username,
+    displayName: manualName,
+    schoolId: schoolId,
+  );
   LocalAccount? account;
   Completer<void>? diskGate, homeGate;
   Completer<ProfileRefresh>? freshGate;

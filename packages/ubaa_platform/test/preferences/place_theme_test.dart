@@ -3,6 +3,25 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../support/preference_fake.dart';
 
 void main() {
+  test('学号偏好迁移到稳定账号键，不覆盖新选择且清理后不复活', () async {
+    final values = FakePreferences();
+    final store = PlacePreferenceStore(
+      scope: '迁移',
+      allowedKeys: {'campus'},
+      values: values,
+    );
+    await store.write('school', {'campus': '沙河'});
+    expect(await store.migrateAccount('school', 'login'), isTrue);
+    expect(await store.read('login'), {'campus': '沙河'});
+    expect(await store.read('school'), isEmpty);
+    await store.write('school', {'campus': '学院路'});
+    expect(await store.migrateAccount('school', 'login'), isFalse);
+    expect(await store.read('login'), {'campus': '沙河'});
+    await store.clearAccount('login');
+    expect(await store.migrateAccount('school', 'login'), isFalse);
+    expect(await store.read('login'), isEmpty);
+  });
+
   test('地点跨实例恢复、账号隔离、白名单拒绝和清除', () async {
     final values = FakePreferences();
     PlacePreferenceStore store() => PlacePreferenceStore(

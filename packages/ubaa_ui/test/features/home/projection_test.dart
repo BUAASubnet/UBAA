@@ -161,7 +161,7 @@ void main() {
     });
   }
 
-  testWidgets('首次投影前与被取代的投影不显示没有待办，取代后自动重算；切换路线清空', (tester) async {
+  testWidgets('首次投影前占位，投影被取代与补登录暂停期间保留已有内容', (tester) async {
     final gate = Completer<void>();
     var conflicts = 1;
     Future<HomeTodoProjection> flaky(HomeTodoRequest r) async {
@@ -251,10 +251,10 @@ void main() {
     await tester.pump();
     expect(find.text('缓存考试'), findsOneWidget);
 
-    // 切换路线等身份过渡时宿主暂停投影：旧路线待办不再显示，改为占位。
+    // 同账号补登录暂停投影，继续显示已取得的待办。
     rebuild(() => reader = null);
     await tester.pump();
-    expect(find.text('缓存考试'), findsNothing);
+    expect(find.text('缓存考试'), findsOneWidget);
     expect(find.text('当前没有待办'), findsNothing);
     rebuild(() => reader = homeTodoFixture);
     await tester.pumpAndSettle();

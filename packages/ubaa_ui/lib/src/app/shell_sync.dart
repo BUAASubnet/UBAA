@@ -1,6 +1,20 @@
 part of 'shell.dart';
 
 extension UbaaShellSync on _UbaaMainShellState {
+  CampusAccountOverview? get _campusOverview => _campusLoader.overview;
+  bool get _onMeTab =>
+      _utilityPage == null &&
+      _openedFeature == null &&
+      _selectedIndex == UiDestination.me.index;
+  void _resetCampusAccount({bool keepContent = false}) =>
+      _campusLoader.bind(widget.campusAccountService, keepContent: keepContent);
+  void _ensureCampusAccountLoaded() {
+    _campusLoader.ensure(online: !widget.connecting);
+  }
+
+  Future<void> _refreshCampusAccount() =>
+      widget.connecting ? Future.value() : _campusLoader.refresh();
+
   /// 标题栏右侧的统一刷新状态：功能页、首页和“我的”各自给出刷新中与更新时间。
   Widget _buildSyncStatus(Future<void> Function()? refresh) {
     Widget status(Object key, bool busy, DateTime? updatedAt) =>

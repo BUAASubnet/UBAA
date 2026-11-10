@@ -226,7 +226,8 @@ mixin ControllerHomeSources on ControllerState {
           final week = stable.details.single.presentation;
           if (week is WeekPresentation) {
             internalAgendaSchoolScope = (
-              scope: internalCaptureSessionScope(),
+              accountId: internalLocalAccount?.id ?? internalUser?.username,
+              routeGeneration: internalRoutePolicyGeneration,
               term: week.responseTerm,
               route: stable.resolvedRoute,
             );

@@ -39,6 +39,52 @@ HomeView home(WidgetTester tester) =>
     tester.widget<HomeView>(find.byType(HomeView, skipOffstage: false));
 
 void main() {
+  testWidgets('同一本机账号资料更新保留常用功能，不重新读取偏好', (tester) async {
+    var reads = 0;
+    final profile = ValueNotifier(
+      const UserSummary(
+        username: 'f***r',
+        schoolId: 'T***1',
+        accountScope: 'local-fixture',
+      ),
+    );
+    addTearDown(profile.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<UserSummary>(
+          valueListenable: profile,
+          builder: (_, user, _) => UbaaMainShell(
+            user: user,
+            snapshots: {
+              for (final f in FeatureId.values) f: FeatureSnapshot(feature: f),
+            },
+            routePolicy: RoutePolicy.auto,
+            telemetryEnabled: false,
+            onRefresh: () async {},
+            onRetryFeature: (_) async {},
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+            onLoadRecentFeatures: () async {
+              reads++;
+              return [FeatureId.grades, FeatureId.exam];
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    profile.value = const UserSummary(
+      username: 'fixture-user',
+      schoolId: 'TEST-0001',
+      accountScope: 'local-fixture',
+    );
+    await tester.pump();
+    expect(home(tester).recentFeatures, [FeatureId.grades, FeatureId.exam]);
+    expect(reads, 1);
+  });
+
   testWidgets('迟到恢复合并到本轮访问之后，重复入口只保留最近位置', (tester) async {
     final pending = Completer<List<FeatureId>>();
     final saved = <List<FeatureId>>[];

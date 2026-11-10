@@ -22,7 +22,8 @@ final class MemoryRecentFeatureStore implements RecentFeatureStore {
   Future<void> clearAccount(String account) async => _values.remove(account);
 }
 
-final class PreferencesRecentFeatureStore implements RecentFeatureStore {
+final class PreferencesRecentFeatureStore
+    implements RecentFeatureStore, AccountPreferenceMigration {
   PreferencesRecentFeatureStore({
     required String scope,
     PreferenceValues? values,
@@ -44,6 +45,10 @@ final class PreferencesRecentFeatureStore implements RecentFeatureStore {
       value.map((v) => byName[v]).whereType<FeatureId>().toSet().take(4),
     );
   }
+
+  @override
+  Future<bool> migrateAccount(String previous, String current) =>
+      _store.migrateAccount(previous, current);
 
   @override
   Future<List<FeatureId>> read(String account) async =>

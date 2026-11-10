@@ -25,7 +25,8 @@ final class MemoryYgdkReminderStore implements YgdkReminderStore {
 }
 
 /// 只持久保存提醒偏好，不承担系统通知调度。
-final class PreferencesYgdkReminderStore implements YgdkReminderStore {
+final class PreferencesYgdkReminderStore
+    implements YgdkReminderStore, AccountPreferenceMigration {
   PreferencesYgdkReminderStore({
     required String scope,
     PreferenceValues? values,
@@ -55,6 +56,10 @@ final class PreferencesYgdkReminderStore implements YgdkReminderStore {
       termDoneKey: value['termDoneKey'] as String?,
     );
   }
+
+  @override
+  Future<bool> migrateAccount(String previous, String current) =>
+      _store.migrateAccount(previous, current);
 
   @override
   Future<YgdkReminderSettings> read(String account) async =>

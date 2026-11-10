@@ -62,7 +62,9 @@ extension UbaaShellNavigation on _UbaaMainShellState {
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == '北航云盘'
             ? BhpanView(
-                key: ValueKey((widget.cacheAccountId, widget.routePolicy)),
+                key: ValueKey(_pageContentScope),
+                scopeKey: _pageContentScope,
+                connecting: widget.connecting,
                 backHandle: _bhpanBack,
                 access: BhpanAccess(
                   service: widget.bhpanService,
@@ -74,16 +76,16 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               )
             : _utilityPage == 'iHome'
             ? IhomeView(
-                key: ValueKey(
-                  widget.cacheAccountId ?? widget.user?.accountScope,
-                ),
+                key: ValueKey(_pageContentScope),
+                scopeKey: _pageContentScope,
+                connecting: widget.connecting,
                 service: widget.ihomeService,
               )
             : _utilityPage == '财务查询'
             ? FinanceView(
-                key: ValueKey(
-                  widget.cacheAccountId ?? widget.user?.accountScope,
-                ),
+                key: ValueKey(_pageContentScope),
+                scopeKey: _pageContentScope,
+                connecting: widget.connecting,
                 service: widget.financeService,
               )
             : _utilityPage == '关于'

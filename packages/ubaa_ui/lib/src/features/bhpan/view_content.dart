@@ -21,22 +21,22 @@ extension _BhpanContent on _BhpanViewState {
         title: '云盘登录已失效',
         detail: _message(error),
         action: '重新登录云盘',
-        onAction: _loading ? null : () => _load(reconnect: true),
+        onAction: _loading ? null : () => _load(reconnect: true, keep: true),
       ),
       UbaaErrorCode.authenticationRequired ||
       UbaaErrorCode.invalidCredentials => UiStatePanel(
         icon: Icons.lock_outline,
         title: '云盘登录已失效',
-        detail: '重新登录后会回到个人文档库',
+        detail: '重新登录后恢复当前目录',
         action: '重新登录云盘',
-        onAction: _loading ? null : () => _load(reconnect: true),
+        onAction: _loading ? null : () => _load(reconnect: true, keep: true),
       ),
       UbaaErrorCode.permissionDenied => UiStatePanel(
         icon: Icons.block,
         title: '没有权限访问这里',
         detail: _message(error),
         action: '重试',
-        onAction: _loading ? null : _load,
+        onAction: _loading ? null : _refresh,
       ),
       UbaaErrorCode.networkError ||
       UbaaErrorCode.timeout ||
@@ -45,20 +45,20 @@ extension _BhpanContent on _BhpanViewState {
         title: '暂时连不上北航云盘',
         detail: '请检查网络后重试',
         action: '重试',
-        onAction: _loading ? null : _load,
+        onAction: _loading ? null : _refresh,
       ),
       _ => UiStatePanel(
         icon: Icons.cloud_off_outlined,
         title: '文件夹读取失败',
         detail: _message(error),
         action: '重试',
-        onAction: _loading ? null : _load,
+        onAction: _loading ? null : _refresh,
       ),
     };
   }
 
   Widget _content(List<BhpanItem> items, bool selecting) {
-    if (_error case final error?)
+    if (_error case final error? when _page == null || items.isEmpty)
       return PullToRefresh(
         onRefresh: _refresh,
         child: RefreshViewport(child: _errorPanel(error)),
@@ -87,7 +87,12 @@ extension _BhpanContent on _BhpanViewState {
       onRefresh: _refresh,
       child: ListView.builder(
         key: ValueKey(
-          '${_base.view}/${_base.root}/${_base.link}/${_trail.map((f) => f.handle).join('/')}',
+          jsonEncode([
+            _base.view.name,
+            _base.root.name,
+            _base.link,
+            for (final folder in _trail) [folder.name, folder.scope.name],
+          ]),
         ),
         padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
         itemCount: items.length + 1,

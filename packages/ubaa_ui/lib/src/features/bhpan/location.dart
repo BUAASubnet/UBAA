@@ -243,3 +243,42 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
     return boundary == null ? sheet : boundary(sheet);
   },
 );
+
+/// 同账号会话重建后沿原路径重新取得当前客户端的目录句柄。
+Future<(BhpanPage, List<BhpanItem>, BhpanRead)?> restoreBhpanLocation(
+  BhpanService service,
+  BhpanRead base,
+  List<BhpanItem> previous,
+  bool Function() current,
+) async {
+  final trail = <BhpanItem>[];
+  var query = base;
+  var result = await service.read(query);
+  if (previous.isEmpty &&
+      base.view == BhpanReadView.personalRoot &&
+      result.items.length == 1) {
+    previous.add(result.items.single);
+  }
+  for (final folder in previous) {
+    if (!current()) return null;
+    final matches = result.items
+        .where(
+          (item) =>
+              item.isFolder &&
+              item.name == folder.name &&
+              item.scope == folder.scope,
+        )
+        .toList();
+    if (matches.length != 1) {
+      throw const UiError(
+        code: UbaaErrorCode.operationConflict,
+        title: '目录位置已变化',
+        message: '无法恢复原目录，请返回上一级或重试',
+      );
+    }
+    trail.add(matches.single);
+    query = BhpanRead(BhpanReadView.directory, target: matches.single.handle);
+    result = await service.read(query);
+  }
+  return (result, trail, query);
+}

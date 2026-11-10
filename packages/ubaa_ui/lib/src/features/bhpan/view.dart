@@ -1,5 +1,6 @@
 import '../../theme.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../shared/loading.dart';
 import '../../common/search_field.dart';
@@ -64,9 +65,17 @@ enum BhpanSortKey { name, modified, size }
 
 /// 校园与空间指标共用的云盘页面。
 class BhpanView extends StatefulWidget {
-  const BhpanView({required this.access, this.backHandle, super.key});
+  const BhpanView({
+    required this.access,
+    this.backHandle,
+    this.scopeKey,
+    this.connecting = false,
+    super.key,
+  });
   final BhpanAccess access;
   final BhpanBackHandle? backHandle;
+  final Object? scopeKey;
+  final bool connecting;
   @override
   State<BhpanView> createState() => _BhpanViewState();
 }
@@ -88,6 +97,7 @@ class _BhpanViewState extends State<BhpanView> {
   final _searchFocus = FocusNode(debugLabel: 'bhpan-search');
   bool _searchVisible = false;
   bool _loading = false, _working = false;
+  bool _needsLocationRecovery = false;
   BhpanSortKey _sort = BhpanSortKey.name;
   bool _ascending = true;
   int _generation = 0;
@@ -102,15 +112,19 @@ class _BhpanViewState extends State<BhpanView> {
   Timer? _progressTimer, _progressHide;
   BhpanService? get _service => widget.access.service;
   bool get _writable =>
-      widget.access.runWrite != null && !_working && !_loading;
-  bool get _busy => _loading || _working;
+      widget.access.runWrite != null &&
+      !_working &&
+      !_loading &&
+      !widget.connecting &&
+      !_needsLocationRecovery;
+  bool get _busy => _loading || _working || widget.connecting;
   bool get _received => _base.view == BhpanReadView.receivedShare;
 
   @override
   void initState() {
     super.initState();
     widget.backHandle?._handler = _handleBack;
-    unawaited(_load());
+    if (!widget.connecting) unawaited(_load());
   }
 
   @override
@@ -121,7 +135,12 @@ class _BhpanViewState extends State<BhpanView> {
         old.backHandle?._handler = null;
       widget.backHandle?._handler = _handleBack;
     }
-    if (!identical(old.access.service, _service)) {
+    if (!identical(old.access.service, _service) ||
+        old.scopeKey != widget.scopeKey ||
+        (old.connecting && !widget.connecting)) {
+      final sameAccount =
+          widget.scopeKey != null && old.scopeKey == widget.scopeKey;
+      _needsLocationRecovery = sameAccount && _trail.isNotEmpty;
       _scope.value++;
       _mutationActivity = null;
       _working = false;
@@ -131,13 +150,15 @@ class _BhpanViewState extends State<BhpanView> {
       _progress = null;
       _batchResults = null;
       _generation++;
-      _page = null;
-      _trail.clear();
       _selected.clear();
-      _clearSearch();
-      _rootKind = BhpanRootKind.personal;
-      _base = _query = const BhpanRead(BhpanReadView.personalRoot);
-      unawaited(_load());
+      if (!sameAccount) {
+        _page = null;
+        _trail.clear();
+        _clearSearch();
+        _rootKind = BhpanRootKind.personal;
+        _base = _query = const BhpanRead(BhpanReadView.personalRoot);
+      }
+      if (!widget.connecting) unawaited(_load(keep: sameAccount));
     }
   }
 
@@ -191,7 +212,7 @@ class _BhpanViewState extends State<BhpanView> {
   /// [keep] 为 true 时保留当前列表（刷新、写入后回读），否则显示骨架。
   Future<void> _load({bool reconnect = false, bool keep = false}) async {
     final service = _service;
-    if (service == null) return;
+    if (service == null || widget.connecting) return;
     final generation = ++_generation;
     setState(() {
       _loading = true;
@@ -202,10 +223,31 @@ class _BhpanViewState extends State<BhpanView> {
     try {
       if (reconnect) {
         await service.login();
-        _trail.clear();
-        _query = _base;
+        _needsLocationRecovery = true;
       }
       if (!_current(generation)) return;
+      if (_needsLocationRecovery) {
+        final restored = await restoreBhpanLocation(
+          service,
+          _base,
+          List.of(_trail),
+          () => _current(generation),
+        );
+        if (restored == null || !_current(generation)) return;
+        setState(() {
+          _page = restored.$1;
+          _trail
+            ..clear()
+            ..addAll(restored.$2);
+          _query = restored.$3;
+          _baseDepth =
+              _base.view == BhpanReadView.personalRoot && _trail.isNotEmpty
+              ? 1
+              : 0;
+          _needsLocationRecovery = false;
+        });
+        return;
+      }
       var result = await service.read(_query);
       if (!_current(generation)) return;
       if (_query.view == BhpanReadView.personalRoot) {
@@ -225,7 +267,7 @@ class _BhpanViewState extends State<BhpanView> {
       if (_current(generation))
         setState(() {
           _error = e;
-          _page = null;
+          if (!keep) _page = null;
         });
     } finally {
       if (_current(generation)) setState(() => _loading = false);
@@ -235,7 +277,10 @@ class _BhpanViewState extends State<BhpanView> {
   Future<void> _refresh() => _load(keep: true);
 
   Future<void> _open(BhpanItem item) async {
-    if (!item.isFolder || item.scope == BhpanScope.recycle) return;
+    if (!item.isFolder ||
+        item.scope == BhpanScope.recycle ||
+        _needsLocationRecovery)
+      return;
     _trail.add(item);
     _query = BhpanRead(BhpanReadView.directory, target: item.handle);
     _clearSearch();
@@ -272,6 +317,7 @@ class _BhpanViewState extends State<BhpanView> {
   }
 
   Future<void> _switchLibrary(BhpanRootKind kind) async {
+    _needsLocationRecovery = false;
     _rootKind = kind;
     _trail.clear();
     _baseDepth = 0;
@@ -885,15 +931,20 @@ class _BhpanViewState extends State<BhpanView> {
     );
   }
 
-  Widget _footer(int count) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    child: Text(
-      _filter.isNotEmpty ? '找到 $count 项' : '共 $count 项',
-      textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.outline,
+  Widget _footer(int count) => Column(
+    children: [
+      if (_error case final error?) _errorPanel(error),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          _filter.isNotEmpty ? '找到 $count 项' : '共 $count 项',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.outline,
+          ),
+        ),
       ),
-    ),
+    ],
   );
 
   Widget _row(BhpanItem item, bool selecting) {
@@ -904,7 +955,7 @@ class _BhpanViewState extends State<BhpanView> {
       item: item,
       selecting: selecting,
       selected: _selected.contains(item.handle),
-      enabled: !_busy,
+      enabled: !_busy && !_needsLocationRecovery,
       onTap: selecting
           ? toggle
           : () => item.isFolder ? _open(item) : _tapFile(item),

@@ -3,9 +3,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/common/read_navigator.dart';
 import '../support/navigation.dart';
 
 void main() {
+  testWidgets('同账号后台刷新保留分页内容、滚动位置和当前查询', (tester) async {
+    final key = GlobalKey<_HarnessState>();
+    tester.view.physicalSize = const Size(800, 500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: _Harness(key: key),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.bykc);
+    final list = find.byType(ListView).last;
+    await tester.drag(list, const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    final scroll = find
+        .descendant(of: list, matching: find.byType(Scrollable))
+        .first;
+    final position = tester.state<ScrollableState>(scroll).position.pixels;
+    final state = key.currentState!;
+    final reads = state.requests.length;
+    state.sessionRefresh();
+    await tester.pumpAndSettle();
+    expect(state.requests.length, reads);
+    expect(
+      tester.state<ScrollableState>(scroll).position.pixels,
+      closeTo(position, 1),
+    );
+    expect(find.text('列表需要更新'), findsNothing);
+    await state.read(FeatureId.bykc, state.requests.last);
+    await tester.pumpAndSettle();
+    expect(
+      tester.state<ScrollableState>(scroll).position.pixels,
+      closeTo(position, 1),
+      reason: '恢复响应到达后也必须保留多页列表的滚动位置',
+    );
+    final restored = tester.state<FeatureReadNavigatorState>(
+      find.byType(FeatureReadNavigator),
+    );
+    expect(restored.currentFrame.snapshot.details, hasLength(20));
+    expect(
+      restored.currentFrame.snapshot.details.every(
+        (item) => item.title.startsWith('新项目'),
+      ),
+      isTrue,
+    );
+  });
+
   testWidgets('滚动追加保留前页，失败显式重试，详情返回保留位置，刷新重置首屏', (tester) async {
     final key = GlobalKey<_HarnessState>();
     tester.view.physicalSize = const Size(800, 500);
@@ -63,7 +114,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('追加在途重复滚动只请求一次，缓存失效拒绝迟到追加', (tester) async {
+  testWidgets('追加在途重复滚动只请求一次，清理缓存拒绝迟到追加并等待显式刷新', (tester) async {
     final key = GlobalKey<_HarnessState>();
     tester.view.physicalSize = const Size(800, 500);
     tester.view.devicePixelRatio = 1;
@@ -91,6 +142,10 @@ void main() {
     state.gate!.complete();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    expect(state.requests.map((q) => q.page), [2]);
+    expect(find.text('项目10'), findsNothing);
+    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.pumpAndSettle();
     expect(state.requests.map((q) => q.page), [2, 1, 2]);
     expect(find.text('新项目0'), findsOneWidget);
     expect(find.text('项目10'), findsNothing, reason: '迟到的旧代次不能进入新列表');
@@ -108,7 +163,7 @@ class _HarnessState extends State<_Harness> {
   final requests = <FeatureQuery>[];
   Completer<void>? gate;
   bool failNext = false;
-  int revision = 0, epoch = 0;
+  int revision = 0, epoch = 0, contentEpoch = 0;
   late FeatureSnapshot snapshot = result(const FeatureQuery());
   FeatureSnapshot result(FeatureQuery query) => FeatureSnapshot(
     feature: FeatureId.bykc,
@@ -149,7 +204,9 @@ class _HarnessState extends State<_Harness> {
   );
   void invalidate() => setState(() {
     epoch++;
+    contentEpoch++;
   });
+  void sessionRefresh() => setState(() => epoch++);
   Future<void> read(FeatureId id, FeatureQuery query) async {
     requests.add(query);
     revision++;
@@ -181,6 +238,7 @@ class _HarnessState extends State<_Harness> {
   Widget build(BuildContext context) => UbaaMainShell(
     user: const UserSummary(username: 'synthetic'),
     readCacheEpoch: epoch,
+    businessCacheEpoch: contentEpoch,
     snapshots: {
       for (final id in FeatureId.values)
         id: id == FeatureId.bykc ? snapshot : FeatureSnapshot(feature: id),

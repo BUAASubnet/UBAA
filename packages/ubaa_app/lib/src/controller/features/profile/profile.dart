@@ -51,6 +51,7 @@ mixin ControllerProfile on ControllerState {
       final value = read.profile;
       if (value != null &&
           value.accountId == account.id &&
+          internalProfileDisplay?.accountScope != account.id &&
           !internalHasFreshProfile) {
         final display = value.toDisplay();
         internalProfileDisplay = internalProfileFailureEpoch == epoch

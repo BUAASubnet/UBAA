@@ -10,6 +10,7 @@ void update(
   Object owner = 'account',
   Object? contentScope,
   bool online = false,
+  bool blocked = false,
   bool readDays = false,
   int epoch = 0,
   Map<FeatureId, FeatureSnapshot>? sources,
@@ -23,7 +24,7 @@ void update(
   agenda: revision,
   active: true,
   online: online,
-  blocked: false,
+  blocked: blocked,
   foreground: false,
   readDays: readDays,
 );
@@ -100,6 +101,11 @@ void main() {
     update(model, sources: sources, revision: 1);
     await model.flushProjection();
     expect(model.state.todos.single.signinAction, same(action));
+    update(model, sources: sources, blocked: true);
+    expect(model.state.todos.single.title, todo.title);
+    expect(model.state.todos.single.signinAction, isNull);
+    update(model, sources: sources);
+    await model.flushProjection();
     pending = Completer<HomeTodoProjection>();
     update(model, sources: sources, epoch: 1);
     expect(model.state.todos.single.signinAction, isNull);

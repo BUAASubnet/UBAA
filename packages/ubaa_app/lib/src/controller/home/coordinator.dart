@@ -108,10 +108,13 @@ final class HomeCoordinator {
     final daysReady = readDays && !_readDays;
     _readDays = readDays;
     _active = active;
-    _online = online;
-    if (blocked && !_blocked) {
+    if (!active) {
       _todos = const [];
       _projected = false;
+    }
+    _online = online;
+    if (blocked && !_blocked) {
+      _todos = _todos.map((todo) => todo.withoutSigninAction()).toList();
     }
     _blocked = blocked;
     _snapshots = Map.of(snapshots);

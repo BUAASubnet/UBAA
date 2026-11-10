@@ -36,7 +36,7 @@ final class MemoryCgyyReservationDefaultsStore
 
 /// 按用户选择与普通偏好同等保存；账号作用域由统一偏好层隔离。
 final class PreferencesCgyyReservationDefaultsStore
-    implements CgyyReservationDefaultsStore {
+    implements CgyyReservationDefaultsStore, AccountPreferenceMigration {
   PreferencesCgyyReservationDefaultsStore({
     required String scope,
     PreferenceValues? values,
@@ -94,6 +94,10 @@ final class PreferencesCgyyReservationDefaultsStore
       throw const CgyyReservationDefaultsStoreException();
     }
   }
+
+  @override
+  Future<bool> migrateAccount(String previous, String current) =>
+      _store.migrateAccount(previous, current);
 
   @override
   Future<CgyyReservationDefaults?> read(String account) =>

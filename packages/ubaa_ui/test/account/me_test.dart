@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/app/account/campus_account_loader.dart';
 
 class _FakeCampusService implements CampusAccountService {
   int calls = 0;
   bool failNetwork = false;
   CampusAccountSnapshot snapshot = const CampusAccountSnapshot();
   Completer<void>? gate;
+  Completer<CampusAccountSnapshot>? cacheGate;
   final _at = DateTime.utc(2026, 10, 30, 8);
 
   @override
-  Future<CampusAccountSnapshot> cached() async => snapshot;
+  Future<CampusAccountSnapshot> cached() async => cacheGate?.future ?? snapshot;
 
   @override
   Future<PortalIdentity> identity() async {
@@ -97,6 +99,23 @@ Future<void> _openMe(WidgetTester tester) async {
 }
 
 void main() {
+  test('缓存读取期间恢复在线会继续刷新校园账户', () async {
+    final service = _FakeCampusService()..cacheGate = Completer();
+    final loader = CampusAccountLoader(
+      service: service,
+      changed: () {},
+      now: DateTime.now,
+    );
+    addTearDown(loader.dispose);
+    loader.ensure(online: false);
+    loader.ensure(online: true);
+    expect(service.calls, 0);
+    service.cacheGate!.complete(const CampusAccountSnapshot());
+    await Future<void>.delayed(Duration.zero);
+    expect(service.calls, 1);
+    expect(loader.overview!.identity.data?.department, '合成学院');
+  });
+
   testWidgets('五分钟内复用，过期后再次进入后台刷新并保留旧值', (tester) async {
     tester.view.physicalSize = const Size(390, 1600);
     tester.view.devicePixelRatio = 1;

@@ -26,6 +26,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late ThemePreferenceStore _themeStore;
   String? _placeOwner;
   Map<String, String> _placePreferences = {};
+  String? _preferenceOwner;
+  final _preferenceAliases = <String>{};
+  Future<void> _preferenceMigration = Future.value();
+  int _preferenceRevision = 0;
+  void _preferencesChanged() => setState(() => _preferenceRevision++);
   int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -56,6 +61,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       return;
     }
     final owner = _controller.localDataOwnerScope;
+    _migratePreferences(owner);
     if (_placeOwner == owner.accountKey) return;
     _placeOwner = owner.accountKey;
     _placePreferences = {};

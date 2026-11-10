@@ -1,37 +1,63 @@
-part of '../shell.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// “我的”页面的读取：先显示本机快照，再在后台在线刷新。
 ///
 /// 三组数据分别更新；刷新保留旧值直至新结果到达，失败时旧值与错误同时显示。
 /// 再次进入时距上次成功刷新超过 [_campusStaleAfter] 才后台刷新。
-extension UbaaShellCampusAccount on _UbaaMainShellState {
-  bool get _onMeTab =>
-      _utilityPage == null &&
-      _openedFeature == null &&
-      _selectedIndex == UiDestination.me.index;
+class CampusAccountLoader {
+  CampusAccountLoader({
+    required CampusAccountService? service,
+    required this.changed,
+    required DateTime Function() now,
+  }) : _service = service,
+       _now = now;
+  CampusAccountService? _service;
+  final VoidCallback changed;
+  final DateTime Function() _now;
+  bool _disposed = false;
+  bool _online = true;
+  CampusAccountOverview? _campusOverview;
+  CampusAccountOverview? get overview => _campusOverview;
+  Future<void>? _campusRefresh;
+  DateTime? _campusRefreshedAt;
+  int _campusRevision = 0;
+  void _setCampusOverview(CampusAccountOverview value) {
+    if (_disposed) return;
+    _campusOverview = value;
+    changed();
+  }
+
+  void dispose() {
+    _disposed = true;
+    _campusRevision++;
+  }
 
   static const _campusStaleAfter = Duration(minutes: 5);
 
-  /// 服务绑定变化（账号、会话或路线代次）后丢弃旧结果。
-  void _resetCampusAccount() {
+  /// 同账号服务重建只撤销读取任务，已展示内容保留至刷新完成。
+  void bind(CampusAccountService? service, {bool keepContent = false}) {
+    _service = service;
     _campusRevision++;
-    _campusOverview = null;
+    if (!keepContent) _campusOverview = null;
     _campusRefresh = null;
     _campusRefreshedAt = null;
   }
 
-  void _ensureCampusAccountLoaded() {
-    final service = widget.campusAccountService;
+  void ensure({bool online = true}) {
+    _online = online;
+    final service = _service;
     if (service == null || _campusRefresh != null) return;
     if (_campusOverview == null) {
       unawaited(_loadCampusAccount(service));
       return;
     }
     final refreshedAt = _campusRefreshedAt;
-    if (refreshedAt == null ||
-        (widget.homeClock ?? clock).now().difference(refreshedAt) >=
-            _campusStaleAfter) {
-      unawaited(_refreshCampusAccount());
+    if (online &&
+        (refreshedAt == null ||
+            _now().difference(refreshedAt) >= _campusStaleAfter)) {
+      unawaited(refresh());
     }
   }
 
@@ -54,9 +80,9 @@ extension UbaaShellCampusAccount on _UbaaMainShellState {
           } on Object {
             snapshot = const CampusAccountSnapshot();
           }
-          if (!mounted ||
+          if (_disposed ||
               revision != _campusRevision ||
-              !identical(service, widget.campusAccountService)) {
+              !identical(service, _service)) {
             return;
           }
           _setCampusOverview(
@@ -67,7 +93,7 @@ extension UbaaShellCampusAccount on _UbaaMainShellState {
             ),
           );
           if (identical(_campusRefresh, load)) _campusRefresh = null;
-          await _refreshCampusAccount();
+          if (_online) await refresh();
         })().whenComplete(() {
           if (identical(_campusRefresh, load)) _campusRefresh = null;
         });
@@ -75,10 +101,10 @@ extension UbaaShellCampusAccount on _UbaaMainShellState {
     return load;
   }
 
-  Future<void> _refreshCampusAccount() {
+  Future<void> refresh() {
     final pending = _campusRefresh;
     if (pending != null) return pending;
-    final service = widget.campusAccountService;
+    final service = _service;
     if (service == null) return Future<void>.value();
     final revision = _campusRevision;
     final previous = _campusOverview ?? const CampusAccountOverview();
@@ -91,9 +117,9 @@ extension UbaaShellCampusAccount on _UbaaMainShellState {
     );
 
     bool current() =>
-        mounted &&
+        !_disposed &&
         revision == _campusRevision &&
-        identical(service, widget.campusAccountService);
+        identical(service, _service);
 
     Future<void> load<T>(
       Future<T> Function() read,
@@ -157,7 +183,7 @@ extension UbaaShellCampusAccount on _UbaaMainShellState {
                   o.identity.error == null &&
                   o.metrics.error == null &&
                   o.network.error == null) {
-                _campusRefreshedAt = (widget.homeClock ?? clock).now();
+                _campusRefreshedAt = _now();
               }
             })
             .whenComplete(() {

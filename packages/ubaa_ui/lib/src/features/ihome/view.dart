@@ -14,8 +14,15 @@ part 'actions.dart';
 
 /// 校园服务独立页面，按用户选择读取，不参与首页后台刷新。
 class IhomeView extends StatefulWidget {
-  const IhomeView({required this.service, super.key});
+  const IhomeView({
+    required this.service,
+    this.scopeKey,
+    this.connecting = false,
+    super.key,
+  });
   final IhomeService? service;
+  final Object? scopeKey;
+  final bool connecting;
   @override
   State<IhomeView> createState() => _IhomeViewState();
 }
@@ -45,28 +52,41 @@ class _IhomeViewState extends State<IhomeView> {
   @override
   void initState() {
     super.initState();
-    unawaited(_load());
-    unawaited(_loadConfig());
+    if (!widget.connecting) {
+      unawaited(_load());
+      unawaited(_loadConfig());
+    }
   }
 
   @override
   void didUpdateWidget(covariant IhomeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.service, widget.service)) {
+    if (!identical(oldWidget.service, widget.service) ||
+        oldWidget.scopeKey != widget.scopeKey ||
+        (oldWidget.connecting && !widget.connecting)) {
+      final sameAccount =
+          widget.scopeKey != null && oldWidget.scopeKey == widget.scopeKey;
       _revision++;
       _epoch++;
-      _details.clear();
-      _expanded.clear();
+      _pendingRead = null;
+      if (!sameAccount) {
+        _details.clear();
+        _expanded.clear();
+      }
       _detailLoading.clear();
       _detailErrors.clear();
       _busy.clear();
       _submitting.clear();
       _uncertain.clear();
-      _entries = [];
-      _announcements = [];
-      _config = null;
-      unawaited(_load());
-      unawaited(_loadConfig());
+      if (!sameAccount) {
+        _entries = [];
+        _announcements = [];
+        _config = null;
+      }
+      if (!widget.connecting) {
+        unawaited(_load());
+        unawaited(_loadConfig());
+      }
     }
   }
 
@@ -97,7 +117,7 @@ class _IhomeViewState extends State<IhomeView> {
       : 'evaluation:${e.evaluation!.id}';
   Future<void> _loadConfig() async {
     final service = widget.service;
-    if (service == null) return;
+    if (service == null || widget.connecting) return;
     try {
       final result = await service.config();
       if (mounted && identical(service, widget.service))
@@ -125,6 +145,18 @@ class _IhomeViewState extends State<IhomeView> {
   Future<void> _fetch({bool more = false, bool reset = false}) async {
     final service = widget.service;
     if (service == null) return;
+    if (widget.connecting) {
+      if (reset)
+        setState(() {
+          _entries = [];
+          _announcements = [];
+          _page = 1;
+          _hasMore = false;
+          _expanded.clear();
+          _details.clear();
+        });
+      return;
+    }
     if (_busy.isNotEmpty) return;
     final revision = ++_revision;
     final requested = more ? _page + 1 : 1;
@@ -150,27 +182,41 @@ class _IhomeViewState extends State<IhomeView> {
           _route = result.route;
         });
       } else {
-        final result = await service.page(
-          IhomeQuery(
-            scope: _scope,
-            page: requested,
-            limit: 15,
-            keyword: _keyword,
-            filter: _filter,
-            categoryId: _category,
-          ),
+        IhomeQuery query(int page) => IhomeQuery(
+          scope: _scope,
+          page: page,
+          limit: 15,
+          keyword: _keyword,
+          filter: _filter,
+          categoryId: _category,
         );
+        final lastVisiblePage = more || reset ? requested : _page;
+        var result = await service.page(query(requested));
         if (!mounted || revision != _revision) return;
+        final received = [...result.data.entries];
+        // 刷新已经展开的分页范围，整批到达后替换，保留当前滚动位置。
+        while (!more &&
+            result.data.page < lastVisiblePage &&
+            result.data.page < result.data.lastPage) {
+          final nextPage = result.data.page + 1;
+          result = await service.page(query(nextPage));
+          if (!mounted || revision != _revision) return;
+          if (result.data.page != nextPage) throw StateError('分页读取未前进');
+          received.addAll(result.data.entries);
+        }
         final oldIds = more ? _entries.map(_entryKey).toSet() : <String>{};
         final unique = <IhomeEntry>[];
-        for (final entry in result.data.entries) {
+        for (final entry in received) {
           if (oldIds.add(_entryKey(entry))) unique.add(entry);
         }
         final stagnant =
             more && (result.data.page < requested || unique.isEmpty);
         setState(() {
           if (!stagnant) {
-            if (!more) _details.clear();
+            if (!more) {
+              final ids = unique.map((entry) => entry.appeal.id).toSet();
+              _details.removeWhere((id, _) => !ids.contains(id));
+            }
             _entries = more ? [..._entries, ...unique] : unique;
             _page = result.data.page;
           }
@@ -182,7 +228,7 @@ class _IhomeViewState extends State<IhomeView> {
         });
         for (final entry in _entries) {
           if (_expanded.contains(_entryKey(entry)) &&
-              !_details.containsKey(entry.appeal.id)) {
+              (!more || !_details.containsKey(entry.appeal.id))) {
             unawaited(_readDetail(entry.appeal.id));
           }
         }

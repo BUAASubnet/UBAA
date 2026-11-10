@@ -67,9 +67,16 @@ Future<FeatureResult?> _cachedHomeCalendar(
     );
     if (week == null) return null;
     final school = owner.internalAgendaSchoolScope;
-    if (!includeCourses && (school == null || !school.scope.isCurrent)) {
+    if (!includeCourses &&
+        (school == null ||
+            school.accountId !=
+                (owner.internalLocalAccount?.id ??
+                    owner.internalUser?.username) ||
+            school.routeGeneration != owner.internalRoutePolicyGeneration)) {
       owner.internalAgendaSchoolScope = (
-        scope: owner.internalCaptureSessionScope(),
+        accountId:
+            owner.internalLocalAccount?.id ?? owner.internalUser?.username,
+        routeGeneration: owner.internalRoutePolicyGeneration,
         term: term,
         route: weeks.resolvedRoute,
       );

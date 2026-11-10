@@ -100,12 +100,15 @@ class AgendaViewState extends State<AgendaView> {
   final searchFocus = FocusNode(debugLabel: 'agenda-search');
   int revision = 0;
   final generation = ValueNotifier<int>(0);
+  final editorGeneration = ValueNotifier<int>(0);
 
   /// 每次日程页重建后递增，供打开中的底部面板同步刷新。
   final sheetTick = ValueNotifier<int>(0);
   StreamSubscription<AgendaSyncState>? _syncSubscription;
   Object? _lastSyncKey;
   late Object _scope;
+  late Object _contentScope;
+  String? _contentAccount;
   bool _projectionDirty = false;
 
   Object get _liveScope => (
@@ -116,15 +119,22 @@ class AgendaViewState extends State<AgendaView> {
     widget.route,
     widget.term,
   );
+  Object get _liveContentScope =>
+      (widget.scopeKey, _contentAccount, widget.route, widget.term);
 
   bool _refreshScope() {
     final next = _liveScope;
     if (_scope == next) return false;
     _scope = next;
+    if (widget.service != null) _contentAccount = widget.service!.accountId;
+    final sameContent =
+        _contentScope == _liveContentScope && _contentAccount != null;
+    _contentScope = _liveContentScope;
     generation.value++;
-    selectedKey = null;
+    if (!sameContent) editorGeneration.value++;
+    if (!sameContent) selectedKey = null;
     revision++;
-    result = null;
+    if (!sameContent) result = null;
     error = null;
     loading = false;
     busy = false;
@@ -205,6 +215,8 @@ class AgendaViewState extends State<AgendaView> {
     focusDate = agendaDay(now);
     alignRange();
     _scope = _liveScope;
+    _contentAccount = widget.service?.accountId;
+    _contentScope = _liveContentScope;
     _listenSync();
     if (widget.visible) unawaited(load());
     _pullSync();
@@ -242,6 +254,7 @@ class AgendaViewState extends State<AgendaView> {
   @override
   void dispose() {
     generation.value++;
+    editorGeneration.value++;
     sheetTick.dispose();
     unawaited(_syncSubscription?.cancel());
     searchField.dispose();
@@ -290,7 +303,6 @@ class AgendaViewState extends State<AgendaView> {
     _projectionDirty = false;
     if (!available) {
       setState(() {
-        result = null;
         error = null;
         loading = false;
       });
@@ -318,7 +330,6 @@ class AgendaViewState extends State<AgendaView> {
     } on Object {
       if (queryCurrent())
         setState(() {
-          result = null;
           error = '日程读取失败，原数据已保留';
         });
     } finally {
@@ -349,35 +360,48 @@ class AgendaViewState extends State<AgendaView> {
     AgendaEditScope scope = AgendaEditScope.all,
   }) async {
     if (busy || !available) return;
-    final token = generation.value;
-    Widget editor() => bound(
-      AgendaEditor(
-        service: service,
-        boundary: bound,
-        isCurrent: () => current(token),
-        item: item,
-        occurrence: occurrence,
-        scope: scope,
-        now: now,
-        findConflicts: (content) async {
-          final start = agendaValue(content.start),
-              end = agendaValue(content.end);
-          if (start == null || end == null) return [];
-          final value = await service.query(
-            query(
-              start: agendaDay(start),
-              end: agendaDay(end).add(const Duration(days: 1)),
-              hidden: true,
-            ),
-          );
-          if (!current(token)) return [];
-          return agendaContentConflicts(content, value.entries);
-        },
+    final token = editorGeneration.value;
+    final initialService = service;
+    bool editingCurrent() =>
+        mounted &&
+        token == editorGeneration.value &&
+        available &&
+        widget.service?.accountId == _contentAccount;
+    Widget editor() => UiScopeBoundary(
+      generation: editorGeneration,
+      child: ValueListenableBuilder<int>(
+        valueListenable: sheetTick,
+        builder: (_, _, _) => AgendaEditor(
+          service: widget.service ?? initialService,
+          boundary: bound,
+          isCurrent: editingCurrent,
+          item: item,
+          occurrence: occurrence,
+          scope: scope,
+          now: now,
+          findConflicts: (content) async {
+            final start = agendaValue(content.start),
+                end = agendaValue(content.end);
+            if (start == null || end == null) return [];
+            final queryToken = generation.value;
+            final value = await service.query(
+              query(
+                start: agendaDay(start),
+                end: agendaDay(end).add(const Duration(days: 1)),
+                hidden: true,
+              ),
+            );
+            if (!current(queryToken)) {
+              throw const AgendaException(AgendaFailure.superseded);
+            }
+            return agendaContentConflicts(content, value.entries);
+          },
+        ),
       ),
     );
     // 宽窗口为居中对话框，窄窗口整页。
     final done = await showUiPage<bool>(context, builder: (_) => editor());
-    if (current(token) && done == true) {
+    if (editingCurrent() && done == true) {
       widget.onChanged?.call();
       await load();
     }
@@ -535,7 +559,7 @@ class AgendaViewState extends State<AgendaView> {
   Widget statusLine() => _buildStatusLine();
 
   List<Widget> notices() => [
-    if (!available)
+    if (!available && result == null)
       Padding(
         padding: const EdgeInsets.all(24),
         child: Text(widget.failure == null ? '登录后可使用日程' : '日程暂时无法打开，数据未丢失'),

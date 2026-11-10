@@ -128,17 +128,54 @@ class Service implements IhomeService {
   }
 }
 
-Future<void> mount(WidgetTester tester, Service service) async {
+Future<void> mount(
+  WidgetTester tester,
+  Service service, {
+  Object? scope,
+  bool connecting = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ThemeData(platform: TargetPlatform.macOS),
-      home: Scaffold(body: IhomeView(service: service)),
+      home: Scaffold(
+        body: IhomeView(
+          service: service,
+          scopeKey: scope,
+          connecting: connecting,
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('同账号服务恢复保留已展开内容，恢复期间禁止关注操作', (tester) async {
+    final previous = Service();
+    await mount(tester, previous, scope: 'fixture');
+    await tester.tap(find.text('查看详情'));
+    await tester.pumpAndSettle();
+    expect(find.text('已分办'), findsOneWidget);
+    final next = Service();
+    await mount(tester, next, scope: 'fixture', connecting: true);
+    expect(find.text('测试诉求'), findsOneWidget);
+    expect(find.text('已分办'), findsOneWidget);
+    expect(next.queries, isEmpty);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (widget) => widget is IconButton && widget.tooltip == '关注',
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    await mount(tester, next, scope: 'fixture');
+    expect(next.detailCalls, 1);
+    expect(find.text('已分办'), findsOneWidget);
+  });
+
   testWidgets('iHome 空列表下拉刷新且按钮加入同一进行中读取', (tester) async {
     final service = Service()
       ..load = (_) async => const IhomeResult(

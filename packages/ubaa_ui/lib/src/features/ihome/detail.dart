@@ -9,7 +9,12 @@ extension _IhomeCards on _IhomeViewState {
     final reaction = detail ?? appeal;
     final expanded = _expanded.contains(_entryKey(entry));
     final busy = _busy.contains(id), loading = _detailLoading.contains(id);
-    final disabled = _loading || busy || loading || _uncertain.contains(id);
+    final disabled =
+        widget.connecting ||
+        _loading ||
+        busy ||
+        loading ||
+        _uncertain.contains(id);
     return Card(
       key: ValueKey(_entryKey(entry)),
       margin: const EdgeInsets.only(bottom: 8),

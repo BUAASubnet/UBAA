@@ -18,7 +18,10 @@ extension _IhomeActions on _IhomeViewState {
 
   Future<void> _readDetail(int id) async {
     final service = widget.service;
-    if (service == null || _detailLoading.contains(id) || _busy.contains(id))
+    if (service == null ||
+        widget.connecting ||
+        _detailLoading.contains(id) ||
+        _busy.contains(id))
       return;
     final revision = _revision, epoch = _epoch;
     _update(() {
@@ -53,6 +56,7 @@ extension _IhomeActions on _IhomeViewState {
         : appeal.isSupported;
     final route = _details[id]?.route ?? _route;
     if (service == null ||
+        widget.connecting ||
         route == null ||
         current == null ||
         _loading ||
@@ -74,7 +78,8 @@ extension _IhomeActions on _IhomeViewState {
         action: '确认',
         dismiss: enabled ? '取消' : '保留',
       );
-      if (!confirmed || !mounted || epoch != _epoch) return;
+      if (!confirmed || !mounted || widget.connecting || epoch != _epoch)
+        return;
       _update(() {
         _detailErrors.remove(id);
         _submitting.add(id);

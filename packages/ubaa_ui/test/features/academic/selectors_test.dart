@@ -69,7 +69,7 @@ void main() {
     expect(find.text('合成乙学期'), findsOneWidget);
   });
 
-  testWidgets('选项打开后读取epoch变化不能应用旧学期', (tester) async {
+  testWidgets('选项打开后清理业务内容不能应用旧学期', (tester) async {
     final epoch = ValueNotifier(0);
     addTearDown(epoch.dispose);
     final queries = <FeatureQuery>[];
@@ -179,6 +179,7 @@ Future<void> _show(
         valueListenable: revisions,
         builder: (_, revision, __) => UbaaMainShell(
           readCacheEpoch: revision,
+          businessCacheEpoch: revision,
           initialDestination: UiDestination.study,
           user: const UserSummary(username: 'fixture-student'),
           snapshots: {

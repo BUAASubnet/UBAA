@@ -54,13 +54,16 @@ void main() {
     // 门锁密码不走业务列表读取。
     expect(state.queries, isEmpty);
   });
-  testWidgets('当前预约记录失效后重读首批，等待期间仍可返回退出', (tester) async {
+  testWidgets('后台恢复保留当前预约记录，手动刷新期间仍可返回退出', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
     await tester.tap(find.text('我的预约'));
     await tester.pumpAndSettle();
     state.pending = Completer<void>();
     state.invalidate();
     await tester.pump();
+    expect(find.text('合成子结果'), findsOneWidget);
+    expect(state.queries, hasLength(1));
+    await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pump();
     expect(state.queries, hasLength(2));
     expect(state.queries.last.view, FeatureQueryView.cgyyOrders);
@@ -97,6 +100,8 @@ void main() {
     state.failRead = true;
     state.invalidate();
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.pumpAndSettle();
     expect(state.queries, hasLength(2));
     expect(find.text('合成读取失败'), findsOneWidget);
     expect(find.text('暂无研讨室预约数据'), findsNothing);
@@ -109,9 +114,13 @@ void main() {
     expect(state.queries.last.page, 0);
     expect(find.text('合成子结果'), findsOneWidget);
   });
-  testWidgets('菜单中的预载内容失效后选择课程必须重新读取', (tester) async {
+  testWidgets('同账号恢复保留预载内容，显式刷新取得新内容', (tester) async {
     final state = await _open(tester, FeatureId.bykc);
     state.invalidate();
+    await tester.pumpAndSettle();
+    expect(state.queries, isEmpty);
+    expect(find.text('合成预载结果'), findsOneWidget);
+    await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
     expect(find.text('合成子结果'), findsOneWidget);

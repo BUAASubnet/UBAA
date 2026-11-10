@@ -21,6 +21,39 @@ FeatureSnapshot page(
 );
 
 void main() {
+  test('同账号恢复读齐原页数后替换，失败和重复页保留旧列表', () {
+    final feed = PagedResults();
+    const query = FeatureQuery(view: FeatureQueryView.cgyyOrders);
+    final first = page(1, [1, 2]);
+    feed.accept(first, query);
+    final second = feed.begin(first, query)!;
+    feed.accept(page(2, [3, 4]), second);
+    feed.cancelPending();
+    feed.accept(page(2, [13, 14]), second);
+    expect(feed.recoveryQuery!.page, 0);
+    var shown = feed.accept(page(1, [11, 12]), feed.recoveryQuery);
+    expect(shown.details.map((d) => d.title), ['订单1', '订单2', '订单3', '订单4']);
+    expect(feed.recoveryQuery!.page, 1);
+    shown = feed.accept(
+      page(2, [13, 14]).copyWith(status: FeatureLoadStatus.failure),
+      feed.recoveryQuery,
+    );
+    expect(shown.details.map((d) => d.title), ['订单1', '订单2', '订单3', '订单4']);
+    expect(feed.recoveryQuery, isNull);
+    expect(feed.begin(shown, second)!.page, 0);
+    feed.accept(page(1, [11, 12]), feed.recoveryQuery);
+    shown = feed.accept(page(2, [13, 14]), feed.recoveryQuery);
+    expect(shown.details.map((d) => d.title), ['订单11', '订单12', '订单13', '订单14']);
+    expect(feed.error, isNull);
+    feed.cancelPending();
+    feed.accept(page(2, [13, 14]), second);
+    feed.accept(page(1, [11, 12]), feed.recoveryQuery);
+    shown = feed.accept(page(1, [11, 12]), feed.recoveryQuery);
+    expect(shown.details, hasLength(4));
+    expect(feed.recoveryQuery, isNull);
+    expect(feed.error, isNotNull);
+  });
+
   test('零基请求续载去重，失败保留前页且重试原页', () {
     final feed = PagedResults();
     final first = page(1, [1, 2]);

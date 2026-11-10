@@ -284,34 +284,40 @@ void main() {
     expect(find.text('合成研讨甲'), findsOneWidget);
     expect(calls, 2);
   });
-  testWidgets('研讨室读取代次变化关闭旧表单且拒绝迟到用途', (tester) async {
-    final epoch = ValueNotifier(0);
-    addTearDown(epoch.dispose);
-    final gate = Completer<FeatureResult>();
-    await _open(
-      tester,
-      _dayDetails,
-      [],
-      epoch: epoch,
-      loadPurposes: (_) => gate.future,
-    );
-    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('下一步'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.enterText(
-      find.widgetWithText(TextField, '联系电话'),
-      'synthetic-private-draft',
-    );
-    epoch.value++;
-    await tester.pump(const Duration(milliseconds: 400));
-    gate.complete(_purposes);
-    await tester.pumpAndSettle();
-    expect(find.text('填写预约信息'), findsNothing);
-    expect(find.text('synthetic-private-draft'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+  for (final clearContent in [false, true]) {
+    testWidgets('研讨室刷新保留草稿，清理内容关闭表单：清理=$clearContent', (tester) async {
+      final epoch = ValueNotifier(0);
+      addTearDown(epoch.dispose);
+      final gate = Completer<FeatureResult>();
+      await _open(
+        tester,
+        _dayDetails,
+        [],
+        epoch: epoch,
+        clearContent: clearContent,
+        loadPurposes: (_) => gate.future,
+      );
+      await tester.tap(_slot('合成研讨室', '08:00–09:00'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('下一步'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.enterText(
+        find.widgetWithText(TextField, '联系电话'),
+        'synthetic-private-draft',
+      );
+      epoch.value++;
+      await tester.pump(const Duration(milliseconds: 400));
+      gate.complete(_purposes);
+      await tester.pumpAndSettle();
+      expect(find.text('填写预约信息'), clearContent ? findsNothing : findsOneWidget);
+      expect(
+        find.text('synthetic-private-draft'),
+        clearContent ? findsNothing : findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('研讨室预约使用独立表单，返回修改时段保留草稿', (tester) async {
     await _open(tester, _dayDetails, []);
@@ -446,6 +452,7 @@ Future<void> _open(
   double width = 402,
   double scale = 1,
   ValueNotifier<int>? epoch,
+  bool clearContent = false,
   Future<WriteIntent> Function(CgyySubmitInput)? prepare,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -466,6 +473,7 @@ Future<void> _open(
         valueListenable: revision,
         builder: (context, value, _) => UbaaMainShell(
           readCacheEpoch: value,
+          businessCacheEpoch: clearContent ? value : 0,
           onLoadCgyyPurposes: loadPurposes,
           initialDestination: UiDestination.campus,
           user: const UserSummary(username: 'synthetic'),

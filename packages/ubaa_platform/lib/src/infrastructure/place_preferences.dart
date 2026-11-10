@@ -1,7 +1,7 @@
 import 'preferences.dart';
 
 /// 按账号隔离地点编号，白名单由 UI 组合根提供。
-final class PlacePreferenceStore {
+final class PlacePreferenceStore implements AccountPreferenceMigration {
   PlacePreferenceStore({
     required String scope,
     required Set<String> allowedKeys,
@@ -27,6 +27,17 @@ final class PlacePreferenceStore {
   final _memory = <String, Map<String, String>>{};
   final Set<String> _allowed;
   AccountPreferences<Map<String, String>>? _store;
+  @override
+  Future<bool> migrateAccount(String previous, String current) async {
+    if (_store case final store?)
+      return store.migrateAccount(previous, current);
+    if (previous == current || !_memory.containsKey(previous)) return false;
+    final value = _memory.remove(previous)!;
+    if (_memory.containsKey(current)) return false;
+    _memory[current] = value;
+    return true;
+  }
+
   Future<Map<String, String>> read(String account) async {
     try {
       return _store == null

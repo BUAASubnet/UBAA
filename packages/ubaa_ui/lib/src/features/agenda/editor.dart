@@ -279,6 +279,8 @@ class _AgendaEditorState extends State<AgendaEditor> {
 
   Future<void> save() async {
     if (!_form.currentState!.validate() || _busy || !widget.isCurrent()) return;
+    final target = widget.service;
+    final targetGeneration = target.accountGeneration;
     setState(() {
       _busy = true;
       _error = null;
@@ -308,7 +310,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
       if (_repeat != '不重复' && anchor == null)
         throw const FormatException('重复待办需要截止时间');
       if (_repeat == '按教学周') {
-        final generated = await widget.service.teachingWeekRule(
+        final generated = await target.teachingWeekRule(
           TeachingWeekInput(
             monday: field('monday', '').text.trim(),
             first: int.parse(field('first', '1').text),
@@ -413,11 +415,12 @@ class _AgendaEditorState extends State<AgendaEditor> {
         );
         if (!mounted || !widget.isCurrent() || confirmed != true) return;
       }
+      if (target != widget.service ||
+          targetGeneration != target.accountGeneration) {
+        throw const AgendaException(AgendaFailure.superseded);
+      }
       if (widget.item == null) {
-        await widget.service.create(
-          draft,
-          agendaTime(campusDate(DateTime.now())),
-        );
+        await target.create(draft, agendaTime(campusDate(DateTime.now())));
       } else if (_repeat != '按教学周' &&
           rule != null &&
           setEquals(
@@ -425,7 +428,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
             skipDates(initialSkips),
           )) {
         // 未修改的例外随系列一起由 Core 平移或拆分。
-        await widget.service.edit(
+        await target.edit(
           widget.item!.id,
           widget.scope,
           widget.occurrence == null ? null : recurrenceAt(widget.occurrence!),
@@ -434,7 +437,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
           agendaTime(campusDate(DateTime.now())),
         );
       } else {
-        await widget.service.editDraft(
+        await target.editDraft(
           widget.item!.id,
           widget.scope,
           widget.occurrence == null ? null : recurrenceAt(widget.occurrence!),
@@ -611,7 +614,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
             : null,
         primary: FilledButton(
           key: const ValueKey('agenda-editor-save'),
-          onPressed: _busy ? null : save,
+          onPressed: _busy || !widget.isCurrent() ? null : save,
           child: Text(_busy ? '保存中…' : '保存事项'),
         ),
       ),

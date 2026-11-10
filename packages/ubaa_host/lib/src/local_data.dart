@@ -1,7 +1,45 @@
 part of 'ubaa_app_host.dart';
 
 extension _UbaaAppHostLocalData on _UbaaAppHostState {
+  void _migratePreferences(LocalDataOwnerScope owner) {
+    if (_preferenceOwner != owner.accountKey) {
+      _preferenceOwner = owner.accountKey;
+      _preferenceAliases.clear();
+    }
+    for (final alias in owner.identities) {
+      if (alias == owner.accountKey || !_preferenceAliases.add(alias)) continue;
+      _preferenceMigration = _preferenceMigration.then((_) async {
+        try {
+          var changed = false;
+          for (final store in <Object>[
+            _placeStore,
+            _recentFeatureStore,
+            _bykcFilterStore,
+            _reminderStore,
+            _cgyyDefaultsStore,
+          ]) {
+            owner.checkCurrent();
+            if (store is AccountPreferenceMigration) {
+              changed =
+                  await store.migrateAccount(alias, owner.accountKey) ||
+                  changed;
+            }
+          }
+          owner.checkCurrent();
+          if (mounted && changed) {
+            _preferencesChanged();
+            await _restorePlaces(owner);
+          }
+        } on Object {
+          if (_preferenceOwner == owner.accountKey)
+            _preferenceAliases.remove(alias);
+        }
+      });
+    }
+  }
+
   Future<List<FeatureId>> _readRecentFeatures(LocalDataOwnerScope owner) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     final value = await _recentFeatureStore.read(owner.accountKey);
     owner.checkCurrent();
@@ -12,6 +50,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
     LocalDataOwnerScope owner,
     List<FeatureId> value,
   ) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     await _recentFeatureStore.write(owner.accountKey, value);
     owner.checkCurrent();
@@ -23,6 +62,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
   }
 
   Future<YgdkReminderSettings> _readReminder(LocalDataOwnerScope owner) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     final value = await _reminderStore.read(owner.accountKey);
     owner.checkCurrent();
@@ -33,6 +73,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
     LocalDataOwnerScope owner,
     YgdkReminderSettings value,
   ) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     // 存储同步入队；退出后的clear在同一串行store等待在途保存收尾。
     await _reminderStore.write(owner.accountKey, value);
@@ -40,6 +81,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
   }
 
   Future<BykcCourseFilters?> _readBykcFilters(LocalDataOwnerScope owner) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     final value = await _bykcFilterStore.read(owner.accountKey);
     owner.checkCurrent();
@@ -50,6 +92,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
     LocalDataOwnerScope owner,
     BykcCourseFilters value,
   ) async {
+    await _preferenceMigration;
     try {
       owner.checkCurrent();
     } on BackendException {
@@ -70,6 +113,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
   Future<CgyyReservationDefaults?> _readCgyyDefaults(
     LocalDataOwnerScope owner,
   ) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     final value = await _cgyyDefaultsStore.read(owner.accountKey);
     owner.checkCurrent();
@@ -80,6 +124,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
     LocalDataOwnerScope owner,
     CgyyReservationDefaults value,
   ) async {
+    await _preferenceMigration;
     owner.checkCurrent();
     await _cgyyDefaultsStore.write(owner.accountKey, value);
   }

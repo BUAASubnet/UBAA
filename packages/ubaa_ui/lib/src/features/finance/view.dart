@@ -33,8 +33,15 @@ const _noBankNote = '记录来自学校财务查询系统的录入信息，到�
 ///
 /// 只读页面，不参与首页后台刷新；账号或路线变化时由外层更换 [service]。
 class FinanceView extends StatefulWidget {
-  const FinanceView({required this.service, super.key});
+  const FinanceView({
+    required this.service,
+    this.scopeKey,
+    this.connecting = false,
+    super.key,
+  });
   final FinanceService? service;
+  final Object? scopeKey;
+  final bool connecting;
   @override
   State<FinanceView> createState() => _FinanceViewState();
 }
@@ -61,14 +68,18 @@ class _FinanceViewState extends State<FinanceView> {
   @override
   void didUpdateWidget(covariant FinanceView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.service, widget.service)) {
+    if (!identical(oldWidget.service, widget.service) ||
+        oldWidget.scopeKey != widget.scopeKey ||
+        (oldWidget.connecting && !widget.connecting)) {
+      final sameAccount =
+          widget.scopeKey != null && oldWidget.scopeKey == widget.scopeKey;
       _revision++;
       _pending = null;
-      _snapshot = null;
+      if (!sameAccount) _snapshot = null;
       _error = null;
-      _year = null;
+      if (!sameAccount) _year = null;
       _loading = false;
-      unawaited(_load(withCache: true));
+      unawaited(_load(withCache: !sameAccount || _snapshot == null));
     }
   }
 
@@ -91,7 +102,7 @@ class _FinanceViewState extends State<FinanceView> {
 
   Future<void> _fetch(bool withCache) async {
     final service = widget.service;
-    if (service == null) return;
+    if (service == null || (widget.connecting && !withCache)) return;
     final revision = ++_revision;
     bool current() => mounted && revision == _revision;
     setState(() {
@@ -109,6 +120,10 @@ class _FinanceViewState extends State<FinanceView> {
         // 离线记录读取失败不影响在线读取，也不单独提示。
         if (!current()) return;
       }
+    }
+    if (widget.connecting) {
+      if (current()) setState(() => _loading = false);
+      return;
     }
     try {
       final fresh = await service.refresh();

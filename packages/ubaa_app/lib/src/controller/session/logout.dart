@@ -29,6 +29,7 @@ mixin ControllerLogout on ControllerState {
     }
     internalCancelLoginVerification(notify: false);
     internalSessionLifecycle.beginSignOut();
+    internalLocalDataGeneration++;
     internalInPlaceLogin = false;
     internalInteractiveInPlace = false;
     internalCredentialRestoreAllowed = false;

@@ -69,7 +69,7 @@ class Backend extends MemoryAgenda implements AgendaSyncBackend {
 }
 
 Widget view(
-  AgendaService service, {
+  AgendaService? service, {
   bool visible = true,
   int scope = 1,
   int? projection,
@@ -87,7 +87,7 @@ Widget view(
   onChanged: changed,
 );
 Widget app(
-  AgendaService service, {
+  AgendaService? service, {
   bool visible = true,
   ConnectionMode route = ConnectionMode.direct,
 }) => MaterialApp(
@@ -103,6 +103,44 @@ void size(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('同账号服务恢复保留编辑草稿并使用新服务保存', (tester) async {
+    size(tester);
+    final previous = MemoryAgenda();
+    final service = AgendaService(previous);
+    await service.openAccount('fixture-a');
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('待办').last);
+    await tester.pumpAndSettle();
+    final title = find.byKey(const ValueKey('agenda-title'));
+    await tester.enterText(title, '恢复期间保留的草稿');
+    await tester.pumpWidget(app(null));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextFormField>(title).controller!.text, '恢复期间保留的草稿');
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('agenda-editor-save')),
+          )
+          .onPressed,
+      isNull,
+    );
+    final next = MemoryAgenda();
+    final restored = AgendaService(next);
+    await restored.openAccount('fixture-a');
+    await tester.pumpWidget(app(restored));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextFormField>(title).controller!.text, '恢复期间保留的草稿');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-editor-save')));
+    await tester.pumpAndSettle();
+    expect(previous.writes, 0);
+    expect(next.items.values.single.content.title, '恢复期间保留的草稿');
+  });
+
   testWidgets('客户端忙时直接反馈并且不打开创建确认', (tester) async {
     size(tester);
     final backend = Backend()

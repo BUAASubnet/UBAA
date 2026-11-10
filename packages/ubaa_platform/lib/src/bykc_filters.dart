@@ -37,7 +37,8 @@ final class MemoryBykcCourseFilterStore implements BykcCourseFilterStore {
 }
 
 /// 普通筛选偏好交给平台插件，账号作用域由统一偏好层隔离。
-final class PreferencesBykcCourseFilterStore implements BykcCourseFilterStore {
+final class PreferencesBykcCourseFilterStore
+    implements BykcCourseFilterStore, AccountPreferenceMigration {
   PreferencesBykcCourseFilterStore({
     required String scope,
     PreferenceValues? values,
@@ -97,6 +98,10 @@ final class PreferencesBykcCourseFilterStore implements BykcCourseFilterStore {
       );
     }
   }
+
+  @override
+  Future<bool> migrateAccount(String previous, String current) =>
+      _store.migrateAccount(previous, current);
 
   @override
   Future<BykcCourseFilters?> read(String account) =>

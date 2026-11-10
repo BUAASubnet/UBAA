@@ -74,17 +74,16 @@ void main() {
     expect(harness.queries, hasLength(1));
   });
 
-  testWidgets('读取epoch改变后不能返回旧父缓存', (tester) async {
+  testWidgets('同账号恢复保留返回路径，返回时重新核对父查询', (tester) async {
     final harness = await _show(tester);
     await tester.tap(find.text('查看周次'));
     await tester.pumpAndSettle();
     harness.invalidate();
     await tester.pumpAndSettle();
-    expect(find.text('返回上一层'), findsNothing);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, FeatureId.schedule.title), findsOneWidget);
-    expect(harness.queries, hasLength(1));
+    expect(harness.queries, hasLength(2));
+    expect(harness.queries.last.view, FeatureQueryView.scheduleTerms);
   });
 }
 
