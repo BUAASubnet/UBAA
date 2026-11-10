@@ -113,7 +113,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
-  static const _appServiceInterval = Duration(hours: 6);
+  // 宿主只定期检查，Core 按持久化的实际尝试时间限制六小时间隔。
+  static const _appServiceInterval = Duration(minutes: 30);
   Timer? _appServiceTimer;
   bool _appServiceBusy = false;
   DartCrashHandlers? _crashHandlers;
@@ -133,11 +134,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (_disposed || !_controller.appService.available) return;
       if (startup) await _controller.recordAppStarted();
       if (_disposed) return;
-      _appServiceTimer ??= Timer.periodic(_appServiceInterval, (_) {
-        if (_wasBackgrounded) return;
-        unawaited(_attemptAppService(force: false));
-        unawaited(_controller.refreshAppBootstrap());
-      });
       await _controller.uploadAppService(force: force);
     } on Object {
       // 统计服务失败不影响启动、前台恢复或业务输出。
@@ -294,6 +290,14 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _listenNetworkChanges();
     if (widget.backend == null && widget.backendFactory == null) {
       _crashHandlers = DartCrashHandlers.install(_controller.recordAppCrash);
+    }
+    if (opened is AppServiceBackend) {
+      // 首次读取可能暂时失败，定时检查仍需恢复待上传和待删除任务。
+      _appServiceTimer ??= Timer.periodic(_appServiceInterval, (_) {
+        if (_wasBackgrounded) return;
+        unawaited(_attemptAppService(force: false));
+        unawaited(_controller.refreshAppBootstrap());
+      });
     }
     unawaited(_controller.initialize());
     unawaited(_attemptAppService(force: true, startup: true));

@@ -30,14 +30,14 @@ void main() {
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
     // 服务未响应时业务可以继续；同一宿主不并发启动第二次定时重试。
-    await tester.pump(const Duration(hours: 6));
+    await tester.pump(const Duration(minutes: 30));
     expect(backend.uploads, [true]);
     backend.firstUpload.completeError(StateError('合成服务拒绝'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
     expect(backend.status, AppServiceEraseStatus.pending);
 
-    await tester.pump(const Duration(hours: 6));
+    await tester.pump(const Duration(minutes: 30));
     await tester.pumpAndSettle();
     expect(backend.uploads, [true, false]);
     expect(backend.status, AppServiceEraseStatus.idle);
@@ -50,11 +50,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.uploads, [true]);
     expect(backend.bootstraps, [true]);
-    await tester.pump(const Duration(hours: 6));
+    await tester.pump(const Duration(minutes: 30));
     expect(backend.bootstraps, [true, false]);
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    await tester.pump(const Duration(hours: 6));
+    await tester.pump(const Duration(minutes: 30));
     expect(backend.bootstraps, [true, false]);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
@@ -62,6 +62,49 @@ void main() {
     expect(backend.uploads, [true]);
 
     backend.firstUpload.complete();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('前台首次跨过实际尝试时间六小时的检查就发送统计和启动配置', (tester) async {
+    final now = tester.binding.clock.now;
+    final started = now();
+    final backend = _ThrottledServiceBackend(now);
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pump(_ThrottledServiceBackend.startupClaimDelay);
+    await tester.pumpAndSettle();
+
+    final first = started.add(_ThrottledServiceBackend.startupClaimDelay);
+    expect(backend.deliveries, [first]);
+    expect(backend.refreshes, [first]);
+
+    for (var minute = 30; minute <= 360; minute += 30) {
+      await tester.pump(
+        started.add(Duration(minutes: minute)).difference(now()),
+      );
+    }
+    expect(backend.deliveries, [first]);
+    expect(backend.refreshes, [first]);
+
+    await tester.pump(const Duration(minutes: 30));
+    expect(backend.deliveries, [first, now()]);
+    expect(backend.refreshes, [first, now()]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('启动状态暂时不可读时前台定时检查恢复待删除请求', (tester) async {
+    final backend = _ServiceBackend()
+      ..failStateReads = true
+      ..firstUpload.complete();
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    expect(backend.stateReads, greaterThan(0));
+    expect(backend.uploads, isEmpty);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+
+    backend.failStateReads = false;
+    await tester.pump(const Duration(minutes: 30));
+    expect(backend.uploads, [false]);
+    expect(backend.status, AppServiceEraseStatus.idle);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -196,6 +239,8 @@ class _ServiceBackend extends _Backend implements AppBootstrapBackend {
   final firstUpload = Completer<void>();
   var status = AppServiceEraseStatus.pending;
   var consent = AppServiceConsent.basic;
+  bool failStateReads = false;
+  int stateReads = 0;
   bool rejectRecovery = false;
   int rejectedRecoveries = 0;
 
@@ -209,21 +254,25 @@ class _ServiceBackend extends _Backend implements AppBootstrapBackend {
   }
 
   @override
-  Future<AppServiceView> appServiceState() async => AppServiceView(
-    available: true,
-    telemetryAllowed: true,
-    consent: consent,
-    policyVersion: bundledPrivacyPolicy.version,
-    agreedPolicyVersion: null,
-    telemetryEnabled: false,
-    canErase: true,
-    erase: status,
-  );
+  Future<AppServiceView> appServiceState() async {
+    stateReads++;
+    if (failStateReads) throw StateError('合成存储暂不可读');
+    return AppServiceView(
+      available: true,
+      telemetryAllowed: true,
+      consent: consent,
+      policyVersion: bundledPrivacyPolicy.version,
+      agreedPolicyVersion: null,
+      telemetryEnabled: false,
+      canErase: true,
+      erase: status,
+    );
+  }
 
   @override
   Future<void> uploadAppService({required bool force}) async {
     uploads.add(force);
-    if (uploads.length == 1) return firstUpload.future;
+    if (uploads.length == 1) await firstUpload.future;
     status = AppServiceEraseStatus.idle;
   }
 
@@ -252,6 +301,35 @@ class _ServiceBackend extends _Backend implements AppBootstrapBackend {
   @override
   Future<void> recordAppService(TelemetryRecord record) =>
       throw UnimplementedError();
+}
+
+/// 模拟 Core 按实际写入的尝试时间节流，启动时写入比前台计时器晚一点。
+class _ThrottledServiceBackend extends _ServiceBackend {
+  _ThrottledServiceBackend(this.now) {
+    consent = AppServiceConsent.agreed;
+    status = AppServiceEraseStatus.idle;
+  }
+
+  static const startupClaimDelay = Duration(milliseconds: 25);
+  final DateTime Function() now;
+  final deliveries = <DateTime>[];
+  final refreshes = <DateTime>[];
+
+  Future<void> _claim(List<DateTime> attempts, bool force) async {
+    if (force) await Future<void>.delayed(startupClaimDelay);
+    final time = now();
+    if (force || time.difference(attempts.last) >= const Duration(hours: 6)) {
+      attempts.add(time);
+    }
+  }
+
+  @override
+  Future<void> uploadAppService({required bool force}) =>
+      _claim(deliveries, force);
+
+  @override
+  Future<void> refreshAppBootstrap({required bool force}) =>
+      _claim(refreshes, force);
 }
 
 /// 按合同保存同意状态与开关：只有第一次同意时把开关初始化为开启。
