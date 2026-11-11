@@ -74,6 +74,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just check-sensitive` | 分别扫描 index blob 与未忽略工作区候选；读取或工具失败非零 |
 | `just docs-link-check` | 只读检查 Markdown 相对目标、站内路由及标题锚点；历史范围见下文 |
 | `just tool-version-check` | 校验版本镜像及全部第三方 Action 的 SHA 锁定 |
+| `just version-check` | 只读核对根 `version.toml`、各平台与自有包声明，以及锁文件中的自有包版本 |
 | `just dependency-audit` | 显式联网运行锁定版本的 cargo-deny，检查 Rust advisories、licenses、bans 和 sources；缺少固定工具或版本不符失败 |
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性；应用服务 Schema、Core、Worker 与文档的版本一致性 |
 | `just app-service-check` | 检查 `feature` 与 `error_kind` 枚举，按 Worker 独立锁文件安装 npm 依赖，运行格式、类型、构建、Schema 样例与本地 Workers 测试。使用 `scripts/tools/versions.env` 中的 Node 主版本 |
@@ -136,6 +137,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 
 | 命令 | 作用 |
 |---|---|
+| `just version` | 按根 `version.toml` 同步产品版本与构建号；只写入有变化的声明，按需调用包管理器刷新自有包锁定记录 |
+| `just version 2.0.1 2004` | 保存新的版本与构建号并完成上述同步，也接受 `version=2.0.1 build=2004` |
 | `just flutter-build platform=<平台> mode=debug` | 官方目标 host/macos/linux/windows/android-apk/ios-simulator 的原生构建，具体目标由脚本白名单限定 |
 | `just cache`、`just cache-clean <范围…>` | 只读显示仓库内构建缓存占用；按范围删除可重建产物（如 `rust-incremental`、`flutter-macos`、`ohos`），任一目录受跟踪或未被忽略时整体拒绝；`.ubaa_local` 只显示不清理 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
@@ -168,6 +171,7 @@ just verify-live mode=webvpn
 
 ## 网络与写入边界
 
+- `just version` 更新根产品配置和自有版本声明。只改构建号时不调用包管理器；产品版本变化时，Cargo/pub 使用本机缓存，CocoaPods 只更新本地绑定包且不刷新仓库索引。缺少工具或缓存时按错误提示准备后重跑，不运行测试或构建。`just version-check` 始终只读。
 - 实际 refs 校验不联网、不改冻结目录；只有 refs-bootstrap 可以联网建立缺失冻结引用。已有目录错误时停止，不清理或重置敏感参考。
 - 普通检查不访问学校服务。Cargo/Rustup/Flutter 可能补齐工具或依赖缓存，flutter-check 会执行锁定 pub get；依赖源访问与学校请求分别管理。质量 Python 工具缺失时明确失败，安装只经显式 bootstrap。
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Workers、D1 与 KV，不访问或写入 Cloudflare 资源。

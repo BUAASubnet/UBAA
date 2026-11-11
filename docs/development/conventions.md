@@ -26,17 +26,34 @@
 
 产品展示版本、Cargo/pub 包版本、平台 build number、CLI envelope、Bridge contract、Session/config/cache 磁盘版本各自表达不同含义，不能批量改成相同数字。`docs/contracts` 定义兼容行为；破坏性 CLI DTO/错误变化必须提升 schemaVersion 并更新 Schema、序列化测试和消费者，Bridge 变化同样更新合同及生成物，磁盘格式按迁移规则升级。正式发布需明确展示版本、build number、迁移与回退条件。
 
-当前发布版本为 **2.0.0**，对应 Tag 名为 `v2.0.0`。源码、候选构建与正式分发分别记录，实际可安装平台以发布说明为准。
+产品版本与构建号唯一维护在根目录的 [version.toml](../../version.toml)。例如：
 
-| 对象 | 当前声明与规则 |
+```toml
+version = "2.0.0"
+build_number = 2003
+```
+
+更新版本只需执行一次命令，命令会同时保存配置并同步声明：
+
+```bash
+just version 2.0.1 2004
+```
+
+也可以编辑 `version.toml`，再执行不带参数的 `just version`。支持 `version=2.0.1 build=2004` 参数写法。产品版本使用三段数字，构建号为 `1` 至 `65535` 的整数，以满足当前 Windows 文件版本格式。Tag 使用 `v<version>`。
+
+| 对象 | 同步规则 |
 |---|---|
-| Cargo workspace、自有 `ubaa_*` Dart 包及 Bindings 原生包 | `2.0.0`。第三方依赖与带上游版本的 OHOS 适配插件继续采用各自版本。 |
-| 官方 Flutter 与 OHOS 应用 | 均为 `2.0.0+2003`；展示版本为 `2.0.0`，构建号为 `2003`。OHOS AppScope 同步为 `2.0.0` / `2003`。 |
+| Cargo workspace、自有 Dart 包及 Bindings 原生包 | 由配置的 `version` 同步。第三方依赖与带上游版本的 OHOS 适配插件继续采用各自版本。 |
+| 官方 Flutter 与 OHOS 应用 | pubspec 由配置同步为 `<version>+<build_number>`，OHOS AppScope 的展示版本与构建号保持一致。 |
 | CLI、Bridge、应用服务载荷与磁盘格式 | 沿各自兼容规则维护，与产品版本独立。 |
 
-同一发布候选的各平台共用展示版本和构建号，以宿主 pubspec 为维护入口，OHOS AppScope 保持一致。Android、iOS、macOS、Windows 由 Flutter 构建信息提供产品版本。重新分发构建时统一递增构建号，例如 `2.0.0+2004`；上传商店前核对该渠道已经使用的构建号。
+同一发布候选的各平台共用展示版本和构建号。各宿主 manifest 是构建工具所需的同步结果，日常通过 `just version` 更新。Android、iOS、macOS、Windows 由 Flutter 构建信息提供产品版本。重新分发构建时统一递增构建号；上传商店前核对该渠道已经使用的构建号。
 
-新发布采用 SemVer：兼容缺陷修复提升 patch，兼容功能增加提升 minor；稳定版的破坏性变化提升 major。0.x 开发期的破坏性变化至少提升 minor，并在发布说明列出迁移办法；预发布使用明确后缀。平台 build number 在同一发布序列中单调增加。产品发布 Tag 使用 `v<展示版本>`，面向用户的更新记录维护在 `docs/site/changelog/`，包独立发布时维护该包的 CHANGELOG。只有获得发布授权并完成发布验收后才创建 Tag、发布说明或产物，规范本身不提供授权。
+只改构建号时，命令只更新配置与应用声明。产品版本变化时，命令按需调用 Cargo、Flutter pub 和 CocoaPods 刷新自有包的锁定记录，不运行测试、编译或发布。先按[开发环境](setup.md)准备工具及依赖缓存，Apple 锁文件的刷新需要 CocoaPods。工具中途失败后可以重跑同一命令继续同步。
+
+`just version-check` 只读核对配置、各处声明及锁文件中的自有包版本，已纳入脚本与完整检查入口。更新日志、发布说明及渠道下载地址按实际发布内容维护。
+
+新发布采用 SemVer：兼容缺陷修复提升 patch，兼容功能增加提升 minor；稳定版的破坏性变化提升 major。0.x 开发期的破坏性变化至少提升 minor，并在发布说明列出迁移办法。预发布通过分发渠道和 Tag 后缀区分，安装包展示版本保持三段数字。平台 build number 在同一发布序列中单调增加。面向用户的更新记录维护在 `docs/site/changelog/`，包独立发布时维护该包的 CHANGELOG。只有获得发布授权并完成发布验收后才创建 Tag、发布说明或产物，规范本身不提供授权。
 
 引入依赖前说明需要解决的问题、现有实现/标准库是否够用、维护状态、平台/OHOS 兼容性、许可证与体积影响。优先复用仓库已有依赖，按需启用最少 features，不为机械整理顺带升级。
 

@@ -24,6 +24,8 @@
 
 `tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
+根 `version.toml` 维护产品版本与构建号。`release/version.py` 由 `just version` 调用，同步自有声明并按需交给 Cargo、pub 和 CocoaPods 刷新锁文件；`just version-check` 使用同一份同步规则进行只读核对。工具链与第三方插件版本继续独立维护。
+
 `lib/repo.sh` 与 `lib/repo.py` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装负责普通、真实验证和部署入口的环境隔离。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。
 
 `live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI，自动化缺口见[测试策略](../docs/development/testing.md)。

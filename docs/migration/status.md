@@ -4,7 +4,7 @@
 
 ## 主线与候选
 
-当前 v2.0.0 发布配置：官方 Flutter 与 OHOS 宿主统一为 `2.0.0+2003`，OHOS 原生配置为 `versionName=2.0.0`、`versionCode=2003`。此前构建与验收记录继续对应各自候选，正式产物需按统一配置重新生成。
+当前 v2.0.0 发布配置：根 [version.toml](../../version.toml) 统一维护展示版本 `2.0.0` 和构建号 `2003`。`just version` 同步官方 Flutter、OHOS、自有包及原生声明，按需刷新锁文件。官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003`，OHOS 原生配置为 `versionName=2.0.0`、`versionCode=2003`。此前构建与验收记录继续对应各自候选，正式产物需按统一配置重新生成。
 
 2026-11-11 v2.0.0 发布准备：产品名称为 UBAA，源码候选 `17d285b0` 的 Cargo、自有 Dart 包和 Bindings 原生包统一为 `2.0.0`。官方 Flutter 应用为 `2.0.0+2003`，OHOS 宿主与原生元数据为 `2.0.0+1000001`，Apple Pods 锁定记录已同步。`main` 与 `dev` 承担发布和开发，`ubaa1` 保存旧版。源码保留 CI、Flutter 原生平台构建和文档构建与发布三个工作流，推送分支为 `main/dev`。
 
