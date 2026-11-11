@@ -10,7 +10,7 @@
 
 | 能力 | 接口 | 性质 |
 |---|---|---|
-| 遥测 | `POST /v1/telemetry`、`POST /v1/telemetry/erase` | 图形宿主默认启用，保留用户关闭选择，按天聚合 |
+| 遥测 | `POST /v1/telemetry`、`POST /v1/telemetry/erase` | 图形宿主默认启用，保留用户关闭选择，按天聚合；登录与功能加载另有匿名的分钟级计数 |
 | 启动配置 | `GET /v1/bootstrap` | 更新检查和公告；属于功能请求，不带任何标识 |
 | 更新门控 | 无独立接口 | Core 根据最近一次成功的启动配置，决定是否拒绝学校请求 |
 
@@ -99,6 +99,9 @@
 
 - 宿主调用现有 `TelemetryClient.track`。事件先经过 Dart 白名单 `TelemetryPolicy` 过滤，再通过 Bridge 交给 Core。
 - Core 只接受第 5 节列出的维度，在本机按“校园日期（Asia/Shanghai）× 版本 × 维度”累加计数，不保存原始事件流。
+- **分钟级计数。** 入队 `auth_started`、`auth_succeeded`、`auth_failed` 或 `feature_loaded` 时，Core 用同一个校园时钟取当天的分钟序号（`0`–`1439`），在同一“日期 × 版本”条目下另外累加一项 `minutes` 计数（第 5.2 节），不记录秒或更细的时间。`auth_started`、`auth_succeeded` 的 `result` 取 `success`，`auth_failed` 取 `failure`，`feature` 取 `auth`；`feature_loaded` 沿用原来的 `feature` 与 `result`。
+  - 每个校园日至多保留 600 个不同的分钟计数键，跨版本合计；已存在的键继续累加，超出后新键直接丢弃。
+  - 分钟计数不挤占按天计数：加入新的分钟计数键会使待发数据超过第 4.2 节的容量上限时，只丢弃这一项分钟计数，按天计数照常处理。
 - **按“校园日期 × 版本 × 账号”登记用户。** 每次入队计数时，如果当前进程已经绑定了确认过的账号，而这个组合还没有登记，Core 就在该日期和当前版本的条目下登记该账号的派生标识和年级（第 7 节）。同一天升级后，新版本的第一次入队会为同一账号再登记一次，因此服务端两个版本的 `active_days` 行都有客户端数据支撑。
   - 确认来源包括：认证成功；会话恢复通过，即按本机账号索引的 `expectedUsername` 绑定账号；沿用已绑定账号的离线查看。不要求重新登录。
   - 跨过午夜继续使用时，下一次入队会自动补登新的一天。
@@ -109,7 +112,7 @@
 
 - **冻结。** 上传时，Core 从待发计数中取出一个合法子集，冻结成批次，记录当时的安装 ID，分配随机 `batch_id` 并持久化。取不下的计数留在待发区，下次再处理。子集的上限：
   - 至多 8 个“日期 × 版本”组合，按校园日期从旧到新取；
-  - 每个组合的 `counters`、`errors`、`timings` 各至多 512 项；
+  - 每个组合的 `counters`、`errors`、`timings`、`minutes` 各至多 512 项；
   - 序列化后的正文不超过 120 KiB，比服务端上限少 8 KiB 余量。
 - **每次上传的批次数。** GUI 一次上传至多依次发送 4 个批次，命令模式至多 1 个。
 - **按服务端响应处理批次：**
@@ -171,6 +174,9 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
       ],
       "timings": [
         {"metric": "feature_load", "feature": "schedule", "route": "direct", "bucket": "lt_1000", "count": 2}
+      ],
+      "minutes": [
+        {"minute": 485, "event": "feature_loaded", "feature": "schedule", "result": "success", "count": 2}
       ]
     }
   ]
@@ -201,8 +207,12 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 | `source` | 可选，至多一项安全源码位置：`^package:ubaa_[a-z_]+/[A-Za-z0-9_/]+\.dart:\d+$`，或 `^crates/ubaa_[a-z_]+/src/[A-Za-z0-9_/]+\.rs:\d+$`，最长 128 字符 |
 | `timings[].metric` | `cold_start`、`first_content`、`auth`、`feature_load` |
 | `bucket` | `lt_250`、`lt_500`、`lt_1000`、`lt_2000`、`lt_5000`、`lt_10000`、`ge_10000` |
+| `minutes` | 可选。旧客户端不发送；为空时可以省略 |
+| `minutes[].minute` | 整数 0–1439，表示该校园日期北京时间 00:00 起的第几分钟 |
+| `minutes[].event` | `auth_started`、`auth_succeeded`、`auth_failed`、`feature_loaded` |
+| `minutes[].feature`、`minutes[].result` | 取值同上。同一项内 `minute`、`event`、`feature`、`result` 的组合在同一“日期 × 版本”条目中不重复 |
 | `count` | 整数 1–100000 |
-| 各数组长度 | `counters`、`errors`、`timings` 各不超过 512 项 |
+| 各数组长度 | `counters`、`errors`、`timings`、`minutes` 各不超过 512 项 |
 
 不得上报的内容：学号原文、姓名、错误消息原文、URL、HTTP 正文、课程、成绩、文件名、照片、位置、诊断报告、本机路径、完整堆栈和 panic 消息。
 
@@ -210,7 +220,7 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 
 ### 5.3 发布顺序
 
-新增 `feature`、`error_kind` 等枚举值时，先部署接受新值的 Worker，再发布使用新值的客户端。否则旧 Worker 会以 400 拒绝整个批次，客户端按第 4.2 节删除该批次，其中最多 8 个“日期 × 版本”组合的数据随之丢失。
+新增 `feature`、`error_kind` 等枚举值或 `minutes` 这样的可选字段时，先部署接受新值的 Worker，再发布使用新值的客户端。否则旧 Worker 会以 400 拒绝整个批次，客户端按第 4.2 节删除该批次，其中最多 8 个“日期 × 版本”组合的数据随之丢失。
 
 ### 5.4 响应
 
@@ -235,7 +245,7 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 删除不受遥测开关或同意状态的限制。只要本机有安装 ID，即使处于 `reconsent_required` 或已经撤回同意进入 `basic`，用户也可以在设置页发起删除，这时只发送这一个请求。
 
 删除与聚合表的关系：
-- 删除只清除明细，不直接修改任何聚合表。
+- 删除只清除明细，不直接修改任何聚合表。`minute_counts` 不含安装 ID，同样不受删除影响，30 天后自动清理。
 - 尚未定稿的日表和月表（第 11.3 节的重算窗口内）由后续定时任务按剩余明细重算，因此会反映这次删除。
 - 已经定稿的聚合表保留原值。它们不含安装 ID 或用户标识，无法也不需要按设备追溯。
 
@@ -488,6 +498,7 @@ confirm_text: 知道了
 | `counter_days` | `day, install_id, app_version, event, feature, route, result` | `platform, channel, count` | 90 天 |
 | `error_days` | `day, install_id, app_version, event, feature, route, error_code, error_kind, retryable, source` | `platform, channel, count` | 90 天 |
 | `timing_days` | `day, install_id, app_version, metric, feature, route, bucket` | `platform, channel, count` | 90 天 |
+| `minute_counts` | `minute_at, event, feature, result, platform, channel` | `count` | 30 天 |
 | `active_daily` | `day, dimension, value` | `users, devices` | 长期 |
 | `active_monthly` | `month, dimension, value` | `users, devices` | 长期 |
 | `counter_daily` / `error_daily` / `timing_daily` | 对应明细表的主键去掉 `install_id` | `count, devices` | 长期 |
@@ -507,6 +518,7 @@ confirm_text: 知道了
 - **分组计数不能相加。** 同一用户可能同时出现在多个平台、渠道或版本的分组里，所以同一 `dimension` 下各 `value` 的计数相加不等于总数。整体日活和月活只看 `dimension = all` 这一行。`counter_daily` 等表的 `devices` 列同理。
 - 必须在明细超过保留期被清理之前，算好 `all` 维度的去重结果。13 个月后 `user_key` 被删除，就无法再重新去重。
 - 聚合表不含 `install_id` 和 `user_key`。
+- **`minute_counts`**：`minute_at` 为北京时间 `YYYY-MM-DDTHH:MM`，由 `day` 与 `minute` 换算。写入时按主键累加 `count`，与其他明细共用第 11.1 节的批次去重条件和第 6.2 节的墓碑条件。表中不含 `install_id`、`user_key` 和 `app_version`，因此删除请求不会也无法清除其中的计数；定时任务第 3 步按 `minute_at` 清理超过 30 天的行。
 
 ### 11.3 定时任务
 
@@ -527,7 +539,7 @@ confirm_text: 知道了
 
 日表和月表可分批覆盖，同一范围的删除旧聚合与写入新结果在同一事务中完成。所有汇总批次成功后，才在同一批次内清理过期明细并推进 L。汇总失败时已完成的覆盖可保留，下次重算时覆盖原值，不累加。
 
-数据通过 `wrangler d1 execute` 或 Cloudflare 控制台查询，不提供公开看板或管理接口。
+数据通过 `wrangler d1 execute`、Cloudflare 控制台或维护者自托管的只读看板查询，不提供公开看板或管理接口。
 
 ## 12. 隐私政策须列明的事项
 
@@ -536,7 +548,8 @@ confirm_text: 知道了
   - 学号派生标识（加盐哈希）；
   - 年级类型与入学年份；
   - 平台、渠道和版本；
-  - 按天汇总的功能使用、错误码、耗时分桶和安全源码位置。
+  - 按天汇总的功能使用、错误码、耗时分桶和安全源码位置；
+  - 按分钟汇总、不含安装 ID 和用户标识的登录与功能加载次数，以及它不受删除影响、保留 30 天的说明。
 - 目的：上游接口健康监测、缺陷定位、功能改进、活跃度与年级分布统计。
 - 境外接收方：Cloudflare, Inc.。须写明处理方式、存储地点在境外，以及第 11 节的保留期。
 - 用户权利：关闭统计、撤回同意、应用内删除已上传数据，以及联系方式。
@@ -558,6 +571,10 @@ confirm_text: 知道了
 |---|---|
 | 用户关闭统计后，图形宿主应用新版隐私政策 | 开关保持关闭，不入队、不上传 |
 | 收到 `update_required` 后撤回同意 | 门控停用，学校请求照常可用 |
+| 同一分钟内多次登录和加载功能，跨过午夜继续使用 | 分钟计数按校园日期和分钟序号分别累加，新的一天从 `0` 起算 |
+| 当天分钟计数键达到 600 个，或待发数据接近容量上限 | 新的分钟计数键被丢弃，已有键继续累加，按天计数不受影响 |
+| 旧客户端批次不含 `minutes`；新批次重复发送；已删除安装 ID 的迟到批次 | 不含时照常接受；重复批次不重复累加；墓碑命中时 `minute_counts` 不写入 |
+| 删除已上传数据 | 明细表清除该安装 ID，`minute_counts` 保持不变 |
 | 重新同意后刷新门控 | 立即请求启动配置；成功时按结果设置或解除门控，失败时沿用已保存的记录 |
 | 删除与上传交错：A 进程已发出旧 ID 批次，B 进程删除成功后，A 的请求才到达 Worker | 旧 ID 不留下任何明细，A 收到 410 或 204 且数据未写入 |
 | 删除结果未知后重启 | 删除进行中标记仍在，先重试删除，成功前不上传 |

@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 2,
+  version: 3,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -116,6 +116,12 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '按校园日期汇总的功能使用次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
     ),
     PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.bullet,
+      level: 0,
+      text:
+          '按分钟汇总的登录发起、成功、失败次数和各功能的加载次数及结果，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
+    ),
+    PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
@@ -142,7 +148,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '活跃明细保留 13 个月，功能、错误和耗时明细保留 90 天。用于去重的批次记录保留 14 天，删除标记保留 30 天。没有安装 ID 或用户标识的汇总数据长期保留。',
+          '活跃明细保留 13 个月，功能、错误和耗时明细保留 90 天，按分钟汇总的次数保留 30 天。用于去重的批次记录保留 14 天，删除标记保留 30 天。没有安装 ID 或用户标识的汇总数据长期保留。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -163,7 +169,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
-          '“删除已上传的统计数据”会请求清除当前安装 ID 对应的服务端明细。删除未完成时，应用会暂停上传并重试。未定稿的汇总会在后续计算中反映删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。',
+          '“删除已上传的统计数据”会请求清除当前安装 ID 对应的服务端明细。删除未完成时，应用会暂停上传并重试。未定稿的汇总会在后续计算中反映删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。按分钟汇总的次数同样没有安装 ID 或用户标识，无法按设备删除，会在 30 天后自动清除。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -193,5 +199,8 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>['说明产品改进统计默认开启，应用启动时不再弹出隐私选择。', '说明升级后保留已关闭统计或撤回同意的选择。'],
+  changes: <String>[
+    '新增按分钟汇总的登录与功能加载次数，不含安装 ID 和用户标识，保留 30 天。',
+    '说明删除已上传数据无法清除按分钟汇总的次数。',
+  ],
 );
