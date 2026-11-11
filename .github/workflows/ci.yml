@@ -10,7 +10,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # 同一分支的 push 依次执行，后续 push 不会中断已开始的迁移与部署。
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   contract-gates:
@@ -100,6 +101,8 @@ jobs:
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
         run: just app-service-content-check
+      - name: 检查 Worker 部署触发条件与发布顺序
+        run: node --test scripts/tests/app_service/deploy_workflow_test.mjs
       - name: 检查应用服务合同与本地 Worker
         run: just app-service-check
 
@@ -141,3 +144,61 @@ jobs:
       - run: cargo test --locked --workspace --exclude ubaa-core --all-targets
       - run: cargo build --locked --workspace --all-targets
       - run: cargo doc --locked --workspace --no-deps
+
+  app-service-deploy:
+    name: 部署应用服务并发布内容
+    needs: [contract-gates, app-service-contracts, flutter-contracts, rust-platforms]
+    if: >-
+      success() && github.event_name == 'push' && github.event.deleted == false
+      && github.repository == 'BUAASubnet/UBAA' && vars.APP_SERVICE_DEPLOY_BRANCH != ''
+      && github.ref_name == vars.APP_SERVICE_DEPLOY_BRANCH
+    runs-on: ubuntu-latest
+    environment: app-service-production
+    concurrency:
+      group: app-service-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: versions
+        uses: ./.github/actions/versions
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        with:
+          tool: just@${{ steps.versions.outputs.just }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            services/app_service/package-lock.json
+      - name: 安装锁定的发布工具依赖
+        run: |
+          npm ci --no-audit --no-fund
+          npm --prefix services/app_service ci --no-audit --no-fund
+      - name: 核对候选提交仍是部署分支的最新提交
+        id: candidate
+        shell: bash
+        run: |
+          branch_head=$(git ls-remote --exit-code --refs origin "$GITHUB_REF")
+          if [[ "${branch_head%%$'\t'*}" == "$GITHUB_SHA" ]]; then
+            printf 'deploy=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'deploy=false\n' >> "$GITHUB_OUTPUT"
+            printf '%s\n' '部署分支已有更新的提交，跳过本次部署。'
+          fi
+      - name: 迁移 D1、部署 Worker 并同步公告和渠道配置
+        if: steps.candidate.outputs.deploy == 'true'
+        shell: bash
+        env:
+          UBAA_APP_SERVICE_ACCOUNT_ID: ${{ vars.UBAA_APP_SERVICE_ACCOUNT_ID }}
+          UBAA_APP_SERVICE_WORKER_NAME: ${{ vars.UBAA_APP_SERVICE_WORKER_NAME }}
+          UBAA_APP_SERVICE_D1_ID: ${{ vars.UBAA_APP_SERVICE_D1_ID }}
+          UBAA_APP_SERVICE_KV_NAMESPACE_ID: ${{ vars.UBAA_APP_SERVICE_KV_NAMESPACE_ID }}
+          UBAA_APP_SERVICE_DOMAIN: ${{ vars.UBAA_APP_SERVICE_DOMAIN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          just app-service-deploy
+          just app-service-publish
