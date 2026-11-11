@@ -1,7 +1,10 @@
-## 0.1.0（当前开发版本）
+## 2.0.0
 
-* 与 pubspec 的当前版本一致，提供 Flutter Bridge contract v42 的绑定。
-* 本节说明源码状态，不表示已独立发布该包。`0.0.1` 保留为最初建立记录。
+* 随 UBAA v2.0.0 提供 Flutter Bridge contract v61 的绑定及六平台构建接线。
+
+## 0.1.0
+
+* 提供 Flutter Bridge contract v42 的绑定。
 
 ## 0.0.1
 

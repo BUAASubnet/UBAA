@@ -784,42 +784,42 @@ packages:
       path: "../../packages/ubaa_app"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   ubaa_bindings:
     dependency: "direct main"
     description:
       path: "../../packages/ubaa_bindings"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   ubaa_domain:
     dependency: transitive
     description:
       path: "../../packages/ubaa_domain"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   ubaa_host:
     dependency: "direct main"
     description:
       path: "../../packages/ubaa_host"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   ubaa_platform:
     dependency: "direct main"
     description:
       path: "../../packages/ubaa_platform"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   ubaa_ui:
     dependency: transitive
     description:
       path: "../../packages/ubaa_ui"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "2.0.0"
   url_launcher:
     dependency: transitive
     description:

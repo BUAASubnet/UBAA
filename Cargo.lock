@@ -4004,7 +4004,7 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "ubaa-command"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4021,7 +4021,7 @@ dependencies = [
 
 [[package]]
 name = "ubaa-core"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -4066,7 +4066,7 @@ dependencies = [
 
 [[package]]
 name = "ubaa-core-live"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "clap",
  "tokio",
@@ -4076,7 +4076,7 @@ dependencies = [
 
 [[package]]
 name = "ubaa-test-support"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "aes",
  "async-trait",
@@ -4089,7 +4089,7 @@ dependencies = [
 
 [[package]]
 name = "ubaa_flutter_bridge"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "async-trait",
  "chrono",

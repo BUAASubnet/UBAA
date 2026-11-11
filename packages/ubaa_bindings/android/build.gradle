@@ -1,7 +1,7 @@
 // The Android Gradle Plugin builds the native code with the Android NDK.
 
 group 'com.flutter_rust_bridge.ubaa_bindings'
-version '1.0'
+version '2.0.0'
 
 buildscript {
     repositories {
