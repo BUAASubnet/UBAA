@@ -11,3 +11,4 @@ runs:
       with:
         shared-key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.kind }}
         cache-bin: false
+        cache-on-failure: true

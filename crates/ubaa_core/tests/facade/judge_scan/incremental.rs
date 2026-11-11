@@ -157,7 +157,7 @@ fn 新增项只读该项详情_同编号标题变化只重读变化项() {
 fn check_revalidation_case(
     label: &str,
     age: i64,
-    deadline: Option<Result<i64, &str>>,
+    deadline: Option<std::result::Result<i64, &str>>,
     expected: usize,
 ) {
     let (root, mut client, cache, transport) = setup(&format!("judge-incremental-{label}"));
