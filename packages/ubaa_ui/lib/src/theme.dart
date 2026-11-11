@@ -16,6 +16,11 @@ class UbaaTheme {
     GlobalCupertinoLocalizations.delegate,
   ];
 
+  /// 无头渲染（如商店截图）注入的字体族；测试字体环境不解析未指定字体族的文本。
+  /// 生产始终为空，沿用各平台系统字体。
+  @visibleForTesting
+  static String? debugFontFamily;
+
   static const Color seedColor = Color(0xFF1976D2);
   static const double pageMaxWidth = 1040;
   static const double cardRadius = 16;
@@ -113,6 +118,7 @@ class UbaaTheme {
     return ThemeData(
       adaptations: [_AppleSwitchAdaptation(colors.primary)],
       useMaterial3: true,
+      fontFamily: debugFontFamily,
       colorScheme: colors,
       scaffoldBackgroundColor: colors.surface,
       visualDensity: VisualDensity.standard,
@@ -184,6 +190,7 @@ class UbaaTheme {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
+          fontFamily: debugFontFamily,
           color: colors.onSurface,
           fontSize: 26,
           fontWeight: FontWeight.w500,

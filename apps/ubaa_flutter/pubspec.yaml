@@ -21,6 +21,7 @@ dependencies:
     path: ../../packages/ubaa_platform
 
 dev_dependencies:
+  clock: ^1.1.2
   flutter_secure_storage: 10.0.0
   package_info_plus: 8.3.1
   ubaa_test_support:

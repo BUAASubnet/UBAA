@@ -34,6 +34,8 @@
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
+`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `.ubaa_local/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。
+
 `release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。

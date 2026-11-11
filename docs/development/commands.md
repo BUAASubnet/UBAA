@@ -185,6 +185,7 @@ OHOS 宿主与三个 `*_ohos` 插件不属于官方 Pub workspace 的八个成�
 | `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
+| `bash scripts/release/store-screenshots.sh` | 无头绘制纯合成的商店宣传图，在 `.ubaa_local/store_screenshots/` 输出本批次原图和 RGB PNG；见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
 | `just app-service-publish` | 校验渠道和公告，与目标 KV 内容比较，只写入有差异的键 |
 | `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
 

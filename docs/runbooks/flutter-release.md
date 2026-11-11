@@ -27,6 +27,7 @@
 | 旧版升级 | 使用旧版正式安装包验证覆盖安装、重新登录、数据保留与回退；Android 已发布 v1.8.2 的源码构建号为 35，商店渠道另核对已用构建号 |
 | 许可证材料 | 在干净候选运行严格 `release-preflight` 并保存报告，另执行联网依赖审计 |
 | 应用服务 | 正式 HTTPS 端点、分发渠道与隐私选择已验证；需要启用 CD 时配置 `main` 和受保护环境，见[部署手册](app-service.md) |
+| 商店宣传图 | 从[已审阅的宣传图](../site/public/screenshots/)选择对应平台的 PNG；界面有变化时按下文重新生成 |
 | 用户说明 | 使用[新版变化](../site/guide/ubaa2.md)与[更新日志](../site/changelog/index.md)，明确实际平台、最低系统要求、升级方式和已知限制 |
 
 ### 环境准备
@@ -77,6 +78,31 @@ just release-preflight /项目绝对路径/UBAA2/.ubaa_local/release/license_rep
 产物结构检查覆盖宿主入口、Flutter 资源和 Rust 动态库，macOS 还核验实际签名权限。无签名 Debug 包和 HAP 不能证明商店签名、安装升级、设备 HUKS 或正式发布。
 
 共享的日志、报告和工件不包含凭据、Cookie、Token、原始响应、完整个人资料或本机敏感路径；本地原始调试材料与 UI 媒体保存在被忽略的 `.ubaa_local/` 任务子目录。
+
+#### 生成商店宣传图
+
+宣传图由 Flutter 的无头测试引擎绘制正式应用界面。入口在 [Flutter 宿主的 store 目录](../../apps/ubaa_flutter/store/)，使用固定日期和纯合成数据，不启动模拟器，不读取真实账号、校园响应或用户缓存。
+
+在仓库根目录运行：
+
+```bash
+just flutter-dependencies
+bash scripts/release/store-screenshots.sh
+```
+
+本机需要 ImageMagick 7 的 `magick` 命令，以及 Noto Sans CJK SC（思源黑体）的 `Regular`、`Medium`、`Bold`、`Black` 四个 OTF 字重。文件名形如 `NotoSansCJKsc-Regular.otf`。可在执行脚本时用 `UBAA_STORE_FONT_DIR` 指向字体目录；同一套字体有助于重现排版。
+
+| 成品目录 | 尺寸（像素） | 用途 |
+|---|---:|---|
+| `iphone/` | 1320 × 2868 | iPhone 大屏、使用指南 |
+| `iphone_medium/` | 1206 × 2622 | iPhone 中屏 |
+| `ipad/` | 2064 × 2752 | 13 英寸 iPad |
+| `android/` | 1080 × 1920 | AppGallery 手机竖图 |
+| `desktop/` | 2880 × 1800 | 桌面版宣传 |
+
+脚本把本次原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。查看成品，核对界面、文案、尺寸与像素清晰度，然后把 `ready/` 下对应的 PNG 复制到 [网站宣传资源目录](../site/public/screenshots/)，保持文件名和子目录不变。源数据、渲染代码和审过的成品均由 Git 追踪。图片换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+
+上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与 [AppGallery 视觉素材规范](https://developer.huawei.com/consumer/en/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)复核目标规格。宣传图生成与网站构建不执行商店上传。
 
 ### 4. 设备、真实路线与签名
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_ui/src/shared/sync_status.dart';
@@ -8,10 +9,7 @@ void main() {
     Future<void> mount(Duration age) => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: UiSyncStatus(
-            busy: false,
-            updatedAt: DateTime.now().subtract(age),
-          ),
+          body: UiSyncStatus(busy: false, updatedAt: clock.now().subtract(age)),
         ),
       ),
     );
@@ -32,28 +30,31 @@ void main() {
     }
   });
   testWidgets('短请求不闪烁，持续请求延迟显示并在结束后恢复时间', (tester) async {
+    final updatedAt = DateTime(2026, 10, 31, 9, 30);
     Future<void> mount(bool busy) => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: UiSyncStatus(
-            busy: busy,
-            updatedAt: DateTime(2026, 10, 31, 9, 30),
-          ),
+          body: UiSyncStatus(busy: busy, updatedAt: updatedAt),
         ),
       ),
     );
-    await mount(true);
-    await tester.pump(const Duration(milliseconds: 399));
-    expect(find.text('更新中'), findsNothing);
-    await mount(false);
-    await tester.pump(const Duration(milliseconds: 401));
-    expect(find.text('更新中'), findsNothing);
-    await mount(true);
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('更新中'), findsOneWidget);
-    await mount(false);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('09:30'), findsOneWidget);
+    await withClock(
+      Clock.fixed(updatedAt.add(const Duration(minutes: 30))),
+      () async {
+        await mount(true);
+        await tester.pump(const Duration(milliseconds: 399));
+        expect(find.text('更新中'), findsNothing);
+        await mount(false);
+        await tester.pump(const Duration(milliseconds: 401));
+        expect(find.text('更新中'), findsNothing);
+        await mount(true);
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('更新中'), findsOneWidget);
+        await mount(false);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('09:30'), findsOneWidget);
+      },
+    );
   });
   testWidgets('首次读取没有更新时间时更早显示更新中', (tester) async {
     await tester.pumpWidget(
