@@ -11,8 +11,8 @@ repo_root=$(ubaa_repo_root)
 source "$script_dir/../lib/toolchain.sh"
 check_mode=${1:-check}
 if [[ $# -gt 0 ]]; then shift; fi
-if [[ "$check_mode" != check && "$check_mode" != dependencies ]]; then
-  printf '%s\n' 'error: 只接受 check 或 dependencies 模式' >&2
+if [[ "$check_mode" != check && "$check_mode" != dependencies && "$check_mode" != analyze ]]; then
+  printf '%s\n' 'error: 只接受 check、analyze 或 dependencies 模式' >&2
   exit 2
 fi
 # 单个 flutter test 已按核数并发执行测试文件；8 核本机实测 3 包并行比串行更慢，
@@ -64,6 +64,10 @@ printf '格式检查 %s 个包\n' "${#packages[@]}"
 # implementation_imports 等 analyzer error 仍然严格失败。
 printf '静态分析 %s 个包\n' "${#packages[@]}"
 "$flutter_bin" analyze --no-fatal-infos "${packages[@]}"
+
+if [[ "$check_mode" == analyze ]]; then
+  exit 0
+fi
 
 # 依赖已在上面统一解析，测试不再各自运行 pub get。
 if ((test_jobs == 1)); then

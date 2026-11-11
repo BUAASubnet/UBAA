@@ -37,11 +37,13 @@ jobs:
     needs:
       - metadata
       - store-access
+      - acceptance
     uses: ./.github/workflows/ci.yml
+    if: needs.acceptance.outputs.reused != 'true'
   android:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: ubuntu-24.04
     environment: release-production
     timeout-minutes: 180
@@ -56,8 +58,7 @@ jobs:
         uses: ./.github/actions/toolchain
       - &a4
         name: 准备固定 Flutter
-        shell: bash
-        run: bash scripts/bootstrap/flutter.sh
+        uses: ./.github/actions/flutter
       - name: 安装 Android 固定组件
         shell: bash
         run: |
@@ -131,10 +132,11 @@ jobs:
             target: android-arm
           - abi: x86_64
             target: android-x64
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   linux:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: ${{ matrix.os }}
     environment: release-production
     timeout-minutes: 180
@@ -167,10 +169,11 @@ jobs:
             arch: x64
           - os: ubuntu-24.04-arm
             arch: arm64
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   windows:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: windows-2025
     environment: release-production
     timeout-minutes: 180
@@ -196,10 +199,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   macos:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: ${{ matrix.os }}
     environment: release-production
     timeout-minutes: 180
@@ -249,10 +253,11 @@ jobs:
             arch: arm64
           - os: macos-15-intel
             arch: x86_64
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   ios:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: macos-15
     environment: release-production
     timeout-minutes: 180
@@ -270,7 +275,7 @@ jobs:
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: python3 scripts/release/platforms/apple_signing.py ios
-      - &ios_xcode
+      - &a6
         name: 选择 iOS 固定 Xcode
         shell: bash
         run: |
@@ -290,10 +295,11 @@ jobs:
       - name: 清理 Apple 身份
         if: ${{ always() }}
         run: python3 scripts/release/platforms/apple_signing.py cleanup
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   ohos:
     needs:
       - metadata
-      - verify
+      - ready
     runs-on: ubuntu-24.04
     environment: release-production
     timeout-minutes: 180
@@ -301,10 +307,10 @@ jobs:
     steps:
       - *a1
       - *a3
-      - &a6
+      - &a7
         id: versions
         uses: ./.github/actions/versions
-      - &a7
+      - &a8
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: ${{ steps.versions.outputs.node }}
@@ -365,6 +371,7 @@ jobs:
           retention-days: 7
           include-hidden-files: true
       - *a5
+    if: ${{ !cancelled() && needs.ready.result == 'success' }}
   distribute:
     needs:
       - metadata
@@ -403,6 +410,7 @@ jobs:
           R2_BUCKET: ${{ vars.R2_BUCKET }}
           R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
         run: python3 scripts/release/distribute.py
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
   app-store:
     needs:
       - metadata
@@ -413,9 +421,9 @@ jobs:
     env: *a2
     steps:
       - *a1
-      - *ios_xcode
       - *a6
       - *a7
+      - *a8
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: store-ios
@@ -434,6 +442,7 @@ jobs:
           retention-days: 7
           include-hidden-files: true
       - *a5
+    if: ${{ !cancelled() && needs.distribute.result == 'success' }}
   appgallery:
     needs:
       - metadata
@@ -444,8 +453,8 @@ jobs:
     env: *a2
     steps:
       - *a1
-      - *a6
       - *a7
+      - *a8
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: store-harmonyos
@@ -462,6 +471,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
+    if: ${{ !cancelled() && needs.distribute.result == 'success' }}
   store-access:
     needs: metadata
     runs-on: macos-15
@@ -486,3 +496,33 @@ jobs:
       - name: 清理上传密钥
         if: ${{ always() }}
         run: rm -rf .ubaa_local/release/apple_api
+  acceptance:
+    needs: metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      reused: ${{ steps.acceptance.outputs.reused }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - id: acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release/acceptance.py reuse
+  ready:
+    needs:
+      - metadata
+      - store-access
+      - acceptance
+      - verify
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - name: 核对发布验收来源
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          REUSED: ${{ needs.acceptance.outputs.reused }}
+        run: python3 scripts/release/acceptance.py ready

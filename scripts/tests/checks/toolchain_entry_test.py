@@ -503,6 +503,30 @@ exit 73
                 self.assertEqual(arguments, ['ios', '--simulator', '--debug', '--no-codesign']
                                  if platform == 'ios-simulator' else ['macos', '--debug'])
 
+    def test_Android构建明确目标架构且保留默认全部架构(self):
+        self.configure()
+        for name in ('scripts/build/flutter.sh', 'scripts/lib/repo.sh'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        (self.root / 'apps/ubaa_flutter').mkdir(parents=True)
+        checker = self.root / 'scripts/check/flutter-toolchains.sh'
+        checker.parent.mkdir()
+        checker.write_text('#!/bin/sh\nexit 0\n')
+        checker.chmod(0o755)
+        (self.sdk / 'bin/flutter').write_text(
+            '#!/usr/bin/env python3\nimport sys,json\n'
+            'if sys.argv[1] == "build": print(json.dumps(sys.argv[2:]))\n')
+        for target in ('', 'android-arm', 'android-arm64', 'android-x64', 'unknown'):
+            with self.subTest(target=target):
+                result = subprocess.run(['bash', 'scripts/build/flutter.sh', 'android-apk', 'debug'],
+                                        cwd=self.root, env={**self.environment, 'ANDROID_TARGET': target},
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 2 if target == 'unknown' else 0, result.stderr)
+                if target != 'unknown':
+                    expected = ['apk', '--debug'] + ([f'--target-platform={target}'] if target else [])
+                    self.assertEqual(json.loads(result.stdout), expected)
+
     def test_质量工具与发布脚本直接调用读取项目配置(self):
         self.configure()
         for name in ('scripts/tools/environment.sh', 'scripts/tools/requirements.txt',
