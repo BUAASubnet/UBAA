@@ -222,6 +222,15 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
         run: bash scripts/release/platforms/macos.sh
+      - name: 保存 macOS 公证状态
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: notarization-${{ matrix.arch }}
+          path: .ubaa_local/release/macos/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+          include-hidden-files: true
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: public-macos-${{ matrix.arch }}
