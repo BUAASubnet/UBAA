@@ -2,7 +2,7 @@
 
 UBAA 2 作为旧版更新发布。Android、iOS、macOS、Linux 和 OHOS 的产品应用标识统一为 `cn.edu.ubaa`。Android 更新必须继续使用原来的应用签名密钥，iOS 更新必须使用原 App Store Connect 应用记录和所属 Team。二次开发者使用自己的应用标识、开发者账号和密钥。
 
-本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。Android/OHOS 项目构建入口从根 `.env` 或同名进程变量读取签名参数；证书文件保存在 `.sign/`。原生 IDE 保留既有配置方式。Apple 等平台仍使用下文的原生配置入口，目前没有六平台发布流水线。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
+本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。Android/OHOS 项目构建入口从根 `.env` 或同名进程变量读取签名参数；证书文件保存在 `.sign/`。原生 IDE 保留既有配置方式。Apple 等平台仍使用下文的原生配置入口，Release 工作流负责六平台打包与分发。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
 
 ## 先确认应用身份
 
@@ -129,7 +129,7 @@ OHOS_SIGN_ALG=SHA256withECDSA
 
 Windows 普通 EXE/ZIP 可以无签名分发。需要可信发布者签名时，使用证书存储或签名服务对最终 EXE、DLL 和安装器按渠道规则签名，并使用可信时间戳。MSIX 需要有效签名，Manifest 的 Publisher 必须与证书匹配。Microsoft Store 包的 Name 和 Publisher 还必须与 Partner Center 的 Product Identity 一致，不能强行覆盖为通用标识。通过 Microsoft Store 分发 MSIX 时可由商店签名。向商店提交 EXE/MSI 的规则不同，需要开发者自行完成签名。代码签名不保证立即消除 SmartScreen 的信誉提示。
 
-Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供可验证的签名，并公开发布公钥和校验摘要。发行版仓库按对应包管理器规则签名。当前仓库只有 Flutter 桌面构建入口，尚未提供统一的 Windows 安装器、Linux 仓库或签名自动化。
+Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供可验证的签名，并公开发布公钥和校验摘要。发行版仓库按对应包管理器规则签名。Release 工作流生成 Windows EXE 安装器和 Linux 分架构压缩包。
 
 ## GitHub Actions 的材料映射
 
@@ -147,7 +147,7 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 | `IOS_PROVISIONING_PROFILE_BASE64` | 安装对应应用和渠道的 Profile |
 | `APPSTORE_KEY_ID`、`APPSTORE_ISSUER_ID`、`APPSTORE_PRIVATE_KEY` | App Store Connect 上传认证 |
 
-以上是现有字段到发布流程的映射，UBAA v2.0 当前 CI 只构建 Debug，没有自动使用这些 secrets。后续发布作业应只在可信分支、明确发布触发条件下读取材料，不能向 Fork PR 暴露密钥；临时文件与 Keychain 在成功、失败时都清理，不上传到 artifact。Base64 是编码，不提供加密保护。
+Release 工作流的 iOS 步骤使用上述 Apple Secrets。Android 使用 release-production 的 ANDROID_KEYSTORE_BASE64 和 ANDROID_*；HarmonyOS 使用 OHOS_KEYSTORE_BASE64、OHOS_CERTIFICATE_BASE64、OHOS_PROFILE_BASE64 和 OHOS_*；macOS 使用 MACOS_CERTIFICATE_P12_BASE64 和 MACOS_CERTIFICATE_PASSWORD。后续发布作业应只在可信分支、明确发布触发条件下读取材料，不能向 Fork PR 暴露密钥；临时文件与 Keychain 在成功、失败时都清理，不上传到 artifact。Base64 是编码，不提供加密保护。
 
 ## 配置完成后的检查
 

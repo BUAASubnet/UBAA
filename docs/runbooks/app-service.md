@@ -6,8 +6,9 @@
 
 1. 在目标 Cloudflare 账号准备 D1 和 KV，分别记下 D1 数据库 UUID 和 KV 命名空间 ID。Worker 使用 `DB` 和 `APP_CONFIG` 绑定这两个资源。测试与生产使用不同的 Worker、D1、KV 和域名。记录 D1 的实际数据位置或配置的管辖区，按 [ADR 0008](../adr/0008-app-service-worker.md) 核对数据出境说明。
 2. 在 Workers & Pages 创建目标 Worker。首次可以使用空白 Worker，关闭 `workers.dev` 和 Preview URLs。添加名为 `USER_KEY_SECRET`、类型为 **Secret** 的密码学随机值。部署只检查该 Secret 是否存在并保留它。除泄露外不更换；更换后记录统计去重连续性中断的日期。参见 [Worker Secret 配置](https://developers.cloudflare.com/workers/configuration/secrets/#secrets-on-deployed-workers)。
-3. 选择同一账号下已激活 Zone 的专用主机名，先确认 DNS 中无冲突记录、主机名未被其他业务占用。由维护者在目标 Worker 的 **Settings → Domains & Routes** 首次绑定 [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)。Cloudflare 创建所需的 DNS 记录和证书；已有 CNAME 的主机名不能直接创建 Custom Domain。等待证书和绑定生效后再部署。
-4. 本机在仓库根 `.env` 中填写下列值。CD 使用同名的 GitHub Environment 变量：
+3. 为 API 主机名配置独立规则：关闭 Browser Integrity Check，并让浏览器缓存遵循 Worker 的 Cache-Control，避免原生客户端被浏览器检查拦截或 300 秒缓存被 Zone 默认期限覆盖。
+4. 选择同一账号下已激活 Zone 的专用主机名，先确认 DNS 中无冲突记录、主机名未被其他业务占用。由维护者在目标 Worker 的 **Settings → Domains & Routes** 首次绑定 [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)。Cloudflare 创建所需的 DNS 记录和证书；已有 CNAME 的主机名不能直接创建 Custom Domain。等待证书和绑定生效后再部署。
+5. 本机在仓库根 `.env` 中填写下列值。CD 使用同名的 GitHub Environment 变量：
 
 | 键 | 值 |
 |---|---|
