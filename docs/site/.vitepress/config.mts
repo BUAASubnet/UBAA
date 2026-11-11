@@ -39,6 +39,7 @@ export default defineConfig({
           text: '开始',
           items: [
             { text: '功能总览', link: '/features/' },
+            { text: '应用截图', link: '/features/screenshots' },
             { text: '登录与连接方式', link: '/features/auth-and-connection' },
           ],
         },

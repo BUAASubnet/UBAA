@@ -12,6 +12,9 @@ hero:
       text: 功能说明
       link: /features/
     - theme: alt
+      text: 应用截图
+      link: /features/screenshots
+    - theme: alt
       text: 新版升级了什么
       link: /guide/ubaa2
 features:
