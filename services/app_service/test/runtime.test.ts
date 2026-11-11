@@ -17,3 +17,11 @@ it("测试运行时提供本地 D1、KV 和合成密钥", async () => {
   expect(await env.APP_CONFIG.get("binding-smoke")).toBe("local");
   expect(typeof env.USER_KEY_SECRET).toBe("string");
 });
+
+it("启动配置提供可用的原生限流绑定", async () => {
+  expect(await env.BOOTSTRAP_LIMIT.limit({ key: crypto.randomUUID() })).toEqual(
+    {
+      success: true,
+    },
+  );
+});
