@@ -78,7 +78,19 @@ case "$platform" in
   android-apk)
     require_zip_entry 'classes.dex'
     require_zip_entry 'assets/flutter_assets/AssetManifest.bin'
-    for abi in arm64-v8a armeabi-v7a x86_64; do
+    abis=(arm64-v8a armeabi-v7a x86_64)
+    if [[ -n "${3:-}" ]]; then
+      case "$3" in
+        arm64-v8a|armeabi-v7a|x86_64) abis=("$3") ;;
+        *) printf 'error: 不支持的 Android 产物架构\n' >&2; exit 2 ;;
+      esac
+      require_zip_entry "lib/$3/libflutter.so"
+      if ! unzip -Z1 "$artifact" | awk -F/ -v abi="$3" '$1 == "lib" && $NF ~ /\.so$/ && $2 != abi { bad = 1 } END { exit bad }'; then
+        printf 'error: Android 产物混入其他 ABI\n' >&2
+        exit 1
+      fi
+    fi
+    for abi in "${abis[@]}"; do
       require_zip_entry "lib/$abi/libubaa_flutter_bridge.so"
     done
     ;;

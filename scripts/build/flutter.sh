@@ -52,7 +52,14 @@ fi
     macos) flutter_build macos --"$mode" ;;
     linux) flutter_build linux --"$mode" ;;
     windows) flutter_build windows --"$mode" ;;
-    android-apk) flutter_build apk --"$mode" ;;
+    android-apk)
+      case "${ANDROID_TARGET:-}" in
+        '') flutter_build apk --"$mode" ;;
+        android-arm|android-arm64|android-x64)
+          flutter_build apk --"$mode" "--target-platform=$ANDROID_TARGET" ;;
+        *) printf 'error: 不支持的 Android 构建架构\n' >&2; exit 2 ;;
+      esac
+      ;;
     android-appbundle) flutter_build appbundle --"$mode" ;;
     ios-simulator)
       if [[ "$mode" == release ]]; then

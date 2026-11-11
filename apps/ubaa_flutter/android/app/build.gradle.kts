@@ -108,14 +108,6 @@ android {
             }
         }
         release {
-            // 单架构发布也过滤依赖 AAR 中的其他 ABI，保留统一构建号。
-            System.getenv("ANDROID_ABI")?.let { abi ->
-                require(abi in setOf("armeabi-v7a", "arm64-v8a", "x86_64")) {
-                    "ANDROID_ABI 不是支持的发布架构"
-                }
-                ndk.abiFilters.clear()
-                ndk.abiFilters.add(abi)
-            }
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
@@ -123,6 +115,17 @@ android {
                 signingConfig = null
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    // 指定架构的 CI 与 Release 都只保留目标 ABI，构建号不变。
+    System.getenv("ANDROID_ABI")?.let { abi ->
+        require(abi in setOf("armeabi-v7a", "arm64-v8a", "x86_64")) {
+            "ANDROID_ABI 不是支持的构建架构"
+        }
+        buildTypes.configureEach {
+            ndk.abiFilters.clear()
+            ndk.abiFilters.add(abi)
         }
     }
 }

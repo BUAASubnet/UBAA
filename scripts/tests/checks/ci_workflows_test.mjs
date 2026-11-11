@@ -28,3 +28,12 @@ test("main 必需检查拒绝失败、取消和被跳过的验收", () => {
     assert.equal(execution.status, result === "success" ? 0 : 1, execution.stderr);
   }
 });
+test("Android 并行作业覆盖三个 ABI 且产物名称互不覆盖", () => {
+  const job = workflow("flutter-platforms").jobs["native-debug"];
+  const android = job.strategy.matrix.include.filter((entry) => entry.platform === "android-apk");
+  assert.deepEqual(android.map(({ abi, android_target }) => [abi, android_target]).sort(), [
+    ["arm64-v8a", "android-arm64"], ["armeabi-v7a", "android-arm"], ["x86_64", "android-x64"],
+  ].sort());
+  assert.equal(new Set(android.map((entry) => entry.artifact_id)).size, 3);
+  assert.equal(job.strategy["fail-fast"], false);
+});

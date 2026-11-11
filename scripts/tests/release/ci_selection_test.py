@@ -1,6 +1,9 @@
 """CI 生成选择、测试分组与汇总必须保留完整覆盖。"""
 import importlib.util
 import unittest
+import subprocess
+import tempfile
+import zipfile
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('ci_plan', ROOT / 'scripts/check/ci/plan.py')
@@ -42,6 +45,25 @@ class SelectionTest(unittest.TestCase):
         for result in ('failure', 'cancelled', 'skipped'):
             jobs['rust-tests']['result'] = result
             self.assertFalse(plan.accepted(jobs, False))
+
+    def test_Android单架构检查拒绝缺少库和混入其他架构(self):
+        private = ROOT / '.ubaa_local'
+        private.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=private) as folder:
+            artifact = Path(folder) / 'app.apk'
+            base = ['classes.dex', 'assets/flutter_assets/AssetManifest.bin',
+                    'lib/arm64-v8a/libubaa_flutter_bridge.so', 'lib/arm64-v8a/libflutter.so']
+            for files, abi, expected in [(base, 'arm64-v8a', 0),
+                                          (base[:-1], 'arm64-v8a', 1),
+                                          (base + ['lib/x86_64/libextra.so'], 'arm64-v8a', 1),
+                                          (base, 'unknown', 2), (base, '', 1)]:
+                with self.subTest(abi=abi, files=files):
+                    with zipfile.ZipFile(artifact, 'w') as archive:
+                        for name in files:
+                            archive.writestr(name, 'fixture')
+                    result = subprocess.run(['bash', str(ROOT / 'scripts/release/verify-flutter-artifact.sh'),
+                                             'android-apk', str(artifact), abi], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
 if __name__ == '__main__':
     unittest.main()

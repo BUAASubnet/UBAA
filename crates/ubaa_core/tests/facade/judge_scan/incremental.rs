@@ -167,7 +167,7 @@ fn check_revalidation_case(
         .unwrap()
         .block_on(async {
             refresh(&mut client, &cache).await;
-            // 每项准备完成后再确定截止时间，前面用例的耗时不占用本项边界余量。
+            // 完成准备后再确定截止时间，初始化耗时不占用边界余量。
             let due = deadline.map(|value| match value {
                 Ok(seconds) => deadline_after(seconds),
                 Err(text) => text.to_owned(),

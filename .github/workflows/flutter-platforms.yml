@@ -40,9 +40,26 @@ jobs:
             os: macos-15
             platform: ios-simulator
             artifact: apps/ubaa_flutter/build/ios/iphonesimulator/Runner.app
-          - label: Android APK
+          - label: Android arm64 APK
             os: ubuntu-24.04
             platform: android-apk
+            android_target: android-arm64
+            abi: arm64-v8a
+            artifact_id: android-apk-arm64-v8a
+            artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
+          - label: Android armv7 APK
+            os: ubuntu-24.04
+            platform: android-apk
+            android_target: android-arm
+            abi: armeabi-v7a
+            artifact_id: android-apk-armeabi-v7a
+            artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
+          - label: Android x64 APK
+            os: ubuntu-24.04
+            platform: android-apk
+            android_target: android-x64
+            abi: x86_64
+            artifact_id: android-apk-x86_64
             artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
     runs-on: ${{ matrix.os }}
     steps:
@@ -119,13 +136,15 @@ jobs:
       - name: 构建原生宿主
         shell: bash
         env:
+          ANDROID_TARGET: ${{ matrix.android_target }}
+          ANDROID_ABI: ${{ matrix.abi }}
           CARGOKIT_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
           UBAA_FLUTTER_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
         run: just flutter-build platform=${{ matrix.platform }} mode=debug
 
       - name: 检查无签名产物结构
         shell: bash
-        run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
+        run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}" "${{ matrix.abi }}"
 
       - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'
@@ -147,7 +166,7 @@ jobs:
       - name: 保存构建输入与产物证据
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: ubaa-${{ matrix.platform }}-build-record-${{ github.run_id }}
+          name: ubaa-${{ matrix.artifact_id || matrix.platform }}-build-record-${{ github.run_id }}
           path: ${{ runner.temp }}/ubaa-build-record
           if-no-files-found: error
           retention-days: 14
@@ -155,7 +174,7 @@ jobs:
       - name: 保存可复核产物
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: ubaa-${{ matrix.platform }}-debug-${{ github.run_id }}
+          name: ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}
           path: ${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
