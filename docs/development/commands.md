@@ -125,8 +125,9 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 |---|---|
 | [dev.yml](../../.github/workflows/dev.yml) | dev push 与目标为 dev 的 PR：脚本及敏感材料检查，按改动选择 Rust 类型检查/单元测试、Dart 格式/分析和 Worker 合同；不运行原生矩阵或 FRB 生成 |
 | [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter/FRB、依赖审计、Worker 合同、文档构建和原生矩阵。main-required 仅在全部作业成功时通过，不使用顶层路径过滤 |
-| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator/Android APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储；OHOS 发布构建独立处理 |
+| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator/Android APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储，HarmonyOS 使用托管 Linux runner 构建无签名 Debug HAP |
 | [worker.yml](../../.github/workflows/worker.yml) | main 的服务或发布内容改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境迁移 D1、部署 Worker、同步 KV。部署前核对分支最新提交，同一生产环境串行执行 |
+| [release.yml](../../.github/workflows/release.yml) | main 手动发布或 Release published：固定主线候选，复用完整验收，构建分架构正式包，分发 GitHub/R2，上传 Apple 与 AppGallery 并等待处理完成 |
 | [docs.yml](../../.github/workflows/docs.yml) | dev 文档站相关改动构建并部署 Cloudflare Workers Static Assets；PR 只构建，docs-production 仅允许 dev |
 
 三个工作流统一 push 分支为 main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。

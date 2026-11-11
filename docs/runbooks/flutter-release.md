@@ -19,7 +19,28 @@
 | 应用服务 | 正式 HTTPS 端点、分发渠道与隐私选择已验证；需要启用 CD 时配置 `main` 和受保护环境，见[部署手册](app-service.md) |
 | 用户说明 | 使用[新版变化](../site/guide/ubaa2.md)与[更新日志](../site/changelog/index.md)，明确实际平台、最低系统要求、升级方式和已知限制 |
 
-仓库的原生 Actions 提供 Debug 构建与验收材料，签名后的正式包按本手册分发。只有实际分发时才创建 Tag 和 GitHub Release，并把更新日志中的待发布状态改为正式日期。不要把本机版本号变更当作已经发布。
+原生 Actions 提供六平台 Debug 构建与验收，Release 工作流构建签名后的正式包并分发。只有实际分发时才创建 Tag 和 GitHub Release，并把更新日志中的待发布状态改为正式日期。不要把本机版本号变更当作已经发布。
+
+## 自动发布
+
+[Release 工作流](../../.github/workflows/release.yml) 接收两种触发：在 main 手动运行，或发布与 main 提交关联的 GitHub Release。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。手动运行可以省略 Tag，由工作流生成当前版本的名称。
+
+工作流固定同一提交并执行完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
+
+| 平台 | 正式产物与渠道 |
+|---|---|
+| Android | arm64-v8a、armeabi-v7a、x86_64 各一个带签名 APK，每个 APK 只包含目标 ABI，构建号保持一致 |
+| Windows | x64 EXE 安装器 |
+| Linux | x64、arm64 各一个含 GUI 和命令入口的 tar.gz |
+| macOS | arm64、x86_64 各一个 Developer ID 签名并公证的 DMG |
+| iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
+| HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
+
+公开产物与许可证材料分发到 GitHub Release 和 `https://r2.ubaa.top/releases/<tag>/`。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+
+`release-production` Environment 仅允许 main 和 v 开头的 Tag。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
+
+构建或上传失败时保留同次运行的成功产物，修复后重新运行失败作业。若源码或构建配置需要变化，递增统一构建号，并按新候选重新验收。已发布 Tag 不移动到其他源码提交。
 
 ## 候选与证据
 
