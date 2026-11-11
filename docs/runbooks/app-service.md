@@ -23,7 +23,7 @@
 
 1. 在仓库 **Settings → Environments** 创建 `app-service-production`。设置允许部署的分支，配置 **Required reviewers**，并启用 **Prevent self-review**。参见 [GitHub Environment 配置](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
 2. 在该 Environment 的 **Variables** 中设置上表的五个目标值，在 **Secrets** 中设置 `CLOUDFLARE_API_TOKEN`。Token 不放在仓库级 Secret。学校账号与 `USER_KEY_SECRET` 均不填入 GitHub。
-3. 在仓库 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `APP_SERVICE_DEPLOY_BRANCH`，从 CI 的 push 分支 `ubaa2`、`main`、`dev` 中选一个，与 Environment 放行的分支一致。变量为空时跳过部署。确认 Cloudflare 目标准备完毕后再启用该变量。
+3. 在仓库 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `APP_SERVICE_DEPLOY_BRANCH`，正式发布使用 `main`，与 Environment 放行的分支一致；隔离的测试环境可使用 `dev`。变量为空时跳过部署。确认 Cloudflare 目标准备完毕后再启用该变量。
 
 CD 作业位于 [CI 工作流](../../.github/workflows/ci.yml)。它通过 [`needs`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idneeds) 等待同一运行的所有检查和矩阵项成功，再部署该提交。这样无需跨工作流匹配分支、提交与检查结果，工作流定义也随触发提交一起检出。其他分支、PR、fork 和检查未通过的运行不进入部署。生产作业串行执行，写入前核对提交仍是目标分支的分支头。需要审批时，在 GitHub Actions 对应运行中核对提交后批准。
 

@@ -122,15 +122,15 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB。发布前置报告不在日常 CI 运行，发布前本地执行 `just release-preflight` |
+| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB。发布前置报告不在日常 CI 运行，发布前本地执行 `just release-preflight` |
 | ci.yml / app-service-contracts | 同一批 push 与 PR；Ubuntu 使用锁定 Node 主版本，执行 `just app-service-content-check`、`just app-service-check` 和部署触发条件测试 |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
 | ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
 | ci.yml / app-service-deploy | 仅主仓库中 `APP_SERVICE_DEPLOY_BRANCH` 指定分支的 push；等待同一次运行的四项检查和全部矩阵项通过，在受保护的 `app-service-production` Environment 部署并同步 KV。设置见[部署手册](../runbooks/app-service.md#配置-github-cd) |
-| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
-| [docs.yml](../../.github/workflows/docs.yml) | 手动、文档站相关 PR 和 ubaa2/main/dev push；npm ci 与 docs:build 检查站内链接；仅配置的发布分支且非 PR 时上传/部署 Pages |
+| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
+| [docs.yml](../../.github/workflows/docs.yml) | 手动、文档站相关 PR 和 main/dev push；npm ci 与 docs:build 检查站内链接；仅配置的发布分支且非 PR 时上传/部署 Pages |
 
-三个工作流统一 push 分支为 ubaa2/main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+三个工作流统一 push 分支为 main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
 
 ## 构建与发布命令
 

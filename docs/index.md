@@ -2,6 +2,12 @@
 
 用户网站入口见 [UBAA 使用指南](site/index.md)，构建和 GitHub Pages 配置见[网站维护手册](runbooks/docs-site.md)。本索引与工程文档保留在仓库中。
 
+## 用户与发布入口
+
+- [UBAA v2.0 相比旧版升级了什么](site/guide/ubaa2.md)、[安装与首次登录](site/guide/start.md)
+- [日程与待办](site/features/agenda.md)、[北航云盘](site/features/bhpan.md)、[财务查询](site/features/finance.md)、[桌面命令模式](site/features/command.md)
+- [v2.0.0 更新说明](site/changelog/index.md)、[发布准备与流程](runbooks/flutter-release.md#v200-发布准备)、[签名与旧版升级](runbooks/app-signing.md)
+
 ## 日常开发入口
 
 - [Agent 长期规则](../AGENTS.md)、[当前阶段目标](../goal.md)、[长期路线图](../UBAA2.md)

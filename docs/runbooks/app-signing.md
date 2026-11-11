@@ -74,7 +74,7 @@ just flutter-build platform=android-appbundle mode=release
 
 没有提供任何字段时，当前入口生成无签名 release；只提供部分字段时失败。构建成功后必须用 Android SDK 的 `apksigner verify --verbose --print-certs` 验证 APK，并与旧正式 APK 的证书比较。AAB 是商店输入，安装验收应使用最终分发 APK。
 
-版本号从宿主 pubspec 维护，正式 `versionCode` 必须高于已发布版本。当前 `0.1.0+1` 不能直接当作旧版更新发布。二次开发首次发布可生成自己的 keystore，之后持续使用相同应用身份。
+版本号从宿主 pubspec 维护，当前为 `2.0.0+2003`。正式 `versionCode` 必须高于对应渠道已发布的版本；源码中的旧版 v1.8.2 为 `35`。二次开发首次发布可生成自己的 keystore，之后持续使用相同应用身份。
 
 ## iOS：配置 Team、Profile 与导出方式
 
@@ -125,7 +125,7 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 
 当前仓库已有下列旧版 secrets 条目。只能确认条目存在，仍需验证内容、密码、证书状态和 Profile 是否匹配。Fork 默认不继承这些 secrets，维护者应在自己的仓库重新配置。
 
-| 既有 secret | 用途与 UBAA2 接线 |
+| 既有 secret | 用途与 UBAA v2.0 接线 |
 |---|---|
 | `SIGNING_KEY` | Base64 编码的 Android keystore，解码到 runner 临时私有目录，将文件绝对路径传给 `ANDROID_STORE_FILE` |
 | `SIGNING_STORE_PASSWORD` | 映射为 `ANDROID_STORE_PASSWORD` |
@@ -135,7 +135,7 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 | `IOS_PROVISIONING_PROFILE_BASE64` | 安装对应应用和渠道的 Profile |
 | `APPSTORE_KEY_ID`、`APPSTORE_ISSUER_ID`、`APPSTORE_PRIVATE_KEY` | App Store Connect 上传认证 |
 
-以上是现有字段到发布流程的映射，UBAA2 当前 CI 只构建 Debug，没有自动使用这些 secrets。后续发布作业应只在可信分支、明确发布触发条件下读取材料，不能向 Fork PR 暴露密钥；临时文件与 Keychain 在成功、失败时都清理，不上传到 artifact。Base64 是编码，不提供加密保护。
+以上是现有字段到发布流程的映射，UBAA v2.0 当前 CI 只构建 Debug，没有自动使用这些 secrets。后续发布作业应只在可信分支、明确发布触发条件下读取材料，不能向 Fork PR 暴露密钥；临时文件与 Keychain 在成功、失败时都清理，不上传到 artifact。Base64 是编码，不提供加密保护。
 
 ## 配置完成后的检查
 

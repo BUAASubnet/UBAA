@@ -1,6 +1,23 @@
 # Flutter 六平台交付与发布流程
 
-更新：2026-10-07。本文规定当前可执行流程，历史候选与旧测试数量见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)。当前阶段目标见 [goal.md](../../goal.md)，授权与安全规则见 [AGENTS](../../AGENTS.md#真实账号与验收范围)；历史任务不能授权新的账号请求、签名或发布。
+本文规定 UBAA v2.0 的候选验收、签名与分发流程。旧流程见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)，当前结果见[实现与验证状态](../migration/status.md)。账号与发布操作遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。
+
+## v2.0.0 发布准备
+
+发布主线为 `main`，日常开发进入 `dev`，旧版保存在 `ubaa1`。产品展示版本统一为 `2.0.0`，正式 Tag 使用 `v2.0.0`。官方 Flutter 应用默认构建号为 `2003`，OHOS 为 `1000001`；各平台版本来源与递增规则见[版本约定](../development/conventions.md#版本号与依赖)。
+
+正式分发前，按实际平台完成以下准备：
+
+| 发布材料 | 要求与入口 |
+|---|---|
+| 源码候选 | 固定已验收提交，核对该提交的 CI 和平台作业结果，完整检查见[开发命令](../development/commands.md#检查选择与完成条件) |
+| 安装包 | 选择本次实际分发的平台和架构，核对产物内的版本、构建号、应用标识和签名，操作见[签名手册](app-signing.md) |
+| 旧版升级 | 使用旧版正式安装包验证覆盖安装、重新登录、数据保留与回退；Android 已发布 v1.8.2 的源码构建号为 35，商店渠道另核对已用构建号 |
+| 许可证材料 | 在干净候选运行严格 `release-preflight` 并保存报告，另执行联网依赖审计 |
+| 应用服务 | 正式 HTTPS 端点、分发渠道与隐私选择已验证；需要启用 CD 时配置 `main` 和受保护环境，见[部署手册](app-service.md) |
+| 用户说明 | 使用[新版变化](../site/guide/ubaa2.md)与[更新日志](../site/changelog/index.md)，明确实际平台、最低系统要求、升级方式和已知限制 |
+
+仓库的原生 Actions 提供 Debug 构建与验收材料，签名后的正式包按本手册分发。只有实际分发时才创建 Tag 和 GitHub Release，并把更新日志中的待发布状态改为正式日期。不要把本机版本号变更当作已经发布。
 
 ## 候选与证据
 
@@ -10,7 +27,7 @@
 
 ## 环境准备
 
-首次缺少冻结引用时显式执行 `just refs-bootstrap`；已有引用只运行 `just refs`。质量工具依赖由显式 `just quality-tools-bootstrap` 建立；首次用 `cargo fetch --locked` 预取所有目标、`just flutter-dependencies` 准备七包锁定源码。preflight 不隐式联网安装。官方 Flutter/OHOS、Rust、FRB 固定版本及路径见[平台矩阵](../architecture/flutter-platforms.md)。
+首次缺少冻结引用时显式执行 `just refs-bootstrap`；已有引用只运行 `just refs`。质量工具依赖由显式 `just quality-tools-bootstrap` 建立；首次用 `cargo fetch --locked` 预取所有目标、`just flutter-dependencies` 准备八个 Pub workspace 成员。preflight 不隐式联网安装。官方 Flutter/OHOS、Rust、FRB 固定版本及路径见[平台矩阵](../architecture/flutter-platforms.md)。
 
 ## 验收入口
 
@@ -28,7 +45,7 @@ just flutter-build platform=android-apk mode=debug
 just flutter-build platform=ios-simulator mode=debug
 UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 just flutter-artifact-check platform=android-apk artifact=/绝对路径/app-debug.apk
-just release-preflight /仓库外绝对路径/ubaa-release-report
+just release-preflight /项目绝对路径/UBAA2/.ubaa_local/release/license_report
 ```
 
 `release-preflight` 要求工作树干净、报告目录为空，只运行纯 refs/敏感检查并生成 Dart/OHOS 许可证材料。Rust 依赖的许可与安全公告由 `just dependency-audit`（cargo-deny）检查，发布前单独运行。源码以提交 SHA 标识，不再另生成逐文件源码清单或 SBOM。Dart/OHOS 许可材料应列出锁定来源、许可证证据及缺失项；包名/版本清单不称作许可批准。默认严格模式遇到材料缺口会保留报告并以状态 3 阻断发布。仅报告模式仍列出缺口，但不能用于判定发布通过，日常 CI 不运行本入口；参数与实际边界见[开发命令](../development/commands.md#构建与发布命令)。

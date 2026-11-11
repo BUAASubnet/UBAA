@@ -8,16 +8,18 @@
 
 ## CLI
 
-CLI 使用平台用户配置目录，也可通过 `--config-dir` 指定独立目录。其中的配置与会话包含运行状态，不应提交到 Git 或随问题反馈上传。
+桌面 `ubaa` 命令与应用共用账号及本机数据，也可通过 `--config-dir` 指定业务资料目录。系统安全材料仍属于当前系统用户，单独修改目录不等于隔离全部账号材料。
 
 ```bash
-cargo run --locked -p ubaa-cli -- --help
-cargo run --locked -p ubaa-cli -- auth login --username YOUR_USERNAME
-cargo run --locked -p ubaa-cli -- auth status
+ubaa --help
+ubaa auth login --username YOUR_USERNAME
+ubaa auth status
 ```
 
 密码使用不回显输入或标准输入，不放在命令行参数中。
 
+安装入口与脚本调用见[桌面命令模式](/features/command)。
+
 ## 开发环境
 
-工具链版本、冻结参考与构建命令见仓库[开发环境](https://github.com/BUAASubnet/UBAA/blob/ubaa2/docs/development/setup.md)。网站本身使用 Node.js 与 VitePress，不需要部署校园业务服务端。
+工具链版本、冻结参考与构建命令见仓库[开发环境](https://github.com/BUAASubnet/UBAA/blob/main/docs/development/setup.md)。网站本身使用 Node.js 与 VitePress，不需要部署校园业务服务端。

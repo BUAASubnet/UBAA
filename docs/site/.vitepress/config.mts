@@ -22,16 +22,16 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '开始使用', link: '/guide/start' },
+      { text: '新版变化', link: '/guide/ubaa2' },
       { text: '功能说明', link: '/features/' },
       { text: '技术文档', link: '/tech/architecture' },
-      { text: '隐私政策', link: '/tech/privacy-policy' },
-      { text: '免责声明', link: '/tech/disclaimer' },
       { text: '公告中心', link: '/announcements/' },
       { text: '更新日志', link: '/changelog/' },
     ],
     sidebar: {
       '/guide/': [{ text: '开始使用', items: [
         { text: '安装与首次登录', link: '/guide/start' },
+        { text: 'v2.0 的升级变化', link: '/guide/ubaa2' },
         { text: '常见问题', link: '/tech/troubleshooting' },
       ] }],
       '/features/': [
@@ -39,6 +39,10 @@ export default defineConfig({
           text: '功能说明',
           items: [
             { text: '功能总览', link: '/features/' },
+            { text: '日程与待办', link: '/features/agenda' },
+            { text: '北航云盘', link: '/features/bhpan' },
+            { text: '财务查询', link: '/features/finance' },
+            { text: '桌面命令模式', link: '/features/command' },
             { text: '登录与连接模式', link: '/features/auth-and-connection' },
             { text: 'iHome', link: '/features/ihome' },
             { text: '课表与考试', link: '/features/schedule-and-exam' },
@@ -51,7 +55,7 @@ export default defineConfig({
             { text: '课程签到', link: '/features/signin' },
             { text: '研讨室预约', link: '/features/cgyy' },
             { text: '阳光打卡', link: '/features/ygdk' },
-            { text: '自动评教', link: '/features/evaluation' },
+            { text: '教学评教', link: '/features/evaluation' },
           ],
         },
       ],
@@ -96,6 +100,7 @@ export default defineConfig({
           text: 'UBAA',
           items: [
             { text: '项目首页', link: '/' },
+            { text: 'v2.0 的升级变化', link: '/guide/ubaa2' },
             { text: '功能总览', link: '/features/' },
             { text: '架构总览', link: '/tech/architecture' },
             { text: '隐私政策', link: '/tech/privacy-policy' },

@@ -284,7 +284,7 @@ impl ParseFailure {
         super::finish_output(code, stdout, stderr)
     }
 }
-/// argv 包含 argv[0]，使用与旧二进制相同的唯一 clap 命令树。
+/// argv 包含 `argv[0]`，使用与旧二进制相同的唯一 clap 命令树。
 /// # Errors
 /// 返回可渲染的 help/version 或参数错误。
 pub fn parse<I, T>(argv: I) -> Result<CommandPlan, ParseFailure>

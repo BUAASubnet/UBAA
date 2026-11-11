@@ -3,6 +3,10 @@
 按要办理的事项打开对应说明。查询结果来自学校系统，提交与预约需具备有效登录状态和实时资格。
 
 - [登录与连接方式](/features/auth-and-connection)
+- [日程与待办](/features/agenda)
+- [北航云盘](/features/bhpan)
+- [财务查询](/features/finance)
+- [桌面命令模式](/features/command)
 - [课表与考试](/features/schedule-and-exam)
 - [成绩查询](/features/grades)
 - [空教室查询](/features/classroom)

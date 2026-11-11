@@ -13,7 +13,7 @@ const github = {
   event_name: "push",
   event: { deleted: false },
   repository: "BUAASubnet/UBAA",
-  ref_name: "ubaa2",
+  ref_name: "main",
 };
 
 // 只模拟本工作流使用的 GitHub 表达式子集。遇到新运算时显式更新测试。
@@ -44,7 +44,7 @@ function evaluate(expression, contexts, success) {
 }
 
 function exercise({
-  branch = "ubaa2",
+  branch = "main",
   event = github,
   failedJob,
   head = sha,
@@ -136,7 +136,7 @@ just() {
 
 test("部署变量缺失、其他分支、PR、fork、分支删除均不调用发布命令", () => {
   assert.deepEqual(exercise({ branch: "" }), []);
-  assert.deepEqual(exercise({ event: { ...github, ref_name: "main" } }), []);
+  assert.deepEqual(exercise({ event: { ...github, ref_name: "dev" } }), []);
   assert.deepEqual(
     exercise({ event: { ...github, event_name: "pull_request" } }),
     [],
@@ -174,7 +174,7 @@ test("候选提交仍是分支头时先部署再发布内容", () => {
 });
 
 test("部署期间新提交不会取消生产作业，PR 仍会取消旧运行", () => {
-  const vars = { APP_SERVICE_DEPLOY_BRANCH: "ubaa2" };
+  const vars = { APP_SERVICE_DEPLOY_BRANCH: "main" };
   assert.equal(
     evaluate(ci.concurrency["cancel-in-progress"], { github, vars }),
     false,

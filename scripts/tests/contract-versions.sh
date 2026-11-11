@@ -78,12 +78,6 @@ JSON
     '合同版本为 `9`' \
     '| `contractVersion` | 无 | `u32=9` |' \
     >"$fixture/docs/contracts/flutter-bridge.md"
-  printf '%s\n' \
-    'CLI JSON schema v10；Flutter bridge contract v9。' \
-    'human/JSON schema v10 命令行宿主' \
-    'schema-v10 信封' \
-    '当前 Flutter bridge contract 为 v9' \
-    >"$fixture/README.md"
   printf '%s\n' 'CLI JSON schema v10' \
     >"$fixture/docs/contracts/auth-and-user.md"
   printf '%s\n' \
@@ -233,9 +227,9 @@ expect_rejected \
   'docs/contracts/cli-json.schema.json'
 
 fixture=$(new_fixture stale-document)
-printf '%s\n' 'human/JSON schema v9 命令行宿主' \
-  >"$fixture/README.md"
-expect_rejected '当前文档仍声明旧版本时拒绝' "$fixture" 'README.md'
+printf '%s\n' 'CLI JSON schema v9' \
+  >"$fixture/docs/contracts/auth-and-user.md"
+expect_rejected '公开合同文档仍声明旧版本时拒绝' "$fixture" 'docs/contracts/auth-and-user.md'
 
 fixture=$(new_fixture status-cli-mismatch)
 printf '%s\n' 'CLI JSON schema v9；Flutter bridge contract v9。' \

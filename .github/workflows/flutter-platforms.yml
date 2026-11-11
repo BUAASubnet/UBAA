@@ -22,7 +22,7 @@ on:
       - 'rust-toolchain.toml'
       - '!**/*.md'
   push:
-    branches: [ubaa2, main, dev]
+    branches: [main, dev]
     paths:
       - '.github/actions/**'
       - '.github/workflows/ci.yml'

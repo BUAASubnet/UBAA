@@ -116,8 +116,6 @@ JSON
 fi
 
 if [[ -n $cli_version ]]; then
-  require_literal 'README.md' "human/JSON schema v${cli_version}"
-  require_literal 'README.md' "schema-v${cli_version} 信封"
   require_literal 'docs/contracts/auth-and-user.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/contracts/readonly-features.md' "schema-v${cli_version} 路由 envelope"
   require_literal 'docs/architecture/overview.md' "CLI JSON schema v${cli_version}"
@@ -134,7 +132,6 @@ if [[ -n $cli_version ]]; then
 fi
 
 if [[ -n $bridge_version ]]; then
-  require_literal 'README.md' "当前 Flutter bridge contract 为 v${bridge_version}"
   require_literal 'docs/contracts/flutter-bridge.md' "合同版本为 \`${bridge_version}\`"
   require_literal 'docs/contracts/flutter-bridge.md' "\`u32=${bridge_version}\`"
   require_literal 'docs/architecture/overview.md' "Flutter bridge contract v${bridge_version}"

@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ubaa2, main, dev]
+    branches: [main, dev]
 
 permissions:
   contents: read

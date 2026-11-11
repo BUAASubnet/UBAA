@@ -6,4 +6,4 @@ Rust 宿主通过 `ubaa_core` 的 facade 使用业务能力。Flutter 通过 Bri
 
 CLI 支持人类可读与 JSON 输出。调用方需要同时判断命令结果与具体业务结果，不能把进程正常退出一概视为提交成功。
 
-字段、版本与退出码以仓库[公开合同](https://github.com/BUAASubnet/UBAA/tree/ubaa2/docs/contracts)为准。网站不复制完整 Schema，以免两份定义漂移。
+字段、版本与退出码以仓库[公开合同](https://github.com/BUAASubnet/UBAA/tree/main/docs/contracts)为准。网站不复制完整 Schema，以免两份定义漂移。
