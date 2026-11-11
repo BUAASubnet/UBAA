@@ -14,10 +14,16 @@ import ScreenshotGallery from './ScreenshotGallery.vue'
 
 <ScreenshotGallery group="phone" />
 
-## 平板与桌面
+## 平板
 
-屏幕较宽时，UBAA 将主导航放在侧栏，给课表和待办留出更多空间。
+从侧栏切换功能，主区域可以显示整周课表或一学期的成绩。
 
-<ScreenshotGallery group="wide" />
+<ScreenshotGallery group="tablet" />
+
+## 桌面
+
+在同一窗口查看日历、事项筛选和整周安排。
+
+<ScreenshotGallery group="desktop" />
 
 [安装与首次登录](/guide/start) · [查看全部功能](/features/)

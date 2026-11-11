@@ -92,15 +92,17 @@ bash scripts/release/store-screenshots.sh
 
 本机需要 ImageMagick 7 的 `magick` 命令，以及 Noto Sans CJK SC（思源黑体）的 `Regular`、`Medium`、`Bold`、`Black` 四个 OTF 字重。文件名形如 `NotoSansCJKsc-Regular.otf`。可在执行脚本时用 `UBAA_STORE_FONT_DIR` 指向字体目录；同一套字体有助于重现排版。
 
+默认按设备生成三组图片：
+
 | 成品目录 | 尺寸（像素） | 用途 |
 |---|---:|---|
-| `iphone/` | 1320 × 2868 | iPhone 大屏、使用指南 |
-| `iphone_medium/` | 1206 × 2622 | iPhone 中屏 |
-| `ipad/` | 2064 × 2752 | 13 英寸 iPad |
-| `android/` | 1080 × 1920 | AppGallery 手机竖图 |
+| `phone/` | 1320 × 2868 | 手机代表图、iPhone 大屏 |
+| `tablet/` | 2064 × 2752 | 平板代表图、13 英寸 iPad |
 | `desktop/` | 2880 × 1800 | 桌面版宣传 |
 
-脚本把本次原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。查看成品，核对界面、文案、尺寸与像素清晰度，然后把 `ready/` 下对应的 PNG 复制到 [网站宣传资源目录](../site/public/screenshots/)，保持文件名和子目录不变。源数据、渲染代码和审过的成品均由 Git 追踪。图片换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+需要 iPhone 中屏或 AppGallery 手机竖图时，运行 `bash scripts/release/store-screenshots.sh --all-sizes`。同一批次会在 `ready/phone/1206x2622/` 和 `ready/phone/1080x1920/` 另外生成这两种尺寸，供商店上传。
+
+脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)，保持文件名和子目录不变。Git 追踪三组代表图、源数据和渲染代码，额外尺寸留在本地批次中。图片换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
 
 上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与 [AppGallery 视觉素材规范](https://developer.huawei.com/consumer/en/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)复核目标规格。宣传图生成与网站构建不执行商店上传。
 
