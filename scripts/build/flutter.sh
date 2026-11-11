@@ -11,9 +11,9 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 # shellcheck source=../lib/toolchain.sh
-source "$script_dir/../lib/toolchain.sh"
-flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
-flutter_bin=$flutter_root/bin/flutter
+source "$script_dir/../lib/toolchain.sh" build
+: "${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}"
+flutter_command=(python3 "$script_dir/../lib/toolchain.py" flutter)
 app_root=$repo_root/apps/ubaa_flutter
 
 app_service_defines=()
@@ -25,9 +25,9 @@ done
 
 flutter_build() {
   if [[ ${UBAA_FLUTTER_VERBOSE:-0} == 1 ]]; then
-    "$flutter_bin" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"} -v
+    "${flutter_command[@]}" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"} -v
   else
-    "$flutter_bin" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"}
+    "${flutter_command[@]}" build "$@" ${app_service_defines[@]+"${app_service_defines[@]}"}
   fi
 }
 
@@ -39,7 +39,7 @@ fi
 
 (
   cd "$app_root"
-  "$flutter_bin" pub get --enforce-lockfile
+  "${flutter_command[@]}" pub get --enforce-lockfile
   case "$platform" in
     host)
       case "$(uname -s)" in

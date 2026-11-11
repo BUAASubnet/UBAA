@@ -15,6 +15,44 @@ from toolchain import load_environment, migrate
 
 
 class EnvironmentTest(unittest.TestCase):
+    def test_签名字段按平台隔离且密码不展开(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / '.env').write_text(
+                'ANDROID_STORE_FILE=".sign/android/release.jks"\n'
+                'ANDROID_STORE_PASSWORD="$literal !"\n'
+                'ANDROID_KEY_ALIAS=release\nANDROID_KEY_PASSWORD=synthetic-key\n'
+                'OHOS_STORE_FILE=.sign/ohos/release.p12\n'
+                'OHOS_STORE_PASSWORD=synthetic-store\nOHOS_KEY_ALIAS=release\n'
+                'OHOS_KEY_PASSWORD=synthetic-key\nOHOS_CERT_FILE=.sign/ohos/release.cer\n'
+                'OHOS_PROFILE_FILE=.sign/ohos/release.p7b\n'
+                'CLOUDFLARE_API_' + 'TOKEN=synthetic-cloud\nUBAA_TEST_' + 'PASSWORD=synthetic-school\n')
+            with patch.dict(os.environ, {}, clear=True):
+                android = load_environment(root, scope='android')
+                self.assertEqual(android['ANDROID_STORE_PASSWORD'], '$literal !')
+                self.assertEqual(android['ANDROID_STORE_FILE'], str(root / '.sign/android/release.jks'))
+                ohos = load_environment(root, scope='ohos')
+                self.assertEqual(ohos['OHOS_PROFILE_FILE'], str(root / '.sign/ohos/release.p7b'))
+                for scope, prefix in [('normal', None), ('android', 'ANDROID_'), ('ohos', 'OHOS_')]:
+                    result = load_environment(root, scope=scope)
+                    self.assertNotIn('CLOUDFLARE_API_TOKEN', result)
+                    self.assertNotIn('UBAA_TEST_PASSWORD', result)
+                    for key in (*android, *ohos):
+                        if prefix is None or not key.startswith(prefix):
+                            self.assertNotIn(key, result)
+
+    def test_进程签名整组覆盖且缺项不借用本机密码(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            keys = ['ANDROID_STORE_FILE', 'ANDROID_STORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
+            (root / '.env').write_text('\n'.join(f'{key}=local-value' for key in keys))
+            with patch.dict(os.environ, {'ANDROID_STORE_FILE': '/ci/release.jks'}, clear=True):
+                with self.assertRaisesRegex(ValueError, 'ANDROID_STORE_PASSWORD'):
+                    load_environment(root, scope='android')
+                self.assertNotIn('ANDROID_STORE_FILE', load_environment(root))
+            with patch.dict(os.environ, dict.fromkeys(keys, ''), clear=True):
+                self.assertTrue(all(load_environment(root, scope='android')[key] == '' for key in keys))
+
     def parse(self, text, **kwargs):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'config'

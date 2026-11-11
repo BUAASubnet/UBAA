@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { resolveToolchain, requireDependencies, nativeArguments, applySigning } = require('../../tools/ohos_hvigor.cjs');
+const { resolveToolchain, requireDependencies, nativeArguments, applySigning, readLocalSigning } = require('../../tools/ohos_hvigor.cjs');
 
 function sdk(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ubaa_hvigor_'));
@@ -73,6 +73,24 @@ test('缺少 Flutter 依赖配置时提示显式准备命令', t => {
 function profile() {
     return { app: { signingConfigs: [{ name: 'tracked' }], products: [{ name: 'default', signingConfig: 'tracked' }] } };
 }
+
+test('环境签名覆盖本机文件并映射到 Hvigor 发布材料', t => {
+    const root = sdk(t);
+    fs.mkdirSync(path.join(root, '.sign/ohos'), { recursive: true });
+    fs.writeFileSync(path.join(root, '.sign/ohos/hvigor-signing.json'), '{"release":{"name":"old"}}');
+    const env = { OHOS_STORE_FILE: '/private/release.p12', OHOS_STORE_PASSWORD: 'synthetic-store',
+        OHOS_KEY_ALIAS: 'release', OHOS_KEY_PASSWORD: 'synthetic-key',
+        OHOS_CERT_FILE: '/private/release.cer', OHOS_PROFILE_FILE: '/private/release.p7b' };
+    const local = readLocalSigning(root, env);
+    assert.deepEqual(local.release, { name: 'default', type: 'HarmonyOS', material: {
+        storeFile: env.OHOS_STORE_FILE, storePassword: env.OHOS_STORE_PASSWORD,
+        keyAlias: env.OHOS_KEY_ALIAS, keyPassword: env.OHOS_KEY_PASSWORD,
+        certpath: env.OHOS_CERT_FILE, profile: env.OHOS_PROFILE_FILE, signAlg: 'SHA256withECDSA' } });
+    assert.equal(applySigning(profile(), 'release', local).app.products[0].signingConfig, 'default');
+    assert.equal(readLocalSigning(root, {}).release.name, 'old');
+    assert.throws(() => readLocalSigning(root, { OHOS_STORE_FILE: env.OHOS_STORE_FILE }), /OHOS_STORE_PASSWORD/);
+    assert.equal(fs.readFileSync(path.join(root, '.sign/ohos/hvigor-signing.json'), 'utf8'), '{"release":{"name":"old"}}');
+});
 
 test('签名按构建模式注入，未提供本机配置时保持原样', () => {
     assert.deepEqual(applySigning(profile(), 'release', null), profile());

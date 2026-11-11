@@ -38,7 +38,7 @@ UI 截图、录屏、逐图元数据、原始设备日志和必须保留的敏�
 
 ## 项目工具链入口
 
-Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次按 `.env.example` 创建本地私有 `.env` 并填写 SDK 位置，然后运行 `just setup` 安装锁定工具；`just doctor` 只读核对本机版本。just 入口与直接执行的项目脚本使用 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`，已导出的同名变量优先。普通命令只加载非机密键；学校账号只交给显式真实验证入口，Cloudflare API Token 只交给 `app-service-deploy` 和 `app-service-publish`。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
+Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次按 `.env.example` 创建本地私有 `.env` 并填写 SDK 位置，然后运行 `just setup` 安装锁定工具；`just doctor` 只读核对本机版本。just 入口与直接执行的项目脚本使用 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`，已导出的同名变量优先。签名参数按平台和构建模式整组选择进程配置或 `.env`，缺项不得跨来源补齐。普通命令只加载非机密键；Android/OHOS 签名只交给对应平台的 SDK 构建命令，学校账号只交给显式真实验证入口，Cloudflare API Token 只交给 `app-service-deploy` 和 `app-service-publish`。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
 
 ## 来源对照门禁
 

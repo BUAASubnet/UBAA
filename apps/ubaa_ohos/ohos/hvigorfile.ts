@@ -24,7 +24,7 @@ hvigor.nodesEvaluated(() => {
     });
 });
 
-// 签名材料位于 Git 忽略的 .sign/ohos/hvigor-signing.json，只在内存中按构建模式注入。
+// 签名优先使用构建入口注入的参数，IDE 可使用 .sign/ohos/hvigor-signing.json；仅在内存中修改配置。
 hvigor.nodesEvaluated(() => {
     const local = readLocalSigning(path.resolve(__dirname, '../../..'));
     if (!local) return;

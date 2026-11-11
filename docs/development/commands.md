@@ -147,6 +147,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
 
+Android/OHOS 构建的签名参数统一从根 `.env` 或同名进程变量读取，按平台和模式选择，规则见[构建签名参数](setup.md#构建签名参数)。构建脚本中的依赖准备、分析和测试不取得这些环境变量。iOS/macOS 的原生签名及商店上传仍按[签名手册](../runbooks/app-signing.md)执行。
+
 `ios-simulator` 在发现 `lipo` 的 `-verify_arch requires exactly one input file` 参数解析错误时，默认通过 `FLUTTER_XCODE_ARCHS` 只构建本机架构，避免 Flutter 3.41.9 的多架构检查误报。正常工具链保留默认架构，其他探测错误不触发回退，调用者显式设置的 `FLUTTER_XCODE_ARCHS` 优先。此回退只作用于该构建入口，不修改 SDK；本机单架构产物不用于另一种架构的模拟器。
 
 构建、签名、安装、实体设备和发布准入详见[发布流程](../runbooks/flutter-release.md)。无签名构建、模拟器、Mock 和 CI artifact 均不能代替实体设备、安全存储、签名或发布证据。

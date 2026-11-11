@@ -61,7 +61,9 @@ def main():
     if name == 'integration-test':
         commands[name] += ['--suite', args[0], '--platform', args[1], '--device', args[2]]
     os.chdir(ROOT)
-    hand_off(commands[name], load_environment())
+    # 构建脚本负责在准备步骤过滤材料，再由最终 SDK 命令按平台读取签名。
+    environment = dict(os.environ) if name in {'flutter-build', 'ohos-check'} else load_environment()
+    hand_off(commands[name], environment)
 
 
 if __name__ == '__main__':
