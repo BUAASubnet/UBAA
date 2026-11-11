@@ -32,6 +32,22 @@ async function detailCounts(installId: string) {
   );
 }
 
+function minuteCount(minute: number, count = 2) {
+  return {
+    minute,
+    event: "feature_loaded",
+    feature: "schedule",
+    result: "success",
+    count,
+  };
+}
+
+function storedMinute(minuteAt: string) {
+  return env.DB.prepare("SELECT * FROM minute_counts WHERE minute_at = ?")
+    .bind(minuteAt)
+    .first();
+}
+
 it.each(["顺序", "并发"])("%s重发同一批次只累加一次", async (order) => {
   const payload = createBatch();
   let statuses: number[];
@@ -63,14 +79,124 @@ it.each(["顺序", "并发"])("%s重发同一批次只累加一次", async (orde
   ).toBe(36);
 });
 
+it("旧批次兼容；分钟计数跨版本累加、按批次去重且删除仅清空明细", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  const minuteAt = `${day.day}T23:59`;
+  expect((await postTelemetry(payload)).status).toBe(204);
+  expect(await storedMinute(minuteAt)).toBeNull();
+
+  const next = {
+    ...payload,
+    batch_id: crypto.randomUUID(),
+    days: [
+      { ...day, minutes: [minuteCount(1439, 2)] },
+      { ...day, app_version: "2.1.0", minutes: [minuteCount(1439, 3)] },
+    ],
+  };
+  expect(
+    (await Promise.all([postTelemetry(next), postTelemetry(next)])).map(
+      ({ status }) => status,
+    ),
+  ).toEqual([204, 204]);
+  const stored = {
+    minute_at: minuteAt,
+    event: "feature_loaded",
+    feature: "schedule",
+    result: "success",
+    platform: "linux",
+    channel: "github",
+    count: 5,
+  };
+  expect(await storedMinute(minuteAt)).toEqual(stored);
+  expect(await detailCounts(payload.install_id)).toEqual([2, 2, 2, 2]);
+
+  expect((await erase(payload.install_id)).status).toBe(204);
+  const rejected = await postTelemetry({
+    ...next,
+    batch_id: crypto.randomUUID(),
+  });
+  expect(rejected.status).toBe(410);
+  expect(await rejected.json()).toBe("install_erased");
+  expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
+  expect(await storedMinute(minuteAt)).toEqual(stored);
+});
+
+it("同日同版本的纯分钟续批不新增匿名活跃行", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  day.users = [
+    { key: await syntheticKey(), cohort_type: "undergrad", cohort_year: 2024 },
+  ];
+  expect((await postTelemetry(payload)).status).toBe(204);
+  const continuation = {
+    ...day,
+    users: [],
+    counters: [],
+    errors: [],
+    timings: [],
+  };
+  expect(
+    (
+      await postTelemetry({
+        ...payload,
+        batch_id: crypto.randomUUID(),
+        days: [{ ...continuation, minutes: [minuteCount(1140)] }],
+      })
+    ).status,
+  ).toBe(204);
+  expect(await storedMinute(`${day.day}T19:00`)).toMatchObject({ count: 2 });
+  expect(await detailCounts(payload.install_id)).toEqual([1, 1, 1, 1]);
+
+  expect(
+    (
+      await postTelemetry({
+        ...payload,
+        batch_id: crypto.randomUUID(),
+        days: [{ ...continuation, app_version: "2.1.0" }],
+      })
+    ).status,
+  ).toBe(204);
+  expect(await detailCounts(payload.install_id)).toEqual([2, 1, 1, 1]);
+});
+
+it("多个日期版本组合各含 512 个分钟键时仍可在一个批次落库", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  const minutes = Array.from({ length: 512 }, (_, minute) =>
+    minuteCount(minute),
+  );
+  const secondDay = relativeDay(-1);
+  const response = await postTelemetry({
+    ...payload,
+    days: [
+      { ...day, minutes },
+      { ...day, day: secondDay, minutes },
+    ],
+  });
+  expect(response.status).toBe(204);
+  for (const date of [day.day, secondDay]) {
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS rows FROM minute_counts WHERE minute_at BETWEEN ? AND ?",
+      )
+        .bind(`${date}T00:00`, `${date}T08:31`)
+        .first<number>("rows"),
+    ).toBe(512);
+    expect(await storedMinute(`${date}T00:00`)).toMatchObject({ count: 2 });
+    expect(await storedMinute(`${date}T08:31`)).toMatchObject({ count: 2 });
+  }
+});
+
 it("仅接受校园日期窗口中的条目，窗口两端均包含", async () => {
   const payload = createBatch();
   const [day] = payload.days;
-  payload.days = [-8, -7, 0, 1, 2].map((offset) => ({
+  const days = [-8, -7, 0, 1, 2].map((offset) => ({
     ...day,
     day: relativeDay(offset),
+    minutes: [minuteCount(780)],
   }));
-  expect((await postTelemetry(payload)).status).toBe(204);
+  expect((await postTelemetry({ ...payload, days })).status).toBe(204);
   const rows = await env.DB.prepare(
     "SELECT day FROM active_days WHERE install_id = ? ORDER BY day",
   )
@@ -80,6 +206,11 @@ it("仅接受校园日期窗口中的条目，窗口两端均包含", async () =
     [-7, 0, 1].map(relativeDay),
   );
   expect(await detailCounts(payload.install_id)).toEqual([3, 3, 3, 3]);
+  for (const offset of [-8, -7, 0, 1, 2]) {
+    const stored = await storedMinute(`${relativeDay(offset)}T13:00`);
+    if (offset === -8 || offset === 2) expect(stored).toBeNull();
+    else expect(stored).toMatchObject({ count: 2 });
+  }
 });
 
 it("离线八天且期间升级，拆成八加一个组合后全部落库", async () => {
@@ -201,33 +332,49 @@ it.each(["上报在先", "删除在先"])("%s均不保留旧安装明细", async
   expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
 });
 
-it("明细写入失败回滚批次，故障消失后同一批次可以提交", async () => {
-  const payload = createBatch();
-  await env.DB.prepare(
-    `CREATE TRIGGER step_three_abort_counter
-    BEFORE INSERT ON counter_days
-    BEGIN SELECT RAISE(ABORT, 'synthetic D1 failure'); END`,
-  ).run();
-  try {
-    const failed = await postTelemetry(payload);
-    expect(failed.status).toBe(500);
-    expect(await failed.text()).toBe("");
-    const recorded = await env.DB.prepare(
-      "SELECT 1 FROM batches WHERE batch_id = ?",
-    )
-      .bind(payload.batch_id)
-      .first();
-    expect(recorded).toBeNull();
-    expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
-  } finally {
-    await env.DB.prepare("DROP TRIGGER step_three_abort_counter").run();
-  }
-  expect((await postTelemetry(payload)).status).toBe(204);
-  expect(await detailCounts(payload.install_id)).toEqual([1, 1, 1, 1]);
-});
+it.each([
+  ["counter_days", 960, "16:00"],
+  ["minute_counts", 961, "16:01"],
+])(
+  "%s 写入失败回滚批次，故障消失后同一批次可以提交",
+  async (table, minute, clock) => {
+    const batch = createBatch();
+    const [day] = batch.days;
+    const minuteAt = `${day.day}T${clock}`;
+    const payload = {
+      ...batch,
+      days: [{ ...day, minutes: [minuteCount(minute)] }],
+    };
+    await env.DB.prepare(
+      `CREATE TRIGGER abort_telemetry
+      BEFORE INSERT ON ${table}
+      BEGIN SELECT RAISE(ABORT, 'synthetic D1 failure'); END`,
+    ).run();
+    try {
+      const failed = await postTelemetry(payload);
+      expect(failed.status).toBe(500);
+      expect(await failed.text()).toBe("");
+      const recorded = await env.DB.prepare(
+        "SELECT 1 FROM batches WHERE batch_id = ?",
+      )
+        .bind(payload.batch_id)
+        .first();
+      expect(recorded).toBeNull();
+      expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
+      expect(await storedMinute(minuteAt)).toBeNull();
+    } finally {
+      await env.DB.prepare("DROP TRIGGER abort_telemetry").run();
+    }
+    expect((await postTelemetry(payload)).status).toBe(204);
+    expect(await detailCounts(payload.install_id)).toEqual([1, 1, 1, 1]);
+    expect(await storedMinute(minuteAt)).toMatchObject({ count: 2 });
+  },
+);
 
 it("预查未命中后删除先提交，迟到的上报返回 410 且不写入", async () => {
   const payload = createBatch();
+  const [day] = payload.days;
+  const days = [{ ...day, minutes: [minuteCount(900)] }];
   let erasedBeforeBatch = false;
   const db = new Proxy(env.DB, {
     get(target, key, receiver) {
@@ -242,7 +389,7 @@ it("预查未命中后删除先提交，迟到的上报返回 410 且不写入",
       return typeof value === "function" ? value.bind(target) : value;
     },
   });
-  const rejected = await reportTelemetry(uploadRequest(payload), {
+  const rejected = await reportTelemetry(uploadRequest({ ...payload, days }), {
     DB: db,
     USER_KEY_SECRET: env.USER_KEY_SECRET,
     TELEMETRY_LIMIT: env.TELEMETRY_LIMIT,
@@ -251,6 +398,7 @@ it("预查未命中后删除先提交，迟到的上报返回 410 且不写入",
   expect(rejected.status).toBe(410);
   expect(await rejected.json()).toBe("install_erased");
   expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
+  expect(await storedMinute(`${day.day}T15:00`)).toBeNull();
   const recorded = await env.DB.prepare(
     "SELECT 1 FROM batches WHERE batch_id = ?",
   )

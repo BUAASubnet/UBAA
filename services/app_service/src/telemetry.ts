@@ -6,6 +6,8 @@ const NO_TOMBSTONE =
   "NOT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = ?)";
 const CHECK_TOMBSTONE =
   "SELECT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = ?) AS erased";
+const ACCEPTED_BATCH = `${NO_TOMBSTONE}
+  AND EXISTS (SELECT 1 FROM batches WHERE batch_id = ? AND nonce = ?)`;
 
 function installErased(): Response {
   return Response.json("install_erased", { status: 410 });
@@ -22,8 +24,7 @@ function detailUpsert(
   return db.prepare(`
     INSERT INTO ${table} (${names.join(", ")})
     SELECT ${names.map(() => "?").join(", ")}
-    WHERE ${NO_TOMBSTONE}
-      AND EXISTS (SELECT 1 FROM batches WHERE batch_id = ? AND nonce = ?)
+    WHERE ${ACCEPTED_BATCH}
     ON CONFLICT (${key.join(", ")}) DO UPDATE SET ${update}
   `);
 }
@@ -69,6 +70,17 @@ function detailUpserts(db: D1Database) {
       countColumns,
       updateCount,
     ),
+    // 每个日期版本组合只占一条语句，分钟数组作为一个 JSON 参数传入。
+    minute: db.prepare(`
+      INSERT INTO minute_counts (minute_at, event, feature, result, platform, channel, count)
+      SELECT printf('%sT%02d:%02d', ?, (value ->> '$.minute') / 60, (value ->> '$.minute') % 60),
+             value ->> '$.event', value ->> '$.feature', value ->> '$.result',
+             ?, ?, value ->> '$.count'
+      FROM json_each(?)
+      WHERE ${ACCEPTED_BATCH}
+      ON CONFLICT (minute_at, event, feature, result, platform, channel)
+      DO UPDATE SET ${updateCount}
+    `),
   };
 }
 
@@ -146,12 +158,15 @@ export async function reportTelemetry(
     counters,
     errors,
     timings,
+    minutes,
   } of days) {
     const surfaceMask =
       (surfaces.includes("gui") ? 1 : 0) |
       (surfaces.includes("command") ? 2 : 0);
     const dimensions = [day, install_id, app_version];
-    if (users.length === 0) {
+    const hasDailyCounts = counters.length || errors.length || timings.length;
+    // 纯分钟续批没有新的按天活跃记录。
+    if (users.length === 0 && (!minutes?.length || hasDailyCounts)) {
       statements.push(
         upserts.active.bind(
           day,
@@ -239,6 +254,17 @@ export async function reportTelemetry(
           platform,
           channel,
           count,
+          ...gate,
+        ),
+      );
+    }
+    if (minutes?.length) {
+      statements.push(
+        upserts.minute.bind(
+          day,
+          platform,
+          channel,
+          JSON.stringify(minutes),
           ...gate,
         ),
       );

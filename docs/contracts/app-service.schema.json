@@ -38,6 +38,7 @@
       ]
     },
     "route": {"type": "string", "enum": ["direct", "webvpn", "none"]},
+    "result": {"type": "string", "enum": ["success", "empty", "failure"]},
     "errorKind": {
       "type": "string",
       "enum": ["input", "authentication", "network", "upstream", "parse", "internal"]
@@ -73,7 +74,7 @@
         },
         "feature": {"$ref": "#/$defs/feature"},
         "route": {"$ref": "#/$defs/route"},
-        "result": {"type": "string", "enum": ["success", "empty", "failure"]},
+        "result": {"$ref": "#/$defs/result"},
         "count": {"$ref": "#/$defs/count"}
       }
     },
@@ -114,6 +115,18 @@
         "count": {"$ref": "#/$defs/count"}
       }
     },
+    "minute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minute", "event", "feature", "result", "count"],
+      "properties": {
+        "minute": {"type": "integer", "minimum": 0, "maximum": 1439},
+        "event": {"type": "string", "enum": ["auth_started", "auth_succeeded", "auth_failed", "feature_loaded"]},
+        "feature": {"$ref": "#/$defs/feature"},
+        "result": {"$ref": "#/$defs/result"},
+        "count": {"$ref": "#/$defs/count"}
+      }
+    },
     "day": {
       "type": "object",
       "additionalProperties": false,
@@ -131,7 +144,13 @@
         "users": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/user"}},
         "counters": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/counter"}},
         "errors": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/error"}},
-        "timings": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/timing"}}
+        "timings": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/timing"}},
+        "minutes": {
+          "description": "同一条目内的分钟、事件、功能与结果组合不可重复，由 Worker 检查。",
+          "type": "array",
+          "maxItems": 512,
+          "items": {"$ref": "#/$defs/minute"}
+        }
       }
     },
     "telemetryRequest": {

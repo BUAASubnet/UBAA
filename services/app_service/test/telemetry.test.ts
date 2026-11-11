@@ -105,4 +105,24 @@ describe("遥测关联约束", () => {
       isTelemetryBodySizeAllowed(new TextEncoder().encode(body).byteLength),
     ).toBe(false);
   });
+
+  it("分钟条目允许空数组和 512 个不同组合，拒绝 513 项或不同计数的重复键", () => {
+    const [day] = base.days;
+    const minutes = Array.from({ length: 512 }, (_, minute) => ({
+      minute,
+      event: "feature_loaded",
+      feature: "schedule",
+      result: "success",
+      count: 1,
+    }));
+    const valid = (items: typeof minutes) =>
+      validateTelemetryRequest(
+        { ...base, days: [{ ...day, minutes: items }] },
+        2026,
+      );
+    expect(valid([])).toBe(true);
+    expect(valid(minutes)).toBe(true);
+    expect(valid([...minutes, { ...minutes[0], minute: 512 }])).toBe(false);
+    expect(valid([minutes[0], { ...minutes[0], count: 2 }])).toBe(false);
+  });
 });

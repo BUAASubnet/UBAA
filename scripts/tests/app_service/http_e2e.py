@@ -41,10 +41,13 @@ SELECT (SELECT count(*) FROM batches) AS batches,
          AND cohort_year = 2024 AND surface_mask = 1) AS user_key,
        (SELECT coalesce(sum(count), 0) FROM counter_days) AS counters,
        (SELECT coalesce(sum(count), 0) FROM error_days) AS errors,
-       (SELECT coalesce(sum(count), 0) FROM timing_days) AS timings
+       (SELECT coalesce(sum(count), 0) FROM timing_days) AS timings,
+       (SELECT coalesce(sum(count), 0) FROM minute_counts) AS minutes
 """
-EMPTY = dict(batches=0, tombstones=0, active=0, user_key=None, counters=0, errors=0, timings=0)
+EMPTY = dict(batches=0, tombstones=0, active=0, user_key=None, counters=0, errors=0, timings=0,
+             minutes=0)
 ERASED = dict(EMPTY, batches=1, tombstones=1)
+ERASED_WITH_MINUTES = dict(ERASED, minutes=2)
 
 
 def require(condition, message):
@@ -198,6 +201,13 @@ def relay(port, query, secret):
                 body = self.rfile.read(int(self.headers["Content-Length"]))
                 sent[self.path] += 1
                 attempt = sent[self.path]
+                if self.path == UPLOAD:
+                    minutes = [item for day in json.loads(body)["days"]
+                               for item in day.get("minutes", [])]
+                    require(all((item["event"], item["feature"], item["result"]) ==
+                                ("feature_loaded", "schedule", "success") for item in minutes)
+                            and sum(item["count"] for item in minutes) == (1 if attempt == 3 else 2),
+                            "Rust 上报的功能加载分钟计数不符")
                 if self.path == UPLOAD and attempt == 1:
                     first_body = body
                 if self.path == UPLOAD and attempt == 2:
@@ -214,7 +224,7 @@ def relay(port, query, secret):
                 if self.path == UPLOAD and attempt == 3:
                     require(status == 410 and json.loads(response) == "install_erased",
                             "Worker 没有按合同拒收晚到批次")
-                    require(query() == ERASED, "晚到批次改变了删除后的 D1 数据")
+                    require(query() == ERASED_WITH_MINUTES, "晚到批次改变了删除后的 D1 数据")
                 else:
                     require(status == 204 and not response,
                             f"本地 Worker 返回了 {status}，预期为空的 204")
@@ -227,10 +237,10 @@ def relay(port, query, secret):
                     require(isinstance(stored, str) and hmac.compare_digest(stored, expected.hexdigest()),
                             "D1 没有保存经过 HMAC 转换的 Rust 用户标识")
                     require(row == dict(batches=1, tombstones=0, active=1,
-                                        counters=2, errors=1, timings=1),
-                            "D1 明细与 Rust 批次不符，或重复累加")
+                                        counters=2, errors=1, timings=1, minutes=2),
+                            "D1 明细或分钟计数与 Rust 批次不符，或重复累加")
                 if self.path == ERASE and attempt == 1:
-                    require(query() == ERASED, "Worker 确认删除后 D1 仍有旧明细")
+                    require(query() == ERASED_WITH_MINUTES, "删除未清除明细或改变了匿名分钟计数")
                     erased.set()
                 # 确认 Worker 已完成提交，只断开客户端一侧的连接。
                 if attempt == 1:
@@ -286,8 +296,8 @@ def prepare():
 
 @contextmanager
 def local_worker(name):
-    parent = ROOT / ".ubaa_local/app_service"
-    parent.mkdir(parents=True, exist_ok=True)
+    parent = Path(os.environ.get("UBAA_APP_SERVICE_E2E_DIR", ROOT / ".ubaa_local/app_service"))
+    parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"{name}_e2e_", dir=parent) as temporary:
         directory = Path(temporary)
         secret = secrets.token_hex(32)
@@ -342,9 +352,9 @@ def main():
                     raise ValueError("；".join(errors))
             require(sent == {UPLOAD: 3, ERASE: 2, BOOTSTRAP: 1},
                     "实际 HTTP 请求数与重试、GUI 刷新及命令模式约定不符")
-            require(query() == ERASED,
-                    "删除后 D1 仍有旧明细，或晚到批次写入了去重行")
-    print("本地 HTTP 与 D1 联调通过：重发一次计数，删除重启恢复，晚到批次返回 410")
+            require(query() == ERASED_WITH_MINUTES,
+                    "删除后明细、匿名分钟计数或去重记录不符")
+    print("本地 HTTP 与 D1 联调通过：重发未重复计数，删除保留匿名分钟计数，晚到批次返回 410")
     print("本地 HTTP 与 KV 联调通过：启动配置仅发送四个参数，命令模式共享门控且未请求启动配置")
 
 
