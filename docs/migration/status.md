@@ -4,6 +4,8 @@
 
 ## 主线与候选
 
+当前 v2.0.0 发布配置：官方 Flutter 与 OHOS 宿主统一为 `2.0.0+2003`，OHOS 原生配置为 `versionName=2.0.0`、`versionCode=2003`。此前构建与验收记录继续对应各自候选，正式产物需按统一配置重新生成。
+
 2026-11-11 构建配置统一：Android/OHOS 项目构建从根 `.env` 或同名进程变量读取签名参数，按平台和模式整组选择来源，路径以仓库根目录为基准，密码按字面读取。依赖准备、分析、测试与无签名 SDK 构建不取得签名环境变量。客户端渠道、服务目标继续使用现有 `.env` 字段，渠道版本与下载地址保留在受版本管理的 JSON 中。配置入口见[开发环境](../development/setup.md#配置来源)。
 
 配置解析、SDK 入口和 Hvigor 的 37 项回归通过。严格 Rust/脚本检查、八包 Flutter 的 2,126 项测试（另有 1 项既有跳过）、112 项本地 Worker 测试、FRB 生成零漂移和文档站构建通过。Android Release 使用临时合成证书完成构建、实际签名与产物结构检查；OHOS 无签名 Debug HAP 及 arm64 Rust 动态库检查通过。macOS 原生集合最终 13 项通过，验收中出现过一次日程编辑断言失败，原因尚未确定。未执行生产证书验收、设备安装、学校请求或远端发布。
@@ -176,7 +178,7 @@ Core-live 新会话认证：Direct prepare/login/status 通过；WebVPN prepare 
 | Windows Agenda | 隔离 GUI 与命令使用真实 DPAPI、FRB 和 SQLite，双向写入读回、两种启动顺序及关闭 GUI 后的读取和 ICS 导出通过。两项 Core 测试在释放 SQLite 消费者后均能删除临时目录 | 本机验证使用合成账号，未访问学校或默认材料 |
 | Linux SSH/PAM | 从 `ea9a475f` 重建的 Dart AOT 和 Rust Bridge v50 在禁网 Debian 12 arm64 容器通过 SSH 验收。两个合成会话共享 SQLite v3 日程并可导出 ICS。拉取同步返回 `sync_unverified`、退出 6，保留 1 条待同步。密码 SSH 经 PAM 解锁后，原会话仍能读取，待同步数量保持。锁定或缺少 Secret Service 时返回 `material_unavailable`、退出 7 | libsecret 材料库复用 `dd202754` 的同源码产物。验收使用回环 OpenSSH、同用户 D-Bus 和 GNOME Keyring；部署安装、旧真实材料及其他架构待验收 |
 | 移动端与 OHOS | 历史 iOS simulator、Android Debug、macOS Debug、OHOS 分析与无签名 Debug HAP 构建，以及 OHOS 模拟器合成 HUKS 流程通过 | 当前候选实体设备、真实账号、异常恢复与发布验收未完成 |
-| 签名与版本 | Android 曾构建并校验签名 Release APK | 未安装运行或对照旧正式包；OHOS `1.0.0/1000000` 与 Flutter `0.1.0+1` 仍需发布前统一核对 |
+| 签名与版本 | Android 曾构建并校验签名 Release APK；当前各平台配置统一为 `2.0.0+2003` | 正式产物仍需核对版本、签名和旧版覆盖安装 |
 | 远端与发布 | 本地提交与历史本机证据保留 | 本轮无推送、远端 CI、签名或发布验收 |
 
 H1 原生合成退出测试曾进入生产 SSO logout 路径，历史材料无法确认请求是否发送或到达学校，未为补证重放。命令开发中一次原本应被参数解析拒绝的调用也曾超时，其对默认材料的影响未能确定；参数前置校验已修复并在隔离材料下验证。后续隔离结果与这两项未知分别保留。
