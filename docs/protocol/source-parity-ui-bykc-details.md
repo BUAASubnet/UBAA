@@ -54,7 +54,7 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 旧账号保存回调不能写入后来登录的账号。
 
 本批已在d4507adbec6e460459475cce7f497fad5670659f提交，完整Flutter865项与仓库门禁、独立规范/质量审查通过。
-永久记录见[偏好证据](evidence/2026-09-15-macos-ui-bykc-preferences.md)；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
+永久记录见[偏好证据](../archive/evidence/2026-09-15-macos-ui-bykc-preferences.md)；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
 
 ## 1. 约束与来源索引
 

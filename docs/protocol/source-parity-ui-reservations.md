@@ -1,6 +1,6 @@
 # P4-D 图书馆与研讨室展示来源和接入计划
 
-> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../README.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
 
 2026-09-08；静态读取当前 App/UI/Core/Bridge 与两冻结源。本文件为实施前静态核对；未运行测试或 native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本计划不代表完成验证。
 
@@ -29,7 +29,7 @@ P4-D仅改变公开DTO到App presentation/UI的投影，不更改Bridge v9、Cor
 
 ## 日期与时段：必须保留的边界
 
-图书馆依据 `docs/migration/history/2026-09-08-ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa_core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
+图书馆依据 `docs/archive/history/2026-09-08-ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa_core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
 
 **额外需裁决的细节：仅凭availableDates.first与timeSlots均非空，不能对所有合法公开DTO证明关联。** 原始第一项日期为空但有times时，availableDates过滤空日期后会以第二天开头，times仍来自第一项；顶层回退同样无显式日期关联。本轮不能宣称“非空即确认”。建议将首日作为明确受限的候选展示，只有经既有受支持来源合同确认关联的场景才自动组合；如果App没有这样的证据，首日也只读列示并保留手输，记录“当前数据未提供可确认的日期时段”。要普遍自动关联须另开来源RED与公开合同决策，不偷偷改Bridge或假设一对一。
 
@@ -51,7 +51,7 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 
 | 领域 | 冻结API/DTO/本地实现/测试 | examples与已有parity列 |
 |---|---|---|
-| 图书馆 | old `shared/.../api/feature/LibBookApi.kt:23`、`:25`、`:31`、`:33`、`:42`五读；`model/dto/LibBook.kt:7`、`:16`、`:24`、`:35`、`:43`、`:51`、`:84`、`:92`；`api/local/LocalLibBookApi.kt:54`、`:57`、`:66`、`:69`、`:109`及`:466`日期投影；`shared/src/commonTest/.../LocalLibBookApiBackendTest.kt:68`含单日期times脱敏例，`:307`取消已结束错误；LibBookBookingStatusTest与LibBookReserveScreenLogicTest供状态/选择交叉来源 | 固定examples/buaa-api没有booking.lib/v4等价模块；不借其它预约API。`docs/migration/source-parity.md:264`九列覆盖基址、CAS跳转、独立token、五POST JSON方法参数、headers、只读无AES、DTO、缓存、错误；写入AES与preflight沿已有写合同，不重做无关协议。 |
+| 图书馆 | old `shared/.../api/feature/LibBookApi.kt:23`、`:25`、`:31`、`:33`、`:42`五读；`model/dto/LibBook.kt:7`、`:16`、`:24`、`:35`、`:43`、`:51`、`:84`、`:92`；`api/local/LocalLibBookApi.kt:54`、`:57`、`:66`、`:69`、`:109`及`:466`日期投影；`shared/src/commonTest/.../LocalLibBookApiBackendTest.kt:68`含单日期times脱敏例，`:307`取消已结束错误；LibBookBookingStatusTest与LibBookReserveScreenLogicTest供状态/选择交叉来源 | 固定examples/buaa-api没有booking.lib/v4等价模块；不借其它预约API。`docs/protocol/source-parity.md:264`九列覆盖基址、CAS跳转、独立token、五POST JSON方法参数、headers、只读无AES、DTO、缓存、错误；写入AES与preflight沿已有写合同，不重做无关协议。 |
 | 研讨室 | old `api/feature/CgyyApi.kt`、`model/dto/Cgyy.kt`；`api/local/LocalCgyyApi.kt:58`站点、`:63`用途、`:69`日期空间、`:182`订单、`:194`详情、`:207`锁；`:339`slot状态、`:477`day请求；对应LocalCgyyApiBackendTest、CgyyOrderDateDisplayTest、CgyyOrderCancellationTest、CgyyOrderStatusTest | examples/buaa-api无venue-zhjs-server等价实现；已有HAR说明是历史受控证据，本文未读取HAR/响应。`source-parity.md:594`逐操作九列覆盖站点/用途/日期空间/订单/详情/锁；`:278`及写批次矩阵描述提交边界；`:590`Bridge禁止交易号/内部占用审计等公开。不得由旧DTO含字段就向Host加字段。 |
 
 ## 实施顺序与关键RED（尚未执行）

@@ -1,6 +1,6 @@
 # 桌面命令模式与共享应用服务
 
-更新：2026-11-05。GUI 与终端使用同一账号和本机数据。统一命令模式、[日程界面](agenda.md)和北航云盘已进入产品整合分支。macOS 和 Windows 已通过隔离合成材料的命令与 GUI 双进程验收，Linux AOT 命令已通过隔离 SSH/PAM 验收。具体提交与验证范围见[当前状态](../migration/status.md)。
+更新：2026-11-05。GUI 与终端使用同一账号和本机数据。统一命令模式、[日程界面](agenda.md)和北航云盘已进入产品整合分支。macOS 和 Windows 已通过隔离合成材料的命令与 GUI 双进程验收，Linux AOT 命令已通过隔离 SSH/PAM 验收。具体提交与验证范围见[当前状态](../project/status.md)。
 
 ## 产品结果
 
@@ -59,13 +59,13 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 | Windows | 独立的 `ubaa.exe` 使用无 view Flutter Engine，GUI 的单实例锁只约束 GUI。Windows 11 x64 Debug 验证了 cmd、PowerShell、Unicode、流与退出码，以及 DPAPI 和本机日程共享 | 签名 Release、安装升级与真实旧材料连续性 |
 | Linux | 同一 Dart 服务编译为 AOT，直接加载生成 FRB 与 Rust 库，复用 App 材料键和账号索引。Debian 12 arm64 实际 SSH/PAM 已通过 | 其他架构、发行包安装和实际部署验证 |
 
-macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事实见[状态页](../migration/status.md)和[决策记录](../migration/decision-log.md)。不因平台入口调整而隐含迁移真实材料、签名或发布。
+macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事实见[状态页](../project/status.md)和[决策记录](../protocol/decision-log.md)。不因平台入口调整而隐含迁移真实材料、签名或发布。
 
 ## 验收与历史依据
 
 每个可验收场景使用固定候选和对应证据。涉及身份、并发、存储和跨语言边界的实现继续执行[完整相关验收](../development/commands.md#检查选择与完成条件)及独立审查。相同候选和未变化输入的有效结果按现有规则复用，整合后的候选单独验收。
 
-开发验证使用合成材料与 Mock 学校 HTTP。真实操作遵循 [AGENTS.md](../../AGENTS.md)。运行证据与交接放私有 `.ubaa_local/`，当前整体进度只在[状态页](../migration/status.md)汇总。
+开发验证使用合成材料与 Mock 学校 HTTP。真实操作遵循 [AGENTS.md](../../AGENTS.md)。运行证据与交接放私有 `.ubaa_local/`，当前整体进度只在[状态页](../project/status.md)汇总。
 
 下列为 2026-11-01 H0 样机的历史依据，用于说明运行路线选择。后续候选状态以状态页为准。
 

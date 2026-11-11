@@ -2,7 +2,7 @@
 
 后续状态提交、缓存所有权和验证闭包的细化见 [ADR 0007](0007-operation-scopes-and-verification.md)；本决定保留显式 library 和公共出口规则。
 
-日期：2026-10-07。状态：已实施。依据为[可持续开发性审查](../migration/history/maintainability-audit-2026-10-07.md)，闭环与验证见[实施记录](../migration/history/maintainability-implementation-2026-10-07.md)。
+日期：2026-10-07。状态：已实施。依据为[可持续开发性审查](../archive/history/maintainability-audit-2026-10-07.md)，闭环与验证见[实施记录](../archive/history/maintainability-implementation-2026-10-07.md)。
 
 ## 决定
 
@@ -12,7 +12,7 @@ UI 按业务领域与公共展示责任建立独立 library；跨模块组件通
 
 ## 冻结来源与行为保持
 
-移动前 `just refs` 验证旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 API/DTO/local 实现与测试按[主矩阵](../migration/source-parity.md)、[离线恢复逐操作矩阵](../migration/source-parity-offline-recovery-2026-09-17.md)及后续专项记录定位；旧矩阵历史 SHA 不能代替当前 refs，本次不修改 Rust 协议实现。
+移动前 `just refs` 验证旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 API/DTO/local 实现与测试按[主矩阵](../protocol/source-parity.md)、[离线恢复逐操作矩阵](../protocol/source-parity-offline-recovery-2026-09-17.md)及后续专项记录定位；旧矩阵历史 SHA 不能代替当前 refs，本次不修改 Rust 协议实现。
 
 | 操作 | 旧版与示例核对 | 本次移动约束 |
 |---|---|---|

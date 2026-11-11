@@ -72,7 +72,7 @@ def main():
     for name in sorted(set(output.decode().split('\0')) - {''}):
         path = ROOT / name
         if not path.is_file() or name.startswith(('packages/ubaa_bindings/cargokit/',
-                                                   'docs/migration/history/',
+                                                   'docs/archive/',
                                                    'docs/design/evidence/')):
             continue
         errors.extend(check_file(ROOT, path))

@@ -195,7 +195,7 @@ UBAA2 已提供课程列表、详情、已选课程、统计和资料的 Core/CL
 
 ## 统一后续迁移建议
 
-1. 先把每个查询 operation 的 DTO、URL/参数、认证前置条件和错误分类写入 `docs/migration/source-parity.md` 或独立决策记录；本报告只做库存，不替代逐接口 parity 表。
+1. 先把每个查询 operation 的 DTO、URL/参数、认证前置条件和错误分类写入 `docs/protocol/source-parity.md` 或独立决策记录；本报告只做库存，不替代逐接口 parity 表。
 2. 为每个功能增加脱敏 fixture 和 Mock transport 的失败测试，再实现 `ubaa-core::facade` 方法；CLI 只接受结构化筛选参数并支持 JSON 输出。
 3. 业务会话、Cookie、令牌和缓存必须挂在 `UbaaClient` 的路线隔离状态中，不能使用旧版隐式全局客户端。
 4. 在真实验收矩阵中单独记录 Direct/WebVPN 是否可用；Mock 通过不能证明上游协议成功。

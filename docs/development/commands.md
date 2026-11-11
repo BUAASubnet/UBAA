@@ -1,6 +1,6 @@
 # 开发命令与门禁
 
-本文是开发、维护、PR/CI 和发布验收命令清单的唯一维护位置。长期安全和来源规则由 [AGENTS.md](../../AGENTS.md)定义，当前任务见[goal.md](../../goal.md)，实际结果见[迁移状态](../migration/status.md)。以下说明按当前 [justfile](../../justfile)和工作流核对，不将计划中的整改写成现有覆盖。
+本文是开发、维护、PR/CI 和发布验收命令清单的唯一维护位置。长期安全和来源规则由 [AGENTS.md](../../AGENTS.md)定义，当前任务见[goal.md](../project/goal.md)，实际结果见[迁移状态](../project/status.md)。以下说明按当前 [justfile](../../justfile)和工作流核对，不将计划中的整改写成现有覆盖。
 
 ## 工具与准备
 
@@ -124,13 +124,17 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
 | [dev.yml](../../.github/workflows/dev.yml) | dev push 与目标为 dev 的 PR：脚本及敏感材料检查，按改动选择 Rust 类型检查/单元测试、Dart 格式/分析和 Worker 合同；不运行原生矩阵或 FRB 生成 |
-| [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter/FRB、依赖审计、Worker 合同、文档构建和原生矩阵。main-required 仅在全部作业成功时通过，不使用顶层路径过滤 |
-| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator/Android APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储，HarmonyOS 使用托管 Linux runner 构建无签名 Debug HAP |
+| [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter、按生成输入选择 FRB、依赖审计、Worker 合同、文档构建和原生矩阵。main-required 要求全部必要作业成功，FRB 仅在计划明确不需要时允许跳过，不使用顶层路径过滤 |
+| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator，Android 的三个 ABI 分别构建 APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储，HarmonyOS 使用托管 Linux runner 构建无签名 Debug HAP |
 | [worker.yml](../../.github/workflows/worker.yml) | main 的服务或发布内容改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境迁移 D1、部署 Worker、同步 KV。部署前核对分支最新提交，同一生产环境串行执行 |
 | [release.yml](../../.github/workflows/release.yml) | main 手动发布或 Release published：固定主线候选，复用完整验收，构建分架构正式包，分发 GitHub/R2，上传 Apple 与 AppGallery 并等待处理完成 |
 | [docs.yml](../../.github/workflows/docs.yml) | dev 文档站相关改动构建并部署 Cloudflare Workers Static Assets；PR 只构建，docs-production 仅允许 dev |
 
-三个工作流统一 push 分支为 main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+开发检查和文档部署允许取消同一分支的旧运行。Worker 部署与 Release 分发串行执行并保留在途运行，避免中断 D1 迁移或上传。main 的完整验收覆盖每个 PR，不使用路径过滤。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+
+Rust 的静态检查、生产宿主编译和完整测试分别在 Linux、Windows 和 macOS 的独立运行器执行，通用格式与文档检查只执行一次。Flutter 统一格式与分析后按包分配独立运行器，UI 普通测试分为两组，visual/golden 组保持 macOS。分组脚本枚举所有测试文件，测试验证每个文件恰好进入一组。FRB 选择复用按改动检查的生成输入规则，工作流、工具版本或生成脚本变化同样触发生成检查，手动完整验收始终执行生成检查。
+
+Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途隔离。固定版本 cargo-expand 与 cargo-deny 使用预编译工具，FRB 安装结果按工具版本缓存。Flutter SDK 按精确提交缓存，Pub 下载按锁文件缓存。缓存命中后仍核对锁定工具版本，所有正式编译与测试照常执行。
 
 ## 构建与发布命令
 
@@ -148,6 +152,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
+
+Release 作业在收集许可证前分别准备根 Pub workspace、OHOS 宿主和 Cargokit 构建工具的锁定依赖。Cargokit 的独立锁文件包含构建工具开发依赖，普通应用依赖准备不会下载这些源码。许可材料报告在预检失败时也保留为 Actions artifact，便于定位缺失来源。
 
 Android/OHOS 构建的签名参数统一从根 `.env` 或同名进程变量读取，按平台和模式选择，规则见[构建签名参数](setup.md#构建签名参数)。构建脚本中的依赖准备、分析和测试不取得这些环境变量。iOS/macOS 的原生签名及商店上传仍按[签名手册](../runbooks/app-signing.md)执行。
 
@@ -185,6 +191,6 @@ just verify-live mode=webvpn
 
 ## 文档链接范围
 
-`docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。`docs/migration/history/` 和 `docs/design/evidence/` 按归档约定保持历史内容，检查器不把这些快照内部链接当作当前可执行承诺。锁定的 Cargokit 上游文档同样不改写。当前文档指向这些目录的目标和锚点仍检查。该范围决定见[决策记录](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。
+`docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。`docs/archive/` 和 `docs/design/evidence/` 按归档约定保持历史内容，检查器不把这些快照内部链接当作当前可执行承诺。锁定的 Cargokit 上游文档同样不改写。当前文档指向这些目录的目标和锚点仍检查。该范围决定见[决策记录](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。
 
 带参数的项目 recipe 同时接受位置参数和 `key=value`，关键字可换序，重复或未知参数失败；例如 `just flutter-build mode=debug platform=linux`。Dart/Flutter 的自由参数仍原样透传。

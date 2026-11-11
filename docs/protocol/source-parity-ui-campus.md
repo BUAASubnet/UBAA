@@ -1,6 +1,6 @@
 # P4-D 博雅、阳光展示与导航计划
 
-> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../README.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
 
 2026-09-08，仅静态核对，未改生产代码、联网、运行测试或native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结old为6e75e120a26b0eefb3ab4a6f8251d1230db4a62e，examples为efb7976bf513f38364b88aeb83d704586cff9b2a。本计划复用现Core/Bridge，不能作为新写入授权或已验证结果。
 
@@ -23,7 +23,7 @@
 
 `packages/ubaa_app/lib/src/bridge/read/ygdk.dart`中 `_mapYgdkOverviewResult` 当前仅项目ID/kind与学期计数字符串，丢大量集合字段；`_mapYgdkRecordsResult`当前丢itemId/state但保留图片数量。普通加载和 `_loadYgdkOverviewOnRoute/_loadYgdkRecordsOnRoute`已经共用这两mapper，新增typed字段必须继续共用，不能只修普通查询而让写后回读退回旧模型。
 
-可复用P4-C拟定集合overview传递设施。依据 `docs/migration/history/2026-09-08-ui-ux-implementation.md:95`、`:229`、`:235`：FeatureOverview独立于details，穿过FeatureResult/FeatureSnapshot/copyWith/Controller/返回帧/写后回读。新增BykcStatisticsOverview(totalValidCount)、YgdkOverview(summary+分类/默认项目)；不能把总计塞进伪课程首行或从summary拆数字。若C设施尚未落地，依赖它的全链契约先完成，不能只加DTO并忽略生命周期。新query清旧overview，同query stale保留，显式空结果清旧或采用当前overview，只有overview而details空仍展示；局部搜索/分页不重算总量。
+可复用P4-C拟定集合overview传递设施。依据 `docs/archive/history/2026-09-08-ui-ux-implementation.md:95`、`:229`、`:235`：FeatureOverview独立于details，穿过FeatureResult/FeatureSnapshot/copyWith/Controller/返回帧/写后回读。新增BykcStatisticsOverview(totalValidCount)、YgdkOverview(summary+分类/默认项目)；不能把总计塞进伪课程首行或从summary拆数字。若C设施尚未落地，依赖它的全链契约先完成，不能只加DTO并忽略生命周期。新query清旧overview，同query stale保留，显式空结果清旧或采用当前overview，只有overview而details空仍展示；局部搜索/分页不重算总量。
 
 ## 资格、位置与照片边界
 
@@ -46,7 +46,7 @@
 ## 两冻结来源及既有parity
 
 - 博雅API：old `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt:16`至`:30`；DTO `model/dto/Bykc.kt:62`课程、`:99`详情、`:171`已选、`:206`签到配置、`:237`资料、`:255`统计；`api/local/LocalBykcApi.kt`五读映射/当前学期选择/资格及 `LocalBykcCrypto.kt`。测试`LocalBykcApiBackendTest.kt:71`列表资料、`:307`详情已选统计、`:435`写、`:526`WebVPN；本轮只读不执行。
-- examples的`api/boya/opt.rs:19`课程页、`:37`详情、`:50`已选、`:63`统计为最近同端点交叉证据；其调用方传Semester和简单写方法不能替代旧本地产品的学期选择、加密及资格。`docs/migration/source-parity.md:541`五读九列已完整说明CAS/service、跳转、Cookie/token、每操作精确方法参数、编码/签名、DTO、缓存与错误；`:331`及`:529`解释签到/签退窗口/位置规则，`:590`Bridge附件/内部字段收窄。只复用，不重开协议。
+- examples的`api/boya/opt.rs:19`课程页、`:37`详情、`:50`已选、`:63`统计为最近同端点交叉证据；其调用方传Semester和简单写方法不能替代旧本地产品的学期选择、加密及资格。`docs/protocol/source-parity.md:541`五读九列已完整说明CAS/service、跳转、Cookie/token、每操作精确方法参数、编码/签名、DTO、缓存与错误；`:331`及`:529`解释签到/签退窗口/位置规则，`:590`Bridge附件/内部字段收窄。只复用，不重开协议。
 - 阳光API：old `api/feature/YgdkApi.kt:21`概览、`:23`记录、`:25`提交；DTO `model/dto/Ygdk.kt:6`统计、`:20`项目、`:28`概览、`:38`记录、`:53`分页；`api/local/LocalYgdkApi.kt:63`、`:82`、`:107`三操作。测试`LocalYgdkApiBackendTest.kt:63`概览、`:113`记录、`:182`提交、`:249`会话复用。旧DTO有图片集合不代表当前Bridge可以公开图片。
 - examples/buaa-api无阳光等价模块，不借app/spoc上传协议。`source-parity.md:256`九列记录OAuth/独立uid-token/分类-项目-汇总/分页参数/表单/DTO/缓存/错误；`:457`写入九列保留照片上传和最后提交边界。OAuth完整允许主机集合仍为既有未决项，不在展示批次猜补，不将历史live陈述当本候选PASS。
 

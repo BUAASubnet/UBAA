@@ -29,6 +29,6 @@
 
 写入使用同目录唯一且独占创建的临时文件，并在替换前同步。会话、锁和配置目标拒绝符号链接及非普通文件；最终打开会话/锁文件使用平台 no-follow 标志。Unix 确定性测试覆盖符号链接拒绝、并发唯一临时写入、原子替换和 `0700`/`0600` 权限。会话读取上限为 1 MiB。Windows 使用继承的目录 ACL；自定义配置目录的所有者 ACL 仍是发布审计项。
 
-原始 HTTP 传输保持 TLS 校验和手动重定向，完整缓冲的正文默认限制为 8 MiB。希冀 GET 作业详情在还原 Direct/WebVPN 地址后，只有精确主机 `judge.buaa.edu.cn`、路径 `/assignment/index.jsp` 且含非空数字 `assignID` 时使用 16 MiB；详情中的长代码文本需要完整 HTML 解析。正文预算同时检查声明长度和解压后的累计长度。会话文件与 HTTP 正文的限制都是内部资源预算，依据见[希冀来源对照](../migration/source-parity.md#希冀作业详情正文预算)。固定认证端点使用 HTTPS。重定向只在主机策略校验后保留冻结客户端对 `http` 和 `https` 的兼容；Secure Cookie 绝不通过 HTTP 发送。
+原始 HTTP 传输保持 TLS 校验和手动重定向，完整缓冲的正文默认限制为 8 MiB。希冀 GET 作业详情在还原 Direct/WebVPN 地址后，只有精确主机 `judge.buaa.edu.cn`、路径 `/assignment/index.jsp` 且含非空数字 `assignID` 时使用 16 MiB；详情中的长代码文本需要完整 HTML 解析。正文预算同时检查声明长度和解压后的累计长度。会话文件与 HTTP 正文的限制都是内部资源预算，依据见[希冀来源对照](../protocol/source-parity.md#希冀作业详情正文预算)。固定认证端点使用 HTTPS。重定向只在主机策略校验后保留冻结客户端对 `http` 和 `https` 的兼容；Secure Cookie 绝不通过 HTTP 发送。
 
 Cookie 值是敏感 runtime 状态，虽然会话文件需要保存它们，但公共格式化、错误和日志绝不返回 Cookie 值。显式单路线失效只通过共享协调器替换对应槽位。只有 facade 仍持有加载时的 revision 时，聚合注销才会删除文件；冲突只清理当前进程内存，并保留更新后的完整持久化快照。

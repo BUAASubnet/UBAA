@@ -1,6 +1,6 @@
 # P4-A 用户资料白名单最小来源记录
 
-> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../README.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
 
 2026-09-08，仅静态核对；未读取真实资料/凭据，未运行测试或 native。仓库路径基于 `<private-evidence>/source-checkouts/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
@@ -22,7 +22,7 @@
 
 ## 既有九列协议记录直接复用
 
-`docs/migration/source-parity.md:106`“用户资料”表的九列已经覆盖：启动/服务URL、重定向/最终URL、Cookie/会话、方法精确参数、头/正文、加密、DTO字段、缓存并发、错误退出。这里仅补 **DTO→Bridge既有白名单→App的展示投影**；其余八列及DTO上游解析规则全部不变。表已要求展示遮罩敏感字段；主代理裁决进一步明确本地详情默认遮罩联系人、主动显示、关页/换账号清旧状态，不构成协议变更。
+`docs/protocol/source-parity.md:106`“用户资料”表的九列已经覆盖：启动/服务URL、重定向/最终URL、Cookie/会话、方法精确参数、头/正文、加密、DTO字段、缓存并发、错误退出。这里仅补 **DTO→Bridge既有白名单→App的展示投影**；其余八列及DTO上游解析规则全部不变。表已要求展示遮罩敏感字段；主代理裁决进一步明确本地详情默认遮罩联系人、主动显示、关页/换账号清旧状态，不构成协议变更。
 
 资料白名单须区分：schoolId为学校标识/学号；idCardTypeName只是证件类型名称，不是证件号码。不得因旧Core拥有idCardNumber而把它传入新App模型、日志、截图或复制按钮。本文不提供真实个人信息示例。
 

@@ -1,8 +1,8 @@
 # UBAA 2 迁移路线图
 
-状态：长期路线图；长期规则见 [AGENTS.md](AGENTS.md)，当前阶段目标见 [goal.md](goal.md)，实际验收结果见[迁移状态](docs/migration/status.md)
+状态：长期路线图；长期规则见 [AGENTS.md](../../AGENTS.md)，当前阶段目标见 [goal.md](goal.md)，实际验收结果见[迁移状态](status.md)
 目标分支：`ubaa2`
-旧版参考：`examples/ubaa_old/` 与 `examples/buaa-api/`，固定提交见 [references.md](docs/migration/references.md)；不依赖不存在的 Tag
+旧版参考：`examples/ubaa_old/` 与 `examples/buaa-api/`，固定提交见 [references.md](../protocol/references.md)；不依赖不存在的 Tag
 
 ## 1. 目标
 
@@ -74,9 +74,9 @@ ubaa judge assignments
 ubaa classroom search --date 2026-09-01
 ```
 
-命令保留 human/JSON 输出、管道、退出码、超时和取消。参数与序列化由公共 Rust 命令库维护。macOS/Windows 采用无窗口 Engine，Linux 使用同一 Dart 服务的 AOT 运行组件，Linux 命令入口不加载显示服务。平台运行依据与验收范围见[共享设计](docs/design/desktop-shared-state.md)。
+命令保留 human/JSON 输出、管道、退出码、超时和取消。参数与序列化由公共 Rust 命令库维护。macOS/Windows 采用无窗口 Engine，Linux 使用同一 Dart 服务的 AOT 运行组件，Linux 命令入口不加载显示服务。平台运行依据与验收范围见[共享设计](../design/desktop-shared-state.md)。
 
-独立 Rust CLI 宿主已从产品整合分支迁出，原有效测试覆盖保留在统一命令实现中。`core-live` 作为独立协议验证工具保留。统一命令模式的实现状态见[当前状态](docs/migration/status.md)。
+独立 Rust CLI 宿主已从产品整合分支迁出，原有效测试覆盖保留在统一命令实现中。`core-live` 作为独立协议验证工具保留。统一命令模式的实现状态见[当前状态](status.md)。
 
 ### 2.4 MCP Server
 
@@ -106,8 +106,8 @@ Agent -> stdio -> ubaa-mcp -> Rust Core -> 直连/WebVPN
 | 统一命令模式 | GUI 与终端使用同一账号和数据，按保存设置恢复会话 | 收尾共享生命周期候选并整合，再完成三桌面入口和命令接线 |
 | 北航云盘 | 浏览、管理、上传下载、分享与回收站 | 逐操作协议证据、Core 能力、文件适配及界面；无需等待旧 CLI 清理 |
 | 日程同步 | 多设备合并自建事项和本地覆盖，失败显示待同步 | 云盘完整目录发现、每设备独立快照发布与逐记录合并；不依赖共同文件的并发覆盖 |
-| 应用服务 | 更新检查、定向公告，以及经同意的遥测（上游健康度、错误、功能使用、性能、活跃与年级） | Cloudflare Worker 与 D1/KV、Core 独立 `app_service` 模块、首启隐私政策；见 [ADR 0008](docs/adr/0008-app-service-worker.md) |
+| 应用服务 | 更新检查、定向公告，以及经同意的遥测（上游健康度、错误、功能使用、性能、活跃与年级） | Cloudflare Worker 与 D1/KV、Core 独立 `app_service` 模块、首启隐私政策；见 [ADR 0008](../adr/0008-app-service-worker.md) |
 
 日程周/月视图、冲突提示和宽屏布局沿用既有设计，可独立于同步推进。本地通知、自然语言添加、多语言 SDK 与 MCP 留在后续范围。
 
-产品计划以可操作验收的结果划分。内部的实现步骤、缺陷修复、平台验证和独立审查不递归扩展成产品阶段。每项功能分别记录主线实现、候选状态和验证范围，完成条件沿用[开发命令](docs/development/commands.md#检查选择与完成条件)。
+产品计划以可操作验收的结果划分。内部的实现步骤、缺陷修复、平台验证和独立审查不递归扩展成产品阶段。每项功能分别记录主线实现、候选状态和验证范围，完成条件沿用[开发命令](../development/commands.md#检查选择与完成条件)。

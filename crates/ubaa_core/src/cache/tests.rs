@@ -489,6 +489,11 @@ fn read_ticket_validation_detects_newer_request_and_cross_handle_logout() {
 fn scan_lease_renewal_preserves_long_progress_but_cannot_reclaim_superseded_scope() {
     let root = root();
     let mut repository = open(&root);
+    // 本例验证修订回收与续租，不模拟断电；保留全部事务，回滚日志留在内存。
+    repository
+        .db
+        .execute_batch("PRAGMA journal_mode=MEMORY; PRAGMA synchronous=OFF;")
+        .unwrap();
     let mut parent = repository.begin_read(scope()).unwrap();
     let mut course_review = repository
         .begin_read(CacheScope {

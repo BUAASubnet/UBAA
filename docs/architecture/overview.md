@@ -30,7 +30,7 @@ AppController 的局部实现通过显式状态/操作合同协作，保持同�
 
 系统安全材料与加密缓存保留明确错误，不降级明文。业务协议与本地平台插件分别治理，本地 fork 的来源和退出条件见[适配清单](platform-adapters.md)。
 
-实现、确定性测试、原生合成、Core-live、真实 App、设备和正式发布是独立证据。当前范围见 [goal.md](../../goal.md)，实际结果见[状态页](../migration/status.md)；历史说明见[归档](../migration/history/architecture-before-maintainability-2026-10-07.md)。
+实现、确定性测试、原生合成、Core-live、真实 App、设备和正式发布是独立证据。当前范围见 [goal.md](../project/goal.md)，实际结果见[状态页](../project/status.md)；历史说明见[归档](../archive/history/architecture-before-maintainability-2026-10-07.md)。
 
 ## 目标入口与职责
 

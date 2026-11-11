@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v16；Flutter bridge contract v61。CLI 验证 human/JSON schema v16，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v16；Flutter bridge contract v61。CLI 验证 human/JSON schema v16，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../archive/history/testing-before-2026-10-07.md)。
 
 ## 检查入口
 
@@ -38,7 +38,7 @@
 
 原生测试保留 `integration_test/platform/`、`synthetic/cache/` 、`synthetic/command/` 的真实 FRB 输入边界和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、真实 Rust FFI 的离线启动与缺会话处理和缓存。替身后端驱动的登录到首页流程由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖：原生集成绑定不注册测试输入法，应用未取得前台时文本输入不可靠。原生材料测试同时隔离数据域和锁域：Windows 使用私有文件与真实 DPAPI/替换函数，Apple 使用独立 Keychain service，Android 使用独立 Debug 应用 `cn.edu.ubaa.synthetic.materials`，在访问安全存储前核对设备报告的实际包名。Android 专用入口 `scripts/tests/platform/android_materials.py` 先核对 APK 实际包名和 debuggable 属性，再启动真实插件用例，普通构建的生产 ID 和 Release 签名逻辑保持原实现。Linux 通用材料入口仅保留目录验证，整 map 的真实写读保留在 `scripts/tests/linux-secure-storage.sh` 创建的独立 D-Bus、Secret Service 和 XDG 目录中。缺少专用入口标记或目录前提时先拒绝，不探测默认会话。原生适配的合成保护回归覆盖默认域 B、原目标和备份不变，真实原生写读仍由对应平台入口承担。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合：运行时按清单生成被忽略的聚合入口，各入口在同一应用进程中依次运行，合并 Dart define 与持锁夹具，冲突时拒绝；`suite=ci-isolated` 逐文件构建运行，用于排查入口间的状态影响。其他能力选择清单中的精确路径，不对整个目录通配执行。
 
-宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。原生缓存入口还核对云盘能力 DTO、同步进度与取消句柄，以及固定 Direct 缺会话时在网络前返回认证错误，不请求学校。合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
+宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。原生缓存入口还核对云盘能力 DTO、同步进度与取消句柄，以及固定 Direct 缺会话时在网络前返回认证错误，不请求学校。合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 
 日程 Widget 用例覆盖创建、编辑和删除、三种重复处理范围、完成与重新挂起、学校本地备注/隐藏、导出取消/失败，以及账号或路线变化后的迟到结果。原首页原位展开用例改为四项预览和进入日程待办，末尾事项及原详情单层返回由日程导航回归保留。课程与学业合并后的十二领域继续覆盖状态矩阵、物理点击和无障碍语义。原生缓存 probe 通过真实 FRB、SQLite 和文件写出验证重复编辑、关闭重开及范围快照，不请求学校。系统保存面板和各平台设备结果单独记录。 官方宿主原首页六来源的全量展示断言改为四项预览，签到、提醒设置和作业详情仍从首页实际点击；完整来源投影由原生 home_todo_probe 保留，预览外的事项与返回路径由日程导航回归覆盖。
 
@@ -83,3 +83,9 @@ Core 新增无缓存七来源等价、输入逐组到达顺序、本地完成/�
 日程独立快照的协调器覆盖保留账号关闭、路线变化、取消、同秒编辑、持久化失败、本机清除和删除防复活。旧共享文件的基版竞争覆盖改由双设备独立发布与逐记录合并覆盖，未知结果只读冻结。新增最高发布序号选择、坏快照整轮失败、跨进程唯一发布、持久成功回执和清除后的无正文在途覆盖。
 
 应用服务的启动配置限流测试使用可控配额验证 IP 分桶、超额返回 429 和其他 IP 的独立额度。运行时测试另外调用原生 BOOTSTRAP_LIMIT 绑定，上报与删除测试保留原生限流耗尽覆盖。测试不通过连续发送 600 次请求来依赖真实分钟窗口。
+
+## CI 执行分组
+
+合并验收将 Flutter 格式与分析和测试分开，测试按包和 UI 文件组分配到独立托管运行器。所有 test 目录中的 *_test.dart 均进入一组，visual/golden 组保持 macOS 渲染。完整 Rust 测试继续在 Linux、macOS 和 Windows 执行，涵盖全部工作区目标。两个生产宿主用明确包列表在独立作业构建，共用生产依赖编译结果，不包含测试辅助 crate；默认 feature 与测试注入负向编译检查继续分别执行。Android 的 arm64-v8a、armeabi-v7a、x86_64 分配到三个托管作业，每个 APK 检查对应 Flutter/Rust 动态库，并拒绝混入其他 ABI。默认本地构建入口仍保留全部架构。
+
+缓存续租测试保留 4,100 轮事务、回收边界与过期请求断言，仅在本测试连接使用内存回滚日志并关闭同步刷盘；磁盘持久化、重开和并发测试继续使用正常连接。详情核验期限继续覆盖正常期限、临近截止、最近截止、未知及无效截止和临近窗口内外等九种场景，使用原参数、期望请求数与独立数据库。

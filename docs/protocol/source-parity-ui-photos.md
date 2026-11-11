@@ -8,7 +8,7 @@
 | Android GetContent image/*、displayName/getType；TakePicturePreview→JPEG92 | 系统授予所选内容的临时读取，不申请全量媒体库；读取大小限制；拍照作为原能力后续单独接线验收，未列为本批已完成功能 | Android PhotoChannel与MainActivity |
 | JVM FileDialog LOAD、basename/MIME；相机不可用 | macOS NSOpenPanel仅用户选中文件只读；原路径不离开原生层，读取错误不当取消 | macOS PlatformChannel、PhotoHandler与窗口接线 |
 | iOS明确“图片选择暂未接入”，无已实现旧相册能力 | 为本轮手机/平板一致任务补系统PHPicker，用户选择后才可读所选照片，无全量相册访问 | iOS PhotoChannel与Engine注册 |
-| examples无图片选择UI或阳光等价协议 | 不借上游字段/加密/错误；沿现有阳光九列协议和typed写入 | docs/migration/source-parity.md既有阳光矩阵不变 |
+| examples无图片选择UI或阳光等价协议 | 不借上游字段/加密/错误；沿现有阳光九列协议和typed写入 | docs/protocol/source-parity.md既有阳光矩阵不变 |
 
 边界：permission.request的photos表示能请求系统选择器，不代表获全相册权限；系统选择器内选择是取得单张内容的授权，取消返回null。其他权限/凭据/位置仍不可用，不因接线照片而报告它们可用。iOS PHPicker、Android系统GetContent与OHOS PhotoViewPicker均仅选定内容；macOS添加user-selected.read-only entitlement，不能开放整个目录或写权限。所有native异常使用固定code/message且无details，跨通道不传URI/路径/原始系统错误。
 

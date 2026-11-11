@@ -1,11 +1,16 @@
 name: 安装项目工具入口
 description: 使用唯一版本清单准备 Rust 和 just
+inputs:
+  rust:
+    description: 是否需要 Rust 编译器
+    default: 'true'
 runs:
   using: composite
   steps:
     - id: versions
       uses: ./.github/actions/versions
     - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+      if: inputs.rust == 'true'
       with:
         toolchain: ${{ steps.versions.outputs.rust }}
         components: clippy,rustfmt

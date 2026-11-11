@@ -1,25 +1,34 @@
 name: 合并验收
-
 on:
   pull_request:
     branches: [main]
   workflow_call:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
-  contract-gates:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      codegen: ${{ steps.plan.outputs.codegen }}
+      flutter: ${{ steps.plan.outputs.flutter }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/check/ci/plan.py plan
+
+  scripts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: ./.github/actions/toolchain
-
       - name: 安装固定 ShellCheck
         shell: bash
         run: |
@@ -40,48 +49,165 @@ jobs:
           test "$("$bin_dir/shellcheck" --version | awk '/^version:/ { print $2 }')" = "$shellcheck_version"
           printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"
 
-      - name: 安装固定官方 Flutter SDK
-        shell: bash
-        run: bash scripts/bootstrap/flutter.sh
+      - name: 准备冻结引用与脚本工具
+        run: |
+          just refs-bootstrap
+          just quality-tools-bootstrap
+      - name: 通用脚本、格式、文档和敏感材料检查
+        run: |
+          just refs
+          just check-sensitive
+          just script-check
+          cargo fmt --all -- --check
 
-      - name: 安装固定 FRB codegen
+  rust-checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: checks
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: 默认 feature 与测试注入边界
+        shell: bash
+        run: |
+          cargo check --locked -p ubaa-core --no-default-features --all-targets
+          cargo test --locked -p ubaa-core --no-default-features --doc
+          bash scripts/tests/facade-test-contract.sh
+      - name: 生成公共 Rust 文档
+        if: runner.os == 'Linux'
+        run: cargo doc --locked --workspace --no-deps
+
+  rust-builds:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: production
+      - name: 构建默认 feature 的两个生产宿主
+        # 明确包列表排除测试辅助 crate，两个宿主复用相同的生产依赖编译结果。
+        run: cargo build --locked -p ubaa-core-live -p ubaa_flutter_bridge
+
+  rust-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: tests
+      - name: Core 与其余工作区完整测试
+        shell: bash
+        run: |
+          cargo test --locked -p ubaa-core --features test-contract --all-targets
+          cargo test --locked --workspace --exclude ubaa-core --all-targets
+          cargo test --locked --workspace --exclude ubaa-core --doc
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - id: tools
+        run: |
+          source scripts/tools/versions.env
+          printf 'deny=%s\n' "$CARGO_DENY_VERSION" >> "$GITHUB_OUTPUT"
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        with:
+          tool: cargo-deny@${{ steps.tools.outputs.deny }}
+      - run: cargo fetch --locked
+      - run: just dependency-audit
+
+  codegen:
+    needs: plan
+    if: needs.plan.outputs.codegen == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: codegen
+      - uses: ./.github/actions/flutter
+      - id: tools
         shell: bash
         run: |
           source scripts/tools/versions.env
-          cargo install --locked cargo-expand --version "=$CARGO_EXPAND_VERSION"
-          test "$(cargo-expand --version)" = "cargo-expand $CARGO_EXPAND_VERSION"
-          cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION"
-          codegen=$(command -v flutter_rust_bridge_codegen)
-          test "$("$codegen" --version)" = "flutter_rust_bridge_codegen $FRB_VERSION"
-          printf 'UBAA_FRB_CODEGEN=%s\n' "$codegen" >> "$GITHUB_ENV"
-
-      - name: 建立缺失的冻结引用
-        run: just refs-bootstrap
-      - name: 纯校验冻结引用
-        run: just refs
-      - name: 准备固定发布材料开发工具
-        run: just quality-tools-bootstrap
-      - name: 安装固定 cargo-deny
+          printf 'expand=%s\nfrb=%s\nrust=%s\n' "$CARGO_EXPAND_VERSION" "$FRB_VERSION" "$RUST_VERSION" >> "$GITHUB_OUTPUT"
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        with:
+          tool: cargo-expand@${{ steps.tools.outputs.expand }}
+      - id: frb-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .ubaa_local/ci_tools/frb
+          key: frb-${{ runner.os }}-${{ runner.arch }}-${{ steps.tools.outputs.rust }}-${{ steps.tools.outputs.frb }}
+      - name: 准备固定 FRB codegen
         shell: bash
         run: |
           source scripts/tools/versions.env
-          cargo install --locked cargo-deny --version "=$CARGO_DENY_VERSION"
-          test "$(cargo-deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
-      - name: 显式预取所有目标的锁定 Cargo 依赖
-        run: cargo fetch --locked
-      - name: 运行 scripts/release/dependency-audit.sh 显式联网审计
-        run: just dependency-audit
-      - name: 扫描敏感材料
-        run: just check-sensitive
-      - name: 运行严格 Rust 与 Shell 确定性门禁
-        run: just check-strict
-      - name: 准备 FRB 与许可材料所需的锁定 Dart 依赖
-        run: just flutter-dependencies
+          root="$GITHUB_WORKSPACE/.ubaa_local/ci_tools/frb"
+          if [[ ! -x "$root/bin/flutter_rust_bridge_codegen" ]]; then
+            cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION" --root "$root"
+          fi
+          test "$("$root/bin/flutter_rust_bridge_codegen" --version)" = "flutter_rust_bridge_codegen $FRB_VERSION"
+          printf 'UBAA_FRB_CODEGEN=%s/bin/flutter_rust_bridge_codegen\n' "$root" >> "$GITHUB_ENV"
+      - run: just flutter-dependencies
       - name: 检查 FRB 生成零漂移
         env:
           CARGO_INCREMENTAL: 0
           CARGO_BUILD_JOBS: 1
         run: just flutter-codegen-check
+
+  flutter-analysis:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+        with:
+          rust: false
+      - uses: ./.github/actions/flutter
+      - name: 全工作区统一格式和静态分析
+        run: bash scripts/check/flutter-workspace.sh analyze
+
+  flutter-tests:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.flutter) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+        with:
+          rust: false
+      - uses: ./.github/actions/flutter
+      - run: just flutter-dependencies
+      - name: 运行完整测试分组
+        run: python3 scripts/check/ci/plan.py test "${{ matrix.package }}" "${{ matrix.group }}"
+      - name: 保存失败的脱敏视觉差异
+        if: failure() && matrix.group == 'golden'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ubaa-flutter-golden-diffs-${{ github.run_id }}
+          path: packages/ubaa_ui/test/**/failures/*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
   app-service-contracts:
     runs-on: ubuntu-latest
@@ -110,57 +236,28 @@ jobs:
       - name: 检查应用服务合同与本地 Worker
         run: just app-service-check
 
-  flutter-contracts:
-    # 既有 golden 使用 macOS 渲染；完整测试固定同类宿主，保持逐像素比较。
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - uses: ./.github/actions/toolchain
-      - name: 安装固定官方 Flutter SDK
-        shell: bash
-        run: bash scripts/bootstrap/flutter.sh
-
-      - name: 检查完整 Flutter 工作区与原始视觉基线
-        run: just flutter-check
-      - name: 保存失败的脱敏视觉差异
-        if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: ubaa-flutter-golden-diffs-${{ github.run_id }}
-          path: packages/ubaa_ui/test/**/failures/*.png
-          if-no-files-found: ignore
-          retention-days: 14
-
-  rust-platforms:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - uses: ./.github/actions/toolchain
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - name: 跨平台 Core 默认与 test-contract 合同
-        shell: bash
-        run: just core-test-contract
-      - run: cargo test --locked --workspace --exclude ubaa-core --all-targets
-      - run: cargo build --locked --workspace --all-targets
-      - run: cargo doc --locked --workspace --no-deps
-
-
   native:
     uses: ./.github/workflows/flutter-platforms.yml
 
   main-required:
     name: main-required
     if: ${{ always() }}
-    needs: [contract-gates, app-service-contracts, flutter-contracts, rust-platforms, native]
+    needs: [plan, scripts, rust-checks, rust-builds, rust-tests, dependency-audit, codegen, flutter-analysis, flutter-tests, app-service-contracts, native]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - name: 确认全部验收成功
         env:
           NEEDS: ${{ toJSON(needs) }}
-        run: |
-          node -e 'const jobs = JSON.parse(process.env.NEEDS); for (const [name, job] of Object.entries(jobs)) { console.log(name + ": " + job.result); } if (Object.values(jobs).some(job => job.result !== "success")) process.exit(1);'
+          CODEGEN_REQUIRED: ${{ needs.plan.outputs.codegen }}
+        run: python3 scripts/check/ci/plan.py gate
+      - name: 记录实际验收候选
+        run: python3 scripts/release/acceptance.py record
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: merge-acceptance
+          path: .ubaa_local/ci/acceptance.json
+          if-no-files-found: error
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 90

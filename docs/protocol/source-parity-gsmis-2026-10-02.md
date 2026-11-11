@@ -6,7 +6,7 @@
 
 课表候选学期与当前学期分别确定。冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `GsmisSchedule.kt::parseGsmisTerms` 将代码倒序第一项标为当前，`GraduateScheduleUpstream.kt::fetchGraduateSchedule` 在未指定学期时取第一项，`LocalScheduleApi.kt` 的学期列表和今日课表均使用该默认请求。对应测试只有单学期请求样本。提前开放下一学期时，排序无法确定当前学期。
 
-固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/{core,opt,data}.rs`、`request.rs`、`store/{cookies,cred}.rs` 只提供本科当前学期与会话处理，研究生当前学期操作不适用。GSMIS 当前学期标志采用本页已接入的 [PR #98 固定来源记录](https://github.com/BUAASubnet/UBAA/blob/72e46968445b1357b880b53042f1c1ce90ad27db/docs/migration/evidence/2026-09-20-graduate-academic.md)中的 `getXnxqList.do` 与 `SFDQXQ`，复用现行 `academic/gsmis/academic.rs::exam_terms`。
+固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/{core,opt,data}.rs`、`request.rs`、`store/{cookies,cred}.rs` 只提供本科当前学期与会话处理，研究生当前学期操作不适用。GSMIS 当前学期标志采用本页已接入的 [PR #98 固定来源记录](https://github.com/BUAASubnet/UBAA/blob/72e46968445b1357b880b53042f1c1ce90ad27db/docs/archive/evidence/2026-09-20-graduate-academic.md)中的 `getXnxqList.do` 与 `SFDQXQ`，复用现行 `academic/gsmis/academic.rs::exam_terms`。
 
 | 操作 | 引导、重定向与会话 | 请求、编码与加密 | 字段与产品行为 | 缓存、并发与错误 |
 |---|---|---|---|---|

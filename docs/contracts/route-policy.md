@@ -1,7 +1,7 @@
 # 路由策略合同
 
 状态：确定性实现已完成；当前 Direct/WebVPN/auto 实时证据单独记录在
-`docs/migration/status.md`。
+`docs/project/status.md`。
 
 `RoutePolicy` 是宿主可选择的策略（`auto`、`direct` 或 `webvpn`）；`ConnectionMode` 是 Core
 内部解析出的路线。普通 CLI 帮助不暴露 `--mode`；隐藏覆盖项仅保留给确定性测试、实时验证和

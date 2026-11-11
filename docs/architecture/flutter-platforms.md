@@ -1,12 +1,12 @@
 # Flutter 六平台版本与验收矩阵
 
-状态：维护工具链说明并保留历史平台证据，当前候选结果见[迁移状态](../migration/status.md)。
+状态：维护工具链说明并保留历史平台证据，当前候选结果见[迁移状态](../project/status.md)。
 更新：2026-10-30；下方 P0–P6 结果属于原记录候选，不能继承为本轮平台或远端 CI 通过。
 
 本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
 
 第 5、6 节的 P0–P6 构建与采用记录属于历史证据，当前结构治理的实现与候选门禁统一见
-[迁移状态](../migration/status.md)。工具版本继续由锁文件及检查脚本约束，旧 CI 成功不自动绑定新候选。
+[迁移状态](../project/status.md)。工具版本继续由锁文件及检查脚本约束，旧 CI 成功不自动绑定新候选。
 
 ## 1. 锁定候选
 
@@ -89,7 +89,7 @@ macOS 本地构建采用系统登录钥匙串；固定 darwin 0.2.0 的参数拼
 避免误启用需要开发证书的数据保护钥匙串。Android 禁止自动备份，iOS 配置 Keychain 权限。
 本轮 macOS 真实合成材料写/重开读/删除通过，OHOS 无签名 HAP/arm64 门禁通过；
 iOS/Android 及 Windows/Linux/OHOS 的实际安全材料运行仍未验证，不标记为六端运行通过。
-详见[离线实施记录](../migration/evidence/2026-09-17-offline-home.md)。
+详见[离线实施记录](../archive/evidence/2026-09-17-offline-home.md)。
 
 两个平台 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host`
 负责 AppController 生命周期与 callback 接线。生产默认通过 `createProductionBackend()` 打开

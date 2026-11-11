@@ -82,6 +82,9 @@ jobs:
     steps:
       - *a1
       - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: tests
       - name: 检查 Rust 格式、类型和单元测试
         run: |-
           cargo fmt --all -- --check
@@ -94,8 +97,10 @@ jobs:
     steps:
       - *a1
       - uses: ./.github/actions/toolchain
+        with:
+          rust: false
       - name: 安装固定 Flutter
-        run: bash scripts/bootstrap/flutter.sh
+        uses: ./.github/actions/flutter
       - name: 检查 Dart 格式和静态分析
         run: |-
           just flutter-dependencies

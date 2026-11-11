@@ -59,7 +59,7 @@
 | C4 | `crates/ubaa_core/src/features/cgyy/read.rs:92-95`；`parser.rs:701-713`；`crates/ubaa_flutter_bridge/src/api/read/mod.rs:600-603` | 门锁只返回 data 非空布尔；当前时区转换仅服务其它 Cgyy 日期逻辑 |
 | C5 | `crates/ubaa_core/src/features/cgyy/auth.rs:20-74,77-143,150-191`；`http.rs:14-80,83-119,170-183` | 当前路线认证、WebVPN Cookie 同步、请求与响应摘要日志 |
 | C6 | `packages/ubaa_app/lib/src/bridge/read/cgyy.dart:159-177` | `available` 被投影为“门锁可用”和普通 `FeatureField` |
-| P1 | `docs/migration/source-parity.md:72-76,95-104`，读取基线版本 | 现有 WebVPN/准备登录九列矩阵 |
+| P1 | `docs/protocol/source-parity.md:72-76,95-104`，读取基线版本 | 现有 WebVPN/准备登录九列矩阵 |
 | P2 | 同文件 `594-609`，读取基线版本 | 现有 Cgyy 只读九列、3xx 规则及脱敏 WebVPN 观察记录 |
 | P3 | `docs/contracts/auth-and-user.md:8-24,32-45`；`connection-and-session.md:26-34`，读取基线版本 | CLI v10、Session v2、交互拒绝及退出分类 |
 | P4 | `docs/contracts/flutter-bridge.md:8,228-234,282-297`，读取基线版本 | 验证码材料禁曝、交易号禁曝、门锁仅 available |

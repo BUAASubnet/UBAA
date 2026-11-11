@@ -37,4 +37,4 @@
 
 ## 验证边界
 
-[2026-10-25 实施与验证](../migration/history/2026-10-25-color-system-validation.md)保留当时测试、原生运行和私有材料标识。当前门禁及自动化缺口以[状态页](../migration/status.md)为准，现行原生范围见[测试策略](../development/testing.md)。
+[2026-10-25 实施与验证](../archive/history/2026-10-25-color-system-validation.md)保留当时测试、原生运行和私有材料标识。当前门禁及自动化缺口以[状态页](../project/status.md)为准，现行原生范围见[测试策略](../development/testing.md)。

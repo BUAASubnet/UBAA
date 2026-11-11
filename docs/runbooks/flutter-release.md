@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-本文规定 UBAA v2.0 的候选验收、签名与分发流程。旧流程见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)，当前结果见[实现与验证状态](../migration/status.md)。账号与发布操作遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。
+本文规定 UBAA v2.0 的候选验收、签名与分发流程。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)，当前结果见[实现与验证状态](../project/status.md)。账号与发布操作遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。
 
 ## v2.0.0 发布准备
 
@@ -25,7 +25,11 @@
 
 [Release 工作流](../../.github/workflows/release.yml) 接收两种触发：在 main 手动运行，或发布与 main 提交关联的 GitHub Release。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。手动运行可以省略 Tag，由工作流生成当前版本的名称。
 
-工作流固定同一提交并执行完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
+工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
+
+完整 CI 的 main-required 成功后保存 merge-acceptance 记录，包含实际检出提交、Git tree、PR、运行编号和运行次数。Release 核对 GitHub 运行成功状态、记录来源和完整源码树。PR 临时合并提交与 main 的 SHA 可以不同，但必须属于实际合入该候选的 PR，且完整源码树一致；工作流、工具清单、锁文件和测试也包含在树中。没有匹配记录或记录已过期时重新执行完整验收，失败、取消和不明来源不会被复用。正式构建、签名、公证、上传与产物检查每次执行。
+
+iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode 26.3，使用 iOS 26 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。不依赖托管镜像的默认 Xcode。
 
 | 平台 | 正式产物与渠道 |
 |---|---|
@@ -40,7 +44,7 @@
 
 `release-production` Environment 仅允许 main 和 v 开头的 Tag。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
 
-构建或上传失败时保留同次运行的成功产物，修复后重新运行失败作业。若源码或构建配置需要变化，递增统一构建号，并按新候选重新验收。已发布 Tag 不移动到其他源码提交。
+构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
 
 ## 候选与证据
 

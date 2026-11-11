@@ -29,7 +29,12 @@ lipo "$app/Contents/MacOS/ubaa_flutter" -verify_arch "$arch"
 ditto -c -k --keepParent "$app" "$output/notarize.zip"
 xcrun notarytool submit "$output/notarize.zip" \
   --key "$API_PRIVATE_KEYS_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
-  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --wait --output-format json > "$output/notary.json"
+  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --output-format json > "$output/submission.json"
+submission=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$output/submission.json")
+printf 'Apple 公证提交：%s\n' "$submission"
+xcrun notarytool wait "$submission" \
+  --key "$API_PRIVATE_KEYS_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
+  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --timeout 2h --output-format json > "$output/notary.json"
 python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("公证状态："+r["status"]); sys.exit(0 if r["status"]=="Accepted" else 1)' "$output/notary.json"
 xcrun stapler staple "$app"
 xcrun stapler validate "$app"
