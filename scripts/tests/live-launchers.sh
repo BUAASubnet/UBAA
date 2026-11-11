@@ -13,7 +13,9 @@ mkdir -p "$test_root/scripts/live" "$test_root/scripts/lib"
 cp "$repo_root/scripts/live/verify.sh" "$test_root/scripts/live/verify.sh"
 cp "$repo_root/scripts/lib/repo.sh" "$test_root/scripts/lib/repo.sh"
 cp "$repo_root/scripts/lib/live-features.sh" "$test_root/scripts/lib/live-features.sh"
-cp "$repo_root/scripts/lib/environment.py" "$test_root/scripts/lib/environment.py"
+for name in environment.py toolchain.py repo.py; do
+  cp "$repo_root/scripts/lib/$name" "$test_root/scripts/lib/$name"
+done
 chmod +x "$test_root/scripts/live/verify.sh"
 
 cat >"$test_root/scripts/fake-core-live.sh" <<'FAKE'
@@ -23,20 +25,22 @@ printf 'route=%s feature=%s\n' "${1#route=}" "${2#feature=}"
 read -r fake_user
 read -r fake_password
 printf 'stdin_lines=2\n'
+for key in UBAA_USERNAME UBAA_PASSWORD UBAA_TEST_USERNAME UBAA_TEST_PASSWORD CLOUDFLARE_API_TOKEN; do
+  [[ -z ${!key+x} ]] || exit 32
+done
 printf 'argv=%s\n' "$*" >&2
 if [[ $fake_user != test-user || $fake_password != test-password ]]; then
   exit 31
 fi
 FAKE
 chmod +x "$test_root/scripts/fake-core-live.sh"
+export CLOUDFLARE_API_TOKEN
+printf -v CLOUDFLARE_API_TOKEN '%s' synthetic-token
+unset UBAA_USERNAME UBAA_PASSWORD UBAA_TEST_USERNAME UBAA_TEST_PASSWORD
 
-cat >"$test_root/.env.local" <<'ENV'
-UBAA_USERNAME=test-user
-UBAA_PASSWORD=test-password
-ENV
+printf 'UBAA_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env"
 
-output=$(UBAA_ENV_FILE="$test_root/.env.local" \
-  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
   "$test_root/scripts/live/verify.sh" mode=webvpn feature=cgyy date=2026-08-31 campus-id=2 2>"$test_root/stderr")
 [[ $output == *'route=webvpn feature=cgyy'* ]]
 [[ $output == *'stdin_lines=2'* ]]
@@ -47,9 +51,8 @@ fi
 grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root/stderr" >/dev/null
 
 # 同时通过真实启动器覆盖文档主名称，兼容名称与主名称选择规则由解析器测试保护。
-printf 'UBAA_TEST_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env.local"
-output=$(UBAA_ENV_FILE="$test_root/.env.local" \
-  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+printf 'UBAA_TEST_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env"
+output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
   "$test_root/scripts/live/verify.sh" mode=direct feature=auth 2>"$test_root/primary.err")
 [[ $output == *'route=direct feature=auth'* && $output == *'stdin_lines=2'* ]]
 if grep -F 'test-password' "$test_root/primary.err" >/dev/null; then
@@ -57,24 +60,23 @@ if grep -F 'test-password' "$test_root/primary.err" >/dev/null; then
   exit 1
 fi
 
-if UBAA_ENV_FILE="$test_root/.env.local" \
-  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+if UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
   "$test_root/scripts/live/verify.sh" mode=auto >/dev/null 2>"$test_root/auto.err"; then
   printf '%s\n' 'auto 未被拒绝' >&2
   exit 1
 fi
 grep -F '不执行 auto' "$test_root/auto.err" >/dev/null
 
-if UBAA_ENV_FILE="$test_root/missing.env" \
-  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+mv "$test_root/.env" "$test_root/saved.env"
+if UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
   "$test_root/scripts/live/verify.sh" mode=direct >/dev/null 2>"$test_root/missing.err"; then
-  printf '%s\n' '缺少凭据文件时未失败' >&2
+  printf '%s\n' '缺少凭据时未失败' >&2
   exit 1
 fi
-grep -F '凭据文件不存在' "$test_root/missing.err" >/dev/null
+grep -F '请在 .env 或进程环境设置' "$test_root/missing.err" >/dev/null
+mv "$test_root/saved.env" "$test_root/.env"
 
-if UBAA_ENV_FILE="$test_root/.env.local" \
-  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+if UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
   "$test_root/scripts/live/verify.sh" mode=direct feature=unknown >/dev/null 2>"$test_root/feature.err"; then
   printf '%s\n' '未知功能未被拒绝' >&2
   exit 1

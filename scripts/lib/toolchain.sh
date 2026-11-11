@@ -1,8 +1,8 @@
 # shellcheck shell=bash
-# 直接运行的 Shell 入口与 just 共用工具链配置，禁止 source 凭据文件。
+# 直接运行的 Shell 入口使用与 just 相同的公共白名单。
 ubaa_toolchain_script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ubaa_toolchain_exports=$(python3 "$ubaa_toolchain_script_dir/toolchain.py" shell) || return
-# 解析器仅输出经过 shlex.quote 转义的赋值，不把配置作为 Shell 程序执行。
+# 解析器只输出固定的取消导出指令和经 shlex.quote 转义的公共赋值。
 eval "$ubaa_toolchain_exports"
 unset ubaa_toolchain_exports ubaa_toolchain_script_dir
 

@@ -6,14 +6,13 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from repo import ROOT, hand_off
+from toolchain import load_environment
 
 SPECS = {
     'integration-test': [('suite', 'ci'), ('platform', 'macos'), ('device', '')],
     'check-plan': [('base', ''), ('mode', 'commit')],
     'check-changed': [('base', ''), ('mode', 'commit')],
     'release-preflight': [('report_dir', ''), ('mode', 'strict')],
-    'app-service-publish': [('target', None)],
-    'app-service-deploy': [('target', None)],
     'flutter-test': [('package', None), ('path', 'test')],
     'flutter-build': [('platform', 'host'), ('mode', 'debug')],
     'flutter-artifact-check': [('platform', None), ('artifact', None)],
@@ -61,11 +60,8 @@ def main():
             commands[name].append('--run')
     if name == 'integration-test':
         commands[name] += ['--suite', args[0], '--platform', args[1], '--device', args[2]]
-    if name in {'app-service-publish', 'app-service-deploy'}:
-        commands[name] = ['node', 'scripts/release/app_service/release.mjs',
-                          name.removeprefix('app-service-'), '--target', args[0]]
     os.chdir(ROOT)
-    hand_off(commands[name], os.environ)
+    hand_off(commands[name], load_environment())
 
 
 if __name__ == '__main__':

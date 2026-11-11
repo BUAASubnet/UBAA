@@ -2,6 +2,7 @@
 # 真实验证外层入口：校验参数和凭据后，转发至单进程 Core-live。
 { set +x; } 2>/dev/null
 set -euo pipefail
+unset CLOUDFLARE_API_TOKEN
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
@@ -10,7 +11,6 @@ source "$script_dir/../lib/repo.sh"
 source "$script_dir/../lib/live-features.sh"
 repo_root=$(ubaa_repo_root)
 core_live=${UBAA_CORE_LIVE_SCRIPT:-$repo_root/scripts/live/core-live.sh}
-env_file=${UBAA_ENV_FILE:-$repo_root/.env.local}
 
 route=
 feature=all
@@ -45,21 +45,11 @@ if ! ubaa_live_feature_supported "$feature"; then
   exit 2
 fi
 
-if [[ ! -f "$env_file" ]]; then
-  printf '凭据文件不存在: %s\n' "$env_file" >&2
-  exit 2
-fi
-# 解析成功后才启动子进程；凭据只经 stdin，不进入 argv 或日志。
-credential_input=$(python3 "$repo_root/scripts/lib/environment.py" "$env_file") || exit 2
-IFS= read -r username <<<"$credential_input"
-password=${credential_input#*$'\n'}
-unset credential_input
-
 if [[ ! -x "$core_live" ]]; then
   printf 'Core-live 启动器不可执行: %s\n' "$core_live" >&2
   exit 2
 fi
 
-set +x
-printf '%s\n%s\n' "$username" "$password" |
+# 共用加载器校验凭据，再通过 stdin 启动 Core-live。
+exec python3 "$repo_root/scripts/lib/toolchain.py" live \
   "$core_live" "route=$route" "feature=$feature" "date=$date_value" "campus-id=$campus_id"

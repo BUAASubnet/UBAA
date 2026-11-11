@@ -42,7 +42,7 @@ def git_head(path):
 
 
 def ohos_local_properties(environment):
-    """DevEco 直接构建只读 local.properties；它必须与 .env.toolchain 指向同一组 SDK。"""
+    """DevEco 直接构建只读 local.properties；它必须与 .env 指向同一组 SDK。"""
     path = ROOT / 'apps/ubaa_ohos/ohos/local.properties'
     if not path.is_file() or not environment.get('UBAA_OHOS_FLUTTER_HOME'):
         return None
@@ -117,7 +117,7 @@ def main():
         failed += required and not ok
         print(f'{mark} {name:<{width}}  期望 {expected:<14} 实际 {actual or "缺失"}')
     if any(name == 'OHOS local.properties' and actual == '不一致' for name, _, _, actual in rows):
-        print('OHOS local.properties 与 .env.toolchain 不一致：检查 flutter-ohos config --ohos-sdk，'
+        print('OHOS local.properties 与 .env 不一致：检查 flutter-ohos config --ohos-sdk，'
               '然后在 apps/ubaa_ohos 运行 just flutter-ohos pub get', file=sys.stderr)
     if failed:
         print(f'{failed} 项必需工具不符；运行 just setup 或按 docs/development/setup.md 安装', file=sys.stderr)

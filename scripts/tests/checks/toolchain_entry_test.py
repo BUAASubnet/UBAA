@@ -209,7 +209,7 @@ exit 73
         (self.root / 'scripts/tools').mkdir()
         shutil.copyfile(ROOT / 'scripts/tools/flutter-packages.json', self.root / 'scripts/tools/flutter-packages.json')
         shutil.copyfile(ROOT / 'justfile', self.root / 'justfile')
-        for name in ('toolchain.py', 'environment.py', 'repo.py'):
+        for name in ('toolchain.py', 'environment.py', 'repo.py', 'recipe.py'):
             source = ROOT / 'scripts/lib' / name
             if source.exists():
                 shutil.copyfile(source, self.root / 'scripts/lib' / name)
@@ -230,10 +230,56 @@ exit 73
                               env=self.environment, capture_output=True, text=True)
 
     def configure(self):
-        (self.root / '.env.toolchain').write_text(
-            f'UBAA_FLUTTER_HOME="{self.sdk}"\nUBAA_OHOS_FLUTTER_HOME="{self.sdk}"\n')
-        for name in ('.env.local', '.env'):
-            (self.root / name).write_text('UBAA_TEST_' + 'PASSWORD=synthetic-only\n')
+        (self.root / '.env').write_text(
+            f'UBAA_FLUTTER_HOME="{self.sdk}"\nUBAA_OHOS_FLUTTER_HOME="{self.sdk}"\n'
+            'UBAA_TEST_' + 'PASSWORD=synthetic-only\n')
+
+    def test_普通配方及直接SDK入口过滤文件和进程中的机密键(self):
+        (self.root / '.env').write_text(
+            f'UBAA_FLUTTER_HOME="{self.sdk}"\n'
+            'UBAA_APP_SERVICE_URL=https://service.example.invalid\n'
+            'UBAA_DISTRIBUTION_CHANNEL="${CLOUDFLARE_API_TOKEN}${UBAA_TEST_USERNAME}"\n'
+            'UBAA_TEST_' + 'USERNAME=synthetic-user\n'
+            'CLOUDFLARE_API_' + 'TOKEN=synthetic-token\n'
+            'IGNORED_FILE_KEY=synthetic-unknown\n')
+        self.environment.update({'UBAA_TEST_USERNAME': 'external-user', 'UBAA_PASSWORD': 'external-password',
+                                 'CLOUDFLARE_API_TOKEN': 'external-token',
+                                 'UBAA_APP_SERVICE_URL': 'https://override.example.invalid'})
+        probe = ('#!/usr/bin/env python3\nimport json,os\n'
+                 'keys = ("UBAA_TEST_USERNAME", "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD", '
+                 '"CLOUDFLARE_API_TOKEN", "IGNORED_FILE_KEY", "UBAA_APP_SERVICE_URL", "UBAA_DISTRIBUTION_CHANNEL")\n'
+                 'print(json.dumps([os.environ.get(k) for k in keys]))\n')
+        cargo = self.root / 'cargo'
+        cargo.write_text(probe)
+        cargo.chmod(0o755)
+        (self.sdk / 'bin/dart').write_text(probe)
+        self.environment['PATH'] = str(self.root) + os.pathsep + self.environment['PATH']
+        for command, direct in [('fmt', False), ('dart', False), ('dart', True)]:
+            with self.subTest(command=command, direct=direct):
+                result = self.run_entry(command, direct=direct)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout),
+                                 [None] * 6 + ['https://override.example.invalid', ''])
+
+    def test_部署配方只交给假Node部署目标和Token(self):
+        (self.root / '.env').write_text(
+            'UBAA_APP_SERVICE_WORKER_NAME=synthetic-worker\n'
+            'UBAA_TEST_' + 'PASSWORD=synthetic-password\n'
+            'CLOUDFLARE_API_' + 'TOKEN=synthetic-token\n')
+        self.environment.update({'UBAA_TEST_USERNAME': 'external-user', 'UBAA_USERNAME': 'external-old-user'})
+        node = self.root / 'node'
+        node.write_text('#!/usr/bin/env python3\nimport json,os,sys\n'
+                        'keys = ("UBAA_TEST_USERNAME", "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD", '
+                        '"CLOUDFLARE_API_TOKEN", "UBAA_APP_SERVICE_WORKER_NAME")\n'
+                        'print(json.dumps([sys.argv[-1], [os.environ.get(k) for k in keys]]))\n')
+        node.chmod(0o755)
+        self.environment['PATH'] = str(self.root) + os.pathsep + self.environment['PATH']
+        for operation in ('deploy', 'publish'):
+            with self.subTest(operation=operation):
+                result = self.run_entry(f'app-service-{operation}')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout),
+                                 [operation, [None] * 4 + ['synthetic-token', 'synthetic-worker']])
 
     def test_配置缺失仍可列出配方且SDK命令明确报错(self):
         result = self.run_entry('--list')
@@ -245,7 +291,7 @@ exit 73
                     result = self.run_entry(command, '--version', direct=direct)
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn(variable, result.stderr)
-                    self.assertIn('.env.toolchain', result.stderr)
+                    self.assertIn('.env', result.stderr)
 
     def test_flutter_ohos导出DevEco_SDK且外部环境优先(self):
         shutil.copyfile(ROOT / 'scripts/lib/deveco.sh', self.root / 'scripts/lib/deveco.sh')
@@ -255,7 +301,7 @@ exit 73
         program.write_text('#!/usr/bin/env python3\nimport json,os\n'
                            'print(json.dumps([os.environ.get("DEVECO_SDK_HOME"), os.environ.get("OHOS_SDK_HOME")]))\n')
         self.configure()
-        with (self.root / '.env.toolchain').open('a') as stream:
+        with (self.root / '.env').open('a') as stream:
             stream.write(f'UBAA_DEVECO_HOME="{deveco}"\n')
         result = self.run_entry('flutter-ohos', direct=True)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -282,8 +328,8 @@ exit 73
 
     def test_外部环境优先且配置不执行shell(self):
         self.configure()
-        (self.root / '.env.toolchain').write_text('UBAA_FLUTTER_HOME="/absent-sdk"\n')
-        with (self.root / '.env.toolchain').open('a') as stream:
+        (self.root / '.env').write_text('UBAA_FLUTTER_HOME="/absent-sdk"\n')
+        with (self.root / '.env').open('a') as stream:
             stream.write('UBAA_FRB_CODEGEN="$(touch forbidden)"\n')
         self.environment['UBAA_FLUTTER_HOME'] = str(self.sdk)
         result = self.run_entry('dart', '--version', direct=True)
@@ -293,7 +339,7 @@ exit 73
     def test_直接脚本回退支持HOME与空格(self):
         # 使用现有环境变量模拟 HOME 以外的自定义 SDK 根。
         self.environment['SDK_TEST_ROOT'] = str(self.root)
-        (self.root / '.env.toolchain').write_text('UBAA_FLUTTER_HOME="${SDK_TEST_ROOT}/sdk with spaces"\n')
+        (self.root / '.env').write_text('UBAA_FLUTTER_HOME="${SDK_TEST_ROOT}/sdk with spaces"\n')
         for direct in (False, True):
             result = self.run_entry('dart', '--version', direct=direct)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -310,7 +356,7 @@ exit 73
 
     def test_Shell脚本共用回退且不执行配置内容(self):
         self.configure()
-        with (self.root / '.env.toolchain').open('a') as stream:
+        with (self.root / '.env').open('a') as stream:
             stream.write('UBAA_FRB_CODEGEN="$(touch forbidden)"\n')
         result = subprocess.run(
             ['bash', '-euc', 'source scripts/lib/toolchain.sh; exec "$UBAA_FLUTTER_HOME/bin/dart" "has spaces" ""'],
@@ -401,7 +447,7 @@ exit 73
             shutil.copyfile(ROOT / name, destination)
         subprocess.run(['git', 'init', '-q'], cwd=self.root, check=True)
         quality = self.root / 'quality tools'
-        with (self.root / '.env.toolchain').open('a') as stream:
+        with (self.root / '.env').open('a') as stream:
             stream.write(f'UBAA_QUALITY_TOOLS_DIR="{quality}"\n'
                          f'UBAA_SHELLCHECK_BIN="{self.root}/missing-shellcheck"\n'
                          'UBAA_RELEASE_REPORT_DIR="relative-report"\n')

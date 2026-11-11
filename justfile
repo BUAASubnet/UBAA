@@ -1,26 +1,27 @@
-set dotenv-load
-set dotenv-required := false
-set dotenv-path := ".env.toolchain"
-
 export PYTHONDONTWRITEBYTECODE := "1"
 
-set shell := ["bash", "-euo", "pipefail", "-c"]
+# 普通配方在启动 Bash 前过滤环境；专用入口自行选择加载范围。
+set shell := ["python3", "scripts/lib/toolchain.py", "recipe-shell"]
+set script-interpreter := ["bash", "-euo", "pipefail"]
 
 # 项目级 SDK 转发使用位置参数，保留空格、空参数及 Shell 元字符。
 [no-cd]
+[script]
 [positional-arguments]
 dart *args:
-    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" dart "$@"
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" dart "$@"
 
 [no-cd]
+[script]
 [positional-arguments]
 flutter *args:
-    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter "$@"
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter "$@"
 
 [no-cd]
+[script]
 [positional-arguments]
 flutter-ohos *args:
-    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter-ohos "$@"
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter-ohos "$@"
 
 default:
     @just --list
@@ -32,7 +33,7 @@ default:
 doctor:
     python3 scripts/bootstrap/doctor.py
 
-# 显式联网准备本机开发环境；已一致的工具跳过，不改写已有 SDK 或 .env.toolchain。
+# 显式联网准备本机开发环境；已一致的工具跳过，不改写已有 SDK 或 .env。
 setup:
     bash ./scripts/bootstrap/setup.sh
 
@@ -143,14 +144,14 @@ app-service-content-check:
     node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
 
 # 显式写入目标 KV；普通检查不调用。
-[positional-arguments]
-app-service-publish *args:
-    @python3 scripts/lib/recipe.py app-service-publish "$@"
+[script]
+app-service-publish:
+    python3 scripts/lib/toolchain.py release publish
 
 # 显式迁移目标 D1 并部署 Worker；普通检查不调用。
-[positional-arguments]
-app-service-deploy *args:
-    @python3 scripts/lib/recipe.py app-service-deploy "$@"
+[script]
+app-service-deploy:
+    python3 scripts/lib/toolchain.py release deploy
 
 # 只读核对网站正文摘要和应用内嵌入的政策。
 privacy-policy-check:
@@ -187,6 +188,7 @@ shell-check-strict:
 release-preflight *args:
     @python3 scripts/lib/recipe.py release-preflight "$@"
 
+[script]
 [positional-arguments]
 verify-live *args:
     bash ./scripts/live/verify.sh "$@"

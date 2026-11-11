@@ -1,8 +1,7 @@
 # Local credentials and environment
-/.env
+.env
 .env.*
 !.env.example
-!.env.toolchain.example
 
 # 本地签名目录、发布私钥和签名描述文件不纳入 Git。
 /.sign/

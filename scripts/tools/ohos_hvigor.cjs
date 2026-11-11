@@ -1,5 +1,5 @@
 // Hvigor 只读取 OHOS Flutter 生成的 ohos/local.properties；不读环境变量、不调用 Python、不缓存配置。
-// 链路：.env.toolchain → just flutter-ohos pub get → local.properties → Cargokit CMake 参数。
+// 链路：.env → just flutter-ohos pub get → local.properties → Cargokit CMake 参数。
 const fs = require('node:fs');
 const path = require('node:path');
 

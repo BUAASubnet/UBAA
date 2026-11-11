@@ -9,9 +9,9 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from repo import ROOT
 
-FORBIDDEN = re.compile(r"(^|/)(ubaa_old|examples)(/|$)|(^|/)\.env\.(local|toolchain)$|(^|/)(session\.json|.*\.session\.json)$")
+FORBIDDEN = re.compile(r"(^|/)(ubaa_old|examples)(/|$)|(^|/)\.env(?:\.(local|toolchain))?$|(^|/)(session\.json|.*\.session\.json)$")
 PATTERNS = tuple(re.compile(pattern) for pattern in (
-    rb"UBAA_TEST_(USERNAME|PASSWORD)=[\"']?[A-Za-z0-9]",
+    rb"(?:UBAA_(?:TEST_)?(?:USERNAME|PASSWORD)|CLOUDFLARE_API_TOKEN)[ \t]*=[ \t]*[\"']?[A-Za-z0-9]",
     rb"-----BEGIN (RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----",
     rb"\b1[3-9][0-9]{9}\b",
     rb"data:image/(png|jpe?g|gif);base64,[A-Za-z0-9+/]{24,}={0,2}",

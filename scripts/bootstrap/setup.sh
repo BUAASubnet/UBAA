@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 显式联网准备本机开发环境：按 versions.env 安装缺失的锁定工具，已一致的项直接跳过。
-# 不改写已有 SDK、不修改 .env.toolchain、不安装系统包，最后运行只读的 doctor。
+# 不改写已有 SDK、不修改已有 .env、不安装系统包，最后运行只读的 doctor。
 set -euo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
@@ -10,18 +10,19 @@ source "$script_dir/../lib/versions.sh"
 repo_root=$(ubaa_repo_root)
 cd "$repo_root"
 
-if [[ ! -f .env.toolchain ]]; then
-  cp .env.toolchain.example .env.toolchain
-  printf '%s\n' '已从模板创建 .env.toolchain；请填写 UBAA_FLUTTER_HOME 等 SDK 位置后重新运行 just setup' >&2
-  exit 2
-fi
+# 直接运行时也先检测旧配置，防止创建空模板后遮住迁移提示。
 # shellcheck source=../lib/toolchain.sh
 source "$script_dir/../lib/toolchain.sh"
+if [[ ! -f .env ]]; then
+  (umask 077; cat .env.example > .env)
+  printf '%s\n' '已从模板创建 .env；请填写 UBAA_FLUTTER_HOME 等 SDK 位置后重新运行 just setup' >&2
+  exit 2
+fi
 export PATH="$HOME/.cargo/bin:$PATH"
 
 flutter_root=${UBAA_FLUTTER_HOME:-}
 if [[ "$flutter_root" == *'<'* ]] || ! flutter_root=$(ubaa_toolchain_absolute_path "$flutter_root"); then
-  printf '%s\n' 'error: 请在 .env.toolchain 中把 UBAA_FLUTTER_HOME 设为绝对路径' >&2
+  printf '%s\n' 'error: 请在 .env 中把 UBAA_FLUTTER_HOME 设为绝对路径' >&2
   exit 2
 fi
 if [[ ! -e "$flutter_root" ]]; then
@@ -53,6 +54,6 @@ cargo fetch --locked
 just flutter-dependencies
 
 if ! command -v "${UBAA_SHELLCHECK_BIN:-shellcheck}" >/dev/null 2>&1; then
-  printf 'ShellCheck %s 需用系统包管理器安装，或在 .env.toolchain 设置 UBAA_SHELLCHECK_BIN\n' "$SHELLCHECK_VERSION"
+  printf 'ShellCheck %s 需用系统包管理器安装，或在 .env 设置 UBAA_SHELLCHECK_BIN\n' "$SHELLCHECK_VERSION"
 fi
 python3 scripts/bootstrap/doctor.py

@@ -11,6 +11,12 @@ spec.loader.exec_module(recipe)
 
 
 class RecipeArgsTest(unittest.TestCase):
+    def setUp(self):
+        # 本组只验证参数与子进程交接，配置隔离由 toolchain_entry_test 覆盖。
+        environment = patch.object(recipe, 'load_environment', return_value=dict(recipe.os.environ))
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def test_single_argument_recipe_still_dispatches(self):
         with patch.object(recipe.sys, 'argv', ['recipe.py', 'ohos-check']), \
                 patch.object(recipe.os, 'chdir'), patch.object(recipe.os, 'execvpe') as execute:
@@ -52,19 +58,6 @@ class RecipeArgsTest(unittest.TestCase):
         self.assertEqual(recipe.values('release-preflight', []), ['', 'strict'])
         self.assertEqual(recipe.values('release-preflight', ['mode=report', 'report_dir=/tmp/report']),
                          ['/tmp/report', 'report'])
-
-    def test_应用服务写入命令必须传入目标并保留路径(self):
-        target = '.ubaa_local/app_service/测试 目标.json'
-        for operation in ('publish', 'deploy'):
-            with self.subTest(operation=operation):
-                name = f'app-service-{operation}'
-                with self.assertRaises(ValueError):
-                    recipe.values(name, [])
-                with patch.object(recipe.sys, 'argv', ['recipe.py', name, f'target={target}']), \
-                        patch.object(recipe.os, 'chdir'), patch.object(recipe, 'hand_off') as hand_off:
-                    recipe.main()
-                self.assertEqual(hand_off.call_args.args[0],
-                                 ['node', 'scripts/release/app_service/release.mjs', operation, '--target', target])
 
     def test_missing_duplicate_unknown_and_extra_arguments_fail(self):
         for name, args in [('flutter-test', []), ('flutter-build', ['platform=linux', 'platform=macos']),

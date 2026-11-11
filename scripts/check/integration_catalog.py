@@ -234,15 +234,13 @@ def main():
                   f'CI={str(entry["ci"]):5} {entry["path"]}')
         return
     selected = select(entries, args.suite, args.platform)
-    os.environ.update(load_environment(ROOT))
-    flutter_root = os.environ.get("UBAA_FLUTTER_HOME", "")
+    environment = load_environment(ROOT)
+    flutter_root = environment.get("UBAA_FLUTTER_HOME", "")
     if not flutter_root or not Path(flutter_root).is_absolute():
         raise ValueError("请设置 UBAA_FLUTTER_HOME 为锁定官方 Flutter SDK 的绝对路径")
     flutter = sdk_executable(flutter_root, "flutter")
-    environment = os.environ.copy()
-    # 即使从带账号的终端发起，常规回归也不会继承真实配置入口。
-    for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
-                 "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD"):
+    # 常规回归也不复用真实验证的目录与材料范围。
+    for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE"):
         environment.pop(name, None)
     # 任一入口前提缺失时不启动任何命令，也不生成聚合入口。
     for entry in selected:

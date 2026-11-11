@@ -60,10 +60,29 @@ class SensitiveTest(unittest.TestCase):
         self.assertNotEqual(self.scan().returncode, 0)
 
     def test_安全文件及忽略的本地凭据不被读取(self):
-        (self.root / ".gitignore").write_text(".env.local\n")
-        (self.root / ".env.local").write_text(MARKER)
+        (self.root / ".gitignore").write_text(".env\n.env.local\n")
+        for name in (".env", ".env.local"):
+            (self.root / name).write_text(MARKER)
         (self.root / "safe.txt").write_text("普通源码")
         self.assertEqual(self.scan().returncode, 0)
+
+    def test_相邻空凭据键允许但填写后的账号和Token拒绝(self):
+        sample = self.root / ".env.example"
+        keys = ("UBAA_TEST_USERNAME", "UBAA_TEST_PASSWORD", "CLOUDFLARE_API_TOKEN")
+        sample.write_text("\n".join(f"{key}=\n" for key in keys))
+        self.git("add", ".env.example")
+        self.assertEqual(self.scan().returncode, 0)
+        for key in keys:
+            with self.subTest(key=key):
+                sample.write_text(f'{key} = "synthetic-secret"\n')
+                result = self.scan()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("synthetic-secret", result.stderr)
+
+    def test_根配置即使没有凭据也不得暂存(self):
+        (self.root / ".env").write_text("UBAA_DISTRIBUTION_CHANNEL=test\n")
+        self.git("add", ".env")
+        self.assertIn("禁止提交的敏感路径", self.scan().stderr)
 
     def test_家目录路径在工作区与暂存区均拒绝且不输出正文(self):
         for prefix in ("/" + "Users/", "/" + "home/", "C:" + "\\Users\\"):

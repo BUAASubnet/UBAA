@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""工具配置与显式凭据入口共用语法，调用方分别决定文件和展开策略。"""
+"""解析项目的 KEY=value 文件；按调用方指定的键和展开策略读取。"""
 from pathlib import Path
 import re
 import shlex
-import sys
 
 VARIABLE = re.compile(r'\$(?:\{([A-Za-z_][A-Za-z_0-9]*)\}|([A-Za-z_][A-Za-z_0-9]*))')
 
 
-def read_values(path, *, environment=None, expand=False):
+def read_values(path, *, environment=None, expand=False, keys=None, keep_syntax=False):
     values = dict(environment or {})
     seen = set()
     for number, line in enumerate(Path(path).read_text().splitlines(), 1):
@@ -19,6 +18,8 @@ def read_values(path, *, environment=None, expand=False):
         if match is None:
             raise ValueError(f'配置第 {number} 行格式无效；请使用 KEY=value')
         key, raw = match.groups()
+        if keys is not None and key not in keys:
+            continue
         if key in seen:
             raise ValueError(f'配置第 {number} 行重复定义变量')
         seen.add(key)
@@ -33,21 +34,15 @@ def read_values(path, *, environment=None, expand=False):
             raise ValueError(f'配置第 {number} 行包含控制字符')
         if expand and not raw.startswith("'"):
             value = VARIABLE.sub(lambda m: values.get(m[1] or m[2], ''), value)
-        values.setdefault(key, value)
+        values.setdefault(key, raw if keep_syntax else value)
     return values
 
 
-def credentials(path):
-    values = read_values(path)
+def credentials(values):
     username = values.get('UBAA_TEST_USERNAME') or values.get('UBAA_USERNAME')
     password = values.get('UBAA_TEST_PASSWORD') or values.get('UBAA_PASSWORD')
     if not username or not password:
-        raise ValueError('凭据文件缺少 UBAA_TEST_USERNAME/UBAA_TEST_PASSWORD（或兼容名称）')
+        raise ValueError('请在 .env 或进程环境设置 UBAA_TEST_USERNAME、UBAA_TEST_PASSWORD（或兼容名称）')
+    if any(c in username or c in password for c in '\x00\r\n'):
+        raise ValueError('账号或密码不能包含换行符或空字符')
     return (username + '\n' + password + '\n').encode()
-
-
-if __name__ == '__main__':
-    try:
-        sys.stdout.buffer.write(credentials(Path(sys.argv[1])))
-    except (OSError, ValueError):
-        raise SystemExit('凭据文件无法解析或缺少账号材料；请检查配置格式与重复变量') from None

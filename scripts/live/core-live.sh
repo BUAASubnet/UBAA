@@ -8,6 +8,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$script_dir/../lib/repo.sh"
 # shellcheck source=../lib/live-features.sh
 source "$script_dir/../lib/live-features.sh"
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 repo_root=$(ubaa_repo_root)
 binary=${UBAA_CORE_LIVE_BINARY:-$repo_root/target/debug/core-live}
 
