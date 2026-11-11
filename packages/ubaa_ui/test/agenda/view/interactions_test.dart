@@ -79,7 +79,7 @@ void main() {
     expect(agendaDateButton('周一 11月9日').hitTestable(), findsOneWidget);
   });
 
-  testWidgets('快捷筛选切换课程、待办和全部，选中状态与事项一致', (tester) async {
+  testWidgets('筛选面板切换课程、待办和全部，选中状态与事项一致', (tester) async {
     final backend = MemoryAgenda()..school.add(course());
     final service = await opened(backend);
     await addItem(service, '本地待办', AgendaKind.task);
@@ -87,10 +87,34 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     Future<void> select(String name, List<String> titles) async {
-      final chip = find.widgetWithText(ChoiceChip, name);
-      await tester.tap(chip);
+      await tester.tap(find.byTooltip('筛选日程'));
       await tester.pumpAndSettle();
-      expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+      if (name == '待办') {
+        await tester.tap(find.widgetWithText(SwitchListTile, '仅看待办'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.widgetWithText(SwitchListTile, '仅看待办'),
+              )
+              .value,
+          isTrue,
+        );
+      } else {
+        await tester.tap(find.widgetWithText(ChoiceChip, name));
+        final toggle = find.widgetWithText(SwitchListTile, '仅看待办');
+        if (tester.widget<SwitchListTile>(toggle).value)
+          await tester.tap(toggle);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, name))
+              .selected,
+          isTrue,
+        );
+      }
+      await tester.tap(find.widgetWithText(FilledButton, '完成'));
+      await tester.pumpAndSettle();
       expect(visibleTitles(tester), unorderedEquals(titles));
     }
 

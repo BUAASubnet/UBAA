@@ -66,7 +66,11 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
         parts.length == 2 &&
         parts.first.contains('周') &&
         parts.every((p) => p.trim().isNotEmpty)) {
-      return (parts.first.trim(), parts.last.trim(), null);
+      return (
+        agendaWeeksLabel(parts.first.trim()),
+        agendaTeacherLabel(parts.last.trim()),
+        null,
+      );
     }
     return (null, null, text);
   }

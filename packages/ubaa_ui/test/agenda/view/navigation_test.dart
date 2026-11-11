@@ -137,28 +137,46 @@ void main() {
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
     );
-    expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
-      isTrue,
-    );
-    expect(find.text('任务4').hitTestable(), findsOneWidget);
-    await tester.tap(find.widgetWithText(ChoiceChip, '待办'));
+    await tester.tap(find.byTooltip('筛选日程'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
+          .value,
+      isTrue,
+    );
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    expect(find.text('任务4').hitTestable(), findsOneWidget);
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SwitchListTile, '仅看待办'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
+          .value,
       isFalse,
     );
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
     expect(find.text('本地日程').hitTestable(), findsOneWidget);
     await tester.tap(find.widgetWithText(NavigationDestination, '首页'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(all);
     await tester.tap(all);
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
+          .value,
       isTrue,
       reason: '每次首页查看全部都应重新启用待办筛选',
     );
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('任务4'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('任务4'));
@@ -179,15 +197,25 @@ void main() {
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
     );
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
+          .value,
       isTrue,
     );
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
     // 待办只有截止时刻，切到周视图时退回全部，网格才不会空着。
     await tester.tap(find.text('周'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
+          .value,
       isFalse,
     );
   });

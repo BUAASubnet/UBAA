@@ -179,13 +179,39 @@ class HomeViewState extends State<HomeView> {
       now: campusNow,
       onRetry: () => widget.onRetryFeature(FeatureId.schedule),
       onOpenSchedule: () => widget.onFeatureTap(FeatureId.schedule),
-      trailing: widget.recentFeatures.isEmpty
-          ? null
-          : _RecentFeatureIcons(
-              features: widget.recentFeatures.take(4).toList(),
-              onTap: widget.onFeatureTap,
-            ),
     );
+    // 最近使用不足四个时用常用功能补齐，入口位置保持稳定。
+    final quick = <FeatureId>{
+      ...widget.recentFeatures,
+      FeatureId.schedule,
+      FeatureId.bykc,
+      FeatureId.classroom,
+      FeatureId.grades,
+    }.take(4).toList();
+    final quickEntries = _QuickEntries(
+      features: quick,
+      onTap: widget.onFeatureTap,
+    );
+    // 一周后才截止的同课程待办只保留最早一项，其余合并提示。
+    final preview = <(HomeTodo, int)>[];
+    final farGroups = <(FeatureId, String), int>{};
+    for (final task in tasks) {
+      final deadline = task.deadline;
+      final course = task.subtitle.trim();
+      if (deadline == null ||
+          course.isEmpty ||
+          deadline.difference(campusNow) < const Duration(days: 7)) {
+        preview.add((task, 0));
+        continue;
+      }
+      final key = (task.feature, course);
+      if (farGroups[key] case final index?) {
+        preview[index] = (preview[index].$1, preview[index].$2 + 1);
+      } else {
+        farGroups[key] = preview.length;
+        preview.add((task, 0));
+      }
+    }
     Widget todoSection(int limit) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -193,7 +219,7 @@ class HomeViewState extends State<HomeView> {
         UiSectionHeader(
           title: '待办',
           subtitle: tasks.isEmpty ? '近期截止与提醒' : null,
-          trailing: tasks.length > limit
+          trailing: tasks.length > limit || preview.length < tasks.length
               ? TextButton(
                   key: const ValueKey('home-todos-toggle'),
                   style: TextButton.styleFrom(
@@ -208,9 +234,10 @@ class HomeViewState extends State<HomeView> {
         HomeTodoGrid(
           key: const ValueKey('home-todos'),
           children: [
-            for (final task in tasks.take(limit))
+            for (final (task, more) in preview.take(limit))
               HomeTodoCard(
                 item: task,
+                moreCount: more,
                 now: campusNow,
                 onTap: () => widget.onTodoTap(task),
                 signing: _signingTodo == task.id,
@@ -339,7 +366,17 @@ class HomeViewState extends State<HomeView> {
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 5, child: courseSection),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            courseSection,
+                            const SizedBox(height: 12),
+                            quickEntries,
+                          ],
+                        ),
+                      ),
                       const SizedBox(width: 24),
                       Expanded(flex: 6, child: todoSection(6)),
                     ],
@@ -348,8 +385,9 @@ class HomeViewState extends State<HomeView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       courseSection,
-                      // 课程卡片自带 12 的下边距，再留 12 与卡片间距相称。
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 4),
+                      quickEntries,
+                      const SizedBox(height: 24),
                       todoSection(4),
                     ],
                   ),
@@ -370,6 +408,7 @@ class FeatureGridView extends StatelessWidget {
     required this.onFeatureTap,
     required this.onRetryFeature,
     required this.features,
+    this.homeState,
     this.onOpenIhome,
     this.onOpenBhpan,
     this.onOpenFinance,
@@ -378,6 +417,9 @@ class FeatureGridView extends StatelessWidget {
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
   final List<FeatureId> features;
+
+  /// 首页已读到的课表与待办；有内容时入口副标题显示实时摘要，否则显示功能说明。
+  final HomeState? homeState;
   final VoidCallback? onOpenIhome;
   final VoidCallback? onOpenBhpan;
   final VoidCallback? onOpenFinance;
@@ -391,6 +433,27 @@ class FeatureGridView extends StatelessWidget {
       ),
     ],
   );
+
+  /// 入口的实时摘要：今天的课程数与各来源的待办数；没有可说的内容时为空。
+  String? _live(FeatureId feature) {
+    final state = homeState;
+    if (state == null) return null;
+    if (feature == FeatureId.schedule) {
+      final schedule = state.schedule;
+      final count = schedule.snapshot.details
+          .where((d) => d.presentation is TodayCoursePresentation)
+          .length;
+      if (count == 0) return null;
+      return '${schedule.tomorrow ? '明天' : '今天'} $count 节课';
+    }
+    final count = state.todos.where((todo) => todo.feature == feature).length;
+    if (count == 0) return null;
+    return switch (feature) {
+      FeatureId.spoc || FeatureId.judge => '$count 项作业待交',
+      FeatureId.exam => '近期 $count 场考试',
+      _ => '$count 项待办',
+    };
+  }
 
   Widget _grid() => UiEntryList(
     children: [
@@ -426,7 +489,7 @@ class FeatureGridView extends StatelessWidget {
           child: UiEntryCard(
             title: feature.title,
             icon: uiFeatureIcon(feature),
-            subtitle: feature.description,
+            subtitle: _live(feature) ?? feature.description,
             onTap: () => onFeatureTap(feature),
           ),
         ),
@@ -434,36 +497,69 @@ class FeatureGridView extends StatelessWidget {
   );
 }
 
-/// 最近使用的功能：今日课表标题右侧的一排小图标，长按显示名称。
-class _RecentFeatureIcons extends StatelessWidget {
-  const _RecentFeatureIcons({required this.features, required this.onTap});
+/// 快捷入口：今日课表与待办之间的一行带文字的入口，最近使用的排在前面。
+class _QuickEntries extends StatelessWidget {
+  const _QuickEntries({required this.features, required this.onTap});
   final List<FeatureId> features;
   final ValueChanged<FeatureId> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final feature in features) ...[
-          // 图标 36pt，点击区域由默认的 48pt 外边距补足，相邻按钮间距也由它提供。
-          IconButton.filledTonal(
-            key: ValueKey('recent-${feature.name}'),
-            tooltip: feature.title,
-            style: IconButton.styleFrom(
-              minimumSize: const Size(36, 36),
-              fixedSize: const Size(36, 36),
-              padding: EdgeInsets.zero,
-              backgroundColor: scheme.primaryContainer,
-              foregroundColor: scheme.onPrimaryContainer,
+        for (final feature in features)
+          Expanded(
+            child: InkWell(
+              key: ValueKey('recent-${feature.name}'),
+              borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+              onTap: () => onTap(feature),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        uiFeatureIcon(feature),
+                        size: 22,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      uiQuickEntryLabel(feature),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            iconSize: 18,
-            onPressed: () => onTap(feature),
-            icon: Icon(uiFeatureIcon(feature)),
           ),
-        ],
       ],
     );
   }
+}
+
+/// 快捷入口下方的短名称：去掉“查询”“预约”等后缀，四个并排不截断。
+String uiQuickEntryLabel(FeatureId feature) {
+  final title = feature.title;
+  for (final suffix in const ['查询', '预约']) {
+    if (title.length > 2 && title.endsWith(suffix)) {
+      return title.substring(0, title.length - suffix.length);
+    }
+  }
+  return title;
 }

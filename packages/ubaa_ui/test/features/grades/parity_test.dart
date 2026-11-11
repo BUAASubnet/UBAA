@@ -164,7 +164,7 @@ void main() {
       ),
     );
     expect(find.text('本学期'), findsOneWidget);
-    expect(find.text('0 门'), findsOneWidget);
+    expect(find.text('0 门 · 成绩待出'), findsOneWidget);
     expect(find.text('暂无成绩'), findsOneWidget);
   });
   testWidgets('学期切换与顶栏搜索可切至历史学期并联动更新统计和列表', (tester) async {

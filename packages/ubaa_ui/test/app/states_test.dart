@@ -755,6 +755,7 @@ void _registerSharedStateTests() {
       await tester.pump();
       await tester.tap(target);
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
       expect(find.byTooltip('返回'), findsOneWidget);
     }
 

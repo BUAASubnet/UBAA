@@ -2,10 +2,66 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/common/feature_detail.dart';
 import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
+Finder actionButton(String label) => find
+    .ancestor(
+      of: find.descendant(
+        of: find.widgetWithText(Card, '合成课程'),
+        matching: find.text(label),
+      ),
+      matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
+    )
+    .first;
+
 void main() {
+  testWidgets('后台续载保留已显示课程的选课入口，整页刷新和写入期间禁用', (tester) async {
+    var calls = 0;
+    Future<void> show(bool more, bool writing) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FeatureDetailView(
+            feature: FeatureId.bykc,
+            snapshot: Scenario(false, true)
+                .make(const FeatureQuery())
+                .copyWith(status: FeatureLoadStatus.loading),
+            loadingMore: more,
+            writeBusy: writing,
+            bykcFilters: BykcCourseFilters(),
+            onBykcFiltersChanged: (_) {},
+            onBack: () {},
+            onRetry: () async {},
+            onBykcWrite: (operation, id) async {
+              expect(operation, WriteOperation.bykcSelectCourse);
+              expect(id, 71);
+              calls++;
+            },
+          ),
+        ),
+      ),
+    );
+    await show(true, false);
+    await tester.pump();
+    expect(
+      tester.widget<ButtonStyleButton>(actionButton('选课')).onPressed,
+      isNotNull,
+    );
+    await tester.tap(actionButton('选课'));
+    expect(calls, 1);
+    for (final (more, writing) in [(false, false), (true, true)]) {
+      await show(more, writing);
+      await tester.pump();
+      expect(
+        tester.widget<ButtonStyleButton>(actionButton('选课')).onPressed,
+        isNull,
+      );
+      await tester.tap(actionButton('选课'));
+      expect(calls, 1);
+    }
+  });
+
   for (final chosen in [false, true]) {
     testWidgets('${chosen ? '已选' : '可选'}列表按钮直接提交一次且不触发卡片导航', (tester) async {
       final gate = Completer<WriteCommitResult>();
@@ -15,7 +71,7 @@ void main() {
         commit: () => gate.future,
       );
       final label = chosen ? '退选' : '选课';
-      final button = find.widgetWithText(OutlinedButton, label);
+      final button = actionButton(label);
       final before = state.queries.length;
       await tester.tap(button);
       await tester.pump();
@@ -29,14 +85,10 @@ void main() {
       expect(state.commits, 1);
       expect(state.queries.length, before);
       expect(
-        tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, '${label}中…'),
-            )
-            .onPressed,
+        tester.widget<ButtonStyleButton>(actionButton('${label}中…')).onPressed,
         isNull,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, '${label}中…'));
+      await tester.tap(actionButton('${label}中…'));
       await tester.pump();
       expect(state.commits, 1);
       gate.complete(result(state.operation));
@@ -56,7 +108,7 @@ void main() {
           unknown: unknown,
         ),
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, '选课'));
+      await tester.tap(actionButton('选课'));
       await tester.pumpAndSettle();
       expect(state.commits, 1);
       expect(state.readbacks, unknown ? 1 : 0);
@@ -72,9 +124,7 @@ void main() {
       commit: () async => result(WriteOperation.bykcSelectCourse),
     );
     expect(
-      tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '选课'))
-          .onPressed,
+      tester.widget<ButtonStyleButton>(actionButton('选课')).onPressed,
       isNull,
     );
     await tester.tap(find.text('合成课程'));

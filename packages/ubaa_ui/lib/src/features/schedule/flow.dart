@@ -479,11 +479,13 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     final goPrev = goWeek(prevWeek), goNext = goWeek(nextWeek);
 
     final weekHeader = Padding(
-      padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
+      // 紧贴标题栏：周次切换与上方的学期选择在视觉上是同一组控件。
+      padding: UbaaTheme.pageInsets(context, top: 0, bottom: 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: '上一周',
             icon: const Icon(Icons.chevron_left),
             onPressed: goPrev,
@@ -520,6 +522,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
             ),
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: '下一周',
             icon: const Icon(Icons.chevron_right),
             onPressed: goNext,

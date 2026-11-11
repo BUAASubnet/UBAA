@@ -96,6 +96,12 @@ class PagedResults {
     _recoveryQuery = null;
   }
 
+  /// 放弃进行中的续载但不报错：已显示内容不变，之后仍可继续加载下一页。
+  void abandon() {
+    if (_recovery != null) return fail();
+    _expected = null;
+  }
+
   FeatureSnapshot _recover(FeatureSnapshot incoming, FeatureQuery scope) {
     final previous = _base!;
     final recovery = _recovery!;

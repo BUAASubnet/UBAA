@@ -25,7 +25,7 @@ void main() {
     );
     final button = find.descendant(
       of: card,
-      matching: find.widgetWithText(OutlinedButton, '选课'),
+      matching: find.widgetWithText(FilledButton, '选课'),
     );
     await tester.ensureVisible(button);
     await tester.pumpAndSettle();
@@ -60,7 +60,7 @@ void main() {
       final card = find.widgetWithText(Card, '合成课程 1');
       final button = find.descendant(
         of: card,
-        matching: find.widgetWithText(OutlinedButton, '选课'),
+        matching: find.widgetWithText(FilledButton, '选课'),
       );
       await tester.ensureVisible(button);
       await tester.pumpAndSettle();
@@ -99,10 +99,12 @@ void main() {
         expect(find.byType(MaterialBanner), findsOneWidget);
         expect(
           tester
-              .widgetList<OutlinedButton>(
+              .widgetList<ButtonStyleButton>(
                 find.descendant(
                   of: card,
-                  matching: find.byType(OutlinedButton),
+                  matching: find.byWidgetPredicate(
+                    (widget) => widget is ButtonStyleButton,
+                  ),
                 ),
               )
               .every((button) => button.onPressed == null),

@@ -39,7 +39,8 @@ class GradeSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onPrimaryContainer.withValues(alpha: .72);
+    // 浅蓝底上的说明文字用次要文字色，对比度高于同色系浅蓝。
+    final muted = theme.colorScheme.onSurfaceVariant;
     Widget metric(String label, String value) => Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +56,13 @@ class GradeSummaryCard extends StatelessWidget {
       ),
     );
     final stats = statistics;
+    bool blank(double? value) => value == null || !value.isFinite;
+    final noScores =
+        stats != null &&
+        !loading &&
+        blank(stats.gpa) &&
+        blank(stats.weightedAverage) &&
+        blank(stats.arithmeticAverage);
     final counts = [
       if (showCourseAndCredits && stats != null) '${stats.courseCount} 门',
       if (showCourseAndCredits && (stats?.totalCredits ?? 0) > 0)
@@ -82,25 +90,34 @@ class GradeSummaryCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                if (counts.isNotEmpty)
+                if (counts.isNotEmpty || noScores)
                   Text(
-                    counts.join(' · '),
+                    [...counts, if (noScores) '成绩待出'].join(' · '),
                     style: theme.textTheme.bodySmall?.copyWith(color: muted),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            // 统计未到时先显示占位值，读取进度交给标题栏。
-            UiReportBusy(
-              busy: loading && stats == null,
-              child: Row(
-                children: [
-                  metric('GPA', stats?.gpa?.toStringAsFixed(2) ?? '--'),
-                  metric('加权平均分', _gradeNumber(stats?.weightedAverage)),
-                  metric('算术平均分', _gradeNumber(stats?.arithmeticAverage)),
-                ],
+            // 本学期还没有出分时不占三个“--”的位置，只保留标题行和全部学期统计。
+            if (!noScores) ...[
+              const SizedBox(height: 8),
+              // 统计未到时先显示占位值，读取进度交给标题栏。
+              UiReportBusy(
+                busy: loading && stats == null,
+                child: Row(
+                  children: [
+                    metric('GPA', stats?.gpa?.toStringAsFixed(2) ?? '--'),
+                    metric('加权平均分', _gradeNumber(stats?.weightedAverage)),
+                    metric('算术平均分', _gradeNumber(stats?.arithmeticAverage)),
+                  ],
+                ),
               ),
-            ),
+            ] else if (overallTitle == null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '成绩尚未公布',
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
+            ],
             if (overallTitle != null) ...[
               const SizedBox(height: 12),
               Divider(height: 1, color: muted.withValues(alpha: .2)),

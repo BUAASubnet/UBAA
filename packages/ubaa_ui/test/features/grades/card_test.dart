@@ -4,6 +4,34 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/grades/cards.dart';
 
 void main() {
+  testWidgets('未出分学期保留学分并显示待出提示，出分后恢复统计', (tester) async {
+    Future<void> mount(bool scored) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: GradeSummaryCard(
+            title: '本学期',
+            showCourseAndCredits: true,
+            statistics: GradeStatistics.calculate([
+              GradePresentation(
+                courseName: '合成课程',
+                credit: 3,
+                score: scored ? '90' : null,
+                gradePoint: scored ? '4.0' : null,
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+    await mount(false);
+    expect(find.text('1 门 · 3 学分 · 成绩待出'), findsOneWidget);
+    expect(find.text('成绩尚未公布'), findsOneWidget);
+    await mount(true);
+    expect(find.text('1 门 · 3 学分'), findsOneWidget);
+    expect(find.text('3.81'), findsOneWidget);
+    expect(find.text('90'), findsNWidgets(2));
+  });
+
   for (final (credits, expected) in [
     ([23.5, .1, .1], '23.7'),
     ([.1, .2], '0.3'),
@@ -13,7 +41,12 @@ void main() {
     testWidgets('学分累加后的统计显示 $expected，避免浮点尾数并保留有效小数', (tester) async {
       final statistics = GradeStatistics.calculate([
         for (final credit in credits)
-          GradePresentation(courseName: '合成课程', credit: credit),
+          GradePresentation(
+            courseName: '合成课程',
+            credit: credit,
+            score: '90',
+            gradePoint: '4.0',
+          ),
       ]);
       await tester.pumpWidget(
         MaterialApp(

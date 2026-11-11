@@ -68,7 +68,11 @@ void main() {
     await tester.pumpAndSettle();
     final grid = find.byKey(const ValueKey('agenda-week-grid'));
     expect(
-      find.text('合成课程时段').hitTestable(),
+      find
+          .byWidgetPredicate(
+            (w) => w is Text && w.data?.replaceAll('\n', '') == '合成课程时段',
+          )
+          .hitTestable(),
       findsOneWidget,
       reason: '打开周视图时当前焦点日期必须在手机可见范围内',
     );

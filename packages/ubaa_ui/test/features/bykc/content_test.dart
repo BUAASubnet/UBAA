@@ -6,6 +6,37 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
+  testWidgets('退选资格被拒绝时已选列表无操作入口且详情按钮不可点击', (tester) async {
+    await _open(tester, const [
+      FeatureDetail(
+        title: '退选已截止课程',
+        presentation: BykcChosenPresentation(
+          recordId: 9001,
+          courseId: 7,
+          courseName: '退选已截止课程',
+          courseStartDate: '2999-01-01 08:00:00',
+          courseCancelEndDate: '2000-01-01 00:00:00',
+        ),
+        actions: [
+          BykcDeselectAction(
+            courseId: 7,
+            eligibility: ActionEligibility.denied,
+          ),
+        ],
+      ),
+    ], view: FeatureQueryView.bykcChosenCourses);
+    expect(find.widgetWithText(OutlinedButton, '退选'), findsNothing);
+    await tester.tap(find.widgetWithText(Card, '退选已截止课程'));
+    await tester.pumpAndSettle();
+    final button = find.widgetWithText(OutlinedButton, '退选');
+    await tester.ensureVisible(button);
+    expect(tester.widget<OutlinedButton>(button).onPressed, isNull);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.text('确认退选'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('博雅列表选课时间沿旧版按当前时间显示开始或截止，不由状态猜测', (tester) async {
     await _open(tester, const [
       FeatureDetail(
@@ -148,7 +179,7 @@ void main() {
     expect(find.text('合成博雅课'), findsOneWidget);
     expect(find.textContaining('合成教室'), findsOneWidget);
     expect(find.textContaining('08:00'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, '选课'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '选课'), findsOneWidget);
     expect(find.text('999'), findsNothing);
     // 列表只常驻搜索框；课程详情经卡片进入，不提供手填课程 ID。
     expect(find.byType(TextField), findsOneWidget);

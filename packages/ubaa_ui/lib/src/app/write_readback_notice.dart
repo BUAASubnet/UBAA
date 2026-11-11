@@ -68,8 +68,8 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('之前的操作提醒暂时读不出来'),
-                    Text('最近签到、选课或预约若没看到结果，请到对应页面查看。', style: muted),
+                    const Text('操作结果暂未同步'),
+                    Text('最近的签到、选课或预约结果请到对应页面核对。', style: muted),
                   ],
                 ),
               ),
@@ -93,7 +93,7 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
             if (widget.error != null)
               Row(
                 children: [
-                  Expanded(child: Text('还有部分提醒暂时读不出来。', style: muted)),
+                  Expanded(child: Text('另有部分操作结果暂未同步。', style: muted)),
                   TextButton(
                     onPressed: widget.onRefresh,
                     child: const Text('重试'),

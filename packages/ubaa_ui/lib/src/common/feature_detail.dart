@@ -719,8 +719,10 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   Widget _details(BuildContext context) {
     return FeatureDetailList(
       feature: widget.feature,
+      // 后台续载下一页不影响已显示条目的操作；整页读取或刷新时才禁用。
       writesEnabled:
-          widget.snapshot.status != FeatureLoadStatus.loading &&
+          (widget.snapshot.status != FeatureLoadStatus.loading ||
+              widget.loadingMore) &&
           widget.bykcPendingCourseId == null &&
           !widget.writeBusy,
       details: _isAssignmentList

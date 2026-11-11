@@ -21,6 +21,21 @@ FeatureSnapshot page(
 );
 
 void main() {
+  test('写入打断续载时保留前页且下一次仍请求原页', () {
+    final feed = PagedResults();
+    const query = FeatureQuery(view: FeatureQueryView.cgyyOrders);
+    final first = page(1, [1, 2]);
+    feed.accept(first, query);
+    final next = feed.begin(first, query)!;
+    feed.abandon();
+    expect(feed.loading, isFalse);
+    expect(feed.error, isNull);
+    expect(feed.details.map((d) => d.title), ['订单1', '订单2']);
+    expect(feed.begin(first, query)!.page, next.page);
+    final merged = feed.accept(page(2, [3, 4]), next);
+    expect(merged.details.map((d) => d.title), ['订单1', '订单2', '订单3', '订单4']);
+  });
+
   test('同账号恢复读齐原页数后替换，失败和重复页保留旧列表', () {
     final feed = PagedResults();
     const query = FeatureQuery(view: FeatureQueryView.cgyyOrders);

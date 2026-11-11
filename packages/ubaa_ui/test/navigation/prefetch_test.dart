@@ -1,9 +1,88 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/common/read_navigator.dart';
 
 void main() {
+  for (final fails in [false, true]) {
+    testWidgets('选退课打断在途续载后保留前页且不显示续载错误，读取失败=$fails', (tester) async {
+      final key = GlobalKey<FeatureReadNavigatorState>();
+      final pending = Completer<void>();
+      final requests = <int>[];
+      final state = ValueNotifier(FeatureSnapshot(feature: FeatureId.bykc));
+      addTearDown(state.dispose);
+      String? moreError;
+      var loading = false;
+      var shown = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<FeatureSnapshot>(
+            valueListenable: state,
+            builder: (context, snapshot, _) => FeatureReadNavigator(
+              key: key,
+              snapshot: snapshot,
+              cacheEpoch: 0,
+              initialHomeTarget: const FeatureReadNavigation(
+                feature: FeatureId.bykc,
+                query: FeatureQuery(page: 1),
+              ),
+              onExit: () {},
+              onRetry: () async {},
+              onVisibleSnapshot: (_, __) {},
+              pageBuilder: (page) {
+                moreError = page.moreError;
+                loading = page.loadingMore;
+                shown = page.snapshot.details.map((d) => d.title).toList();
+                return const SizedBox();
+              },
+              onQuery: (query) async {
+                requests.add(query.page);
+                if (query.page == 2) {
+                  await pending.future;
+                  if (fails) throw StateError('合成被打断的读取');
+                }
+                state.value = FeatureSnapshot(
+                  feature: FeatureId.bykc,
+                  status: FeatureLoadStatus.success,
+                  readContext: FeatureReadContext(
+                    query: query,
+                    requestRevision: requests.length,
+                  ),
+                  pagination: FeaturePagination(
+                    page: query.page,
+                    size: 1,
+                    total: 2,
+                  ),
+                  details: [
+                    FeatureDetail(
+                      title: '课程${query.page}',
+                      presentation: BykcCoursePresentation(
+                        id: query.page,
+                        courseName: '课程${query.page}',
+                        status: BykcCourseStatus.available,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(requests, [1, 2]);
+      expect(loading, isTrue);
+      key.currentState!.beginBykcCourseWrite();
+      pending.complete();
+      await tester.pumpAndSettle();
+      expect(shown, ['课程1']);
+      expect(loading, isFalse);
+      expect(moreError, isNull);
+      expect(requests, [1, 2]);
+    });
+  }
+
   for (final stop in ['上限', '失败', '无新增', '写入', '离线', '隐藏']) {
     testWidgets('博雅预取在$stop时停止且不会自动重试', (tester) async {
       final key = GlobalKey<FeatureReadNavigatorState>();

@@ -2,10 +2,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 String bhpanBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KiB';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
   if (bytes < 1024 * 1024 * 1024)
-    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MiB';
-  return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GiB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+  return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
 }
 
 String bhpanDate(DateTime time) {

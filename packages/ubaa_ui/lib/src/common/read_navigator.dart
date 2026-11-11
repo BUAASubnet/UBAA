@@ -48,7 +48,14 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   FeatureQuery? _bykcRefreshQuery;
   FeatureSnapshot? _bykcRefreshSnapshot;
 
-  void beginBykcCourseWrite() => _bykcWriteFrame = _current;
+  /// 选退课开始时列表可能正在后台续载下一页：那一页的结果在写入期间不会并入列表，
+  /// 记下来以便续载结束时安静地放弃，而不是提示“加载更多失败”。
+  void beginBykcCourseWrite() {
+    _bykcWriteFrame = _current;
+    if (_current.requestingMore || _current.feed.loading) {
+      _current.moreInterrupted = true;
+    }
+  }
 
   void cancelBykcCourseWrite() {
     _bykcWriteFrame = null;
@@ -547,7 +554,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       await widget.onQuery!(next);
     } catch (_) {
       if (mounted && generation == frame.feed.generation) {
-        frame.feed.fail();
+        frame.moreInterrupted ? frame.feed.abandon() : frame.feed.fail();
         if (frame.feed.snapshot != null) frame.snapshot = frame.feed.snapshot!;
       }
     } finally {
@@ -556,8 +563,11 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
         if (!mounted) return;
         setState(() {
           frame.requestingMore = false;
+          final interrupted = frame.moreInterrupted;
+          frame.moreInterrupted = false;
           if (generation == frame.feed.generation && frame.feed.loading) {
-            frame.feed.fail();
+            // 被选退课打断的续载不算失败；列表回到续载前的内容。
+            interrupted ? frame.feed.abandon() : frame.feed.fail();
             if (frame.feed.snapshot != null)
               frame.snapshot = frame.feed.snapshot!;
           }
@@ -820,6 +830,9 @@ class _ReadFrame {
   }
 
   final bool isLanding;
+
+  /// 进行中的续载被选退课打断。
+  bool moreInterrupted = false;
   String? scheduleTitle;
   final FeatureQuery? navigationQuery;
   final FeatureSnapshot menuSnapshot;

@@ -214,6 +214,15 @@ class AssignmentCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     UiTag(label, tone: tone),
                   ],
+                  // 与首页待办卡一致：可以点开的卡片末尾带箭头。
+                  if (canOpen) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 4),

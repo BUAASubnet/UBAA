@@ -44,11 +44,21 @@ extension BykcDetailActions on _FeatureDetailListState {
         label: const Text('已满'),
       );
     }
-    return OutlinedButton.icon(
-      onPressed: allowed ? () => widget.onBykcWrite!(operation, target) : null,
-      icon: _bykcWriteIcon(operation, target),
-      label: Text(_bykcWriteLabel(operation, target)),
-    );
+    final onPressed = allowed
+        ? () => widget.onBykcWrite!(operation, target)
+        : null;
+    // 可选的课用浅色实底按钮，与“已满”、不可选的灰色描边按钮一眼可分；退选保持描边。
+    return selected
+        ? OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: _bykcWriteIcon(operation, target),
+            label: Text(_bykcWriteLabel(operation, target)),
+          )
+        : FilledButton.tonalIcon(
+            onPressed: onPressed,
+            icon: _bykcWriteIcon(operation, target),
+            label: Text(_bykcWriteLabel(operation, target)),
+          );
   }
 
   List<Widget> _bykcCourseWriteFields(

@@ -79,9 +79,16 @@ void main() {
     );
     expect(find.text('¥ 10.66', findRichText: true), findsOneWidget);
     expect(find.text('¥ 0.00', findRichText: true), findsOneWidget);
-    expect(find.text('36.43 G', findRichText: true), findsOneWidget);
-    expect(find.text('10 G', findRichText: true), findsOneWidget);
+    expect(find.text('36.43 GB', findRichText: true), findsOneWidget);
+    expect(find.text('10 GB', findRichText: true), findsOneWidget);
     expect(fee.value, '10.659999999999998');
     expect(flow.value, '36.42999999999999');
+    final progress = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
+    );
+    expect(
+      progress.value,
+      closeTo(36.42999999999999 / (36.42999999999999 + 10.0001), .000001),
+    );
   });
 }

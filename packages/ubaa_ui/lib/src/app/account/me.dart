@@ -110,7 +110,27 @@ class _IdentityHeader extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              const UiAppIcon(size: 60),
+              // 已登录显示姓氏头像；未登录时退回应用图标。
+              if (uiNonBlank(user?.preferredName) case final display?)
+                Container(
+                  width: 60,
+                  height: 60,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    String.fromCharCode(display.runes.first).toUpperCase(),
+                    textScaler: TextScaler.noScaling,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              else
+                const UiAppIcon(size: 60),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -168,10 +188,19 @@ sealed class _TileValue {
 }
 
 class _TileText extends _TileValue {
-  const _TileText(this.value, {this.unit, this.prefix, this.emphasis = false});
+  const _TileText(
+    this.value, {
+    this.unit,
+    this.prefix,
+    this.emphasis = false,
+    this.low = false,
+  });
   final String value;
   final String? unit, prefix;
   final bool emphasis;
+
+  /// 余额偏低，用提醒色显示。
+  final bool low;
 }
 
 class _TileFailed extends _TileValue {
@@ -182,6 +211,13 @@ class _TilePending extends _TileValue {
   const _TilePending({required this.loading});
   final bool loading;
 }
+
+/// 容量单位统一写成 GB、MB、KB；上游只给单个字母时补全，其余原样显示。
+String? _unit(String raw) => switch (uiNonBlank(raw)) {
+  final unit? when const {'G', 'M', 'K', 'T'}.contains(unit.toUpperCase()) =>
+    '${unit.toUpperCase()}B',
+  final other => other,
+};
 
 /// 上游可能返回未舍入的浮点值（如 10.659999999999998），只在显示时保留两位。
 /// [fixed] 为金额补足两位；其余数量舍入后省略末尾零。
@@ -218,8 +254,13 @@ class _MetricsPanel extends StatelessWidget {
     return switch (metric) {
       CampusMetricValue(:final value) =>
         money && (value.unit.isEmpty || value.unit == '元')
-            ? _TileText(_decimal(value.value, fixed: true), prefix: '¥')
-            : _TileText(_decimal(value.value), unit: uiNonBlank(value.unit)),
+            ? _TileText(
+                _decimal(value.value, fixed: true),
+                prefix: '¥',
+                // 不足十元时提醒充值。
+                low: (double.tryParse(value.value) ?? double.infinity) < 10,
+              )
+            : _TileText(_decimal(value.value), unit: _unit(value.unit)),
       CampusMetricFailure() => const _TileFailed(),
       null =>
         section.error != null
@@ -356,7 +397,13 @@ class _MetricTile extends StatelessWidget {
       context,
     ).scale((valueStyle?.fontSize ?? 22) * 1.3);
     final Widget display = switch (value) {
-      _TileText(:final value, :final unit, :final prefix, :final emphasis) =>
+      _TileText(
+        :final value,
+        :final unit,
+        :final prefix,
+        :final emphasis,
+        :final low,
+      ) =>
         Text.rich(
           TextSpan(
             children: [
@@ -364,7 +411,11 @@ class _MetricTile extends StatelessWidget {
               TextSpan(
                 text: value,
                 style: valueStyle?.copyWith(
-                  color: emphasis ? scheme.primary : null,
+                  color: low
+                      ? UbaaTheme.warning(scheme)
+                      : emphasis
+                      ? scheme.primary
+                      : null,
                 ),
               ),
               if (unit != null) TextSpan(text: ' $unit', style: unitStyle),
@@ -524,7 +575,7 @@ class _NetworkProductCard extends StatelessWidget {
                           color: primary ? scheme.primary : null,
                         ),
                       ),
-                      if (uiNonBlank(amount.unit) case final unit?)
+                      if (_unit(amount.unit) case final unit?)
                         TextSpan(
                           text: ' $unit',
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -539,6 +590,17 @@ class _NetworkProductCard extends StatelessWidget {
             ],
           ),
         );
+    final used = double.tryParse(product.used.value);
+    final free = double.tryParse(product.freeRemaining.value);
+    final freeProgress =
+        used != null &&
+            free != null &&
+            used >= 0 &&
+            free >= 0 &&
+            used + free > 0 &&
+            product.used.unit == product.freeRemaining.unit
+        ? used / (used + free)
+        : null;
     return Card.outlined(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -571,6 +633,23 @@ class _NetworkProductCard extends StatelessWidget {
                 figure('计费剩余', product.billableRemaining),
               ],
             ),
+            // 免费额度的使用进度：已用 ÷（已用 + 免费剩余）。
+            if (freeProgress case final progress?) ...[
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  color: progress >= .9
+                      ? UbaaTheme.warning(scheme)
+                      : scheme.primary,
+                  semanticsLabel: '免费流量已用',
+                  semanticsValue: '${(progress * 100).round()}',
+                ),
+              ),
+            ],
           ],
         ),
       ),

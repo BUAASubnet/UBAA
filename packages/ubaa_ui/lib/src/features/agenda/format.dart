@@ -112,3 +112,30 @@ final class AgendaAccess {
   final Future<String?> Function(AgendaExportResult, String, bool Function())?
   saveFile;
 }
+
+/// 「1-5周,7-13周[理论]」写成「1–5、7–13 周 · 理论」；认不出的格式原样返回。
+String agendaWeeksLabel(String raw) {
+  final match = RegExp(r'^(.*?)(?:\[([^\]]+)\])?$').firstMatch(raw.trim());
+  if (match == null) return raw;
+  final pieces = [
+    for (final piece in match[1]!.split(RegExp(r'[,，]')))
+      piece.trim().replaceFirst(RegExp(r'周$'), '').replaceAll('-', '–'),
+  ];
+  if (pieces.isEmpty ||
+      !pieces.every((p) => RegExp(r'^\d+(–\d+)?[单双]?$').hasMatch(p))) {
+    return raw;
+  }
+  final kind = match[2]?.trim();
+  return '${pieces.join('、')} 周${kind == null || kind.isEmpty ? '' : ' · $kind'}';
+}
+
+/// 「葛宁[主讲],王五[辅讲]」写成「葛宁（主讲）、王五（辅讲）」。
+String agendaTeacherLabel(String raw) => raw
+    .split(RegExp(r'[,，]'))
+    .map((name) => name.trim())
+    .where((name) => name.isNotEmpty)
+    .map(
+      (name) =>
+          name.replaceAllMapped(RegExp(r'\[([^\]]+)\]'), (m) => '（${m[1]}）'),
+    )
+    .join('、');

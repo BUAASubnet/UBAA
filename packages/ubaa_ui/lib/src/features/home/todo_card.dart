@@ -27,7 +27,11 @@ class HomeTodoCard extends StatelessWidget {
     this.onRefreshSignin,
     this.signing = false,
     this.signinUncertain = false,
+    this.moreCount = 0,
   });
+
+  /// 同一课程被折叠的其余远期待办数量。
+  final int moreCount;
   final HomeTodo item;
   final DateTime now;
   final VoidCallback onTap;
@@ -42,6 +46,12 @@ class HomeTodoCard extends StatelessWidget {
         ? '结果未确认'
         : item.statusLabel;
     final subtitle = item.subtitle.trim();
+    final remaining = uiTodoRemaining(item.deadline, now);
+    // 三天内截止与数据层标记的“临近”同样用警示色。
+    final urgent =
+        item.soon ||
+        (item.deadline != null &&
+            item.deadline!.difference(now) < const Duration(days: 3));
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -84,6 +94,10 @@ class HomeTodoCard extends StatelessWidget {
                                 ),
                               ),
                             ],
+                            if (moreCount > 0) ...[
+                              const SizedBox(width: 6),
+                              UiTag('另有 $moreCount 项'),
+                            ],
                             // “待××”与时间信息重复，不显示。
                             if (!status.startsWith('待')) ...[
                               const SizedBox(width: 6),
@@ -103,10 +117,24 @@ class HomeTodoCard extends StatelessWidget {
                         const SizedBox(height: 2),
                       ],
                     ),
-                    Text(
-                      item.timeLabel,
+                    Text.rich(
+                      TextSpan(
+                        text: item.timeLabel,
+                        children: [
+                          if (remaining != null)
+                            TextSpan(
+                              text: ' · $remaining',
+                              style: TextStyle(
+                                color: urgent
+                                    ? null
+                                    : theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                        ],
+                      ),
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: item.soon
+                        color: urgent
                             ? UbaaTheme.warning(theme.colorScheme)
                             : theme.colorScheme.onPrimaryContainer,
                       ),
@@ -139,4 +167,14 @@ class HomeTodoCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 截止时间的相对说法（“还有 3 天”）；没有截止时间或已过期时为空。
+String? uiTodoRemaining(DateTime? deadline, DateTime now) {
+  if (deadline == null) return null;
+  final left = deadline.difference(now);
+  if (left.isNegative) return null;
+  if (left.inDays >= 1) return '还有 ${left.inDays} 天';
+  if (left.inHours >= 1) return '还有 ${left.inHours} 小时';
+  return '不到 1 小时';
 }

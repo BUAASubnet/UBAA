@@ -4,6 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_ui/src/shared/sync_status.dart';
 
 void main() {
+  testWidgets('刚更新时保持安静，十分钟后重建显示更新时间', (tester) async {
+    Future<void> mount(Duration age) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UiSyncStatus(
+            busy: false,
+            updatedAt: DateTime.now().subtract(age),
+          ),
+        ),
+      ),
+    );
+    await mount(const Duration(minutes: 9));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('更新于'), findsNothing);
+    await mount(const Duration(minutes: 10));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('更新于'), findsOneWidget);
+  });
+
   test('iOS、Android 和 OHOS 使用触屏刷新，桌面保留按钮', () {
     for (final name in ['iOS', 'android', 'ohos']) {
       expect(uiIsTouchPlatformName(name), isTrue);

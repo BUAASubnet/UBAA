@@ -1,3 +1,4 @@
+import '../schedule/colors.dart' show ScheduleCourseColors;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'calendar_values.dart';
@@ -245,11 +246,15 @@ class _AgendaDayHeader extends SliverPersistentHeaderDelegate {
       style != oldDelegate.style;
 }
 
-/// 来源色：自建事项用用户颜色，学校事项按来源区分。
+/// 来源色：自建事项用用户颜色，课程按课程分色，其余学校事项按来源区分。
 Color agendaSourceColor(AgendaEntry entry, ColorScheme colors) =>
     agendaColor(entry.local?.content.color) ??
     switch (entry.school?.navigation.feature) {
-      AgendaFeature.schedule => colors.primary,
+      // 课程按课程名取色，与课表页同一套色板。
+      AgendaFeature.schedule => ScheduleCourseColors.accent(
+        entry.school!.title,
+        colors.brightness,
+      ),
       AgendaFeature.spoc || AgendaFeature.judge => const Color(0xFFE8833A),
       AgendaFeature.exam => colors.error,
       AgendaFeature.bykc => const Color(0xFF8E5CD9),

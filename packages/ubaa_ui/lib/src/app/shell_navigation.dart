@@ -2,6 +2,15 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  void _goBack() {
+    if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
+    if (_utilityPage != null) {
+      _changeNavigation(() => _utilityPage = null);
+    } else {
+      _readPageKeys[_openedFeature]?.currentState?.goBack();
+    }
+  }
+
   void _selectTab(int index, {bool fromSwipe = false}) {
     if (widget.writeState.intent != null) {
       // 写入进行中不能换页；滑动已移动的页面退回原位。

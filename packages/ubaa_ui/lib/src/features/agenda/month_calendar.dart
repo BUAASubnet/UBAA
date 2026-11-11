@@ -4,6 +4,30 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'calendar_values.dart';
 import 'format.dart';
 
+/// 日期下方的圆点：课程只占一个中性色点，其余事项按来源色去重，最多三个。
+///
+/// 几乎每天都有课，逐项画点看不出差别；这样有截止、考试或自建事项的日子才显眼。
+List<Color> agendaDayDots(
+  Iterable<AgendaEntry> dayEntries,
+  Color Function(AgendaEntry)? colorOf,
+  ColorScheme colors,
+) {
+  final dots = <Color>[];
+  var course = false;
+  for (final e in dayEntries) {
+    if (e.school?.navigation.feature == AgendaFeature.schedule) {
+      course = true;
+      continue;
+    }
+    final color = colorOf?.call(e) ?? colors.primary;
+    if (!dots.contains(color)) dots.add(color);
+  }
+  return [
+    if (course) colors.onSurfaceVariant.withValues(alpha: .4),
+    ...dots,
+  ].take(3).toList();
+}
+
 class AgendaMonthCalendar extends StatelessWidget {
   const AgendaMonthCalendar({
     super.key,
@@ -79,32 +103,45 @@ class AgendaMonthCalendar extends StatelessWidget {
                   onTap: () => onSelected(day),
                   child: Container(
                     margin: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: selected ? colors.primaryContainer : null,
-                      border: isToday && !selected
-                          ? Border.all(color: colors.primary, width: 1.5)
-                          : null,
-                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '${day.day}',
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: isToday
-                                  ? colors.primary
-                                  : selected
-                                  ? colors.onPrimaryContainer
-                                  : day.month == date.month
-                                  ? colors.onSurface
-                                  : colors.outlineVariant,
-                              fontWeight: selected || isToday
-                                  ? FontWeight.w500
-                                  : null,
+                        // 与列表、周视图一致：今天是实心圆，选中的其他日期是浅色圆。
+                        Container(
+                          width: 30,
+                          height: 30,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isToday
+                                ? colors.primary
+                                : selected
+                                ? colors.primaryContainer
+                                : null,
+                            border: isToday && selected
+                                ? Border.all(
+                                    color: colors.primaryContainer,
+                                    width: 2.5,
+                                  )
+                                : null,
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${day.day}',
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: isToday
+                                    ? colors.onPrimary
+                                    : selected
+                                    ? colors.onPrimaryContainer
+                                    : day.month == date.month
+                                    ? colors.onSurface
+                                    : colors.outlineVariant,
+                                fontWeight: selected || isToday
+                                    ? FontWeight.w500
+                                    : null,
+                              ),
                             ),
                           ),
                         ),
@@ -114,7 +151,11 @@ class AgendaMonthCalendar extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              for (final e in dayEntries.take(3))
+                              for (final dot in agendaDayDots(
+                                dayEntries,
+                                colorOf,
+                                colors,
+                              ))
                                 Container(
                                   width: 5,
                                   height: 5,
@@ -123,7 +164,7 @@ class AgendaMonthCalendar extends StatelessWidget {
                                   ),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: colorOf?.call(e) ?? colors.primary,
+                                    color: dot,
                                   ),
                                 ),
                             ],
@@ -183,7 +224,6 @@ class AgendaDateStrip extends StatelessWidget {
                   final isToday = today != null && agendaDay(today!) == day;
                   final dayEntries = entries
                       .where((e) => agendaOnDay(e, day))
-                      .take(3)
                       .toList();
                   final weekend = i >= 5;
                   // 日期圆随字号放大，但不超过一周七格的宽度。
@@ -266,7 +306,11 @@ class AgendaDateStrip extends StatelessWidget {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  for (final e in dayEntries)
+                                  for (final dot in agendaDayDots(
+                                    dayEntries,
+                                    colorOf,
+                                    colors,
+                                  ))
                                     Container(
                                       width: 5,
                                       height: 5,
@@ -275,8 +319,7 @@ class AgendaDateStrip extends StatelessWidget {
                                       ),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color:
-                                            colorOf?.call(e) ?? colors.primary,
+                                        color: dot,
                                       ),
                                     ),
                                 ],

@@ -690,7 +690,6 @@ class AgendaViewState extends State<AgendaView> {
                       agendaSourceColor(e, Theme.of(context).colorScheme),
                 ),
               ),
-            if (!wide) quickFilters(),
             if (available) statusLine(),
             ...notices(),
             // 读取进度统一显示在标题栏右上角，内容区不再画进度条。

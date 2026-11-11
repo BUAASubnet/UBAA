@@ -120,7 +120,21 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
 
                       double lineHeight(TextStyle style) =>
                           scaler.scale(style.fontSize!) * style.height!;
-                      final title = agendaTitle(entry);
+                      var title = agendaTitle(entry);
+                      // 纯中文短标题按行数均分，避免“编译技/术”这样末行只剩一个字。
+                      if (!title.contains(RegExp(r'[\x00-\x7F]'))) {
+                        final lines = linesOf(title, titleStyle, 4);
+                        final per = (title.length / lines).ceil();
+                        if (lines > 1 && lines * per - title.length < per) {
+                          title = [
+                            for (var i = 0; i < title.length; i += per)
+                              title.substring(
+                                i,
+                                (i + per).clamp(0, title.length),
+                              ),
+                          ].join('\n');
+                        }
+                      }
                       final titleLine = lineHeight(titleStyle);
                       final titleLines = (constraints.maxHeight / titleLine)
                           .floor()
@@ -144,7 +158,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                           ),
                           if (placeLines > 0)
                             Text(
-                              '@$place',
+                              place!,
                               maxLines: placeLines,
                               overflow: TextOverflow.ellipsis,
                               style: placeStyle,

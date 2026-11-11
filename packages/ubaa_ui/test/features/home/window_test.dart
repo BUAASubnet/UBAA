@@ -8,6 +8,83 @@ import 'package:ubaa_ui/src/app/home.dart';
 import '../../app/shell_parity_test.dart' as shell;
 
 void main() {
+  testWidgets('远期同课程待办合并预览，近期和不同来源分别保留且可查看全部', (tester) async {
+    final now = DateTime(2026, 11, 11, 8);
+    final tasks = [
+      for (final (id, feature, days, course) in [
+        ('近期', FeatureId.spoc, 1, '课程甲'),
+        ('远期首项', FeatureId.spoc, 9, '课程甲'),
+        ('远期后项', FeatureId.spoc, 10, '课程甲'),
+        ('其他课程', FeatureId.spoc, 11, '课程乙'),
+        ('其他来源', FeatureId.judge, 12, '课程甲'),
+      ])
+        HomeTodo(
+          id: id,
+          navigation: FeatureReadNavigation(
+            feature: feature,
+            query: FeatureQuery(assignmentId: id),
+          ),
+          feature: feature,
+          title: id,
+          subtitle: course,
+          statusLabel: '待完成',
+          timeLabel: '截止时间',
+          sortTime: now.add(Duration(days: days)),
+          deadline: now.add(Duration(days: days)),
+        ),
+    ];
+    var all = false;
+    HomeTodo? opened;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            state: HomeState(
+              now: now,
+              sources: const {},
+              todos: tasks,
+              projected: true,
+              schedule: HomeScheduleState(
+                date: '2026-11-11',
+                snapshot: FeatureSnapshot(
+                  feature: FeatureId.schedule,
+                  status: FeatureLoadStatus.empty,
+                ),
+              ),
+            ),
+            homeClock: Clock.fixed(now),
+            visible: true,
+            onFeatureTap: (_) {},
+            onRetryFeature: (_) async {},
+            onRefresh: () async {},
+            onTodoTap: (item) => opened = item,
+            onViewAllTodos: () => all = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('远期后项'), findsNothing);
+    expect(find.text('另有 1 项'), findsOneWidget);
+    for (final title in ['近期', '远期首项', '其他课程', '其他来源']) {
+      expect(find.text(title), findsOneWidget);
+    }
+    await tester.ensureVisible(find.text('远期首项'));
+    await tester.tap(find.text('远期首项'));
+    expect(opened, same(tasks[1]));
+    final button = find.byKey(const ValueKey('home-todos-toggle'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    expect(all, isTrue);
+    expect(tasks.map((item) => item.id), [
+      '近期',
+      '远期首项',
+      '远期后项',
+      '其他课程',
+      '其他来源',
+    ]);
+  });
+
   for (final width in [1100.0, 390.0]) {
     testWidgets('首页待办预览随页面滚动，查看全部进入日程且保留预览，宽度 $width', (tester) async {
       tester.view.physicalSize = Size(width, 400);
@@ -189,18 +266,20 @@ void main() {
     await visit(FeatureId.exam);
     await visit(FeatureId.grades);
     await visit(FeatureId.exam);
-    final icons = tester
-        .widgetList<IconButton>(
+    final entries = tester
+        .widgetList<InkWell>(
           find.descendant(
             of: find.byType(HomeView),
-            matching: find.byType(IconButton),
+            matching: find.byType(InkWell),
           ),
         )
-        .where((button) => button.key.toString().contains('recent-'))
+        .where((entry) => entry.key.toString().contains('recent-'))
         .toList();
-    expect(icons.map((button) => button.tooltip), [
-      FeatureId.exam.title,
-      FeatureId.grades.title,
+    expect(entries.map((entry) => entry.key), [
+      const ValueKey('recent-exam'),
+      const ValueKey('recent-grades'),
+      const ValueKey('recent-schedule'),
+      const ValueKey('recent-bykc'),
     ]);
     await tester.tap(find.byKey(const ValueKey('recent-grades')));
     await tester.pumpAndSettle();

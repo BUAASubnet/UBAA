@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
@@ -36,7 +37,7 @@ class _EntryBackend extends ScheduleNavigationBackend {
 }
 
 void main() {
-  testWidgets('首页空课表入口逐帧只显示加载态，索引不闪入正文', (tester) async {
+  testWidgets('首页空课表入口逐帧保留加载占位，索引不进入正文', (tester) async {
     final backend = _EntryBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -50,8 +51,14 @@ void main() {
     Future<void> loadingFrames() async {
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 16));
-        // 页面内只保留带语义的空白占位，转圈统一显示在标题栏右上角。
-        expect(find.bySemanticsLabel('正在加载'), findsWidgets);
+        // 进入动画期间占位组件也应保留，索引不能作为过渡页面。
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.label == '正在加载',
+          ),
+          findsWidgets,
+        );
         expect(
           find.text('合成本学期'),
           findsNothing,

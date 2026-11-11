@@ -12,7 +12,10 @@ void main() {
     final backend = await _open(tester, chosen: false);
     Finder action(String label) => find.descendant(
       of: find.widgetWithText(Card, '合成课程 1'),
-      matching: find.widgetWithText(OutlinedButton, label),
+      matching: find.widgetWithText(
+        label == '选课' ? FilledButton : OutlinedButton,
+        label,
+      ),
     );
     await tapVisible(tester, action('选课'));
     expect(backend.commitCalls, 1);

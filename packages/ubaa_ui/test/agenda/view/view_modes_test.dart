@@ -120,15 +120,11 @@ void main() {
     expect(find.byKey(const ValueKey('agenda-week-grid')), findsOneWidget);
     expect(find.text('合成课程时段'), findsOneWidget);
     expect(find.text('六日安排'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.widgetWithText(ChoiceChip, '我的'),
-      180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('agenda-quick-filters')),
-        matching: find.byType(Scrollable),
-      ),
-    );
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, '我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程时段'), findsNothing);
     expect(find.text('六日安排'), findsOneWidget);

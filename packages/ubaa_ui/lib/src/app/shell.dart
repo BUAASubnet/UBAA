@@ -13,6 +13,7 @@ import '../features/finance/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
+import '../shared/layout/page_transition.dart' show UiPageTransition;
 import '../shared/loading.dart' show UiBusyRegistry, UiBusyScope;
 import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import 'package:flutter/services.dart';
@@ -570,9 +571,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ? null
           : Theme.of(
               context,
-            ).appBarTheme.titleTextStyle?.copyWith(fontSize: 22),
+            ).appBarTheme.titleTextStyle?.copyWith(fontSize: 20),
       automaticallyImplyLeading: false,
-      titleSpacing: wide && atRoot
+      // 下一级页面的标题紧跟返回箭头。
+      titleSpacing: !atRoot
+          ? 4
+          : wide
           ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)
           : null,
       title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
@@ -593,16 +597,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       leading: !atRoot
           ? IconButton(
               tooltip: '返回',
-              onPressed: () {
-                if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) {
-                  return;
-                }
-                if (_utilityPage != null) {
-                  setState(() => _utilityPage = null);
-                } else {
-                  _readPageKeys[_openedFeature]?.currentState?.goBack();
-                }
-              },
+              onPressed: _goBack,
               icon: const Icon(Icons.arrow_back),
             )
           : null,
@@ -637,14 +632,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final shell = PopScope<void>(
       canPop: _openedFeature == null && _utilityPage == null,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
-          if (_utilityPage != null) {
-            setState(() => _utilityPage = null);
-          } else {
-            _readPageKeys[_openedFeature]?.currentState?.goBack();
-          }
-        }
+        if (!didPop) _goBack();
       },
       child: Scaffold(
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
@@ -680,7 +668,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                             child: SafeArea(
                               top: false,
                               bottom: wide,
-                              child: body,
+                              child: UiPageTransition(
+                                pageKey: (_openedFeature, _utilityPage),
+                                deeper: !atRoot,
+                                onBack:
+                                    touchRefresh &&
+                                        !atRoot &&
+                                        widget.writeState.intent == null
+                                    ? _goBack
+                                    : null,
+                                child: body,
+                              ),
                             ),
                           ),
                         ),
@@ -973,6 +971,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ? () => _openUtility('财务查询')
           : null,
       features: _tabs[index].features,
+      homeState: widget.homeState,
       snapshots: widget.snapshots,
       onFeatureTap: _openFeatureList,
       onRetryFeature: widget.onRetryFeature,
