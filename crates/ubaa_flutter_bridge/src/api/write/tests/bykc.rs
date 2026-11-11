@@ -1,6 +1,67 @@
 use super::*;
 
 #[tokio::test]
+async fn 退选截止后准备与提交均拒绝且不发送写请求() {
+    for expired_on_prepare in [true, false] {
+        let root = test_root("bykc-deselect-deadline");
+        let store = seed_sessions(&root, true, false);
+        let url = "https://bykc.buaa.edu.cn/sscv/queryCourseById";
+        let mut requests = vec![bykc_login_request()];
+        if !expired_on_prepare {
+            requests.push(summarized_deselectable_bykc_detail_request());
+        }
+        requests.push(ExpectedRequest::new(
+            HttpMethod::Post,
+            url,
+            HttpResponse::new(
+                200,
+                url,
+                r#"{"status":"0","data":{"id":42,"courseName":"退选已截止课程","selected":true,
+                    "courseStartDate":"2999-01-01 08:00:00","courseCancelEndDate":"2000-01-01 00:00:00"}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ),
+        ));
+        let direct = MockTransport::new(requests);
+        let webvpn = MockTransport::new([]);
+        let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
+        install_core(
+            &client,
+            store,
+            "[route]\ndefault = \"direct\"\n",
+            direct.clone(),
+            webvpn.clone(),
+        )
+        .await;
+        let prepared = client
+            .prepare_bykc_deselect_course(BridgeBykcCourseRequest { course_id: 42 })
+            .await;
+        let error = if expired_on_prepare {
+            prepared.expect_err("退选已截止时不得签发意图")
+        } else {
+            let intent = prepared.expect("截止前准备退选");
+            client
+                .commit_write(intent.intent_id)
+                .await
+                .expect_err("提交前截止时不得写入")
+        };
+        assert_eq!(error.code, BridgeErrorCode::OperationConflict);
+        assert!(client.write_intents.lock().await.is_empty());
+        direct.assert_exhausted().expect("仅执行详情复核");
+        assert!(
+            direct
+                .requests()
+                .expect("读取请求")
+                .iter()
+                .all(|r| !r.url.contains("delChosenCourse"))
+        );
+        assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+        client.dispose().await.expect("销毁 bridge");
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[tokio::test]
 async fn 博雅签到准备先复核当前学期资格再签发意图() {
     let root = test_root("prepare-bykc-sign");
     let _ = std::fs::remove_dir_all(&root);

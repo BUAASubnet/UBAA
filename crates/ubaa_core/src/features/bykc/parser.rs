@@ -58,6 +58,7 @@ pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
     let course_start_date = string(m, "courseStartDate");
     let course_select_start_date = string(m, "courseSelectStartDate");
     let course_select_end_date = string(m, "courseSelectEndDate");
+    let course_cancel_end_date = string(m, "courseCancelEndDate");
     let selected = m.get("selected").and_then(Value::as_bool);
     let course_max_count = int(m, "courseMaxCount");
     let course_current_count = int(m, "courseCurrentCount");
@@ -87,8 +88,13 @@ pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
     {
         select_eligibility = ActionEligibility::Unknown;
     }
-    let deselect_eligibility =
-        deselect_eligibility(id, selected, course_start_date.as_deref(), now);
+    let deselect_eligibility = deselect_eligibility(
+        id,
+        selected,
+        course_start_date.as_deref(),
+        course_cancel_end_date.as_deref(),
+        now,
+    );
     Ok(BykcCourse {
         id,
         course_name: string(m, "courseName").ok_or_else(|| error("博雅课程缺少名称"))?,
@@ -98,7 +104,7 @@ pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         course_end_date: string(m, "courseEndDate"),
         course_select_start_date,
         course_select_end_date,
-        course_cancel_end_date: string(m, "courseCancelEndDate"),
+        course_cancel_end_date,
         course_max_count,
         course_current_count,
         status,
@@ -191,6 +197,7 @@ fn deselect_eligibility(
     course_id: i64,
     selected: Option<bool>,
     course_start: Option<&str>,
+    cancel_end: Option<&str>,
     now: NaiveDateTime,
 ) -> ActionEligibility {
     if course_id <= 0 {
@@ -202,7 +209,11 @@ fn deselect_eligibility(
         Some(true) => match parse_datetime(course_start) {
             None => ActionEligibility::Unknown,
             Some(start) if now > start => ActionEligibility::Denied,
-            Some(_) => ActionEligibility::Allowed,
+            Some(_) => match cancel_end.map(|value| parse_datetime(Some(value))) {
+                Some(Some(end)) if now > end => ActionEligibility::Denied,
+                Some(None) => ActionEligibility::Unknown,
+                _ => ActionEligibility::Allowed,
+            },
         },
     }
 }
@@ -315,8 +326,15 @@ fn parse_chosen_courses_at_for_purpose(
                 .and_then(Value::as_i64)
                 .unwrap_or_default();
             let course_start_date = course.and_then(|course| string(course, "courseStartDate"));
-            let deselect_eligibility =
-                deselect_eligibility(course_id, Some(true), course_start_date.as_deref(), now);
+            let course_cancel_end_date =
+                course.and_then(|course| string(course, "courseCancelEndDate"));
+            let deselect_eligibility = deselect_eligibility(
+                course_id,
+                Some(true),
+                course_start_date.as_deref(),
+                course_cancel_end_date.as_deref(),
+                now,
+            );
             let sign_config = course
                 .and_then(|course| string(course, "courseSignConfig"))
                 .as_deref()
@@ -341,8 +359,7 @@ fn parse_chosen_courses_at_for_purpose(
                 course_start_date,
                 course_end_date: course.and_then(|course| string(course, "courseEndDate")),
                 select_date: string(m, "selectDate"),
-                course_cancel_end_date: course
-                    .and_then(|course| string(course, "courseCancelEndDate")),
+                course_cancel_end_date,
                 category: course
                     .and_then(|course| nested_kind_name(course, "courseNewKind1"))
                     .map(parse_category),

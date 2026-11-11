@@ -1,5 +1,15 @@
 # 协议来源对照与专项索引
 
+## 博雅退选截止时间（2026-11-11）
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalBykcApi.kt`、`BykcApi.kt`、`model/dto/Bykc.kt`、`LocalBykcCrypto.kt`、`LocalBykcApiBackendTest.kt` 与 `BykcCourseDetailScreen.kt`，以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/{core,opt,data}.rs` 和 `request.rs` 提供本次对照。旧版详情按钮仅检查课程未开始，buaa-api 的 `drop_course` 也不校验退选截止时间；两者均明确提供 `courseCancelEndDate`。当前产品要求超过退选截止后禁用退选，取舍见[决策记录](decision-log.md#2026-11-11博雅退选截止时间)。
+
+| 操作 | CAS、跳转与会话 | 方法、参数、请求头与加密 | DTO 与产品语义 | 缓存、并发、重试与错误 |
+| --- | --- | --- | --- | --- |
+| 课程列表、详情 | 沿用博雅 CAS service、`cas-login?token=` 与路线隔离 Cookie/内存 Token；旧版支持路线包装，buaa-api 自动跳转且无等价 WebVPN | `POST queryStudentSemesterCourseByPage {pageNumber,pageSize}`、`queryCourseById {id}`；沿用双 Token、`ak/sk/ts`、JSON 类型、Origin/Referer 和冻结 AES-128-ECB/RSA PKCS#1 v1.5/SHA-1 | 旧版 `LocalBykcRawCourse.courseCancelEndDate`、buaa-api `Schedule.cancel_end` 均对应退选截止。保留已选和开课时间条件，截止时间可解析且 `now > deadline` 时为 denied；已提供但不可解析为 unknown；缺失时沿用开课时间规则 | 从每次响应计算资格，无新增缓存、请求或重试 |
+| 已选列表 | 同上；当前学期选择沿用旧版 | `POST getAllConfig {}` 后 `queryChosenCourse {startDate,endDate}`；请求头与加密同上 | 截止字段取内层 `courseInfo.courseCancelEndDate`，退选目标仍为 `courseInfo.id`，与普通课程使用同一资格函数 | 沿用当前学期查询和错误规则；已选记录外层 ID 不用于退选 |
+| 退选准备与提交 | 沿用已解析路线；准备和提交各自读取当前详情 | 准备仅查询详情；提交预检通过后 `POST delChosenCourse {id}`，头和加密同上；两源均以课程 ID 作为目标 | 准备或提交时超过截止都拒绝。沿用旧版成功信封和可空 `courseCurrentCount` 解析，buaa-api 丢弃写响应正文的行为不采用 | 提交前重新复核，拒绝时不发送写请求；一次性意图按原规则消费，已发送但结果未知时不自动重试 |
+
 ## 应用服务（遥测、更新与公告）
 
 2026-11-10 设计前核对了冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的以下文件：
@@ -595,7 +605,7 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密/签名常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|---|
 | Bykc 选课 | CAS `bykc.buaa.edu.cn/sscv/cas/login`，API `/sscv/choseCourse`；示例为同一业务端点 | 旧版读取 final URL/`Location`，示例依赖自动跳转；均提取 `/cas-login?token=` | 旧版按用户缓存 client token；示例为 Boya credential；当前仅路线内存 | POST 加密 JSON `{courseId}` | 加密正文、`auth_token`/`authtoken`、`ak`、`sk`、`ts`、JSON 类型 | AES-128-ECB PKCS7；RSA PKCS#1 v1.5；SHA-1 摘要；冻结公钥见 `LocalBykcCrypto.kt` | 旧版要求成功信封且 `data.courseCurrentCount` 可解析；示例丢弃业务正文 | 旧版登录单飞并在认证失效后至多刷新一次；示例使用凭据期限 | 未选、未满、处于选课窗且 typed 状态为 `available` 才允许；未知状态拒绝 |
-| Bykc 退选 | 同上；API `/sscv/delChosenCourse` | 同上 | 同上 | POST 加密 JSON `{id}`；`id` 为课程本体 ID | 同上 | 同上 | 旧版同样要求可解析的 `courseCurrentCount`；示例丢弃正文 | 同上 | 已选且未过期才允许；冻结 UI 未把退选截止字段另设为硬条件，不自行增加规则 |
+| Bykc 退选 | 同上；API `/sscv/delChosenCourse` | 同上 | 同上 | POST 加密 JSON `{id}`；`id` 为课程本体 ID | 同上 | 同上 | 旧版同样要求可解析的 `courseCurrentCount`；示例丢弃正文 | 同上 | 已选且未开课，提供退选截止时还须未超过截止；缺失字段沿用开课时间规则，见本页退选截止时间对照 |
 | Bykc 签到/签退 | 同上；API `/sscv/signCourseByUser`；示例为同一端点，不能借用 `ClassApi` | 旧版沿用 11A 的有界路线跳转；示例只读自动跳转 final URL、无 WebVPN 实现 | 旧版路线内 Cookie 与内存 token；示例共享 Cookie/credential 且可落盘，后者不采用 | POST 加密 JSON `{courseId,signLat,signLng,signType}`；坐标为数值，`signType=1/2` 分别表示签到/签退 | 旧版发送 JSON 类型、Origin/Referer、双 token 与 `ak/sk/ts`；示例只发 `Authtoken` 与 `Ak/Sk/Ts`，采用旧版产品形状 | 两源均为 AES-128-ECB PKCS7、RSA PKCS#1 v1.5、SHA-1；位置算法冲突按决策日志采用冻结本地圆内算法 | 当前学期已选项以 `courseInfo.id` 匹配；`checkin/pass/courseSignConfig` 决定资格，四段时间与点坐标严格解析；`courseSignType` 仅透传、不决定操作类型 | prepare/commit 均重读当前学期与已选项，不缓存资格；旧版对任意请求异常重放写的行为不复制 | 课程未选、资格未知/不允许时拒绝；从完整点列表随机选中的点为正半径时生成圆内坐标，否则要求调用方同时提供经验证的经纬度；未知写结果不自动重试 |
 | Signin 执行签到 | iClass 中心 `?type=jumpMyCenter`；旧版登录 `8347/app/user/login.action`，示例登录 `8346/eschool/app/user/login_buaa.do`；Direct 模式时间戳走 8081 http、签到走 8081 `eschool/app/course/stu_scan_sign.action` http；WebVPN 模式时间戳走 8347 https、签到走 8347 `app/course/stu_scan_sign.action` https（无 eschool） | 旧版有界读取 final URL/`Location`，示例读取自动跳转 final URL；均提取 `loginName` | 旧版使用返回的 `{userId,sessionId}`；示例使用 `loginName@id`。采用旧版严格业务会话，缺失时拒绝，不回退 `login_name` | 旧版 GET 时间戳、POST 签到，query=`courseSchedId,timestamp`、form=`id=userId`；示例参数在 query。采用旧版方法与表单编码 | 采用旧版 `sessionId` 头与 URL 编码表单 `id=userId` | 无 | 今日课程字段为 `signStatus`；成功要求 `STATUS` 成功且 `result.stuSignStatus=1`，两源一致 | 旧版按学生单飞；登录和只读预检在明确失效时最多刷新一次，最终 POST 绝不重放；示例使用凭据期限 | `signStatus=0` 为 allowed、`1` 为 denied、缺失/畸形/其它值为 typed unknown；仅 allowed 可写，bridge 不得把 Core `success=false` 改成成功 |
 | Ygdk 提交打卡 | **旧版：**精确 OAuth 入口为 `app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1`，交换端点为 GET `/api/Front/Clockin/User/campusAppLogin?code=...`。**示例：**无 Ygdk 等价模块，本列 N/A 且不等价。**决定：**仅使用冻结 URL，不把 relay `/api/v1/ygdk/records` 当上游。 | **旧版：**关闭自动跳转后最多检查 10 次当前请求 URL 与 `Location`，支持 query 或 fragment query 中 URL-decoded `code`，但没有逐跳 host allowlist。**示例：**N/A。**决定：**保留有界解析；2026-10-30 起仅允许冻结证实的 HTTPS app/ygdk 默认端口，未知目标失败关闭，真实完整链兼容性仍需补证。 | **旧版：**主认证 Cookie 跟随当前连接路线；业务 `{uid,token}` 按学号驻留内存，token URL-decode 后加入每个业务表单。**示例：**N/A。**决定：**uid/token 必须绑定当前路线与活跃 Session generation，不落盘、不跨用户/路线或失效代次复用。 | **旧版：**按顺序 POST classify，以 query+form 双写 `page=1/limit=1000/classify_id` POST item，multipart POST upload，再表单 POST clockin；最终字段为 `start_time/end_time/place_type/place/isopen/form_time_fmt/images/classify_id/item_id/item_name/uid/token`。**决定：**时间仅接受完整 `yyyy-MM-dd HH:mm`，按 `Asia/Shanghai` 转 Unix 秒；`form_time_fmt` 精确为 `yyyy-MM-dd HH:mm-HH:mm`。 | **旧版：**classify/item/final 为 `application/x-www-form-urlencoded; charset=UTF-8` 并带 `X-Requested-With: XMLHttpRequest`；upload 是 `uid/token/file` 三部分 multipart，file 带 filename 与 MIME。**决定：**继续精确编码；Core 还必须拒绝可注入 Content-Disposition/Content-Type 的文件名、MIME 和控制字符。 | **旧版/示例：**无业务加密或签名；WebVPN URL 包装属路线层。**决定：**不借用其它模块的 AES、签名或 credential。 | **旧版：**overview 提供 `classifyId/items(itemId,name,...)`；提交时可选 item 并会宽松选默认项目，成功 DTO 可带 `recordId/summary`。**决定：**写入只接受读取派生的 typed target；classify/item ID 必须为正数且各自唯一，item 名称非空，缺失、畸形、非正或重复都是 unknown 并拒绝。 | **旧版：**登录与会话有 mutex/缓存，但会话创建在最终锁外，旧 server 还会用 `withFreshClientRetry` 重试 upload/final。**决定：**prepare/commit 各自 fresh classify+item，commit 在 Core 单次 expected-route 原子入口上复用同一 runtime/凭据代次；upload 与 final 各自最多发送一次，不复制旧 server 重放。 | **旧版：**`code=1` 解包，`-98` 为业务认证失效，其它 raw `msg` 可外泄，没有发送边界/OutcomeUnknown。**示例：**N/A 且无 CLI exit 语义。**决定：**非法 target/时间/照片在路由与网络前拒绝；仅 final 严格 `code=1` object 为成功，跨过 final 发送边界后的任何歧义均为不可重试 `outcome_unknown`；成功/未知均仅在 intent 原路线刷新 overview 与 records，不自动重发。 |
@@ -620,7 +630,7 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文 | 加密/签名 | DTO/缺失值 | 缓存/并发 | 错误/产品资格 |
 |---|---|---|---|---|---|---|---|---|---|
 | 11A Bykc 选课 | `/sscv/cas/login` → `/sscv/choseCourse`；两源等价 | final/Location 提 token，限 `sso/bykc` | 路线内 token | POST `{courseId}` | JSON 密文及双 token/`ak/sk/ts` | AES/RSA/SHA-1 | `status/selected/capacity/window`；缺失为 unknown | 登录单飞、认证失效最多一次刷新 | 仅未选、未满、选课窗内 `available`；其它拒绝 |
-| 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未过期；不臆加退选截止硬规则 |
+| 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未开课，并检查上游提供的退选截止时间 |
 | 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；缺失/畸形状态或窗口为 unknown，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin=0`，签退仅 `pass!=1 && checkin in {0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
 | 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；登录/只读预检可按既有规则刷新，最终 POST 不重放 | 状态 0=allowed、1=denied、缺失/畸形/其它=unknown；仅 allowed 可写；业务 false 原样返回 |
 | 11E LibBook 预约 | CAS 精确 service → `/v4/login/user` → `/v4/space/confirm`；固定示例无任何等价模块，九列均不适用 | 不跟随跳转，最多 8 跳从请求 URL/Location/query/fragment 提 cas；最终写不接受认证跳转 | 主认证 Cookie 按路线隔离；LibBook bearer 仅当前路线内存、不得持久化或跨路线复用 | prepare/commit 都以 `Space/map` 核对日期和唯一时段，再以 `Space/seat` 核对唯一座位；最终 POST `{aesjson}` | JSON + 精确 `bearer<token>`（无空格）+ Origin/Referer/X-Requested-With | AES-128-CBC/PKCS7；key=日期八位数字+逆序，IV=`ZZWBKJ_ZHIHUAWEI`；明文仅 `seat_id/segment/day` 加固定空起止时间，绝无 areaId | `status=1` allowed、`2/3` denied、缺失/畸形/其它 unknown；稳定目标 `(area,seat,day,segment)`，起止时间须与 fresh 时段一致 | token 登录单飞；发送前认证/只读可刷新一次，最终 confirm 只发送一次且绝不重放 | 仅唯一完整目标且明确 allowed 可写；明确业务 false 原样返回；发送后歧义为不可重试 outcome_unknown |
@@ -813,10 +823,10 @@ unknown 升级为 success。本节没有访问网络、上传照片或执行任�
 11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程
 ID。因此任何 UI 展示字段或外层记录 ID 都不得成为退选目标。冻结详情页只以“已选且课程未开始”控制退选，
-`courseCancelEndDate` 仅展示；示例写入口也不做该截止时间判断，所以本阶段不得按字段名臆加本地硬截止规则。
-非正课程 ID 或 `selected` 缺失为 unknown；明确 `selected=false` 已足以确定拒绝，不再要求无关时间字段；只有
-`selected=true` 时才要求 `courseStartDate` 可解析，`now > courseStartDate` 为 denied，恰好等于开课时刻仍为
-allowed。
+`courseCancelEndDate` 仅展示。当前资格规则还检查上游提供的退选截止时间，见[退选截止对照](#博雅退选截止时间2026-11-11)。
+非正课程 ID 或 `selected` 缺失为 unknown；明确 `selected=false` 为 denied。已选课程的开课时间必须可解析，
+超过开课时间或已提供的退选截止时间为 denied，恰好等于边界仍为 allowed。退选截止缺失时沿用开课时间规则，
+已提供但无法解析时为 unknown。
 
 11C 的产品资格以冻结本地 `LocalBykcApi.signIn/signOut` 为准：每次操作先读取 `getAllConfig`，选择当前学期，
 再以已选项内层 `courseInfo.id` 查找目标；已选项配置无法解析时才回退 `queryCourseById` 的配置。签到要求

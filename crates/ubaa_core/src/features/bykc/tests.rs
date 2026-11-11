@@ -381,7 +381,7 @@ fn 博雅选课资格无法证明课程未开课时为_unknown() {
 }
 
 #[test]
-fn 博雅退选资格仅在已选且课程尚未开始时为_allowed() {
+fn 博雅退选资格要求已选且未过开课及退选截止时间() {
     let now = NaiveDateTime::parse_from_str("2026-09-04 12:00:00", "%Y-%m-%d %H:%M:%S")
         .expect("解析固定时间");
     let parse = |course: serde_json::Value| {
@@ -443,7 +443,43 @@ fn 博雅退选资格仅在已选且课程尚未开始时为_allowed() {
         "courseCancelEndDate".to_owned(),
         serde_json::json!("2026-09-01 00:00:00"),
     );
-    assert_eq!(parse(expired_cancel)["deselectEligibility"], "allowed");
+    assert_eq!(parse(expired_cancel)["deselectEligibility"], "denied");
+}
+
+#[test]
+fn 博雅课程和已选列表统一检查退选截止时间() {
+    let now = NaiveDateTime::parse_from_str("2026-09-04 12:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("解析固定时间");
+    for (deadline, expected) in [
+        (None, ActionEligibility::Allowed),
+        (Some("2026-09-04 11:59:59"), ActionEligibility::Denied),
+        (Some("2026-09-04 12:00:00"), ActionEligibility::Allowed),
+        (Some("2026-09-04T12:00:01"), ActionEligibility::Allowed),
+        (Some("无法解析"), ActionEligibility::Unknown),
+    ] {
+        let course = serde_json::json!({
+            "id": 42,
+            "courseName": "退选时间课程",
+            "selected": true,
+            "courseStartDate": "2026-09-05 00:00:00",
+            "courseCancelEndDate": deadline,
+        });
+        let detail = super::parser::course(&course, now).expect("解析课程");
+        assert_eq!(
+            detail.deselect_eligibility, expected,
+            "截止时间：{deadline:?}"
+        );
+        let chosen = super::parser::parse_chosen_courses_at(
+            &serde_json::json!({"courseList": [{"id": 9, "courseInfo": course}]}),
+            now,
+        )
+        .expect("解析已选课程");
+        assert_eq!(chosen[0].course_id, 42);
+        assert_eq!(
+            chosen[0].deselect_eligibility, expected,
+            "截止时间：{deadline:?}"
+        );
+    }
 }
 
 #[test]
