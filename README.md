@@ -60,7 +60,7 @@
 
 ```bash
 ubaa auth login --username 你的学号
-ubaa schedule current
+ubaa schedule today
 ubaa --json grades list --term 2025-2026-1
 ```
 
