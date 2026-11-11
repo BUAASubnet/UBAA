@@ -13,14 +13,12 @@
 [![Stars](https://img.shields.io/github/stars/BUAASubnet/UBAA?style=flat&logo=github&label=Stars)](https://github.com/BUAASubnet/UBAA/stargazers)
 [![许可证](https://img.shields.io/github/license/BUAASubnet/UBAA?label=%E8%AE%B8%E5%8F%AF%E8%AF%81)](LICENSE)
 
-![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-000000?logo=apple&logoColor=white)
-![HarmonyOS](https://img.shields.io/badge/HarmonyOS-CF0A2C?logo=harmonyos&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows11&logoColor=white)
-![macOS](https://img.shields.io/badge/macOS-000000?logo=macos&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
+![Rust](https://img.shields.io/badge/Rust-1.95.0-orange.svg?style=flat&logo=rust)
+![Flutter](https://img.shields.io/badge/Flutter-3.41.9-blue.svg?style=flat&logo=flutter)
+![Dart](https://img.shields.io/badge/Dart-3.11.5-0175C2.svg?style=flat&logo=dart)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS%20%7C%20Desktop-2fb67c.svg?style=flat)
 
-[**下载安装**](https://github.com/BUAASubnet/UBAA/releases) · [**使用指南**](https://ubaa.top) · [功能一览](#功能一览) · [常见问题](https://ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
+[**下载安装**](https://github.com/BUAASubnet/UBAA/releases) · [**使用指南**](https://www.ubaa.top) · [功能一览](#功能一览) · [常见问题](https://www.ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
 
 </div>
 
@@ -45,7 +43,7 @@
 | ☁️ | **北航云盘** | 浏览和管理文件，上传、下载、分享，回收站；也可用来在多台设备间同步日程 |
 | ⌨️ | **桌面命令模式** | 在终端里查课表、看成绩、管理日程，和桌面应用共用同一个账号 |
 
-每项功能的详细用法见[使用指南](https://ubaa.top/features/)。
+每项功能的详细用法见[使用指南](https://www.ubaa.top/features/)。
 
 ## 快速开始
 
@@ -54,17 +52,17 @@
 3. 登录后进入首页，所有功能都在底部导航（手机）或侧栏（电脑）里。
 
 > [!TIP]
-> 从旧版 v1.x 升级？请先阅读[新版变化与升级说明](https://ubaa.top/guide/ubaa2)。旧版的登录状态和设置不会自动迁移，需要重新登录。
+> 从旧版 v1.x 升级？请先阅读[新版变化与升级说明](https://www.ubaa.top/guide/ubaa2)。旧版的登录状态和设置不会自动迁移，需要重新登录。
 
 桌面版附带 `ubaa` 命令，和图形界面共用账号与数据：
 
 ```bash
 ubaa auth login --username 你的学号
-ubaa schedule current
+ubaa schedule today
 ubaa --json grades list --term 2025-2026-1
 ```
 
-更多用法见[桌面命令模式](https://ubaa.top/features/command)。
+更多用法见[桌面命令模式](https://www.ubaa.top/features/command)。
 
 ## 隐私与安全
 
@@ -72,17 +70,17 @@ ubaa --json grades list --term 2025-2026-1
 - 记住的密码保存在系统安全存储（如钥匙串）中，业务缓存加密保存。
 - 匿名的产品改进统计在首次同意隐私政策后开启，随时可以在设置中关闭或删除已上传的数据。
 
-完整说明见[隐私政策](https://ubaa.top/tech/privacy-policy)。发现安全问题请按[安全策略](SECURITY.md)私下报告。
+完整说明见[隐私政策](https://www.ubaa.top/tech/privacy-policy)。发现安全问题请按[安全策略](SECURITY.md)私下报告。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| 校园协议与业务核心 | [![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org) 认证、直连/WebVPN、解析、加密缓存 |
+| 校园协议与业务核心 | Rust：认证、直连/WebVPN、解析、加密缓存 |
 | 跨语言桥接 | [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) |
-| 界面 | [![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev) [![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)](https://dart.dev)，HarmonyOS 使用 OpenHarmony Flutter |
+| 界面 | Flutter + Dart，HarmonyOS 使用 OpenHarmony Flutter |
 | 本地存储 | SQLite、系统安全存储 |
-| 应用服务（更新与公告） | [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com) D1、KV |
+| 应用服务（更新与公告） | Cloudflare Workers（TypeScript）、D1、KV |
 | 文档站 | [VitePress](https://vitepress.dev) |
 
 ## 参与开发

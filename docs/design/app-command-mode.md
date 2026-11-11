@@ -1,6 +1,8 @@
 # App 命令模式设计
 
-日期：2026-11-05。本文说明统一 App 命令链路和平台运行条件。整体产品安排见[桌面共享服务计划](desktop-shared-state.md)，候选、平台证据和未验证项见[当前状态](../project/status.md)。
+本文供实现桌面命令入口的开发者使用，说明统一 App 命令链路、输入输出、恢复与各平台运行条件。产品行为见[桌面命令模式](desktop-shared-state.md)。
+
+文中 H1、H2 等编号是命令模式开发时的任务编号：H1 指共享账号与恢复服务，H2 指公共命令运行时与各平台入口单元，H3、H4 分别指命令库迁移和 `core-live` 迁出，用于对应决策记录与历史证据。
 
 ## 公共链路与模块责任
 
@@ -29,7 +31,7 @@ ResultHandle.render(control, stdout, stderr) -> exitCode
 
 固定路线、显式聚合认证和本机日程提供各自的执行适配。`ResultHandle` 不允许宿主自行构造成功正文。`PreparedCommand` 保留一次输入快照，业务重跑不再次消费 stdin。命令分类为 `Local`、`Readonly`、`ExplicitAuth`、`SchoolWrite`，按具体操作判断。Signin perform、LibBook reserve/cancel、Bykc select/deselect/sign、Cgyy submit/cancel、Ygdk submit 和 Evaluation submit-pending 均属于学校写入。
 
-生产命令使用 App 共享材料和当前账号。旧独立 Rust 宿主、专用账号索引及材料 worker 已从候选源码删除。公共协议和命令回归迁到 `crates/ubaa_command/tests`，`core-live` 迁到独立的 `tools/core_live`。完整退役验收仍包含三个桌面平台的新入口行为，覆盖归属见[测试策略](../development/testing.md#命令宿主替换后的覆盖)。
+生产命令使用 App 共享材料和当前账号，不使用旧独立 Rust 宿主、专用账号索引或材料 worker。公共协议和命令回归位于 `crates/ubaa_command/tests`，`core-live` 位于独立的 `tools/core_live`，覆盖归属见[测试策略](../development/testing.md#命令宿主替换后的覆盖)。
 
 ## 身份、本机数据与恢复
 
@@ -55,7 +57,7 @@ H1-b3 的命令工厂从安全索引捕获不可自行构造的活动账号快�
 
 输入由宿主注入，支持逐行、EOF、错误和取消。密码由宿主的隐藏输入能力准备，不新增明文密码 argv，也不把密码交给普通回显输入。文件路径由 Rust 解释一次，保持相对当前目录语义。Windows 逐项传参数，不重新拼接命令字符串。
 
-执行返回 typed 结果，不向 stdout 渲染。最终尝试确认后才能输出。Rust renderer 保留 schema v13、全部既有 envelope、human 格式和帮助参数树。本机结果继续使用 `feature=agenda`、operation、accountState，不伪造 resolvedRoute。内部恢复状态、传输序号和材料诊断不新增 JSON 字段。云盘传输进度最多每 500 毫秒向 stderr 交付一行，逐次等待实际写入，不占用 stdout 的最终结果。进度输出失败取消同一命令并返回 7，总期限停止仍保留在线退出码 5。
+执行返回 typed 结果，不向 stdout 渲染。最终尝试确认后才能输出。Rust renderer 保留 [CLI JSON 合同](../contracts/auth-and-user.md)规定的 envelope、human 格式和帮助参数树。本机结果继续使用 `feature=agenda`、operation、accountState，不伪造 resolvedRoute。内部恢复状态、传输序号和材料诊断不新增 JSON 字段。云盘传输进度最多每 500 毫秒向 stderr 交付一行，逐次等待实际写入，不占用 stdout 的最终结果。进度输出失败取消同一命令并返回 7，总期限停止仍保留在线退出码 5。
 
 有界输出采用拉取与确认：每块最多 64 KiB，每条流的队列及在途块合计最多四块；stdout/stderr 两条流合计最多 512 KiB。每条流每次只有一个尚未确认的块。生产线程在队列满时等待，消费端完成实际写入及刷新后才确认。不得使用无界 StreamSink 或先构造完整输出字符串代替背压。短写继续写入剩余字节，断管或刷新失败停止输出并返回 7，两条流都刷新完成后才允许返回 0。
 
@@ -65,7 +67,7 @@ macOS/Windows 在 Engine 初始化前复制继承的标准流句柄，将 Engine
 
 Rust `CommandControl` 控制异步尝试和输出队列。Core 的操作作用域读取同一个控制柄，在材料锁释放后的最终发送边界及对象流块同步检查原绝对期限，不依赖异步计时器抢占同步锁。任意同步 `BufRead`、`Write` 或原生材料调用不能由 async select 抢占，宿主必须提供可取消的适配器，并由进程收尾上限处理仍阻塞的本进程线程。H2-common-a 的队列与 Mock 证据不覆盖真实终端、原生材料或平台强制退出。平台单元必须用 barrier 证明各阻塞阶段可观察且有界。
 
-| 退出码 | v13 行为 |
+| 退出码 | 行为 |
 |---|---|
 | 0 | 成功，输出及必要收尾完成；help/version 按原 clap 语义成功 |
 | 2 | 参数或 typed 输入错误 |
@@ -124,4 +126,4 @@ Release 性能目标：热启动本机命令 P95≤0.5 秒、正常冷启动 P95
 
 共享运行时用 barrier 验证第二页过期完整重跑一次、第二轮再过期、503/无路线、两消费者取消一个、持久代次变化、凭据/HTTP/输出阻塞和迟到结果。断言密码提交数、业务调用数、学校写次数、交付次数及总期限。本机学校请求和网关探测必须为零。公共和平台单元还覆盖 GUI 开关、双向启动、两个命令、普通关闭后 GUI 继续使用，以及外部退出/切号/会话更新。
 
-全部认证、查询、学校写入与本机日程命令共用上述链路。`core-live` 独立保留为开发工具，旧宿主与材料 worker 的删除单独提交。使用固定基线按 `mode=full` 验收，重检查与生成串行；Windows 原生未通过时保留完整退役验收缺口。真实账号和学校写入遵循当前会话授权。
+全部认证、查询、学校写入与本机日程命令共用上述链路，`core-live` 独立保留为开发工具。验收范围按[检查选择与完成条件](../development/commands.md#检查选择与完成条件)执行完整验收，Windows 原生结果单独记录。真实账号和学校写入遵循 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)。

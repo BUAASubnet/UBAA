@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -58,7 +59,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
 
   void _observeDeadline() {
     _expiryTimer?.cancel();
-    final remaining = widget.intent.expiresAt.difference(DateTime.now());
+    final remaining = widget.intent.expiresAt.difference(clock.now());
     _deadlineReached = remaining <= Duration.zero;
     if (!_deadlineReached) {
       // 只更新展示，不延长期限或修改协调器拥有的一次性意图。

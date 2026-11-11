@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -65,7 +66,7 @@ import 'format.dart';
 /// 列表用的短时间：今天 21:57、昨天 21:57、今年 3月13日、往年 2025年12月8日。
 String bhpanShortDate(DateTime time, {DateTime? now}) {
   final d = time.toUtc().add(const Duration(hours: 8));
-  final n = (now ?? DateTime.now()).toUtc().add(const Duration(hours: 8));
+  final n = (now ?? clock.now()).toUtc().add(const Duration(hours: 8));
   final day = DateTime.utc(d.year, d.month, d.day),
       today = DateTime.utc(n.year, n.month, n.day);
   final hm =

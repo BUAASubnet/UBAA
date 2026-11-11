@@ -1,5 +1,5 @@
-import '../../shared/academic_fields.dart' show AcademicInfo;
 import 'package:clock/clock.dart';
+import '../../shared/academic_fields.dart' show AcademicInfo;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
@@ -19,7 +19,7 @@ class _ExamTimelineState extends State<ExamTimeline> {
   bool _showFinished = false;
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = clock.now();
     final finished = <FeatureDetail>[];
     final upcoming = <FeatureDetail>[];
     final other = <FeatureDetail>[];

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import '../../shared/dialogs/sheet.dart'
     show showUiSheet, UiSheetBody, UiInfoRow;
 import '../../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
@@ -195,7 +196,7 @@ class AgendaViewState extends State<AgendaView> {
   }
 
   DateTime get now {
-    final value = widget.now ?? campusDate(DateTime.now());
+    final value = widget.now ?? campusDate(clock.now());
     return DateTime.utc(
       value.year,
       value.month,

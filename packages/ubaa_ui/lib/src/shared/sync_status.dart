@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -107,14 +108,14 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
 
   static String _format(DateTime time) {
     final local = time.toLocal();
-    final now = DateTime.now();
+    final now = clock.now().toLocal();
     String two(int v) => v.toString().padLeft(2, '0');
-    final clock = '${two(local.hour)}:${two(local.minute)}';
+    final label = '${two(local.hour)}:${two(local.minute)}';
     final sameDay =
         local.year == now.year &&
         local.month == now.month &&
         local.day == now.day;
-    return sameDay ? clock : '${local.month}月${local.day}日 $clock';
+    return sameDay ? label : '${local.month}月${local.day}日 $label';
   }
 
   @override
@@ -139,7 +140,7 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
         ],
       );
     } else if (updatedAt != null &&
-        DateTime.now().difference(updatedAt) >= _staleAfter) {
+        clock.now().difference(updatedAt) >= _staleAfter) {
       label = Text(
         '更新于 ${_format(updatedAt)}',
         key: ValueKey(updatedAt),

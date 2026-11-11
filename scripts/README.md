@@ -1,6 +1,6 @@
 # 脚本结构与副作用
 
-稳定命令及本地/CI 验收要求只在[开发命令](../docs/development/commands.md)维护，本页说明脚本布局与内部支持文件。工具配置遵守 [AGENTS 工具链规则](../AGENTS.md#项目工具链入口)，网络、缓存和生成副作用见[命令边界](../docs/development/commands.md#网络与写入边界)。
+本页供修改脚本或门禁的贡献者使用，说明 `scripts/` 的目录布局和各支持文件的职责。要运行的命令见[开发命令](../docs/development/commands.md)，网络、缓存和生成副作用见[网络与写入边界](../docs/development/commands.md#网络与写入边界)。
 
 | 目录或文件 | 职责 |
 |---|---|
@@ -9,7 +9,7 @@
 | `build/` | 官方 Flutter 平台与 OHOS HAP 构建，以及构建缓存占用查看与分范围清理 `cache.py` |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
 | `release/` | 依赖/许可证与显式联网 cargo-deny 审计、源码与产物摘要、macOS 权限、无签名发布前置报告及应用服务的显式发布和部署 |
-| `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |
+| `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器也在 tests 中 |
 | `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；根目录 `.env` 按入口白名单加载 |
 | `tools/` | Python 质量环境定位/执行、锁定 requirements 及其上游记录 |
 | `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
@@ -34,8 +34,10 @@
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
+`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `.ubaa_local/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。
+
 `release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 
-`integration-tests.json` 只登记保留的原生能力；`tests/linux-secure-storage.sh` 在隔离的合成 Secret Service 会话中运行 Linux 能力测试。截图 driver 仍负责将保留用例的媒体写入仓库外。
+`integration-tests.json` 只登记保留的原生能力；`tests/linux-secure-storage.sh` 在隔离的合成 Secret Service 会话中运行 Linux 能力测试。需要保存截图时，截图 driver 把媒体写入 `UBAA_UI_EVIDENCE_DIR` 指向的 `.ubaa_local/` 子目录，见[测试策略](../docs/development/testing.md)。

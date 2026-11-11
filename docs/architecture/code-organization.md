@@ -1,6 +1,6 @@
 # 现行代码与目录组织
 
-历史尺寸、旧目标树与实施流水见[原设计快照](../archive/history/code-organization-2026-09-05.md)。现行决定是 [ADR 0006](../adr/0006-explicit-dart-modules.md)，验证见[整理记录](../archive/history/maintainability-implementation-2026-10-07.md)。
+本页供需要在代码中定位或新增模块的贡献者使用，列出各包的所有权、Dart 包内的目录结构、状态所有者和防止结构退化的约束。分层与请求流转先看[架构概览](overview.md)。决定依据是 [ADR 0006](../adr/0006-explicit-dart-modules.md)；旧目标树见[原设计快照](../archive/history/code-organization-2026-09-05.md)，整理过程见[实施记录](../archive/history/maintainability-implementation-2026-10-07.md)。
 
 ## 包边界
 
@@ -9,8 +9,9 @@
 | `crates/ubaa_core` | 协议、认证、路线、会话、缓存、解析和业务资格；宿主只使用 facade |
 | `crates/ubaa_flutter_bridge` | typed FRB 映射、句柄和稳定合同 |
 | `crates/ubaa_test_support` | 脱敏协议夹具与 Mock transport |
-| `apps/ubaa_cli` | CLI 参数、human/JSON、退出码和只读诊断 |
-| `apps/ubaa_flutter`、`apps/ubaa_ohos` | 官方五端与 OHOS 薄宿主、原生 runner |
+| `crates/ubaa_command` | 公共命令定义、参数、human/JSON 输出与退出码，供桌面命令模式经 Bridge 使用 |
+| `tools/core_live` | 独立的只读真实验证程序 |
+| `apps/ubaa_flutter`、`apps/ubaa_ohos` | 官方五平台与 OHOS 薄宿主、原生 runner；官方宿主同时提供桌面命令模式入口 |
 | `packages/ubaa_domain` | 不可变展示、查询和写状态模型 |
 | `packages/ubaa_app` | 会话与用例协调、Bridge 适配、唯一写入状态机 |
 | `packages/ubaa_host` | AppController 生命周期与平台/UI callback 接线 |
@@ -50,11 +51,22 @@ ubaa_ui/lib/src/
   write/<领域>/               # 表单、草稿与局部状态
 ```
 
-AppController 仍是一个 ChangeNotifier 实例。ControllerState 拥有共享生命周期与快照，具名 mixin 通过明确的状态/操作合同协作。内部成员以 `@internal` 限制在应用包内，宿主只使用公共方法和扩展；局部方法不重复登记进共享合同。
+AppController 是单一的 ChangeNotifier 实例。ControllerState 拥有共享生命周期与快照，具名 mixin 通过明确的状态/操作合同协作。内部成员以 `@internal` 限制在应用包内，宿主只使用公共方法和扩展；局部方法不重复登记进共享合同。
 
-操作与状态提交进一步按 [ADR 0007](../adr/0007-operation-scopes-and-verification.md) 收窄：认证完成 token 不依赖验证码状态；SessionScope/ReadScope 集中后端与代次有效性；AcademicTermsOwner 独占学期缓存与在途合并，成绩借 CurrentTermsReader；ControllerReadCaches 提供统一失效入口。`@internal` 只约束包外访问，不能替代同包内所有权。
+操作与状态提交按 [ADR 0007](../adr/0007-operation-scopes-and-verification.md) 进一步收窄：
 
-Bridge 领域函数借用 BridgeContext，不能反向导入 BridgeBackend。缓存句柄、账号、串行尾链和失效代次归 BridgeCacheState；交互挑战归 BridgeAuthenticationState。不得为单个领域另建账号会话或写状态机。
+- 认证完成 token 不依赖验证码状态。
+- SessionScope/ReadScope 集中判断后端与代次是否有效。
+- AcademicTermsOwner 独占学期缓存与在途合并，成绩通过 CurrentTermsReader 借用。
+- ControllerReadCaches 提供统一的失效入口。
+
+`@internal` 只约束包外访问，不能代替同包内的所有权划分。
+
+Bridge 适配层的所有权：
+
+- 领域函数借用 BridgeContext，不反向导入 BridgeBackend。
+- 缓存句柄、账号、串行尾链和失效代次归 BridgeCacheState；交互挑战归 BridgeAuthenticationState。
+- 不为单个领域另建账号会话或写状态机。
 
 UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State 的紧密实现，不再聚合整个应用。公共 barrel 显式导出原组件，不批量公开内部实现。照片、锁码等专属生命周期独立管理。
 
@@ -66,12 +78,16 @@ UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State
 
 ## 防止退化
 
-结构和验证入口统一见[开发命令](../development/commands.md)，本节只定义组织约束。受管手写源码每文件至多 1,000 行、每目录直属源码至多 16 个，包含 Python/CJS；FRB 与 Cargokit 排除规则保持。library 聚合规模、part 唯一归属和管理范围内导入/导出环必须同时检查，UI library 上限 2,000 行，Bridge/Controller 上限 1,000 行，不允许靠增加部件绕过。
+以下约束由 `just layout-check` 和 `just module-check` 检查，入口见[开发命令](../development/commands.md)：
 
-当前规模以命令实时结果为准，旧整理计数见实施记录。依赖环必须按完整自有源码闭包验证，局部目录无环不等于整个包无环。原生入口与清单保持双向一致，辅助文件中的真实账号标记也必须检查，真实和人工入口不得进入默认 CI。公开 API 编译、类型、内部成员边界、行为、golden 与 FRB 生成一致性均保留独立覆盖。
+- 受管手写源码每文件至多 1,000 行、每目录直属源码至多 16 个，包括 Python/CJS；FRB 生成文件与 Cargokit 排除在外。
+- library 聚合规模、part 唯一归属和管理范围内的导入/导出环同时检查。UI library 上限 2,000 行，Bridge/Controller 上限 1,000 行，不能靠增加部件绕过。
+- 依赖环按完整自有源码闭包验证，局部目录无环不等于整个包无环。当前规模以命令的实时结果为准。
+- 原生入口与清单保持双向一致，辅助文件中的真实账号标记也要检查；真实和人工入口不进入默认 CI。
+- 公开 API 编译、类型、内部成员边界、行为、golden 与 FRB 生成一致性各自保留独立覆盖。
 
-阈值是防线，代码定位和状态所有权仍需评审。小领域保持平铺；机械移动、行为修改、生成输出和 golden 更新分别审查。认证、读取或写入功能变更遵守 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)。
+阈值只是防线，代码定位和状态所有权仍需评审。小领域保持平铺；机械移动、行为修改、生成输出和 golden 更新分开审查。
 
 ## 文档与证据
 
-[AGENTS.md](../../AGENTS.md) 是长期规则入口，`goal.md` 只记录当前阶段目标，`migration/status.md` 记录验证状态；`architecture/`、`development/` 只承载现行规范和操作。历史流水进入 `migration/history`，新决策进入 `adr`。历史验收媒体在仓库外，元数据按[批次索引](../design/evidence/batches.md)定位；默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。
+各类文档的存放位置见[文档规范](../development/conventions.md#文档规范)。历史验收媒体在仓库外，元数据按[批次索引](../design/evidence/batches.md)定位。默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。

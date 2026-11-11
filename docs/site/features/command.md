@@ -1,6 +1,8 @@
 # 桌面命令模式
 
-桌面应用提供 `ubaa` 命令，可查询校园信息、操作云盘及管理本机日程。命令与图形界面共用账号、会话、缓存和日程，适合终端使用与脚本调用。
+本页介绍桌面版附带的 `ubaa` 命令：怎样安装，以及常用的查询和修改方式。
+
+`ubaa` 命令可以查询校园信息、操作云盘和管理本机日程。它与图形界面共用账号、登录状态、缓存和日程，适合在终端使用或写脚本调用。
 
 ## 安装入口
 
@@ -19,7 +21,7 @@ Windows 可以将应用目录加入 PATH。Linux 可以将 `ubaa` 链接到 PATH
 exec "/Applications/UBAA.app/Contents/MacOS/ubaa_flutter" --command "$@"
 ```
 
-为脚本添加执行权限后使用。自行从源码构建时，先按仓库[开发环境](https://github.com/BUAASubnet/UBAA/blob/main/docs/development/setup.md)准备工具，再执行 `just command-build platform=host mode=debug`。
+为脚本添加执行权限后使用。想自己从源码构建，见[参与开发](/tech/contributing)。
 
 ## 常用查询
 
@@ -40,6 +42,6 @@ ubaa agenda export --from 2026-11-01 --to 2026-11-08 --output ./agenda.ics
 
 学校写操作需要 `--confirm-write`，本机日程修改需要 `--confirm-local-write`。先用对应子命令的 `--help` 核对输入与目标。操作结果未知时，先查询记录，不自动重复提交。
 
-`--json` 返回结构化结果，脚本应同时检查退出码和业务结果。参数、输出与日程字段的完整定义见仓库[命令合同](https://github.com/BUAASubnet/UBAA/tree/main/docs/contracts)。
+`--json` 返回结构化结果。脚本应同时检查退出码和返回内容里的业务结果，进程正常退出不等于提交成功。参数、输出与日程字段的完整定义见仓库中的[命令说明](https://github.com/BUAASubnet/UBAA/tree/main/docs/contracts)。
 
 Linux 命令需要当前系统用户可用且已解锁的 Secret Service；SSH 会话没有可用安全存储时，命令会说明原因。

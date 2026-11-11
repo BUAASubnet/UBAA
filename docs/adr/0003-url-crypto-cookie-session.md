@@ -1,8 +1,9 @@
 # ADR 0003：URL、WebVPN 加密、Cookie 与会话依赖
 
 日期：2026-08-17
-
 状态：已接受
+取代：无
+被取代：无
 
 连接层使用 `url` 进行符合标准的绝对/相对 URL 解析，使用 `aes` 提供冻结 BUAA WebVPN
 AES/CFB/NoPadding 主机编码所需的 AES-128 分组原语。CFB 链式处理保留在窄范围 WebVPN 编解码

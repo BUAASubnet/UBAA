@@ -1,24 +1,22 @@
 # Flutter 六平台版本与验收矩阵
 
-状态：维护工具链说明并保留历史平台证据，当前候选结果见[迁移状态](../project/status.md)。
-更新：2026-10-30；下方 P0–P6 结果属于原记录候选，不能继承为本轮平台或远端 CI 通过。
+本页供处理平台构建、平台能力和工具链升级的贡献者使用，列出锁定的工具链、各平台目标、平台能力的边界和 FRB 生成规则。各平台的实际验证结果见[状态页](../project/status.md)；P0–P6 阶段的构建与验收记录见[归档快照](../archive/history/flutter-platforms-2026-11-11.md)。
 
-本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
+“理论支持”不等于 UBAA 已验证。平台只有在具备日期、命令以及产物或设备证据时才算通过，这些结果记录在状态页。
 
-第 5、6 节的 P0–P6 构建与采用记录属于历史证据，当前结构治理的实现与候选门禁统一见
-[迁移状态](../project/status.md)。工具版本继续由锁文件及检查脚本约束，旧 CI 成功不自动绑定新候选。
+## 1. 锁定工具链
 
-## 1. 锁定候选
-
-| 组件 | 候选版本/提交 | 配置入口 | 证据 |
+| 组件 | 版本/提交 | 配置入口 | 核对方式 |
 |---|---|---|---|
 | 官方 Flutter | 3.41.9 / `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` | `$UBAA_FLUTTER_HOME` | `flutter --version` |
 | Dart | 3.11.5 | 随上述两个 SDK | 两个 SDK 的 `flutter --version` |
 | OHOS Flutter fork | tag `3.41.10-ohos-1.0.1` / `adaf911c35c9136a7d18fc424d714c9ec7724e60` | `$UBAA_OHOS_FLUTTER_HOME` | fork release note 与 Git 提交 |
 | FRB | 2.13.0 | Cargo/pub 锁文件 | Dart/Rust/codegen/macros 必须完全一致 |
 | Rust | 1.95.0 | `rust-toolchain.toml` | `rustc --version` |
-| DevEco/CLI | 26.0.0.821 / Hvigor 6.26.4 / ohpm 26.0.0.630（已安装） | `/Applications/DevEco-Studio.app/Contents`；`$UBAA_DEVECO_HOME` | `check-toolchain.sh` 双布局预检 |
-| OpenHarmony SDK | API 26 / platform 26.0.0（已安装） | 上述 DevEco/CLI 的 `sdk` | `check-toolchain.sh` 与 `sdk-pkg.json` |
+| DevEco/CLI | 26.0.0.821 / Hvigor 6.26.4 / ohpm 26.0.0.630 | `$UBAA_DEVECO_HOME` | `check-toolchain.sh` 双布局预检 |
+| OpenHarmony SDK | API 26 / platform 26.0.0 | 上述 DevEco/CLI 的 `sdk` | `check-toolchain.sh` 与 `sdk-pkg.json` |
+
+精确版本以 [`scripts/tools/versions.env`](../../scripts/tools/versions.env) 和锁文件为准，安装步骤见[开发环境](../development/setup.md)。
 
 官方资料：
 
@@ -32,74 +30,85 @@
 - CPF-Flutter fork：https://gitcode.com/CPF-Flutter/flutter_flutter
 - DevEco 历史版本：https://developer.huawei.com/consumer/cn/deveco-studio/archive/
 
-## 2. 产品目标与历史候选结果
+## 2. 产品目标
 
-| 平台 | 目标系统 | 架构 | 原候选的验证结果 |
-|---|---|---|---|
-| Windows | Windows 10/11 | x64；arm64 后续 | `windows-2025` 原生 debug runner 构建与产物上传通过 |
-| macOS | macOS 12+ | arm64；x64 兼容构建 | arm64 debug App 已构建、启动并完成 FRB hello |
-| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | Ubuntu 24.04 原生 debug runner 构建与产物上传通过 |
-| Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 | debug APK 已含三种 ABI 的 FRB 动态库；实体机/签名待验证 |
-| iOS | iOS 15+ | arm64；模拟器 arm64 | simulator debug 已链接 FRB universal framework；签名/真机待验证 |
-| HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a | API26 工具链与无签名 debug HAP 包内容检查通过；签名/真机待完成 |
+| 平台 | 目标系统 | 架构 |
+|---|---|---|
+| Windows | Windows 10/11 | x64；arm64 后续 |
+| macOS | macOS 12+ | arm64；x64 兼容构建 |
+| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 |
+| Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 |
+| iOS | iOS 15+ | arm64；模拟器 arm64 |
+| HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a |
 
-版本页面展示的区间只用于选择候选。UBAA 的承诺以本表实际通过范围为准。
+版本页面展示的区间只用于选择工具链；UBAA 的承诺以状态页记录的实际通过范围为准。正式分发的产物与渠道见[发布流程](../runbooks/flutter-release.md)。
 
-## 3. OHOS 已知边界
+## 3. OHOS 边界
 
-当前 DevEco Studio 与 Command Line Tools 均为 `26.0.0.821`，Hvigor 为 `6.26.4`，ohpm 为
-`26.0.0.630`，SDK 为 API26。工程 `build-profile.json5` 使用 `compatibleSdkVersion`/
-`targetSdkVersion` `"26.0.0"`，Hvigor 与工程 `modelVersion` 为 `6.0.0`。根级门禁已固定
-匹配安装中的 hvigor、ohpm、Node 和 SDK，兼容 Studio `tools/...` 与 CLI `tool/...` 两种布局。
+- 工程 `build-profile.json5` 使用 `compatibleSdkVersion`/`targetSdkVersion` `"26.0.0"`，Hvigor 与工程 `modelVersion` 为 `6.0.0`。
+- 根级门禁固定匹配安装中的 hvigor、ohpm、Node 和 SDK，兼容 DevEco Studio 的 `tools/...` 与 Command Line Tools 的 `tool/...` 两种布局。
+- 正式构建需要签名配置。没有签名材料或实体设备时，`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 生成并检查 `entry-default-unsigned.hap`，包内 Rust bridge 为 `libs/arm64-v8a/libubaa_bindings.so`。
+- 无签名构建只用于包内容与动态库检查，不能作为平台完成、发布或实体设备证据。
+- 签名 HAP，以及实体 HarmonyOS 设备上的启动、FRB 调用、私有目录、网络、权限和 HUKS smoke，是发布前的独立条件。缺少证书或设备时记录为 `BLOCKED`，不把无签名包标为平台完成。
 
-两种安装路径执行 `just ohos-check mode=debug` 时，锁定 fork、native、Dart、工具链和 HAP
-assemble 前置均通过；正式构建需要在 DevEco Signing Configs 配置调试签名。没有实体设备时，
-可用 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 生成并检查
-`entry-default-unsigned.hap`；当前包内实际的 Rust bridge 名称为
-`libs/arm64-v8a/libubaa_bindings.so`。无签名构建不能作为平台完成、发布或实体设备证据。旧
-DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
+无签名检查覆盖：
 
-本轮无签名目标必须完成：
-
-1. 在不读取或写入签名凭据的前提下，完成匹配的 DevEco/CLI、API26 SDK 和工程配置预检。
-2. 生成 FRB/Cargokit arm64 产物，确认无签名 HAP 包含
-   `libs/arm64-v8a/libubaa_bindings.so`（或同一 bridge 的兼容命名）且架构为 arm64。
-3. 对无签名 HAP 执行包结构、动态库和加载前置静态检查，并保留可复核命令输出。
+1. 在不读取或写入签名凭据的前提下，预检匹配的 DevEco/CLI、API26 SDK 和工程配置。
+2. 生成 FRB/Cargokit arm64 产物，确认无签名 HAP 包含 `libs/arm64-v8a/libubaa_bindings.so`（或同一 bridge 的兼容命名）且架构为 arm64。
+3. 对无签名 HAP 执行包结构、动态库和加载前置的静态检查，保留可复核的命令输出。
 4. 记录 `runtimeOS`、`compatibleSdkVersion`、build/target API 和 SDK 组件版本，防止“SDK component missing”类混配。
 
-签名 HAP、实体 HarmonyOS 设备上的启动/FRB hello、应用私有目录、网络、权限和 HUKS smoke
-均为后置发布条件；没有证书或设备时必须记录为 `BLOCKED`，不得把无签名包标为平台正式完成。
+宿主细节见 [OHOS 宿主说明](../../apps/ubaa_ohos/README.md)。
 
-## 3.1 无签名平台能力适配
+## 4. 平台能力
 
-共享 `ubaa_platform` 通过 `cn.edu.buaa.ubaa/platform` MethodChannel 暴露四类稳定边界：
-`permission.request` 返回固定权限状态，`credentials.capability/read/write/clear` 访问
-版本化安全存储 namespace，`photo.capability/pick` 只传递受限的图片字节、展示名和 MIME，
-`location.capability/current` 提供受类型与范围约束的位置坐标。
-`createDefaultPlatformCapabilities()` 在两个 Flutter 宿主启动时先探测凭据、照片和位置能力；缺少
-原生 handler 或返回值不符合合同会安全归约为不可用，不会回退到明文文件、内存凭据或原始路径。
+### 4.1 共享平台通道
 
-照片能力已接入iOS14+系统PHPicker、macOS11+只读NSOpenPanel、Android系统GetContent及OHOS PhotoViewPicker。photos权限状态表示可以请求系统选择器，所选图片的访问由系统选择结果授予，不代表全量相册授权。macOS仅启用用户选中文件只读；路径/URI不离开原生层，图片限制10MiB，原生失败不伪装取消。macOS系统窗口选择/取消/重选/超限/清除已补实操；手机/平板系统选图仍待。Android旧拍照已按P5-F接线并构建，真实相机待设备；Windows/Linux照片仍待接线，详见本轮分批证据。
+`ubaa_platform` 通过 `cn.edu.buaa.ubaa/platform` MethodChannel 暴露稳定边界：
 
-2026-09-17 离线恢复实施分支增加独立安全材料层：官方五端使用固定
-`flutter_secure_storage 10.0.0`，OHOS 使用 `SecureMaterialChannel` 的 HUKS AES-GCM
-包装密钥和仅含密文的 Preferences。凭据、账号索引和随机业务缓存密钥使用独立命名空间，
-不枚举或导出已有密钥；原有凭据通道可用时优先保留，旧 autoLogin 授权值不变。
-macOS 本地构建采用系统登录钥匙串；固定 darwin 0.2.0 的参数拼写差异在适配层显式兼容，
-避免误启用需要开发证书的数据保护钥匙串。Android 禁止自动备份，iOS 配置 Keychain 权限。
-本轮 macOS 真实合成材料写/重开读/删除通过，OHOS 无签名 HAP/arm64 门禁通过；
-iOS/Android 及 Windows/Linux/OHOS 的实际安全材料运行仍未验证，不标记为六端运行通过。
-详见[离线实施记录](../archive/evidence/2026-09-17-offline-home.md)。
+| 方法 | 边界 |
+|---|---|
+| `permission.request` | 返回固定的权限状态 |
+| `photo.capability/pick` | 只传递受限的图片字节、展示名和 MIME |
+| `location.capability/current` | 提供受类型与范围约束的位置坐标 |
 
-两个平台 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host`
-负责 AppController 生命周期与 callback 接线。生产默认通过 `createProductionBackend()` 打开
-`BridgeBackend`，打开失败才使用 `UnavailableBackend`；Demo 只用于显式注入的测试或预览。
-写入状态由应用层 `WriteCoordinator` 唯一持有，平台位置获取期间发生会话失效后不能继续准备旧操作。
+`createDefaultPlatformCapabilities()` 在宿主启动时探测照片和位置等能力。缺少原生 handler 或返回值不符合合同时安全归约为不可用，不回退到明文文件、内存凭据或原始路径。能力的具体实现见 [ubaa_platform 说明](../../packages/ubaa_platform/README.md)。
 
-## 4. 可复现命令
+### 4.2 安全材料
+
+- 官方五平台使用固定的 `flutter_secure_storage 10.0.0`；OHOS 通过本仓库的 HUKS 插件适配走相同的插件接口。
+- 凭据、账号索引和随机业务缓存密钥使用独立命名空间，不枚举或导出已有密钥。
+- macOS 使用系统登录钥匙串；固定 darwin 0.2.0 的参数拼写差异在适配层显式兼容，避免误启用需要开发证书的数据保护钥匙串。
+- Android 禁止自动备份，iOS 配置 Keychain 权限。
+
+Linux 安全存储的依赖：
+
+- 构建需要 `libsecret-1-dev`（插件要求 libsecret-1 >= 0.18.4）。
+- 运行需要 `libsecret-1-0`、可用的 D-Bus 会话和 Secret Service 提供者（例如已解锁的 GNOME Keyring）。
+- CI 额外安装 gnome-keyring、dbus-x11、xvfb，只在独立临时 XDG 目录中验证合成材料的写入、重开读回和删除，以及无会话服务时安全失败。构建依赖齐全不代表用户桌面会话已解锁。
+
+### 4.3 照片
+
+照片能力由 [media.dart](../../packages/ubaa_platform/lib/src/media.dart) 定义边界：
+
+- [PluginPhotoPicker](../../packages/ubaa_platform/lib/src/media/plugin_photo.dart) 使用 image_picker 选择或拍摄照片；[DesktopFilePhotoPicker](../../packages/ubaa_platform/lib/src/media/desktop_photo.dart) 使用 file_selector。
+- 共享读取校验把图片限制为 10 MiB 内的可解码内容，只把受限的内存字节、展示名与 MIME 交给 Host，不暴露插件路径。
+- macOS 只启用用户所选文件的只读访问。
+- photos 权限状态表示可以请求系统选择器；所选图片的访问由系统选择结果授予，不代表全量相册授权。原生失败不伪装成取消。
+- Android 相机请求沿用插件限制预览尺寸与质量；跨进程遗失的结果只清理，不附回新账号。
+- 平台默认能力的选择以 [defaults.dart](../../packages/ubaa_platform/lib/src/defaults.dart) 为准；插件注册成功仍需对应平台验收。
+
+### 4.4 宿主入口与写入
+
+- 两个平台的 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host` 负责 AppController 生命周期与回调接线。
+- 生产默认通过 `createProductionBackend()` 打开 `BridgeBackend`，打开失败才使用 `UnavailableBackend`。Demo 只用于显式注入的测试或预览。
+- 写入状态由应用层 `WriteCoordinator` 唯一持有。平台位置获取期间发生会话失效时，不继续准备旧操作。
+- 取消类写入口：`BridgeBackend` 可以把图书馆状态名和研讨室订单/审核状态投影为展示字段，但共享 UI 只依据 Core 派生的 typed `cancelEligibility/cancelTarget` 开放入口，不按展示状态、中文文案或时间截止规则自行判断。缺失、格式未知或目标不一致时入口默认关闭；Core prepare/commit 负责最终的资格、时区、会话和上游错误判定。取消沿用一次性写意图，不增加后台重试或跨路线切换。
+
+## 5. 常用构建命令
 
 ```sh
-# 在 UBAA2 仓库根目录执行
+# 在仓库根目录执行
 just flutter-codegen-check
 just flutter-check
 just flutter-build platform=macos mode=debug
@@ -107,133 +116,22 @@ just flutter-build platform=android-apk mode=debug
 just flutter-build platform=ios-simulator mode=debug
 cargo test --locked -p ubaa-flutter-bridge
 cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D warnings
+UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 ```
 
-本轮无签名 RC 的 OHOS 门禁命令为
-`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`；该命令验证 API26 工具链、Dart/native
-前置、arm64 动态库和无签名 HAP 包内容。它不能替代后置的签名 HAP、实体设备 FRB hello 或正式
-发布构建，后置项必须单独记录为 `BLOCKED`。
+全部命令与检查范围见[开发命令](../development/commands.md)。失败记录只保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
-## 5. 验收记录模板与历史证据
+## 6. FRB 生成边界
 
-| 日期 | 平台/设备 | SDK/架构 | 命令/产物 | 启动 | FRB | 登录模拟 | 安全存储 | 只读 smoke | 备注 |
-|---|---|---|---|---|---|---|---|---|---|
-| 2026-09-01 | macOS 本机 | 3.41.9/arm64 | debug App | 通过 | hello 通过 | 未验证 | 未验证 | 未验证 | 仅 P0 FFI 链路 |
-| 2026-09-01 | iOS simulator | 3.41.9/x86_64+arm64 | debug framework | 不适用 | 链接通过 | 未验证 | 未验证 | 未验证 | 无签名/真机证据 |
-| 2026-09-01 | Android APK | 3.41.9/三 ABI | debug APK | 未运行 | 三 ABI 打包通过 | 未验证 | 未验证 | 未验证 | 无签名/实体机证据 |
-| 2026-09-01 | Android AAB 本机 | 3.41.9/三 ABI | `flutter build appbundle --release` | 不适用 | Gradle bundle 成功；Flutter `apkanalyzer` 终检阻断 | 未验证 | 未验证 | 未验证 | SDK `cmdline-tools/latest` 为 Homebrew symlink，apkanalyzer 无法定位 `build-tools`；临时 SDK 复核含三 ABI debug symbols，但产物未签名/未上传 |
-| 2026-09-01 | Windows GitHub runner | 3.41.9/x64 | `ubaa-windows-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | `windows-2025` 原生构建 |
-| 2026-09-01 | Linux GitHub runner | 3.41.9/x64 | `ubaa-linux-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | Ubuntu 24.04 原生构建 |
-| 2026-09-02 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 未运行 | 包内容通过 | 未验证 | 后置 BLOCKED | 未验证 | API26 工具链/Dart/native 前置通过；生成 `entry-default-unsigned.hap`，实体机/签名待完成 |
+- `packages/ubaa_bindings/lib/src/rust/` 与 `crates/ubaa_flutter_bridge/src/frb_generated.rs` 是 FRB 2.13.0 的机械生成输出，禁止手改。
+- 生成的 FFI 编解码需要 `unsafe`。仓库只在私有 `frb_generated` 模块上局部允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块保持 `unsafe_code=deny` 和严格 Clippy。
+- `just flutter-codegen-check` 重新生成，以锁定 Rust toolchain 机械执行 `cargo fmt --all`，并要求零漂移，防止例外扩散到业务代码。
 
-任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
+## 7. FFI 依赖
 
-取消写入口的跨层边界：`BridgeBackend` 可以把图书馆状态名和研讨室订单/审核状态投影为公开展示字段，
-但共享 UI 只消费 Core 派生的 typed `cancelEligibility/cancelTarget`，不按展示状态、中文文案或时间截止规则自行
-判断。缺失、格式未知或目标不一致时入口默认关闭；Core prepare/commit 负责最终资格、时区、会话和上游错误判定。
-取消仍沿用一次性 `WriteIntent`，不增加后台重试或跨路线切换。
+| 依赖 | 固定版本 | 用途 | 许可证 | 平台说明 |
+|---|---|---|---|---|
+| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | 六个平台使用同一份生成 Dart API |
+| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定的 Rust crate | MIT/Apache-2.0 | Windows 使用 app `CMAKE_SOURCE_DIR` 计算绝对 manifest，避免 plugin junction 的父目录语义差异；OHOS 通过 arm64 HAR/CMake 接线 |
 
-当时五平台复核：提交 `62ec048` 的 Flutter native run `33541980112` 已完成 Windows、macOS、Linux、
-Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、Windows、Linux、iOS simulator
-和 Android APK job 均成功。这仍不是签名 Release 或实体设备证据。
-
-提交 `0fa5ec0` 的本机无签名复核补充了平台回调边界：`CallbackPermissionGateway` 将原生权限 SDK
-异常归约为稳定的 `unavailable`，`CallbackPhotoPicker` 将选择器异常归约为稳定能力错误，
-`PermissionedPhotoPicker` 可显式使用相册或桌面文件权限。该适配器只负责 typed 边界，不伪造任何
-Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件与实体设备验证继续保持后置
-`BLOCKED`。当时提交 `b0c4a77` 的合同 CI `33583052957` 与五平台 native CI `33583052953` 均已终态成功；
-五个平台 job（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。
-该证据不包含 OHOS 签名 HAP、实体设备或正式发布。
-
-当时最终 HEAD `5bd9814` 重新运行 OHOS API26 无签名门禁，DevEco `26.0.0.821`、fork/API26 工具链与
-`aarch64-unknown-linux-ohos` 前置均通过，HAP 内含 `libs/arm64-v8a/libubaa_bindings.so`。HAP 未签名、
-未安装、未上传，生成输出已移出工作树；签名和设备验证仍为后置 `BLOCKED`。
-
-## 5.1 历史无签名执行目标终态复核（2026-09-02）
-
-- `81dd9d2` 的官方 macOS 宿主写入组合回归为十项写操作逐项断言提交后刷新关联只读领域；预期失败后
-  聚焦场景 1/1 通过。十二项领域详情 golden、共享状态矩阵、typed 查询宿主 smoke 与未知结果/异常边界
-  共同覆盖无签名 UI 流程。
-- `0a0bb71` 进一步以手机/平板/桌面三种尺寸和明/暗主题建立主页与课表详情响应式 golden（12 个），并以动态字体、键盘焦点、十二项卡片语义和 1000 条详情分页回归覆盖
-  无障碍与长列表边界；`ubaa_ui` 全量 49 项测试通过。
-- Core-live 在当时营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；提交 `4eaf1dd` 的五平台 Flutter native CI
-  `33628444289` 与合同 CI `33628444204` 均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
-  SBOM/依赖审计和回滚 runbook 均有本机或 CI 证据；FRB 零漂移沿用 `94133ae` 前同一生成输入的成功门禁，
-  `81dd9d2` 仅改宿主测试且生成目录无差异；当时最终提交 `4eaf1dd` 再次运行 codegen 成功报告零漂移。
-- 因此 P3（全部读取页面与双路线证据）、P4（十项写入确认/防重复/读后核对与 deterministic/Mock）、
-  P5（平台能力抽象、权限/照片边界、生命周期/长列表/无障碍及无签名静态检查）和 P6（无签名 RC 发布准备）
-  的无签名部分已完成。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备
-  安装/权限/生命周期、签名/公证/商店发布明确保持后置 `BLOCKED`。
-
-## 6. 历史 P0 探索产物审查
-
-| 产物 | 采用结论 | P0 证据 | 后续约束 |
-|---|---|---|---|
-| `apps/ubaa_flutter` 五平台官方宿主 | 保留生成宿主与薄入口作为构建起点 | 官方 `3.41.9` analyze/test 通过，五个平台目录齐全 | 默认 Demo backend 仅限测试/预览，Release 前必须由 FRB production backend 替换 |
-| `apps/ubaa_ohos` | 保留共享入口并用锁定 fork 生成官方 runner | fork 提交/Dart 匹配，pub get、analyze、widget test 与 API26 工具链前置通过 | arm64 Cargokit/FRB 已接线；无签名 HAP 包内容检查通过，签名 HAP 与设备证据待完成 |
-| `ubaa_domain`、`ubaa_app`、`ubaa_platform` | 保留为分层骨架 | 官方 SDK analyze/test 通过 | 无签名 RC 已具备完整状态/凭据安全边界与内存/回调适配；原生密钥链插件和设备验证列为 P5/P6 后置 |
-| `ubaa_ui` | 保留主题、响应式导航、共享详情/查询/确认组件 | analyze、widget、十二项逐领域 golden 以及宿主全功能 smoke 通过 | 十二项功能已有 typed 详情入口和写入确认组件；真实设备链路与原生安全存储仍为后置条件 |
-| Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core，生产入口默认 `UnavailableBackend` | Demo 仅限测试/预览；交互挑战继续由 Core 已证明的 typed 流程处理 |
-
-P0 的“保留”只表示当时允许作为后续实现起点；表内默认 backend 是当时骨架状态，现行生产组合见第 3.1 节。
-该历史审查不表示当前候选已满足[统一验收条件](../development/commands.md)中的功能、平台或发布要求。
-
-## 7. FRB 生成边界
-
-`packages/ubaa_bindings/lib/src/rust/` 与
-`crates/ubaa_flutter_bridge/src/frb_generated.rs` 是 FRB `2.13.0` 的机械生成输出，
-禁止手改。生成的 FFI 编解码需要 `unsafe`；仓库仅在私有 `frb_generated` 模块上局部
-允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块仍保持 `unsafe_code=deny` 和
-严格 Clippy。`just flutter-codegen-check` 重新生成、以锁定 Rust toolchain 机械执行
-`cargo fmt --all` 并要求零漂移，防止例外扩散到业务代码。
-
-## 8. 新依赖审计
-
-| 依赖 | 固定版本 | 用途 | 许可证 | 五平台状态 | OHOS 状态 |
-|---|---|---|---|---|---|
-| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | Windows、Linux、macOS、iOS simulator、Android 原生 runner 均已实际链接 | Dart API/HAR 已接线，无签名 HAP assemble 与 arm64 包内容检查通过 |
-| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 五平台均通过；Windows 使用 app `CMAKE_SOURCE_DIR` 计算绝对 manifest，避免 plugin junction 的父目录语义差异 | arm64 HAR/CMake 已接线，无签名 HAP assemble 已通过 |
-
-两项依赖都不拥有协议、Cookie、路线或业务 DTO；它们只负责 FFI 生成与 native library
-构建。版本升级必须同时更新 Rust crate、Dart package、codegen、Cargokit 快照和六平台
-构建证据，禁止只升级其中一处。
-
-## 9. P0 风险与 go/no-go
-
-| 风险 | 当前证据 | 影响 | 处置与门禁 |
-|---|---|---|---|
-| GitHub Actions 旧 action 运行时警告 | 历史 run `33450597586` 对 v4 action 给出警告；现行两条 workflow 已使用 `checkout@v5`、`upload-artifact@v6` | 旧警告不代表现行配置仍使用 v4；候选能否运行由其实际 CI 决定 | 每次 action 变更重新执行合同与原生 workflow，不沿用旧 run |
-| OHOS 调试签名尚未配置 | DevEco/CLI `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、SDK API26 前置通过；无签名 HAP assemble 与包内容检查通过 | 无法生成签名 HAP 或设备 FRB hello，但不阻断本轮无签名 RC | 取得项目所有者逐项授权后配置受控签名并重跑；不得提交签名材料或绕过签名 |
-| OHOS 工具链重新获取 | 本机已有锁定 API26 工具链；历史下载入口涉及华为账号 | 当前本机构建不依赖重新下载；新 runner 仍须取得匹配工具链 | 按运行环境的访问权限准备工具链，不混用 SDK 版本 |
-| 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
-| 领域详情与平台能力仍有证据缺口 | 十二项详情 golden、查询/确认、十项写入读后核对和无签名平台抽象已有确定性测试；真实设备/签名不可用 | 不能把 Mock 或无签名产物称为正式发布证据 | 无签名执行目标已闭合；设备、签名、安全存储验证保持后置 `BLOCKED` |
-
-当前发布边界仍为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**，不代表结构治理最终
-候选已验证。以下保留历史支持证据：官方 Flutter 五平台
-native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同
-run `33541980109` 也全部通过；随后文档提交 `8fd836a` 的合同 run `33542479679` 成功。
-OHOS 签名 HAP 与实体机 hello 是后置发布项而非本轮无签名目标阻断。该结论只允许继续不依赖
-签名和真实写入的实现、确定性测试及只读验证，不允许将任何 debug/无签名产物称为正式版。
-
-2026-09-02 终态复核补充：原生 run `33599670789`（提交 `1ca6ed8`）的 Windows、Linux、macOS、
-iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smoke；合同 run `33600117413`
-（提交 `993f5a2`）的三个 job 全部成功。两条 run 均为无签名确定性证据，不替代 OHOS 签名、实体设备
-或正式发布门禁。
-
-历史提交 `5dc6dcf` 的 UI 增量保持当时平台边界不变：博雅状态门禁只消费 bridge 白名单字段，研讨室多时段只在
-同站点/日期/空间内组合 typed 选择，避免呈现桥接合同必拒绝的跨空间组合，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
-`just flutter-check` 覆盖，不增加原生 handler、凭据、权限或签名要求；平台矩阵仍按无签名 Debug/静态证据
-与实体设备后置 `BLOCKED` 分开记录。
-
-上述历史 UI 规则已由 Phase 11 的 Core typed eligibility、稳定 action 和单次发送合同收口；展示字段不再
-决定写资格，研讨室选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
-
-
-照片适配当前经 [media.dart](../../packages/ubaa_platform/lib/src/media.dart) 定义能力边界，[PluginPhotoPicker](../../packages/ubaa_platform/lib/src/media/plugin_photo.dart) 使用 image_picker 选择/拍摄照片，[DesktopFilePhotoPicker](../../packages/ubaa_platform/lib/src/media/desktop_photo.dart) 使用 file_selector。共享读取校验限制图片为 10 MiB 内的可解码内容；只将受限内存字节、展示名与 MIME 交给 Host，不暴露插件路径。Android 相机请求沿现有插件限制预览尺寸与质量，跨进程遗失结果只清理，不附回新账号。平台默认能力的选择以 [defaults.dart](../../packages/ubaa_platform/lib/src/defaults.dart) 为准，插件注册成功仍需对应平台验收。
-
-旧 P5-E/P5-F 的手写 PhotoChannel / PhotoPayload.swift 定位属于历史实现，现行入口以上述平台包为准；原生测试、实体拍照和学校写入分别记录，不能互相代替。
-
-
-### Linux 安全存储依赖
-
-构建需要 libsecret-1-dev（插件要求 libsecret-1 >= 0.18.4）；运行需要 libsecret-1-0、可用的 D-Bus 会话和 Secret Service 提供者（例如已解锁的 GNOME Keyring）。CI 额外安装 gnome-keyring、dbus-x11、xvfb，仅在独立临时 XDG 目录中验证合成材料写入、重开读回和删除，以及无会话服务时安全失败。构建依赖齐全不自动代表用户桌面会话已解锁。
+两项依赖都不拥有协议、Cookie、路线或业务 DTO，只负责 FFI 生成与 native library 构建。升级时必须同时更新 Rust crate、Dart package、codegen、Cargokit 快照，并重新取得六平台构建证据，不能只升级其中一处。

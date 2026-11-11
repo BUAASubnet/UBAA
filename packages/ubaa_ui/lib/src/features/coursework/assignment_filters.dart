@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/filters/filter_section.dart';
@@ -36,7 +37,7 @@ class AssignmentListFilters {
     DateTime? now,
   }) {
     final query = search.trim().toLowerCase();
-    final time = now ?? DateTime.now();
+    final time = now ?? clock.now();
     final result = source.where((detail) {
       final p = _values(detail.presentation);
       // 渐进加载中尚无摘要的条目不冒充已确认的未完成作业。

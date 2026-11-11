@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -465,7 +466,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   );
 }
 
-DateTime campusToday() => agendaDay(campusDate(DateTime.now()));
+DateTime campusToday() => agendaDay(campusDate(clock.now()));
 
 class _WeekHeaderDay extends StatelessWidget {
   const _WeekHeaderDay({

@@ -90,6 +90,7 @@ jobs:
         if: steps.candidate.outputs.deploy == 'true'
         shell: bash
         env:
+          UBAA_APP_SERVICE_ZONE_ID: ${{ vars.UBAA_APP_SERVICE_ZONE_ID }}
           UBAA_APP_SERVICE_ACCOUNT_ID: ${{ vars.UBAA_APP_SERVICE_ACCOUNT_ID }}
           UBAA_APP_SERVICE_WORKER_NAME: ${{ vars.UBAA_APP_SERVICE_WORKER_NAME }}
           UBAA_APP_SERVICE_D1_ID: ${{ vars.UBAA_APP_SERVICE_D1_ID }}

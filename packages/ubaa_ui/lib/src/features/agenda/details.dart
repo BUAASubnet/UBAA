@@ -26,7 +26,7 @@ extension AgendaDetails on AgendaViewState {
     final token = generation.value;
     return change(() async {
       final local = entry.local;
-      final time = agendaTime(campusDate(DateTime.now()));
+      final time = agendaTime(campusDate(clock.now()));
       if (local != null) {
         await service.complete(local.itemId, recurrenceAt(local), value, time);
       } else {
@@ -100,7 +100,7 @@ extension AgendaDetails on AgendaViewState {
           item.id,
           scope,
           recurrenceAt(entry.local!),
-          agendaTime(campusDate(DateTime.now())),
+          agendaTime(campusDate(clock.now())),
         ),
       );
   }
@@ -118,7 +118,7 @@ extension AgendaDetails on AgendaViewState {
           hidden: entry.hidden,
           note: note,
         ),
-        agendaTime(campusDate(DateTime.now())),
+        agendaTime(campusDate(clock.now())),
       );
     });
   }
@@ -136,7 +136,7 @@ extension AgendaDetails on AgendaViewState {
           hidden: !entry.hidden,
           note: old?.value.note ?? entry.note,
         ),
-        agendaTime(campusDate(DateTime.now())),
+        agendaTime(campusDate(clock.now())),
       );
     });
   }

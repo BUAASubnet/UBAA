@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/src/controller/home/coordinator.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -39,6 +40,22 @@ HomeTodo item(String title) => HomeTodo(
 );
 
 void main() {
+  test('未注入时间时首页日期跟随可替换的时钟', () {
+    final fixed = DateTime.parse('2026-09-21T01:30:00Z');
+    final model = withClock(
+      Clock.fixed(fixed),
+      () => HomeCoordinator(
+        loadSupplement: (_, _) async => const FeatureResult.empty(),
+        loadDay: (_, _) async => const FeatureResult.empty(),
+        project: (_) async => HomeTodoProjection(const []),
+        refreshMain: () async {},
+        retryMain: (_) async {},
+        changed: () {},
+      ),
+    );
+    addTearDown(model.dispose);
+    expect(withClock(Clock.fixed(fixed), model.clock), fixed);
+  });
   test('其他来源和本地日程更新期间保留签到操作，签到来源变化立即撤销', () async {
     const action = SigninPerformAction(
       scheduleId: 'synthetic-signin',

@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: docs-production
-      url: https://ubaa.top
+      url: https://www.ubaa.top
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:

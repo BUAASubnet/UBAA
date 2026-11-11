@@ -14,18 +14,18 @@ import { runRelease } from "../../release/app_service/release.mjs";
 
 const target = {
   UBAA_APP_SERVICE_ACCOUNT_ID: "1".repeat(32),
+  UBAA_APP_SERVICE_ZONE_ID: "3".repeat(32),
   UBAA_APP_SERVICE_WORKER_NAME: "fixture-app-service",
   UBAA_APP_SERVICE_D1_ID: "12345678-1234-1234-1234-123456789abc",
   UBAA_APP_SERVICE_KV_NAMESPACE_ID: "2".repeat(32),
   UBAA_APP_SERVICE_DOMAIN: "app-service.example.invalid",
 };
 const channels = { github: null, app_store: null, app_gallery: null };
-const domain = {
-  hostname: target.UBAA_APP_SERVICE_DOMAIN,
-  service: target.UBAA_APP_SERVICE_WORKER_NAME,
-  environment: "production",
-  enabled: true,
+const route = {
+  pattern: `${target.UBAA_APP_SERVICE_DOMAIN}/*`,
+  script: target.UBAA_APP_SERVICE_WORKER_NAME,
 };
+
 const fakeCli = `
 import { appendFileSync, readFileSync } from "node:fs";
 const args = process.argv.slice(2);
@@ -100,7 +100,7 @@ function fixture(t) {
     wranglerPath: script,
     checkCommand: [process.execPath, script, "check"],
   };
-  const remote = { domains: [domain], values: {}, putResult: {} };
+  const remote = { routes: [route], values: {}, putResult: {} };
   const fetchResponse = async (url, request) => {
     const account = `/client/v4/accounts/${target.UBAA_APP_SERVICE_ACCOUNT_ID}`;
     assert.equal(url.origin, "https://api.cloudflare.com");
@@ -109,14 +109,14 @@ function fixture(t) {
       `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
     );
     assert.equal(request.redirect, "error");
-    if (url.pathname === `${account}/workers/domains`) {
+    if (url.pathname === `/client/v4/zones/${target.UBAA_APP_SERVICE_ZONE_ID}/workers/routes`) {
       assert.equal(request.method ?? "GET", "GET");
       assert.deepEqual(
         [...url.searchParams],
-        [["hostname", target.UBAA_APP_SERVICE_DOMAIN]],
+        [],
       );
-      appendFileSync(log, JSON.stringify({ command: "domains get" }) + "\n");
-      return Response.json({ success: true, result: remote.domains });
+      appendFileSync(log, JSON.stringify({ command: "routes get" }) + "\n");
+      return Response.json({ success: true, result: remote.routes });
     }
     const namespace = `${account}/storage/kv/namespaces/${target.UBAA_APP_SERVICE_KV_NAMESPACE_ID}/bulk`;
     const body = JSON.parse(request.body);
@@ -221,7 +221,7 @@ test("非交互部署先离线检查与核对域名和 Secret，再迁移 D1，�
   const [check, , secrets, migrate, deploy] = f.calls();
   assert.deepEqual(
     f.commands(),
-    ["check", "domains get", "secret list", "d1 migrations apply", "deploy"],
+    ["check", "routes get", "secret list", "d1 migrations apply", "deploy"],
   );
   assert.equal(check.authenticated, false);
   assert.equal(check.hasLegacyCredential, false);
@@ -250,18 +250,18 @@ test("非交互部署先离线检查与核对域名和 Secret，再迁移 D1，�
   assert.equal(deploy.config.preview_urls, false);
 });
 
-test("域名冲突、缺少绑定或绑定到非生产环境时不迁移或部署", async (t) => {
+test("路由缺失、指向其他 Worker 或被停用时不迁移或部署", async (t) => {
   const f = fixture(t);
-  for (const domains of [
-    [{ ...domain, service: "other-worker" }],
+  for (const routes of [
+    [{ ...route, script: "other-worker" }],
     [],
-    [{ ...domain, environment: "staging" }],
-    [{ ...domain, enabled: false }],
+    [{ ...route, pattern: "other.example.invalid/*" }],
+    [{ ...route, script: null }],
   ]) {
-    f.remote.domains = domains;
+    f.remote.routes = routes;
     const from = f.calls().length;
-    await assert.rejects(async () => f.run("deploy"), /自定义域名/);
-    assert.deepEqual(f.commands(from), ["check", "domains get"]);
+    await assert.rejects(async () => f.run("deploy"), /Worker Route/);
+    assert.deepEqual(f.commands(from), ["check", "routes get"]);
   }
 });
 
@@ -279,7 +279,7 @@ test("本地构建或 Secret 检查失败时不迁移；迁移失败时不部署
       async () => f.run("deploy", { env: { ...f.env, ...secretEnv } }),
       /USER_KEY_SECRET/,
     );
-    assert.deepEqual(f.commands(from), ["check", "domains get", "secret list"]);
+    assert.deepEqual(f.commands(from), ["check", "routes get", "secret list"]);
   }
 
   for (const failure of [{ FAKE_FAIL: "d1 migrations apply" }, { FAKE_MIGRATION_ERROR: "1" }]) {
@@ -288,7 +288,7 @@ test("本地构建或 Secret 检查失败时不迁移；迁移失败时不部署
       async () => f.run("deploy", { env: { ...f.env, ...failure } }),
       /迁移/,
     );
-    assert.deepEqual(f.commands(from), ["check", "domains get", "secret list", "d1 migrations apply"]);
+    assert.deepEqual(f.commands(from), ["check", "routes get", "secret list", "d1 migrations apply"]);
   }
 });
 
@@ -299,7 +299,7 @@ test("远端 CLI 不继承 stdin，部署日志不转发远端响应或请求正
     import { runRelease } from ${JSON.stringify(release.href)};
     await runRelease("deploy", {
       ...${JSON.stringify(f.options)},
-      fetchResponse: async () => Response.json({ success: true, result: ${JSON.stringify([domain])} }),
+      fetchResponse: async () => Response.json({ success: true, result: ${JSON.stringify([route])} }),
     });
   `;
   const child = spawnSync(

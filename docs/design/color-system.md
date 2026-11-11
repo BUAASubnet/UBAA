@@ -1,10 +1,10 @@
 # 应用配色：中性表面与蓝色强调
 
-更新：2026-10-25。适用于共享 Flutter UI 的浅色和深色主题。
+本文供修改界面颜色的开发者使用，说明共享 Flutter UI 浅色和深色主题的颜色角色与取舍。
 
 ## 依据与取舍
 
-用户反馈首页蓝紫色背景、标签、图标和日期同时强调，画面突兀。本轮采用 Microsoft Fluent 2 的中性色层次、克制使用品牌色、按用途区分状态色的原则；通过现有 Material 3 ColorScheme 统一实现，控件和交互结构保持。
+用户反馈首页蓝紫色背景、标签、图标和日期同时强调，画面突兀。配色因此采用 Microsoft Fluent 2 的中性色层次、克制使用品牌色、按用途区分状态色的原则；通过现有 Material 3 ColorScheme 统一实现，控件和交互结构保持。
 
 官方资料（2026-10-25 查阅）：
 
@@ -17,7 +17,7 @@
 
 ## 当前颜色角色：图标蓝
 
-首轮方案偏灰，用户要求更多体现应用图标的主题色。直接统计 `packages/ubaa_ui/assets/icons/app_icon.png` 的不透明蓝色像素，主色为 `#1976D2`，因此将品牌种子与浅色 primary 统一为该色。深色主题提高同色系蓝色亮度，正文与状态标签保留不同强调级别。
+首轮方案偏灰，用户要求更多体现应用图标的主题色。统计 `packages/ubaa_ui/assets/icons/app_icon.png` 的不透明蓝色像素，主色为 `#1976D2`，因此将品牌种子与浅色 primary 统一为该色。深色主题提高同色系蓝色亮度，正文与状态标签保留不同强调级别。
 
 实现入口：`packages/ubaa_ui/lib/src/theme.dart`。页面继续使用 ColorScheme 角色。
 
@@ -37,4 +37,4 @@
 
 ## 验证边界
 
-[2026-10-25 实施与验证](../archive/history/2026-10-25-color-system-validation.md)保留当时测试、原生运行和私有材料标识。当前门禁及自动化缺口以[状态页](../project/status.md)为准，现行原生范围见[测试策略](../development/testing.md)。
+原生覆盖范围见[测试策略](../development/testing.md)。首次实施时的测试与原生运行记录见[2026-10-25 实施与验证](../archive/history/2026-10-25-color-system-validation.md)。

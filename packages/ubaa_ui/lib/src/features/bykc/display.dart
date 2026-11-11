@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/when.dart' show uiDay;
@@ -86,7 +87,7 @@ String? uiBykcRange(String? start, String? end) {
   final start = course.courseSelectStartDate?.trim();
   final end = course.courseSelectEndDate?.trim();
   final startDate = start == null ? null : DateTime.tryParse(start);
-  if (startDate != null && DateTime.now().isBefore(startDate)) {
+  if (startDate != null && clock.now().isBefore(startDate)) {
     return (label: '开始选课', value: uiBykcDate(start!));
   }
   if (end != null && end.isNotEmpty) {

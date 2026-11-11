@@ -1,0 +1,114 @@
+<script setup>
+import { withBase } from 'vitepress'
+
+defineProps({ group: { type: String, required: true } })
+
+const groups = {
+  phone: {
+    width: 1179,
+    height: 2556,
+    shots: [
+      ['01_home', '首页', '查看当天的课程、常用功能和待办。'],
+      ['02_schedule', '课表', '按周查看课程时间和上课地点。'],
+      ['03_agenda', '日程', '把课程、作业截止时间和自建事项放在一起。'],
+      ['04_grades', '成绩', '按学期查看课程成绩、学分和绩点。'],
+      ['05_coursework', 'SPOC 作业', '按课程查看作业、截止时间和提交状态。'],
+      ['06_exams', '考试', '查看考试时间、地点和座位。'],
+    ],
+  },
+  tablet: {
+    width: 2732,
+    height: 2048,
+    shots: [
+      ['02_schedule', '平板课表', '侧栏和整周课表并排显示。'],
+      ['04_grades', '平板成绩', '同页查看学期统计和各门课程成绩。'],
+    ],
+  },
+  desktop: {
+    width: 2880,
+    height: 1800,
+    shots: [
+      ['03_agenda', '桌面日程', '在周历中查看上课、组会和作业截止时间。'],
+    ],
+  },
+}
+</script>
+
+<template>
+  <div class="gallery" :class="group">
+    <figure v-for="[file, title, description] in groups[group].shots" :key="file">
+      <a
+        class="preview"
+        :href="withBase(`/screenshots/${group}/${file}.png`)"
+        :aria-label="`查看原图：${title}`"
+      >
+        <img
+          :src="withBase(`/screenshots/${group}/${file}.png`)"
+          :alt="`UBAA ${title}宣传图`"
+          :width="groups[group].width"
+          :height="groups[group].height"
+          loading="lazy"
+          decoding="async"
+        />
+      </a>
+      <figcaption>
+        <strong>{{ title }}</strong>
+        <span>{{ description }}</span>
+      </figcaption>
+    </figure>
+  </div>
+</template>
+
+<style scoped>
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.gallery.tablet,
+.gallery.desktop {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+figure {
+  width: min(100%, 25rem);
+  margin: 0 auto;
+}
+
+.tablet figure,
+.desktop figure {
+  width: 100%;
+}
+
+.preview {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}
+
+.preview:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
+img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+figcaption {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+figcaption span {
+  color: var(--vp-c-text-2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+</style>

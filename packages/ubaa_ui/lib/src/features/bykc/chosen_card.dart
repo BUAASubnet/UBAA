@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'card_parts.dart' show BykcCardTags, BykcCardInfo, BykcCardFooter;
@@ -47,7 +48,7 @@ class BykcChosenCard extends StatelessWidget {
                 deadline: switch (DateTime.tryParse(
                   course.courseCancelEndDate?.trim() ?? '',
                 )) {
-                  final end? when DateTime.now().isBefore(end) => uiBykcDate(
+                  final end? when clock.now().isBefore(end) => uiBykcDate(
                     course.courseCancelEndDate!,
                   ),
                   _ => null,

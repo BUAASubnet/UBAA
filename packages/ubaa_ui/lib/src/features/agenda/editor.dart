@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -420,7 +421,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
         throw const AgendaException(AgendaFailure.superseded);
       }
       if (widget.item == null) {
-        await target.create(draft, agendaTime(campusDate(DateTime.now())));
+        await target.create(draft, agendaTime(campusDate(clock.now())));
       } else if (_repeat != '按教学周' &&
           rule != null &&
           setEquals(
@@ -434,7 +435,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
           widget.occurrence == null ? null : recurrenceAt(widget.occurrence!),
           content,
           draft.rrule,
-          agendaTime(campusDate(DateTime.now())),
+          agendaTime(campusDate(clock.now())),
         );
       } else {
         await target.editDraft(
@@ -442,7 +443,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
           widget.scope,
           widget.occurrence == null ? null : recurrenceAt(widget.occurrence!),
           draft,
-          agendaTime(campusDate(DateTime.now())),
+          agendaTime(campusDate(clock.now())),
         );
       }
       if (mounted && widget.isCurrent()) Navigator.pop(context, true);

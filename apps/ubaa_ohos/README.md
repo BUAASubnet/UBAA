@@ -1,6 +1,6 @@
 # UBAA HarmonyOS 宿主
 
-本目录是 HarmonyOS 的 Flutter OH 薄宿主。页面、主题、状态机、错误文案和
+本页供构建和调试 HarmonyOS 宿主的开发者使用。本目录是 HarmonyOS 的 Flutter OH 薄宿主。页面、主题、状态机、错误文案和
 遥测合同来自 `../../packages/`；Rust 业务只能经 FRB binding 调用
 `ubaa-core::facade`。宿主不得复制 URL、Cookie、路线选择或协议解析逻辑。
 
@@ -16,19 +16,12 @@
 不要对 Flutter OH 执行 `flutter upgrade`。它会切回上游 Flutter channel，
 破坏 OHOS 适配；版本切换必须使用固定 tag/commit 并重新验证整个矩阵。
 
-## 当前阻塞
+## 工具链与签名边界
 
-当前机器的 DevEco Studio 与 Command Line Tools 均为 `26.0.0.821`，Hvigor 为
-`6.26.4`，ohpm 为 `26.0.0.630`，Node 为 `24.14.1`，OpenHarmony SDK 为 API
-26。锁定 fork 的 `ohos/` runner、OHOS Dart app 的 pub get、analyze、widget test、
-native 前置和 HAP assemble 前置均已通过。工程使用 API26 要求的
-`compatibleSdkVersion`/`targetSdkVersion: "26.0.0"` 与 `modelVersion: "6.0.0"`。
-
-两种安装布局均受门禁支持：DevEco Studio 的 `Contents/tools/...`，以及
-Command Line Tools 根目录的 `tool/...`。当前 DevEco 已启用自动签名配置，但没有实体
-设备时无法生成 profile。可以用 `UBAA_OHOS_NO_CODESIGN=1` 执行 debug 构建，得到只用于
-包内容和 arm64 动态库检查的未签名 HAP；该产物不可安装到实体设备、不可作为发布或 P0
-验收证据。不能通过改低 API、伪造清单或删除失败代码规避签名要求。
+- 工具链：DevEco Studio / Command Line Tools `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、OpenHarmony SDK API 26。工程使用 API26 要求的 `compatibleSdkVersion`/`targetSdkVersion: "26.0.0"` 与 `modelVersion: "6.0.0"`。
+- 两种安装布局都受门禁支持：DevEco Studio 的 `Contents/tools/...`，以及 Command Line Tools 根目录的 `tool/...`。
+- 没有实体设备时 DevEco 自动签名无法生成 profile。可以用 `UBAA_OHOS_NO_CODESIGN=1` 执行 debug 构建，得到只用于包内容和 arm64 动态库检查的未签名 HAP；该产物不能安装到实体设备，也不能作为发布或验收证据。
+- 不能通过改低 API、伪造清单或删除失败代码规避签名要求。
 
 ## 共享 package 接入
 
@@ -39,8 +32,7 @@ Command Line Tools 根目录的 `tool/...`。当前 DevEco 已启用自动签名
 - `ubaa_ui`：旧版风格的 Material 3 页面和组件；
 - `ubaa_platform`：安全存储、遥测和安全错误投影接口。
 
-`lib/main.dart` 只是 composition root。P0 已执行 `RustLib.init` 与固定 hello；当前
-生产入口使用 `createProductionBackend()` 创建 FRB backend，初始化失败时安全显示
+`lib/main.dart` 只是 composition root，执行 `RustLib.init` 后，生产入口使用 `createProductionBackend()` 创建 FRB backend，初始化失败时安全显示
 `unsupported`，不会回退到 Demo 数据。测试替身只允许在测试代码中显式注入。
 HUKS 凭据库与遥测发送器也只在这里组合，不能把平台细节下沉到共享 UI。
 

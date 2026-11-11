@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:clock/clock.dart' as system_clock;
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -20,7 +21,7 @@ final class HomeCoordinator {
     this.reportUserRejection,
     this.scheduleBackground = scheduleMicrotask,
     DateTime Function()? now,
-  }) : clock = now ?? DateTime.now;
+  }) : clock = now ?? (() => system_clock.clock.now());
   final Future<FeatureResult> Function(HomeSupplement, bool) loadSupplement;
   final Future<FeatureResult> Function(String, bool) loadDay;
   final HomeTodoReader project;

@@ -23,6 +23,7 @@ const domainName = new RegExp(
 );
 const targetFields = {
   accountId: ["UBAA_APP_SERVICE_ACCOUNT_ID", cloudId],
+  zoneId: ["UBAA_APP_SERVICE_ZONE_ID", cloudId],
   workerName: [
     "UBAA_APP_SERVICE_WORKER_NAME",
     /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/,
@@ -48,7 +49,7 @@ function makeConfig(target) {
   const base = JSON.parse(readFileSync(baseConfig, "utf8"));
   const db = base.d1_databases.find(({ binding }) => binding === "DB");
   const kv = base.kv_namespaces.find(({ binding }) => binding === "APP_CONFIG");
-  // 自定义域名由维护者绑定；省略这两个键，Wrangler 不发布路由。
+  // CNAME 和 Worker Route 由维护者管理；部署只发布代码与资源绑定。
   delete base.route;
   delete base.routes;
   return {
@@ -118,10 +119,10 @@ function checkSecret(wrangler) {
   }
 }
 
-function cloudClient({ accountId }, token, fetchResponse) {
-  return async (path, label, { method = "GET", data } = {}) => {
+function cloudClient({ accountId, zoneId }, token, fetchResponse) {
+  return async (path, label, { method = "GET", data, zone = false } = {}) => {
     const url = new URL(
-      `/client/v4/accounts/${accountId}${path}`,
+      `/client/v4/${zone ? `zones/${zoneId}` : `accounts/${accountId}`}${path}`,
       "https://api.cloudflare.com",
     );
     const headers = { Authorization: `Bearer ${token}` };
@@ -149,22 +150,13 @@ function cloudClient({ accountId }, token, fetchResponse) {
   };
 }
 
-async function checkDomain(cloud, target) {
-  const query = new URLSearchParams({ hostname: target.domain });
-  const domains = await cloud(`/workers/domains?${query}`, "读取 Worker 自定义域名");
-  if (!Array.isArray(domains)) throw new Error("无法解析 Worker 自定义域名");
-  const matches = domains.filter(
-    (domain) => domain?.hostname?.toLowerCase() === target.domain,
-  );
-  if (
-    matches.length !== 1 ||
-    matches[0].service !== target.workerName ||
-    matches[0].environment !== "production" ||
-    matches[0].enabled !== true
-  ) {
-    throw new Error(
-      "自定义域名未启用或未绑定到目标 Worker 的生产环境，请先按部署手册检查绑定和 DNS",
-    );
+async function checkRoute(cloud, target) {
+  const routes = await cloud("/workers/routes", "读取 Worker Route", { zone: true });
+  if (!Array.isArray(routes)) throw new Error("无法解析 Worker Route");
+  const pattern = `${target.domain}/*`;
+  const matches = routes.filter((route) => route?.pattern?.toLowerCase() === pattern);
+  if (matches.length !== 1 || matches[0].script !== target.workerName) {
+    throw new Error("Worker Route 未绑定到目标服务，请检查域名路由与 Worker 名称");
   }
 }
 
@@ -235,7 +227,7 @@ export async function runRelease(
   const localEnv = cleanEnvironment(env);
   const [command, ...args] = checkCommand;
   run(command, args, { env: localEnv, label: "本地 Worker 检查" });
-  await checkDomain(cloud, target);
+  await checkRoute(cloud, target);
 
   mkdirSync(tempParent, { recursive: true, mode: 0o700 });
   const directory = mkdtempSync(join(tempParent, "release_"));

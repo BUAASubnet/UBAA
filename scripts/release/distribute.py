@@ -45,7 +45,7 @@ def main():
     manifest.write_text(json.dumps({'version': version, 'build': os.environ['RELEASE_BUILD'], 'commit': sha, 'assets': assets}, ensure_ascii=False, indent=2) + '\n')
     subprocess.run(['aws', 's3', 'cp', str(manifest), f's3://{bucket}/releases/{tag}/release.json', '--endpoint-url', endpoint, '--region', 'auto', '--only-show-errors', '--content-type', 'application/json'], check=True)
     notes = folder.parent / 'release_notes.md'
-    notes.write_text(f'UBAA {version}\n\n版本说明：https://ubaa.top/guide/ubaa2\n\n下载：\n\n' + '\n'.join(f'- [{asset["name"]}]({asset["url"]})' for asset in assets) + '\n')
+    notes.write_text(f'UBAA {version}\n\n版本说明：https://www.ubaa.top/guide/ubaa2\n\n下载：\n\n' + '\n'.join(f'- [{asset["name"]}]({asset["url"]})' for asset in assets) + '\n')
     existing = subprocess.run(['gh', 'release', 'view', tag, '--json', 'isDraft'], capture_output=True, text=True)
     if existing.returncode:
         subprocess.run(['gh', 'release', 'create', tag, '--draft', '--target', sha, '--title', 'UBAA ' + version, '--notes-file', str(notes)], check=True)

@@ -1,41 +1,17 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v61。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../project/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+本合同供修改 Flutter/FRB 与 Rust Core 之间接口的开发者使用，定义 Bridge 的方法、DTO、错误、写 intent 和生命周期规则。当前合同版本见[第 1 节](#1-版本与命名)。
 
-v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
+本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界：
 
-v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。
-
-v58 增加连接恢复目标 `Connection`，由 Core 重新探测网络并准备 Auto 当前需要的会话。原生库和 Dart 绑定须同步生成与构建。
-
-v57 增加财务收入读取、完整快照刷新与离线读取。金额为整数分，认证和分页由 Core 负责；未加入 UI 页面。
-
-v56 增加 `gradesOverview`、`examTerms` 和独立考试学期缓存。研究生统计由 Core 返回，单学期 `BridgeGradeData.statistics` 可空；本科为 null。`unsupported` 表示身份或考试明细尚未适配，界面不得把该错误转换为空结果。
-
-业务缓存持久格式当前为 schema v8，独立于 Bridge v55。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
-
-本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
-Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
-协议事实仍以 `docs/protocol/source-parity.md` 为准；本文件只定义已有稳定 facade 的产品投影，
-不新增或反推上游协议。
+- 上游 URL、Cookie、Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
+- 协议事实以[来源对照](../protocol/README.md)为准；本合同只定义已有稳定 facade 的产品投影，不新增或反推上游协议。
+- 业务缓存持久格式与 Bridge 版本相互独立，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+- 生成一致性按[开发命令](../development/commands.md#检查选择与完成条件)核验，原生与真实 App 的实际结果见[状态页](../project/status.md)。
 
 ## 1. 版本与命名
 
-v55 增加首页只读批次的开始、结束与失效接口。批次只保存已核实身份，按实际路线、认证代次与路线配置代次复用；每个操作仍检查当前持久身份。批次结束或强制恢复后重新校验，不改变会话持久格式和有效期，不授予写入资格。
-
-- 合同版本为 `61`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
-  `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
-  可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
-  `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
-  `id/page/limit` authority 上下文。版本 6 将 Cgyy 时段 `reservationStatus` 改为可空整数，以 typed
-  `reservationEligibility/reservationTarget` 取代 `isReservable`，并将预约成功结果收窄为安全收据。
-  版本 7 再为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并新增
-  caller-pinned 的取消列表/详情回读。版本 8 为 Ygdk 项目增加 typed
-  `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增
-  caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
-  `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
-  旧macOS专项曾以独立候选v10开发逐日日程和博雅完整目录；与离线分支整合后统一为v37。
-  v38增加专用交互验证码通路，v39增加专用门锁显示，v40增加周课表完整节次时间轴，v41增加异步初始化、typed 初始化错误和提交结果接收确认；不能混用任一历史候选的生成绑定。
+- 合同版本为 `61`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -85,6 +61,14 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 失效，晚到 prepare 只向原 backend 释放意图。`ubaa_host` 统一装配宿主生命周期、平台能力与 UI callback，
 向 UI 注入当前写状态和 prepare/cancel/confirm 命令；UI 不持有第二份 pending。这些 Dart 所有权约束
 不替代 Rust bridge 对 opaque intent 的原子消费、时限和失效检查。
+
+宿主重建与路线投影：
+
+- `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新 backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有 `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
+- 生产入口通过 `BridgeBackend` 连接本合同 API，并保留显式 `UnavailableBackend` 安全失败；生产入口不默认构造测试支持包中的脱敏后端。
+- 读取结果中的 `RouteDecision.resolvedRoute` 沿 `FeatureResult`、`FeatureSnapshot` 和 `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不把 `defaultPolicy` 冒充为本次请求路线。刷新失败的 `stale` 数据保留上次实际路线。
+- 应用层通过受限的 `RouteSettingsBackend` 读取 `defaultPolicy` 与 `activeRoutes`；切换固定路线后若目标槽位未认证，清除用户与功能快照并回到登录页，避免继续展示旧路线数据。原子保存、重开和 intent 失效由 Core 完成，Dart 不读取 Session 内容。
+- 应用启动时先读取同一投影恢复 Core 已保存的 `defaultPolicy`，再检查认证状态，避免把 `auto` 默认值误显示为持久化的固定路线。
 
 ## 3. 错误合同
 
@@ -509,7 +493,7 @@ Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChange
 | Bykc、Cgyy、Evaluation | “博雅课程只读查询”“场馆预约只读查询”及直接写操作表 |
 
 bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、Header、加密、缓存或重试逻辑。
-新增 bridge DTO 不授权改变 Core 协议；若 facade 字段发生变化，必须先按 `AGENTS.md` 更新来源
+新增 bridge DTO 不授权改变 Core 协议；若 facade 字段发生变化，必须先按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)更新来源
 对照、失败测试和 Core 合同，再更新本文件与生成绑定。
 
 ## 8. 验收门禁
@@ -524,55 +508,39 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
   完整证件号、完整手机号、照片内容、challenge 或真实响应。
 - 平台：五平台 native library 构建和 OHOS arm64 HAP 最终均调用同一合同版本。
 
-P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后才能勾选；只有合同文件或部分方法
-不能标记 P1 完成。
+## 版本历史
 
-## 9. 历史 P1 与当前实现证据（截至 2026-09-05）
+以下按合同版本记录各次新增的接口和规则。未被后续版本取代的规则仍然有效；查找现行规则时，以同一主题最新版本的说明为准。
 
-- 提交 `2faa753` 实现 `BridgeClient` opaque 生命周期、认证、路线设置、全部表中读取方法、
-  typed 写入准备/一次性提交和安全错误投影；Core 新增仅用于准备阶段的路线解析入口。
-- `just flutter-codegen-check` 在该提交后再次生成并报告“FRB 生成零漂移”；生成的 Rust/Dart
-  文件由 FRB 机械产出，未手工改写生成内容。
-- `cargo fmt --all`、bridge 严格 Clippy、bridge 测试（4 项）和 `just check` 均通过；测试覆盖
-  相对路径拒绝、幂等 dispose、use-after-dispose、随机 intent/digest 形状以及未知/重复 intent
-  在网络前拒绝。
-- 生产 Flutter 适配提交 `7bd8fd2` 通过 `BridgeBackend` 连接上述 API，并保留显式
-  `UnavailableBackend` 安全失败；生产入口不再默认构造测试支持包中的脱敏后端。
-- 读取结果中的 `RouteDecision.resolvedRoute` 现在沿 `FeatureResult`、`FeatureSnapshot` 和
-  `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不会把 `defaultPolicy` 冒充为本次
-  请求路线。app/widget 回归测试固定该投影，刷新失败的 `stale` 数据继续保留上次实际路线。
-- 应用层现在通过受限的 `RouteSettingsBackend` 读取 `defaultPolicy` 与 `activeRoutes`；切换
-  固定路线后若目标槽位未认证，会清除用户与功能快照并回到登录页，避免继续展示旧路线数据。
-  生产 bridge 仍由 Core 完成原子保存、重开和 intent 失效，Dart 不读取 Session 内容。
-- 应用启动时先读取同一投影恢复 Core 已保存的 `defaultPolicy`，再检查认证状态；因此设置页不会
-  把 `auto` 默认值误显示为持久化的固定路线。
-- `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新
-  backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有
-  `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
-- panic 归约、跨进程 Session 锁、路线/会话失效 intent 和研讨室订单敏感字段禁曝快照已有实现与
-  回归；Dart schema 快照覆盖全部公开读取 DTO 和十项写入口，应用层已有 dispose、后台恢复和
-  代次丢弃的确定性测试，`just flutter-codegen-check` 报告零漂移。上述代码/合同门禁满足当时的
-  无签名 P1；原生设备上的 isolate 重建、内存泄漏观测和真实跨平台生命周期仍留待后置设备验证。
-- Phase 11I 提交已经闭合 Ygdk typed authority/request、Core expected-route 原子提交入口、
-  owner/session/credential generation guard、caller-pinned overview/records 方法，以及 CLI JSON schema v9、
-  Flutter Bridge contract v8 和相应生成类型。安全收据已严格收窄为 `{recordId}`，公开字段禁曝；完整
-  Rust/CLI/Bridge/Dart/Flutter 门禁、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过并提交为
-  `d8484ad`。该阶段没有联网、上传照片或执行真实写入，也不构成签名、实体设备或正式发布证据。
-- Phase 11J 提交 `4b0dcb0` 已升级到 CLI JSON schema v10、Flutter Bridge contract v9，并实现 Evaluation
-  typed target、批量四态结果和 caller-pinned 回读；本地确定性门禁、FRB 零漂移与 macOS 脱敏宿主
-  integration 已完成。该阶段没有执行真实评教写入，证据范围见[当前状态](../project/status.md)。
-- Phase 11K 提交 `b6ff2c7` 将 Dart 写状态收归 `WriteCoordinator`，状态模型归 `ubaa_domain`，
-  backend 绑定与会话失效归 `AppController`，宿主装配及 UI 状态/命令接线归 `ubaa_host`；安全结果消息与
-  只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v10、bridge v9 和生成绑定，
-  不改变上游协议；结构治理的最终候选与发布证据继续单独记录。
+### 早期版本（v3–v9、v38–v41）
 
-## 版本 10：独立本地缓存通道（实施中）
+- 版本 3 将课堂签到 `signStatus` 改为可空并新增 typed eligibility/target。
+- 版本 4 将 LibBook 座位 `status` 改为可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。
+- 版本 5 将 LibBook booking `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地 `id/page/limit` authority 上下文。
+- 版本 6 将 Cgyy 时段 `reservationStatus` 改为可空整数，以 typed `reservationEligibility/reservationTarget` 取代 `isReservable`，并将预约成功结果收窄为安全收据。
+- 版本 7 为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并新增 caller-pinned 的取消列表/详情回读。
+- 版本 8 为 Ygdk 项目增加 typed `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增 caller-pinned 的概览/记录回读与安全提交收据。
+- 版本 9 为 Evaluation 增加 typed `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。v9 是 typed 写入和单一写协调器的基线。
+- 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
+- v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
+
+### 近期版本摘要（v55–v61）
+
+- v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
+- v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。
+- v58 增加连接恢复目标 `Connection`，由 Core 重新探测网络并准备 Auto 当前需要的会话。原生库和 Dart 绑定须同步生成与构建。
+- v57 增加财务收入读取、完整快照刷新与离线读取。金额为整数分，认证和分页由 Core 负责；未加入 UI 页面。
+- v56 增加 `gradesOverview`、`examTerms` 和独立考试学期缓存。研究生统计由 Core 返回，单学期 `BridgeGradeData.statistics` 可空；本科为 null。`unsupported` 表示身份或考试明细尚未适配，界面不得把该错误转换为空结果。
+- v55 增加首页只读批次的开始、结束与失效接口。批次只保存已核实身份，按实际路线、认证代次与路线配置代次复用；每个操作仍检查当前持久身份。批次结束或强制恢复后重新校验，不改变会话持久格式和有效期，不授予写入资格。
+- 业务缓存持久格式当前为 schema v8，独立于 Bridge v55。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各版本的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+
+### 版本 10：独立本地缓存通道
 
 新增 opaque `BridgeOfflineCache`，使用安全材料打开账号的 Core 仓库；只含本地内容，不持有 Cookie 或第二个网络客户端。`readToday` 按 Core 上海日期读取，返回实际来源、日期、取得时刻与完整度，不获取 BridgeClient 网络锁；`deactivate/activate/clear` 承接持久栅栏。密钥参数仅在有限调用内使用，不进入诊断、日志或生成类型的展示。
 
-`BridgeClient.scheduleTodayCached` 仍使用唯一网络客户端，经 Core 身份验证后读取并保存；返回学校结果与 saveError，不能把磁盘失败改写成学校失败。已有学校写意图时拒绝隐式认证检查。`cacheIdentityMismatch` 是新增 Bridge 安全错误，App 必须停止旧账号投影，不能把另一身份内容绑定到旧账号。现有双路线/CLI schema-v10、Session v2 和配置 v1 不改语义。当前只接今日课表，不能宣称十二领域或 P1 已完成。
+`BridgeClient.scheduleTodayCached` 仍使用唯一网络客户端，经 Core 身份验证后读取并保存；返回学校结果与 saveError，不能把磁盘失败改写成学校失败。已有学校写意图时拒绝隐式认证检查。`cacheIdentityMismatch` 是新增 Bridge 安全错误，App 必须停止旧账号投影，不能把另一身份内容绑定到旧账号。现有双路线/CLI schema-v10、Session v2 和配置 v1 不改语义。v10 只接今日课表，其余领域由后续版本接入。
 
-### v11 希冀摘要缓存（实施中）
+### v11 希冀摘要缓存
 
 在 v10 独立缓存句柄上增加精确 `includeExpired` 的希冀摘要读取与在线保存。DTO 不含写动作，沿原聚合错误分类；尚未提供选择性或可让位批次，不改变旧 CLI/双路线接口。
 
@@ -587,7 +555,7 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 
 扫描绑定创建客户端、路线配置代次、会话功能代次及本机缓存请求票据。退出、清理、同范围新请求、换路线再换回或取消都不能恢复旧计划。`cancel()` 只设置原子标记，不获取网络锁；已经发送的 HTTP 会正常收尾，迟到内容被丢弃，不声明在途请求立即中断。存在学校写意图时 begin/next 均返回 `operation_conflict` 且保留原意图。
 
-`BridgeJudgeScanBatch` 包含 Assignments/Detail/CourseFailure/Finished、实际路线、课程、逐项内容、原错误、finished、complete 和 failedCourses。单课程普通故障跳过该课程余项并继续其他课程；认证或会话内部冲突停止整个计划。finished 只表示遍历结束，complete 还要求无失败课程。该接口暂复用原内存 TTL，不将返回时间冒充网络取得时间；也不表示已完成持久索引/详情发布。includeExpired 目前隔离扫描请求票据，原始索引/详情均返回，由后续选择性刷新层执行明确筛选。App 业务调度接线尚未完成，不能以新增接口代替端到端抢占验收。
+`BridgeJudgeScanBatch` 包含 Assignments/Detail/CourseFailure/Finished、实际路线、课程、逐项内容、原错误、finished、complete 和 failedCourses。单课程普通故障跳过该课程余项并继续其他课程；认证或会话内部冲突停止整个计划。finished 只表示遍历结束，complete 还要求无失败课程。该接口暂复用原内存 TTL，不将返回时间冒充网络取得时间；也不表示已完成持久索引/详情发布。includeExpired 目前隔离扫描请求票据，原始索引/详情均返回，由后续选择性刷新层执行明确筛选。v13 不包含 App 业务调度接线，新增接口不能代替端到端抢占验收。
 
 ### v14 希冀持久渐进刷新
 
@@ -606,119 +574,119 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 新增分别 typed 的 `BridgeCachedAcademic*` 与 `BridgeAcademic*Refresh`，覆盖 Terms/Weeks/Week/Exams/Grades/Classrooms。`BridgeOfflineCache.readAcademic*` 按明确路线及原请求参数读取，不取得网络锁；`BridgeClient.academic*Cached` 调用 Core 身份与范围绑定的刷新，保存错误、完整度和原取得时间独立于业务内容。待确认写意图不被刷新清除或绕过。没有引入任意 CachePayload/JSON 穿过 Bridge，CLI v10 和既有在线接口保持原义。
 
 
-## 合同 v17：首页待办持久接线
+### 合同 v17：首页待办持久接线
 
 `api/offline_home.rs` 所有权为今日签到、SPOC 当前列表/单详情、阳光概览的 typed 本地与在线返回。`BridgeOfflineCache.read_home_*` 无网络锁；`BridgeClient.home_*_cached` 返回原 routed DTO 和 `BridgeHomeRefreshState`，写意图存在时拒绝新增恢复。只读签到/阳光 DTO 不携带学校资格或写目标，在线 DTO 沿原映射。`saved_for_offline` 仅指本次 Stored，Preserved 独立表达，不能误称本次部分内容已经替换旧完整缓存。签到 `scope_date` 为上海 YYYYMMDD，App 转 ISO 日期作跨日检查。公开详情见 [离线合同](offline-cache-and-recovery.md#p4-e-首页待办-bridgeapp-产品接线)。
 
 
-## 合同 v18：博雅持久只读接线
+### 合同 v18：博雅持久只读接线
 
 `api/offline_bykc.rs` 提供 profile/courses/detail/chosen/statistics 五个本地入口及对应在线缓存入口。`BridgeCachedBykcCourse/ChosenCourse/SignWindow` 明确不含资格或坐标；`BridgeBykc*Refresh` 仍返回原在线展示 DTO 和 `BridgeBykcRefreshState`。本地空范围返回 None、关闭账号返回 authentication_required；新在线入口在 pending 写意图存在时拒绝隐式恢复。已选缓存的实际学期范围不推断为当前学校学期。Dart 与 Rust 合同必须同时为 18。
 
 
-## 合同 v19：缓存 DTO 遵守相同禁曝边界
+### 合同 v19：缓存 DTO 遵守相同禁曝边界
 
 移除 v18 `BridgeCachedBykcChosenCourse` 误带出的 `homework/homeworkAttachmentName`，与原 `BridgeBykcChosenCourse` 的禁曝合同一致。已选课程、考勤状态与时间窗仍保留；不改变学校协议、Core 缓存或 App 展示。public_data_boundary_test 同时约束在线与缓存 DTO，防止新类型绕过旧白名单。v19 必须与同次生成的 Dart/Rust 绑定配套。
 
 
-## 合同 v20：研讨室只读持久入口
+### 合同 v20：研讨室只读持久入口
 
 `api/offline_cgyy.rs` 提供五项 `read_cgyy_*` 与 `cgyy_*_cached`。缓存 DTO 不含预约或取消资格/target、交易号、电话、人员或审核内部材料；public_data_boundary_test 对新类型增加同等禁曝约束。部分刷新与缓存发布结果分离；本地读取无网络锁，在线恢复受 pending 写保护。原 Cgyy caller-pinned 双回读及门锁方法不变。App 与 Rust 必须同为 v20。
 
 
-## 合同 v21：图书馆只读持久入口
+### 合同 v21：图书馆只读持久入口
 
 新增五项 read_libbook_* / libbook_*_cached，精确保留日期/楼层/时段/分页参数。缓存 DTO 剥离预约取消资格与 target；在线刷新状态分别报告完整度、Stored/Preserved、取得时间和保存错误。新在线入口受 pending 写保护，本地入口独立于网络锁。原 CLI 与学校写接口、回读语义保持，App/Rust 同步 v21。
 
 
-## 合同 v22：评教只读持久入口
+### 合同 v22：评教只读持久入口
 
 新增read_evaluation与evaluation_cached，前者只返回四字段课程及进度，后者明确报告完整度/Stored/Preserved/保存错误。当前任务范围固定1/10，缓存没有资格或提交目标。原evaluationAll/evaluationAllOnRoute和提交链保持。App与Rust同步v22。
 
 
-## 合同 v23：阳光记录分类分页缓存
+### 合同 v23：阳光记录分类分页缓存
 
 新增read_ygdk_records_selection与read_ygdk_records，索引不暴露时间以免冒充数据页新鲜度；记录仍是原公开数量式图片DTO。ygdk_records_cached用于普通分页，ygdk_records_for_overview_cached要求路线和分类与概览一致；不匹配拒绝，旧caller-pinned写后回读不变。App/Rust同步v23。
 
 
-## 合同 v24：最小遮罩资料
+### 合同 v24：最小遮罩资料
 
 新增read_profile只返回三个masked字段及来源/时间；user_info_cached在线沿旧资料白名单，仅保存Core遮罩类型，pending写意图受保护。旧userInfo和双路线认证语义不变，App/Rust同步v24。
 
 
-## 合同 v25：本地缓存管理
+### 合同 v25：本地缓存管理
 
 新增usage数值用量和clear_and_reopen。清除事务成功返回新opaque缓存句柄，旧句柄不能复用；报告分列内容清理、压缩和用量。原clear/deactivate/activate、CLI及学校读取/写入合同不变，App/Rust同步v25。
 
 
-## 合同 v26：显式缓存重建
+### 合同 v26：显式缓存重建
 
 clearOrRebuild只供设置确认后调用，参数为私有配置目录、已核实本机账号/预期身份及临时缓存密钥；不获取网络客户端锁。返回BridgeCacheRecovery：可空新cache及clear report。返回成功说明内容已清除；cache为空表示后续初始化不可用，不能继续使用旧句柄或声称已可离线保存。清空前的错误保持原错误合同。普通open不自动重建。App/控制器区分cacheReady与compacted，密钥用后清零，旧任务与退出队列沿既有代际保护。
 
-## 合同 v27：完整学期分段导入
+### 合同 v27：完整学期分段导入
 
 `beginScheduleImport(cache, term)` 只核实原会话及账号并创建固定学期计划；`nextScheduleImport(task)` 每次完成学期索引、教学周索引或一周读取后释放共享锁。`task.cancel()` 为同步原子取消，不声明中止在途 HTTP。进度分别提供 termCode、completedWeeks、totalWeeks、finished、saveError 和实际 route；只有 finished 且 saveError 为空才证明完整保存。待确认写意图禁止 next，且保留意图。账号、路线、客户端、清理和较新同学期计划栅栏保持 Core 合同；原 CLI 和普通双路线查询未改变。
 
-## 合同 v28：写提交与关联缓存失效分列
+### 合同 v28：写提交与关联缓存失效分列
 
 `commitWriteCached(cache, intentId)`复用原一次性意图消费、实时资格读取和单次发送，在原客户端锁释放前完成关联本地失效。返回`BridgeCachedWriteCommit`的result/error恰有一项，cacheError只表示本地处理失败，不能替代学校结果；发送前意图/客户端/资格等错误也可沿原外层Result返回。确定成功、部分评教成功和未知提交结果失效相关缓存，明确失败不视为已改变学校状态。旧commitWrite仍返回原结果/错误，不新增学校请求；所有写操作仍仅由WriteCoordinator驱动。
 
-## 合同 v29：无持久缓存希冀分段读取
+### 合同 v29：无持久缓存希冀分段读取
 
 beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnline(task)每次只完成一批原子选课+索引/详情后释放共享锁，仍拒绝越过待确认写意图。task.cancel仅设置取消标志，迟到返回由Core原客户端/路线/会话代次检查拒绝。BridgeJudgeOnlineProgress分列batch、渐进summaries和最早取得时间，不包含保存成功声明；旧聚合、CLI、持久刷新和双路线入口保持。
 
 
-## 合同 v30：SPOC 首页分页任务
+### 合同 v30：SPOC 首页分页任务
 
-新增 beginSpocScan(cache)、beginSpocOnline(expectedIdentity?) 与 nextSpocScan(task)，两种起点共享可取消 opaque 计划。每次最多完成当前学期、课程补充或单页及原认证仲裁，完成后释放原客户端共享锁。completedPages=0 的元数据阶段不发布空集合；页批次带当前聚合投影、原取得时间、完整/结束/保存分列。缺密钥走账号约束在线计划，不宣称持久保存；待确认写意图仍拒绝开始/推进。旧聚合接口、CLI v10、业务缓存 schema v5 保持兼容。当前只接摘要，详情大读取另行完成。
+新增 beginSpocScan(cache)、beginSpocOnline(expectedIdentity?) 与 nextSpocScan(task)，两种起点共享可取消 opaque 计划。每次最多完成当前学期、课程补充或单页及原认证仲裁，完成后释放原客户端共享锁。completedPages=0 的元数据阶段不发布空集合；页批次带当前聚合投影、原取得时间、完整/结束/保存分列。缺密钥走账号约束在线计划，不宣称持久保存；待确认写意图仍拒绝开始/推进。旧聚合接口、CLI v10、业务缓存 schema v5 保持兼容。v30 只接摘要，详情大读取见 v31。
 
 
-## 合同 v31：SPOC 单详情分段前置
+### 合同 v31：SPOC 单详情分段前置
 
 新增 beginSpocDetailScan(cache,assignmentId)、beginSpocDetailOnline(expectedIdentity?,assignmentId)、nextSpocDetailScan(task)。每个列表前置完成后释放原客户端锁，最后仅原必需正文+可选提交补充，不重新扫全列表。前置批次 result 为空，不能用其他作业填充当前详情；最终同ID合法详情才发布。旧完整详情不受部分列表/补充失败覆盖，独立详情票据覆盖整个读取；写意图、取消、退出、清理及原客户端/主会话/路线代次保护保持。旧 CLI、Session、配置与业务缓存 schema v5 不变。
 
 
-## 合同 v32：评教显示读取分段
+### 合同 v32：评教显示读取分段
 
 新增 beginEvaluationScan(cache)、beginEvaluationOnline(expectedIdentity?)、nextEvaluationScan(task)。每次完成原激活或一个任务/问卷/课程 GET 后归还原共享锁，completedCourseLists=0 且未结束的阶段不发布空集合。完整前或部分失败时不返回有效提交目标，最后仍执行全局重复目标裁决；持久载荷沿原四显示字段和进度，不保存内部 authority。新计划不接写前模式/题目/提交操作；原唯一写流程、固定路线回读与 CLI 全量语义不变。
 
 评教新批次的可选 error 只传首个非认证子请求稳定错误；已有课程与完整度同时返回，暂时网络错误可由既有网络变化唤醒识别；业务失败的定时退避由P2-O宿主调度。结构/覆盖不完整不伪装网络失败；saveError仍只代表本地存储。旧聚合 DTO 不增加错误字段。
 
 
-## 合同 v33：本地缓存错误与学校错误分列
+### 合同 v33：本地缓存错误与学校错误分列
 
 `BridgeError.cache_failure/cacheFailure` 为可选 `BridgeCacheFailure`，只由本地缓存错误映射产生；学校错误和客户端已释放错误保持空值，原 code/kind/retryable/resolvedRoute 不变。App 只对 Corrupt、Unavailable、UnsupportedVersion、Capacity 取消旧希冀持久计划，在下一安全批次沿同账号、同客户端创建在线分段计划。Inactive、Superseded、InvalidInput、身份冲突及未分类错误不能绕过栅栏。
 
 每个异步边界继续检查取消与缓存代次，退出后迟到句柄立即取消，迟到学校错误不能覆盖本地取消。在线结果的 `DataEvidence.cacheFailure` 与学校错误分别显示，`savedForOffline=false`；本地故障不将已取得的学校内容标为读取失败，也不允许写操作。保存失败已附带完整在线内容时只提示未保存，不额外重读。
 
 
-## 合同 v34：批量详情持久分段
+### 合同 v34：批量详情持久分段
 
 `beginJudgeDetails(cache, keys)`/`nextJudgeDetails(task)`沿原课程与目标核对、原子选课+单项详情读取，每批返回后归还同一个客户端共享锁。各目标在请求前取得独立缓存修订，仅该项完整结果可保存；不把子集覆盖到摘要范围。取消、账号/路线/会话、退出/清理及较新同目标读取仍阻止迟到发布。待确认写意图拒绝开始/推进且不会被清除。
 
 `BridgeJudgeProgress`复用原批次与saveError分列合同。App的批量详情使用本入口，有明确可降级本地错误时仍经P2-P下一安全批次在线回退。离线批量逐键读取同路线合法缓存，缺项/损坏保留其余并标部分，依据取最早取得时间；Auto优先完整路线，不能混拼两条路线。独立票据一次最多2048项，超出报告本地Capacity并允许原无缓存路径读取全部目标，不截断范围。业务缓存schema v5、Session v2和CLI v10不变。
 
 
-## 合同 v35：未知结果的最小核对提示
+### 合同 v35：未知结果的最小核对提示
 
 `BridgeOfflineCache.writeReadbackHints` 和 `dismissWriteReadback` 仅访问当前账号的加密本地仓库，不取得学校网络锁。提示 DTO 只含随机本地 id、封闭 operation、原 route 和 startedAt，不携带意图、请求摘要、目标或提交材料。`commitWriteCached` 在原一次性消费与前置核验后、实际提交前保存提示；确定结果移除本轮，未知结果（包括评教任一未知子项）和崩溃遗留保留。保存或删除失败通过原 cacheError 分列，不改写学校结果、不重发、不降级明文。
 
 数据库 schema v6 对 v5 增加独立加密提示表；上限64条且不会被普通内容淘汰，达到上限明确报告本地容量错误。退出使提示不可读，重新核实账号后可读；显式清理或重建会删除本账号提示并在确认文案中说明不可恢复。App 首页只提供相关功能查看与用户确认后的本机移除，均不产生写意图或宣称学校成功。
 
 
-## 成绩变化基线本地加密通道（v36）
+### 成绩变化基线本地加密通道（v36）
 
 `BridgeOfflineCache.readGradeScoreBaseline(route, term)` 仅读取精确范围；`updateGradeScoreBaseline(route, latest, legacy?)` 在同一本地仓库锁内返回原基线并保存新完整观察。typed字段仅学期、课程稳定比较键、课程名/号和分数，不包含动作、认证或任意JSON。旧文件基线仅迁入尚无加密记录的同学期范围；旧学期单独保留。空集合、非法字段、容量或密钥失败不替换原值，沿cacheFailure返回本机错误。
 
 两项操作不取得学校网络锁；账号、路线、学期及清理/退出代次仍由原仓库验证。Host仅在完整在线成绩观察后调用更新，保存失败保留在线内容并单独提示。旧文件禁止写新成绩，迁入确认后只移除对应旧账号/路线；旧文件损坏或在迁移期间变化时保留并报告。schema v6的SQL结构和既有载荷编码不变，新增独立白名单变体；CLI和Session版本不变。
 
 
-## v37：旧版目录、逐日日程与缓存整合
+### v37：旧版目录、逐日日程与缓存整合
 
 新增博雅完整目录/详情、图书馆逐日日程的typed只读接口，旧CLI与普通读取序列化不变。博雅目录/完整详情通过同客户端身份/缓存票据链读取；缓存只增加类别、校区和点存在性，不保存联系人、电话、原始配置、坐标或写资格。完整详情的联系人和补查仅在线显示。图书馆缓存详情可带同次响应的逐日日程，旧公开分区详情仍保持展平接口与旧JSON形状；没有逐日关联的旧缓存不猜对应关系。该阶段Bridge v37与生成绑定同批使用，schema v6通过可选字段兼容旧缓存。
 
 
-## v38：当前页面交互验证码
+### v38：当前页面交互验证码
 
 `beginInteractiveLogin`同步登记账号意图并返回opaque句柄；`prepareInteractiveLogin`、`submitInteractiveLogin`、`refreshInteractiveCaptcha`和`continueInteractiveLogin`复用当前Core锁及已证双路线。挑战绑定同实例、账号、路线、准备代次与120秒单调期限，仅返回受限RGBA像素；id/execution/URL/Cookie不出Core，不进入业务缓存、诊断或CLI。答案只用一次，验证码失败不能猜成密码错误而删除凭据。
 
@@ -726,17 +694,17 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 
 原位登录保留本地首页与导航，验证码等待期间暂停新的后台读取和写准备；现有待确认或进行中的写流程阻止发起新的交互手动认证；旧非交互接口的主动登录失效意图规则保持兼容。成功后复用当前身份核对、系统凭据保存、加密本机账号绑定及恢复收尾。静默识别只参与登录认证，不执行学校业务写入。
 
-## v39：门锁密码与预约摘要短期显示
+### v39：门锁密码与预约摘要短期显示
 
 新增`open_cgyy_lock_display/read_cgyy_lock_display`及可同步cancel的opaque页面句柄。句柄绑定客户端、首次解析路线、会话生命周期与路线代次；读取前后都检查有效性，取消后的迟到结果不发布。返回白名单qrCode文本（保留前导零）、dueDate原文及旧页预约摘要，不实现serde/JSON，不进入FeatureField、普通DTO、离线缓存或诊断。普通cgyy_lock_code仍仅available，CLI10/Session2/配置1不变。
 
 UI入口恢复“查看密码”，首次fresh读取、手动与30秒刷新single-flight；刷新开始先移除旧码，失败不保留旧值。dueDate只显示，不猜时区或上游TTL。隐藏、后台、返回、销毁、账号/会话/路线变更同步撤销并释放材料。门锁响应不再记录整包body摘要。当前仅合成材料验证，真实有码与预约摘要显示需具备有效预约的独立验收。
 
-## v40：研究生课表完整时间轴
+### v40：研究生课表完整时间轴
 
 现有scheduleTerms/Weeks/Week/Today遵循旧版本科读取优先、失败后实际验证GSMIS的规则，同一已验证研究生会话后续直接使用GSMIS。网络路线不回退。WeeklySchedule增加sectionTimes列表，每项为section/start?/end?，缓存/完整导入与空周均保留。code在本科仍是上游代码，不能统一解释为学期；GSMIS适配填学期代码。UI沿旧版52宽时间轴显示每节开始/结束，冲突值显示--:--，不猜课程时间。当前CLI JSON schema v11为该可选集合公开形状升级，历史v39及之前阶段描述保持原版本。
 
-## v41：有界初始化与提交结果接收确认
+### v41：有界初始化与提交结果接收确认
 
 `BridgeClient.open` 改为默认异步 FRB 调用，在工作线程完成磁盘读取与锁等待；Dart 返回 Future。Session 的进程锁与内核文件锁共享 2 秒等待预算；失败返回白名单 BridgeInitializationError，区分 configuration/session/resourceBusy/componentUnavailable。宿主合同不兼容另列 bridgeIncompatible。原 CLI v11、Session v2、配置 v1、缓存 v6 不变；初始化原因是进程内 typed 分类，不从原始文本猜测。
 
@@ -747,15 +715,15 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 博雅已选、图书馆预约记录、今日课堂补充 caller-pinned 回读，研讨室预约复用已有指定路线订单入口。取消、打卡和评教沿原专用回读；所有生产提交后核对均消费 intent.resolvedRoute，不通过改写全局偏好固定路线。
 
 
-## v42：iHome 校园服务
+### v42：iHome 校园服务
 
-新增 `ihomePage/Detail/Config/Notices/Notice/SetReaction` 与独立类型化 DTO，来源见 [iHome 对照](../protocol/source-parity-ihome-2026-10-25.md)。入口仅在校园服务；首页不自动读取。API 地址、Bearer 和 Cookie 均留在 Core。列表分页、搜索和筛选由 Core 编码；详情支持本人独立路径。UI 写入先确认，绑定读取路线；Core 写前复核、只提交一次并回读，结果未知时界面要求刷新核对，禁止自动重发。不提供新建诉求。
+新增 `ihomePage/Detail/Config/Notices/Notice/SetReaction` 与独立类型化 DTO，来源见 [iHome 对照](../protocol/parity/ihome.md)。入口仅在校园服务；首页不自动读取。API 地址、Bearer 和 Cookie 均留在 Core。列表分页、搜索和筛选由 Core 编码；详情支持本人独立路径。UI 写入先确认，绑定读取路线；Core 写前复核、只提交一次并回读，结果未知时界面要求刷新核对，禁止自动重发。不提供新建诉求。
 
-## v43：门户资料、校园账户与网费流量
+### v43：门户资料、校园账户与网费流量
 
-新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/source-parity-campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
+新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/parity/campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
 
-## v44：独立本机日程通道
+### v44：独立本机日程通道
 
 `BridgeAgendaStore.open(config_dir, account_id)` 打开已核实账号的独立日程句柄，只需要私有目录和随机别名。句柄不依赖 `BridgeClient`、学校会话、缓存密钥或网络锁。`activate/deactivate` 管理持久访问状态。`create/get`、`edit/delete` 的三种范围、`complete`、覆盖设置/读取/清除、未同步计数和显式日程清除均逐项调用 facade。创建返回已保存的原始事项，避免写入成功后追加读取失败造成重复创建。`agenda_teaching_week_rule` 复用 Core 的教学周转换。
 
@@ -767,7 +735,7 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 
 Dart `AgendaBackend/AgendaService` 和不可变领域值由 `ubaa_domain` 定义，生产适配器位于 `ubaa_app`。账号代次在打开、退出、换号和销毁时推进，检查操作前后并拒绝迟到成功及错误。全部持久写操作与打开、关闭共用串行尾链。关闭请求同步撤销访问，排队的旧代次写操作在进入后端前拒绝，已交给后端的写操作在关闭完成前收尾，再执行持久停用。后续打开等待关闭完成。已交付写入可能在等待关闭期间提交，`superseded` 只说明结果所属代次失效，不能据此推断未提交。读取独立执行，挂起查询不阻塞关闭。安全索引禁止恢复与日程关闭独立启动，后端重建等待旧日程关闭后再建立继任服务。Bridge v44 的接口和磁盘格式保持不变。已知账号的日程打开与缓存打开并行，缓存密钥缺失不阻断本地操作。学校缓存清理期间迟到的投影降级为本地查询。v44 提供服务与账号接线，首页在后续 v45 切换。
 
-## v45：首页统一本地投影
+### v45：首页统一本地投影
 
 `agenda_project_home` 接收 `BridgeHomeAgendaInput` 的七个 typed 来源集合和 `BridgeHomeAgendaContext`，直接复用 Core `project_home_agenda`。输入由已经解析的公开兼容 DTO 字段复制而来，不接收展示字段反解析结果、缓存观察时间、会话或学校写资格。`BridgeAgendaStore.project_home` 在同一个日程读取事务内叠加本地覆盖。两个入口均不读取学校缓存、不持有网络客户端，也不发起学校请求。
 
@@ -775,7 +743,7 @@ Dart `AgendaBackend/AgendaService` 和不可变领域值由 `ubaa_domain` 定义
 
 路线切换从调用异步 `prepareLogin` 前开始阻止首页投影，沿用现有路线在途标志和 transition 计数。纯投影不采用学校读取在目标会话恢复期间的放行特例。切换中调用返回 `unavailable`，切换前已启动的投影返回 `superseded`，交付还须匹配实际 policy、账号和读取代次。宿主将阻止状态传给首页，首页立即撤销旧动作并隐藏旧投影。成功或失败回滚、以及快速切换中最后一个旧请求收尾，均通知首页恢复投影，即使来源对象未变化也会重新计算，不等待分钟刷新或额外学校请求。
 
-筛选、稳定排序、48 小时紧迫边界及本地完成/隐藏/重新挂起均由 Core 决定。重新挂起已提交作业仍须满足原开始与截止条件，学校提交状态原样保留。首页本轮只呈现原七来源，课程仍在课表区域，自建事项入口留给日程界面阶段。前四项预览、原位展开与原功能详情导航继续使用既有交互。
+筛选、稳定排序、48 小时紧迫边界及本地完成/隐藏/重新挂起均由 Core 决定。重新挂起已提交作业仍须满足原开始与截止条件，学校提交状态原样保留。v45 首页只呈现原七来源，课程仍在课表区域，自建事项入口由日程界面提供。前四项预览、原位展开与原功能详情导航继续使用既有交互。
 
 签到输入的 `fresh` 只控制状态文案。生产适配器仅从同次在线读取的唯一课程 DTO 关联唯一 allowed `SigninPerformAction`，同时核对当天范围及 DTO 独立保存的在线目标。缓存、失效代次、重复课程、目标不符和本地标记均不能恢复学校写资格。来源变化时先撤销旧动作，无缓存读取跨校园日期时拒绝返回。跨午夜后、分钟刷新尚未触发时，点击旧按钮先刷新来源。现有写协调器继续执行原资格复核。
 
@@ -784,7 +752,7 @@ Dart `AgendaBackend/AgendaService` 和不可变领域值由 `ubaa_domain` 定义
 Bridge v45 不改变 CLI v12、业务缓存 schema v7 或独立日程 schema v2。
 
 
-## v46：日程编辑与范围文件导出
+### v46：日程编辑与范围文件导出
 
 `BridgeAgendaStore.editDraft(itemId, scope, at, draft, now)` 在同一事务中保存内容、重复规则和排除日期。仅此次保留系列规则和其它发生；此次及以后只为继任系列设置新排除日期；全部替换整个系列的规则和排除日期。旧 `edit` 入口继续保留原有语义。
 
@@ -794,7 +762,7 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 
 导航为首页、学习、日程、校园、我的。首页保留四项预览，“查看全部”进入日程待办筛选。日程本机操作不生成学校写资格。CLI v13、业务缓存 schema v7、日程 schema v2 和 Session v2 保持。
 
-## v47：北航云盘
+### v47：北航云盘
 
 `BridgeClient.bhpan*` 使用 Core 的不透明对象、分享与一次性确认句柄，提供文档库、目录、属性、名称建议、回收站和分享管理。个人授权与接收分享授权分开保存在 Core，密码只作为专用输入，普通 DTO 不返回业务 Token、签名 URL、授权头值或原始响应。
 
@@ -802,9 +770,9 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 
 网盘写入通过 App 原有的 `WriteCoordinator` 准备、确认、单次提交与丢弃。确认绑定账号、认证生命周期和路线，发送后的不确定结果保持不可重试的 `outcome_unknown`。创建结果与分享历史保留完整 item 关联并支持更新，单项分享记录缺少关联时暂不开放更新。
 
-`BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../protocol/source-parity-bhpan.md)。
+`BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../protocol/parity/bhpan.md)。
 
-## v46：所需路线恢复的按操作控制
+### v46：所需路线恢复的按操作控制
 
 `BridgeRequiredRecoveryControl` 为一次所需路线校验或固定路线登录提供独立控制范围。同步构造接收 `timeoutMillis`，使用单调时钟计算从构造开始的期限，范围为 0 至 120000 毫秒，零立即到期。同步 `cancel()` 撤销该操作，不等待客户端网络锁。控制柄只能用于一次调用，恢复校验和随后获准登录分别创建控制柄。
 
@@ -816,7 +784,7 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 
 该版本提供 H1-a 共同恢复服务的底层前置能力。共同 Dart 服务、GUI 接线、消费者合并与独立取消仍按[共享服务计划](../design/desktop-shared-state.md)继续实施。普通服务关闭应撤销自身操作，不能使用全局 `logout` 代替消费者关闭。
 
-## v47：共享账号的事务与句柄生命期
+### v47：共享账号的事务与句柄生命期
 
 `BridgeSharedAccount` 绑定由平台安全索引捕获的固定本机代次。版本记录只用于撤销已有能力，不签发学校身份、凭据提交许可或写资格。平台在材料独占事务内发布 `account-generation.v1`，Core 在实际本地事务与 transport 交付边界取得同一材料文件锁的共享锁，并核对原代次和 `transaction.v1` 的完成状态。锁顺序为 recovery → materials → Core 仓库 → SQLite。缺失、损坏、未完成事务与版本变化均拒绝旧能力，网络 await 期间释放材料锁。
 
@@ -828,7 +796,7 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 
 GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core 缓存清理在受限调用中执行。宿主后续 `clearLocalData` 回调仅处理当前账号本机偏好，不得在持材料事务时进入 Core 或网络。
 
-## v48：App 命令计划与交付
+### v48：App 命令计划与交付
 
 `BridgeCommand` 从完整 argv 产生一次不透明计划。`requirements` 只投影所需能力，`input_request` 逐次请求行、隐藏密码或正文。help、解析错误、登录参数冲突、无效资料路径和缺少写入确认在材料初始化前交付。准备后的输入快照由公共 Rust 命令库持有，Dart 不解析业务参数。
 
@@ -842,11 +810,11 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 命令 `prepare` 在取得账号材料前核对密码内容和阳光打卡参数，并保存阳光请求与照片字节。后续执行消费输入快照，不再次打开照片。学校写入的会话恢复和重新绑定完成后取得当前客户端，再开始写资格准备。恢复停止按具体原因映射为取消、超时或账号失效。
 
-## 日程、云盘与统一命令组合
+### 日程、云盘与统一命令组合
 
 合同 v49 同时保留日程 `edit_draft`、本机导出、云盘 typed API 与传输控制，以及统一命令的输入准备、恢复和有界输出。`BridgeRecoveryFeature::Bhpan` 使用 Core 云盘专用路线能力判断。Core 路线重开继承共享账号归属和本消费者关闭控制。云盘 Bearer 请求等待材料锁后重新检查关闭、取消和期限，发送与响应均保持导航 Cookie 隔离。
 
-## 日程同步通道
+### 日程同步通道
 
 合同 v50 增加 `BridgeAgendaSyncService` 与 `BridgeClient.sync_agenda`，统一 App 命令的 `execute_agenda_sync` 使用同一个 Core 服务。日程本机句柄保持独立，只有显式同步调用才取得网络客户端锁。同步报告包含状态、待同步数量和合并变化数量，错误分别投影本机日程类别与原云盘 typed 错误。Bridge 不接收同步正文、对象授权或第二份凭据。
 
@@ -854,7 +822,7 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 合同 v51 增加本机日程账号的 `BridgeAgendaStore.sync_enabled`。读取启用许可只访问独立日程库，账号或共享代次失效时拒绝。许可在用户确认后的同一账号作用域保存，页面打开和本机修改仅在许可有效时触发自动同步。只读拉取与 CLI 单次发送不打开许可。
 
-## v52：静默验证码与人工交接
+### v52：静默验证码与人工交接
 
 `login_quietly` 在当前账号意图内选择实际所需路线，执行本地识别和最多三次自动尝试，返回就绪状态或最终人工挑战。Direct 与 WebVPN 使用相同实现，Cookie、execution、图片和答案始终绑定原路线。Auto 在校园网内只准备 Direct。`BridgeInteractiveLoginOutcome.required_route` 供 App 在该路线就绪后继续进入首页。
 
@@ -862,7 +830,7 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 手动登录、已授权的自动登录和会话恢复只显示普通加载状态。需要人工输入时由 Host 显示统一验证弹窗；取消、刷新、后台、过期或账号变化释放图片与答案。旧非交互 Core-live/CLI 入口的交互拒绝行为保持。模型来源、转换方法与许可证见[第三方声明](../../THIRD_PARTY_NOTICES.md)，平台验证结果见[迁移状态](../project/status.md)。
 
-## 应用服务
+### 应用服务
 
 `BridgeAppService.open` 接收与 GUI 或 App 命令模式相同的配置目录、宿主类型、构建期服务地址和渠道、实际平台与安装包版本，以及内嵌政策版本。不初始化学校客户端。所有请求、队列和共享状态由 Core 管理，详细规则见[应用服务合同](app-service.md)。
 
