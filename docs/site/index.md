@@ -20,11 +20,11 @@ features:
   - title: 校园生活
     details: 查询博雅课程、图书馆座位、研讨室与空教室，查看 iHome 诉求和财务收入。
   - title: 直连与 WebVPN
-    details: 支持自动选择连接路线，也可以手动固定直连或学校 WebVPN。
+    details: 默认自动选择直连或学校 WebVPN，也可以手动固定其中一种。
   - title: 北航云盘
     details: 浏览和管理文件，上传下载、分享与回收站集中使用，按需开启日程同步。
   - title: 本地缓存
-    details: 已缓存的数据可在离线时查看，预约与提交仍需联网确认。
+    details: 已保存的内容可在离线时查看，预约与提交仍需联网确认。
   - title: 多平台与命令模式
     details: 适配手机、平板和桌面，桌面命令与应用共用账号、缓存和日程。
 ---
@@ -34,8 +34,9 @@ features:
 - [安装与首次登录](/guide/start)：选择适合设备的安装包，设置连接方式。
 - [UBAA v2.0 的升级变化](/guide/ubaa2)：了解新版功能，以及从旧版切换时需要准备的内容。
 - [功能说明](/features/)：了解查询、选课、预约和提交的操作方式。
-- [隐私政策](/tech/privacy-policy)：了解账号、会话和本地缓存如何处理。
-- [开发说明](/tech/architecture)：了解新版架构与源码入口。
+- [常见问题](/tech/troubleshooting)：登录、连接和提交结果未确认时怎么办。
+- [数据与隐私说明](/tech/data-and-privacy)：了解设备上保存了什么，以及怎样清除。
+- [参与开发](/tech/contributing)：源码、贡献指南和开发者文档入口。
 
 ::: info 版本说明
 UBAA v2.0.0 正在准备发布。可安装的平台与发布日期以 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 为准，下载前请核对版本和平台。
