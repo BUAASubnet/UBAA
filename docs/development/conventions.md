@@ -32,7 +32,7 @@
 
 | 读者 | 入口 | 内容 |
 |---|---|---|
-| 用户 | [docs/site](../site/index.md)（[ubaa.top](https://ubaa.top)） | 安装、功能使用、隐私政策、公告与更新日志 |
+| 用户 | [docs/site](../site/index.md)（[www.ubaa.top](https://www.ubaa.top)） | 安装、功能使用、隐私政策、公告与更新日志 |
 | 贡献者 | [CONTRIBUTING](../../CONTRIBUTING.md)、[文档首页](../README.md)、`docs/development/` | 开发环境、命令与检查、约定、测试、术语 |
 | 贡献者（设计） | `docs/architecture/`、`docs/contracts/`、`docs/design/`、`docs/adr/` | 架构、稳定合同、现行产品规格和长期决定 |
 | 维护者 | `docs/runbooks/` | 发布、签名、部署、真实验证和排障操作 |
@@ -47,7 +47,7 @@
 
 `main` 是 UBAA v2.0 发布主线，`dev` 用于日常开发，`ubaa1` 保存旧版历史。功能分支从 `dev` 创建，PR 默认提交到 `dev`；准备发布时将已验收的候选合入 `main`。旧版修复单独指向 `ubaa1`，不将旧版提交历史合入新版。
 
-发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [ubaa.top](https://ubaa.top)（`docs-production`），应用服务 Worker 从 `main` 部署（`app-service-production`），正式安装包从 `main` 或 `v` 开头的 Tag 发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
+发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 Worker 从 `main` 部署（`app-service-production`），正式安装包从 `main` 或 `v` 开头的 Tag 发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
 
 提交标题用中文说明意图，必要时在正文说明行为、风险和验证。每个提交保持单一可审查主题：
 

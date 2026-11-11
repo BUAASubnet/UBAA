@@ -1,6 +1,6 @@
 # UBAA 开发者文档
 
-这里是 UBAA 开发者和维护者的文档入口。普通用户请看使用指南 [ubaa.top](https://ubaa.top)，它的源码在 [`site/`](site/)。
+这里是 UBAA 开发者和维护者的文档入口。普通用户请看使用指南 [www.ubaa.top](https://www.ubaa.top)，它的源码在 [`site/`](site/)。
 
 ## 从这里开始
 
@@ -33,7 +33,7 @@
 
 | 目录 | 内容 | 读者 |
 |---|---|---|
-| [site/](site/) | 使用指南网站（VitePress），部署到 ubaa.top | 用户 |
+| [site/](site/) | 使用指南网站（VitePress），部署到 www.ubaa.top | 用户 |
 | [development/](development/) | 快速上手、环境、命令、测试、工程规范、开发约定、术语表 | 贡献者 |
 | [architecture/](architecture/) | 架构导读、代码组织、Core 边界、平台矩阵 | 贡献者 |
 | [contracts/](contracts/) | 稳定合同：认证、连接、只读功能、Bridge、命令 JSON、离线缓存、日程、云盘、应用服务 | 贡献者 |
