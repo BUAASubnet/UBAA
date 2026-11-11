@@ -73,18 +73,31 @@ jobs:
         with:
           kind: checks
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - name: 默认 feature、生产宿主与测试注入边界
+      - name: 默认 feature 与测试注入边界
         shell: bash
         run: |
           cargo check --locked -p ubaa-core --no-default-features --all-targets
           cargo test --locked -p ubaa-core --no-default-features --doc
           bash scripts/tests/facade-test-contract.sh
-          cargo build --locked -p ubaa-core-live
-          cargo build --locked -p ubaa_flutter_bridge
-          cargo build --locked --workspace --all-targets
       - name: 生成公共 Rust 文档
         if: runner.os == 'Linux'
         run: cargo doc --locked --workspace --no-deps
+
+  rust-builds:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/rust_cache
+        with:
+          kind: production
+      - name: 构建默认 feature 的两个生产宿主
+        # 明确包列表排除测试辅助 crate，两个宿主复用相同的生产依赖编译结果。
+        run: cargo build --locked -p ubaa-core-live -p ubaa_flutter_bridge
 
   rust-tests:
     strategy:
@@ -229,7 +242,7 @@ jobs:
   main-required:
     name: main-required
     if: ${{ always() }}
-    needs: [plan, scripts, rust-checks, rust-tests, dependency-audit, codegen, flutter-analysis, flutter-tests, app-service-contracts, native]
+    needs: [plan, scripts, rust-checks, rust-builds, rust-tests, dependency-audit, codegen, flutter-analysis, flutter-tests, app-service-contracts, native]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09

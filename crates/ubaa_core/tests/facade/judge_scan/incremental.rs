@@ -154,103 +154,49 @@ fn 新增项只读该项详情_同编号标题变化只重读变化项() {
     }
 }
 
-fn check_revalidation_case(
-    label: &str,
-    age: i64,
-    deadline: Option<std::result::Result<i64, &str>>,
-    expected: usize,
-) {
-    let (root, mut client, cache, transport) = setup(&format!("judge-incremental-{label}"));
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            refresh(&mut client, &cache).await;
-            // 完成准备后再确定截止时间，初始化耗时不占用边界余量。
-            let due = deadline.map(|value| match value {
-                Ok(seconds) => deadline_after(seconds),
-                Err(text) => text.to_owned(),
+#[test]
+fn 列表不可见变化按期限兜底_临近截止与未知截止缩短期限() {
+    for (label, age, deadline, expected) in [
+        ("normal-valid", 6 * 3600 - 60, Some(Ok(7 * 86400)), 0),
+        ("normal-expired", 6 * 3600 + 1, Some(Ok(7 * 86400)), 3),
+        ("near-valid", 14 * 60, Some(Ok(3600)), 0),
+        ("near-expired", 15 * 60 + 1, Some(Ok(3600)), 3),
+        ("recently-due", 15 * 60 + 1, Some(Ok(-3600)), 3),
+        ("unknown", 15 * 60 + 1, None, 3),
+        (
+            "invalid-deadline",
+            15 * 60 + 1,
+            Some(Err("2026-02-30 00:00:00")),
+            3,
+        ),
+        ("outside-near-window", 30 * 60, Some(Ok(86400 + 60)), 0),
+        ("inside-near-window", 30 * 60, Some(Ok(86400 - 60)), 3),
+    ] {
+        let (root, mut client, cache, transport) = setup(&format!("judge-incremental-{label}"));
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                refresh(&mut client, &cache).await;
+                // 每项准备完成后再确定截止时间，前面用例的耗时不占用本项边界余量。
+                let due = deadline.map(|value| match value {
+                    Ok(seconds) => deadline_after(seconds),
+                    Err(text) => text.to_owned(),
+                });
+                age_details(&root, &cache, age, due.as_deref());
+                let before = detail_request_count(&transport);
+                refresh(&mut client, &cache).await;
+                assert_eq!(
+                    detail_request_count(&transport) - before,
+                    expected,
+                    "{label}"
+                );
             });
-            age_details(&root, &cache, age, due.as_deref());
-            let before = detail_request_count(&transport);
-            refresh(&mut client, &cache).await;
-            assert_eq!(
-                detail_request_count(&transport) - before,
-                expected,
-                "{label}"
-            );
-        });
-    drop((client, cache));
-    std::fs::remove_dir_all(root).unwrap();
+        drop((client, cache));
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
-
-// 每种期限独立运行，保留全部九项边界并使用各自的数据库。
-macro_rules! revalidation_case {
-    ($name:ident, $label:literal, $age:expr, $deadline:expr, $expected:expr) => {
-        #[test]
-        fn $name() {
-            check_revalidation_case($label, $age, $deadline, $expected);
-        }
-    };
-}
-revalidation_case!(
-    正常期限内复用详情,
-    "normal-valid",
-    6 * 3600 - 60,
-    Some(Ok(7 * 86400)),
-    0
-);
-revalidation_case!(
-    正常期限过期重读详情,
-    "normal-expired",
-    6 * 3600 + 1,
-    Some(Ok(7 * 86400)),
-    3
-);
-revalidation_case!(
-    临近截止期限内复用详情,
-    "near-valid",
-    14 * 60,
-    Some(Ok(3600)),
-    0
-);
-revalidation_case!(
-    临近截止过期重读详情,
-    "near-expired",
-    15 * 60 + 1,
-    Some(Ok(3600)),
-    3
-);
-revalidation_case!(
-    最近截止过期重读详情,
-    "recently-due",
-    15 * 60 + 1,
-    Some(Ok(-3600)),
-    3
-);
-revalidation_case!(未知截止过期重读详情, "unknown", 15 * 60 + 1, None, 3);
-revalidation_case!(
-    无效截止过期重读详情,
-    "invalid-deadline",
-    15 * 60 + 1,
-    Some(Err("2026-02-30 00:00:00")),
-    3
-);
-revalidation_case!(
-    临近窗口外使用正常期限,
-    "outside-near-window",
-    30 * 60,
-    Some(Ok(86400 + 60)),
-    0
-);
-revalidation_case!(
-    临近窗口内使用短期限,
-    "inside-near-window",
-    30 * 60,
-    Some(Ok(86400 - 60)),
-    3
-);
 
 #[test]
 fn 详情上次核对失败时即使列表未变也重新读取该项() {
