@@ -442,9 +442,9 @@ confirm_text: 知道了
 
 ### 10.3 发布
 
-- 发布命令 `just app-service-publish` 先校验公告和渠道配置，再写入 Workers KV。它会联网写入，因此只能显式运行，不由任何 `check` 入口调用。
-- 部署 Worker 使用 `just app-service-deploy`，同样只能显式运行。
-- Cloudflare API Token 只从本机环境变量读取，不提交，CI 也不接收。
+- 内容发布先校验公告和渠道配置，再与目标 Workers KV 中的 `channels` 和 `announcements` 比较；内容相同跳过写入，内容缺失或不同才同步。
+- Worker 部署先检查并构建 Worker，确认目标自定义域名和 `USER_KEY_SECRET`，然后应用 D1 迁移。迁移失败时停止，成功后才部署。自定义域名由维护者首次绑定，自动部署不修改绑定。
+- 维护者可显式执行 `just app-service-deploy` 与 `just app-service-publish`。CD 仅处理指定分支的主仓库 push，同一提交的全部 CI 检查通过后，在受保护的 GitHub Environment 中部署 Worker 并同步内容。Cloudflare API Token 只交给这两个远端入口，普通检查不接收。操作见[部署手册](../runbooks/app-service.md)。
 - 这两个命令的副作用在实现时登记到[命令的副作用](../development/commands.md#网络与写入边界)和[脚本说明](../../scripts/README.md)。
 
 ## 11. Worker 处理与存储

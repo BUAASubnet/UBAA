@@ -198,7 +198,7 @@ cargo test --locked -p ubaa-core --features test-contract app_service
 - [ ] 配置校园时间每日 03:00 的 Cron。Workers Cron 使用 UTC，因此表达式为 `0 19 * * *`。处理函数用触发器的计划时间按 Asia/Shanghai 换算 D，不读取运行时的当前时间。依据见 [Cloudflare Cron 文档](https://developers.cloudflare.com/workers/configuration/cron-triggers/)。
 - [ ] 新增 `just app-service-content-check`，校验渠道配置和公告 frontmatter、字符限制、定向条件、日期及纯文本正文。网站的 `index.md`、`history.md` 等导航页不作为 App 公告；正式公告按合同文件名解析。
 - [ ] 网站与 App 共用同一组公告文件：公告中心列出当前有效的公告，历史页列出全部公告，两者都由这组文件生成，包括 `app: false` 的网站公告。站点构建失败或公告未出现在列表中时视为未完成。
-- [ ] 新增 `just app-service-publish` 与 `just app-service-deploy`。两者先执行本地校验，明确目标后才远端写入；发布将验证后的配置和公告写入 KV，部署应用迁移并发布 Worker。普通 check/CI 永远不调用这两个入口。
+- [ ] 新增 `just app-service-publish` 与 `just app-service-deploy`。两者先执行本地校验，明确目标后才远端写入；发布将验证后的配置和公告写入 KV，部署应用迁移并发布 Worker。普通 check 和 CI 检查作业不调用这两个入口。主仓库指定分支通过同一提交的全部检查后，由受保护的部署作业部署 Worker 并同步 KV。
 - [ ] 给发布脚本增加假 CLI 测试，证明内容校验失败、目标缺失或凭据缺失时没有远端写入。部署手册写明账号、Worker、D1/KV 绑定、域名、Secret、迁移顺序、查询和回退方法。密钥只从本机环境或对应 Secret 注入，测试使用合成值。
 
 完成判据：全部汇总边界结果正确，清理不会先删后算，漏跑后的补算覆盖迟到数据，网站公告列表与 App 使用同一来源，发布无效内容不会产生远端写入，命令副作用已登记到开发命令和脚本说明。

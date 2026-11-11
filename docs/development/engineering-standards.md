@@ -82,7 +82,7 @@ Mock、golden、simulator 或 CI artifact 不能证明签名、安装、实体�
 
 ## 安全与提交
 
-`examples/ubaa_old/`、`examples/buaa-api/`、`.env.local`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建
+`examples/ubaa_old/`、`examples/buaa-api/`、`.env`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建
 缓存只读且不得进入 diff。提交前使用明确 pathspec 暂存，人工检查 staged 文件和内容，再运行
 `just check-sensitive`。禁止关闭 TLS、放宽 parser/lint、删除测试或手改生成文件来获得通过。
 

@@ -31,7 +31,7 @@ install -d -m 700 ".sign/ohos"
 install -d -m 700 ".sign/windows"
 ```
 
-Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。目录使用 `0700`、私钥及含密码的配置文件使用 `0600`（macOS/Linux）。共享示例放在受 Git 跟踪的文档中，真实值只写入本地私有配置。不要把密码、私钥或 Profile 写入提交、命令行参数、截图或普通构建日志。`.env.toolchain` 只配置工具和非秘密路径，`.env.local` 继续只用于已有真实账号流程。
+Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。目录使用 `0700`、私钥及含密码的配置文件使用 `0600`（macOS/Linux）。共享示例放在受 Git 跟踪的文档中，真实值只写入本地私有配置。不要把密码、私钥或 Profile 写入提交、命令行参数、截图或普通构建日志。签名密码由签名流程单独读取，普通工具不会从根目录 `.env` 导出签名密码。
 
 Android 自动读取 `.sign/android/signing.properties`，文件中的相对密钥路径以该配置文件所在目录为基准。通过 Gradle 属性或环境变量传入的相对密钥路径继续以 `android/app` 为基准，建议这些覆盖值使用绝对路径。其他平台通过原生工具引用材料。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
 

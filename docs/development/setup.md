@@ -10,7 +10,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 
 | 工具 | 版本或能力 | 用途 |
 |---|---|---|
-| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证 dotenv 设置与位置参数透传 | 所有脚本入口；版本由 `just doctor` 核对 |
+| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证位置参数透传 | 所有脚本入口；版本由 `just doctor` 核对 |
 | Rustup、Rust、rustfmt、Clippy | `rust-toolchain.toml`：Rust 1.95.0，含 rustfmt、Clippy | Rust 构建、测试和文档 |
 | Python | 3.11+，含 venv、pip | Python 门禁与质量工具环境 |
 | Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | YAML/JSON5 解析；显式 bootstrap 安装 |
@@ -34,10 +34,10 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 先用操作系统包管理器安装上述通用工具、Rustup、Python 3.11+ 和 ShellCheck 0.11.0。以下准备过程会从 Git、crates.io、Python 和 Dart 依赖源下载固定工具或锁定依赖。无需学校账号。
 
 ```bash
-cp .env.toolchain.example .env.toolchain
+(umask 077; cp -n .env.example .env)
 ```
 
-编辑 `.env.toolchain`，至少把 `UBAA_FLUTTER_HOME` 设为准备放官方 Flutter 的绝对路径（目录可以还不存在）。然后运行：
+编辑 `.env`，至少把 `UBAA_FLUTTER_HOME` 设为准备放官方 Flutter 的绝对路径（目录可以还不存在）。然后运行：
 
 ```bash
 just setup
@@ -57,9 +57,19 @@ Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无�
 
 文档站另执行 `npm ci` 和 `npm run docs:build`。`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。原生构建再安装对应平台工具，并执行 `just flutter doctor -v`。OHOS 另行安装上述 fork 与 DevEco/API26，配置下表路径，然后安装 `rustup target add aarch64-unknown-linux-ohos`，先运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
 
+## 迁移旧配置
+
+旧文件不会自动读取。由配置所有者在仓库根目录运行：
+
+```bash
+python3 scripts/lib/toolchain.py migrate
+```
+
+如还需迁移旧部署目标，在同一命令附加 `--target <旧目标 JSON 路径>`，选择一个目标。命令合并旧工具链、学校账号和选定的部署目标，保留 `.env` 已有键及原文件，输出不含配置值。手工迁移也可按 `.env.example` 逐键填写；旧目标的 `account_id`、`worker_name`、`database_id`、`kv_namespace_id`、`domain` 对应下表中五个部署目标键。
+
 ## UBAA 环境变量
 
-`.env.toolchain.example` 提供工具配置模板，`.env.example` 提供凭据模板。工具变量填入 `.env.toolchain`，也可用当前终端导出的同名变量覆盖。配置只支持 `KEY=value`、引号、注释和 `$HOME` / `${HOME}` 这类变量引用；含下划线的引用使用 `${NAME_WITH_UNDERSCORE}`，不执行 Shell 命令。示例中的 `<sdk-root>`、`<private-evidence>` 和 `<repo-root>` 均为逻辑占位，运行前必须换成当前机器的绝对路径。Windows Bash 使用 SDK 能识别的绝对路径，工具链检查支持 `cygpath` 转换。
+根目录 `.env` 是本机唯一的项目环境配置文件，`.env.example` 列出可用键及导出范围。macOS 和 Linux 使用权限 `0600`，Windows 限制为当前用户可读写。不要用 Shell 执行该文件；配置只支持 `KEY=value`、引号和注释，非机密值支持 `$HOME`、`${HOME}` 和前面已定义的非机密键，含下划线的引用写为 `${NAME_WITH_UNDERSCORE}`。账号和 Token 按字面读取，不展开变量。已导出的同名变量优先。示例中的 `<sdk-root>`、`<private-evidence>` 和 `<repo-root>` 均为逻辑占位，运行前必须换成当前机器的绝对路径。Windows Bash 使用 SDK 能识别的绝对路径，工具链检查支持 `cygpath` 转换。
 
 | 变量 | 默认值、示例与作用 |
 |---|---|
@@ -74,14 +84,25 @@ Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无�
 | `UBAA_SHELLCHECK_BIN` | 默认在 PATH 查找 ShellCheck；覆盖为 0.11.0 程序的绝对路径 |
 | `UBAA_QUALITY_TOOLS_DIR` | 默认 `${XDG_CACHE_HOME:-$HOME/.cache}/ubaa2-quality/<key>`，key 含 Python 主次版本和 requirements 摘要；覆盖值须为绝对目录 |
 | `UBAA_RELEASE_REPORT_DIR` | 发布 preflight 的默认输出目录；须为空的绝对目录。未配置且无位置参数时使用临时目录，退出删除 |
+| `UBAA_UI_EVIDENCE_DIR` | UI 验收媒体目录，必须位于被忽略的 `.ubaa_local/` 任务子目录 |
+| `UBAA_APP_SERVICE_URL`、`UBAA_DISTRIBUTION_CHANNEL` | 客户端构建参数；任一为空即停用应用服务。正式包使用已验收的 HTTPS 地址，渠道为 `github`、`app_store` 或 `app_gallery` |
+| `UBAA_APP_SERVICE_ACCOUNT_ID`、`UBAA_APP_SERVICE_WORKER_NAME`、`UBAA_APP_SERVICE_D1_ID`、`UBAA_APP_SERVICE_KV_NAMESPACE_ID`、`UBAA_APP_SERVICE_DOMAIN` | 非机密部署目标，设置见[应用服务部署手册](../runbooks/app-service.md#准备账号和目标) |
+| `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD` | 学校账号和密码的主名称；只交给显式真实验证入口 |
+| `UBAA_USERNAME`、`UBAA_PASSWORD` | 兼容旧凭据名称，主名称为空时回退；新配置使用主名称 |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare 部署凭据，只交给应用服务部署和内容发布入口 |
+
+### 调用时设置的变量
+
+下列变量由调用者、平台签名工具或测试入口设置，根 `.env` 不导出。
+
+| 变量 | 默认值、示例与作用 |
+|---|---|
 | `UBAA_RELEASE_STORE_FILE` | Android release keystore 路径；与下列三个 `UBAA_RELEASE_*` 变量同时设置才启用受控签名，文件不得提交 |
 | `UBAA_RELEASE_STORE_PASSWORD` | Android release keystore 密码；仅从本地环境或 Gradle 属性读取 |
 | `UBAA_RELEASE_KEY_ALIAS` | Android release 密钥别名 |
 | `UBAA_RELEASE_KEY_PASSWORD` | Android release 密钥密码 |
-| `UBAA_ENV_FILE` | 默认 `<repo-root>/.env.local`，显式 live launcher 的凭据文件路径 |
-| `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD` | 凭据文件中的主名称，无默认值；只交给显式真实验证入口，不用于普通回归 |
-| `UBAA_USERNAME`、`UBAA_PASSWORD` | 兼容旧凭据名称，主名称为空时回退；本阶段保留兼容行为，新配置使用主名称 |
 | `UBAA_VERIFY_DATE`、`UBAA_VERIFY_CAMPUS_ID` | live CLI 默认校园时区当天、校区 `1`；示例 `2026-10-29`、`1` |
+| `UBAA_CONFIG_DIR` | 显式真实验证可指定被忽略的私有配置目录，隔离默认会话 |
 | `UBAA_LIVE_MATERIAL_SCOPE` | 真实离线启动测量的材料归属标识，由 runner 生成；禁止填入个人资料 |
 | `UBAA_CORE_LIVE_BINARY`、`UBAA_CORE_LIVE_BUILD` | 默认 `<repo-root>/target/debug/core-live`、`yes`；`no` 复用已构建程序 |
 | `UBAA_CORE_LIVE_SCRIPT` | 默认 `scripts/live/core-live.sh`；测试可替换 launcher，不作为凭据入口 |
@@ -90,7 +111,7 @@ Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无�
 
 ## 测试注入与构建内部变量
 
-以下同样使用 UBAA 前缀，但不是日常 `.env.local` 配置。原生集成和测量 driver 的专用变量已随入口删除。
+以下同样使用 UBAA 前缀，用于测试或构建内部，不在本地配置白名单内。原生集成和测量 driver 的专用变量已随入口删除。
 
 | 名称 | 用途与示例 |
 |---|---|
@@ -105,4 +126,4 @@ Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无�
 | `UBAA_TEST_SHELLCHECK_LOG`、`UBAA_TEST_SHELLCHECK_EXIT` | 假 ShellCheck 的调用记录和退出码 |
 | `UBAA_TEST_CODESIGN_LOG`、`UBAA_TEST_PLIST_LOG`、`UBAA_TEST_ENTITLEMENTS` | 假签名程序的日志与 entitlements 样本选择 |
 
-真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查不需要创建凭据文件。媒体、日志的归档写法见[证据存储规则](../design/evidence/README.md)。
+真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。媒体、日志的归档写法见[证据存储规则](../design/evidence/README.md)。

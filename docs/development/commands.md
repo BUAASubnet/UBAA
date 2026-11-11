@@ -14,7 +14,7 @@ just flutter-ohos --version
 
 | 命令 | 实际作用 |
 |---|---|
-| `just setup` | 显式联网准备本机环境：依次安装缺失的锁定工具并执行下列准备命令，已一致项跳过；不改写已有 SDK 或 `.env.toolchain` |
+| `just setup` | 显式联网准备本机环境：依次安装缺失的锁定工具并执行下列准备命令，已一致项跳过；不改写已有 SDK 或 `.env` |
 | `just doctor` | 只读对照本机工具与 `versions.env`，不联网；必需项不符时退出 1 |
 | `just refs-bootstrap` | 仅首次缺少冻结引用时显式联网建立；已有路径只校验，不覆盖、不拉取 |
 | `just quality-tools-bootstrap` | 显式安装带版本与哈希锁的 Python 质量依赖 |
@@ -123,13 +123,14 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
 | [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB。发布前置报告不在日常 CI 运行，发布前本地执行 `just release-preflight` |
-| ci.yml / app-service-contracts | 同一批 push 与 PR；Ubuntu 使用锁定 Node 主版本，执行 `just app-service-content-check` 和 `just app-service-check` |
+| ci.yml / app-service-contracts | 同一批 push 与 PR；Ubuntu 使用锁定 Node 主版本，执行 `just app-service-content-check`、`just app-service-check` 和部署触发条件测试 |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
 | ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
+| ci.yml / app-service-deploy | 仅主仓库中 `APP_SERVICE_DEPLOY_BRANCH` 指定分支的 push；等待同一次运行的四项检查和全部矩阵项通过，在受保护的 `app-service-production` Environment 部署并同步 KV。设置见[部署手册](../runbooks/app-service.md#配置-github-cd) |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
 | [docs.yml](../../.github/workflows/docs.yml) | 手动、文档站相关 PR 和 ubaa2/main/dev push；npm ci 与 docs:build 检查站内链接；仅配置的发布分支且非 PR 时上传/部署 Pages |
 
-三个工作流统一 push 分支为 ubaa2/main/dev，PR 保留各自路径过滤，均使用 concurrency 取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+三个工作流统一 push 分支为 ubaa2/main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
 
 ## 构建与发布命令
 
@@ -141,8 +142,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
-| `just app-service-publish target=<目标配置>` | 校验渠道和公告，向明确指定的 Cloudflare KV 命名空间写入内容 |
-| `just app-service-deploy target=<目标配置>` | 在交互终端校验内容及本地 Worker，依次迁移目标 D1、部署目标 Worker；目标文件与准备顺序见[应用服务部署手册](../runbooks/app-service.md) |
+| `just app-service-publish` | 校验渠道和公告，与目标 KV 内容比较，只写入有差异的键 |
+| `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
 
@@ -163,7 +164,7 @@ just verify-live mode=webvpn
 
 两条路线逐条串行执行，只接受 direct/webvpn，禁止以 auto 代替。可用 `feature=auth route=direct` 等参数缩小已获授权的范围；缩小运行不等于完整验收。授权或网络条件不足时如实登记未运行/失败及重跑条件，双路线要求保持，不静默豁免。真实写入须逐次具体授权，以上入口只读，不能验证写入成功。
 
-verify-live 从被忽略的 `.env.local` 安全读取非空主名称凭据，经 stdin 交给 Core-live；工具配置不会加载该凭据文件。每条路线使用一个固定 RouteClient 串行执行，只输出安全摘要。Core-live 是脚本化只读验证的网络执行程序；真实 App 另行按授权验收，不能据此声称项目只有一个会联网的程序。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
+`verify-live` 按真实验证白名单取得非空学校凭据，经 stdin 交给 Core-live；Cloudflare API Token 不进入真实验证进程。每条路线使用一个固定 RouteClient 串行执行，只输出安全摘要。Core-live 是脚本化只读验证的网络执行程序；真实 App 另行按授权验收，不能据此声称项目只有一个会联网的程序。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
 
 ## 网络与写入边界
 
@@ -171,7 +172,7 @@ verify-live 从被忽略的 `.env.local` 安全读取非空主名称凭据，经
 - 普通检查不访问学校服务。Cargo/Rustup/Flutter 可能补齐工具或依赖缓存，flutter-check 会执行锁定 pub get；依赖源访问与学校请求分别管理。质量 Python 工具缺失时明确失败，安装只经显式 bootstrap。
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Workers、D1 与 KV，不访问或写入 Cloudflare 资源。
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
-- `just app-service-publish` 和 `just app-service-deploy` 是显式远端写入命令。前者写 KV，后者先迁移 D1 再发布 Worker。两者完成本地校验且明确目标和环境凭据后才执行远端命令；普通检查及 CI 不运行这两个命令，也不接收生产凭据。
+- `just app-service-publish` 和 `just app-service-deploy` 是显式远端写入命令。前者只写入变化的 KV 内容，后者先迁移 D1 再部署 Worker。普通检查不调用这两个入口，也不接收生产凭据。通过全部检查后，应用服务 CD 作业在受保护的 GitHub Environment 中取得 Cloudflare Token，执行部署和内容发布。
 - `just app-service-e2e` 在 `.ubaa_local/app_service/` 创建私有隔离配置、本地 D1 和 KV，临时监听回环地址。脚本只用合成数据，不访问学校或 Cloudflare 资源；`CI` 非空或遥测硬关闭时直接失败。
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存。门禁 recipe 统一设置 `CARGO_INCREMENTAL=0`，不积累只用一次的增量缓存；日常 Rust 与 Flutter 运行保留增量。开发构建只带行号调试信息，需要查看变量时临时设 `CARGO_PROFILE_DEV_DEBUG=true`。FRB 生成检查的现有写入副作用已在上表说明，不能称所有 check 都只读。
 - 日志、stdout/stderr 和报告遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，禁止全局 trace。仅在已获授权的窄范围诊断使用 RUST_LOG，原始 stderr 不进入共享文档。

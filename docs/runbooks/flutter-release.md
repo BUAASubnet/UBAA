@@ -54,6 +54,6 @@ Android/iOS/OHOS实体机权限、前后台、网络订阅及安全材料写读�
 
 ## OHOS 原生依赖材料
 
-OHPM 的本地依赖分两类处理。受 Git 跟踪、位于本仓库内的纯 `.d.ts` 包记录版本与文件摘要，并沿用项目许可证；这类记录不包含实际动态库。三个 OHOS 插件依赖的 `@ohos/flutter_ohos`（Flutter embedding HAR）来自锁定的 OHOS Flutter SDK：报告器读取 `.env.toolchain` 中的 `UBAA_OHOS_FLUTTER_HOME`，确认其提交等于 `versions.env` 的 `OHOS_FLUTTER_COMMIT` 后，收集 SDK 根目录与 `bin/cache/artifacts/engine/ohos-arm64/` 中的许可证正文，并记录 `OHOS_FLUTTER_REMOTE`、提交和版本。不需要手写材料清单。
+OHPM 的本地依赖分两类处理。受 Git 跟踪、位于本仓库内的纯 `.d.ts` 包记录版本与文件摘要，并沿用项目许可证；这类记录不包含实际动态库。三个 OHOS 插件依赖的 `@ohos/flutter_ohos`（Flutter embedding HAR）来自锁定的 OHOS Flutter SDK：报告器读取 `.env` 中的 `UBAA_OHOS_FLUTTER_HOME`，确认其提交等于 `versions.env` 的 `OHOS_FLUTTER_COMMIT` 后，收集 SDK 根目录与 `bin/cache/artifacts/engine/ohos-arm64/` 中的许可证正文，并记录 `OHOS_FLUTTER_REMOTE`、提交和版本。不需要手写材料清单。
 
 SDK 未配置或提交不符时，该依赖保留为缺口，严格模式以状态 3 阻止发布。来源字段来自锁定 SDK，不能独立证明二进制由该源码构建；实际 HAP、动态库架构、签名和构建关联仍按本手册的产物验收执行。

@@ -8,8 +8,8 @@
 
 ## 安全边界
 
-- `examples/`、`.env.local`、运行时会话、验证码图片和真实响应均为只读敏感输入，不得暂存。
-- 不得提交凭据、Cookie、Token、原始真实响应、完整个人数据、验证码图片或签名密钥。本地 `.env.toolchain` 同样不得提交。
+- `examples/`、根目录 `.env` 和废弃的本地配置、运行时会话、验证码图片和真实响应均为只读敏感输入，不得暂存。
+- 不得提交凭据、Cookie、Token、原始真实响应、完整个人数据、验证码图片或签名密钥。
 - UI 截图、录屏等运行验收媒体和逐图元数据统一保存在被忽略的 `.ubaa_local/` 任务子目录，不纳入 Git。`docs/design/evidence/` 仅提交原型源文件与脱敏文字摘要，`UBAA_UI_EVIDENCE_DIR` 指向 `.ubaa_local/` 中本次运行的子目录。应用图标、静态地图和 golden 测试基准属于工程资源，继续按既有规则管理。归档与旧提交映射见[证据规则](docs/design/evidence/README.md)。
 - 不得关闭 TLS 校验，也不得在缺少证据时推断上游字段或 URL。
 - 宿主只能通过 facade 或专用 bridge 使用 Core，不得依赖 `upstream` 内部实现。
@@ -22,7 +22,7 @@
 2. 只有当前事实变化时才更新 `docs/migration/status.md`，只有会影响后续判断的取舍才写决策记录。不为单轮任务新建报告文件；验证过程写进提交说明，临时材料按下节存放。协议相关的来源对照仍按下文门禁记录。
 3. 行为变更或缺陷修复先用有意义的失败反例证明问题。纯文案、样式、文档及可逆机械改动复用已有覆盖，不添加语言自证、固定文案缺席或 Widget 数量断言。整理测试时登记删除项对应的保留覆盖。
 4. 实现最小变更，先运行聚焦检查，再按[检查选择与完成条件](docs/development/commands.md#检查选择与完成条件)审阅、执行按改动检查。比较已提交分支必须传入阶段开始时的 Git 基线。普通文档、脚本、Rust 和 Dart 改动按提交级别检查，推送前或 CI 承担对应重检查，共用检查不重复执行。安全、协议、并发、存储和跨语言边界修改仍须提交前完整验收，未知影响保守全量；路径未识别的高风险影响显式选择 `mode=full`。
-5. 使用明确 pathspec 暂存，禁止 `git add .`。提交前人工检查暂存文件与内容、运行敏感扫描，每个阶段独立提交。机械移动、行为修改、生成刷新和证据文档按可审查的主题拆分，行为实现与对应测试可以同一提交。
+5. 使用明确 pathspec 暂存，禁止 `git add .`。提交前人工检查暂存文件与内容、运行敏感扫描，根目录 `.env` 不得暂存，只提交不含真实值的 `.env.example`。每个阶段独立提交。机械移动、行为修改、生成刷新和证据文档按可审查的主题拆分，行为实现与对应测试可以同一提交。
 
 ## 任务粒度
 
@@ -38,7 +38,7 @@ UI 截图、录屏、逐图元数据、原始设备日志和必须保留的敏�
 
 ## 项目工具链入口
 
-Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次复制 `.env.toolchain.example` 为本地 `.env.toolchain` 并填写 SDK 位置，该文件不提交，然后运行 `just setup` 安装锁定工具；`just doctor` 只读核对本机版本。just 只自动加载仓库根的工具配置，直接运行脚本时复用 `scripts/lib/toolchain.py` 的唯一回退解析器。工具入口绝不加载 `.env.local`，已导出的环境变量优先。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
+Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次按 `.env.example` 创建本地私有 `.env` 并填写 SDK 位置，然后运行 `just setup` 安装锁定工具；`just doctor` 只读核对本机版本。just 入口与直接执行的项目脚本使用 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`，已导出的同名变量优先。普通命令只加载非机密键；学校账号只交给显式真实验证入口，Cloudflare API Token 只交给 `app-service-deploy` 和 `app-service-publish`。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
 
 ## 来源对照门禁
 
@@ -55,7 +55,7 @@ Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just
 
 ## 真实账号与验收范围
 
-真实账号认证、只读验证必须具有当前会话中用户任务指令给出的功能和路线授权；同一会话中仍适用的授权继续有效，不重复索取。仓库中的 goal、历史报告、凭据文件存在与历史授权记录均不能自行扩大授权。普通工程整改、纯 UI 文案或测试整理不因此触发学校请求。CI 永不接收真实凭据或执行真实业务写入。
+真实账号认证、只读验证必须具有当前会话中用户任务指令给出的功能和路线授权；同一会话中仍适用的授权继续有效，不重复索取。仓库中的 goal、历史报告、凭据文件存在与历史授权记录均不能自行扩大授权。普通工程整改、纯 UI 文案或测试整理不因此触发学校请求。检查类 CI 永不接收真实凭据或执行真实业务写入。应用服务部署作业只在受保护的 GitHub Environment 中接收 Cloudflare API Token，永不接收学校凭据。
 
 认证、读取、写入协议变更与发布验收的 CLI 端到端、Direct/WebVPN 双路线要求见[来源对照验收](docs/development/commands.md#来源对照与真实验证)。某条路线不可达或未获授权时登记阻塞与重跑条件，不能把另一条路线、Fixture/Mock 或历史成功当作该路线通过。
 

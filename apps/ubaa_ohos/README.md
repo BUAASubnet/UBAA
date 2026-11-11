@@ -82,7 +82,7 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 
 ## 在 DevEco 中直接构建
 
-SDK 路径只在根目录 `.env.toolchain` 手写一次（`UBAA_OHOS_FLUTTER_HOME`、`UBAA_DEVECO_HOME`）。
+SDK 路径只在根目录 `.env` 手写一次（`UBAA_OHOS_FLUTTER_HOME`、`UBAA_DEVECO_HOME`）。
 首次构建或执行 Flutter clean 后，先在本目录运行：
 
 ```sh
@@ -96,7 +96,7 @@ just flutter-ohos pub get --enforce-lockfile
 构建直接失败并提示上述准备命令。当前 Hvigor 会按空格拆分 CMake 参数，因此 SDK 路径不能含空白。
 
 OHOS Flutter 的全局设置 `flutter-ohos config --ohos-sdk` 优先于项目配置写入 `hwsdk.dir`。
-`just doctor` 会核对 `local.properties` 与 `.env.toolchain` 是否一致，不一致时修正全局设置后重新 pub get。
+`just doctor` 会核对 `local.properties` 与 `.env` 是否一致，不一致时修正全局设置后重新 pub get。
 
 本机签名配置可放在 Git 忽略的 `.sign/ohos/hvigor-signing.json`，按构建模式（`debug`、`release`）提供
 签名项，由 `hvigorfile.ts` 只在内存中注入，不改写 `build-profile.json5`。Debug 未配置时保持无签名，

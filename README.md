@@ -132,7 +132,7 @@ Windows 原生命令和正式签名分发的验收状态见[当前状态](docs/m
 
 ## 安全边界
 
-`examples/ubaa_old/`、`examples/buaa-api/`、`.env.local`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
+`examples/ubaa_old/`、`examples/buaa-api/`、`.env`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
 宿主不得调用 Core 私有协议模块、拼接上游 URL、读取 Cookie/Token 或关闭 TLS 校验。无签名构建不能称为
 正式发布，确定性写入流程不能称为真实写入成功。
 

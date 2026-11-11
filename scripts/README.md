@@ -10,7 +10,7 @@
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
 | `release/` | 依赖/许可证与显式联网 cargo-deny 审计、源码与产物摘要、macOS 权限、无签名发布前置报告及应用服务的显式发布和部署 |
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |
-| `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；学校凭据只由显式 live 入口读取 |
+| `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；根目录 `.env` 按入口白名单加载 |
 | `tools/` | Python 质量环境定位/执行、锁定 requirements 及其上游记录 |
 | `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
 
@@ -22,9 +22,9 @@
 
 `tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `.ubaa_local/app_service/` 下创建私有临时目录，写入合成本地配置、迁移 D1、填充 KV、启动回环 Worker、查询 D1，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
 
-`tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 统一配置语法，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
+`tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
-`lib/repo.sh` 与 `lib/repo.py` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装解析工具配置。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。
+`lib/repo.sh` 与 `lib/repo.py` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装负责普通、真实验证和部署入口的环境隔离。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。
 
 `live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI，自动化缺口见[测试策略](../docs/development/testing.md)。
 
@@ -32,7 +32,7 @@
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
-`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 写目标 KV，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和环境凭据；普通检查及 CI 不调用。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
+`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 
