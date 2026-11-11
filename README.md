@@ -16,7 +16,7 @@
 ![Rust](https://img.shields.io/badge/Rust-1.95.0-orange.svg?style=flat&logo=rust)
 ![Flutter](https://img.shields.io/badge/Flutter-3.41.9-blue.svg?style=flat&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.11.5-0175C2.svg?style=flat&logo=dart)
-![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS%20%7C%20Desktop-lightgrey.svg?style=flat)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS%20%7C%20Desktop-2fb67c.svg?style=flat)
 
 [**下载安装**](https://github.com/BUAASubnet/UBAA/releases) · [**使用指南**](https://ubaa.top) · [功能一览](#功能一览) · [常见问题](https://ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
 
