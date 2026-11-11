@@ -18,25 +18,26 @@
 1. 在目标 Cloudflare 账号准备 D1 和 KV，分别记下 D1 数据库 UUID 和 KV 命名空间 ID。Worker 使用 `DB` 和 `APP_CONFIG` 绑定这两个资源。测试与生产使用不同的 Worker、D1、KV 和域名。记录 D1 的实际数据位置或配置的管辖区，按 [ADR 0008](../adr/0008-app-service-worker.md) 核对数据出境说明。
 2. 在 Workers & Pages 创建目标 Worker。首次可以使用空白 Worker，关闭 `workers.dev` 和 Preview URLs。添加名为 `USER_KEY_SECRET`、类型为 **Secret** 的密码学随机值。部署只检查该 Secret 是否存在并保留它。除泄露外不更换；更换后记录统计去重连续性中断的日期。参见 [Worker Secret 配置](https://developers.cloudflare.com/workers/configuration/secrets/#secrets-on-deployed-workers)。
 3. 为 API 主机名配置独立规则：关闭 Browser Integrity Check，并让浏览器缓存遵循 Worker 的 Cache-Control，避免原生客户端被浏览器检查拦截或 300 秒缓存被 Zone 默认期限覆盖。
-4. 选择同一账号下已激活 Zone 的专用主机名，先确认 DNS 中无冲突记录、主机名未被其他业务占用。由维护者在目标 Worker 的 **Settings → Domains & Routes** 首次绑定 [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)。Cloudflare 创建所需的 DNS 记录和证书；已有 CNAME 的主机名不能直接创建 Custom Domain。等待证书和绑定生效后再部署。
+4. 在同一账号下的目标 Zone 保留已配置的 CNAME，并将 `<主机名>/*` 的 [Worker Route](https://developers.cloudflare.com/workers/configuration/routing/routes/) 指向目标 Worker。应用服务使用 `app.ubaa.top/*`，文档站使用 `www.ubaa.top/*`。维护者负责 DNS 和路由配置，部署流程只读取路由并核对 Worker 名称。
 5. 本机在仓库根 `.env` 中填写下列值。CD 使用同名的 GitHub Environment 变量：
 
 | 键 | 值 |
 |---|---|
 | `UBAA_APP_SERVICE_ACCOUNT_ID` | Cloudflare 账号 ID |
+| `UBAA_APP_SERVICE_ZONE_ID` | 域名所属 Zone ID |
 | `UBAA_APP_SERVICE_WORKER_NAME` | 上述 Worker 的名称 |
 | `UBAA_APP_SERVICE_D1_ID` | 目标 D1 数据库 UUID |
 | `UBAA_APP_SERVICE_KV_NAMESPACE_ID` | 目标 KV 命名空间 ID |
 | `UBAA_APP_SERVICE_DOMAIN` | 已绑定的主机名，不含协议、端口、路径 |
 
-`CLOUDFLARE_API_TOKEN` 本机可放在私有 `.env` 或由密钥管理工具注入。部署 Token 只授予目标账号的 **Workers Scripts Write**、**D1 Write**、**Workers KV Storage Write**。单独发布内容只需 **Workers KV Storage Write**。域名和 DNS 的首次配置使用维护者权限，部署 Token 无需修改 Zone 路由或 DNS。参见 [Cloudflare API Token 权限](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)、[Workers 权限](https://developers.cloudflare.com/workers/authorization/workers/)和 [KV 批量读取 API](https://developers.cloudflare.com/api/resources/kv/subresources/namespaces/methods/bulk_get/)。
+`CLOUDFLARE_API_TOKEN` 本机可放在私有 `.env` 或由密钥管理工具注入。部署 Token 授予目标账号的 **Workers Scripts Write**、**D1 Write**、**Workers KV Storage Write**，以及目标 Zone 的 **Workers Routes Read**。单独发布内容只需 **Workers KV Storage Write**。域名和 DNS 的首次配置使用维护者权限，部署 Token 无需修改 Zone 路由或 DNS。参见 [Cloudflare API Token 权限](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)、[Workers 权限](https://developers.cloudflare.com/workers/authorization/workers/)和 [KV 批量读取 API](https://developers.cloudflare.com/api/resources/kv/subresources/namespaces/methods/bulk_get/)。
 
 ## 步骤
 
 ### 配置 GitHub CD
 
 1. 在仓库 **Settings → Environments** 创建 `app-service-production`。仅允许 main 分支部署。自动部署不配置人工审批。参见 [GitHub Environment 配置](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
-2. 在该 Environment 的 **Variables** 中设置上表的五个目标值，在 **Secrets** 中设置 `CLOUDFLARE_API_TOKEN`。Token 不放在仓库级 Secret。学校账号与 `USER_KEY_SECRET` 均不填入 GitHub。
+2. 在该 Environment 的 **Variables** 中设置上表的六个目标值，在 **Secrets** 中设置 `CLOUDFLARE_API_TOKEN`。Token 不放在仓库级 Secret。学校账号与 `USER_KEY_SECRET` 均不填入 GitHub。
 3. [Worker 工作流](../../.github/workflows/worker.yml) 监听 main 中的服务代码、配置、发布脚本和公告改动，也支持在 main 手动运行。
 
 部署作业等待同一运行的应用服务检查成功。其他分支、PR、fork 和检查未通过的运行不进入部署。生产作业串行执行，写入前核对提交仍是 main 分支头。发布 Token 只注入实际部署步骤，检查作业不接收凭据。
@@ -62,7 +63,7 @@ just app-service-publish
 
 `just app-service-deploy` 的行为：
 
-- 先校验内容，检查并构建 Worker。写入前通过 [Workers Domains API](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/list/) 确认目标域名已启用并绑定给指定 Worker，并确认 `USER_KEY_SECRET` 存在。域名未绑定、归属不符或无法验证时停止。在锁定的 [Wrangler 4.160.0 源码](https://github.com/cloudflare/workers-sdk/blob/wrangler%404.160.0/packages/deploy-helpers/src/triggers/publish-routes.ts) 中，非交互自定义域名发布会允许覆盖 DNS 或现有绑定。本项目的部署配置省略 `route` 和 `routes`，[触发器部署](https://github.com/cloudflare/workers-sdk/blob/wrangler%404.160.0/packages/deploy-helpers/src/triggers/deploy.ts) 不会调用域名或路由更新。
+- 先校验内容，检查并构建 Worker。写入前通过 [Worker Routes API](https://developers.cloudflare.com/api/resources/workers/subresources/routes/methods/list/) 确认目标 Zone 中 `<主机名>/*` 唯一指向指定 Worker，并确认 `USER_KEY_SECRET` 存在。路由缺失、停用、归属不符或无法验证时停止。部署配置省略 `route` 和 `routes`，只发布代码与资源绑定，保留维护者配置的 CNAME 和路由。
 - 远端操作先按文件顺序应用 `services/app_service/migrations/` 中未应用的迁移，成功后才部署已构建的 Worker。使用指定的 D1/KV ID，关闭资源自动创建、Workers Logs 和 Logpush。Cron 使用 `0 19 * * *`（校园时间每日 03:00）。部署日志只报告步骤状态，不记录 Token、Secret 或请求正文。
 `just app-service-publish` 的行为：
 

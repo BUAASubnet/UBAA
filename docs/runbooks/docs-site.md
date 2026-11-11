@@ -1,6 +1,6 @@
 # 文档网站维护
 
-本手册供维护用户网站 [ubaa.top](https://ubaa.top) 的维护者使用，说明如何在本机编辑预览、如何部署到 Cloudflare，以及部署失败时如何处理。
+本手册供维护用户网站 [www.ubaa.top](https://www.ubaa.top) 的维护者使用，说明如何在本机编辑预览、如何部署到 Cloudflare，以及部署失败时如何处理。
 
 ## 何时使用
 
@@ -34,7 +34,7 @@ npm run docs:preview
 
 ### 部署到 Cloudflare
 
-文档站发布到 Cloudflare Workers Static Assets，正式地址为 `https://ubaa.top`，Worker 名称为 `ubaa-docs`。[Wrangler 配置](../site/wrangler.json)指向 VitePress 的静态输出，使用应用服务锁定的 Wrangler 版本。
+文档站发布到 Cloudflare Workers Static Assets，正式地址为 `https://www.ubaa.top`，Worker 名称为 `ubaa-docs`。[Wrangler 配置](../site/wrangler.json)指向 VitePress 的静态输出，使用应用服务锁定的 Wrangler 版本。
 
 [文档工作流](../../.github/workflows/docs.yml)的行为：
 
@@ -49,12 +49,12 @@ npm run docs:preview
 
 - `docs-production` Environment 只允许 dev 分支。变量 `CLOUDFLARE_ACCOUNT_ID` 指定账号，Secret `CLOUDFLARE_API_TOKEN` 只用于部署步骤。
 - 构建产物通过同一次运行的 artifact 交给部署作业，部署前确认候选仍是 dev 的最新提交。
-- 域名首次绑定由维护者完成，日常部署不更改域名或 DNS。
+- 维护者保留 CNAME，并将 `www.ubaa.top/*` 路由指向 `ubaa-docs`。日常部署不更改路由或 DNS。
 
 ## 验证
 
 - 本地：`npm run docs:build` 检查站内死链；预览时核对首页、安装指南、新版变化、功能页、窄屏菜单与搜索。
-- 部署后：在 https://ubaa.top 检查首页、安装指南、公告、搜索和静态资源；不存在的路径应返回网站的 404 页面。
+- 部署后：在 https://www.ubaa.top 检查首页、安装指南、公告、搜索和静态资源；不存在的路径应返回网站的 404 页面。
 
 ## 故障处理
 
@@ -72,4 +72,4 @@ GitHub 可能保留源码中已删除工作流的历史入口。移除入口前�
 
 - [VitePress 部署说明](https://vitepress.dev/guide/deploy)
 - [Cloudflare 静态站点路由](https://developers.cloudflare.com/workers/static-assets/routing/static-site-generation/)
-- [Worker 自定义域名](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
+- [Worker Route](https://developers.cloudflare.com/workers/configuration/routing/routes/)
