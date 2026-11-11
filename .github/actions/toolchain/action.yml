@@ -1,5 +1,5 @@
 name: 安装项目工具入口
-description: 使用唯一版本清单准备 Rust 和 just
+description: 使用唯一版本清单准备 Rust、just 和托管 Linux 软件源
 inputs:
   rust:
     description: 是否需要 Rust 编译器
@@ -7,6 +7,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: 配置 Ubuntu 软件源
+      if: runner.os == 'Linux' && runner.arch == 'X64'
+      shell: bash
+      run: |
+        printf '%s\n' 'https://mirrors.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
     - id: versions
       uses: ./.github/actions/versions
     - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8

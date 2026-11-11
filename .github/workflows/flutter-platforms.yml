@@ -78,7 +78,7 @@ jobs:
       - name: 安装 Linux 构建依赖
         if: runner.os == 'Linux'
         run: >-
-          sudo apt-get update && sudo apt-get install -y
+          sudo apt-get update --error-on=any && sudo apt-get install -y
           clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
 
       - name: 安装 Linux 安全存储运行验证依赖
@@ -194,7 +194,7 @@ jobs:
       - name: 准备 HarmonyOS 托管环境
         shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
+          sudo apt-get update --error-on=any && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet
           bash scripts/bootstrap/ohos.sh
       - name: 验证 Hvigor 签名密码格式
