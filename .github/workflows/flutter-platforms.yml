@@ -3,6 +3,11 @@ name: Flutter 原生平台构建
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      ohos_only:
+        description: 仅运行 HarmonyOS 托管构建
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,6 +18,7 @@ concurrency:
 
 jobs:
   native-debug:
+    if: github.event_name != 'workflow_dispatch' || !inputs.ohos_only
     name: ${{ matrix.label }} debug
     strategy:
       fail-fast: false
@@ -145,3 +151,27 @@ jobs:
           path: ${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
+
+  native-ohos:
+    name: HarmonyOS debug
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
+      - name: 准备 HarmonyOS 托管环境
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet
+          bash scripts/bootstrap/ohos.sh
+      - name: 检查并构建 HarmonyOS
+        env:
+          UBAA_OHOS_NO_CODESIGN: '1'
+        run: just ohos-check mode=debug
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ubaa-ohos-debug-${{ github.run_id }}
+          path: apps/ubaa_ohos/build/ohos/hap/*.hap
+          if-no-files-found: error
+          retention-days: 3

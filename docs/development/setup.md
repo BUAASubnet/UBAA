@@ -23,7 +23,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 | SHA-256 工具 | `shasum -a 256` 或 `sha256sum` | 产物、源码和发布锁文件摘要共用同一回退逻辑 |
 | Node.js、npm | Node 22，至少 22.12.0；npm 支持 `npm ci` | 根 `package.json` 用于 VitePress 文档站；应用服务使用独立的 npm 项目 |
 | OHOS Flutter | tag `3.41.10-ohos-1.0.1`，commit `adaf911c35c9136a7d18fc424d714c9ec7724e60` | OHOS 独立 SDK，不能用官方 SDK 替代 |
-| DevEco / SDK | DevEco/CLI 26.0.0.821（26 Beta2）、API26；Hvigor 6.26.4、ohpm 26.0.0.630 | OHOS 检查与构建；支持 Studio `tools/` 和 CLI `tool/` 布局 |
+| DevEco / SDK | DevEco/CLI 26.0.0.821（Release）、API26；Hvigor 6.26.4、ohpm 26.0.0.630 | OHOS 检查与构建；支持 Studio `tools/` 和 CLI `tool/` 布局 |
 | JDK | 17+ | OHOS 预检；Android 使用对应 Gradle/Flutter 支持的 JDK |
 | 平台构建工具 | Apple：Xcode、Command Line Tools、CocoaPods；Android：SDK/NDK；Linux：Clang、CMake、Ninja、GTK 开发库；Windows：Visual Studio C++ 桌面工具 | 按需原生构建；用 `just flutter doctor -v` 检查当前平台 |
 
@@ -145,3 +145,9 @@ Android 使用 `ANDROID_STORE_FILE`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_AL
 | `UBAA_TEST_CODESIGN_LOG`、`UBAA_TEST_PLIST_LOG`、`UBAA_TEST_ENTITLEMENTS` | 假签名程序的日志与 entitlements 样本选择 |
 
 真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。媒体、日志的归档写法见[证据存储规则](../design/evidence/README.md)。
+
+## HarmonyOS 的 GitHub 托管构建
+
+完整原生验收和 Release 都在 GitHub 的 Ubuntu 24.04 runner 构建 HarmonyOS。`scripts/bootstrap/ohos.sh` 安装锁定的 Flutter OHOS、DevEco CLI 26.0.0.821 和 API26，并使用 runner 预装的 JDK 21。CLI 归档取自固定版本的 [SDK 镜像](https://github.com/ErBWs/ohos-sdk/releases/tag/26.0.0.821)，下载后按版本清单中的固定摘要校验。版本与组件对应关系以[华为发布说明](https://developer.huawei.com/consumer/en/doc/harmonyos-releases/deveco-studio-new-features-2600/)为准。
+
+检查作业使用无签名 Debug HAP。Release 作业在 release-production 环境取得签名材料，构建商店 APP 包；上传与处理状态检查由独立商店作业执行。全部作业使用 GitHub 托管 runner，不依赖维护者电脑在线。
