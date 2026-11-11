@@ -1,22 +1,22 @@
 # 桌面命令模式
 
-本页介绍桌面版附带的 `ubaa` 命令：怎样安装，以及常用的查询和修改方式。
+本页介绍桌面版附带的 `ubaa-cli` 命令：怎样安装，以及常用的查询和修改方式。
 
-`ubaa` 命令可以查询校园信息、操作云盘和管理本机日程。它与图形界面共用账号、登录状态、缓存和日程，适合在终端使用或写脚本调用。
+`ubaa-cli` 命令可以查询校园信息、操作云盘和管理本机日程。它与图形界面共用账号、登录状态、缓存和日程，适合在终端使用或写脚本调用。
 
 ## 安装入口
 
 使用包含命令组件的桌面安装包，保留应用与命令组件的版本一致。
 
-图形应用名统一为 `UBAA`。Linux 图形程序为 `UBAA`，命令程序为小写 `ubaa`；Windows 图形程序为 `UBAA.exe`，控制台程序为 `ubaa.com`。
+图形应用名统一为 `UBAA`，命令名统一为 `ubaa-cli`。Linux 图形程序为 `UBAA`，命令程序为 `ubaa-cli`；Windows 图形程序为 `UBAA.exe`，控制台程序为 `ubaa-cli.exe`。
 
 | 平台 | 入口 |
 | --- | --- |
-| macOS | App 内的 `Contents/MacOS/UBAA --command`，可用启动脚本包装为 `ubaa` |
-| Windows | 应用目录内的 `ubaa.com`，与同目录的 DLL 和 `data/` 一起保留 |
-| Linux | 应用目录内的 `ubaa`，与配套 `lib/` 一起保留 |
+| macOS | App 内的 `Contents/MacOS/UBAA --command`，可用启动脚本包装为 `ubaa-cli` |
+| Windows | 应用目录内的 `ubaa-cli.exe`，与同目录的 DLL 和 `data/` 一起保留 |
+| Linux | 应用目录内的 `ubaa-cli`，与配套 `lib/` 一起保留 |
 
-Windows 可以将应用目录加入 PATH，然后使用 `ubaa`，也可以显式运行 `ubaa.com`。Linux 可以将 `ubaa` 链接到 PATH 中的目录，保留实际应用目录和动态库。macOS 可在 PATH 中的目录创建名为 `ubaa` 的脚本，将下面的路径改为实际安装位置：
+Windows 可以将应用目录加入 PATH，然后使用 `ubaa-cli`，也可以显式运行 `ubaa-cli.exe`。Linux 可以将 `ubaa-cli` 链接到 PATH 中的目录，保留实际应用目录和动态库。macOS 可在 PATH 中的目录创建名为 `ubaa-cli` 的脚本，将下面的路径改为实际安装位置：
 
 ```sh
 #!/bin/sh
@@ -28,17 +28,17 @@ exec "/Applications/UBAA.app/Contents/MacOS/UBAA" --command "$@"
 ## 常用查询
 
 ```bash
-ubaa --help
-ubaa auth login --username YOUR_USERNAME
-ubaa auth status
-ubaa schedule terms
-ubaa grades list --term 2025-2026-1
-ubaa --json agenda unsynced
-ubaa agenda list --from 2026-11-01 --to 2026-11-08
-ubaa agenda export --from 2026-11-01 --to 2026-11-08 --output ./agenda.ics
+ubaa-cli --help
+ubaa-cli auth login --username YOUR_USERNAME
+ubaa-cli auth status
+ubaa-cli schedule terms
+ubaa-cli grades list --term 2025-2026-1
+ubaa-cli --json agenda unsynced
+ubaa-cli agenda list --from 2026-11-01 --to 2026-11-08
+ubaa-cli agenda export --from 2026-11-01 --to 2026-11-08 --output ./agenda.ics
 ```
 
-密码通过不回显输入或标准输入提供，不放在命令参数中。默认的本机日程查询和导出不请求学校服务。命令结束只关闭当前进程，退出账号使用 `ubaa auth logout`。
+密码通过不回显输入或标准输入提供，不放在命令参数中。默认的本机日程查询和导出不请求学校服务。命令结束只关闭当前进程，退出账号使用 `ubaa-cli auth logout`。
 
 ## 修改与脚本调用
 

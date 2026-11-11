@@ -48,12 +48,12 @@
 
 ## 桌面命令
 
-桌面 `ubaa` 命令与图形界面共用账号和本机数据，也可以用 `--config-dir` 指定另一个资料目录。系统安全存储里的账号材料仍属于当前系统用户，单独换目录不等于隔离全部账号材料。
+桌面 `ubaa-cli` 命令与图形界面共用账号和本机数据，也可以用 `--config-dir` 指定另一个资料目录。系统安全存储里的账号材料仍属于当前系统用户，单独换目录不等于隔离全部账号材料。
 
 ```bash
-ubaa --help
-ubaa auth login --username YOUR_USERNAME
-ubaa auth status
+ubaa-cli --help
+ubaa-cli auth login --username YOUR_USERNAME
+ubaa-cli auth status
 ```
 
 密码通过不回显的输入或标准输入提供，不写在命令参数里。安装与用法见[桌面命令模式](/features/command)。

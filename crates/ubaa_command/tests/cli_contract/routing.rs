@@ -10,7 +10,7 @@ use crate::common::{FakeBackend, FakeRoutedBackend};
 
 #[tokio::test]
 async fn readonly_route_errors_use_schema_v10_diagnostics() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -41,7 +41,7 @@ async fn readonly_route_errors_use_schema_v10_diagnostics() {
 
 #[tokio::test]
 async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeBackend {
         schedule_success: true,
         ..FakeBackend::default()
@@ -74,7 +74,7 @@ async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
 
 #[tokio::test]
 async fn routed_user_success_preserves_core_default_route_diagnostics() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "user", "show"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "user", "show"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -97,14 +97,14 @@ async fn routed_user_success_preserves_core_default_route_diagnostics() {
 #[allow(clippy::too_many_lines)]
 fn 扩展只读命令全部要求已有会话并映射正确功能() {
     let cases = [
-        (vec!["ubaa", "signin", "today"], CliFeature::Signin),
+        (vec!["ubaa-cli", "signin", "today"], CliFeature::Signin),
         (
-            vec!["ubaa", "libbook", "libraries", "--day", "2026-08-27"],
+            vec!["ubaa-cli", "libbook", "libraries", "--day", "2026-08-27"],
             CliFeature::LibBook,
         ),
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "libbook",
                 "areas",
                 "--premises-id",
@@ -117,12 +117,12 @@ fn 扩展只读命令全部要求已有会话并映射正确功能() {
             CliFeature::LibBook,
         ),
         (
-            vec!["ubaa", "libbook", "area-detail", "--area-id", "8"],
+            vec!["ubaa-cli", "libbook", "area-detail", "--area-id", "8"],
             CliFeature::LibBook,
         ),
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "libbook",
                 "seats",
                 "--area-id",
@@ -138,31 +138,31 @@ fn 扩展只读命令全部要求已有会话并映射正确功能() {
         ),
         (
             vec![
-                "ubaa", "libbook", "bookings", "--page", "1", "--limit", "20",
+                "ubaa-cli", "libbook", "bookings", "--page", "1", "--limit", "20",
             ],
             CliFeature::LibBook,
         ),
-        (vec!["ubaa", "ygdk", "overview"], CliFeature::Ygdk),
+        (vec!["ubaa-cli", "ygdk", "overview"], CliFeature::Ygdk),
         (
-            vec!["ubaa", "ygdk", "records", "--page", "1", "--size", "20"],
+            vec!["ubaa-cli", "ygdk", "records", "--page", "1", "--size", "20"],
             CliFeature::Ygdk,
         ),
-        (vec!["ubaa", "bykc", "profile"], CliFeature::Bykc),
+        (vec!["ubaa-cli", "bykc", "profile"], CliFeature::Bykc),
         (
-            vec!["ubaa", "bykc", "courses", "--page", "1", "--size", "20"],
+            vec!["ubaa-cli", "bykc", "courses", "--page", "1", "--size", "20"],
             CliFeature::Bykc,
         ),
         (
-            vec!["ubaa", "bykc", "course", "--id", "1"],
+            vec!["ubaa-cli", "bykc", "course", "--id", "1"],
             CliFeature::Bykc,
         ),
-        (vec!["ubaa", "bykc", "chosen"], CliFeature::Bykc),
-        (vec!["ubaa", "bykc", "statistics"], CliFeature::Bykc),
-        (vec!["ubaa", "cgyy", "sites"], CliFeature::Cgyy),
-        (vec!["ubaa", "cgyy", "purposes"], CliFeature::Cgyy),
+        (vec!["ubaa-cli", "bykc", "chosen"], CliFeature::Bykc),
+        (vec!["ubaa-cli", "bykc", "statistics"], CliFeature::Bykc),
+        (vec!["ubaa-cli", "cgyy", "sites"], CliFeature::Cgyy),
+        (vec!["ubaa-cli", "cgyy", "purposes"], CliFeature::Cgyy),
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "cgyy",
                 "day",
                 "--site-id",
@@ -173,11 +173,11 @@ fn 扩展只读命令全部要求已有会话并映射正确功能() {
             CliFeature::Cgyy,
         ),
         (
-            vec!["ubaa", "cgyy", "orders", "--page", "0", "--size", "10"],
+            vec!["ubaa-cli", "cgyy", "orders", "--page", "0", "--size", "10"],
             CliFeature::Cgyy,
         ),
         (
-            vec!["ubaa", "cgyy", "detail", "--id", "1"],
+            vec!["ubaa-cli", "cgyy", "detail", "--id", "1"],
             CliFeature::Cgyy,
         ),
     ];
@@ -192,7 +192,7 @@ fn 扩展只读命令全部要求已有会话并映射正确功能() {
 
 #[tokio::test]
 async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeRoutedBackend {
         fail_schedule: true,
         ..FakeRoutedBackend::default()
@@ -229,7 +229,7 @@ fn explicit_direct_route_context() -> ReadonlyRouteContext {
 #[test]
 fn login_without_diagnostic_mode_uses_aggregate_path() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "auth",
         "login",
         "--username",

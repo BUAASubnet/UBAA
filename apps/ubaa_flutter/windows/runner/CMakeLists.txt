@@ -45,12 +45,12 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
 add_executable(ubaa_command "command_main.cpp" "Runner.rc" "runner.exe.manifest")
-set_target_properties(ubaa_command PROPERTIES OUTPUT_NAME "ubaa" SUFFIX ".com"
-  PDB_NAME "ubaa_command" COMPILE_PDB_NAME "ubaa_command")
+set_target_properties(ubaa_command PROPERTIES OUTPUT_NAME "ubaa-cli")
 apply_standard_settings(ubaa_command)
 target_compile_options(ubaa_command PRIVATE /utf-8)
 target_compile_definitions(ubaa_command PRIVATE NOMINMAX
-  "UBAA_EXECUTABLE_NAME=\"ubaa.com\""
+  "UBAA_EXECUTABLE_NAME=\"ubaa-cli.exe\""
+  "UBAA_INTERNAL_NAME=\"ubaa-cli\""
   "FLUTTER_VERSION=\"${FLUTTER_VERSION}\""
   "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}"
   "FLUTTER_VERSION_MINOR=${FLUTTER_VERSION_MINOR}"

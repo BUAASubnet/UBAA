@@ -367,7 +367,7 @@ fn 场馆预约标准输入拒绝_core_内部验证码字段() {
                 "captchaJigsawImageBase64": "private-jigsaw-image"
             }"#;
     let plan = ubaa_command::parse([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "cgyy",
         "submit",

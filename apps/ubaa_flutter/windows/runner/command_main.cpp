@@ -127,7 +127,7 @@ int wmain(int argc,wchar_t* argv[]) {
   auto restore_terminal=[&]{if(has_terminal)SetConsoleMode(input,terminal_mode);};
   SetStdHandle(STD_OUTPUT_HANDLE,diagnostics);
   _dup2(_fileno(stderr),_fileno(stdout));
-  std::vector<std::string> arguments{"ubaa"};
+  std::vector<std::string> arguments{"ubaa-cli"};
   for(int i=1;i<argc;i++) {
     std::string value;
     if(!Utf8(argv[i],static_cast<int>(wcslen(argv[i])),&value))return 2;

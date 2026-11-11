@@ -74,7 +74,7 @@ Future<void> main(List<String> arguments) async {
     );
     startupDeadline.cancel();
     final code = await runtime.run([
-      'ubaa',
+      'ubaa-cli',
       ...arguments,
     ], budget: const Duration(minutes: 2) - elapsed.elapsed);
     io.restoreTerminal();

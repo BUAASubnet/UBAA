@@ -32,8 +32,8 @@ def compile_linux(output, environment, mode, *, standalone=False):
         if version := re.search(r'^version:\s*(\S+)', metadata, re.MULTILINE):
             defines.append(f'-DUBAA_COMMAND_APP_VERSION={version[1]}')
     run(['just', 'dart', 'compile', 'exe', '--packages=.dart_tool/package_config.json',
-         *defines, 'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(output / 'ubaa')], environment)
-    print(f'命令入口：{output / "ubaa"}')
+         *defines, 'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(output / 'ubaa-cli')], environment)
+    print(f'命令入口：{output / "ubaa-cli"}')
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
             if destination.exists():
                 shutil.rmtree(destination)
             shutil.copytree(source, destination, symlinks=True)
-            launcher = output / 'ubaa'
+            launcher = output / 'ubaa-cli'
             launcher.write_text('#!/bin/sh\nexec "$(dirname "$0")/UBAA.app/Contents/MacOS/UBAA" --command "$@"\n')
             launcher.chmod(0o755)
         return

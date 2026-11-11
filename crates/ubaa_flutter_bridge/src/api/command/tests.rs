@@ -8,7 +8,7 @@ fn 配置路径为文件时在请求密码前拒绝() {
     std::fs::write(&file, "合成普通文件").unwrap();
     let command = BridgeCommand::parse(
         vec![
-            "ubaa".into(),
+            "ubaa-cli".into(),
             "--config-dir".into(),
             file.to_string_lossy().into(),
             "auth".into(),
@@ -32,7 +32,7 @@ fn 无效用户名立即拒绝且不再请求密码() {
     for input in [vec![0xff, b'\n'], b" \n".to_vec(), b"\n".to_vec()] {
         let command = BridgeCommand::parse(
             [
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "auth",
                 "login",
@@ -56,7 +56,7 @@ fn 无效用户名立即拒绝且不再请求密码() {
 async fn 无效登录参数在材料初始化前形成最终错误() {
     for args in [
         vec![
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "auth",
             "login",
@@ -64,10 +64,17 @@ async fn 无效登录参数在材料初始化前形成最终错误() {
             "",
             "--password-stdin",
         ],
-        vec!["ubaa", "--json", "auth", "login", "--username", "synthetic"],
-        vec!["ubaa", "--json", "auth", "login", "--password-stdin"],
         vec![
-            "ubaa",
+            "ubaa-cli",
+            "--json",
+            "auth",
+            "login",
+            "--username",
+            "synthetic",
+        ],
+        vec!["ubaa-cli", "--json", "auth", "login", "--password-stdin"],
+        vec![
+            "ubaa-cli",
             "auth",
             "login",
             "--username",
@@ -132,7 +139,7 @@ async fn 无效本机参数与输入在打开材料前拒绝() {
         ),
     ] {
         let command = BridgeCommand::parse(
-            [vec!["ubaa", "--json"], arguments]
+            [vec!["ubaa-cli", "--json"], arguments]
                 .concat()
                 .into_iter()
                 .map(str::to_owned)
@@ -171,7 +178,7 @@ async fn 写入结果在交付前到期时保留核对提示() {
         .unwrap();
     let prepared = command::prepare_input(
         command::parse([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "bykc",
             "select",
@@ -302,7 +309,7 @@ async fn 密码与阳光请求在材料初始化前完整校验() {
         ),
     ] {
         let command = BridgeCommand::parse(
-            [vec!["ubaa", "--json"], arguments]
+            [vec!["ubaa-cli", "--json"], arguments]
                 .concat()
                 .into_iter()
                 .map(str::to_owned)

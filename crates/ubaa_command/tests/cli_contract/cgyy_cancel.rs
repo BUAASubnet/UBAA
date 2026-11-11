@@ -183,7 +183,7 @@ fn 场馆取消结果只接受成功布尔与固定安全消息() {
 
 fn cancel_arguments(order_id: i32, confirm_write: bool) -> Vec<String> {
     let mut arguments = vec![
-        "ubaa".to_owned(),
+        "ubaa-cli".to_owned(),
         "--json".to_owned(),
         "cgyy".to_owned(),
         "cancel".to_owned(),

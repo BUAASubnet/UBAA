@@ -6,7 +6,7 @@
 
 int main(int argc, char** argv) {
   if (argc > 1 && std::strcmp(argv[1], "--command") == 0) {
-    const auto command = std::filesystem::canonical("/proc/self/exe").parent_path() / "ubaa";
+    const auto command = std::filesystem::canonical("/proc/self/exe").parent_path() / "ubaa-cli";
     std::vector<char*> arguments;
     auto path = command.string();
     arguments.push_back(path.data());

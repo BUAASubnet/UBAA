@@ -8,14 +8,22 @@ fn 云盘命令由唯一命令树分派且写操作不进入只读重跑器() {
         vec!["share", "history"],
         vec!["download-prepare", "/notes.txt"],
     ] {
-        let mut argv = vec!["ubaa", "bhpan"];
+        let mut argv = vec!["ubaa-cli", "bhpan"];
         argv.extend(arguments);
         assert_eq!(
             parse(argv).unwrap().requirements().class,
             CommandClass::Readonly
         );
     }
-    let plan = parse(["ubaa", "bhpan", "mkdir", "/", "notes", "--confirm-write"]).unwrap();
+    let plan = parse([
+        "ubaa-cli",
+        "bhpan",
+        "mkdir",
+        "/",
+        "notes",
+        "--confirm-write",
+    ])
+    .unwrap();
     assert_eq!(plan.requirements().class, CommandClass::SchoolWrite);
 }
 
@@ -204,7 +212,7 @@ impl Fixture {
         }
     }
     async fn run(&mut self, arguments: &[&str]) -> (i32, Value) {
-        let mut argv = vec!["ubaa", "--json", "bhpan"];
+        let mut argv = vec!["ubaa-cli", "--json", "bhpan"];
         argv.extend(arguments);
         let control = CommandControl::default();
         let prepared = prepare_input(parse(argv).unwrap(), &mut Cursor::new([]), &control).unwrap();
@@ -343,7 +351,7 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
     let control = CommandControl::default();
     let prepared = prepare_input(
         parse([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "bhpan",
             "upload-fast",
@@ -369,7 +377,7 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
 #[test]
 fn 显式分享密码拒绝空输入但仍允许省略密码参数() {
     let argv = [
-        "ubaa",
+        "ubaa-cli",
         "bhpan",
         "share",
         "create",
@@ -442,7 +450,7 @@ fn 无效分享链接在全部公共入口的准备阶段拒绝且不回显原�
             output.to_str().unwrap(),
         ],
     ] {
-        let mut argv = vec!["ubaa", "bhpan"];
+        let mut argv = vec!["ubaa-cli", "bhpan"];
         argv.extend(&arguments);
         let result = prepare_input(
             parse(argv).unwrap(),
@@ -496,7 +504,7 @@ async fn 目标查询期间改写文件阻止普通共享和秒传上传() {
 #[tokio::test]
 async fn 公开聚合执行入口同样拒绝未确认云盘写入() {
     let mut fixture = Fixture::new(Transport::default(), "direct");
-    let cli = ubaa_command::parse(["ubaa", "--json", "bhpan", "delete", "/notes.txt"])
+    let cli = ubaa_command::parse(["ubaa-cli", "--json", "bhpan", "delete", "/notes.txt"])
         .unwrap()
         .into_cli();
     let code =

@@ -51,7 +51,7 @@ async fn 固定webvpn首次创建通过同步服务输出未验证且不启用�
     .unwrap();
     client.bind_shared_account(Some(owner));
     let plan = parse([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "agenda",
         "sync",

@@ -166,7 +166,7 @@ default="direct"
     .await;
     let (cache, mut repo) = super::cached_commit::cache(&root).await;
     let argv = [
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "bykc",
         "select",

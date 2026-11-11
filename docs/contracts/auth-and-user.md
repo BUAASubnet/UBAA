@@ -72,7 +72,7 @@ CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:16`，消费者从受跟�
 
 ## CLI 宿主
 
-`ubaa` 二进制暴露认证、用户信息、全部标准只读命令组和扩展只读命令；扩展写命令仍要求显式确认并受真实验证器阻止。普通 `auth login` 会尝试两条路线；隐藏的 `--mode`、`spoc diagnostics` 和 `judge diagnostics` 仅供测试与实时验证，不属于稳定用户命令合同。人类模式可以提示用户名，除非选择 `--password-stdin`，否则使用隐藏密码输入。JSON 模式绝不执行隐藏交互。需要交互式验证的登录页会安全返回 `upstream_changed`；CLI 没有验证码选项、图片路径、提示或挑战持久化能力。
+`ubaa-cli` 二进制暴露认证、用户信息、全部标准只读命令组和扩展只读命令；扩展写命令仍要求显式确认并受真实验证器阻止。普通 `auth login` 会尝试两条路线；隐藏的 `--mode`、`spoc diagnostics` 和 `judge diagnostics` 仅供测试与实时验证，不属于稳定用户命令合同。人类模式可以提示用户名，除非选择 `--password-stdin`，否则使用隐藏密码输入。JSON 模式绝不执行隐藏交互。需要交互式验证的登录页会安全返回 `upstream_changed`；CLI 没有验证码选项、图片路径、提示或挑战持久化能力。
 
 `--json` 对命令成功、命令失败或参数解析失败都只向 stdout 写入一个带版本 envelope；help 和
 version 保留普通文本行为。无效参数文本会归约为安全的 `invalid_input` envelope，不回显调用

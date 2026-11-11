@@ -130,10 +130,10 @@ OHOS 将用户选择的本机文档 URI 解析为授权路径，通过独占创�
 ## 公共命令示例
 
 ```sh
-ubaa bhpan list
-ubaa bhpan upload /课程资料 ./实验报告.pdf 实验报告.pdf --confirm-write
-ubaa bhpan download /课程资料/实验报告.pdf --output ./实验报告.pdf
-ubaa bhpan download /课程资料 /说明.txt --name 备份 --output ./备份.zip
+ubaa-cli bhpan list
+ubaa-cli bhpan upload /课程资料 ./实验报告.pdf 实验报告.pdf --confirm-write
+ubaa-cli bhpan download /课程资料/实验报告.pdf --output ./实验报告.pdf
+ubaa-cli bhpan download /课程资料 /说明.txt --name 备份 --output ./备份.zip
 ```
 
 上传的三个位置参数依次是云盘父目录、本机文件和云盘文件名。个人秒传使用相同参数，将 `upload` 换成 `upload-fast` 即可。下载参数中，`--name` 设置云盘打包名，`--output` 指定本机保存路径。已有本机文件只有显式指定 `--overwrite` 才能覆盖。

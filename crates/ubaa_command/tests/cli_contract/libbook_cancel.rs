@@ -13,7 +13,7 @@ fn cancel_arguments(
     confirm_write: bool,
 ) -> Vec<String> {
     let mut arguments = vec![
-        "ubaa".to_owned(),
+        "ubaa-cli".to_owned(),
         "--json".to_owned(),
         "libbook".to_owned(),
         "cancel".to_owned(),
@@ -35,7 +35,7 @@ fn cancel_arguments(
 #[tokio::test]
 async fn 图书馆预约记录取消资格与稳定目标符合_schema_v10() {
     let cli = Cli::try_parse_from([
-        "ubaa", "--json", "libbook", "bookings", "--page", "1", "--limit", "20",
+        "ubaa-cli", "--json", "libbook", "bookings", "--page", "1", "--limit", "20",
     ])
     .unwrap();
     let mut backend = FakeRoutedBackend::default();

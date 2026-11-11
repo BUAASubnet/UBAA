@@ -121,12 +121,12 @@ printf '%s\n' 'fixture assets' \
 
 mkdir -p "$test_root/artifacts/linux/data/flutter_assets"
 printf '%s\n' 'fixture executable' >"$test_root/artifacts/linux/UBAA"
-printf '%s\n' 'fixture command' >"$test_root/artifacts/linux/ubaa"
+printf '%s\n' 'fixture command' >"$test_root/artifacts/linux/ubaa-cli"
 printf '%s\n' 'fixture assets' >"$test_root/artifacts/linux/data/flutter_assets/AssetManifest.bin"
 
 mkdir -p "$test_root/artifacts/windows/data/flutter_assets"
 printf '%s\n' 'fixture executable' >"$test_root/artifacts/windows/UBAA.exe"
-printf '%s\n' 'fixture command' >"$test_root/artifacts/windows/ubaa.com"
+printf '%s\n' 'fixture command' >"$test_root/artifacts/windows/ubaa-cli.exe"
 printf '%s\n' 'fixture assets' >"$test_root/artifacts/windows/data/flutter_assets/AssetManifest.bin"
 
 apk_root=$test_root/apk-root

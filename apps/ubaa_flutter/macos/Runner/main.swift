@@ -3,7 +3,7 @@ import Darwin
 import FlutterMacOS
 
 let commandArguments = Array(CommandLine.arguments.dropFirst())
-let invokedAsCommand = (CommandLine.arguments.first! as NSString).lastPathComponent == "ubaa"
+let invokedAsCommand = (CommandLine.arguments.first! as NSString).lastPathComponent == "ubaa-cli"
 if invokedAsCommand || commandArguments.first == "--command" {
   let arguments = invokedAsCommand ? commandArguments : Array(commandArguments.dropFirst())
   runCommand(arguments)

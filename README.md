@@ -54,12 +54,12 @@
 > [!TIP]
 > 从旧版 v1.x 升级？请先阅读[新版变化与升级说明](https://www.ubaa.top/guide/ubaa2)。旧版的登录状态和设置不会自动迁移，需要重新登录。
 
-桌面版附带 `ubaa` 命令，和图形界面共用账号与数据：
+桌面版附带 `ubaa-cli` 命令，和图形界面共用账号与数据：
 
 ```bash
-ubaa auth login --username 你的学号
-ubaa schedule today
-ubaa --json grades list --term 2025-2026-1
+ubaa-cli auth login --username 你的学号
+ubaa-cli schedule today
+ubaa-cli --json grades list --term 2025-2026-1
 ```
 
 更多用法见[桌面命令模式](https://www.ubaa.top/features/command)。

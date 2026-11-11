@@ -333,7 +333,7 @@ mod agenda_delivery_tests {
                 "--stdout",
             ],
         ] {
-            let mut argv = vec!["ubaa", "agenda"];
+            let mut argv = vec!["ubaa-cli", "agenda"];
             argv.extend(arguments);
             assert!(parse(argv.clone()).is_ok(), "命令应可用：{argv:?}");
         }
@@ -342,7 +342,7 @@ mod agenda_delivery_tests {
     fn stdout导出与_json在材料初始化前拒绝() {
         assert!(
             parse([
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "agenda",
                 "export",
@@ -357,7 +357,7 @@ mod agenda_delivery_tests {
     }
     #[test]
     fn 未确认学校写入在准备阶段拒绝且不读取输入() {
-        let plan = parse(["ubaa", "bykc", "select", "--course-id", "42"]).unwrap();
+        let plan = parse(["ubaa-cli", "bykc", "select", "--course-id", "42"]).unwrap();
         let mut input = std::io::Cursor::new("不得读取".as_bytes());
         let error = crate::prepare_input(plan, &mut input, &crate::CommandControl::default())
             .err()

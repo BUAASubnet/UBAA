@@ -9,7 +9,7 @@ use crate::common::{
 
 fn libbook_reserve_arguments() -> Vec<String> {
     [
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "libbook",
         "reserve",
@@ -34,7 +34,7 @@ fn libbook_reserve_arguments() -> Vec<String> {
 
 #[tokio::test]
 async fn 课堂签到今日与写结果都符合_schema_v10() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "signin", "today"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "signin", "today"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -82,7 +82,7 @@ async fn 课堂签到确定成功与业务_false_保持内外层语义() {
         (SigninFixtureResult::BusinessFalse, false, 400),
     ] {
         let cli = Cli::try_parse_from([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "signin",
             "perform",
@@ -119,7 +119,7 @@ async fn 课堂签到发送前超时与发送后未知保持不同错误分类�
         (SigninFixtureResult::OutcomeUnknown, "outcome_unknown"),
     ] {
         let cli = Cli::try_parse_from([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "signin",
             "perform",
@@ -151,7 +151,7 @@ async fn 课堂签到发送前超时与发送后未知保持不同错误分类�
 async fn 课堂签到未确认或空目标在后端调用前拒绝() {
     for arguments in [
         vec![
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "signin",
             "perform",
@@ -159,7 +159,7 @@ async fn 课堂签到未确认或空目标在后端调用前拒绝() {
             "schedule-safe",
         ],
         vec![
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "signin",
             "perform",
@@ -187,7 +187,7 @@ async fn 课堂签到未确认或空目标在后端调用前拒绝() {
 #[tokio::test]
 async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "signin",
         "perform",
@@ -220,7 +220,7 @@ async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
 #[tokio::test]
 async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "libbook",
         "seats",
@@ -405,7 +405,7 @@ async fn 固定路线图书馆预约空目标同样在后端调用前拒绝() {
 
 #[tokio::test]
 async fn 场馆取消默认拒绝且不调用后端() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "cgyy", "cancel", "--id", "42"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "cgyy", "cancel", "--id", "42"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -426,7 +426,7 @@ async fn 场馆取消默认拒绝且不调用后端() {
 #[tokio::test]
 async fn 场馆取消显式确认后才调用后端() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "cgyy",
         "cancel",
@@ -458,7 +458,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
     let cases = [
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "bykc",
                 "select",
@@ -470,7 +470,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
         ),
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "bykc",
                 "deselect",
@@ -482,7 +482,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
         ),
         (
             vec![
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "bykc",
                 "sign",
@@ -517,7 +517,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
 
 #[tokio::test]
 async fn 场馆预约默认拒绝且不读取标准输入() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "cgyy", "submit"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "cgyy", "submit"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -534,10 +534,17 @@ async fn 场馆预约默认拒绝且不读取标准输入() {
 #[tokio::test]
 async fn 其他写命令未确认时统一拒绝() {
     let commands = [
-        Cli::try_parse_from(["ubaa", "--json", "signin", "perform", "--course-id", "safe"])
-            .unwrap(),
         Cli::try_parse_from([
-            "ubaa",
+            "ubaa-cli",
+            "--json",
+            "signin",
+            "perform",
+            "--course-id",
+            "safe",
+        ])
+        .unwrap(),
+        Cli::try_parse_from([
+            "ubaa-cli",
             "--json",
             "ygdk",
             "submit",
@@ -554,7 +561,7 @@ async fn 其他写命令未确认时统一拒绝() {
         ])
         .unwrap(),
         Cli::try_parse_from([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "libbook",
             "reserve",
@@ -568,7 +575,7 @@ async fn 其他写命令未确认时统一拒绝() {
             "1",
         ])
         .unwrap(),
-        Cli::try_parse_from(["ubaa", "--json", "bykc", "select", "--course-id", "1"]).unwrap(),
+        Cli::try_parse_from(["ubaa-cli", "--json", "bykc", "select", "--course-id", "1"]).unwrap(),
     ];
     for cli in commands {
         let mut backend = FakeRoutedBackend::default();
@@ -585,7 +592,7 @@ async fn 其他写命令未确认时统一拒绝() {
 
 #[tokio::test]
 async fn 自动评教提交未确认时拒绝且不查询课程() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "evaluation", "submit-pending"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "evaluation", "submit-pending"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();

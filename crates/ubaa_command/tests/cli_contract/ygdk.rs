@@ -147,7 +147,7 @@ fn submit_arguments(
     end_time: &str,
 ) -> Vec<String> {
     [
-        "ubaa".to_owned(),
+        "ubaa-cli".to_owned(),
         "--json".to_owned(),
         "ygdk".to_owned(),
         "submit".to_owned(),
@@ -239,7 +239,7 @@ fn 阳光打卡项目合同只允许allowed携带正数typed目标() {
 
 #[tokio::test]
 async fn 阳光打卡概览投影再次关闭重复错配与非allowed目标() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "ygdk", "overview"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "ygdk", "overview"]).unwrap();
     let mut backend = FakeRoutedBackend {
         ygdk_overview: Some(overview_fixture()),
         ..FakeRoutedBackend::default()
@@ -274,7 +274,7 @@ async fn 阳光打卡概览投影再次关闭重复错配与非allowed目标() {
 
 #[tokio::test]
 async fn 阳光打卡空父分类名称不能保留任何allowed目标() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "ygdk", "overview"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "ygdk", "overview"]).unwrap();
     let mut overview = overview_fixture();
     overview.classify_name = "   ".into();
     let mut backend = FakeRoutedBackend {
@@ -314,7 +314,7 @@ async fn 阳光打卡概览投影关闭其余三类矛盾资格() {
             "nonpositive_parent" => overview.classify_id = 0,
             _ => unreachable!(),
         }
-        let cli = Cli::try_parse_from(["ubaa", "--json", "ygdk", "overview"]).unwrap();
+        let cli = Cli::try_parse_from(["ubaa-cli", "--json", "ygdk", "overview"]).unwrap();
         let mut backend = FakeRoutedBackend {
             ygdk_overview: Some(overview),
             ..FakeRoutedBackend::default()
@@ -337,7 +337,7 @@ async fn 阳光打卡概览投影关闭其余三类矛盾资格() {
 #[tokio::test]
 async fn 阳光打卡记录仅公开图片数量且不泄露图片地址() {
     let cli = Cli::try_parse_from([
-        "ubaa", "--json", "ygdk", "records", "--page", "1", "--size", "20",
+        "ubaa-cli", "--json", "ygdk", "records", "--page", "1", "--size", "20",
     ])
     .unwrap();
     let sentinel = "https://ygdk.invalid/private.jpg?token=SENTINEL";
@@ -898,7 +898,7 @@ async fn 阳光执行使用准备时照片快照且不重新读取文件() {
     let photo = directory.join("合成照片.jpg");
     std::fs::write(&photo, b"synthetic-photo").unwrap();
     let plan = ubaa_command::parse([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "ygdk",
         "submit",

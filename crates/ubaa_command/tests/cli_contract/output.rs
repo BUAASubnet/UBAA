@@ -33,7 +33,7 @@ fn masked_profile() -> UserProfile {
 #[tokio::test]
 async fn json_login_outputs_one_parseable_redacted_envelope() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "--config-dir",
         "/tmp/ubaa-fixture",
@@ -74,7 +74,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
 
 #[tokio::test]
 async fn human_user_output_masks_phone_and_identity_number() {
-    let cli = Cli::try_parse_from(["ubaa", "user", "show"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "user", "show"]).unwrap();
     let mut backend = FakeBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -99,7 +99,7 @@ async fn human_user_output_masks_phone_and_identity_number() {
 #[tokio::test]
 async fn hidden_judge_diagnostics_exposes_only_safe_counts_and_summaries() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "judge",
         "diagnostics",
@@ -125,7 +125,7 @@ async fn hidden_judge_diagnostics_exposes_only_safe_counts_and_summaries() {
 
 #[tokio::test]
 async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "spoc", "diagnostics"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "spoc", "diagnostics"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -654,8 +654,8 @@ fn cli_json_schema_contains_no_v1_or_legacy_route_contract() {
 #[tokio::test]
 async fn 研究生概览和独立考试学期命令保留路线并满足schema() {
     for args in [
-        ["ubaa", "--json", "grades", "overview"],
-        ["ubaa", "--json", "exam", "terms"],
+        ["ubaa-cli", "--json", "grades", "overview"],
+        ["ubaa-cli", "--json", "exam", "terms"],
     ] {
         let cli = Cli::try_parse_from(args).unwrap();
         let mut backend = FakeRoutedBackend::default();

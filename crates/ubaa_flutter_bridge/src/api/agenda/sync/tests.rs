@@ -117,7 +117,7 @@ async fn gui与命令未登录时保留日程并返回认证错误() {
     assert_eq!(agenda.unsynced_count().await.unwrap(), 1);
     assert!(!agenda.sync_enabled().await.unwrap());
     let command = BridgeCommand::parse(
-        ["ubaa", "--json", "agenda", "sync", "--confirm-write"]
+        ["ubaa-cli", "--json", "agenda", "sync", "--confirm-write"]
             .into_iter()
             .map(str::to_owned)
             .collect(),

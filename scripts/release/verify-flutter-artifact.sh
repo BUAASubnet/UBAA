@@ -58,12 +58,12 @@ require_zip_entry() {
 case "$platform" in
   linux)
     require_file "$artifact/UBAA"
-    require_file "$artifact/ubaa"
+    require_file "$artifact/ubaa-cli"
     require_file "$artifact/data/flutter_assets/AssetManifest.bin"
     ;;
   windows)
     require_file "$artifact/UBAA.exe"
-    require_file "$artifact/ubaa.com"
+    require_file "$artifact/ubaa-cli.exe"
     require_file "$artifact/data/flutter_assets/AssetManifest.bin"
     ;;
   macos)
