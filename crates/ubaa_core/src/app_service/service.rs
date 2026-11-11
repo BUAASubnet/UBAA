@@ -54,7 +54,7 @@ impl AppService {
         }
         let policy = config.available().map(|_| policy_version);
         Ok(Self {
-            store: Store::open(config_dir, policy)?,
+            store: Store::open(config_dir, policy, surface)?,
             config,
             surface,
             telemetry_hard_closed: config::telemetry_hard_closed,

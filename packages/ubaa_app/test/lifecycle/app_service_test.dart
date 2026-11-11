@@ -16,7 +16,7 @@ void main() {
     gui.addListener(() => notifications.add(gui.appService));
 
     await gui.refreshAppService();
-    expect(gui.appService.needsConsentPrompt, isTrue);
+    expect(gui.appService.consent, AppServiceConsent.unasked);
     store.rejectAgreement = true;
     expect((await gui.agreePrivacyPolicy()).consent, AppServiceConsent.unasked);
     store.rejectAgreement = false;

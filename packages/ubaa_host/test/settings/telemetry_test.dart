@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:ubaa_ui/src/app/profile.dart';
-import 'package:ubaa_ui/ubaa_ui.dart' show PrivacyConsentDialog;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -108,23 +107,23 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('首次启动弹出隐私选择，同意后设置页的统计开关为开启', (tester) async {
+  testWidgets('默认启用后可直接进入设置并关闭统计', (tester) async {
     final backend = _ConsentBackend();
     await tester.pumpWidget(UbaaAppHost(backend: backend));
     await tester.pumpAndSettle();
-    expect(find.byType(PrivacyConsentDialog), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('privacy-consent-agree')));
-    await tester.pumpAndSettle();
-    expect(find.byType(PrivacyConsentDialog), findsNothing);
-    expect(backend.consent, AppServiceConsent.agreed);
-
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     final tile = tester.widget<SwitchListTile>(
       find.byKey(const ValueKey('settings-product-telemetry')),
     );
     expect(tile.value, isTrue);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-product-telemetry')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-product-telemetry')));
+    await tester.pumpAndSettle();
+    expect(backend.telemetryEnabled, isFalse);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -146,18 +145,24 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('不同意进入基础模式，再次启动不再弹出且开关不可操作', (tester) async {
+  testWidgets('撤回后再次启动保留基础模式且开关不可操作', (tester) async {
     final backend = _ConsentBackend();
     await tester.pumpWidget(UbaaAppHost(backend: backend));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('privacy-consent-decline')));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-privacy-withdraw')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-privacy-withdraw')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '撤回'));
     await tester.pumpAndSettle();
     expect(backend.consent, AppServiceConsent.basic);
-
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(UbaaAppHost(backend: backend));
     await tester.pumpAndSettle();
-    expect(find.byType(PrivacyConsentDialog), findsNothing);
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     final tile = tester.widget<SwitchListTile>(
@@ -167,21 +172,25 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('政策升版后弹出更新说明，同意后保留原来关闭的开关', (tester) async {
-    final backend = _ConsentBackend()
-      ..consent = AppServiceConsent.reconsentRequired
-      ..telemetryEnabled = false
-      ..everAgreed = true;
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('目前为关闭，同意后仍然关闭'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('privacy-consent-agree')));
-    await tester.pumpAndSettle();
-    expect(
-      (backend.consent, backend.telemetryEnabled),
-      (AppServiceConsent.agreed, false),
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
+  testWidgets('旧构建遇到尚未应用的政策状态仍可进入设置并保留关闭选择', (tester) async {
+    for (final consent in [
+      AppServiceConsent.unasked,
+      AppServiceConsent.reconsentRequired,
+    ]) {
+      final backend = _ConsentBackend()
+        ..consent = consent
+        ..telemetryEnabled = false;
+      await tester.pumpWidget(UbaaAppHost(backend: backend));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      final tile = tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('settings-product-telemetry')),
+      );
+      expect(tile.value, isFalse);
+      expect((backend.consent, backend.telemetryEnabled), (consent, false));
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
   });
 
   test('框架与 root isolate 仍执行原处理，统计异常不重复进入错误链', () async {
@@ -332,11 +341,11 @@ class _ThrottledServiceBackend extends _ServiceBackend {
       _claim(refreshes, force);
 }
 
-/// 按合同保存同意状态与开关：只有第一次同意时把开关初始化为开启。
+/// 投影 Core 打开图形服务后保存的默认状态与用户选择。
 class _ConsentBackend extends _Backend implements AppServiceBackend {
-  var consent = AppServiceConsent.unasked;
-  var telemetryEnabled = false;
-  var everAgreed = false;
+  var consent = AppServiceConsent.agreed;
+  var telemetryEnabled = true;
+  var everAgreed = true;
 
   AppServiceView get _view => AppServiceView(
     available: true,

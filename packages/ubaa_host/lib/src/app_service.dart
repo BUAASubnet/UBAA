@@ -45,48 +45,6 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
     );
   }
 
-  /// 首启或政策升版后弹出一次选择；状态在别处改变后撤下已经过时的弹窗。
-  void _syncConsentPrompt() {
-    if (_disposed || _readyController == null) return;
-    if (!_controller.appService.needsConsentPrompt) {
-      final route = _consentRoute;
-      if (route != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (route.isActive) route.navigator?.removeRoute(route);
-        });
-      }
-      return;
-    }
-    if (_consentRoute != null || _consentScheduled) return;
-    _consentScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _consentScheduled = false;
-      if (_disposed ||
-          _consentRoute != null ||
-          !_controller.appService.needsConsentPrompt)
-        return;
-      final navigator = _navigatorKey.currentState;
-      if (navigator == null) {
-        // 首帧前导航尚未建立，下一帧再试。
-        _syncConsentPrompt();
-        return;
-      }
-      final route = uiPrivacyConsentRoute(
-        navigator.context,
-        policy: _controller.privacyPolicy,
-        view: _controller.appService,
-        onAgree: _agreePrivacy,
-        onDecline: _declinePrivacy,
-      );
-      _consentRoute = route;
-      unawaited(
-        navigator.push(route).whenComplete(() {
-          if (identical(_consentRoute, route)) _consentRoute = null;
-        }),
-      );
-    });
-  }
-
   AppServiceNotices? get _appServiceNotices {
     final update = _controller.appUpdate;
     final banners = [
@@ -142,11 +100,7 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
 
   /// 弹窗级公告逐条显示；确认后记为已读，再显示下一条。
   void _syncAnnouncementPopup() {
-    if (_disposed ||
-        _readyController == null ||
-        _announcementOpen ||
-        _consentRoute != null)
-      return;
+    if (_disposed || _readyController == null || _announcementOpen) return;
     final next = _controller.pendingAnnouncements
         .where((item) => item.level == AppAnnouncementLevel.popup)
         .firstOrNull;

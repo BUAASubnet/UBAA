@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 1,
+  version: 2,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -76,7 +76,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '您同意本政策后，图形界面会向 UBAA 应用服务请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
+          '支持应用服务的版本默认请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -86,7 +86,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '支持应用服务的版本会在取得同意后启用产品改进统计，第一次同意时默认打开。您可以关闭统计，或者选择不同意并使用基础模式。',
+      text: '支持应用服务的版本默认开启产品改进统计，应用启动时不再弹出隐私选择。您可以在设置中查看本政策、关闭统计，或撤回同意并使用基础模式。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -168,7 +168,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '隐私政策的重要内容发生变化时，应用会请您重新选择。重新同意时会保留您先前保存的统计开关。',
+      text: '隐私政策更新后，应用保留您先前保存的统计开关和基础模式选择。您可以随时在设置中查看最新版政策。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -193,9 +193,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>[
-    '首次说明产品改进统计的收集范围、境外处理和保留期限。',
-    '说明更新检查和公告请求发送的版本与平台信息。',
-    '说明如何关闭统计、撤回同意和删除已上传的统计数据。',
-  ],
+  changes: <String>['说明产品改进统计默认开启，应用启动时不再弹出隐私选择。', '说明升级后保留已关闭统计或撤回同意的选择。'],
 );

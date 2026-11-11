@@ -89,14 +89,37 @@ fn assert_send_blocked(app: &AppService, batch_id: Uuid) {
 }
 
 #[test]
+fn 图形首次启动默认启用且重启和政策升级保留关闭与撤回选择() {
+    let root = TestDirectory::new();
+    let command = open(root.path(), Surface::Command);
+    assert!(!command.enqueue(&EVENT, None).unwrap());
+    let gui = open(root.path(), Surface::Gui);
+    let state = gui.snapshot().unwrap();
+    assert_eq!(state.consent, Consent::Agreed(1));
+    assert_eq!(state.telemetry_enabled, Some(true));
+    let first_install = install(&gui);
+    queue(&command);
+
+    gui.set_telemetry(false).unwrap();
+    let updated = open_with_policy(root.path(), Surface::Gui, 2);
+    assert_eq!(updated.snapshot().unwrap().consent, Consent::Agreed(2));
+    assert_eq!(updated.snapshot().unwrap().telemetry_enabled, Some(false));
+    assert_eq!(install(&updated), first_install);
+    assert!(!command.enqueue(&EVENT, None).unwrap());
+    assert!(updated.freeze_next().unwrap().is_none());
+
+    updated.enter_basic().unwrap();
+    let restarted = open_with_policy(root.path(), Surface::Gui, 3);
+    assert_eq!(restarted.snapshot().unwrap().consent, Consent::Basic);
+    assert!(!restarted.snapshot().unwrap().can_bootstrap());
+    assert!(!command.enqueue(&EVENT, None).unwrap());
+}
+
+#[test]
 fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
     let root = TestDirectory::new();
     let gui = open(root.path(), Surface::Gui);
-    assert_eq!(gui.snapshot().unwrap().consent, Consent::Unasked);
-    assert!(gui.snapshot().unwrap().install_id.is_none());
-    assert!(gui.snapshot().unwrap().telemetry_enabled.is_none());
-    assert!(!gui.enqueue(&EVENT, None).unwrap());
-    gui.agree(1).unwrap();
+    assert_eq!(gui.snapshot().unwrap().consent, Consent::Agreed(1));
     let first_install = install(&gui);
     assert_eq!(first_install.get_version(), Some(uuid::Version::Random));
     assert_eq!(gui.snapshot().unwrap().telemetry_enabled, Some(true));
@@ -107,11 +130,6 @@ fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
     assert!(gui.set_telemetry(false).unwrap());
     assert!(gui.snapshot().unwrap().can_bootstrap());
     let gui = open_with_policy(root.path(), Surface::Gui, 2);
-    let state = gui.snapshot().unwrap();
-    assert_eq!(state.consent, Consent::ReconsentRequired(2));
-    assert!(!state.can_bootstrap());
-    gui.agree(2).unwrap();
-
     let state = gui.snapshot().unwrap();
     assert_eq!(state.consent, Consent::Agreed(2));
     assert_eq!(state.telemetry_enabled, Some(false));
@@ -124,14 +142,14 @@ fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
 }
 
 #[test]
-fn 政策升级暂存原批次且拒绝和撤回保留独立开关() {
+fn 命令政策升级暂存原批次且撤回保留独立开关() {
     let root = TestDirectory::new();
     let gui = open(root.path(), Surface::Gui);
     gui.enter_basic().unwrap();
     let state = gui.snapshot().unwrap();
     assert_eq!(state.consent, Consent::Basic);
-    assert!(state.telemetry_enabled.is_none());
-    assert!(state.install_id.is_none());
+    assert_eq!(state.telemetry_enabled, Some(true));
+    assert!(state.install_id.is_some());
 
     gui.agree(1).unwrap();
     queue(&gui);
@@ -139,10 +157,9 @@ fn 政策升级暂存原批次且拒绝和撤回保留独立开关() {
     queue(&gui);
     let first_install = install(&gui);
     let command = open(root.path(), Surface::Command);
-    let updated = open_with_policy(root.path(), Surface::Gui, 2);
+    let _updated = open_with_policy(root.path(), Surface::Command, 2);
     assert!(gui.agree(1).is_err());
     assert!(command.agree(2).is_err());
-    let gui = updated;
     assert_eq!(
         command.snapshot().unwrap().consent,
         Consent::ReconsentRequired(2)

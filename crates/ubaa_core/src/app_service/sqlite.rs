@@ -1,6 +1,6 @@
 //! 安装级 `SQLite` 连接和迁移。
 
-use super::{AppServiceError, AppServiceResult, bootstrap, queue, state};
+use super::{AppServiceError, AppServiceResult, Surface, bootstrap, queue, state};
 use crate::{config, internal::sqlite};
 use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 use std::{fs::OpenOptions, io::ErrorKind, path::Path, sync::Mutex, time::Duration};
@@ -12,7 +12,11 @@ const OPEN_BUSY_TIMEOUT: Duration = Duration::from_secs(1);
 pub(super) struct Store(Mutex<Connection>);
 
 impl Store {
-    pub(super) fn open(config_dir: &Path, policy_version: Option<u32>) -> AppServiceResult<Self> {
+    pub(super) fn open(
+        config_dir: &Path,
+        policy_version: Option<u32>,
+        surface: Surface,
+    ) -> AppServiceResult<Self> {
         if !config_dir.is_absolute() {
             return Err(AppServiceError::StorageUnavailable);
         }
@@ -59,6 +63,9 @@ impl Store {
         state::StoredState::load(&tx)?;
         if let Some(version) = policy_version {
             state::require_policy(&tx, version)?;
+            if surface == Surface::Gui {
+                state::apply_gui_defaults(&tx, version)?;
+            }
         }
         tx.commit()?;
         db.busy_timeout(sqlite::BUSY_TIMEOUT)?;

@@ -128,11 +128,6 @@ final class AppServiceView {
   final AppUpdateView? update;
   final List<AppAnnouncement> announcements;
 
-  bool get needsConsentPrompt =>
-      available &&
-      (consent == AppServiceConsent.unasked ||
-          consent == AppServiceConsent.reconsentRequired);
-
   AppServiceView withEraseStatus(AppServiceEraseStatus status) =>
       AppServiceView(
         available: available,
