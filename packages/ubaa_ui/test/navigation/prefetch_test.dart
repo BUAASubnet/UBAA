@@ -10,6 +10,7 @@ void main() {
       final key = GlobalKey<FeatureReadNavigatorState>();
       final pending = Completer<void>();
       final requests = <int>[];
+      Future<void> Function()? loadMore;
       final state = ValueNotifier(FeatureSnapshot(feature: FeatureId.bykc));
       addTearDown(state.dispose);
       String? moreError;
@@ -31,6 +32,7 @@ void main() {
               onRetry: () async {},
               onVisibleSnapshot: (_, __) {},
               pageBuilder: (page) {
+                loadMore = page.onLoadMore;
                 moreError = page.moreError;
                 loading = page.loadingMore;
                 shown = page.snapshot.details.map((d) => d.title).toList();
@@ -71,6 +73,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(requests, [1]);
+      unawaited(loadMore!());
+      await tester.pumpAndSettle();
       expect(requests, [1, 2]);
       expect(loading, isTrue);
       key.currentState!.beginBykcCourseWrite();
@@ -83,10 +88,11 @@ void main() {
     });
   }
 
-  for (final stop in ['上限', '失败', '无新增', '写入', '离线', '隐藏']) {
-    testWidgets('博雅预取在$stop时停止且不会自动重试', (tester) async {
+  for (final stop in ['按需', '失败', '无新增', '写入', '离线', '隐藏']) {
+    testWidgets('博雅按需续载遵守$stop条件且不自动追加后续页', (tester) async {
       final key = GlobalKey<FeatureReadNavigatorState>();
       final requests = <int>[];
+      Future<void> Function()? loadMore;
       final state = ValueNotifier(FeatureSnapshot(feature: FeatureId.bykc));
       addTearDown(state.dispose);
       const epoch = 0;
@@ -109,7 +115,10 @@ void main() {
                 },
                 onRetry: () async {},
                 onVisibleSnapshot: (_, _) {},
-                pageBuilder: (_) => const SizedBox(),
+                pageBuilder: (page) {
+                  loadMore = page.onLoadMore;
+                  return const SizedBox();
+                },
                 onQuery: (query) async {
                   requests.add(query.page);
                   state.value = FeatureSnapshot(
@@ -158,17 +167,11 @@ void main() {
           ),
         ),
       );
-      for (var i = 0; i < 25; i++) {
-        await tester.pump();
-      }
-      expect(
-        requests,
-        stop == '上限'
-            ? [1, 2, 3, 4, 5]
-            : ['失败', '无新增'].contains(stop)
-            ? [1, 2]
-            : [1],
-      );
+      await tester.pumpAndSettle();
+      expect(requests, [1]);
+      await loadMore!();
+      await tester.pumpAndSettle();
+      expect(requests, ['按需', '失败', '无新增'].contains(stop) ? [1, 2] : [1]);
     });
   }
 }

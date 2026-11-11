@@ -1,5 +1,17 @@
 # 协议来源对照与专项索引
 
+## 博雅列表缓存与按需分页（2026-11-11）
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `BykcViewModel.ensureCoursesLoaded/loadCourses/loadMoreCourses` 在同一查询范围复用已加载列表，滚动时才追加下一页，刷新失败保留旧内容。`LocalBykcApi.kt` 与 `Bykc.kt` 提供课程分页及时间、状态字段。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/opt.rs::query_courses` 由调用者提供页码和大小，没有本机缓存或自动批量预取。
+
+| 操作 | CAS、跳转、会话、请求与加密 | 数据和本机处理 | 错误、并发与操作资格 |
+| --- | --- | --- | --- |
+| 打开和续载课程列表 | 沿用本页“博雅课程只读查询”的两源对照：博雅 CAS service、最终地址校验、路线隔离 Cookie/Token，`POST queryStudentSemesterCourseByPage {pageNumber,pageSize}`，双 Token 与 `ak/sk/ts`、JSON 编码、冻结 AES/RSA/SHA-1 | 每页 8 门、`all=true` 和本地筛选保持。取消固定预取 40 门，后续由列表接近底部触发，包括筛选结果不足一屏的情况。已打开页面保留分页集合，不因重入追加请求 | 保留分页去重、失败重试、隐藏页面和写入期间停止续载；不新增学校端点或写入 |
+| 同范围刷新已加载列表 | 同上，串行读取首至已加载末页，服务端提前结束时采用实际范围 | 刷新中保留旧列表及滚动位置，先剥离旧动作，完整范围成功后一次替换；两个来源均无同等多页刷新集合，属于本机展示编排 | 缓存首屏及中途成功页不覆盖原多页列表；失败保留旧内容并提供重试，沿用账号、路线和读取代次隔离 |
+| 缓存按钮占位 | 无网络请求，认证、头、编码、加密均不适用 | 仅依据课程展示类型预留禁用的选课／退选按钮；已满仍使用禁用按钮，已过退选截止保留禁用退选按钮 | 缓存投影继续删除全部写动作。只有在线 typed action 明确允许、目标相符且页面允许写入时才绑定回调 |
+
+原固定 40 门预取测试改为按需续载和重入零请求；分页失败、重复页、离线、隐藏和写入打断覆盖保留。多页刷新与缓存按钮几何稳定性另有回归覆盖。
+
 ## 博雅退选截止时间（2026-11-11）
 
 冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalBykcApi.kt`、`BykcApi.kt`、`model/dto/Bykc.kt`、`LocalBykcCrypto.kt`、`LocalBykcApiBackendTest.kt` 与 `BykcCourseDetailScreen.kt`，以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/{core,opt,data}.rs` 和 `request.rs` 提供本次对照。旧版详情按钮仅检查课程未开始，buaa-api 的 `drop_course` 也不校验退选截止时间；两者均明确提供 `courseCancelEndDate`。当前产品要求超过退选截止后禁用退选，取舍见[决策记录](decision-log.md#2026-11-11博雅退选截止时间)。

@@ -6,7 +6,7 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
-  testWidgets('退选资格被拒绝时已选列表无操作入口且详情按钮不可点击', (tester) async {
+  testWidgets('退选资格被拒绝时已选列表与详情按钮均不可点击', (tester) async {
     await _open(tester, const [
       FeatureDetail(
         title: '退选已截止课程',
@@ -25,7 +25,12 @@ void main() {
         ],
       ),
     ], view: FeatureQueryView.bykcChosenCourses);
-    expect(find.widgetWithText(OutlinedButton, '退选'), findsNothing);
+    expect(
+      tester
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '退选'))
+          .onPressed,
+      isNull,
+    );
     await tester.tap(find.widgetWithText(Card, '退选已截止课程'));
     await tester.pumpAndSettle();
     final button = find.widgetWithText(OutlinedButton, '退选');

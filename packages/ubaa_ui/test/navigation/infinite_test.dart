@@ -57,7 +57,7 @@ void main() {
     );
   });
 
-  testWidgets('滚动追加保留前页，失败显式重试，详情返回保留位置，刷新重置首屏', (tester) async {
+  testWidgets('滚动追加保留前页，失败显式重试，详情返回保留位置，刷新保留已加载范围', (tester) async {
     final key = GlobalKey<_HarnessState>();
     tester.view.physicalSize = const Size(800, 500);
     tester.view.devicePixelRatio = 1;
@@ -108,7 +108,7 @@ void main() {
     expect(
       state.requests.skip(beforeRefresh).map((q) => q.page),
       [1, 2],
-      reason: '刷新从首页开始并允许成功后的预取',
+      reason: '刷新从首页开始复核已经显示的两页',
     );
     expect(find.text('项目0'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -146,7 +146,7 @@ void main() {
     expect(find.text('项目10'), findsNothing);
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
-    expect(state.requests.map((q) => q.page), [2, 1, 2]);
+    expect(state.requests.map((q) => q.page), [2, 1]);
     expect(find.text('新项目0'), findsOneWidget);
     expect(find.text('项目10'), findsNothing, reason: '迟到的旧代次不能进入新列表');
     expect(tester.takeException(), isNull);

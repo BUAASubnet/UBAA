@@ -302,7 +302,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
             )
           : _current.feed.accept(incoming, _current.query);
       if (incoming.status != FeatureLoadStatus.loading) {
-        _schedulePrefetch(_current);
+        _scheduleRecoveryRead(_current);
       }
       if (_current.bykcChosenKey != null &&
           context != null &&
@@ -474,7 +474,26 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     setState(() {
       _externalAfterRevision = null;
       frame.bykcCatalog = null;
-      frame.resetFeed();
+      final previousQuery = frame.query ?? const FeatureQuery();
+      final refreshCatalog =
+          frame.snapshot.feature == FeatureId.bykc &&
+          query.view == FeatureQueryView.summary &&
+          query.page == PagedResults.firstPage(FeatureId.bykc) &&
+          query
+              .copyWith(page: 0, fullRefresh: false)
+              .hasSameParameters(
+                previousQuery.copyWith(page: 0, fullRefresh: false),
+              ) &&
+          frame.snapshot.details.isNotEmpty;
+      if (refreshCatalog) {
+        if (frame.feed.snapshot == null) {
+          frame.feed.accept(frame.snapshot, previousQuery);
+        }
+        frame.feed.cancelPending();
+        frame.snapshot = frame.feed.snapshot!;
+      } else {
+        frame.resetFeed();
+      }
       frame.needsReload = false;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
         frame.bykcChosenKey = null;
@@ -496,17 +515,9 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
         (page.hasMore ?? (page.page < page.effectiveTotalPages));
   }
 
-  /// 博雅选课列表每页条数较少（学校接口按课程数线性变慢），首页到达后
-  /// 在后台逐页预取，直到显示 [_bykcPrefetchLimit] 门课程，之后仍按滚动加载。
-  static const _bykcPrefetchLimit = 40;
-
-  void _schedulePrefetch(_ReadFrame frame) {
-    if (frame.feed.recoveryQuery == null &&
-        (frame.snapshot.feature != FeatureId.bykc ||
-            (frame.query?.view ?? FeatureQueryView.summary) !=
-                FeatureQueryView.summary ||
-            frame.query?.courseId != null))
-      return;
+  /// 只继续复核已经显示过的分页范围；新页由列表按需请求。
+  void _scheduleRecoveryRead(_ReadFrame frame) {
+    if (frame.feed.recoveryQuery == null) return;
     final generation = frame.feed.generation;
     final query = frame.query;
     final cacheEpoch = widget.cacheEpoch;
@@ -524,9 +535,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
           frame.snapshot.error != null ||
           frame.requestingMore ||
           frame.feed.loading ||
-          (frame.feed.recoveryQuery == null &&
-              (frame.snapshot.details.length >= _bykcPrefetchLimit ||
-                  !_canLoadMore(frame))))
+          frame.feed.recoveryQuery == null)
         return;
       unawaited(_loadMore(frame));
     });
@@ -574,7 +583,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
         });
         if (generation == frame.feed.generation &&
             frame.feed.recoveryQuery != null)
-          _schedulePrefetch(frame);
+          _scheduleRecoveryRead(frame);
       });
       if (mounted) setState(() {});
     }

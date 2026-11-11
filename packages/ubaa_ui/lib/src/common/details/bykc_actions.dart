@@ -24,12 +24,12 @@ extension BykcDetailActions on _FeatureDetailListState {
     if (widget.onBykcWrite == null) return null;
     final select = detail.action<BykcSelectAction>();
     final deselect = detail.action<BykcDeselectAction>();
-    final operation = selected ? deselect?.operation : select?.operation;
-    if (operation == null) return null;
-    final target = selected ? deselect!.courseId : select!.courseId;
-    final eligibility = selected ? deselect!.eligibility : select!.eligibility;
-    // 已过退选截止等不能退选的课程不再放一个灰按钮。
-    if (selected && eligibility == ActionEligibility.denied) return null;
+    final operation = selected
+        ? WriteOperation.bykcDeselectCourse
+        : WriteOperation.bykcSelectCourse;
+    final target = selected ? deselect?.courseId : select?.courseId;
+    final eligibility = selected ? deselect?.eligibility : select?.eligibility;
+    // 缓存只有展示信息，预留相同的禁用按钮；回调必须由在线动作授权。
     final allowed =
         widget.writesEnabled &&
         courseId > 0 &&
@@ -37,7 +37,7 @@ extension BykcDetailActions on _FeatureDetailListState {
         eligibility == ActionEligibility.allowed &&
         (selected || !full);
     // 已满时直接说明原因，不只留一个灰掉的“选课”。
-    if (!selected && full && widget.bykcPendingCourseId != target) {
+    if (!selected && full && widget.bykcPendingCourseId != courseId) {
       return OutlinedButton.icon(
         onPressed: null,
         icon: const Icon(Icons.block),
@@ -45,19 +45,19 @@ extension BykcDetailActions on _FeatureDetailListState {
       );
     }
     final onPressed = allowed
-        ? () => widget.onBykcWrite!(operation, target)
+        ? () => widget.onBykcWrite!(operation, target!)
         : null;
     // 可选的课用浅色实底按钮，与“已满”、不可选的灰色描边按钮一眼可分；退选保持描边。
     return selected
         ? OutlinedButton.icon(
             onPressed: onPressed,
-            icon: _bykcWriteIcon(operation, target),
-            label: Text(_bykcWriteLabel(operation, target)),
+            icon: _bykcWriteIcon(operation, courseId),
+            label: Text(_bykcWriteLabel(operation, courseId)),
           )
         : FilledButton.tonalIcon(
             onPressed: onPressed,
-            icon: _bykcWriteIcon(operation, target),
-            label: Text(_bykcWriteLabel(operation, target)),
+            icon: _bykcWriteIcon(operation, courseId),
+            label: Text(_bykcWriteLabel(operation, courseId)),
           );
   }
 
