@@ -122,11 +122,13 @@ ENABLE_HARDENED_RUNTIME = YES
 
 项目构建在根 `.env` 中配置下列字段，CI 使用同名环境变量：
 
+本机构建使用 DevEco 生成的密文密码，并把配套 `material/` 放在 `.p12` 的同一目录。`release-production` 的 `OHOS_STORE_PASSWORD` 和 `OHOS_KEY_PASSWORD` 保存原始密码；发布脚本在 runner 私有签名目录生成 Hvigor 所需的密文和材料，构建结束后一起清理。密码格式说明见 [Hvigor 签名配置](https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V14/ide-hvigor-build-profile-V14/)。
+
 ```dotenv
 OHOS_STORE_FILE=.sign/ohos/release.p12
-OHOS_STORE_PASSWORD='替换为密钥库密码'
+OHOS_STORE_PASSWORD='替换为DevEco密文密钥库密码'
 OHOS_KEY_ALIAS=替换为密钥别名
-OHOS_KEY_PASSWORD='替换为密钥密码'
+OHOS_KEY_PASSWORD='替换为DevEco密文密钥密码'
 OHOS_CERT_FILE=.sign/ohos/release.cer
 OHOS_PROFILE_FILE=.sign/ohos/release.p7b
 OHOS_SIGN_ALG=SHA256withECDSA

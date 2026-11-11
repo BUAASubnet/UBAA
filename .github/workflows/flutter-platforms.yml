@@ -192,6 +192,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet
           bash scripts/bootstrap/ohos.sh
+      - name: 验证 Hvigor 签名密码格式
+        run: node --test scripts/tests/release/ohos_signing_test.mjs
       - name: 检查并构建 HarmonyOS
         env:
           UBAA_OHOS_NO_CODESIGN: '1'

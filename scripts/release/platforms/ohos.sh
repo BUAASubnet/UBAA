@@ -9,6 +9,10 @@ source scripts/lib/deveco.sh
 ubaa_deveco_layout
 export OHOS_SDK_HOME="$ohos_native_home" DEVECO_SDK_HOME="$hmos_sdk_home" DEVECO_NODE_HOME="$node_home"
 export PATH="$deveco_hvigor_home/bin:$deveco_ohpm_home/bin:$node_home/bin:$PATH"
+encrypted_passwords=$(node scripts/release/platforms/ohos_signing.mjs)
+read -r OHOS_STORE_PASSWORD OHOS_KEY_PASSWORD <<< "$encrypted_passwords"
+export OHOS_STORE_PASSWORD OHOS_KEY_PASSWORD
+unset encrypted_passwords
 just ohos-check mode=release
 cd apps/ubaa_ohos
 just flutter-ohos build app --release --target-platform ohos-arm64 \
