@@ -186,9 +186,10 @@ test("部署期间新提交不会取消生产作业", () => {
     }),
     false,
   );
-  assert.equal(
-    ci.jobs["app-service-deploy"].concurrency["cancel-in-progress"],
-    false,
+  assert.notEqual(
+    ci.jobs["app-service-deploy"].concurrency?.group,
+    ci.concurrency.group,
+    "作业不能再次获取工作流已经占用的生产并发组",
   );
 });
 

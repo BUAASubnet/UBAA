@@ -54,9 +54,6 @@ jobs:
     if: success() && github.event_name == 'push' && github.event.deleted == false && github.repository == 'BUAASubnet/UBAA' && github.ref_name == 'main' || success() && github.event_name == 'workflow_dispatch' && github.repository == 'BUAASubnet/UBAA' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     environment: app-service-production
-    concurrency:
-      group: app-service-production
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
