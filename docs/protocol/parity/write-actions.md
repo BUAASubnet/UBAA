@@ -1,0 +1,316 @@
+# 直接写操作、操作资格与评教
+
+本文件收录研讨室、图书馆、博雅、签到、阳光打卡与评教的直接写入九列、typed 操作资格及评教提交信封。
+
+## 逐操作基线矩阵
+
+以下矩阵沿用[逐操作历史矩阵](general.md#逐操作历史矩阵)的取证说明：原始取证版本、换钉后的适用方式和重新核对要求以该节为准。
+
+### UBAA2 直接写操作与评教（2026-08-28）
+
+#### Cgyy 预约提交
+
+取消操作的直接 Facade 证据：`RouteClient::cgyy_cancel_order` 已补齐正数订单校验，并通过合成传输断言 `/api/orders/new/cancel/{id}` 的 POST 签名请求；不跨路线复用令牌，也不执行真实取消。
+
+冻结 `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `submitReservation` 要求先读取 `/api/reservation/day/info`，取得预约上下文 `token`，校验所有选择属于同一空间且时段可预约，再以表单 POST `/api/reservation/order/info` 创建订单上下文。验证码获取与校验分别使用 `/api/captcha/get`、`/api/captcha/check`，旧实现由注入的验证码求解器提供 `pointJson` 和 `captchaVerification`。旧版 `repeat(3)` 实际捕获验证码链和最终 `/api/reservation/order/submit` 的任意异常，底层认证层还可重放最终 POST；它不是安全的“只重试验证码”证据。最终表单字段为 `venueSiteId`、`reservationDate`、`reservationOrderJson`、`weekStartDate`、`phone`、`theme`、`purposeType`、`joinerNum`、`activityContent`、`joiners`、`isPhilosophySocialSciences`、`isOffSchoolJoiner`、`captchaVerification`、`token`。Phase 11G 只允许在最终发送前最多三轮挑战/校验，最终 submit 恰好发送一次。CLI 默认禁止写操作，`verify-live` 永远只读，独立用户授权例外另行记录。`examples/buaa-api` 未提供同一场馆预约协议，未借用其 URL、字段或错误语义。
+
+Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带用户 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时解析顶层 `STATUS/ERRMSG` 与嵌套 `result.stuSignStatus`：明确成功状态加 nested `1` 是确定成功，nested `0` 或明确业务失败是确定的 `success=false`；只有发送后畸形、非 JSON、认证跳转或 transport/Cookie 失败才是不可重放的 `outcome_unknown`。2026-09-03 审查确认当时 Core 错把 course ID 放入表单并读取顶层 `stuSignStatus`，既有合成测试也固定了错误形状；这些内容只算待修 parity gap，不能继续作为通过证据。
+
+Phase 11D 的公开版本边界：今日 DTO 的 `signStatus` 可空与 typed eligibility/target 使 Flutter bridge 显式升为
+contract v3、CLI envelope/schema 显式升为 v4；CLI v4 还必须收录 `SigninActionResult`。冻结 API 把
+`success=false` 作为已成功取得的确定业务结果，因此 CLI 外层保持 `ok=true` 和退出 0，调用方以 data 内层
+`success` 判定业务结果；发送后不确定性则仍是 `outcome_unknown` 错误和退出 5，两者不得混淆。
+
+补充证据：`crates/ubaa_core/tests/signin.rs` 使用脱敏合成传输且不会访问真实 iClass 或持久化业务会话材料；但 2026-09-03 审查确认旧断言使用了错误的表单值和响应层级。只有改为冻结形状并观察 RED、修复后重新通过，才能恢复为协议证据。
+
+Ygdk 写入口的输入边界也已固定：照片必须存在且非空，开始和结束时间必须同时提供；这些检查发生在 OAuth/业务令牌请求之前。`features/ygdk.rs` 单元测试使用禁止网络的传输验证无效请求直接返回 `invalid_input`。
+
+`crates/ubaa_core/tests/ygdk.rs` 以合成传输覆盖完整写链顺序且不产生真实副作用；2026-09-03 审查确认旧测试把用户输入的时分文本原样固定为 `start_time/end_time`，与冻结上海时区 Unix 秒协议冲突。该断言必须先作为 RED 校正后才能重新称为协议证据。
+
+下表是其余直连上游操作的必填对照边界。`ubaa_old` 以 `references.md` 记录的提交为准；固定
+`examples/buaa-api` 对 Bykc、Class/Signin 和 Evaluation 提供等价或部分等价实现，对 Ygdk、LibBook 与
+Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等价”写成“不适用”。除非决策日志记录了独立的
+用户授权和脱敏结果，否则任何一行都不授权在迁移验证期间执行真实写操作。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密/签名常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| Bykc 选课 | CAS `bykc.buaa.edu.cn/sscv/cas/login`，API `/sscv/choseCourse`；示例为同一业务端点 | 旧版读取 final URL/`Location`，示例依赖自动跳转；均提取 `/cas-login?token=` | 旧版按用户缓存 client token；示例为 Boya credential；当前仅路线内存 | POST 加密 JSON `{courseId}` | 加密正文、`auth_token`/`authtoken`、`ak`、`sk`、`ts`、JSON 类型 | AES-128-ECB PKCS7；RSA PKCS#1 v1.5；SHA-1 摘要；冻结公钥见 `LocalBykcCrypto.kt` | 旧版要求成功信封且 `data.courseCurrentCount` 可解析；示例丢弃业务正文 | 旧版登录单飞并在认证失效后至多刷新一次；示例使用凭据期限 | 未选、未满、处于选课窗且 typed 状态为 `available` 才允许；未知状态拒绝 |
+| Bykc 退选 | 同上；API `/sscv/delChosenCourse` | 同上 | 同上 | POST 加密 JSON `{id}`；`id` 为课程本体 ID | 同上 | 同上 | 旧版同样要求可解析的 `courseCurrentCount`；示例丢弃正文 | 同上 | 已选且未开课，提供退选截止时还须未超过截止；缺失字段沿用开课时间规则，见本页退选截止时间对照 |
+| Bykc 签到/签退 | 同上；API `/sscv/signCourseByUser`；示例为同一端点，不能借用 `ClassApi` | 旧版沿用 11A 的有界路线跳转；示例只读自动跳转 final URL、无 WebVPN 实现 | 旧版路线内 Cookie 与内存 token；示例共享 Cookie/credential 且可落盘，后者不采用 | POST 加密 JSON `{courseId,signLat,signLng,signType}`；坐标为数值，`signType=1/2` 分别表示签到/签退 | 旧版发送 JSON 类型、Origin/Referer、双 token 与 `ak/sk/ts`；示例只发 `Authtoken` 与 `Ak/Sk/Ts`，采用旧版产品形状 | 两源均为 AES-128-ECB PKCS7、RSA PKCS#1 v1.5、SHA-1；位置算法冲突按决策日志采用冻结本地圆内算法 | 当前学期已选项以 `courseInfo.id` 匹配；`checkin/pass/courseSignConfig` 决定资格，四段时间与点坐标严格解析；`courseSignType` 仅透传、不决定操作类型 | prepare/commit 均重读当前学期与已选项，不缓存资格；旧版对任意请求异常重放写的行为不复制 | 课程未选、资格未知/不允许时拒绝；从完整点列表随机选中的点为正半径时生成圆内坐标，否则要求调用方同时提供经验证的经纬度；未知写结果不自动重试 |
+| Signin 执行签到 | iClass 中心 `?type=jumpMyCenter`；旧版登录 `8347/app/user/login.action`，示例登录 `8346/eschool/app/user/login_buaa.do`；Direct 模式时间戳走 8081 http、签到走 8081 `eschool/app/course/stu_scan_sign.action` http；WebVPN 模式时间戳走 8347 https、签到走 8347 `app/course/stu_scan_sign.action` https（无 eschool） | 旧版有界读取 final URL/`Location`，示例读取自动跳转 final URL；均提取 `loginName` | 旧版使用返回的 `{userId,sessionId}`；示例使用 `loginName@id`。采用旧版严格业务会话，缺失时拒绝，不回退 `login_name` | 旧版 GET 时间戳、POST 签到，query=`courseSchedId,timestamp`、form=`id=userId`；示例参数在 query。采用旧版方法与表单编码 | 采用旧版 `sessionId` 头与 URL 编码表单 `id=userId` | 无 | 今日课程字段为 `signStatus`；成功要求 `STATUS` 成功且 `result.stuSignStatus=1`，两源一致 | 旧版按学生单飞；登录和只读预检在明确失效时最多刷新一次，最终 POST 绝不重放；示例使用凭据期限 | `signStatus=0` 为 allowed、`1` 为 denied、缺失/畸形/其它值为 typed unknown；仅 allowed 可写，bridge 不得把 Core `success=false` 改成成功 |
+| Ygdk 提交打卡 | **旧版：**精确 OAuth 入口为 `app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1`，交换端点为 GET `/api/Front/Clockin/User/campusAppLogin?code=...`。**示例：**无 Ygdk 等价模块，本列 N/A 且不等价。**决定：**仅使用冻结 URL，不把 relay `/api/v1/ygdk/records` 当上游。 | **旧版：**关闭自动跳转后最多检查 10 次当前请求 URL 与 `Location`，支持 query 或 fragment query 中 URL-decoded `code`，但没有逐跳 host allowlist。**示例：**N/A。**决定：**保留有界解析；2026-10-30 起仅允许冻结证实的 HTTPS app/ygdk 默认端口，未知目标失败关闭，真实完整链兼容性仍需补证。 | **旧版：**主认证 Cookie 跟随当前连接路线；业务 `{uid,token}` 按学号驻留内存，token URL-decode 后加入每个业务表单。**示例：**N/A。**决定：**uid/token 必须绑定当前路线与活跃 Session generation，不落盘、不跨用户/路线或失效代次复用。 | **旧版：**按顺序 POST classify，以 query+form 双写 `page=1/limit=1000/classify_id` POST item，multipart POST upload，再表单 POST clockin；最终字段为 `start_time/end_time/place_type/place/isopen/form_time_fmt/images/classify_id/item_id/item_name/uid/token`。**决定：**时间仅接受完整 `yyyy-MM-dd HH:mm`，按 `Asia/Shanghai` 转 Unix 秒；`form_time_fmt` 精确为 `yyyy-MM-dd HH:mm-HH:mm`。 | **旧版：**classify/item/final 为 `application/x-www-form-urlencoded; charset=UTF-8` 并带 `X-Requested-With: XMLHttpRequest`；upload 是 `uid/token/file` 三部分 multipart，file 带 filename 与 MIME。**决定：**继续精确编码；Core 还必须拒绝可注入 Content-Disposition/Content-Type 的文件名、MIME 和控制字符。 | **旧版/示例：**无业务加密或签名；WebVPN URL 包装属路线层。**决定：**不借用其它模块的 AES、签名或 credential。 | **旧版：**overview 提供 `classifyId/items(itemId,name,...)`；提交时可选 item 并会宽松选默认项目，成功 DTO 可带 `recordId/summary`。**决定：**写入只接受读取派生的 typed target；classify/item ID 必须为正数且各自唯一，item 名称非空，缺失、畸形、非正或重复都是 unknown 并拒绝。 | **旧版：**登录与会话有 mutex/缓存，但会话创建在最终锁外，旧 server 还会用 `withFreshClientRetry` 重试 upload/final。**决定：**prepare/commit 各自 fresh classify+item，commit 在 Core 单次 expected-route 原子入口上复用同一 runtime/凭据代次；upload 与 final 各自最多发送一次，不复制旧 server 重放。 | **旧版：**`code=1` 解包，`-98` 为业务认证失效，其它 raw `msg` 可外泄，没有发送边界/OutcomeUnknown。**示例：**N/A 且无 CLI exit 语义。**决定：**非法 target/时间/照片在路由与网络前拒绝；仅 final 严格 `code=1` object 为成功，跨过 final 发送边界后的任何歧义均为不可重试 `outcome_unknown`；成功/未知均仅在 intent 原路线刷新 overview 与 records，不自动重发。 |
+| LibBook 预约 | CAS 服务 `booking.lib.buaa.edu.cn/v4/login/cas` 后调用 `/v4/login/user`；示例无等价协议 | 有界 SSO 跳转并提取 `cas` | 路线内 bearer 令牌 | POST JSON `{aesjson}` 到 `/v4/space/confirm`；AES 明文仅为 `{seat_id,segment,day,start_time:"",end_time:""}` | 冻结 `Accept`/`User-Agent`、`Authorization: bearer<token>`、按路线转换的 Origin/Referer、`X-Requested-With` | AES-128-CBC、PKCS7、IV=`ZZWBKJ_ZHIHUAWEI`，key 为日期八位数字加其逆序 | 座位 typed `status=1` 可预约，`2/3` 不可预约；缺失/畸形/其它值为 unknown | bearer 登录单飞；发送前认证/只读预检可刷新，最终 confirm 只发送一次 | 只有 typed allowed 且目标字段完整、fresh 日期/时段/座位唯一匹配才允许；业务 `success=false` 原样保留；发送后歧义保持 Core 稳定错误并以不可重试 `outcome_unknown` 返回 |
+| LibBook 取消预约 | **旧版：**精确 CAS service 指向 `https://booking.lib.buaa.edu.cn/v4/login/cas`，随后 POST `/v4/login/user`，最终 POST `/v4/space/cancel`。**示例：**固定提交无 LibBook 模块，本列 N/A 且不等价。**决定：**只采用冻结本地 URL，不把旧 relay `/api/v1/libbook/bookings/{bookingId}/cancel` 当上游地址。 | **旧版：**CAS 客户端不自动跳转，最多 8 跳并从请求 URL、`Location`、query/fragment 提取 `cas`；共享业务客户端却自动跟随跳转，取消后不校验 final URL。**示例：**本列 N/A 且不等价。**决定：**保留有界 CAS 提取，最终取消不接受业务或认证跳转。 | **旧版：**主 Cookie 按 Direct/WebVPN 路线隔离；每用户 LibBook bearer 只驻留内存、登录单飞，精确 Authorization 为无空格的 `bearer<token>`。**示例：**本列 N/A 且不等价。**决定：**bearer 不落盘、不跨用户或路线复用。 | **旧版：**取消只 POST JSON `{"id":bookingId}`；可用于 fresh authority 的唯一读取是 POST `/v4/member/seat`，正文为 `{"type":"1","page":page,"limit":limit}`，没有按 ID 详情或全量扫描协议。**示例：**本列 N/A 且不等价。**决定：**本地 action 携带正数 `page/limit`，prepare/commit 在同一页唯一匹配 ID；最终 wire 仍只有 `{id}`，绝不携带分页或状态。 | **旧版：**固定 `Accept: application/json, text/plain, */*`、Chrome 147 `User-Agent`、`X-Requested-With: XMLHttpRequest`、按路线转换的 Origin/Referer、JSON `Content-Type` 和精确 bearer。**示例：**本列 N/A 且不等价。**决定：**逐项保持冻结 Header 与 JSON 编码，不输出 bearer。 | **旧版：**取消无 `aesjson`，无额外业务加密或签名；WebVPN 包装属于路线层；JVM/Android LibBook engine 关闭证书和 hostname 校验。**示例：**本列 N/A 且不等价。**决定：**不把预约 AES 用于取消，并明确拒绝复制 trust-all TLS。 | **旧版：**booking 含 `id/status/statusName` 等字段，parser 支持有证据的别名；产品 DTO 为 `{success,message}`。状态测试只证明 `1` 可取消、`6/8` 不可取消，旧产品还会从 `statusName` 文案推断并默认允许部分未知状态。**示例：**本列 N/A 且不等价。**决定：**仅 canonical 整数 `1` 为 allowed、`6/8` 为 denied，缺失/畸形/其它为 unknown；`statusName` 只展示。raw fixture 只证明 `code/message`，不证明 raw `success/status`。 | **旧版：**client 与 bearer 登录有 mutex/单飞；UI 只抑制同一 ID 重复点击，backend 不做 fresh 查询；认证失效会刷新并重放取消，server 还可能重建 client 后重试。**示例：**本列 N/A 且不等价。**决定：**只允许发送前认证和同页只读复核；最终 `request_non_idempotent` 恰好一次，绝不重放。 | **旧版：**空 ID及确定的已取消、已结束、不存在或失效消息映射稳定业务错误；HTTP、非 JSON 与 transport 异常没有 outcome-unknown 分类，且本地/server 错误细节存在差异。**示例：**本列 N/A 且不等价，也没有 CLI 退出码证据。**决定：**fresh 唯一 active 目标才可写；确定业务拒绝不伪装成功；已发送后仍无法判定则返回不可重试 `outcome_unknown`，不得默认成功。 |
+| Cgyy 锁码 | SSO `manageLogin`，再调用 `/api/login` | 路线内有界跳转 | 路线内 `cgAuthorization` 业务令牌 | GET `/api/orders/lock/code` | 使用现有 Cgyy 客户端的签名查询/请求头 | 现有 Cgyy MD5 签名常量 | 不透明锁码 JSON 数据 | 令牌单飞 | 信封 code/message 决定稳定错误 |
+| Cgyy 预约提交 | **旧版：**无显式 service 的 GET `https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin`，再空表单 POST `/api/login`，随后 day/context/captcha/submit 链。**示例：**固定提交无 Cgyy/`venue-zhjs` 模块，本列 N/A 且不等价。**决定：**采用冻结业务端点，不把 relay `api/v1/cgyy/*` 当上游，也不借用示例 VPN service。 | **旧版：**bootstrap 与业务 client 自动跟随跳转，没有 hop、host 或 terminal URL 白名单，并固定走 Direct。**示例：**本列 N/A 且不等价。**决定：**该行为与当前路线隔离冲突，不倒退复制；保持已有有界 SSO/WebVPN 包装与网关 Cookie 同步，最终 submit 不接受认证/业务跳转。 | **旧版：**Direct Cookie jar 中的 `sso_buaa_zhjs_token` 仅作为 `/api/login` 的 `Sso-Token`；返回 `data.token.access_token` 进入 `cgAuthorization`，day-info `data.token` 只进入两个预约表单；client/access token 按用户内存缓存且登录单飞。**示例：**本列 N/A 且不等价。**决定：**Cookie/token 不落盘、不跨用户或路线，不混淆两种 token。 | **旧版：**fresh GET day-info 的 `searchDate/venueSiteId/nocache`；上下文 POST 五字段；captcha GET 固定 `captchaType=blockPuzzle/clientUid=slider-毫秒/ts=毫秒/nocache`；check POST `pointJson/token` 且要求 `data.success=true`；最终 POST 精确十四字段。`reservationOrderJson` 项为 `{spaceId,timeId,venueSpaceGroupId?}`。**示例：**本列 N/A 且不等价。**决定：**逐字段保持；prepare/commit 都先 fresh 读取，最终不夹带本地 ordinal、eligibility 或展示字段。 | **旧版：**Accept=`application/json, text/plain, */*`、mobileReservation Referer、`app-key/timestamp/sign`，除登录外带 `cgAuthorization`；POST 全为 `application/x-www-form-urlencoded`，不是 JSON。**示例：**本列 N/A 且不等价。**决定：**保持精确 Header/表单编码，不增加无证据 Origin、roleLogin 或其它 Header。 | **旧版：**签名为固定 prefix + 规范化 path + 按键排序的非空标量 + timestamp + 空格 + prefix 后取小写 MD5；GET 自动加 `nocache`。captcha 为 AES-ECB/PKCS5Padding + Base64，无 IV，明文固定 `{"x":offset,"y":5}` 与 `challenge-token---point-json`。**示例：**本列 N/A 且不等价。**决定：**保持当前 golden 常量与四个必需挑战字段，不从其它模块借算法。 | **旧版：**槽位公式为 `reservationStatus==1 && tradeNo==null && orderId==null && takeUp!=true`；请求日期缺失时 parser 会退首个日期键，time/space 缺字段还会跳过或默认。最终 `code=200` 后 `orderInfo` 可空。**示例：**本列 N/A 且不等价。**决定：**canonical 状态改为可空 typed eligibility；明确可约才 allowed，明确其它状态 denied，身份/状态/占用字段缺失畸形、重复或日期首键回退均 unknown；只有完整唯一正数站点/空间/时段与一致可选 group 产生 target。 | **旧版：**backend/client/token 按用户缓存、登录 mutex 单飞，无 submit mutex/幂等键；ViewModel 将敏感表单明文持久化；`repeat(3)` 捕获任意异常并包含最终 submit，底层认证层还可再重放最终 POST。**示例：**本列 N/A 且不等价。**决定：**不缓存资格或表单；同空间一至两个无重复选择，两个按 fresh timeSlots 索引相邻；最多三轮只发生在最终发送前，最终 `request_non_idempotent` 恰好一次且绝不重放。 | **旧版：**`phone/theme/activityContent/joiners` 非空、`joinerNum>0`，产品 ViewModel 负责最多两个相邻；没有手机号格式、文本长度、参与人数一致或容量规则，最终 `code=200` 即 `success=true`，未知发送结果会被压成 captcha error。**示例：**本列 N/A 且不等价，无 CLI exit 证据。**决定：**当前产品另要求正 `purposeType`；typed unknown/目标不完整/非相邻/字段不全均拒绝；明确成功返回固定安全结果，可选正订单 ID 仅作收据，发送后歧义为不可重试 `outcome_unknown`，raw message 不进入宿主。 |
+| Cgyy 取消预约 | **旧版：**无显式 service 的 `manageLogin` → `/api/login`，只读 authority 为 GET `/api/orders/{id}`，最终取消为 POST `/api/orders/new/cancel/{id}`。**示例：**固定提交无 Cgyy 同协议实现。**决定：**只采用冻结业务端点，relay 不是上游。 | **旧版：**自动跳转、固定 Direct 且无 hop/host/terminal 白名单。**示例：**N/A。**决定：**保持当前有界路线与 WebVPN Cookie 同步；最终 POST 不接受跳转。 | **旧版：**SSO Cookie、`Sso-Token` 与 `cgAuthorization` access token 分离，client/token 按用户缓存。**示例：**N/A。**决定：**Cookie/token 仅当前路线内存，不落盘、不跨路线。 | prepare 与 commit 都 fresh GET `/api/orders/{id}`，只接受唯一 JSON object 中 canonical 正整数 `id` 严格等于请求 ID；最终 POST `/api/orders/new/cancel/{id}` 空表单。 | 冻结 Accept、mobileReservation Referer、`app-key/timestamp/sign/cgAuthorization`；POST 为 URL 编码空表单。 | 冻结 Cgyy 小写 MD5 签名，GET `nocache` 参与签名；取消无 captcha/challenge 或其它加密。 | canonical `orderStatus` 仅 `1/3` 可进入候选、`2` denied；`checkStatus<0` denied，仅 `1..6` 可 allowed；缺失、畸形、`0` 或其它值 unknown；start/end 按冻结字段解析。 | 登录单飞；资格不缓存；固定 `Asia/Shanghai`，start 有效时严格早于 start−4h，start 无效才回退 end，两者无效不增加时间限制；旧版可能认证重放，最终 POST 改为恰好一次。 | 只有发送前 fresh 同 ID、状态及时限全部 allowed 才能写；发送后非 200、认证/业务跳转、transport、Cookie、非 JSON 或结构异常统一为不可重试 `outcome_unknown`；公共结果使用固定安全文案；成功或未知后只读刷新列表与同 ID 详情，绝不自动重发。 |
+| Evaluation 列表/待评 | GET `spoc/pjxt/cas`，再读取任务、问卷列表和待评课程 | 路线内有界 SPOC 跳转 | 路线内 SPOC Cookie/会话 | GET 任务参数 `yhdm,pageNum=1,pageSize=10`；问卷 `rwid`；课程 `wjid`；题目字段严格来自 `EvaluationCourse` | JSON 信封和 GET 查询；问卷模式更新为尽力 JSON POST | 无 | 任务/问卷/课程字段来自冻结 `EvaluationModel.kt`；待评筛选 `!isEvaluated` | 激活互斥锁；课程键 `${rwid}_${wjid}_${kcdm}_${bpdm}` | 信封畸形/认证失败为稳定错误；只有上游明确成功时空结果才有效 |
+| Evaluation 提交评教 | 同上；示例 `api/tes` 为部分等价实现 | 旧版复用激活会话；示例只确认最终 URL 离开 SSO | 路线内 SPOC Cookie；不跨路线 | 旧版尽力 revise、GET 题目、POST submit；示例无 revise 且提交后另有探测请求，按决策日志不拼接 | JSON | 无额外加密；正文遵循冻结 `LocalEvaluationService.kt` | 完整 `EvaluationCourse` 必须贯穿读取到提交；状态为 pending 且必填 ID 完整 | 按课程有界串行；答案策略采用冻结本地实现 | 每课程 code/message 决定结果；任一失败不得被投影成整体成功；unknown/evaluated 拒绝 |
+
+固定的 `examples/buaa-api` 中，`api/boya`、`api/class` 与 `api/tes` 分别为 Bykc、Signin 与 Evaluation
+提供交叉证据；它们不能作为 Ygdk、LibBook、Cgyy 或其它功能 URL、字段和加密的证据。旧版本地代码使用随机答案时，Core 为测试提供
+显式确定性答案策略，验证过程中从不执行真实提交。
+
+#### Phase 11 typed action eligibility 对照（2026-09-03）
+
+下表把每个写入口的九列协议证据与产品资格单独固定。`eligibility=unknown`、typed action 缺失或目标字段
+不完整一律禁止创建 intent；展示 label/value 不参与资格。Core 在 prepare 读取当前状态，并在可能跨越时间窗或
+状态变化的操作上于 commit 前再次复核。真实写仍需逐操作、逐目标授权。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文 | 加密/签名 | DTO/缺失值 | 缓存/并发 | 错误/产品资格 |
+|---|---|---|---|---|---|---|---|---|---|
+| 11A Bykc 选课 | `/sscv/cas/login` → `/sscv/choseCourse`；两源等价 | final/Location 提 token，限 `sso/bykc` | 路线内 token | POST `{courseId}` | JSON 密文及双 token/`ak/sk/ts` | AES/RSA/SHA-1 | `status/selected/capacity/window`；缺失为 unknown | 登录单飞、认证失效最多一次刷新 | 仅未选、未满、选课窗内 `available`；其它拒绝 |
+| 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未开课，并检查上游提供的退选截止时间 |
+| 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；缺失/畸形状态或窗口为 unknown，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin=0`，签退仅 `pass!=1 && checkin in {0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
+| 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；登录/只读预检可按既有规则刷新，最终 POST 不重放 | 状态 0=allowed、1=denied、缺失/畸形/其它=unknown；仅 allowed 可写；业务 false 原样返回 |
+| 11E LibBook 预约 | CAS 精确 service → `/v4/login/user` → `/v4/space/confirm`；固定示例无任何等价模块，九列均不适用 | 不跟随跳转，最多 8 跳从请求 URL/Location/query/fragment 提 cas；最终写不接受认证跳转 | 主认证 Cookie 按路线隔离；LibBook bearer 仅当前路线内存、不得持久化或跨路线复用 | prepare/commit 都以 `Space/map` 核对日期和唯一时段，再以 `Space/seat` 核对唯一座位；最终 POST `{aesjson}` | JSON + 精确 `bearer<token>`（无空格）+ Origin/Referer/X-Requested-With | AES-128-CBC/PKCS7；key=日期八位数字+逆序，IV=`ZZWBKJ_ZHIHUAWEI`；明文仅 `seat_id/segment/day` 加固定空起止时间，绝无 areaId | `status=1` allowed、`2/3` denied、缺失/畸形/其它 unknown；稳定目标 `(area,seat,day,segment)`，起止时间须与 fresh 时段一致 | token 登录单飞；发送前认证/只读可刷新一次，最终 confirm 只发送一次且绝不重放 | 仅唯一完整目标且明确 allowed 可写；明确业务 false 原样返回；发送后歧义为不可重试 outcome_unknown |
+| 11F LibBook 取消 | **旧版：**精确 CAS service → `/v4/login/user` → `/v4/space/cancel`。**示例：**无 LibBook 模块，本列 N/A 且不等价。**决定：**不采用 relay 路由。 | **旧版：**CAS 最多 8 跳提取 `cas`，业务 client 自动跟随且不验取消 final URL。**示例：**本列 N/A 且不等价。**决定：**保留有界 CAS，最终取消不接受业务/认证跳转。 | **旧版：**主 Cookie 路线隔离，bearer 按用户驻留路线内存且登录单飞。**示例：**本列 N/A 且不等价。**决定：**不落盘、不跨路线。 | **旧版：**取消 POST JSON `{id}`；fresh 列表 POST `/v4/member/seat` 的 `{type:"1",page,limit}`，无详情端点。**示例：**本列 N/A 且不等价。**决定：**本地 action 携带 page/limit，prepare/commit 同页唯一匹配，响应必须显式证明无冲突正数分页；最终 wire 只有 `{id}`。 | **旧版：**固定 Accept/Chrome 147 User-Agent/X-Requested-With、路线 Origin/Referer、JSON Content-Type、精确无空格 bearer。**示例：**本列 N/A 且不等价。**决定：**保持精确 Header 与编码。 | **旧版：**取消无额外加密/签名，冻结 JVM/Android client 使用 trust-all TLS。**示例：**本列 N/A 且不等价。**决定：**不复用预约 AES，不复制 trust-all TLS。 | **旧版：**booking `id/status/statusName`，产品结果 `{success,message}`；已证实状态为 `1/6/8`，但旧产品会信任 `statusName` 与未知状态。**示例：**本列 N/A 且不等价。**决定：**canonical `1`=allowed、`6/8`=denied、缺失/畸形/其它=unknown；`statusName` 仅展示；raw 只以 `code/message` 判定，不假定 raw `success/status`，取消 authority 与最终结果对外都只返回固定安全文案。 | **旧版：**登录单飞，但没有 fresh authority，认证失效可重放取消，server 还可能重建 client。**示例：**本列 N/A 且不等价。**决定：**仅发送前刷新；最终 `request_non_idempotent` 一次且不重放。 | **旧版：**确定负面映射业务错误，HTTP、非 JSON、未知成功文案与 transport 无 outcome-unknown 分类。**示例：**本列 N/A 且不等价，无 CLI exit 证据。**决定：**仅 fresh 页唯一 allowed 目标可写；`/member/seat` 非成功 envelope 固定归约且不透传 message；精确“取消成功”白名单确认成功，确定拒绝不伪装成功；其它发送后歧义为不可重试 `outcome_unknown`。 |
+| 11G Cgyy 预约 | **旧版：**无 service 的 `manageLogin` → `/api/login` → 预约链。**示例：**无等价模块。**决定：**只采用冻结 Cgyy 端点，relay 不是上游。 | **旧版：**自动跳转、无 host/hop/terminal 白名单且固定 Direct。**示例：**N/A。**决定：**保持当前有界路线与 WebVPN Cookie 同步；最终写拒绝跳转。 | **旧版：**Direct SSO Cookie、用户级 access token、预约 token 分离。**示例：**N/A。**决定：**路线内存隔离，两 token 不混用。 | **旧版：**day GET、context 五字段、captcha GET/check、submit 十四字段。**示例：**N/A。**决定：**prepare/commit fresh exact date/target，wire 不含展示或资格字段。 | **旧版：**Accept/Referer/app-key/timestamp/sign/cgAuthorization 与 URL 编码表单。**示例：**N/A。**决定：**保持冻结形状。 | **旧版：**MD5 签名和 AES-ECB captcha 固定明文。**示例：**N/A。**决定：**保持 golden。 | **旧版：**status/trade/order/takeUp 公式，但日期可退首键、身份可默认。**示例：**N/A。**决定：**可空 canonical 状态 + typed eligibility/target；缺失、畸形、重复、日期回退均 unknown。 | **旧版：**登录单飞；敏感表单持久化；宽泛三轮和认证层都可能重发 submit。**示例：**N/A。**决定：**不缓存表单；一至两个同空间时段按 fresh 列表索引相邻；三轮只限发送前 captcha，最终只发送一次。 | **旧版：**必填文本、正人数，code=200 即成功，缺 outcome-unknown。**示例：**N/A。**决定：**另要求正用途；完整字段和全部槽位明确 allowed 才可创建 intent；raw message 固定归约，发送后歧义为不可重试 outcome_unknown。 |
+| 11H Cgyy 取消 | **旧版 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`：**无显式 service 的 GET `https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin` → 空表单 POST `/api/login`；authority GET `/api/orders/{id}`；final POST `/api/orders/new/cancel/{id}`。**示例 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`：**无 Cgyy/`venue-zhjs` 同协议模块，本列 N/A。**决定：**只采用冻结业务 URL，旧 relay `/api/v1/cgyy/*` 不是上游。 | **旧版：**bootstrap 与业务 client 自动跟随跳转、固定 Direct，无 hop/host/terminal 白名单；401、SSO final URL 或登录表单视为认证失效。**示例：**N/A。**决定：**不复制路线冲突；保持当前有界 SSO、路线隔离与 WebVPN Cookie 同步；最终取消不接受认证/业务跳转，跨发送边界后统一结果未知。 | **旧版：**Direct jar 的 `sso_buaa_zhjs_token` 只作 `/api/login` 的 `Sso-Token`，`data.token.access_token` 才作 `cgAuthorization`；client/token 按用户缓存且登录单飞。**示例：**N/A。**决定：**Cookie/access token 仅当前用户和路线内存，不落盘、不跨路线，不与预约 token 混用。 | **旧版：**详情 GET `/api/orders/{id}`，ID 只进 path，GET 自动加 `nocache`；取消 POST `/api/orders/new/cancel/{id}`，参数集合为空。**示例：**N/A。**决定：**请求 ID 网络前必须为正；prepare 与 commit 分别 fresh GET 详情，只接受唯一 object、canonical 正整数响应 `id` 严格等于请求 ID；null、数组、缺失、畸形、非正或不匹配均拒绝且不 POST；最终 wire 仍只有 path ID 与空表单。 | **旧版：**`Accept: application/json, text/plain, */*`、mobileReservation Referer、`app-key/timestamp/sign`，业务请求带 `cgAuthorization`；POST 使用 `application/x-www-form-urlencoded` 空表单。**示例：**N/A。**决定：**保持冻结 Header 与编码，不增加无证据 Origin/JSON 字段，不输出 token/sign/raw body。 | **旧版：**规范化前导 `/`，过滤空值/集合及审计键，键名排序后以固定 prefix、path、参数、timestamp、空格和 prefix 取小写 MD5；GET `nocache` 参与签名。**示例：**N/A。**决定：**保持冻结 golden；取消没有 captcha/challenge、AES 或额外签名。 | **旧版：**订单含 `id/orderStatus/checkStatus/reservationStartDate/reservationEndDate`；order `1/2/3`，check 已知正值 `1..6`、负值 `-2..-6`。旧 `displayStatus` 会放行部分缺失、0 或未知正 check，详情 null 又会映射默认 DTO。**示例：**N/A。**决定：**仅 canonical order `1/3` 且 canonical check `1..6` allowed；order `2` 或任一负 check denied；缺失、畸形、0、其它状态 unknown；详情不得默认 ID。 | **旧版：**client/token 登录单飞；认证失效会重放业务请求，server 还可能因泛 Cgyy 错误重建 client 再调用取消；UI 使用缓存订单且无 fresh authority。**示例：**N/A。**决定：**资格不缓存，prepare/commit 双 fresh；时钟固定 `Asia/Shanghai`，有效 start 要求 `now < start−4h`，恰好 deadline 拒绝；start 缺失/无效才以有效 end 要求 `now < end`，两者均无效不增加时间限制；final POST 经 non-idempotent 边界恰好一次，绝不认证重放。 | **旧版：**严格 `code=200` 才成功，但 raw message 会进入产品结果；HTTP、解析及重放错误没有 outcome-unknown 分类。**示例：**N/A，也无 CLI exit 证据。**决定：**仅发送前 fresh 同 ID、状态和时间均 allowed 才写；成功只返回固定安全结果，不透传 raw message/订单敏感字段；最终 POST 一旦发送，非 200、401、认证/业务跳转、final URL 异常、transport/timeout、Cookie、非 JSON、非 object、code 缺失或畸形均为不可重试 `outcome_unknown`；确定成功或未知都只读刷新订单列表与同 ID 详情，strict `orderStatus=2` 才是取消证据，空/失败/冲突保持未核对且绝不自动重发。 |
+| 11I Ygdk 提交 | **旧版：**精确 OAuth URL → `campusAppLogin` → classify/item → upload → clockin；**示例：**固定提交没有 Ygdk 等价模块，九列均 N/A。**决定：**只采用冻结本地端点，relay 不是上游。 | **旧版：**关闭自动跳转、最多 10 次，从请求 URL 或 `Location` 的 query/fragment query 提取并 URL-decode `code`，但无逐跳 host allowlist。**决定：**2026-10-30 起仅允许冻结证实的 HTTPS app/ygdk 默认端口；WebVPN 网关内层也必须满足该规则，未知主机请求前拒绝。code 只取 ygdk 已证回调，upload/final 不接受跳转。真实完整链兼容性尚未验证。 | **旧版：**业务 `{uid,token}` 驻留内存，token URL-decode 后随每个业务表单发送。**决定：**绑定当前用户、路线与活跃 Session generation，不落盘、不跨代或跨路线。 | POST classify；POST item 的 query+form 均为 `page=1,limit=1000,classify_id`；multipart POST upload；final form 共十二字段（含 `uid/token`）。时间严格按 `Asia/Shanghai` 转十进制 epoch 秒，`form_time_fmt=yyyy-MM-dd HH:mm-HH:mm`。 | classify/item/final 为 UTF-8 URL encoded + `X-Requested-With`；upload 为 `uid/token/file` multipart。文件名和 MIME 必须通过防注入语法门禁。 | 两份来源均无业务加密/签名；不借用其它模块算法。 | typed target 仅由 fresh overview 的正数、唯一 classify/item ID 派生；item 名称非空；时间完整、同日本地时间且 end>start；照片非空、有界且类型安全；未知或重复拒绝。 | prepare/commit 各自 fresh classify+item；commit 在一次路线解析的 expected-route 原子入口上使用同一 runtime/凭据代次；upload 与 final 均不自动重放，final 恰好一次。 | 仅 strict `code=1` object 为成功并固定安全结果；final 发送后其它结果均为不可重试 `outcome_unknown`、CLI exit 5；成功/未知都 caller-pinned 并独立刷新 overview 与 records，不重试写。公开合同实施时 CLI schema 升 v9、Bridge 升 v8；详见下方逐操作九列。 |
+| 11J Evaluation 提交 | **旧版：**无显式 service 的 `/pjxt/cas` → task/questionnaire/course；**示例：**显式 SSO service 后同组 pjxt 端点。**决定：**采用本地产品激活与身份来源 | 激活有界跟随受验证主机；final 不跟随，示例额外探测不采用 | 当前用户与路线内 SPOC Cookie；Host 不接触上游课程字段 | tasks `{yhdm,pageNum=1,pageSize=10}`、questionnaires `{rwid}`、courses `{wjid}`、revise JSON 三字段、topic 21 query、submit 精确 JSON 信封 | 两源只证明 JSON Content-Type；无 `X-Requested-With` 证据 | 无 | Core 内部完整 authority；公开 typed target/三态资格；`ypjcs=0` 且唯一完整目标才 allowed | prepare/commit 整批 fresh，逐课程串行；批间 target 交集冲突；采用冻结本地答案策略 | 确定失败继续；首个发送后 unknown 停止且剩余 unattempted；逐项固定安全结果决定整体 |
+
+11H 表中“固定安全结果、不透传订单敏感字段”仅限取消结果、取消错误、日志与验证证据；
+不在本阶段静默破坏已有 `orders/detail` 读取 DTO 或 CLI schema。确定成功或
+`outcome_unknown` 后，Flutter 固定使用 intent 原路线读取 0-based 首页列表与同 ID 详情，
+不重新执行 Auto 探测。只有本次两个局部结果都唯一匹配同 ID，并各自带 Core 严格派生的
+`cancelledTarget`，才能标记已核对；旧 snapshot、单一读回、空、失败或冲突都保持未核对且绝不重发。
+
+11E 的冻结本地调用链固定为：CAS 精确 service 地址换取 `cas`，JSON POST `/v4/login/user` 取得非空
+`data.member.token`，JSON POST `/v4/Space/map` 与 `/v4/Space/seat` 完成只读资格复核，最后才允许 JSON POST
+`/v4/space/confirm`。既有只读区域详情仍只把 `date.list` 第一项的 `times` 投影为公开时段；写入 preflight
+不得据此推断其它日期共享同一 segment，而是从 `Space/map` 原始日期列表中唯一精确选择请求日期，并只读取
+该日期的 `times`。因此日期缺失/重复，或时段 ID 与起止时间不能明确同属该日期时一律安全拒绝。座位必须以非空 ID 唯一
+匹配；状态 `1` 产生 typed target，`2/3` 明确拒绝，缺失、null、布尔、对象、小数、溢出或其它整数均不得
+降级为可预约。`area_id` 只用于本地 authority/readback，不得宣称最终 confirm 会在 wire 上校验它。
+
+冻结本地实现和 server relay 对业务 false 的处理不同：前者在 `code=0/1` 下使用冻结负面消息判定并返回
+`success=false`，后者抛出 `LibBookException`。本阶段采用被迁移客户端的本地产品行为，让确定 false 作为
+成功解码的结果穿过 CLI/Bridge；只有结果确实无法判断才使用 `outcome_unknown`。两套冻结低层 client 都可能
+在认证失效后重放最终预约，本阶段依据一次性写安全合同明确不复制：bearer 必须在越过发送边界前准备好，
+最终请求只调用一次 non-idempotent transport。Bridge 对 Core 的 `outcome_unknown` 保留稳定 code/kind/安全
+message 并强制不可重试；Flutter 对确定成功或未知结果只刷新一次 `libbookBookings` 用于核对，不重放写请求。
+固定示例没有 LibBook API，不能为上述任一空白列补证。
+
+11F 的取消 authority 不能从冻结来源中不存在的 booking-detail 端点推导。冻结客户端唯一有证据的预约读取是
+JSON POST `/v4/member/seat`，参数严格为 `type="1"` 与调用方的 `page/limit`。因此 typed action 必须保留
+产生它的正数分页上下文，prepare 和 commit 分别 fresh 读取同一页，并以非空 booking ID 唯一匹配；目标缺失
+或重复均不得发送 `/v4/space/cancel`。最终 wire 正文仍严格只有 `{id}`，不夹带 `page/limit`、状态、用户或
+日期。取消 authority 的响应必须显式给出 canonical 正数 page/limit；缺失、畸形、非正或别名冲突不能使用
+普通只读列表的请求值 fallback。只有 canonical 整数 `status=1` 产生 allowed，`6/8` 产生 denied；缺失、null、非 canonical 整数、
+畸形或其它状态均为 unknown。`statusName` 保留为展示字段，不再参与 typed eligibility。
+
+冻结本地取消链会让业务 client 自动跟随跳转，并在认证失效后刷新 bearer、重放写请求；旧 server relay 还
+可能重建 client 再调用。这些行为不进入 11F：CAS 登录和 fresh 只读复核必须在写边界前完成，最终 cancel
+只调用一次 `request_non_idempotent`，不跟随业务/认证跳转且绝不重放。请求已发送后，timeout、transport、
+HTTP/认证跳转、非 JSON 或结构不足造成的无法判定统一为不可重试 `outcome_unknown`；后续只能刷新预约列表
+供用户核对。冻结 JVM/Android 的 trust-all TLS 同样违反当前安全合同，明确不采用。
+
+冻结成功 fixture 证明的是 raw `code=1` 和精确 `message=取消成功`；冻结本地实现允许 canonical
+`code=0/1`，但其它新成功文案没有足够证据，必须保持 `outcome_unknown`。冻结负例证明部分 `code/message`
+可确定映射为已取消、已结束、不存在或失效等业务错误；Core 只公开固定安全的成功、失败或终态文案，不透传
+raw message。`LibBookCancelResponse.success` 是本地 backend 映射后的产品字段，不能反向证明 raw `success`
+或 `status` 字段存在；结构不足时不得默认成功。上述来源来自
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `LocalLibBookApi.kt`、`LibBook.kt`、
+`LibBookBookingStatusTest.kt`、`LocalLibBookApiBackendTest.kt`、`LocalConnectionAuth.kt` 与两个平台
+`LocalLibBookHttpClient`；`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
+`src/api.rs` 确认九列没有等价实现。
+
+同页 authority 的 `/v4/member/seat` 也属于取消公共边界：其非成功 envelope 中的 raw `message/msg` 可能含
+个人数据或控制字符，只能在内部用于认证失效识别，不能作为 `UbaaError`、CLI 或 FRB 文案。Core 将该取消
+专用路径固定为 `upstream_changed/图书馆预约取消资格核对响应无效`，CLI 与 Bridge 按操作再次收敛；普通
+只读 bookings 仍保持其独立合同，不借此改写其它功能的错误语义。
+
+11H 的来源固定为 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 中的
+`CgyyApi.kt`、`LocalCgyyApi.kt`、`LocalCgyySigner.kt`、`Cgyy.kt`、Cgyy 取消状态/时间测试及旧 server
+实现。`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
+`venue-zhjs`、`cgAuthorization` 或场馆订单协议，因此九列均为 N/A；不得从其 Boya 课程取消、通用 SSO、
+VPN、credential 或错误类型类比补齐任何字段。旧 relay `/api/v1/cgyy/orders/{id}/cancel` 只属于宿主 API，
+不得代替上游 `/api/orders/new/cancel/{id}`。
+
+取消 authority 必须来自当前路线 fresh GET `/api/orders/{id}`，不能从 UI 展示字段、缓存订单列表或调用方
+提交的状态推导。prepare 与 commit 各自读取一次，响应必须是唯一 JSON object，且其中 canonical 正整数
+`id` 与请求 ID 严格相等；`data=null`、数组、缺失/畸形/非正 ID 或 ID 不匹配均为 unknown 并在发送前
+拒绝。详情端点本身返回单对象，冻结来源没有分页扫描或从列表消歧协议，故不得发明列表分页唯一性规则。
+
+状态资格只允许 canonical `orderStatus in {1,3}` 且 `checkStatus in {1,2,3,4,5,6}`；
+`orderStatus=2` 或任一负 `checkStatus` 明确 denied，缺失、畸形、0 或其它状态为 unknown。冻结
+`displayStatus` 对部分缺失、0 或未知正审核状态较宽松，本阶段按 typed unknown 失败关闭并记录为有意安全收紧。
+时间统一按 `Asia/Shanghai` 解析：start 有效时 deadline 恰为 start 前四小时且只允许 `now < deadline`；
+start 缺失或无效时才回退 end，并只允许 `now < end`；start/end 都缺失或无效时不增加时间限制，但状态与
+严格 ID 门禁仍必须通过。冻结函数默认系统时区而测试显式传入上海时区，本阶段不得依赖设备本地时区。
+
+冻结 client 在认证失效时可重放取消，旧 server 对认证错误或泛 Cgyy 错误还可能重建 client 后再次调用；
+冻结 UI 也只用缓存订单直接取消。这些行为与一次性写安全合同冲突，明确不复制：登录和两次 fresh 详情均在
+最终写边界前完成，final POST `/api/orders/new/cancel/{id}` 只以 URL 编码空表单调用一次
+`request_non_idempotent`，401 或其它异常都不得触发认证刷新或 POST 重放。只有冻结支持的 `code=200` 可
+产生固定安全成功结果；一旦跨过发送边界，非 200、认证/业务跳转、final URL 异常、transport/timeout、
+Cookie、非 JSON 或 envelope/code 结构不足都统一为不可重试 `outcome_unknown`。取消结果、取消错误、
+日志与验证证据不得带出 raw message/body 或订单敏感字段；已有 orders/detail 读取 DTO 不在此处静默改变。
+
+确定成功或 `outcome_unknown` 后都必须在 intent 原路线执行 0-based 首页订单列表与同 ID 详情回读；
+两次回读彼此独立记录，不重新执行 Auto 探测。仅两个本次局部结果都唯一匹配同 ID，并携带 Core 从
+canonical `orderStatus=2` 严格派生的 `cancelledTarget`，可作为取消证据。旧 snapshot、空详情、读取失败、
+ID 不匹配或列表/详情冲突都保持
+“未核对”，不得把取消响应信封升级为最终状态，也绝不自动重发取消 POST。历史独立授权探针曾出现取消信封
+成功后列表仍为状态 1、稍后列表变为状态 2，而详情先失败再返回空 data；该历史仅支持上述读回与不重发原则，
+不构成当前真实写授权。
+
+上述 Phase 11H 合同已由来源提交 `c2e07ae` 与实现提交 `f4e3137` 落地。脱敏确定性证据覆盖：非法 ID 在
+Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下溢失败关闭、Core 单次路线解析、固定路线
+回读不探测不回退、final POST 恰好一次、发送后歧义不可重试、CLI/Bridge 固定安全映射，以及两个本次局部
+回读同时提供 strict 同 ID 已取消证明。Core 333 项、Bridge 81 项、CLI contract 66 项、完整
+`just check`、FRB 零漂移、Flutter 工作区和 macOS 宿主 integration 7 项终态通过；没有执行真实取消。
+
+#### Phase 11J Evaluation 提交逐操作九列（2026-09-05）
+
+本节是 Phase 11J 的实现前来源合同，不是生产实现或阶段完成声明。适用本地来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的共享
+`EvaluationService.kt`、`LocalEvaluationService.kt`、`EvaluationModel.kt`、
+`LocalEvaluationServiceBackendTest.kt`，以及旧 server `EvaluationClient.kt`、`EvaluationService.kt` 与
+测试。交叉来源为 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
+`src/api/tes/{auth,data,opt}.rs`。两份来源部分等价但存在明确冲突；产品取舍见
+[Phase 11J 决策](../../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 评教会话激活 | **旧版：**GET `https://spoc.buaa.edu.cn/pjxt/cas`，无显式 `service`。**示例：**GET `https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fspoc.buaa.edu.cn%2Fpjxt%2Fcas`。**决定：**采用被迁移本地产品的 `/pjxt/cas`，不拼接示例 SSO 入口。 | **旧版：**共享 client 自动跳转，以 2xx、401、SSO final URL 或登录 HTML 分类；本地 activation 失败若非认证错误会回退为空读取。**示例：**只检查 final URL 已离开原登录 URL。**决定：**继续使用 Core 最多 8 跳、受验证主机且按路线转换的显式跟随；final 必须落在适用业务主机，不能只用“离开起点”证明。 | 使用当前已认证主 Session 的路线内 Cookie；不创建 Host 可见 credential，不跨 Direct/WebVPN，不把 Cookie 或登录 HTML 写入 DTO/错误。 | GET，无正文、无业务 query。 | 两源未证明评教专用 Header；只使用传输层已验证 User-Agent/Cookie。 | 无。 | 激活无公共 DTO；认证页只形成稳定 authentication error。 | 旧本地用 Mutex 和 bool 缓存，示例用 Tes credential expiry。**决定：**保持 route-local session，读可复用已激活状态；prepare/commit 的课程 authority 不缓存，且路线/Session 变化使旧 intent 失效。 | 认证失败传播并清理既有认证状态；非认证激活失败的读取回退沿用冻结行为，但写入 prepare/commit 必须失败关闭，不能借空列表授权或误报完成。 |
+| tasks/questionnaires/courses authority | **两源：**GET `/personnelEvaluation/listObtainPersonnelEvaluationTasks` → GET `/evaluationMethodSix/getQuestionnaireListToTask` → GET `/evaluationMethodSix/getRequiredReviewsData`。 | 每个请求都必须终止在对应 pjxt 端点；SSO URL、登录 HTML、跨主机或意外 3xx 不得作为有效 authority。 | 同一已解析路线与当前 Session；上游完整课程只驻留 Core 本次读取内存。 | tasks 精确 query `yhdm=<schoolid，空时 username>,pageNum=1,pageSize=10`；questionnaires 仅 `rwid`；courses 仅 `wjid`。旧本地按 task/questionnaire 串行，示例并发 questionnaire course GET。 | 三个 GET 在两源中均无 `X-Requested-With` 或自定义业务 Header；不得保留当前生产中无来源的 XHR Header。 | 无。 | 父级提供 `rwid`，questionnaire 提供 `wjid/msid`，course 提供 `kcdm/bpdm/kcmc/bpmc/ypjcs` 及 topic 所需字段。完整 authority 只在 Core 内部；公开课程只含安全展示、typed target 与资格。身份按实际实现/测试 `${rwid}_${wjid}_${kcdm}_${bpdm.orEmpty()}`；冻结模型注释写 `bpmc` 与代码冲突，不采用注释。仅 canonical integer `ypjcs=0`、必需非空字段完整且 target 唯一为 allowed；`ypjcs>0` denied；缺失、畸形、负数、重复或冲突 unknown。`bpdm` 可空但参与 typed identity。 | prepare 与 commit 都从 tasks 起整批 fresh；不使用 UI snapshot 或 prepare 的完整课程。调用方 targets 保序且不得重复；不同 pending batch 目标集合有任一交集即冲突。采用本地串行顺序，不采用示例并发。 | 任一目标无法在 fresh authority 中唯一匹配 allowed 行时，在 final 前固定失败；不透传 raw code/message。畸形行不得因被跳过而使同身份的剩余行获得唯一资格。 |
+| revise questionnaire pattern | **旧版/旧 server：**POST `/evaluationMethodSix/reviseQuestionnairePattern`。**示例：**没有该步骤。**决定：**采用本地产品步骤。 | 必须终止在 revise 端点；认证跳转/页面属于认证失败。 | 同一课程 fresh authority 所属路线与 Session。 | JSON object 精确三字段 `{rwid,wjid,msid}`；字段都来自 commit 本次 Core authority。 | `Content-Type: application/json`；两份适用本地实现均无 `X-Requested-With`。 | 无。 | response envelope 可无 result；只用于切换模式，不进入公开 DTO。 | 每门课程在 topic 前执行；认证错误必须中止该课程/批次，只有非认证确定失败按冻结本地实现 best-effort 继续。不得重放最终 submit。 | 非认证失败不伪造 revise 成功，但允许继续 topic；认证或 Session 失效在任何 final 前失败。公开结果只用固定安全文案。 |
+| questionnaire topic | **两源：**GET `/evaluationMethodSix/getQuestionnaireTopic`。 | 必须终止在精确 topic 端点，不接受认证页、跨主机或其它业务 final URL。 | 同一 fresh authority、路线和 Session；学生/教师内部字段不得跨 facade。 | 精确 21 个 query：`id=""`,`rwid`,`wjid`,`zdmc`,`ypjcs`,`xypjcs`,`sxz`,`pjrdm`,`pjrmc`,`bpdm`,`bpmc`,`kcdm`,`kcmc`,`rwh`,`xn`,`xq`,`xnxq`,`pjlxid`,`sfksqbpj`,`yxsfktjst`,`yxdm=""`；默认值只采用冻结本地 `zdmc=STID,ypjcs=0,xypjcs=1,pjlxid=2,sfksqbpj=1`，调用方不得提供。 | GET；两源均无 XHR 或正文。 | 无。 | `result` 必须提供唯一 topic object；`pjxtWjWjbReturnEntity.wjzblist[].tklist[]`、选择题 option ID 与 `pjxtPjjgPjjgckb` payload 均须达到构造冻结信封所需形状。缺题、缺必需 option/form identity、非唯一或类型错误不得进入 final。 | 每课程 fresh 获取，不缓存 topic。采用本地答案策略：从全部题目随机一索引；仅当命中的选择题有第二项时选第二项，其余选择题第一项；主观题 `wjstctid` 用第一 option ID 且 `xxdalist=[]`。示例固定首个选择题取第二项及动态评分不采用。 | topic 确定失败记录该课程 failure 并继续下一课程；不得把缺字段默认成 null 后仍提交。随机值不写日志、不进入公开结果。 |
+| final submit | **两源：**POST `/evaluationMethodSix/submitSaveEvaluation`。 | 生产传输禁用自动重定向；3xx、SSO final URL、认证 HTML、跨主机或错误 terminal 在发送后都不能确认结果。示例提交后的 `/checkWhetherTheTaskIsEvaluable` 与 `/system/property` 没有本地产品证据，禁止调用。 | 使用同一 fresh authority 的 route-local Cookie；不引入 credential、题目、答案或个人数据日志。 | JSON 精确 `{pjidlist:[],pjjglist:<一门课程结果>,pjzt:"1"}`。课程 payload 沿用本地冻结字段与 null，固定 `pjdf=93,pjsx=1,stzjid="xx",wtjjy="",sfnm="1"`；不采用示例动态 score/reason 规则或额外探测。 | 仅 `Content-Type: application/json`；无 `X-Requested-With` 证据。 | 无加密、签名、captcha 或 challenge。 | 成功 code 只接受 primitive `0`、`200` 或大小写不敏感 `success`；明确其它 primitive code 为确定失败。缺失/array/object/bool/fraction/溢出 code、非 object/非 JSON 都不能默认为成功。公开结果绝不带 raw message/body、题目/答案或内部身份。 | 每课程 final 通过 non-idempotent transport 恰好一次，不认证刷新、不重放、不切路线。确定发送前失败可继续下课程；一旦结果未知立即停止。 | 确定 success/failure 使用固定安全文案；transport/timeout/Cookie、HTTP 非 2xx、3xx/认证页、非法 terminal 或 envelope/code 歧义为不可重试 outcomeUnknown。首个 unknown 后当前项标 unknown，余项 unattempted；CLI unknown exit 5。 |
+| batch result 与 caller-pinned readback | authority 与回读复用上述读取链；没有额外写 URL。 | 回读只允许 intent 已解析的原 Direct/WebVPN 路线，不重新 Auto 探测或 fallback。 | pending intent 只保存 typed targets；完整 authority、题目和答案不越过 Core。 | request 为非空有序 `targets`；result 与输入一一对应。回读为一次 `evaluationAll`，不得调用示例额外探测。 | 同只读链；无新增 Header/正文。 | 无。 | 公开 preview/result 只含 target、课程名、教师名、封闭 outcome 与固定 message。outcome 为 `success/failure/outcomeUnknown/unattempted`；批次只有全 success 才 success，任一 unknown 设置 `outcome_unknown=true`。 | 逐课程串行并保持请求顺序；确定失败继续；unknown 停止。prepare/commit 双 fresh，Bridge 意图单次消费。确定结果和 unknown 都最多一次 caller-pinned readback。 | 回读只刷新状态，空/失败/仍 pending/显示已评都不改变提交 outcome，也不得自动重发。Bridge 必须保留逐项结果，CLI/Flutter 不得从展示文案反推 target；本阶段公开版本由 CLI v9 升 v10、Bridge v8 升 v9。 |
+
+Phase 11J 的 RED 必须逐层覆盖：`ypjcs` 状态矩阵；缺失/重复/冲突 target；任务到课程的完整字段继承；
+prepare/commit 双 fresh 与路线错配零网络；revise 认证/非认证分支；topic 21 query 与 payload golden；final
+non-idempotent 错误矩阵；批次保序、确定失败继续、unknown 停止；pending batch 交集冲突；逐项结果禁曝；
+caller-pinned 回读不重发也不升级 unknown；架构测试禁止正常 facade/CLI/FRB 接受 `serde_json::Value` 或 Host
+构造上游课程字段。当前生产仍存在这些已知缺口，本节只授权确定性 Fixture/Mock/TDD 修复，不授权真实评教。
+
+#### Phase 11I Ygdk 提交逐操作九列（2026-09-05）
+
+本节固定已由 `d8484ad` 落地的来源合同与实现证据。适用旧版来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
+`LocalYgdkApi.kt`、`Ygdk.kt`、`LocalYgdkApiBackendTest.kt`、`YgdkApiTest.kt`、
+`YgdkViewModel.kt`、`YgdkViewModelTest.kt`，以及旧 server 的 `YgdkClient.kt`、`YgdkService.kt` 与测试。
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的固定模块清单只有
+`aas/app/boya/class/cloud/live/spoc/srs/sso/tes/user/wifi`，没有 Ygdk、Clockin 或照片上传等价实现；所以下表
+每一行的九个示例来源单元格都为 **N/A 且不等价**。不得从示例的通用 SSO、credential、Cookie、上传、
+错误类型或其它业务模块类比补齐任何字段。与本表绑定的产品取舍见
+[Phase 11I 决策](../../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| OAuth 引导与 code 提取 | **旧版：**GET `https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1`。**示例：**N/A。**决定：**精确采用该 URL；旧 relay `/api/v1/ygdk/*` 不是上游。 | **旧版：**关闭自动跳转，最多 10 次；每跳先检查实际请求 URL，再解析 `Location`；从普通 query 或 fragment 内 query 精确取得 `code` 并 URL-decode。冻结实现没有逐跳 host allowlist。**决定：**保留有界提取；仅请求冻结已证的 HTTPS app/ygdk 默认端口并验证 WebVPN 内层，未知主机拒绝。code 只取 ygdk 根路径 query 或 `/home` fragment query，保持字面加号并单次百分号解码；真实完整链兼容性尚未验证。 | 使用当前已认证用户、当前 Direct/WebVPN 路线的主 Cookie client；`code` 只在本次业务登录内存中传递，不持久化、不输出。 | 无正文 GET；query 仅为冻结的 `redirect/appid/state/qrcode`。相对、绝对和 scheme-relative `Location` 只用于同一次有界解析，不得改选路线。 | 冻结实现没有 Ygdk 专用 Header 或正文；不得新增无来源 Header，也不得记录 URL 中的 `code`。 | 无业务加密或签名；WebVPN URL 转换属于路线层。 | `code` 必须存在、URL-decode 后非空；缺失、空值、畸形 URL、超过跳数均失败，不从正文或页面文本猜测。 | 每次需要新业务 credential 时在当前路线执行；旧 no-redirect client 只服务本轮并及时关闭。当前合同还要求结果受活跃 Session generation 守卫，过时代次不得写回缓存。 | 失败属于发送最终打卡前的认证/上游错误，可在固定安全文案下结束；不得泄露跳转 URL、code、Cookie 或 raw body，也不得因此发送 upload/final。 |
+| 业务登录与路线 credential | **旧版：**GET `https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin?code=...`。**示例：**N/A。 | 冻结 client 会自动跟随且未校验 terminal URL。**决定：**业务登录只能留在 intent 的 expected route，并校验适用的 Ygdk terminal；OAuth 逐跳主机采用上一行已证集合，未知目标拒绝；真实完整链兼容性仍需验证。 | 响应 `{uid,token}` 是当前用户、路线与活跃 Session generation 的业务 credential；token 先 URL-decode。只驻留该 runtime 内存，不进入磁盘 session，不跨用户、路线或失效代次复用。 | GET，query 只有本轮提取的 `code`。 | 冻结实现无额外自定义 Header 和正文；沿用当前路线 Cookie。 | 无。 | 外层必须为 `code=1`；结果接受 `result.data` object 或 `result` object，要求可用的 `uid` 与非空 token。旧版宽松整数解析不构成公开 typed ID 证据。 | 旧版本地实现按学号缓存且 mutex 只保护读写，创建发生在最终锁外；旧 server 登录单飞。**决定：**采用单飞与 generation CAS，commit 不复用 prepare 的旧 credential，而取得 commit 时仍属活跃代次的 credential。 | `code=-98` 表示 credential 失效；其它 code、结构缺失或 raw `msg` 只能归约为稳定认证/上游错误。任何刷新只可发生在 upload/final 之前；不得把 raw `msg`、uid、token 带到错误或日志。 |
+| fresh classify authority | **旧版：**POST `https://ygdk.buaa.edu.cn/api/Front/Clockin/Classify/getList`。**示例：**N/A。 | 冻结业务 client 未校验 final URL。**决定：**authority 不接受认证页、跨主机或其它业务 final URL。 | 表单必须使用本次 active credential 的 `uid/token`，并与后续 item、upload、final 保持同一路线及同一 credential generation。 | URL encoded POST；除自动附加 `uid/token` 外没有业务参数。 | `Content-Type: application/x-www-form-urlencoded; charset=UTF-8`，`X-Requested-With: XMLHttpRequest`。 | 无。 | `code=1` 的 `result.list` 必须是可判定数组；分类身份为 `classify_id/name`。冻结选择顺序是首个名称含“体育”、否则首个 `classify_id=1`、否则首项。当前 typed authority 额外要求被选分类 ID 为 canonical 正整数且在响应中唯一、名称非空；缺失、畸形、非正或重复均为 unknown。 | prepare 与 commit 分别 fresh 请求，不复用 overview snapshot 或旧 server 60 秒 context cache。commit 只在 expected-route 原子入口中执行一次本行读取。 | 无列表或无法唯一证明分类时在 upload 前失败关闭；旧版静默丢弃畸形元素的行为不得授权写，也不得从 UI label/default 反推分类。 |
+| fresh item authority 与 typed target | **旧版：**POST `https://ygdk.buaa.edu.cn/api/Front/Clockin/Item/getList`。**示例：**N/A。 | 同 classify：最终 URL 必须仍是对应 Ygdk item 端点，不能接受登录页或跳转结果。 | 使用与 classify 相同的 active `{uid,token}` 和 credential generation。 | query 与 form **同时**携带 `page=1`、`limit=1000`、`classify_id=<fresh 分类 ID>`；form 另自动附加 `uid/token`。 | 同 classify 的 UTF-8 URL encoded 与 `X-Requested-With`。 | 无。 | 每项身份为 `item_id/name`，`type/sort` 只展示。冻结默认项为首个名称含“跑”，否则按 sort 首项；Phase 11I 不让默认项或名称产生写权限。只有 fresh 分类 ID、item ID 均为正且各自在原响应唯一、item 名非空，并与调用方 typed target 完全一致时 allowed；缺失、畸形、非正、重复、不匹配为 unknown，且 target 为空。 | prepare/commit 各自 fresh；不缓存资格。稳定 target 只含 `(classifyId,itemId)`，final 的 `item_name` 必须从 commit 本次 fresh item 取得，调用方不能提交。 | 非 allowed 不创建 intent、不上传；primitive `itemId`、展示名称、`defaultItemId` 或缓存 overview 均不能绕过 typed target。 |
+| 本地时间与表单规范化 | 无上游 URL；本行必须在路线解析、Auto 探测、credential 获取和任何 HTTP 前完成。**示例：**N/A。 | N/A；不得用网络错误掩盖本地输入错误。 | 不读取或改变 Cookie/credential。 | `start/end` 都必填，只接受精确 `yyyy-MM-dd HH:mm`；二者须为同一上海自然日且 end 严格晚于 start。以 `Asia/Shanghai` 有检查地转换为十进制 Unix epoch 秒；例如 `2026-04-01 08:00`/`09:00` 固定为 `1775001600`/`1775005200`。`form_time_fmt` 精确为 `2026-04-01 08:00-09:00`，不带秒、时区或额外空白。 | 本地 canonical 字符串稍后进入 URL encoded final form；不接受 ISO `T`、秒、offset、模糊日期、仅填一端或跨日。 | 无。 | 冻结错误文字提到“一小时”，但两份适用实现只检查同日及 end>start；当前合同不得臆加恰好一小时或最长时长。解析、时区映射、epoch 溢出或非唯一 local time 均为 invalid input。 | 无缓存；prepare 与 commit 都重新验证 canonical 值，intent 中保存已规范化值而非设备时区解释。 | 任一非法时间必须 pre-network `invalid_input`；错误只说明字段类别，不回显原始输入。 |
+| 照片 multipart upload | **旧版：**POST `https://ygdk.buaa.edu.cn/api/Front/Upload/File/post`。**示例：**N/A。 | 冻结实现未拒绝跳转。**决定：**upload 不接受跳转、登录页或非 upload terminal。 | multipart 的 `uid/token` 来自 commit 本次 active credential；不得写日志、缓存或持久化。 | multipart 恰有业务 parts `uid`、`token`、`file`；file part 的 disposition name 固定 `file`，filename 为已校验名称。照片字节必须为 1..10 MiB。 | `X-Requested-With: XMLHttpRequest`；multipart boundary 由实现生成。filename 必须是已 trim 的单一 basename、1..128 字符，禁止 `/`、反斜杠、引号与任意 Unicode 控制字符（含 CR/LF/NUL/DEL）。MIME 必须是 `image/` 加非空 ASCII HTTP token，不得含参数、空白、斜杠之外的层级或控制字符；不凭扩展名放行 `application/octet-stream`。这些是本地 header-injection 收紧，不是臆造上游图片 subtype allowlist。 | 无。 | 仅 `code=1` object 中非空 `file_name` 可进入后续 `images` JSON；`file_url` 不需要公开或持久化。照片 `Debug` 只能显示 byte count 与规范化 MIME，filename 固定脱敏，绝不显示 bytes、路径或 URL。 | 只在用户确认后的 commit 执行，最多发送一次；upload 成功文件名只在同次内存链传给 final，不进入公开 intent/digest。upload 不确定或失败不得自动重传，也不得继续 final。 | 本地照片语法错误为 pre-network `invalid_input`。upload 失败只说明“照片上传未完成”，不是打卡成功也不是 final 结果；可能产生的孤立文件不能触发自动重传。raw response、文件名、路径、token 不得外泄。 |
+| final clockin | **旧版：**POST `https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/clockin`。**示例：**N/A。 | 冻结实现自动跟随且不校验 final URL。**决定：**最终请求不跟随跳转，只接受精确业务 terminal；认证页、跨主机、业务跳转或无法确认 final URL 在发送后都属于结果未知。 | 与本次 fresh classify/item/upload 使用同一路线、同一 runtime 与同一 active credential generation；每次请求前检查 generation 仍为 current，不能中途刷新/替换 uid/token。 | UTF-8 form 精确十二字段：`start_time/end_time` 为上海 epoch 秒，`place_type=1`，`place` 为 trim 后非空值或冻结默认“操场”，`isopen=1/0`，`form_time_fmt` 用上一行格式，`images` 为只含 upload `file_name` 的 JSON 数组，`classify_id/item_id/item_name` 来自 commit fresh authority，外加 `uid/token`。调用方不得提交 classify、item_name、uploaded filename 或 credential。 | `Content-Type: application/x-www-form-urlencoded; charset=UTF-8` 与 `X-Requested-With: XMLHttpRequest`。 | 无。 | 只有 `code=1` 且 `result` 为 object 才确定成功；`record_id` 可缺失/null，存在时仅 canonical 正整数可成为安全收据，畸形或非正值只丢弃收据而不覆盖已确认的 `code=1` 成功。公开结果固定为 `success=true,message="阳光打卡已提交",recordId?`，不带 raw message、summary、文件信息、地点、时间或 credential。 | Core facade 必须先做全部本地校验，再恰好一次解析路线并与 intent `expected_route` 原子比较；不匹配在任何 HTTP 前拒绝。匹配后才在所得 runtime 完成 commit fresh authority、upload 与 final。final 只经 non-idempotent transport 发送一次，不做认证刷新、重放或隐式 fallback。 | final 发送前的确定错误保持稳定分类；一旦开始发送，除上述 strict success 外，HTTP、401、`-98`、非 1 code、业务/认证跳转、final URL 异常、transport/timeout、Cookie、非 JSON、非 object 或 code/result 结构歧义都固定为不可重试 `outcome_unknown`，CLI exit 5。任何层都不得凭 raw message 猜成功。 |
+| caller-pinned overview readback | **旧版：**overview 依次读取 classify、item，并尽力读取 `/api/Front/Clockin/Clockin/getCount` 与 `/api/Front/Clockin/Term/get`。**示例：**N/A。 | 只允许 intent 已解析的原 Direct/WebVPN 路线及相应 terminal；不得重新 Auto 探测或 fallback。 | 读取使用原路线当前 active generation 的 credential；读失败可按只读认证规则独立处理，但不得影响已消费写 intent或触发写重放。 | classify/item 形状同上；count form 为 `classify_id,user_id=<uid>` 再附 `uid/token`；term form 仅附 `uid/token`。 | 均为 UTF-8 URL encoded 与 `X-Requested-With`。 | 无。 | 返回 fresh overview 的 summary、classify 与 items；count/term 在冻结 UI 可选失败。readback 不得用提交响应中的 summary 代替 fresh overview，也不得从数量增长推断某一条提交已确认。 | 确定成功和 `outcome_unknown` 都各发起一次 caller-pinned overview 刷新；与 records 结果独立保存，任一失败不取消另一读取，且绝不重试 final。 | 这是核对信息而非成功证明。成功仍显示确定成功；unknown 即使 overview 变化也保持 unknown，直到有另行冻结的严格关联证明。读取错误使用安全文案。 |
+| caller-pinned records readback | **旧版：**POST `https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/getList`；本地实现与迁移目标把分页字段同时放 query+form，旧 server 只放 form，冲突按被迁移本地实现采用 query+form。**示例：**N/A。 | 固定 intent 原路线，不 Auto、不 fallback；响应 terminal 必须仍为 records 端点。 | 使用原路线当前 active credential；不复用 UI 旧 snapshot。 | 固定读取 1-based `page=1,size=20`，wire 名为 `page=1,limit=20,classify_id=<fresh 体育分类>,user_id=<uid>`，四字段同时在 query 与 form，form 另附 `uid/token`。 | UTF-8 URL encoded 与 `X-Requested-With`。 | 无。 | 记录身份 `record_id`；项目、起止 epoch、地点、图片、公开状态只作读取展示。冻结来源没有把本次 target、时间与 upload 文件安全关联为唯一写后证明的规则，故不得用首条、计数、文案、旧 snapshot 或近似时间把 unknown 升级为 success。 | 确定成功与 `outcome_unknown` 都各执行一次 caller-pinned 首页刷新；overview/records 独立 best-effort。读取完成后不保留上传 filename 或照片。 | 读取成功只更新页面；空、失败、重复或看似匹配都不触发写重放。严格结果关联仍是公开 gap，未来若要显示“已核对”必须先补来源或脱敏实时证据与独立合同。 |
+
+Phase 11I 的最小 typed 公共面固定为：Core 在每个 `YgdkItem` 上给出
+`submitEligibility: ActionEligibility` 与可空 `submitTarget: YgdkSubmitTarget`，target 仅含正数
+`classifyId/itemId`；只有二者来自同一 fresh overview、各自唯一且与父 DTO 一致时 target 才存在。prepare 请求不再接收
+primitive 可空 `itemId`，而接收该 typed target、两端 canonical 时间、可选地点/公开开关和必需内存照片；commit 重新取得
+fresh item name。Host/Bridge 边界必须再次校验正数、same-parent 与 eligibility/target 一致性，不能信任手工构造 DTO。
+这一公开读取、请求与安全结果形状属于破坏性合同变化：Phase 11I 当时将 CLI JSON envelope/schema 从 v8 升为 **v9**，
+Flutter Bridge contract 已从 v7 升为 **v8**，旧 v8/v7 分别显式拒绝；两个 schema 都要闭合字段并禁止 raw
+message、summary、照片 filename/bytes/path/URL、uid/token 与任意上游正文。
+
+prepare 与 commit 都必须 fresh classify+item，但只有 commit 在用户确认后上传与写入。pending intent 仅在 opaque client
+内存保存完成本次发送所需的规范化输入；公开 intent 与 canonical digest 只记录 target identity、时间/地点是否存在、
+share 值、照片 byte count 与规范化 MIME 等非敏感 shape，不保存或哈希地点正文、filename、照片 bytes、uid/token。
+commit 对 intent 单次消费；Core expected-route 入口在一个调用中完成“本地校验 → 单次路线解析 → expected route 比较 →
+active generation credential → fresh authority → 单次 upload → 单次 final”，不得由 Bridge 先解析再让 Core 二次解析。
+路线冲突、过时 owner/session generation、credential generation 变化或任何发送前 authority 冲突均在 final 前失败关闭。
+
+Phase 11I 的 TDD 回归清单固定如下；该阶段已逐项完成实现与测试，完整跨层 GREEN、生成零漂移和本地确定性
+门禁均已统一验证：
+
+1. classify/item 缺失、字符串数值、零、负数、重复 ID、空名称、target 与父项不一致均为 unknown/no target；唯一正数身份才 allowed。
+2. 时间严格拒绝缺一端、ISO `T`、秒、offset、跨日及 end<=start，并以固定上海向量断言 epoch 与
+   `form_time_fmt`；所有失败均发生在路线解析和 HTTP 前。
+3. expected-route 不匹配、owner/session generation 过时及 commit 中 credential generation 改变时零 HTTP；成功路径只解析一次路线，
+   classify/item/upload/final 全部命中同一 runtime 与 generation。
+4. 空照片、超过 10 MiB、路径/引号/CRLF/NUL/控制字符 filename、非 image 或带参数/空白/控制字符 MIME 均在 HTTP 前拒绝；
+   multipart golden 只出现 `uid/token/file`，照片 `Debug` 和 intent digest 不出现 filename/bytes/path。
+5. upload 最多一次，任何 upload 失败均零 final；final transport 调用恰好一次，strict `code=1` object 才成功，其它已发送响应/异常
+   全部为不可重试 `outcome_unknown` 且不会认证刷新或重放。
+6. Core、Bridge、CLI 成功只投影固定安全结果与可选正 `recordId`；raw message/summary/文件信息/credential 永不出现；CLI unknown exit 5。
+7. CLI schema v9 与 Bridge v8 覆盖 eligibility/target/request/result，拒绝旧 v8/v7；FRB 生成快照同时固定 target same-ID/positive host invariant。
+8. 确定成功和 unknown 都恰好各触发一次 caller-pinned overview 与 records 首页读取；两者独立、无 Auto/fallback，空/失败/冲突不重发也不把 unknown 升级。
+
+截至当前工作树，OAuth/business-login 已受 owner/session generation guard 保护；Ygdk item 使用 fresh
+classify/item 派生的 typed authority，Bridge/App 请求携带完整 target；Core 提供 expected-route 原子入口与
+caller-pinned overview/records facade。CLI JSON schema v9、Flutter Bridge contract v8 与生成类型已经一致，安全
+收据仅允许可选正 `{recordId}`，upload/final 不自动重试且公开字段禁曝。完整 Rust/CLI/Bridge/Dart/Flutter 回归、
+FRB 零漂移、macOS 脱敏宿主 integration 和独立终审均已通过。冻结来源没有提供严格写后证明，当前回读仍不得把
+unknown 升级为 success。本节没有访问网络、上传照片或执行任何真实账号写入，也不授权后续阶段做真实写测试。
+
+11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
+`courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程
+ID。因此任何 UI 展示字段或外层记录 ID 都不得成为退选目标。冻结详情页只以“已选且课程未开始”控制退选，
+`courseCancelEndDate` 仅展示。当前资格规则还检查上游提供的退选截止时间，见[退选截止对照](bykc.md#博雅退选截止时间2026-11-11)。
+非正课程 ID 或 `selected` 缺失为 unknown；明确 `selected=false` 为 denied。已选课程的开课时间必须可解析，
+超过开课时间或已提供的退选截止时间为 denied，恰好等于边界仍为 allowed。退选截止缺失时沿用开课时间规则，
+已提供但无法解析时为 unknown。
+
+11C 的产品资格以冻结本地 `LocalBykcApi.signIn/signOut` 为准：每次操作先读取 `getAllConfig`，选择当前学期，
+再以已选项内层 `courseInfo.id` 查找目标；已选项配置无法解析时才回退 `queryCourseById` 的配置。签到要求
+`pass != 1`、考勤为未签到状态且当前时间处于 `signStartDate..signEndDate` 闭区间；签退允许考勤状态
+`0/5/6`，并使用 `signOutStartDate..signOutEndDate` 闭区间。冻结示例只在被忽略的真实账号样例中使用严格开区间，
+且没有已选、考勤或考核检查，因此不覆盖被迁移产品规则。旧版本把 nullable `checkin/pass` 分别当作未签到与
+未通过；typed 安全合同不再凭字段缺失推断资格，缺失或畸形值记为 `unknown` 并拒绝创建 intent。
+
+位置输入不等于“总是要求调用方坐标”：冻结本地实现先从完整签到点列表随机取一个；只有被选中点的半径为
+正数时，才以 `distance = radius * sqrt(U)` 和随机方位角生成圆内均匀坐标，否则要求调用方同时提供
+`lat/lng`。示例固定为单个坐标加 `±1e-5` 偏移，不采用。两源均确认最终正文键为 `signLat/signLng`；
+`courseSignType` 只在冻结 DTO 中透传、UI 未展示，也不能替代操作明确选择的 `signType=1/2`。冻结旧版对任意请求异常强制
+重登并重放一次，可能重复非幂等写；当前一次性 intent 与 outcome-unknown 合同禁止复制该行为。
+
+### Evaluation 评教提交信封
+
+冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。自动提交链会按旧版顺序对每门待评课程执行 `reviseQuestionnairePattern`（失败按冻结实现继续）、读取问卷题目、展开 `wjzblist[].tklist[]`，按题型构造答案后提交最终信封；选择题的第二个选项只在随机选中的一题使用，随机源保留在 Core 内且不写入日志。CLI 提供 `evaluation submit-pending --confirm-write`，未确认时在读取课程前拒绝；实时验证永不调用写操作。固定 `examples/buaa-api/src/api/tes` 有部分等价提交协议，其请求顺序和答案策略差异按决策日志处理。2026-09-03 审查另确认生产读取曾丢弃部分课程字段且 bridge 会把逐课程失败投影为整体成功；修复前不得把自动链描述为端到端通过。
+
+空 `pjjglist` 现在在会话建立前返回 `invalid_input`；单元测试使用禁止网络的传输验证该边界，确保无效评教提交不会访问上游。
+
+逐请求证据：`crates/ubaa_core/tests/evaluation.rs` 通过 `RouteClient::evaluation_submit` 使用合成会话调用冻结 `submitSaveEvaluation`，断言 JSON 信封中的空 `pjidlist`、`pjzt="1"` 和课程结果字段，以及固定请求头；不记录原始响应或个人数据。
+
+自动链证据：同一测试文件以单门脱敏课程调用 `evaluation_submit_courses`，严格断言 CAS 激活、revise（`rwid/wjid/msid`）、题目 GET 和最终提交四步顺序，并校验最终结果保留 `pjdf=93`。Mock 响应不包含真实课程或人员数据。固定 `examples/buaa-api/src/api/tes` 有部分等价提交协议；其缺少 revise、提交后额外探测和答案选择策略差异均已记录，不能与冻结本地顺序拼接。
+
+LibBook 座位排序补充：冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后执行 `sortedBy { it.no }`；Core `parse_seats` 同样按座位号字符串升序输出，并由逆序脱敏测试固定该行为。
+
+LibBook 预约分页补充：冻结 `getBookings` 在 `total` 缺失时以当前映射后的预约条数作为回退；Core `parse_bookings` 保留该回退，不把缺失总数误报为零。
+
+LibBook 分区详情补充：冻结 `mapAreaDetail(areaId, raw)` 在响应区域对象缺少 `id` 时回退传入的 `areaId`；Core 的 `parse_area_detail_for` 与 `Space/map` 查询入口保留该语义。
+
+Bykc 签到配置补充：冻结 `LocalBykcApi.parseSignConfig` 使用严格序列化，`signPointList` 中任一点缺少 `lat/lng` 或类型错误都会使整个配置解析失败并返回空；Core `parse_sign_config` 现对列表、点对象及坐标执行同等严格校验，`radius` 仅在字段缺失时回退零值。
+
+Ygdk 记录时间补充：冻结 `LocalYgdkRecordRaw` 将 `startTime/endTime` 读取为 Unix 秒，并由 `timestampToDateTimeText` 按 `Asia/Shanghai` 格式化为 `yyyy-MM-dd HH:mm`；Core `parse_records` 现兼容数值秒时间戳并使用固定东八区格式化，同时保留已存在的字符串兼容路径。
+
+Ygdk 记录图片补充：冻结 `extractRecordImages` 对 `images_fmt` 支持数组和非空单字符串；当字符串不是 JSON 数组时按单个地址保留，空字符串回退为空列表。Core `parse_records` 现保持该优先级和回退语义。
+
+Ygdk 时间字符串补充：冻结 `JsonObject.long` 先读取 primitive 文本再执行 `toLongOrNull`，因此数字字符串时间戳与数值时间戳相同，均按东八区格式化；Core `datetime_text` 现保留该兼容性，非数字文本仍原样保留。
+
+LibBook 原语字段补充：冻结 `JsonPrimitive.contentOrNull` 将数字和布尔原语按文本映射到馆区、楼层、座位、状态及预约字段；Core `text` 现兼容字符串、整数、浮点和布尔原语，保留字段别名与空值回退。
+
+Cgyy 原语字段补充：冻结 `LocalCgyyApi.string` 使用 `jsonPrimitive.contentOrNull`，场馆、订单和说明类文本字段可由数字或布尔原语转为文本；Core `string` 现保持同等原语文本化，整数 ID 仍由独立 `int` 解析。
+
+Signin 写响应补充：冻结 `LocalSigninApi` 的 `jsonStringValue`/`int` 对 `STATUS` 与嵌套 `result.stuSignStatus` 同时接受数字和数字字符串。2026-09-03 审查确认当时 Core 错读顶层 `stuSignStatus`；只有改为嵌套字段、保留业务 `success=false` 并完成 RED/GREEN 后，才可称为实现证据。
+
+Evaluation 任务身份参数补充：冻结 `LocalEvaluationService.fetchTasks` 将已登录资料的 `schoolid`（为空时回退 `username`）作为 `yhdm`，并固定 `pageNum=1&pageSize=10`。Core 运行时现仅在内存保留登录成功资料中的 `school_id`/`username`，任务请求按同一优先级发送 `yhdm`；既有会话若无资料则保持空值，不从未证实的 Cookie 或响应字段推导身份。
+
+Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使用 `jsonPrimitive.contentOrNull`，记录的 `item_name`、`place`、`create_time_fmt` 等文本字段可由数字或布尔原语映射为文本。Core `string` 现统一支持字符串、数字和布尔原语，空文本仍按旧版回退为空。
+
+2026-09-02 取消入口状态对照补充（LibBook 部分已由上方 Phase 11F 当前决策取代）：冻结 `CgyyOrderDto.displayStatus`/`canCancelAt` 将取消状态码
+`orderStatus=2`、任一负 `checkStatus` 和未知订单状态视为不可取消；可取消订单还必须早于预约开始前四小时，
+若无开始时间则以结束时间作为兜底截止。冻结 `LibBookBookingDto.cancelBlockedMessage` 曾将状态码 `6`/`8` 及
+`statusName` 中的中文结束词共同用于 UI 判断；该历史实现只能证明旧产品行为，Phase 11F 已明确改为 canonical
+整数状态 typed 资格，`statusName` 只展示。订单列表的审核说明与图书馆预约的状态名称均不改变 Core 最终校验、
+取消 URL、签名、会话或写入次数。`examples/buaa-api` 没有等价的 Cgyy/LibBook 取消协议，未借用其字段或错误语义。
+研讨室订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
+
+Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。
