@@ -30,26 +30,24 @@ DOCS_BASE=/UBAA/ npm run docs:preview
 
 `node_modules`、VitePress 缓存和生成的静态文件不提交 Git。站内链接使用网站路由，源码链接使用 `blob/main` 或 `tree/main`；旧版引用使用 `ubaa1` 或固定提交。
 
-## GitHub Pages 配置
+## Cloudflare 部署
 
-1. 在仓库 Settings → Pages 中将 Source 设为 GitHub Actions。
-2. 在 Actions Variables 设置 `DOCS_PUBLISH_BRANCH=main`。
-3. 核对 `github-pages` 环境允许 `main` 部署，再从 `main` 手动运行“文档构建与发布”。
-4. 打开部署作业返回的网址，验证首页、深层页面、资源和搜索。
-5. 使用自定义域名时，先在 Pages 绑定并验证域名，再调整 DNS，等待证书就绪后开启 HTTPS。切换前核对旧站仍在使用的外链及旧公告地址。
+文档站发布到 Cloudflare Workers Static Assets，正式地址为 `https://ubaa.top`，Worker 名称为 `ubaa-docs`。[Wrangler 配置](../site/wrangler.json) 指向 VitePress 的静态输出，使用应用服务锁定的 Wrangler 版本。
 
-未设置发布分支时只构建。PR 始终只构建，`main`、`dev` 的相关推送触发检查，只有指定发布分支上传并部署 Pages。构建通过 `actions/configure-pages` 获取基础路径。
+[文档工作流](../../.github/workflows/docs.yml) 在 dev 的站点相关改动后构建并部署。目标为 dev 的 PR 只构建，main PR 的文档构建由完整验收负责。手动发布时选择 dev 分支。
 
-发布配置、DNS 与线上站点分别按发布任务修改。旧站 SSH/rsync 流程已归档，Pages 不使用对应的服务器密钥。清理旧服务器或凭据前核对是否仍被其他服务使用。
+`docs-production` Environment 仅允许 dev，变量 `CLOUDFLARE_ACCOUNT_ID` 指定账号，Secret `CLOUDFLARE_API_TOKEN` 只用于部署步骤。构建产物通过同一次运行的 artifact 交给部署作业，部署前确认候选仍为 dev 最新提交。域名首次绑定由维护者完成，日常部署不更改域名或 DNS。
+
+部署后检查首页、安装指南、公告、搜索和静态资源。404 请求返回网站的 404 页面。旧站 SSH/rsync 和 GitHub Pages 凭据不参与这条工作流。
 
 ## Actions 维护
 
-保留源码中的 CI、Flutter 原生平台构建和文档构建与发布。应用服务 CD 随 CI 执行，不另设重复部署工作流。完整检查范围见[开发命令](../development/commands.md#当前-ci-的实际范围)。
+开发检查、合并验收、文档部署和应用服务部署分别维护。原生矩阵由合并验收复用。完整检查范围见[开发命令](../development/commands.md#当前-ci-的实际范围)。
 
 GitHub 可能保留源码已删除工作流的历史入口。移除入口时先核对它没有在途运行或当前调用方，再清理对应旧运行记录；保留当前发布候选的检查、构建关联与发布资产。GitHub 自动创建的 Copilot 等入口可在功能再次使用时出现。
 
 ## 依据
 
 - [VitePress 部署说明](https://vitepress.dev/guide/deploy)
-- [GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-- [GitHub Pages 自定义域名](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
+- [Cloudflare 静态站点路由](https://developers.cloudflare.com/workers/static-assets/routing/static-site-generation/)
+- [Worker 自定义域名](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
