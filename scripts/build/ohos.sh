@@ -9,9 +9,9 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 # shellcheck source=../lib/toolchain.sh
-source "$script_dir/../lib/toolchain.sh"
-flutter_root=${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
-flutter_bin=$flutter_root/bin/flutter
+source "$script_dir/../lib/toolchain.sh" build
+: "${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}"
+flutter_command=(python3 "$script_dir/../lib/toolchain.py" flutter-ohos)
 app_root=$repo_root/apps/ubaa_ohos
 # shellcheck source=../lib/deveco.sh
 source "$script_dir/../lib/deveco.sh"
@@ -29,9 +29,9 @@ fi
 "$repo_root/scripts/check/flutter-toolchains.sh" ohos
 (
   cd "$app_root"
-  "$flutter_bin" pub get --enforce-lockfile
-  "$flutter_bin" analyze
-  "$flutter_bin" test
+  "${flutter_command[@]}" pub get --enforce-lockfile
+  "${flutter_command[@]}" analyze
+  "${flutter_command[@]}" test
 )
 
 (cd "$app_root" && ./scripts/check-toolchain.sh)
@@ -58,7 +58,7 @@ fi
     hap_args+=(--no-codesign)
     printf 'warning: 以无签名 debug 模式构建 OHOS HAP；该产物不可作为发布或实体设备验收证据\n' >&2
   fi
-  "$flutter_bin" build hap "${hap_args[@]}"
+  "${flutter_command[@]}" build hap "${hap_args[@]}"
 )
 
 # OHOS fork 会移动 buildinfo 模板；从本次配置恢复，保留本地的渲染选项。

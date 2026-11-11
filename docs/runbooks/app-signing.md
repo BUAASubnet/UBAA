@@ -2,7 +2,7 @@
 
 UBAA 2 作为旧版更新发布。Android、iOS、macOS、Linux 和 OHOS 的产品应用标识统一为 `cn.edu.ubaa`。Android 更新必须继续使用原来的应用签名密钥，iOS 更新必须使用原 App Store Connect 应用记录和所属 Team。二次开发者使用自己的应用标识、开发者账号和密钥。
 
-本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。Android 会读取 `.sign/android/signing.properties`；其他平台仍使用下文的原生配置入口，目前没有六平台发布流水线。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
+本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。Android/OHOS 项目构建入口从根 `.env` 或同名进程变量读取签名参数；证书文件保存在 `.sign/`。原生 IDE 保留既有配置方式。Apple 等平台仍使用下文的原生配置入口，目前没有六平台发布流水线。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
 
 ## 先确认应用身份
 
@@ -33,7 +33,7 @@ install -d -m 700 ".sign/windows"
 
 Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。目录使用 `0700`、私钥及含密码的配置文件使用 `0600`（macOS/Linux）。共享示例放在受 Git 跟踪的文档中，真实值只写入本地私有配置。不要把密码、私钥或 Profile 写入提交、命令行参数、截图或普通构建日志。签名密码由签名流程单独读取，普通工具不会从根目录 `.env` 导出签名密码。
 
-Android 自动读取 `.sign/android/signing.properties`，文件中的相对密钥路径以该配置文件所在目录为基准。通过 Gradle 属性或环境变量传入的相对密钥路径继续以 `android/app` 为基准，建议这些覆盖值使用绝对路径。其他平台通过原生工具引用材料。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
+项目构建入口中的签名文件路径以仓库根目录为基准，也接受绝对路径。直接使用 Android 原生工具时，`.sign/android/signing.properties` 中的相对路径以配置文件目录为基准，Gradle 属性中的相对路径以 `android/app` 为基准。其他平台通过原生工具引用材料。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
 
 忽略规则不会加密文件，也不会阻止强制暂存或将整个工作目录打包。分享源码、归档工作区或上传 CI artifact 时排除 `.sign/`，不要执行 `git add -f .sign`。`git clean -fdx` 会删除被忽略的文件，清理前单独备份签名材料。Git clone 和新 worktree 不会携带 `.sign/`，其他开发者自行准备材料。
 
@@ -50,20 +50,18 @@ Android 自动读取 `.sign/android/signing.properties`，文件中的相对密�
 
 ## Android：本地配置与 CI 共用平台字段
 
-在 `.sign/android/signing.properties` 填写以下内容。`ANDROID_STORE_FILE` 相对于配置文件所在目录，也接受绝对路径。以下例子对应 `.sign/android/release/release.jks`：
+在根 `.env` 中配置四个字段，或由 CI 注入同名环境变量：
 
-```properties
-ANDROID_STORE_FILE=release/release.jks
+```dotenv
+ANDROID_STORE_FILE=.sign/android/release/release.jks
 ANDROID_KEY_ALIAS=替换为密钥别名
-ANDROID_KEY_PASSWORD=替换为密钥密码
-ANDROID_STORE_PASSWORD=替换为密钥库密码
+ANDROID_KEY_PASSWORD='替换为密钥密码'
+ANDROID_STORE_PASSWORD='替换为密钥库密码'
 ```
 
-文件采用 UTF-8 编码，macOS/Linux 权限设为 `0600`。Java properties 对反斜杠有转义规则，路径与含反斜杠的密码必须正确转义；不要给值额外加引号。文件中不执行 Shell 变量展开或命令。已放入 keystore 时，填写其路径及三项身份/密码即可。
+项目入口先选择进程中的 `ANDROID_*` 整组参数，再选择 `.env` 中的整组参数。进程提供任一字段后，缺失字段不会从 `.env` 补齐。路径相对于仓库根目录，密码和别名按字面解析。Android 四项全部显式留空时保持无签名，并覆盖原本的本机配置。
 
-构建按整组选择配置，避免不同密钥和密码混用：优先使用 Gradle property 或环境变量中的 `ANDROID_*` 四字段，其次兼容原 `UBAA_RELEASE_*` 四字段，最后读取本地文件。同一组内 Gradle property 优先于环境变量；选中组缺字段就失败，不从下一组补齐。显式空值也属于覆盖配置。
-
-通常不需要设置其他变量。需要单独的配置文件时，可用 `ANDROID_SIGNING_PROPERTIES` 环境变量指定配置文件绝对路径；明确指定的文件缺失时失败。没有配置文件且没有外部签名字段时保持无签名构建，普通开发者无需持有发布密钥。其他平台的私有字段按 `IOS_`、`MACOS_`、`OHOS_`、`WINDOWS_` 前缀命名，具体加载仍按各平台入口说明。
+未配置统一字段时，既有 `UBAA_RELEASE_*` 进程变量、Gradle 属性和 `.sign/android/signing.properties` 继续按原生规则使用。原生 IDE 不自动读取根 `.env`。`ANDROID_SIGNING_PROPERTIES` 可在进程中指定既有 properties 文件，显式路径不存在时失败。
 
 构建入口：
 
@@ -107,11 +105,23 @@ ENABLE_HARDENED_RUNTIME = YES
 
 在 DevEco 中生成或导入 `.p12` 密钥及 CSR，向 AppGallery Connect 申请发布证书 `.cer`，为准确的 `bundleName` 申请发布 Profile `.p7b`。调试 Profile 不能代替发布 Profile。
 
-建议在专用发布 checkout 中打开 OHOS 工程，在 Signing Configs 中配置 Store File、Store Password、Key Alias、Key Password、Certpath File 和 Profile File，使用 SDK 要求的签名算法。当前 [build-profile.json5](../../apps/ubaa_ohos/ohos/build-profile.json5) 的 `signingConfigs` 为空，产品引用 `default`，签名配置名称应匹配。
+项目构建在根 `.env` 中配置下列字段，CI 使用同名环境变量：
 
-DevEco 可能把签名字段写入受 Git 跟踪的 build-profile.json5。即使密码显示为加密字符串，该配置也不得提交。只在专用发布 checkout 中保存本机修改，完成后确认工作区差异和材料都没有进入 Git。不要使用 `assume-unchanged` 隐藏秘密改动。
+```dotenv
+OHOS_STORE_FILE=.sign/ohos/release.p12
+OHOS_STORE_PASSWORD='替换为密钥库密码'
+OHOS_KEY_ALIAS=替换为密钥别名
+OHOS_KEY_PASSWORD='替换为密钥密码'
+OHOS_CERT_FILE=.sign/ohos/release.cer
+OHOS_PROFILE_FILE=.sign/ohos/release.p7b
+OHOS_SIGN_ALG=SHA256withECDSA
+```
 
-不想改动 build-profile.json5 时，把签名项按构建模式写入 Git 忽略的 `.sign/ohos/hvigor-signing.json`，例如 `{"release": {"name": "default", "type": "HarmonyOS", "material": {...}}}`，字段与 DevEco 写入 build-profile.json5 的 `signingConfigs` 条目相同。`hvigorfile.ts` 构建时只在内存中注入当前模式的条目；Debug 缺少条目时保持无签名，Release 缺少条目时构建失败。
+六项材料必须成组提供，进程整组优先于 `.env`。文件路径相对于仓库根目录，签名算法默认为 `SHA256withECDSA`，应与实际材料和 SDK 要求一致。Hvigor 将材料注入内存中的 `default` 签名配置，不修改受跟踪的 `build-profile.json5`。锁定的 Flutter OHOS 构建通过 `--no-daemon` 调用 Hvigor，每次构建取得当前进程的材料。
+
+签名 Debug 包使用独立的 `OHOS_DEBUG_STORE_FILE`、`OHOS_DEBUG_STORE_PASSWORD`、`OHOS_DEBUG_KEY_ALIAS`、`OHOS_DEBUG_KEY_PASSWORD`、`OHOS_DEBUG_CERT_FILE`、`OHOS_DEBUG_PROFILE_FILE` 和可选 `OHOS_DEBUG_SIGN_ALG`。Release 与 Debug 不混用材料。
+
+直接使用 DevEco 时，继续在专用发布 checkout 的 Signing Configs 中配置材料，或使用 Git 忽略的 `.sign/ohos/hvigor-signing.json`。后者按模式保存条目，例如 `{"release": {"name": "default", "type": "HarmonyOS", "material": {...}}}`，字段与 DevEco 的 `signingConfigs` 相同。项目入口提供统一签名参数时优先使用这些参数；否则沿用 IDE 本机文件。签名材料及 DevEco 写入的私有配置均不得提交。
 
 配置后执行 `just ohos-check mode=release`。`UBAA_OHOS_NO_CODESIGN=1` 只用于 Debug 内容检查。HAP 的设备安装、HUKS 与版本更新需要实体设备验收；上架还应通过 DevEco 生成渠道要求的发布 APP 包，不能直接把无签名 HAP 当成商店发布包。
 
@@ -122,6 +132,8 @@ Windows 普通 EXE/ZIP 可以无签名分发。需要可信发布者签名时，
 Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供可验证的签名，并公开发布公钥和校验摘要。发行版仓库按对应包管理器规则签名。当前仓库只有 Flutter 桌面构建入口，尚未提供统一的 Windows 安装器、Linux 仓库或签名自动化。
 
 ## GitHub Actions 的材料映射
+
+新发布作业使用与 `.env.example` 相同的 `ANDROID_*`、`OHOS_*` 字段。密码放在受保护 Environment 的 Secrets 中，非机密目标放在 Variables 中。keystore、证书等文件由作业准备到私有目录，文件路径传给对应的 `*_FILE`。当前旧版 Secret 的映射如下。
 
 当前仓库已有下列旧版 secrets 条目。只能确认条目存在，仍需验证内容、密码、证书状态和 Profile 是否匹配。Fork 默认不继承这些 secrets，维护者应在自己的仓库重新配置。
 

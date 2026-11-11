@@ -1,4 +1,4 @@
-// Hvigor 只读取 OHOS Flutter 生成的 ohos/local.properties；不读环境变量、不调用 Python、不缓存配置。
+// SDK 路径只读取 OHOS Flutter 生成的 ohos/local.properties，不调用 Python、不缓存配置。
 // 链路：.env → just flutter-ohos pub get → local.properties → Cargokit CMake 参数。
 const fs = require('node:fs');
 const path = require('node:path');
@@ -62,7 +62,7 @@ function applySigning(profile, mode, local) {
     if (!local) return profile;
     const signing = local[mode];
     if (!signing && mode !== 'debug') {
-        throw new Error('本机签名配置缺少当前构建模式，请检查 .sign/ohos/hvigor-signing.json');
+        throw new Error('签名配置缺少当前构建模式，请检查 .env 或 IDE 本机签名配置');
     }
     profile.app.signingConfigs = signing ? [signing] : [];
     for (const product of profile.app.products ?? []) {
@@ -72,7 +72,26 @@ function applySigning(profile, mode, local) {
     return profile;
 }
 
-function readLocalSigning(repoRoot) {
+function readLocalSigning(repoRoot, environment = process.env) {
+    const fields = { storeFile: 'STORE_FILE', storePassword: 'STORE_PASSWORD', keyAlias: 'KEY_ALIAS',
+        keyPassword: 'KEY_PASSWORD', certpath: 'CERT_FILE', profile: 'PROFILE_FILE' };
+    const local = {};
+    let configured = false;
+    for (const [mode, prefix] of [['release', 'OHOS_'], ['debug', 'OHOS_DEBUG_']]) {
+        const material = {};
+        const keys = [...Object.values(fields), 'SIGN_ALG'].map(field => prefix + field);
+        if (!keys.some(key => Object.hasOwn(environment, key))) continue;
+        configured = true;
+        if (!keys.some(key => environment[key])) continue;
+        for (const [field, suffix] of Object.entries(fields)) {
+            const value = environment[prefix + suffix];
+            if (!value) throw new Error(`签名配置缺少 ${prefix + suffix}`);
+            material[field] = value;
+        }
+        material.signAlg = environment[prefix + 'SIGN_ALG'] || 'SHA256withECDSA';
+        local[mode] = { name: 'default', type: 'HarmonyOS', material };
+    }
+    if (configured) return local;
     const file = path.join(repoRoot, '.sign/ohos/hvigor-signing.json');
     return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
 }

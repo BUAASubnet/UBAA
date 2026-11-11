@@ -234,6 +234,72 @@ exit 73
             f'UBAA_FLUTTER_HOME="{self.sdk}"\nUBAA_OHOS_FLUTTER_HOME="{self.sdk}"\n'
             'UBAA_TEST_' + 'PASSWORD=synthetic-only\n')
 
+    def test_仅目标构建接收签名且公共配置不引用签名密码(self):
+        self.configure()
+        with (self.root / '.env').open('a') as output:
+            output.write('ANDROID_STORE_FILE=.sign/release.jks\n'
+                         'ANDROID_STORE_PASSWORD=synthetic-store\nANDROID_KEY_ALIAS=release\n'
+                         'ANDROID_KEY_PASSWORD=synthetic-key\n'
+                         'UBAA_APP_SERVICE_URL="${ANDROID_KEY_PASSWORD}"\n')
+        (self.sdk / 'bin/flutter').write_text(
+            '#!/usr/bin/env python3\nimport json,os\n'
+            'print(json.dumps([os.environ.get("ANDROID_KEY_PASSWORD"), os.environ.get("UBAA_APP_SERVICE_URL")]))\n')
+        for arguments, expected in [(('pub', 'get'), None), (('test',), None),
+                                    (('build', 'apk', '--debug'), None),
+                                    (('build', 'apk', '--release'), 'synthetic-key'),
+                                    (('build', 'appbundle'), 'synthetic-key'),
+                                    (('build', 'ios', '--release'), None)]:
+            with self.subTest(arguments=arguments):
+                result = self.run_entry('flutter', *arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout), [expected, ''])
+
+    def test_构建脚本保留CI签名覆盖且准备步骤不取得密码(self):
+        self.configure()
+        for name in ('scripts/build/flutter.sh', 'scripts/lib/repo.sh'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        (self.root / 'apps/ubaa_flutter').mkdir(parents=True)
+        checker = self.root / 'scripts/check/flutter-toolchains.sh'
+        checker.parent.mkdir()
+        checker.write_text('#!/bin/sh\nexit 0\n')
+        checker.chmod(0o755)
+        (self.sdk / 'bin/flutter').write_text(
+            '#!/usr/bin/env python3\nimport json,os,sys\n'
+            'print(json.dumps([sys.argv[1], os.environ.get("ANDROID_KEY_PASSWORD"), '
+            'os.environ.get("OHOS_KEY_PASSWORD"), os.environ.get("CLOUDFLARE_API_TOKEN")]))\n')
+        self.environment.update({'ANDROID_STORE_FILE': '/ci/release.jks',
+                                 'ANDROID_STORE_PASSWORD': 'synthetic-store', 'ANDROID_KEY_ALIAS': 'release',
+                                 'ANDROID_KEY_PASSWORD': 'synthetic-ci', 'OHOS_KEY_PASSWORD': 'synthetic-other',
+                                 'CLOUDFLARE_API_TOKEN': 'synthetic-cloud'})
+        for direct in (False, True):
+            command = ['bash', 'scripts/build/flutter.sh'] if direct else ['just', 'flutter-build']
+            result = subprocess.run([*command, 'android-apk', 'release'], cwd=self.root,
+                                    env=self.environment, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual([json.loads(line) for line in result.stdout.splitlines()],
+                             [['pub', None, None, None], ['build', 'synthetic-ci', None, None]])
+
+    def test_OHOS按模式读取签名且无签名构建不取得材料(self):
+        self.configure()
+        with (self.root / '.env').open('a') as output:
+            for prefix in ('OHOS_', 'OHOS_DEBUG_'):
+                for suffix in ('STORE_FILE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD', 'CERT_FILE', 'PROFILE_FILE'):
+                    output.write(f'{prefix}{suffix}=synthetic-{prefix}\n')
+        (self.sdk / 'bin/flutter').write_text(
+            '#!/usr/bin/env python3\nimport json,os\n'
+            'print(json.dumps([os.environ.get("OHOS_KEY_PASSWORD"), os.environ.get("OHOS_DEBUG_KEY_PASSWORD")]))\n')
+        for arguments, expected in [(('pub', 'get'), [None, None]),
+                                    (('build', 'hap', '--debug'), [None, 'synthetic-OHOS_DEBUG_']),
+                                    (('build', 'hap', '--release'), ['synthetic-OHOS_', None]),
+                                    (('build', 'hap', '--debug', '--no-codesign'), [None, None])]:
+            result = self.run_entry('flutter-ohos', *arguments)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout), expected)
+
+
+
     def test_普通配方及直接SDK入口过滤文件和进程中的机密键(self):
         (self.root / '.env').write_text(
             f'UBAA_FLUTTER_HOME="{self.sdk}"\n'

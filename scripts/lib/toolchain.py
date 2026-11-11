@@ -25,7 +25,19 @@ TARGET_KEYS = {
 PUBLIC_KEYS = TOOL_KEYS | set(TARGET_KEYS.values()) | {'UBAA_APP_SERVICE_URL', 'UBAA_DISTRIBUTION_CHANNEL'}
 LIVE_KEYS = frozenset({'UBAA_TEST_USERNAME', 'UBAA_TEST_PASSWORD', 'UBAA_USERNAME', 'UBAA_PASSWORD'})
 DEPLOY_KEYS = frozenset({'CLOUDFLARE_API_TOKEN'})
-SECRET_KEYS = LIVE_KEYS | DEPLOY_KEYS
+ANDROID_FIELDS = ('STORE_FILE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD')
+OHOS_FIELDS = (*ANDROID_FIELDS, 'CERT_FILE', 'PROFILE_FILE')
+SIGNING_GROUPS = {
+    'android': ('ANDROID_', ANDROID_FIELDS),
+    'ohos': ('OHOS_', OHOS_FIELDS),
+    'ohos-debug': ('OHOS_DEBUG_', OHOS_FIELDS),
+}
+SIGNING_KEYS = frozenset(prefix + field for prefix, fields in SIGNING_GROUPS.values()
+                         for field in fields) | {
+    'OHOS_SIGN_ALG', 'OHOS_DEBUG_SIGN_ALG',
+    'ANDROID_SIGNING_PROPERTIES', *('UBAA_RELEASE_' + field for field in ANDROID_FIELDS),
+}
+SECRET_KEYS = LIVE_KEYS | DEPLOY_KEYS | SIGNING_KEYS
 LEGACY_FILES = {'.env.toolchain': TOOL_KEYS, '.env.local': LIVE_KEYS}
 
 
@@ -52,7 +64,9 @@ def venv_python(root):
 
 
 def load_environment(root=ROOT, *, scope='normal'):
-    secret_keys = {'normal': frozenset(), 'live': LIVE_KEYS, 'deploy': DEPLOY_KEYS}[scope]
+    secret_keys = {'live': LIVE_KEYS, 'deploy': DEPLOY_KEYS}.get(scope, frozenset())
+    if scope not in {'normal', 'live', 'deploy', *SIGNING_GROUPS}:
+        raise ValueError('未知配置读取范围')
     # 公共配置的变量引用也只能看到公共环境，避免通过引用把机密转成公共键。
     environment = {key: value for key, value in os.environ.items() if key.upper() not in SECRET_KEYS}
     config = root / '.env'
@@ -69,7 +83,49 @@ def load_environment(root=ROOT, *, scope='normal'):
         if config.exists():
             secrets = read_values(config, environment=secrets, keys=secret_keys)
         environment.update(secrets)
+    if scope in SIGNING_GROUPS:
+        environment.update(signing_environment(root, scope, environment))
     return environment
+
+
+def signing_environment(root, scope, public):
+    """进程和文件按整组选择签名材料，路径以仓库为基准，密码保持字面值。"""
+    prefix, fields = SIGNING_GROUPS[scope]
+    required = tuple(prefix + field for field in fields)
+    keys = set(required)
+    if scope.startswith('ohos'):
+        keys.add(prefix + 'SIGN_ALG')
+    supplied = {key: value for key, value in os.environ.items() if key in keys}
+    if not supplied and (root / '.env').exists():
+        supplied = read_values(root / '.env', keys=keys)
+        paths = {key for key in keys if key.endswith('_FILE')}
+        expanded = read_values(root / '.env', environment=public, expand=True, keys=paths)
+        supplied.update({key: expanded[key] for key in paths if key in supplied})
+    if any(supplied.values()):
+        missing = [key for key in required if not supplied.get(key)]
+        if missing:
+            raise ValueError('签名配置缺少：' + '、'.join(missing))
+        for key in required:
+            if key.endswith('_FILE'):
+                supplied[key] = os.path.abspath(root / supplied[key])
+    if scope == 'android' and not supplied:
+        # 保留原有原生工具入口；统一字段一旦提供便不混入旧字段。
+        supplied = {key: value for key, value in os.environ.items()
+                    if key == 'ANDROID_SIGNING_PROPERTIES'
+                    or (key.startswith('UBAA_RELEASE_') and key in SIGNING_KEYS)}
+    return supplied
+
+
+def build_scope(command, arguments):
+    """仅构建目标读取签名；依赖准备、分析、测试及无签名构建使用公共配置。"""
+    if len(arguments) < 2 or arguments[0] != 'build' or '--no-codesign' in arguments:
+        return 'normal'
+    target = arguments[1]
+    if command == 'flutter' and target in {'apk', 'appbundle'}:
+        return 'normal' if '--debug' in arguments or '--profile' in arguments else 'android'
+    if command == 'flutter-ohos' and target in {'hap', 'app'}:
+        return 'ohos-debug' if '--debug' in arguments else 'ohos'
+    return 'normal'
 
 
 def migrate(root, target_path=None):
@@ -152,10 +208,12 @@ def main():
         for key in LIVE_KEYS:
             environment.pop(key, None)
         raise SystemExit(subprocess.run(arguments, env=environment, input=material).returncode)
-    environment = load_environment()
+    environment = load_environment(scope=build_scope(command, arguments))
     if command == 'shell':
+        if arguments not in ([], ['build']):
+            raise ValueError('shell 只接受可选的 build 参数')
         for key in os.environ:
-            if key.upper() in SECRET_KEYS:
+            if key.upper() in SECRET_KEYS and not (arguments == ['build'] and key.upper() in SIGNING_KEYS):
                 print(f'unset {key}')
         for key, value in environment.items():
             if key not in os.environ:

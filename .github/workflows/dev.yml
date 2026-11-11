@@ -1,0 +1,117 @@
+name: 开发检查
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: dev-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.paths.outputs.rust }}
+      flutter: ${{ steps.paths.outputs.flutter }}
+      worker: ${{ steps.paths.outputs.worker }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - id: paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/check/ci/changes.py
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - &a1
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - &a2
+        uses: ./.github/actions/toolchain
+      - &a3
+        id: versions
+        uses: ./.github/actions/versions
+      - &a4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          cache: npm
+          cache-dependency-path: |-
+            package-lock.json
+            services/app_service/package-lock.json
+      - name: 安装固定 ShellCheck
+        shell: bash
+        run: |
+          source scripts/tools/versions.env
+          shellcheck_version=$SHELLCHECK_VERSION
+          archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+          bin_dir="$RUNNER_TEMP/shellcheck-bin"
+          curl --retry 4 --retry-delay 3 --retry-max-time 120 -fsSLo "$archive" \
+            "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+          printf '%s  %s\n' \
+            "$SHELLCHECK_LINUX_SHA256" \
+            "$archive" | sha256sum -c -
+          mkdir -p "$bin_dir"
+          tar -xJf "$archive" -C "$RUNNER_TEMP"
+          install -m 0755 \
+            "$RUNNER_TEMP/shellcheck-v${shellcheck_version}/shellcheck" \
+            "$bin_dir/shellcheck"
+          test "$("$bin_dir/shellcheck" --version | awk '/^version:/ { print $2 }')" = "$shellcheck_version"
+          printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"
+      - name: 准备工具和冻结引用
+        run: |-
+          just refs-bootstrap
+          just quality-tools-bootstrap
+          npm ci --no-audit --no-fund
+      - name: 检查脚本、合同和敏感材料
+        run: |-
+          just refs
+          just check-sensitive
+          just script-check
+          node --test scripts/tests/checks/ci_workflows_test.mjs
+  rust:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - *a1
+      - uses: ./.github/actions/toolchain
+      - name: 检查 Rust 格式、类型和单元测试
+        run: |-
+          cargo fmt --all -- --check
+          cargo check --locked --workspace --all-targets
+          cargo test --locked -p ubaa-core --features test-contract --lib
+  flutter:
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - *a1
+      - uses: ./.github/actions/toolchain
+      - name: 安装固定 Flutter
+        run: bash scripts/bootstrap/flutter.sh
+      - name: 检查 Dart 格式和静态分析
+        run: |-
+          just flutter-dependencies
+          just dart format --output=none --set-exit-if-changed apps/ubaa_flutter/lib apps/ubaa_flutter/test packages/ubaa_app/lib packages/ubaa_app/test packages/ubaa_domain/lib packages/ubaa_domain/test packages/ubaa_host/lib packages/ubaa_host/test packages/ubaa_platform/lib packages/ubaa_platform/test packages/ubaa_ui/lib packages/ubaa_ui/test packages/ubaa_bindings/lib packages/ubaa_test_support/lib
+          just flutter analyze --no-fatal-infos apps/ubaa_flutter packages/ubaa_app packages/ubaa_domain packages/ubaa_host packages/ubaa_platform packages/ubaa_ui packages/ubaa_bindings packages/ubaa_test_support
+  worker:
+    needs: changes
+    if: needs.changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - *a1
+      - *a2
+      - *a3
+      - *a4
+      - name: 检查 Worker 与发布内容
+        run: |-
+          just app-service-content-check
+          just app-service-check
+          node --test scripts/tests/app_service/deploy_workflow_test.mjs

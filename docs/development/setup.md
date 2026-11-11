@@ -69,6 +69,19 @@ python3 scripts/lib/toolchain.py migrate
 
 ## UBAA 环境变量
 
+### 配置来源
+
+| 内容 | 唯一维护位置 |
+|---|---|
+| 本机工具路径、构建渠道、部署目标、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
+| CI 的同名参数与凭据 | GitHub Environment Variables/Secrets；通过进程环境注入，无需生成或上传完整 `.env` |
+| 渠道最新版本、最低支持版本、下载地址 | [`channels.json`](../../services/app_service/config/channels.json)，确认渠道可下载后更新 |
+| 公告与隐私政策 | `docs/site/` 下的 Markdown 源文件 |
+| 工具链版本、正式应用版本、依赖版本 | `scripts/tools/versions.env`、应用版本声明和锁文件，随源码审阅 |
+| 检查与部署分支 | `.github/workflows/`，环境的部署分支限制在 GitHub 设置中维护 |
+
+客户端构建渠道用于选择安装包的分发渠道，渠道 JSON 描述该渠道已经可下载的版本。构建新版本不会自动提高渠道的最低支持版本。证书、keystore 等二进制文件保存在 `.sign/`，`.env` 只引用路径；Apple 签名继续使用 Keychain/Xcode，细节见[应用签名配置](../runbooks/app-signing.md)。
+
 根目录 `.env` 是本机唯一的项目环境配置文件，`.env.example` 列出可用键及导出范围。macOS 和 Linux 使用权限 `0600`，Windows 限制为当前用户可读写。不要用 Shell 执行该文件；配置只支持 `KEY=value`、引号和注释，非机密值支持 `$HOME`、`${HOME}` 和前面已定义的非机密键，含下划线的引用写为 `${NAME_WITH_UNDERSCORE}`。账号和 Token 按字面读取，不展开变量。已导出的同名变量优先。示例中的 `<sdk-root>`、`<private-evidence>` 和 `<repo-root>` 均为逻辑占位，运行前必须换成当前机器的绝对路径。Windows Bash 使用 SDK 能识别的绝对路径，工具链检查支持 `cygpath` 转换。
 
 | 变量 | 默认值、示例与作用 |
@@ -91,16 +104,21 @@ python3 scripts/lib/toolchain.py migrate
 | `UBAA_USERNAME`、`UBAA_PASSWORD` | 兼容旧凭据名称，主名称为空时回退；新配置使用主名称 |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare 部署凭据，只交给应用服务部署和内容发布入口 |
 
+### 构建签名参数
+
+Android 使用 `ANDROID_STORE_FILE`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。OHOS 使用对应的 `OHOS_*` 四项，加上 `OHOS_CERT_FILE` 和 `OHOS_PROFILE_FILE`，可选 `OHOS_SIGN_ALG`，默认 `SHA256withECDSA`。OHOS Debug 使用独立的 `OHOS_DEBUG_*` 同名字段。模板和构建示例见[签名手册](../runbooks/app-signing.md)。
+
+每组参数先选进程环境，再选 `.env`。进程提供组内任一字段时，整组都取自进程，缺项立即报错，避免 CI keystore 与本机密码混用。路径支持公共变量引用，相对路径以仓库根目录为基准；密码、别名和签名算法按字面读取。Android 四个字段全部显式留空时禁用该组签名，并覆盖旧本机文件。未配置统一字段时，原有原生工具配置仍可使用。
+
+`just flutter-build`、`just ohos-check` 和直接执行的构建脚本只在最终 SDK 构建时读取对应材料。`just flutter build apk/appbundle` 的 Release 模式和 `just flutter-ohos build hap/app` 也使用相同规则。依赖准备、分析、测试与 `--no-codesign` 不取得签名环境变量。原生 IDE 不自动读取根 `.env`，继续使用原生签名配置。
+
 ### 调用时设置的变量
 
 下列变量由调用者、平台签名工具或测试入口设置，根 `.env` 不导出。
 
 | 变量 | 默认值、示例与作用 |
 |---|---|
-| `UBAA_RELEASE_STORE_FILE` | Android release keystore 路径；与下列三个 `UBAA_RELEASE_*` 变量同时设置才启用受控签名，文件不得提交 |
-| `UBAA_RELEASE_STORE_PASSWORD` | Android release keystore 密码；仅从本地环境或 Gradle 属性读取 |
-| `UBAA_RELEASE_KEY_ALIAS` | Android release 密钥别名 |
-| `UBAA_RELEASE_KEY_PASSWORD` | Android release 密钥密码 |
+| `UBAA_RELEASE_STORE_FILE`、`UBAA_RELEASE_STORE_PASSWORD`、`UBAA_RELEASE_KEY_ALIAS`、`UBAA_RELEASE_KEY_PASSWORD` | 既有 Android 原生入口字段；统一配置使用上节的 `ANDROID_*`，旧字段只在未提供统一字段时读取 |
 | `UBAA_VERIFY_DATE`、`UBAA_VERIFY_CAMPUS_ID` | live CLI 默认校园时区当天、校区 `1`；示例 `2026-10-29`、`1` |
 | `UBAA_CONFIG_DIR` | 显式真实验证可指定被忽略的私有配置目录，隔离默认会话 |
 | `UBAA_LIVE_MATERIAL_SCOPE` | 真实离线启动测量的材料归属标识，由 runner 生成；禁止填入个人资料 |

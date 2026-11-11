@@ -1,45 +1,45 @@
 name: 文档构建与发布
-
 on:
   pull_request:
     paths:
-      - 'docs/site/**'
-      - 'docs/contracts/app-service.schema.json'
-      - 'scripts/check/app_service/content.mjs'
-      - 'services/app_service/src/version.mjs'
-      - '.github/actions/**'
-      - 'scripts/tools/versions.env'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/docs.yml'
+      - docs/site/**
+      - docs/contracts/app-service.schema.json
+      - scripts/check/app_service/content.mjs
+      - services/app_service/src/version.mjs
+      - .github/actions/**
+      - scripts/tools/versions.env
+      - package.json
+      - package-lock.json
+      - .github/workflows/docs.yml
+      - services/app_service/package.json
+      - services/app_service/package-lock.json
+    branches:
+      - dev
   push:
-    branches: [main, dev]
+    branches:
+      - dev
     paths:
-      - 'docs/site/**'
-      - 'docs/contracts/app-service.schema.json'
-      - 'scripts/check/app_service/content.mjs'
-      - 'services/app_service/src/version.mjs'
-      - '.github/actions/**'
-      - 'scripts/tools/versions.env'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/docs.yml'
-  workflow_dispatch:
-
+      - docs/site/**
+      - docs/contracts/app-service.schema.json
+      - scripts/check/app_service/content.mjs
+      - services/app_service/src/version.mjs
+      - .github/actions/**
+      - scripts/tools/versions.env
+      - package.json
+      - package-lock.json
+      - .github/workflows/docs.yml
+      - services/app_service/package.json
+      - services/app_service/package-lock.json
+  workflow_dispatch: null
 permissions:
   contents: read
-
 concurrency:
-  group: docs-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   build:
     name: 构建并检查文档
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
@@ -51,32 +51,56 @@ jobs:
           node-version: ${{ steps.versions.outputs.node }}
           cache: npm
       - run: npm ci
-      - name: 读取 Pages 配置
-        id: pages
-        if: github.event_name != 'pull_request' && vars.DOCS_PUBLISH_BRANCH != '' && github.ref_name == vars.DOCS_PUBLISH_BRANCH
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
       - name: 构建网站并检查站内链接
         env:
-          DOCS_BASE: ${{ steps.pages.outputs.base_path || '/' }}
+          DOCS_BASE: /
         run: npm run docs:build
-      - name: 上传 Pages 产物
-        if: github.event_name != 'pull_request' && vars.DOCS_PUBLISH_BRANCH != '' && github.ref_name == vars.DOCS_PUBLISH_BRANCH
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
+      - name: 保存静态网站
+        if: github.event_name != 'pull_request' && github.ref_name == 'dev'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
+          name: docs-site
           path: docs/site/.vitepress/dist
-
+          if-no-files-found: error
+          retention-days: 3
   deploy:
-    name: 发布到 GitHub Pages
-    if: github.event_name != 'pull_request' && vars.DOCS_PUBLISH_BRANCH != '' && github.ref_name == vars.DOCS_PUBLISH_BRANCH
+    name: 部署 Cloudflare 文档站
+    if: github.event_name != 'pull_request' && github.repository == 'BUAASubnet/UBAA' && github.ref_name == 'dev'
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: docs-production
+      url: https://ubaa.top
     steps:
-      - name: 部署静态网站
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: versions
+        uses: ./.github/actions/versions
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          cache: npm
+          cache-dependency-path: services/app_service/package-lock.json
+      - run: npm --prefix services/app_service ci --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: docs-site
+          path: docs/site/.vitepress/dist
+      - id: candidate
+        name: 核对发布提交
+        shell: bash
+        run: |-
+          branch_head=$(git ls-remote --exit-code --refs origin "$GITHUB_REF")
+          if [[ "${branch_head%%$'\t'*}" == "$GITHUB_SHA" ]]; then
+            printf 'deploy=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'deploy=false\n' >> "$GITHUB_OUTPUT"
+          fi
+      - name: 部署文档站
+        if: steps.candidate.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node services/app_service/node_modules/wrangler/bin/wrangler.js deploy --config docs/site/wrangler.json --autoconfig=false

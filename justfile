@@ -265,8 +265,9 @@ module-check:
 
 # 在当前原生 runner 构建指定平台；例如 platform=macos、android-apk、ios-simulator。
 [positional-arguments]
+[script]
 flutter-build *args:
-    @python3 scripts/lib/recipe.py flutter-build "$@"
+    python3 scripts/lib/recipe.py flutter-build "$@"
 
 # 构建桌面命令入口，Linux 产物不依赖图形会话。
 command-build platform="host" mode="release":
@@ -289,8 +290,9 @@ flutter-artifact-check *args:
 # 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
 [positional-arguments]
 [env("CARGO_INCREMENTAL", "0")]
+[script]
 ohos-check *args:
-    @python3 scripts/lib/recipe.py ohos-check "$@"
+    python3 scripts/lib/recipe.py ohos-check "$@"
 
 # 登记原生能力、FFI 和最小宿主 smoke，默认设备由平台回退。
 integration-check:
