@@ -110,13 +110,12 @@ bash scripts/release/store-screenshots.sh
 
 上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与 [AppGallery 视觉素材规范](https://developer.huawei.com/consumer/en/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)复核目标规格。宣传图生成与网站构建不执行商店上传。
 
-### 4. 设备、真实路线与签名
+### 4. 设备与签名
 
 各平台材料、旧版升级身份、本机配置与 CI secret 映射统一见[应用签名配置](app-signing.md)。
 
 - Android/iOS/OHOS 实体机上的权限、前后台、网络订阅及安全材料写读删，需要独立的设备证据。
-- Core-live 和真实 App 只在用户于当前会话授权的路线和只读范围内执行。空结果、静态回退与 Mock 不能当作真实按钮验收。
-- 真实写入需要具体操作、目标、路线及时间的授权；出现 unknown 立即停止，不重试。
+- 常规发布验收使用确定性测试、原生集成和发布产物检查。学校协议变更需要的真实验证按 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)独立执行，发布工作流不接收学校账号。
 - 正式签名、公证和上传只在相应授权和环境满足后进行。签名材料由平台安全存储和隔离 runner 管理，不进入源码、argv、普通日志或 artifact。
 - 发布前核对候选 SHA、校验摘要、许可材料、安装/升级/卸载和平台权限。
 

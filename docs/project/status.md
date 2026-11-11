@@ -34,28 +34,32 @@
 | 日程跨设备同步（经北航云盘） | ✅ | ✅ 2026-11-05 | ⏳ 需人工完成验证码登录后补验 | GUI 文件面板与其他平台实机 |
 | 北航云盘 | ✅ | ✅ 2026-11-05（合成测试目录） | ⏳ | WebVPN 完整链路；系统文件面板的设备实测 |
 | 桌面命令模式 | ✅ | — | — | 签名 Release、安装升级，以及沿用旧版本机材料 |
-| 应用服务（更新、公告、统计） | ✅ 本地端到端验收通过 | — | — | 生产部署和真实定时任务；完整验收对照见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
+| 应用服务（更新、公告、统计） | ✅ 本地端到端和生产部署通过，合成统计上报、去重与删除已验证 | — | — | 真实定时任务执行；本地验收对照见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 ## 平台
 
 | 平台 | 已验证 | 尚未验证 |
 |---|---|---|
 | macOS | Debug 构建；原生集成测试（真实 FRB、本机缓存、日程、共享生命周期）；命令与 GUI 双进程（合成材料） | 签名公证的 Release 安装与升级；沿用旧版本机材料 |
-| Windows | Windows 11 x64 Debug：GUI、`ubaa.exe` 命令、DPAPI 与日程双进程 | 签名 Release、安装升级、其他架构 |
-| Linux | Debian 12 arm64：AOT 命令、Secret Service、SSH/PAM（隔离容器） | 部署安装、其他架构 |
-| Android | Release 构建与签名（临时合成证书）；Android 16 实机运行 build 2002 | 正式证书产物；覆盖安装旧版 |
-| iOS | 模拟器目标构建 | 模拟器运行、实机 |
+| Windows | Windows 11 x64 Debug：GUI、`ubaa.exe` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
+| Linux | Debian 12 arm64：AOT 命令、Secret Service、SSH/PAM（隔离容器）；托管 x64、arm64 Release 构建 | 部署安装 |
+| Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
+| iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |
 | HarmonyOS | 静态分析与测试、无签名 Debug HAP、arm64 Rust 库；模拟器上的合成 HUKS 流程 | 签名包、实机 |
+
+表中的托管 Release 构建来自候选 `cb2a67ac` 的[运行记录](https://github.com/BUAASubnet/UBAA/actions/runs/43015152128)。macOS 两个架构已提交 Apple 公证。Release 当前暂停，等待公证服务恢复后再继续；尚未发布 v2.0.0 Tag、GitHub/R2 产物或商店构建。
+
+文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，应用服务从 `main` 部署到 `app.ubaa.top`。两个 Worker 使用 Route + CNAME，部署只更新代码与资源绑定。`main` 保留 `main-required` 完整验收和分支保护。
 
 ## 发布 v2.0.0 前还差什么
 
 按[发布流程](../runbooks/flutter-release.md)完成：
 
-- [ ] 各平台正式签名产物，核对版本 `2.0.0+2003`
+- [ ] 完成各平台发布产物，核对版本 `2.0.0+2003`
 - [ ] 各平台设备安装，以及从 v1.x 覆盖升级
-- [ ] 用当前代码重新做直连与 WebVPN 的真实验证（重点：博雅、研究生、WebVPN 登录重试）
-- [ ] 应用服务生产部署（[部署手册](../runbooks/app-service.md)），在隐私政策中公布实际存储地点
+- [x] 应用服务生产部署（[部署手册](../runbooks/app-service.md)）
 - [ ] 远端 CI 在发布提交上全部通过，再打 Tag
+- [ ] 分发 GitHub/R2 产物，并上传 App Store Connect 和 AppGallery，供维护者提交审核
 
 ## 已知问题
 
