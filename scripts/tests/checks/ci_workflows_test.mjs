@@ -22,8 +22,8 @@ test("main 必需检查拒绝失败、取消和被跳过的验收", () => {
   for (const result of ["success", "failure", "cancelled", "skipped"]) {
     const needs = Object.fromEntries(required.needs.map((key) => [key, { result: "success" }]));
     needs[required.needs[0]].result = result;
-    const execution = spawnSync("bash", ["-euo", "pipefail", "-c", required.steps[0].run], {
-      env: { ...process.env, NEEDS: JSON.stringify(needs) }, encoding: "utf8",
+    const execution = spawnSync("bash", ["-euo", "pipefail", "-c", required.steps.find((step) => step.name === "确认全部验收成功").run], {
+      env: { ...process.env, NEEDS: JSON.stringify(needs), CODEGEN_REQUIRED: "true" }, encoding: "utf8",
     });
     assert.equal(execution.status, result === "success" ? 0 : 1, execution.stderr);
   }

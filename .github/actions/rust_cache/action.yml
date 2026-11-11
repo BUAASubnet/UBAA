@@ -1,0 +1,13 @@
+name: 缓存 Rust 依赖与编译结果
+description: 按操作系统、架构、工具链、锁文件和检查用途隔离缓存
+inputs:
+  kind:
+    description: 检查用途
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
+      with:
+        shared-key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.kind }}
+        cache-bin: false

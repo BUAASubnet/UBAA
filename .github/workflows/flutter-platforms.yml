@@ -69,8 +69,7 @@ jobs:
         run: sudo apt-get install -y gnome-keyring dbus-x11 xvfb
 
       - name: 安装固定官方 Flutter SDK
-        shell: bash
-        run: bash scripts/bootstrap/flutter.sh
+        uses: ./.github/actions/flutter
 
       - name: 安装 Android 固定组件
         if: matrix.platform == 'android-apk'
