@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,7 +33,7 @@ String _campusRfc3339(DateTime campus) {
   return '${campus.year}-${two(campus.month)}-${two(campus.day)}T${two(campus.hour)}:${two(campus.minute)}:${two(campus.second)}+08:00';
 }
 
-DateTime _campusNow() => DateTime.now().toUtc().add(const Duration(hours: 8));
+DateTime _campusNow() => clock.now().toUtc().add(const Duration(hours: 8));
 
 class _ShareForm extends StatefulWidget {
   const _ShareForm({

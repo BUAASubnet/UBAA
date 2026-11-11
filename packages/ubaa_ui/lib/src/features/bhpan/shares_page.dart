@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' show clock;
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ import '../../common/state_panel.dart';
   final text = withTime
       ? '$date ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}'
       : date;
-  return time.isBefore(now ?? DateTime.now())
+  return time.isBefore(now ?? clock.now())
       ? ('已于$text过期', true)
       : ('$text到期', false);
 }

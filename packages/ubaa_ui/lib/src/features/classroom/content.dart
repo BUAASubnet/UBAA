@@ -1,7 +1,7 @@
+import 'package:clock/clock.dart' show clock;
 import 'dart:async';
 import '../../theme.dart';
 import 'dart:math' as math;
-import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/sheet.dart';
@@ -101,7 +101,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
         ? widget.details.first.presentation! as ClassroomPresentation
         : null;
     final campus = widget.query?.campus ?? first?.campus ?? 1;
-    final now = DateTime.now();
+    final now = clock.now();
     final dateObj =
         widget.query?.date ??
         (first?.queryDate != null
