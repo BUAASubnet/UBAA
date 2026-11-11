@@ -3,7 +3,7 @@
 更新日期：2026-08-31
 
 本文件保留标准只读功能的历史快照，用于区分来源/确定性证据与真实上游证据；扩展功能和
-最新全量 Core-live 结果以 `docs/migration/status.md` 为准。Fixture、Mock 传输、解析测试
+最新全量 Core-live 结果以 `docs/project/status.md` 为准。Fixture、Mock 传输、解析测试
 和验证器测试不能证明当前上游行为。下方内容均已标明时间，不得替代 2026-08-31 的
 Direct/WebVPN 逐操作记录。
 

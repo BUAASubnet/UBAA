@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v61。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v61。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../project/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
 v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
 
@@ -16,7 +16,7 @@ v56 增加 `gradesOverview`、`examTerms` 和独立考试学期缓存。研究�
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
-协议事实仍以 `docs/migration/source-parity.md` 为准；本文件只定义已有稳定 facade 的产品投影，
+协议事实仍以 `docs/protocol/source-parity.md` 为准；本文件只定义已有稳定 facade 的产品投影，
 不新增或反推上游协议。
 
 ## 1. 版本与命名
@@ -496,7 +496,7 @@ Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChange
 这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和研讨室预约的 `request_digest` 只对非敏感形状做
 规范化（结构 ID、文本存在/长度、照片字节数/MIME、布尔值），不写入或哈希返回电话、主题、参与人、
 活动正文、地点、照片文件名和照片字节，避免敏感材料穿过 intent 投影；对应回归记录在
-`docs/migration/source-parity.md`。
+`docs/protocol/source-parity.md`。
 
 ## 7. 来源对照与安全边界
 
@@ -560,7 +560,7 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   `d8484ad`。该阶段没有联网、上传照片或执行真实写入，也不构成签名、实体设备或正式发布证据。
 - Phase 11J 提交 `4b0dcb0` 已升级到 CLI JSON schema v10、Flutter Bridge contract v9，并实现 Evaluation
   typed target、批量四态结果和 caller-pinned 回读；本地确定性门禁、FRB 零漂移与 macOS 脱敏宿主
-  integration 已完成。该阶段没有执行真实评教写入，证据范围见[当前状态](../migration/status.md)。
+  integration 已完成。该阶段没有执行真实评教写入，证据范围见[当前状态](../project/status.md)。
 - Phase 11K 提交 `b6ff2c7` 将 Dart 写状态收归 `WriteCoordinator`，状态模型归 `ubaa_domain`，
   backend 绑定与会话失效归 `AppController`，宿主装配及 UI 状态/命令接线归 `ubaa_host`；安全结果消息与
   只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v10、bridge v9 和生成绑定，
@@ -749,11 +749,11 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 
 ## v42：iHome 校园服务
 
-新增 `ihomePage/Detail/Config/Notices/Notice/SetReaction` 与独立类型化 DTO，来源见 [iHome 对照](../migration/source-parity-ihome-2026-10-25.md)。入口仅在校园服务；首页不自动读取。API 地址、Bearer 和 Cookie 均留在 Core。列表分页、搜索和筛选由 Core 编码；详情支持本人独立路径。UI 写入先确认，绑定读取路线；Core 写前复核、只提交一次并回读，结果未知时界面要求刷新核对，禁止自动重发。不提供新建诉求。
+新增 `ihomePage/Detail/Config/Notices/Notice/SetReaction` 与独立类型化 DTO，来源见 [iHome 对照](../protocol/source-parity-ihome-2026-10-25.md)。入口仅在校园服务；首页不自动读取。API 地址、Bearer 和 Cookie 均留在 Core。列表分页、搜索和筛选由 Core 编码；详情支持本人独立路径。UI 写入先确认，绑定读取路线；Core 写前复核、只提交一次并回读，结果未知时界面要求刷新核对，禁止自动重发。不提供新建诉求。
 
 ## v43：门户资料、校园账户与网费流量
 
-新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../migration/source-parity-campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
+新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/source-parity-campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
 
 ## v44：独立本机日程通道
 
@@ -802,7 +802,7 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 
 网盘写入通过 App 原有的 `WriteCoordinator` 准备、确认、单次提交与丢弃。确认绑定账号、认证生命周期和路线，发送后的不确定结果保持不可重试的 `outcome_unknown`。创建结果与分享历史保留完整 item 关联并支持更新，单项分享记录缺少关联时暂不开放更新。
 
-`BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../migration/source-parity-bhpan.md)。
+`BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../protocol/source-parity-bhpan.md)。
 
 ## v46：所需路线恢复的按操作控制
 
@@ -860,7 +860,7 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 本地识别使用随应用分发的 ddddocr 默认模型、左右各 5 像素白边与纯 Rust 推理，不需要用户安装 Python。仅已证实的带图像挑战统一拒绝可以换图重试；网络中断或未知响应不重放凭据。三次耗尽产生专用 `captcha_required`，App 保留保存的凭据与自动登录许可，通过 `resume_required_captcha` 接续当前路线的人工挑战，不重新开始三次尝试或修改全局路线策略。
 
-手动登录、已授权的自动登录和会话恢复只显示普通加载状态。需要人工输入时由 Host 显示统一验证弹窗；取消、刷新、后台、过期或账号变化释放图片与答案。旧非交互 Core-live/CLI 入口的交互拒绝行为保持。模型来源、转换方法与许可证见[第三方声明](../../THIRD_PARTY_NOTICES.md)，平台验证结果见[迁移状态](../migration/status.md)。
+手动登录、已授权的自动登录和会话恢复只显示普通加载状态。需要人工输入时由 Host 显示统一验证弹窗；取消、刷新、后台、过期或账号变化释放图片与答案。旧非交互 Core-live/CLI 入口的交互拒绝行为保持。模型来源、转换方法与许可证见[第三方声明](../../THIRD_PARTY_NOTICES.md)，平台验证结果见[迁移状态](../project/status.md)。
 
 ## 应用服务
 

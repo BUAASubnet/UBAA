@@ -1,6 +1,6 @@
 # 开发命令与门禁
 
-本文是开发、维护、PR/CI 和发布验收命令清单的唯一维护位置。长期安全和来源规则由 [AGENTS.md](../../AGENTS.md)定义，当前任务见[goal.md](../../goal.md)，实际结果见[迁移状态](../migration/status.md)。以下说明按当前 [justfile](../../justfile)和工作流核对，不将计划中的整改写成现有覆盖。
+本文是开发、维护、PR/CI 和发布验收命令清单的唯一维护位置。长期安全和来源规则由 [AGENTS.md](../../AGENTS.md)定义，当前任务见[goal.md](../project/goal.md)，实际结果见[迁移状态](../project/status.md)。以下说明按当前 [justfile](../../justfile)和工作流核对，不将计划中的整改写成现有覆盖。
 
 ## 工具与准备
 
@@ -187,6 +187,6 @@ just verify-live mode=webvpn
 
 ## 文档链接范围
 
-`docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。`docs/migration/history/` 和 `docs/design/evidence/` 按归档约定保持历史内容，检查器不把这些快照内部链接当作当前可执行承诺。锁定的 Cargokit 上游文档同样不改写。当前文档指向这些目录的目标和锚点仍检查。该范围决定见[决策记录](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。
+`docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。`docs/archive/` 和 `docs/design/evidence/` 按归档约定保持历史内容，检查器不把这些快照内部链接当作当前可执行承诺。锁定的 Cargokit 上游文档同样不改写。当前文档指向这些目录的目标和锚点仍检查。该范围决定见[决策记录](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。
 
 带参数的项目 recipe 同时接受位置参数和 `key=value`，关键字可换序，重复或未知参数失败；例如 `just flutter-build mode=debug platform=linux`。Dart/Flutter 的自由参数仍原样透传。

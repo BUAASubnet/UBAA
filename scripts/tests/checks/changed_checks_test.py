@@ -22,7 +22,7 @@ class ChangedChecksTest(unittest.TestCase):
         return gates.select_checks(ROOT, paths)
 
     def test_docs_do_not_trigger_language_suites(self):
-        plan = self.plan('docs/migration/status.md', 'README.md', 'goal.md', 'scripts/README.md', 'packages/ubaa_ui/README.md')
+        plan = self.plan('docs/project/status.md', 'README.md', 'docs/project/goal.md', 'scripts/README.md', 'packages/ubaa_ui/README.md')
         self.assertFalse(plan['rust'])
         self.assertEqual(plan['packages'], [])
         self.assertEqual(plan['extra'], [])
@@ -61,7 +61,7 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertIn('ubaa_flutter', plan['packages'])
 
     def test_root_documents_and_scripts_have_lightweight_tiers(self):
-        for path in ['AGENTS.md', 'SECURITY.md', 'UBAA2.md', 'crates/ubaa_core/README.md',
+        for path in ['AGENTS.md', 'SECURITY.md', 'docs/project/roadmap.md', 'crates/ubaa_core/README.md',
                      'crates/ubaa_command/README.md', 'packages/package_info_plus_ohos/README.md']:
             with self.subTest(path=path):
                 plan = self.plan(path)

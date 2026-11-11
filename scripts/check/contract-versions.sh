@@ -121,21 +121,21 @@ if [[ -n $cli_version ]]; then
   require_literal 'docs/architecture/overview.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/architecture/overview.md' "schema-v${cli_version} 聚合"
   require_literal 'docs/architecture/overview.md' "CLI envelope 的 schema v${cli_version}"
-  require_literal 'docs/migration/status.md' "CLI JSON schema v${cli_version}"
+  require_literal 'docs/project/status.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/development/testing.md' "human/JSON schema v${cli_version}"
   require_literal 'docs/development/testing.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/development/engineering-standards.md' "human/JSON schema v${cli_version}"
   require_literal 'docs/development/engineering-standards.md' "当前 CLI envelope 为 schema v${cli_version}"
   require_literal 'docs/runbooks/live-auth-verification.md' "schema-v${cli_version} envelope"
   require_literal 'packages/ubaa_platform/README.md' "当前 CLI schema-v${cli_version}"
-  require_literal 'docs/migration/source-parity.md' "当前 CLI envelope 只使用 schema v${cli_version}"
+  require_literal 'docs/protocol/source-parity.md' "当前 CLI envelope 只使用 schema v${cli_version}"
 fi
 
 if [[ -n $bridge_version ]]; then
   require_literal 'docs/contracts/flutter-bridge.md' "合同版本为 \`${bridge_version}\`"
   require_literal 'docs/contracts/flutter-bridge.md' "\`u32=${bridge_version}\`"
   require_literal 'docs/architecture/overview.md' "Flutter bridge contract v${bridge_version}"
-  require_literal 'docs/migration/status.md' "Flutter bridge contract v${bridge_version}"
+  require_literal 'docs/project/status.md' "Flutter bridge contract v${bridge_version}"
   require_literal 'docs/development/testing.md' "Flutter bridge contract v${bridge_version}"
   require_literal 'docs/development/engineering-standards.md' "Flutter bridge 当前 contract 为 v${bridge_version}"
 fi

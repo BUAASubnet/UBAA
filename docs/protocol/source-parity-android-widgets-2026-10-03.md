@@ -28,4 +28,4 @@ Android实现依据官方[组件指南](https://developer.android.com/develop/ui
 
 真实Android网络准备进一步失败。当前reqwest锁定依赖rustls-platform-verifier 0.7.0，源码Android验证路径要求先登记JVM、Context和ClassLoader；当前宿主未提供初始化，也未打包其Kotlin证书验证组件。遵循锁定依赖[官方Android说明](https://docs.rs/rustls-platform-verifier/0.7.0/rustls_platform_verifier/android/index.html)补宿主JNI初始化及由`cargo metadata --locked`定位的本地AAR，不更换根证书、不关闭TLS。两冻结参考没有Rustls宿主初始化实现，此处不借用学校URL、字段或签名。旧prepareLogin本身准备双槽，试验只判定WebVPN槽，绝不将Direct尝试记为Direct验证通过。
 
-已建立独立Android 36 arm64模拟器，不放入真实账号。投影和详情字段先RED后GREEN；2项原生加密/代次测试、1项渲染与账号错配测试、2项Flutter→原生通道/Core启动测试，以及Launcher真实添加/翻周/同周跳转/课程详情/学期与周选择/滑动/拉伸/跨周三天均取得证据。完整记录见[Android阶段证据](evidence/project-android-widgets-2026-10-03.md)。系统widget不等同macOS按钮验证。
+已建立独立Android 36 arm64模拟器，不放入真实账号。投影和详情字段先RED后GREEN；2项原生加密/代次测试、1项渲染与账号错配测试、2项Flutter→原生通道/Core启动测试，以及Launcher真实添加/翻周/同周跳转/课程详情/学期与周选择/滑动/拉伸/跨周三天均取得证据。完整记录见[Android阶段证据](../archive/evidence/project-android-widgets-2026-10-03.md)。系统widget不等同macOS按钮验证。

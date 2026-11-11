@@ -1,6 +1,6 @@
 # 贡献指南
 
-[AGENTS.md](AGENTS.md) 是长期规则入口，适用于维护者和 agent。[goal.md](goal.md) 只列当前阶段目标，[迁移状态](docs/migration/status.md)记录已验证的事实。贡献前阅读[工程规范](docs/development/engineering-standards.md)、[开发约定](docs/development/conventions.md)及[开发环境](docs/development/setup.md)。
+[AGENTS.md](AGENTS.md) 是长期规则入口，适用于维护者和 agent。[goal.md](docs/project/goal.md) 只列当前阶段目标，[迁移状态](docs/project/status.md)记录已验证的事实。贡献前阅读[工程规范](docs/development/engineering-standards.md)、[开发约定](docs/development/conventions.md)及[开发环境](docs/development/setup.md)。
 
 当前结构依据为[代码组织](docs/architecture/code-organization.md)、[ADR 0006](docs/adr/0006-explicit-dart-modules.md)与[ADR 0007](docs/adr/0007-operation-scopes-and-verification.md)。历史实施计划仅保留追溯用途。
 
@@ -16,6 +16,6 @@
 
 ## 安全与协议
 
-[AGENTS 安全边界](AGENTS.md#安全边界)、[来源对照门禁](AGENTS.md#来源对照门禁)和[真实账号规则](AGENTS.md#真实账号与验收范围)全部适用。冻结输入统一位于 `examples/ubaa_old/` 与 `examples/buaa-api/`，固定提交由[冻结参考](docs/migration/references.md)定义。
+[AGENTS 安全边界](AGENTS.md#安全边界)、[来源对照门禁](AGENTS.md#来源对照门禁)和[真实账号规则](AGENTS.md#真实账号与验收范围)全部适用。冻结输入统一位于 `examples/ubaa_old/` 与 `examples/buaa-api/`，固定提交由[冻结参考](docs/protocol/references.md)定义。
 
 Fixture 只保留最小协议结构并使用明确虚构值，不得把原始上游响应复制为 fixture。Rust Core 是协议与路线的唯一所有者，生产宿主通过 facade/bridge 使用能力，不能依赖内部协议或测试注入。真实写入的具体授权和发送后禁止自动重试要求不能由确认参数或 Mock 结果替代。

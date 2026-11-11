@@ -65,7 +65,7 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 
 生产能力组合通过已注册的file_selector 1.1.0打开单文件系统对话框，仅在用户选择后读取。长度检查与流式读取均限制10MiB，取消返回空，异常归约为稳定PlatformCapabilityException；Host只接收字节、canonical文件名和image MIME，不接收路径。照片/文件权限表示可进入这一系统选择流程，其它权限仍委托既有原生Gateway；不声称桌面相机或定位已接入。其它平台保持现有MethodChannel选图实现。
 
-来源和验证边界见[桌面选图对照](../../docs/migration/source-parity-desktop-photo-2026-10-02.md)。本机测试不能替代Windows/Linux原生窗口验收。
+来源和验证边界见[桌面选图对照](../../docs/protocol/source-parity-desktop-photo-2026-10-02.md)。本机测试不能替代Windows/Linux原生窗口验收。
 
 
 ## 日历文件保存
@@ -74,7 +74,7 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 
 选择期间作用域变化返回 `superseded`，不会提交日历内容。Android 系统文档提供器可能已经建立一个空文件。OHOS API26 设置 `autoCreateEmptyFile=false`，在写入时创建。iOS 在所选目录中使用原文件名，同名时追加序号。写入开始后作用域变化返回 `savedBeforeScopeChange`，表示文件已保存到原选择位置；宿主丢弃旧页面结果，文件仍然存在。取消返回 `cancelled`，写入完成返回 `saved`，系统或写入错误返回 `AgendaFileException`，不能自动重试或推断文件不存在。
 
-平台依据为 [Android 存储访问框架](https://developer.android.com/training/data-storage/shared/documents-files)、[iOS 文件夹授权](https://developer.apple.com/documentation/uikit/providing-access-to-directories)和 [OHOS 文件保存](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/file-management/save-user-file.md)。各平台构建与实际设备结果见[当前状态](../../docs/migration/status.md)。
+平台依据为 [Android 存储访问框架](https://developer.android.com/training/data-storage/shared/documents-files)、[iOS 文件夹授权](https://developer.apple.com/documentation/uikit/providing-access-to-directories)和 [OHOS 文件保存](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/file-management/save-user-file.md)。各平台构建与实际设备结果见[当前状态](../../docs/project/status.md)。
 
 ## 北航云盘文件选择
 

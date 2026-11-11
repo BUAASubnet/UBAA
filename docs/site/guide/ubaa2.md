@@ -62,7 +62,7 @@ Auto 会根据网络情况准备直连和 WebVPN。普通查询优先直连，�
 - 研究生课表与成绩已接入，研究生非空考试明细目前会提示暂不支持，不能据此判断没有考试。
 - 学校业务缓存使用加密存储；自建日程和云盘同步快照为明文，请勿在日程备注中保存密码等秘密。
 
-逐项实现与验证情况见仓库[当前状态](https://github.com/BUAASubnet/UBAA/blob/main/docs/migration/status.md)。
+逐项实现与验证情况见仓库[当前状态](https://github.com/BUAASubnet/UBAA/blob/main/docs/project/status.md)。
 
 <style scoped>
 .upgrade-comparison {

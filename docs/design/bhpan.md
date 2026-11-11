@@ -6,9 +6,9 @@
 
 架构：Core 负责认证、路线、文件与分享操作及传输状态。Bridge 只投影稳定类型，平台层提供文件选择和保存能力，App 负责交互编排。日程同步调用 Core 网盘接口，不另行处理 Token、拼接 URL 或维护上传协议。
 
-依据：[日程设计](agenda.md)、[冻结参考](../migration/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。
+依据：[日程设计](agenda.md)、[冻结参考](../protocol/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。
 
-具体协议与缺口见[来源对照](../migration/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。下文 B0—B5 用于定位既有技术范围和证据，对外按浏览、文件管理、传输、分享和同步等用户流程验收。
+具体协议与缺口见[来源对照](../protocol/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。下文 B0—B5 用于定位既有技术范围和证据，对外按浏览、文件管理、传输、分享和同步等用户流程验收。
 
 ## 范围与来源
 
@@ -75,7 +75,7 @@ CLI 命令包括 `roots`、`list`、`stat`、`mkdir`、`rename`、`move`、`copy
 
 ### B0：来源对照与稳定合同
 
-- [x] 在 `docs/migration/source-parity-bhpan.md` 逐操作登记 25 项业务操作和认证，并从来源对照索引链接。
+- [x] 在 `docs/protocol/source-parity-bhpan.md` 逐操作登记 25 项业务操作和认证，并从来源对照索引链接。
 - [x] 按 AGENTS 填写请求、编码、重定向、授权作用域、模型、缓存、并发、重试和错误语义，标明冲突及不适用项。未裁定冲突的操作暂停生产实现，其他独立操作继续。
 - [x] 编写 `docs/contracts/bhpan.md`，确定 typed 目标、操作结果、传输状态和逐路线能力表达，返回类型不携带原始响应或授权材料。
 
@@ -109,7 +109,7 @@ CLI 命令包括 `roots`、`list`、`stat`、`mkdir`、`rename`、`move`、`copy
 
 - [x] 投影稳定类型与传输任务，接通文件选择与保存，接入校园与账户指标入口。
 - [x] 实现目录、文件操作、分享、回收站和传输界面。覆盖空目录、返回、同名处理、永久删除确认、权限拒绝、账号切换与结果待核对。
-- [x] Bridge contract v49、FRB 生成物、Widget 测试和 macOS 原生集成已通过本地验收。移动端构建与各平台设备验证范围见[迁移状态](../migration/status.md#验证与未解决事项)。
+- [x] Bridge contract v49、FRB 生成物、Widget 测试和 macOS 原生集成已通过本地验收。移动端构建与各平台设备验证范围见[迁移状态](../project/status.md#验证与未解决事项)。
 
 交付：独立网盘功能。Windows 原生宿主、云盘系统文件面板的设备实测及真实学校路线分别验收。
 

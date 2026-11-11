@@ -2,9 +2,9 @@
 
 ## 权威入口
 
-本文件是 agent 的长期规则入口。[goal.md](goal.md) 只记录当前阶段目标，不能覆盖安全边界或提供历史任务授权；[UBAA2.md](UBAA2.md) 是长期路线图。当前事实与验证结果写入[迁移状态](docs/migration/status.md)，长期工程规则见[工程规范](docs/development/engineering-standards.md)，日常约定见[开发约定](docs/development/conventions.md)。
+本文件是 agent 的长期规则入口。[goal.md](docs/project/goal.md) 只记录当前阶段目标，不能覆盖安全边界或提供历史任务授权；[UBAA2.md](docs/project/roadmap.md) 是长期路线图。当前事实与验证结果写入[迁移状态](docs/project/status.md)，长期工程规则见[工程规范](docs/development/engineering-standards.md)，日常约定见[开发约定](docs/development/conventions.md)。
 
-协议事实按真实上游证据、冻结旧版实现与测试、固定 buaa-api 的顺序判断；冻结目录和提交以[冻结参考](docs/migration/references.md)为准。架构文档不能替代协议证据。规则冲突采用更严格的一方，并在[决策记录](docs/migration/decision-log.md)说明依据，不能用当前任务或历史成功放宽规则。
+协议事实按真实上游证据、冻结旧版实现与测试、固定 buaa-api 的顺序判断；冻结目录和提交以[冻结参考](docs/protocol/references.md)为准。架构文档不能替代协议证据。规则冲突采用更严格的一方，并在[决策记录](docs/protocol/decision-log.md)说明依据，不能用当前任务或历史成功放宽规则。
 
 ## 安全边界
 
@@ -19,7 +19,7 @@
 首次缺少冻结引用时，显式运行 `just refs-bootstrap` 建立引用；普通开发、验证和发布只运行纯校验的 `just refs`。冻结引用验证不得隐式联网或改写冻结目录。依赖源与学校请求的具体区别见[命令的副作用](docs/development/commands.md#网络与写入边界)。
 
 1. 运行 `git status --short --branch` 和 `just refs`，保留已有工作区改动。
-2. 只有当前事实变化时才更新 `docs/migration/status.md`，只有会影响后续判断的取舍才写决策记录。不为单轮任务新建报告文件；验证过程写进提交说明，临时材料按下节存放。协议相关的来源对照仍按下文门禁记录。
+2. 只有当前事实变化时才更新 `docs/project/status.md`，只有会影响后续判断的取舍才写决策记录。不为单轮任务新建报告文件；验证过程写进提交说明，临时材料按下节存放。协议相关的来源对照仍按下文门禁记录。
 3. 行为变更或缺陷修复先用有意义的失败反例证明问题。纯文案、样式、文档及可逆机械改动复用已有覆盖，不添加语言自证、固定文案缺席或 Widget 数量断言。整理测试时登记删除项对应的保留覆盖。
 4. 实现最小变更，先运行聚焦检查，再按[检查选择与完成条件](docs/development/commands.md#检查选择与完成条件)审阅、执行按改动检查。比较已提交分支必须传入阶段开始时的 Git 基线。普通文档、脚本、Rust 和 Dart 改动按提交级别检查，推送前或 CI 承担对应重检查，共用检查不重复执行。安全、协议、并发、存储和跨语言边界修改仍须提交前完整验收，未知影响保守全量；路径未识别的高风险影响显式选择 `mode=full`。
 5. 使用明确 pathspec 暂存，禁止 `git add .`。提交前人工检查暂存文件与内容、运行敏感扫描，根目录 `.env` 不得暂存，只提交不含真实值的 `.env.example`。每个阶段独立提交。机械移动、行为修改、生成刷新和证据文档按可审查的主题拆分，行为实现与对应测试可以同一提交。
@@ -47,7 +47,7 @@ Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just
 - `examples/ubaa_old/`：读取对应 API 接口、DTO、本地实现和测试。
 - `examples/buaa-api/`：读取最接近的 API 模块、请求与重定向代码、数据模型、加密、Cookie/凭据存储和错误处理。
 
-两者提交均使用[冻结参考](docs/migration/references.md)的固定值。对照记录写入[来源对照索引](docs/migration/source-parity.md)或该索引链接的决策记录。每个操作分别覆盖：业务 CAS/引导 URL 与 service、重定向与最终 URL、Cookie/Session/Token 作用域、HTTP 方法与精确参数、请求头与正文编码、加密/签名常量、DTO 与解析字段/类型、缓存/并发/重试、错误/退出与产品语义。认证成功或端点相似均不能证明缺失的列。
+两者提交均使用[冻结参考](docs/protocol/references.md)的固定值。对照记录写入[来源对照索引](docs/protocol/source-parity.md)或该索引链接的决策记录。每个操作分别覆盖：业务 CAS/引导 URL 与 service、重定向与最终 URL、Cookie/Session/Token 作用域、HTTP 方法与精确参数、请求头与正文编码、加密/签名常量、DTO 与解析字段/类型、缓存/并发/重试、错误/退出与产品语义。认证成功或端点相似均不能证明缺失的列。
 
 某个来源没有相同上游协议时，明确记录“不适用”，不得类比借用其 URL、字段、加密或错误。来源冲突时，在该边界停止实现，将具体文件、提交及脱敏实时观察记入 decision-log，再选择有真实证据或适用冻结本地实现支持的行为。不得从记忆补齐未证明的字段或参数。
 
@@ -81,4 +81,5 @@ Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just
 | `packages/connectivity_plus_ohos`、`packages/flutter_secure_storage_ohos`、`packages/package_info_plus_ohos` | 有上游声明的 OHOS 插件适配 |
 | `scripts` | bootstrap/check/build/live/release/tests 入口与 lib/tools 支持，副作用见[脚本说明](scripts/README.md) |
 | `docs/contracts`、`docs/architecture`、`docs/development` | 稳定合同、架构和开发规则 |
-| `docs/migration`、`docs/adr`、`docs/design`、`docs/site` | 来源/状态/历史、长期决策、设计和用户网站 |
+| `docs/project`、`docs/protocol`、`docs/archive` | 目标/路线图/状态，协议来源与决策，历史归档 |
+| `docs/adr`、`docs/design`、`docs/site` | 长期决策、设计和用户网站 |

@@ -1,10 +1,10 @@
 # 应用服务实施计划
 
-更新：2026-11-11。状态：工程实现完成。生产部署未执行，验收范围见[迁移状态](../migration/status.md#应用服务验收对照)。
+更新：2026-11-11。状态：工程实现完成。生产部署未执行，验收范围见[迁移状态](../project/status.md#应用服务验收对照)。
 
 目标：完成经用户同意的遥测、更新检查、公告与更新门控，交付可以本地完整验收、可以按明确配置部署的客户端和 Worker。
 
-设计依据：[应用服务合同](../contracts/app-service.md)、[ADR 0008](../adr/0008-app-service-worker.md)。合同规定行为和数值，本计划规定实现顺序与验收方式。长期规则遵循 [AGENTS.md](../../AGENTS.md)，当前入口为 [goal.md](../../goal.md)。
+设计依据：[应用服务合同](../contracts/app-service.md)、[ADR 0008](../adr/0008-app-service-worker.md)。合同规定行为和数值，本计划规定实现顺序与验收方式。长期规则遵循 [AGENTS.md](../../AGENTS.md)，当前入口为 [goal.md](../project/goal.md)。
 
 客户端由 Rust Core 持有安装级状态、SQLite 队列、独立 transport 和门控。Dart 负责白名单、交互和宿主生命周期，经 typed Bridge 使用 Core。TypeScript Worker 使用 D1 存统计数据、KV 存渠道配置与公告。工具版本沿用仓库锁定值，新依赖只为本任务所需能力引入并提交锁文件。
 

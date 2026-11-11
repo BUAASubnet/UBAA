@@ -46,7 +46,7 @@
 
 评教批次与读取沿用[评教逐操作对照](#ubaa2-直接写操作与评教2026-08-28)，研讨室活动类型、阳光打卡概览、SPOC 课程补充与认证回查、Judge 认证回查分别沿用[场馆对照](#场馆预约只读查询)、[阳光打卡只读查询](#阳光打卡只读查询)、[SPOC 列表](#spoc-列表)、[SPOC 认证](#spoc-认证)和 [Judge 批量与缓存](#judge-批量与缓存)。这些操作的可选数据回退不吞掉本机更新拒绝。评教批次已经交付写入后，保留已确认结果，遇到门控后停止并将剩余课程标记为未尝试。
 
-应用服务客户端收到 `410` 时，只将合同机器码 `install_erased` 视为已删除；其他 `410` 保留原批次重试。手动删除记入 GUI 与命令模式共享的最近交付时间；用户可以立即手动重试，自动前台与命令模式继续使用六小时间隔。定时任务按校园日汇总 D1 并清理明细，不请求学校。主动刷新若复用写后核对的在途读取，仍收到同一次门控拒绝提示；自动核对保持静默，学校读取协议不变。本地 HTTP 与 D1 结果见[应用服务验收对照](status.md#应用服务验收对照)。
+应用服务客户端收到 `410` 时，只将合同机器码 `install_erased` 视为已删除；其他 `410` 保留原批次重试。手动删除记入 GUI 与命令模式共享的最近交付时间；用户可以立即手动重试，自动前台与命令模式继续使用六小时间隔。定时任务按校园日汇总 D1 并清理明细，不请求学校。主动刷新若复用写后核对的在途读取，仍收到同一次门控拒绝提示；自动核对保持静默，学校读取协议不变。本地 HTTP 与 D1 结果见[应用服务验收对照](../project/status.md#应用服务验收对照)。
 
 复审后的本机协调仍使用上表的操作边界：读取门控失败时放行本次学校请求并保留门控记录，GUI 定期复查共享状态，Core 继续按最近尝试时间节流上传、删除和启动配置。旧版 `AnnouncementRoutes.kt` 与服务端 `AnnouncementService.kt` 只读取单条公告且没有版本筛选，固定 buaa-api 没有对应操作。公告上限缺省构建号时包含同版全部构建，沿用原启动配置的请求、响应字段和缓存规则。
 
@@ -274,13 +274,13 @@ Linux Debian arm64 在 `ubaa-h0:validated` 固定镜像、nobody、断网、无�
 
 2026-10-30 认证安全修改及复核见[逐操作来源比较、失败反例和验证边界](source-parity-auth-review-2026-10-30.md)。该记录明确网关原生路径、Direct 解包路线、BYKC 精确回调、Ygdk 已证主机与编码，以及写入结果分类的更正。
 
-这两个来源已在 2026-09-17 的 `f63e6d060059beaa68a4b9372c393ea56e3a4c61` 换钉；经过见[决策记录](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29阶段-2-统一权威来源与规范)。本轮仅校正声明，未修改冻结目录或脚本固定值。下方与专项中的旧 SHA、旧候选、当时不适用项及来源例外均保留历史含义，不自动成为当前实现依据；引用前必须按当前来源重新核对所改操作。
+这两个来源已在 2026-09-17 的 `f63e6d060059beaa68a4b9372c393ea56e3a4c61` 换钉；经过见[决策记录](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29阶段-2-统一权威来源与规范)。本轮仅校正声明，未修改冻结目录或脚本固定值。下方与专项中的旧 SHA、旧候选、当时不适用项及来源例外均保留历史含义，不自动成为当前实现依据；引用前必须按当前来源重新核对所改操作。
 
 路径前缀统一写为 `examples/ubaa_old/` 与 `examples/buaa-api/`。旧来源内部的相对文件名仍相对该来源根目录，行号对应原记录版本。补充旧源例外仍须有明确决策，不能扩展为任意本机来源。
 
 ## 2026-10-26 博雅详情与选课
 
-详情空报名人数的双来源对照、列表人数展示和写前复核规则见[博雅修复记录](history/bykc-detail-2026-10-26.md)。
+详情空报名人数的双来源对照、列表人数展示和写前复核规则见[博雅修复记录](../archive/history/bykc-detail-2026-10-26.md)。
 
 ## 2026-10-03 Android桌面课表
 
@@ -527,7 +527,7 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 或 CAS 表单的输出。不会用任意尖括号文本推断来源；严格 DTO 闭合和确定性解析测试证明原始 HTML
 字段不存在。上一段描述的是已取代的验证器设计。当前 `core-live` 只输出路线、操作、状态、
 稳定错误、耗时、计数和依赖/来源字段，不执行 jq 聚合，也没有 `UBAA_VERIFY_DIGEST_SALT` 前置
-条件。当前 Direct/WebVPN 证据按操作记录在 `docs/migration/status.md`，`auto` 仍仅确定性验证。
+条件。当前 Direct/WebVPN 证据按操作记录在 `docs/project/status.md`，`auto` 仍仅确定性验证。
 
 ## 未改变的课表/考试证据
 
@@ -570,7 +570,7 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 ## 图书馆座位只读查询
 
-2026-10-25 汇总与座位同步刷新、全页手势范围见[刷新记录](history/refresh-2026-10-25.md)。
+2026-10-25 汇总与座位同步刷新、全页手势范围见[刷新记录](../archive/history/refresh-2026-10-25.md)。
 
 2026-10-25 自动加载及可预约座位展示核对见[本轮来源记录](source-parity-libbook-auto-seats-2026-10-25.md)。
 
@@ -752,7 +752,7 @@ Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下
 `LocalEvaluationServiceBackendTest.kt`，以及旧 server `EvaluationClient.kt`、`EvaluationService.kt` 与
 测试。交叉来源为 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
 `src/api/tes/{auth,data,opt}.rs`。两份来源部分等价但存在明确冲突；产品取舍见
-[Phase 11J 决策](history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
+[Phase 11J 决策](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -779,7 +779,7 @@ caller-pinned 回读不重发也不升级 unknown；架构测试禁止正常 fac
 `aas/app/boya/class/cloud/live/spoc/srs/sso/tes/user/wifi`，没有 Ygdk、Clockin 或照片上传等价实现；所以下表
 每一行的九个示例来源单元格都为 **N/A 且不等价**。不得从示例的通用 SSO、credential、Cookie、上传、
 错误类型或其它业务模块类比补齐任何字段。与本表绑定的产品取舍见
-[Phase 11I 决策](history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
+[Phase 11I 决策](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -988,7 +988,7 @@ Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimit
 ## 2026-09-08 UI/UX 重设计前逐操作保持合同
 
 本轮在生产 UI 修改前完成静态来源索引与 typed 接线边界核对，详见
-[UI/UX 来源与接线审查](history/2026-09-08-ui-ux-parity-review.md)。两冻结 HEAD 已读回并与本文件固定值一致；完整 refs 门禁由本轮主证据记录。该审查为每个当前认证/只读 Bridge 操作列出旧版接口、本地实现、DTO、测试与 Rust 示例适用性，并独立应用 C1–C9：URL/service、重定向、Cookie/Session、方法参数、Header/编码、加密、DTO/解析、缓存/并发、错误/退出均保持现有协议。纯视觉不授权改变请求或扩充公开合同。
+[UI/UX 来源与接线审查](../archive/history/2026-09-08-ui-ux-parity-review.md)。两冻结 HEAD 已读回并与本文件固定值一致；完整 refs 门禁由本轮主证据记录。该审查为每个当前认证/只读 Bridge 操作列出旧版接口、本地实现、DTO、测试与 Rust 示例适用性，并独立应用 C1–C9：URL/service、重定向、Cookie/Session、方法参数、Header/编码、加密、DTO/解析、缓存/并发、错误/退出均保持现有协议。纯视觉不授权改变请求或扩充公开合同。
 
 可接线范围：图书馆馆列表已有 typed 楼层，分区已有父 ID，详情已有 typed 时段；App 可无损保留这些公开字段为选择器，segment 只能取时段 ID。阻塞范围：当前公开分区详情仅给出第一日期/顶层时段，不能据此声称全部日期共享时段；跨日期精确时段需另行合同与失败测试。userInfo 已接入但仅投影 username/name，既有白名单其它字段可做遮罩资料展示，department 没有来源。
 
@@ -1081,14 +1081,14 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 
 ## 2026-10-01至02：分支整合与当前冻结版本复核
 
-博雅目录/完整详情、图书馆逐日日程、登录选项/Keychain和导航的旧专项来源先按两个当前固定SHA复核，再纳入离线首页，见[整合前逐操作对照](source-parity-consolidation-2026-10-01.md)。新旧缓存链不复制Cookie、联系人或写资格；当前Bridge v37和组合验证见[整合证据](evidence/project-consolidation-2026-10-02.md)。
+博雅目录/完整详情、图书馆逐日日程、登录选项/Keychain和导航的旧专项来源先按两个当前固定SHA复核，再纳入离线首页，见[整合前逐操作对照](source-parity-consolidation-2026-10-01.md)。新旧缓存链不复制Cookie、联系人或写资格；当前Bridge v37和组合验证见[整合证据](../archive/evidence/project-consolidation-2026-10-02.md)。
 
 当前GSMIS研究生课表与节次时间轴的逐操作九列见[source-parity-gsmis-2026-10-02.md](source-parity-gsmis-2026-10-02.md)。
 
 
-2026-10-07本机账号初始化异常的页面边界见[分支裁决](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07未确认本机账号时启动必须进入登录页)：对照冻结旧版App状态机及示例Context/存储；不修改学校认证协议，未知本机身份回登录页，不开放离线首页。
+2026-10-07本机账号初始化异常的页面边界见[分支裁决](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07未确认本机账号时启动必须进入登录页)：对照冻结旧版App状态机及示例Context/存储；不修改学校认证协议，未知本机身份回登录页，不开放离线首页。
 
-2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](evidence/unified-secure-storage-2026-10-07.md)。
+2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](../archive/evidence/unified-secure-storage-2026-10-07.md)。
 
 ### 2026-10-30：OHOS 首次创建安全存储密钥
 

@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-本文规定 UBAA v2.0 的候选验收、签名与分发流程。旧流程见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)，当前结果见[实现与验证状态](../migration/status.md)。账号与发布操作遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。
+本文规定 UBAA v2.0 的候选验收、签名与分发流程。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)，当前结果见[实现与验证状态](../project/status.md)。账号与发布操作遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。
 
 ## v2.0.0 发布准备
 

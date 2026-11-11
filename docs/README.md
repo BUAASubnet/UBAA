@@ -10,9 +10,9 @@
 
 ## 日常开发入口
 
-- [Agent 长期规则](../AGENTS.md)、[当前阶段目标](../goal.md)、[长期路线图](../UBAA2.md)
+- [Agent 长期规则](../AGENTS.md)、[当前阶段目标](project/goal.md)、[长期路线图](project/roadmap.md)
 - [贡献指南](../CONTRIBUTING.md)、[安全策略](../SECURITY.md)
-- [当前实现与验证状态](migration/status.md)
+- [当前实现与验证状态](project/status.md)
 - [当前日程交付](design/agenda.md)、[桌面命令与共享服务](design/desktop-shared-state.md)、[北航云盘](design/bhpan.md)
 - [项目概览](../README.md)
 - [现行代码组织](architecture/code-organization.md)
@@ -39,7 +39,7 @@
 - [认证与用户](contracts/auth-and-user.md)、[连接与会话](contracts/connection-and-session.md)、[路由策略](contracts/route-policy.md)
 - [只读功能](contracts/readonly-features.md)、[Flutter Bridge](contracts/flutter-bridge.md)、[CLI JSON Schema](contracts/cli-json.schema.json)
 - [离线缓存与恢复](contracts/offline-cache-and-recovery.md)、[应用服务（遥测、更新与公告）](contracts/app-service.md)
-- [冻结参考](migration/references.md)、[来源对照矩阵及后续专项](migration/source-parity.md)
+- [冻结参考](protocol/references.md)、[来源对照矩阵及后续专项](protocol/source-parity.md)
 
 界面设计依据见 [Flutter UI 规格](design/flutter-ui-spec.md)、[配色](design/color-system.md)和[首页](design/home-layout.md)，具体实现与验收按当前候选记录。
 
@@ -55,7 +55,7 @@
 - [ADR 0006：显式 Dart 模块](adr/0006-explicit-dart-modules.md)
 - [ADR 0007：操作作用域与验证闭包](adr/0007-operation-scopes-and-verification.md)
 - [ADR 0008：应用服务 Worker](adr/0008-app-service-worker.md)
-- [历史决策索引](migration/decision-log.md)
+- [历史决策索引](protocol/decision-log.md)
 
 ## 验证与运行
 
@@ -66,18 +66,18 @@
 ## 近期实施与历史记录
 
 - [应用服务实施计划](design/app-service-implementation.md)：遥测、更新、公告与无人值守工程验收。
-- [2026-10-29 首页业务并发](migration/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](migration/source-parity-home-performance-2026-10-29.md)
-- [2026-10-28 界面回归](migration/history/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](migration/history/integration-repair-2026-10-27.md)
-- [2026-10-21 认证修复](migration/history/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/history/docs-site-2026-10-29.md)
-- [全部来源对照专项](migration/source-parity.md#全部来源对照专项)、[持续决策记录](migration/decision-log.md)
+- [2026-10-29 首页业务并发](protocol/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](protocol/source-parity-home-performance-2026-10-29.md)
+- [2026-10-28 界面回归](archive/history/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](archive/history/integration-repair-2026-10-27.md)
+- [2026-10-21 认证修复](archive/history/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](archive/history/docs-site-2026-10-29.md)
+- [全部来源对照专项](protocol/source-parity.md#全部来源对照专项)、[持续决策记录](protocol/decision-log.md)
 
-- [独立工程审查](migration/history/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](migration/history/engineering-quality-implementation-2026-10-07.md)
+- [独立工程审查](archive/history/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](archive/history/engineering-quality-implementation-2026-10-07.md)
 
-- [2026-10-07 可持续开发性审查](migration/history/maintainability-audit-2026-10-07.md)、[实施与验证](migration/history/maintainability-implementation-2026-10-07.md)
-- [2026-10-01 项目整合快照](migration/history/project-audit-2026-10-01.md)
-- [原代码组织设计](migration/history/code-organization-2026-09-05.md)、[旧测试指南](migration/history/testing-before-2026-10-07.md)
-- [整理前状态](migration/history/status-before-maintainability-2026-10-07.md)、[此前项目收尾合同](migration/history/goal-2026-10-07-before-maintainability.md)
-- [旧版功能迁移矩阵](migration/full-feature-matrix.md)、[旧版能力盘点](migration/legacy-feature-inventory.md)
+- [2026-10-07 可持续开发性审查](archive/history/maintainability-audit-2026-10-07.md)、[实施与验证](archive/history/maintainability-implementation-2026-10-07.md)
+- [2026-10-01 项目整合快照](archive/history/project-audit-2026-10-01.md)
+- [原代码组织设计](archive/history/code-organization-2026-09-05.md)、[旧测试指南](archive/history/testing-before-2026-10-07.md)
+- [整理前状态](archive/history/status-before-maintainability-2026-10-07.md)、[此前项目收尾合同](archive/history/goal-2026-10-07-before-maintainability.md)
+- [旧版功能迁移矩阵](protocol/full-feature-matrix.md)、[旧版能力盘点](protocol/legacy-feature-inventory.md)
 
 历史提交、计数和验收结果只描述对应候选；不能代替当前确定性、原生、设备、真实只读或发布证据。
 
@@ -88,7 +88,7 @@
 | architecture / contracts / development / runbooks | 现行架构、兼容行为、工程规则与操作入口。 |
 | design | 产品行为、交付场景与持续维护的界面规格，历史候选证据明确标记。 |
 | migration | 当前状态、来源对照、决策入口及按候选登记的专项结果。 |
-| migration/history | 已取代的目标、快照、设计、审计和计划，含原 superpowers 内容；见[历史说明](migration/history/README.md)。 |
+| migration/history | 已取代的目标、快照、设计、审计和计划，含原 superpowers 内容；见[历史说明](archive/history/README.md)。 |
 | migration/evidence | 迁移、协议和阶段验收的脱敏文字证据与映射。 |
 | design/evidence | UI 原型、采集元数据、批次与外部媒体索引。3967 个 JSON 保留原位，内部历史链接按既定约定处理。 |
 

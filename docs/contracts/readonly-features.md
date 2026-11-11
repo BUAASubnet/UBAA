@@ -25,7 +25,7 @@ HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，C
 
 原始 Cookie、CAS ticket、配置 ID、跳转 URL、上游消息与 HTML 不进入 DTO。网络两项剩余量均不含套餐，不合计成总剩余量。图书只有数量，不推断书目和到期日。
 
-三个命令为兼容性新增，沿用 CLI JSON schema v14 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
+三个命令为兼容性新增，沿用 CLI JSON schema v14 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../protocol/source-parity-campus.md)。
 
 ## 标准只读功能
 
@@ -68,7 +68,7 @@ LibBook booking 的公开 `status` 为 nullable int，并由 Core 派生
 实现严格沿用冻结只读路径，包括 AAS CAS 激活、课表表单、SPOC 加密全局分页、业务
 认证失效的一次刷新、东八区时间、可选回退、HTML 文本化以及 Judge 详情/题目解析。
 SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证据以
-`docs/migration/status.md` 中 Core-live 的 Direct/WebVPN 逐操作记录为准。
+`docs/project/status.md` 中 Core-live 的 Direct/WebVPN 逐操作记录为准。
 `examples/buaa-api` 的其它协议不能替代本地 API。任何提交、上传、预约、签到、评教
 或其它写操作都不在只读入口中。
 
@@ -107,14 +107,14 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 研究生课表保留学期完整性、排课班号、唯一校历周一和节次核对，以及唯一作息方案补全。`grades overview` / `grades_overview` 返回完整历史成绩、成绩自身的学期与全局/分学期统计；本科返回 `graduate=false`，继续原逐学期查询。GPA 与均分分别使用有效正学分作为分母，缺少有效分母时为 null。界面只展示 Core 统计，不按本科等级规则重算研究生成绩。历史成绩中最近学期不自动标为当前学期，也不据此启动当前学期成绩通知。
 
-`exam terms` / `exam_terms` 返回考试系统学期；研究生考试三项计数均为零才返回空，非空明细返回 `unsupported`。考试学期缓存使用独立键，不借课表学期。单学期成绩的可空 `statistics` 随原缓存保存，旧记录缺字段按 null 读取。CLI schema v14、Bridge v56；缓存键和可空字段为追加，业务库版本保持 v8。来源与真实验证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
+`exam terms` / `exam_terms` 返回考试系统学期；研究生考试三项计数均为零才返回空，非空明细返回 `unsupported`。考试学期缓存使用独立键，不借课表学期。单学期成绩的可空 `statistics` 随原缓存保存，旧记录缺字段按 null 读取。CLI schema v14、Bridge v56；缓存键和可空字段为追加，业务库版本保持 v8。来源与真实验证边界见[GSMIS逐操作对照](../protocol/source-parity-gsmis-2026-10-02.md)。
 
 
 ## iHome
 
 `ubaa ihome list` 默认读取公共诉求；`--scope mine|followed|appraised` 切换个人列表，`--page` 和 `--limit` 控制分页，公共列表支持 `--keyword`、`--category-id` 与 `--filter`。`detail <id> --mine` 使用本人详情路径；`config`、`notices` 和 `notice <id>` 读取配置与公告。普通详情省略 `--mine`。CLI不开放关注或支持写入。
 
-数据只包含诉求、部门回复、评价、当前轮次进度和明确的状态/数量；原始用户对象、联系方式字段和业务令牌不进入合同。DTO及来源矩阵见 [iHome对照](../migration/source-parity-ihome-2026-10-25.md)。
+数据只包含诉求、部门回复、评价、当前轮次进度和明确的状态/数量；原始用户对象、联系方式字段和业务令牌不进入合同。DTO及来源矩阵见 [iHome对照](../protocol/source-parity-ihome-2026-10-25.md)。
 
 ## 财务收入
 
@@ -122,4 +122,4 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 Core 的 `finance_incomes` 提供在线数据，`refresh_cached_finance` 和 `read_finance` 复用账号加密缓存。App 的 `FinanceService.refresh/cached` 由 `AppController.financeService` 提供，账号或路线代次变化后拒绝旧绑定。共享界面在“校园”页提供“财务查询”入口，先显示离线记录再读取在线结果，按所属年月分组并合计实发金额；页面注明录入记录不代表银行到账。
 
-API Token 仅存路线内存，退出或会话失效即清除。查询不得接受任意用户编号，账号来自已认证财务跳转。证件、银行账号和原始响应不进入 DTO、命令输出或缓存。来源见[财务对照](../migration/source-parity.md#财务收入查询2026-11-08)。
+API Token 仅存路线内存，退出或会话失效即清除。查询不得接受任意用户编号，账号来自已认证财务跳转。证件、银行账号和原始响应不进入 DTO、命令输出或缓存。来源见[财务对照](../protocol/source-parity.md#财务收入查询2026-11-08)。
