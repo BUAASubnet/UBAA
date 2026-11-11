@@ -123,13 +123,11 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB。发布前置报告不在日常 CI 运行，发布前本地执行 `just release-preflight` |
-| ci.yml / app-service-contracts | 同一批 push 与 PR；Ubuntu 使用锁定 Node 主版本，执行 `just app-service-content-check`、`just app-service-check` 和部署触发条件测试 |
-| ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
-| ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
-| ci.yml / app-service-deploy | 仅主仓库中 `APP_SERVICE_DEPLOY_BRANCH` 指定分支的 push；等待同一次运行的四项检查和全部矩阵项通过，在受保护的 `app-service-production` Environment 部署并同步 KV。设置见[部署手册](../runbooks/app-service.md#配置-github-cd) |
-| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
-| [docs.yml](../../.github/workflows/docs.yml) | 手动、文档站相关 PR 和 main/dev push；npm ci 与 docs:build 检查站内链接；仅配置的发布分支且非 PR 时上传/部署 Pages |
+| [dev.yml](../../.github/workflows/dev.yml) | dev push 与目标为 dev 的 PR：脚本及敏感材料检查，按改动选择 Rust 类型检查/单元测试、Dart 格式/分析和 Worker 合同；不运行原生矩阵或 FRB 生成 |
+| [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter/FRB、依赖审计、Worker 合同、文档构建和原生矩阵。main-required 仅在全部作业成功时通过，不使用顶层路径过滤 |
+| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator/Android APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储；OHOS 发布构建独立处理 |
+| [worker.yml](../../.github/workflows/worker.yml) | main 的服务或发布内容改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境迁移 D1、部署 Worker、同步 KV。部署前核对分支最新提交，同一生产环境串行执行 |
+| [docs.yml](../../.github/workflows/docs.yml) | 文档站相关改动独立构建和部署，发布目标见工作流 |
 
 三个工作流统一 push 分支为 main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
 
@@ -160,7 +158,7 @@ Android/OHOS 构建的签名参数统一从根 `.env` 或同名进程变量读�
 
 所有认证、读取或写入功能变更遵守 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)。补齐来源差异并通过失败反例/聚焦回归后，提交前必须完成本页完整确定性验收，其中敏感扫描和严格 Rust/CLI 检查不能省略。纯展示、文档或测试整理没有协议变更时，不因此执行学校请求。
 
-认证、读取或写入协议变更，以及发布验收，还必须有 CLI 二进制端到端和 Direct/WebVPN 两条路线的真实只读证据。CLI 端到端已包含于严格入口的 CLI 测试；真实验证按 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)执行：
+认证、读取或写入协议变更必须有 CLI 二进制端到端和 Direct/WebVPN 两条路线的真实只读证据。常规发布不以学校真实账号验证为前置条件。CLI 端到端已包含于严格入口的 CLI 测试；真实验证按 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)执行：
 
 ```bash
 just verify-live mode=direct

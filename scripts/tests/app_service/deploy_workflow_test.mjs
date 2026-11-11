@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const ci = parse(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
+const ci = parse(readFileSync(join(root, ".github/workflows/worker.yml"), "utf8"));
 const sha = "a".repeat(40);
 const github = {
   event_name: "push",
@@ -52,7 +52,7 @@ function exercise({
   deployExit = 0,
 } = {}) {
   const job = ci.jobs["app-service-deploy"];
-  assert.ok(job, "CI 未配置 Worker 部署作业");
+  assert.ok(job, "未配置 Worker 部署作业");
   const checks = Object.keys(ci.jobs).filter(
     (id) => id !== "app-service-deploy",
   );
@@ -134,8 +134,7 @@ just() {
   }
 }
 
-test("部署变量缺失、其他分支、PR、fork、分支删除均不调用发布命令", () => {
-  assert.deepEqual(exercise({ branch: "" }), []);
+test("其他分支、PR、fork、分支删除均不调用发布命令", () => {
   assert.deepEqual(exercise({ event: { ...github, ref_name: "dev" } }), []);
   assert.deepEqual(
     exercise({ event: { ...github, event_name: "pull_request" } }),
@@ -160,6 +159,7 @@ test("任一 CI 检查失败时不调用发布命令", () => {
 });
 
 test("候选提交仍是分支头时先部署再发布内容", () => {
+  assert.deepEqual(exercise({ event: { ...github, event_name: "workflow_dispatch" } }), ["git ls-remote", "just app-service-deploy", "just app-service-publish"]);
   assert.deepEqual(exercise(), [
     "git ls-remote",
     "just app-service-deploy",
@@ -173,7 +173,7 @@ test("候选提交仍是分支头时先部署再发布内容", () => {
   ]);
 });
 
-test("部署期间新提交不会取消生产作业，PR 仍会取消旧运行", () => {
+test("部署期间新提交不会取消生产作业", () => {
   const vars = { APP_SERVICE_DEPLOY_BRANCH: "main" };
   assert.equal(
     evaluate(ci.concurrency["cancel-in-progress"], { github, vars }),
@@ -184,7 +184,7 @@ test("部署期间新提交不会取消生产作业，PR 仍会取消旧运行",
       github: { ...github, event_name: "pull_request" },
       vars,
     }),
-    true,
+    false,
   );
   assert.equal(
     ci.jobs["app-service-deploy"].concurrency["cancel-in-progress"],

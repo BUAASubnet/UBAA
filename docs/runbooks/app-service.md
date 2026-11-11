@@ -1,6 +1,6 @@
 # 应用服务部署与维护
 
-应用服务使用一个 Cloudflare Worker、一个 D1 数据库和一个 Workers KV 命名空间。维护者可在本机部署 Worker 或单独发布内容。GitHub CD 在指定分支的同一提交通过全部检查后，部署 Worker 并同步渠道和公告。
+应用服务使用一个 Cloudflare Worker、一个 D1 数据库和一个 Workers KV 命名空间。维护者可在本机部署 Worker 或单独发布内容。GitHub CD 在 main 的服务改动通过应用服务检查后，独立部署 Worker 并同步渠道和公告。main 的合并条件由完整验收负责。
 
 ## 准备账号和目标
 
@@ -21,11 +21,11 @@
 
 ## 配置 GitHub CD
 
-1. 在仓库 **Settings → Environments** 创建 `app-service-production`。设置允许部署的分支，配置 **Required reviewers**，并启用 **Prevent self-review**。参见 [GitHub Environment 配置](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
+1. 在仓库 **Settings → Environments** 创建 `app-service-production`。仅允许 main 分支部署。自动部署不配置人工审批。参见 [GitHub Environment 配置](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
 2. 在该 Environment 的 **Variables** 中设置上表的五个目标值，在 **Secrets** 中设置 `CLOUDFLARE_API_TOKEN`。Token 不放在仓库级 Secret。学校账号与 `USER_KEY_SECRET` 均不填入 GitHub。
-3. 在仓库 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `APP_SERVICE_DEPLOY_BRANCH`，正式发布使用 `main`，与 Environment 放行的分支一致；隔离的测试环境可使用 `dev`。变量为空时跳过部署。确认 Cloudflare 目标准备完毕后再启用该变量。
+3. [Worker 工作流](../../.github/workflows/worker.yml) 监听 main 中的服务代码、配置、发布脚本和公告改动，也支持在 main 手动运行。
 
-CD 作业位于 [CI 工作流](../../.github/workflows/ci.yml)。它通过 [`needs`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idneeds) 等待同一运行的所有检查和矩阵项成功，再部署该提交。这样无需跨工作流匹配分支、提交与检查结果，工作流定义也随触发提交一起检出。其他分支、PR、fork 和检查未通过的运行不进入部署。生产作业串行执行，写入前核对提交仍是目标分支的分支头。需要审批时，在 GitHub Actions 对应运行中核对提交后批准。
+部署作业等待同一运行的应用服务检查成功。其他分支、PR、fork 和检查未通过的运行不进入部署。生产作业串行执行，写入前核对提交仍是 main 分支头。发布 Token 只注入实际部署步骤，检查作业不接收凭据。
 
 ## 校验、迁移和发布
 
