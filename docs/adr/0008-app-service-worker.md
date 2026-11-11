@@ -1,8 +1,8 @@
 # ADR 0008：应用服务 Worker 承载遥测、更新检查与公告
 
 日期：2026-11-10
-状态：已实施（生产部署未执行）
-取代：无。本记录取代[统计开关对照](../protocol/source-parity-ui-telemetry-control.md)中“不新增网络接收端”的单轮范围限制，该记录的“无可用客户端时不得误报开启”规则继续有效。
+状态：已实施
+取代：无。本记录取代[统计开关对照](../protocol/parity/app-service.md)中“不新增网络接收端”的单轮范围限制，该记录的“无可用客户端时不得误报开启”规则继续有效。
 被取代：无
 
 ## 问题与证据
@@ -99,7 +99,7 @@ Cloudflare 另有部署在大陆的 [China Network](https://developers.cloudflar
 
 ## 验证与迁移
 
-- 来源对照：这些都不是学校协议，在[来源对照索引](../protocol/source-parity.md#应用服务遥测更新与公告)中逐列记为“不适用”。ubaa_old 只作为产品行为参考，不能借用它的 URL、字段或哈希方式。
+- 来源对照：这些都不是学校协议，在[来源对照索引](../protocol/parity/app-service.md#应用服务遥测更新与公告-1)中逐列记为“不适用”。ubaa_old 只作为产品行为参考，不能借用它的 URL、字段或哈希方式。
 - 合同：行为、接口、字段白名单、同意状态机和表结构见[应用服务合同](../contracts/app-service.md)。实现时另外提交 JSON Schema，并把它纳入合同版本检查。
 - 失败条件：
   - 非 `agreed` 状态下发出删除以外的应用服务请求；

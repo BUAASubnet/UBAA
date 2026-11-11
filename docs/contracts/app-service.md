@@ -1,6 +1,8 @@
 # 应用服务合同
 
-状态：已实施，生产部署未执行。测试结果见[应用服务验收对照](../project/status.md#应用服务验收对照)，决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)。本合同定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。
+本合同供修改应用服务客户端或 Worker 的开发者使用，定义客户端（Rust Core `app_service` 模块及其宿主）与 Cloudflare Worker（`services/app_service/`）之间的行为。
+
+接口载荷版本为 `schema: 1`，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。决策依据见 [ADR 0008](../adr/0008-app-service-worker.md)，实际验收结果见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md)。
 
 ## 1. 范围
 
@@ -46,7 +48,7 @@
 - 单元测试和集成测试通过可注入 transport 构造客户端，永不访问真实服务。
 - 本地端到端联调使用非 Release 构建加本机回环地址，只能显式运行，不进入 CI。联调必须断言本地 D1 中确实写入了数据，防止应用服务因硬关闭而静默通过。
 
-硬关闭时，设置页按[统计开关对照](../protocol/source-parity-ui-telemetry-control.md)的规则不显示开关，不得误报为已开启。
+硬关闭时，设置页按[统计开关对照](../protocol/parity/app-service.md)的规则不显示开关，不得误报为已开启。
 
 ## 3. 同意与开关
 

@@ -1,10 +1,10 @@
 # 应用服务实施计划
 
-更新：2026-11-11。状态：工程实现完成。生产部署未执行，验收范围见[迁移状态](../project/status.md#应用服务验收对照)。
+更新：2026-11-11。状态：工程实现完成。生产部署未执行，验收范围见[迁移状态](../../project/status.md#应用服务验收对照)。
 
 目标：完成经用户同意的遥测、更新检查、公告与更新门控，交付可以本地完整验收、可以按明确配置部署的客户端和 Worker。
 
-设计依据：[应用服务合同](../contracts/app-service.md)、[ADR 0008](../adr/0008-app-service-worker.md)。合同规定行为和数值，本计划规定实现顺序与验收方式。长期规则遵循 [AGENTS.md](../../AGENTS.md)，当前入口为 [goal.md](../project/goal.md)。
+设计依据：[应用服务合同](../../contracts/app-service.md)、[ADR 0008](../../adr/0008-app-service-worker.md)。合同规定行为和数值，本计划规定实现顺序与验收方式。长期规则遵循 [AGENTS.md](../../../AGENTS.md)，当前入口为 [goal.md](../../project/goal.md)。
 
 客户端由 Rust Core 持有安装级状态、SQLite 队列、独立 transport 和门控。Dart 负责白名单、交互和宿主生命周期，经 typed Bridge 使用 Core。TypeScript Worker 使用 D1 存统计数据、KV 存渠道配置与公告。工具版本沿用仓库锁定值，新依赖只为本任务所需能力引入并提交锁文件。
 
@@ -149,7 +149,7 @@ cargo test --locked -p ubaa-core --features test-contract app_service
 - [ ] GUI 按合同启动、前台六小时间隔、移动端后台尽力上传，单次请求十秒且一次最多四批。`track` 保留两秒预算，异常仅进入本地安全诊断。
 - [ ] 在 `CommandRuntime` 的业务输出完成、退出码确定后触发最多一批、最多两秒的上传。无同意、硬关闭或不足六小时则跳过。遥测失败不更改 stdout/stderr 的业务输出、已确定退出码和取消语义。
 - [ ] 为官方五平台与 OHOS 传递服务地址、渠道、平台、安装包版本和构建模式。缺配置时完整停用，CI 和普通测试不会误用真实服务。
-- [ ] 核对各平台 `SystemAppInformation.version()` 的实际输出是否符合合同第 5.2 节的格式。返回 null 或格式不符时完全停用应用服务，不发出会被 400 拒绝的批次。OHOS 的 `AppScope/app.json5` 版本与 pubspec 不一致，是[开发约定](../development/conventions.md#版本号与依赖)中登记的待修复项；`app_gallery` 渠道配置必须按 OHOS 安装包的实际版本填写，这一差异修复前不得假定各平台版本相同。
+- [ ] 核对各平台 `SystemAppInformation.version()` 的实际输出是否符合合同第 5.2 节的格式。返回 null 或格式不符时完全停用应用服务，不发出会被 400 拒绝的批次。OHOS 的 `AppScope/app.json5` 版本与 pubspec 不一致，是[开发约定](../../development/conventions.md#版本号与依赖)中登记的待修复项；`app_gallery` 渠道配置必须按 OHOS 安装包的实际版本填写，这一差异修复前不得假定各平台版本相同。
 - [ ] 扩展现有 `packages/ubaa_host/test/settings/telemetry_test.dart`、`packages/ubaa_app/test/command/runtime_test.dart`，新增隐私交互和共享状态测试。用拒绝/挂起的服务验证业务继续可用。
 
 完成判据：真实 Bridge 接线可以完成“同意 → 产生事件 → 本地上传 → 关闭 → 重启 → 删除”，命令运行与 GUI 同时存在时遵循共享状态。首个样例通过后继续接完全部合同事件。

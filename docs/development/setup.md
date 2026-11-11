@@ -1,12 +1,10 @@
 # 开发环境设置
 
-Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)维护。本页提供安装步骤、变量说明与模板用法，所有命令均在 UBAA2 仓库根执行，另有说明除外。
-
-版本数据的唯一维护位置是 [`scripts/tools/versions.env`](../../scripts/tools/versions.env)，下表说明工具用途。
+本页供准备本机开发环境的贡献者使用，说明需要的工具与版本、安装步骤和全部 `.env` 变量。只想尽快运行 App 时，先看[从零开始运行 App](getting-started.md)。除另有说明外，命令都在仓库根目录执行；Dart/Flutter 的调用规则见 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)。
 
 ## 工具与版本
 
-下表记录当前仓库检查脚本、锁文件和 CI 使用的版本。未锁定的通用工具列出所需能力，不把维护者机器上的版本当作要求。
+下表列出检查脚本、锁文件和 CI 使用的版本，精确版本数据以 [`scripts/tools/versions.env`](../../scripts/tools/versions.env) 为准。未锁定的通用工具只列出所需能力。
 
 | 工具 | 版本或能力 | 用途 |
 |---|---|---|
@@ -27,7 +25,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 | JDK | 17+ | OHOS 预检；Android 使用对应 Gradle/Flutter 支持的 JDK |
 | 平台构建工具 | Apple：Xcode、Command Line Tools、CocoaPods；Android：SDK/NDK；Linux：Clang、CMake、Ninja、GTK 开发库；Windows：Visual Studio C++ 桌面工具 | 按需原生构建；用 `just flutter doctor -v` 检查当前平台 |
 
-平台目标与既有验收范围见[平台矩阵](../architecture/flutter-platforms.md)。macOS 产物检查使用系统 `/usr/bin/codesign` 和 `/usr/libexec/PlistBuddy`。历史 E3c 采集记录使用系统 `screencapture`；原生截图 driver 已删除。
+平台目标见[平台矩阵](../architecture/flutter-platforms.md)。macOS 产物检查使用系统 `/usr/bin/codesign` 和 `/usr/libexec/PlistBuddy`。
 
 ## 空白机器上的最短路径
 
@@ -47,15 +45,33 @@ just setup
 
 之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
 
-首次建立缺失冻结引用才执行 `just refs-bootstrap`，之后只用 `just refs` 只读校验。质量环境缺失或依赖锁变更时显式重跑 `just quality-tools-bootstrap`。普通 checker 不会自动安装 Python 依赖。Cargo 和 Flutter 检查可能补充依赖缓存，均不主动访问学校上游。
+后续维护：
 
-环境准备后的检查方式见[命令说明](commands.md)和[测试说明](testing.md)。FRB 生成检查单独执行；2026-10-29 阶段 1 验证使用锁定生成器 2.13.0，生成零漂移，审计记录的漂移未复现。当前验证范围见[迁移状态](../project/status.md)。完整 Flutter golden 测试使用 macOS 渲染基准。
+- 首次建立缺失冻结引用才执行 `just refs-bootstrap`，之后只用 `just refs` 只读校验。
+- 质量环境缺失或依赖锁变更时，显式重跑 `just quality-tools-bootstrap`。普通 checker 不会自动安装 Python 依赖。
+- Cargo 和 Flutter 检查可能补充依赖缓存，但都不访问学校服务。
 
-Cargokit 使用 `crates/ubaa_flutter_bridge/cargokit.yaml` 中各构建模式的精确 Rust 版本。该文件采用 JSON 兼容的 YAML，`just tool-version-check` 会逐模式核对 `rust-toolchain.toml`，修改 Rust 锁定版本时必须同步配置。工具链主机遵循 `rustup show` 的 `Default host`，与 Cargo 的 `--target` 编译目标分别处理。安装检测、安装后重查和目标组件操作均使用补全后的完整工具链名称。当前 vendored Cargokit 在上游通道配置基础上增加了精确版本支持，改动范围登记在 `packages/ubaa_bindings/cargokit/UPSTREAM.json`。Cargokit 回归可在其 `build_tool` 目录通过根 justfile 的 `dart test/toolchain_test.dart` 入口直接运行。
+环境准备后的检查方式见[开发命令](commands.md)和[测试策略](testing.md)。FRB 生成检查单独执行；完整 Flutter golden 测试使用 macOS 渲染基准。
 
-Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无须再设置 `CL=/utf-8`。本机有多套 Visual Studio 时，仍需选择包含 ATL 的实例。
+### 按需准备的其他环境
 
-文档站另执行 `npm ci` 和 `npm run docs:build`。`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。原生构建再安装对应平台工具，并执行 `just flutter doctor -v`。OHOS 另行安装上述 fork 与 DevEco/API26，配置下表路径，然后安装 `rustup target add aarch64-unknown-linux-ohos`，先运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
+- 文档站：执行 `npm ci` 和 `npm run docs:build`。
+- 应用服务：`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。
+- 原生构建：安装对应平台工具，再执行 `just flutter doctor -v`。
+- OHOS：安装上述 fork 与 DevEco/API26，配置下表中的路径，执行 `rustup target add aarch64-unknown-linux-ohos`，然后运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
+
+### Cargokit 的 Rust 版本
+
+Cargokit 使用 `crates/ubaa_flutter_bridge/cargokit.yaml` 中各构建模式的精确 Rust 版本：
+
+- 该文件采用 JSON 兼容的 YAML。`just tool-version-check` 逐模式核对 `rust-toolchain.toml`，修改 Rust 锁定版本时必须同步此配置。
+- 工具链主机遵循 `rustup show` 的 `Default host`，与 Cargo 的 `--target` 编译目标分别处理。安装检测、安装后重查和目标组件操作都使用补全后的完整工具链名称。
+- vendored Cargokit 在上游通道配置的基础上增加了精确版本支持，改动范围登记在 `packages/ubaa_bindings/cargokit/UPSTREAM.json`。
+- Cargokit 回归可在其 `build_tool` 目录通过根 justfile 的 `dart test/toolchain_test.dart` 入口直接运行。
+
+### Windows
+
+Windows runner 的 MSVC 目标已在 CMake 中设置 `/utf-8`，构建时无须再设置 `CL=/utf-8`。本机有多套 Visual Studio 时，选择包含 ATL 的实例。
 
 ## 迁移旧配置
 
@@ -71,7 +87,7 @@ python3 scripts/lib/toolchain.py migrate
 
 ### 配置来源
 
-| 内容 | 唯一维护位置 |
+| 内容 | 维护位置 |
 |---|---|
 | 本机工具路径、构建渠道、部署目标、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
 | CI 的同名参数与凭据 | GitHub Environment Variables/Secrets；通过进程环境注入，无需生成或上传完整 `.env` |
@@ -82,7 +98,12 @@ python3 scripts/lib/toolchain.py migrate
 
 客户端构建渠道用于选择安装包的分发渠道，渠道 JSON 描述该渠道已经可下载的版本。构建新版本不会自动提高渠道的最低支持版本。证书、keystore 等二进制文件保存在 `.sign/`，`.env` 只引用路径；Apple 签名继续使用 Keychain/Xcode，细节见[应用签名配置](../runbooks/app-signing.md)。
 
-根目录 `.env` 是本机唯一的项目环境配置文件，`.env.example` 列出可用键及导出范围。macOS 和 Linux 使用权限 `0600`，Windows 限制为当前用户可读写。不要用 Shell 执行该文件；配置只支持 `KEY=value`、引号和注释，非机密值支持 `$HOME`、`${HOME}` 和前面已定义的非机密键，含下划线的引用写为 `${NAME_WITH_UNDERSCORE}`。账号和 Token 按字面读取，不展开变量。已导出的同名变量优先。示例中的 `<sdk-root>`、`<private-evidence>` 和 `<repo-root>` 均为逻辑占位，运行前必须换成当前机器的绝对路径。Windows Bash 使用 SDK 能识别的绝对路径，工具链检查支持 `cygpath` 转换。
+根目录 `.env` 是本机唯一的项目环境配置文件，`.env.example` 列出可用键及导出范围。
+
+- 权限：macOS 和 Linux 使用 `0600`，Windows 限制为当前用户可读写。
+- 语法：不要用 Shell 执行该文件。只支持 `KEY=value`、引号和注释；非机密值支持 `$HOME`、`${HOME}` 和前面已定义的非机密键，含下划线的引用写为 `${NAME_WITH_UNDERSCORE}`。账号和 Token 按字面读取，不展开变量。
+- 优先级：已导出的同名变量优先。
+- 占位：示例中的 `<sdk-root>`、`<private-evidence>` 和 `<repo-root>` 都是逻辑占位，运行前换成本机绝对路径。Windows Bash 使用 SDK 能识别的绝对路径，工具链检查支持 `cygpath` 转换。
 
 | 变量 | 默认值、示例与作用 |
 |---|---|
@@ -125,11 +146,16 @@ Android 使用 `ANDROID_STORE_FILE`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_AL
 | `UBAA_CORE_LIVE_BINARY`、`UBAA_CORE_LIVE_BUILD` | 默认 `<repo-root>/target/debug/core-live`、`yes`；`no` 复用已构建程序 |
 | `UBAA_CORE_LIVE_SCRIPT` | 默认 `scripts/live/core-live.sh`；测试可替换 launcher，不作为凭据入口 |
 
-质量缓存位于仓库外。需要回收旧 key 时，先停止使用对应环境的进程，再删除确认已不用的 key 目录。`PUB_CACHE` 默认使用 Dart 的用户缓存（通常 `$HOME/.pub-cache`），发布依赖报告在缺少依赖源码时记为 `source_unavailable`，应据此补齐发布材料。OHOS native 编译还使用 `OHOS_SDK_HOME`，默认从 DevEco SDK 派生，路径不能包含空白；`DEVECO_SDK_HOME`、`DEVECO_NODE_HOME` 由 OHOS 构建入口设置。常用标准变量还有 `JAVA_HOME`、Android SDK/NDK 变量、`XDG_CACHE_HOME`、`TMPDIR`。
+其他相关变量与缓存：
+
+- 质量缓存位于仓库外。回收旧 key 时，先停止使用对应环境的进程，再删除确认已不用的 key 目录。
+- `PUB_CACHE` 默认使用 Dart 的用户缓存（通常 `$HOME/.pub-cache`）。发布依赖报告在缺少依赖源码时记为 `source_unavailable`，据此补齐发布材料。
+- OHOS native 编译使用 `OHOS_SDK_HOME`，默认从 DevEco SDK 派生，路径不能包含空白；`DEVECO_SDK_HOME`、`DEVECO_NODE_HOME` 由 OHOS 构建入口设置。
+- 常用标准变量还有 `JAVA_HOME`、Android SDK/NDK 变量、`XDG_CACHE_HOME`、`TMPDIR`。
 
 ## 测试注入与构建内部变量
 
-以下同样使用 UBAA 前缀，用于测试或构建内部，不在本地配置白名单内。原生集成和测量 driver 的专用变量已随入口删除。
+以下变量同样使用 UBAA 前缀，但只用于测试或构建内部，不在本地配置白名单内。
 
 | 名称 | 用途与示例 |
 |---|---|

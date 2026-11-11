@@ -1,7 +1,6 @@
 # ubaa_platform
 
-`ubaa_platform` 是 Flutter 宿主与 UBAA Core 之间的平台能力边界。它不拼接
-上游 URL、不读取 Core 的 Cookie/session 文件，也不把密码或响应正文写入日志。
+本页供修改平台能力的开发者使用，说明 `ubaa_platform` 提供的安全存储、遥测、错误映射、权限、照片、位置和文件选择接口。该包是 Flutter 宿主与 UBAA Core 之间的平台能力边界：不拼接上游 URL，不读取 Core 的 Cookie/session 文件，也不把密码或响应正文写入日志。
 
 ## 凭据与安全材料
 
@@ -25,7 +24,7 @@
 ## UI 错误映射
 
 `UiErrorMapper`/`mapCoreErrorJson` 接受 Rust Core 的稳定 `code`、`kind`、`retryable`
-字段以及当前 CLI schema-v16 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
+字段以及 [CLI 合同](../../docs/contracts/auth-and-user.md)定义的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
 安全中文文案，并保留失败实际路线。未知或畸形载荷统一归约为 `internal_error`；上游 message
 不展示也不再保留在 `technicalDetail`，旧详情参数仅供兼容。app 的映射入口委托同一策略。
 
@@ -45,8 +44,7 @@ typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePho
 使用 `CallbackPhotoPicker` 接入系统选择器；异常会转换为稳定的相册能力错误。官方 Flutter
 与 OHOS 宿主在接收 picker 后会用 `PermissionedPhotoPicker` 包装它；未显式注入权限网关时
 默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。桌面文件选择器
-可将包装器的 `permission` 显式设为 `PlatformPermission.files`。原生
-其他平台安全存储插件接入和设备权限验证仍需在后置发布阶段完成。
+可将包装器的 `permission` 显式设为 `PlatformPermission.files`。各平台的设备权限需要单独验收。
 
 博雅签到需要调用方坐标时，宿主通过 `PermissionedLocationProvider` 先申请
 `foregroundLocation`，再读取一次 `PlatformLocation`；不需要坐标的 action 不会触发权限
@@ -65,7 +63,7 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 
 生产能力组合通过已注册的file_selector 1.1.0打开单文件系统对话框，仅在用户选择后读取。长度检查与流式读取均限制10MiB，取消返回空，异常归约为稳定PlatformCapabilityException；Host只接收字节、canonical文件名和image MIME，不接收路径。照片/文件权限表示可进入这一系统选择流程，其它权限仍委托既有原生Gateway；不声称桌面相机或定位已接入。其它平台保持现有MethodChannel选图实现。
 
-来源和验证边界见[桌面选图对照](../../docs/protocol/source-parity-desktop-photo-2026-10-02.md)。本机测试不能替代Windows/Linux原生窗口验收。
+来源和验证边界见[桌面选图对照](../../docs/protocol/parity/host-platform.md)。本机测试不能替代Windows/Linux原生窗口验收。
 
 
 ## 日历文件保存
