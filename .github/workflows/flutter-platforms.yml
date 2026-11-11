@@ -35,7 +35,7 @@ jobs:
           - label: macOS
             os: macos-15
             platform: macos
-            artifact: apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app
+            artifact: apps/ubaa_flutter/build/macos/Build/Products/Debug/UBAA.app
           - label: iOS simulator
             os: macos-15
             platform: ios-simulator
@@ -145,6 +145,11 @@ jobs:
       - name: 检查无签名产物结构
         shell: bash
         run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}" "${{ matrix.abi }}"
+
+      - name: 验证桌面命令入口
+        if: contains(fromJSON('["linux", "windows", "macos"]'), matrix.platform)
+        shell: bash
+        run: python3 scripts/tests/platform/desktop_command.py "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
       - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'

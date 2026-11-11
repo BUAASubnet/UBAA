@@ -56,14 +56,14 @@ def main():
         run(['just', 'flutter-build', f'platform={platform}', f'mode={mode}'], environment)
         if platform == 'macos':
             output = ROOT / 'build/command/macos'
-            source = ROOT / 'apps/ubaa_flutter/build/macos/Build/Products' / mode.title() / 'ubaa_flutter.app'
+            source = ROOT / 'apps/ubaa_flutter/build/macos/Build/Products' / mode.title() / 'UBAA.app'
             output.mkdir(parents=True, exist_ok=True)
             destination = output / 'UBAA.app'
             if destination.exists():
                 shutil.rmtree(destination)
             shutil.copytree(source, destination, symlinks=True)
             launcher = output / 'ubaa'
-            launcher.write_text('#!/bin/sh\nexec "$(dirname "$0")/UBAA.app/Contents/MacOS/ubaa_flutter" --command "$@"\n')
+            launcher.write_text('#!/bin/sh\nexec "$(dirname "$0")/UBAA.app/Contents/MacOS/UBAA" --command "$@"\n')
             launcher.chmod(0o755)
         return
     if platform != 'linux' or sys.platform != 'linux':

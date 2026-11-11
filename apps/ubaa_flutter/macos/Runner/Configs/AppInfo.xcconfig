@@ -3,7 +3,7 @@
 // 应用设置由本文件维护，避免依赖 Flutter 模板默认值。
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = ubaa_flutter
+PRODUCT_NAME = UBAA
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa

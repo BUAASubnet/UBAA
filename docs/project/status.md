@@ -41,7 +41,7 @@
 | 平台 | 已验证 | 尚未验证 |
 |---|---|---|
 | macOS | Debug 构建；原生集成测试（真实 FRB、本机缓存、日程、共享生命周期）；命令与 GUI 双进程（合成材料） | 签名公证的 Release 安装与升级；沿用旧版本机材料 |
-| Windows | Windows 11 x64 Debug：GUI、`ubaa.exe` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
+| Windows | Windows 11 x64 Debug：GUI、`ubaa` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
 | Linux | Debian 12 arm64：AOT 命令、Secret Service、SSH/PAM（隔离容器）；托管 x64、arm64 Release 构建 | 部署安装 |
 | Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
 | iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |

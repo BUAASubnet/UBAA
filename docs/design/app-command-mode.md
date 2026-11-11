@@ -112,7 +112,7 @@ Release 性能目标：热启动本机命令 P95≤0.5 秒、正常冷启动 P95
 
 ## Windows
 
-采用控制台子系统 `ubaa.exe`，GUI 保留 WIN32。两个 EXE 位于同一目录，共用 data、Engine/Rust DLL 和版本清单。CompanyName、ProductName、版本和资料目录规则保持一致，OriginalFilename 可区分。命令不取得 GUI mutex，复用 H1-b2 最终 DPAPI/DACL 材料适配，不新建命令材料库。
+采用控制台子系统 `ubaa.com`，图形程序 `UBAA.exe` 使用 WIN32 子系统。两个 PE 程序位于同一目录，共用 data、Engine/Rust DLL 和版本清单。Windows 的标准命令扩展名顺序优先查找 `.com`，因此命令仍为 `ubaa`；图形启动器和快捷方式显式指向 `UBAA.exe`。CompanyName、ProductName、版本和资料目录规则保持一致，OriginalFilename 分别记录实际文件名。命令不取得 GUI mutex，复用 H1-b2 最终 DPAPI/DACL 材料适配，不新建命令材料库。
 
 控制台入口使用 wmain，严格逐项 UTF-16→UTF-8，保留空参数和非 ASCII 内容。创建 DartProject、无 view FlutterEngine、必要插件与完成/取消通道，不创建 FlutterWindow。通过 `MsgWaitForMultipleObjectsEx`、PeekMessage/DispatchMessage 保持 Engine 消息处理，取消后继续处理收尾，不能只轮询 ProcessMessages。message-only window 与用户可见窗口分别检查。
 

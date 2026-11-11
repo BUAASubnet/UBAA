@@ -55,7 +55,7 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 | 平台 | 运行方式 |
 |---|---|
 | macOS | 原生入口在窗口与 GUI 单实例检查前分流，使用无 view 的 Flutter Engine 复用平台插件 |
-| Windows | 独立的 `ubaa.exe` 使用无 view 的 Flutter Engine；GUI 的单实例锁只约束 GUI |
+| Windows | 独立的 `ubaa.com` 使用无 view 的 Flutter Engine；GUI 的单实例锁只约束 GUI |
 | Linux | 同一 Dart 服务编译为 AOT，直接加载生成的 FRB 与 Rust 库，复用 App 材料键和账号索引 |
 
 各平台已验证与未验证的范围见[状态页](../project/status.md#平台)。

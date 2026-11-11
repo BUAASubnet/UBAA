@@ -8,17 +8,19 @@
 
 使用包含命令组件的桌面安装包，保留应用与命令组件的版本一致。
 
+图形应用名统一为 `UBAA`。Linux 图形程序为 `UBAA`，命令程序为小写 `ubaa`；Windows 图形程序为 `UBAA.exe`，控制台程序为 `ubaa.com`。
+
 | 平台 | 入口 |
 | --- | --- |
-| macOS | App 内的 `Contents/MacOS/ubaa_flutter --command`，可用启动脚本包装为 `ubaa` |
-| Windows | 应用目录内的 `ubaa.exe`，与同目录的 DLL 和 `data/` 一起保留 |
+| macOS | App 内的 `Contents/MacOS/UBAA --command`，可用启动脚本包装为 `ubaa` |
+| Windows | 应用目录内的 `ubaa.com`，与同目录的 DLL 和 `data/` 一起保留 |
 | Linux | 应用目录内的 `ubaa`，与配套 `lib/` 一起保留 |
 
-Windows 可以将应用目录加入 PATH。Linux 可以将 `ubaa` 链接到 PATH 中的目录，保留实际应用目录和动态库。macOS 可在 PATH 中的目录创建名为 `ubaa` 的脚本，将下面的路径改为实际安装位置：
+Windows 可以将应用目录加入 PATH，然后使用 `ubaa`，也可以显式运行 `ubaa.com`。Linux 可以将 `ubaa` 链接到 PATH 中的目录，保留实际应用目录和动态库。macOS 可在 PATH 中的目录创建名为 `ubaa` 的脚本，将下面的路径改为实际安装位置：
 
 ```sh
 #!/bin/sh
-exec "/Applications/UBAA.app/Contents/MacOS/ubaa_flutter" --command "$@"
+exec "/Applications/UBAA.app/Contents/MacOS/UBAA" --command "$@"
 ```
 
 为脚本添加执行权限后使用。想自己从源码构建，见[参与开发](/tech/contributing)。
