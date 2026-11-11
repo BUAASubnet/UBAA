@@ -9,6 +9,7 @@ from repo import ROOT, hand_off
 from toolchain import load_environment
 
 SPECS = {
+    'version': [('version', ''), ('build', '')],
     'integration-test': [('suite', 'ci'), ('platform', 'macos'), ('device', '')],
     'check-plan': [('base', ''), ('mode', 'commit')],
     'check-changed': [('base', ''), ('mode', 'commit')],
@@ -47,6 +48,7 @@ def main():
     name = sys.argv[1]
     args = values(name, sys.argv[2:])
     commands = {
+        'version': [sys.executable, 'scripts/release/version.py', *args],
         'integration-test': [sys.executable, 'scripts/check/integration_catalog.py', 'run'],
         'release-preflight': ['bash', 'scripts/release/preflight.sh', *args],
         'flutter-test': ['bash', 'scripts/tests/flutter-package.sh', *args],

@@ -37,6 +37,14 @@ doctor:
 setup:
     bash ./scripts/bootstrap/setup.sh
 
+# 统一维护产品版本；无参数时按根 version.toml 同步。
+[positional-arguments]
+version *args:
+    @python3 scripts/lib/recipe.py version "$@"
+
+version-check:
+    python3 scripts/release/version.py --check
+
 refs:
     bash ./scripts/check/references.sh
 
@@ -99,6 +107,7 @@ _script-contracts:
     just privacy-policy-check
     just docs-link-check
     just tool-version-check
+    just version-check
     just cargo-lock-check
     bash ./scripts/tests/live-launchers.sh
     git diff --check
