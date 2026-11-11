@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 use std::{fs::OpenOptions, io::ErrorKind, path::Path, sync::Mutex, time::Duration};
 
 pub(super) const DATABASE_NAME: &str = "app_service.sqlite3";
-const SCHEMA: u32 = 3;
+const SCHEMA: u32 = 4;
 const OPEN_BUSY_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(super) struct Store(Mutex<Connection>);
@@ -56,8 +56,11 @@ impl Store {
                 "ALTER TABLE app_service_state ADD COLUMN last_delivery_attempt INTEGER;",
             )?;
         }
-        if version < SCHEMA {
+        if version < 3 {
             tx.execute_batch(bootstrap::SCHEMA)?;
+        }
+        if version < SCHEMA {
+            tx.execute_batch(queue::MINUTE_SCHEMA)?;
             tx.pragma_update(None, "user_version", SCHEMA)?;
         }
         state::StoredState::load(&tx)?;

@@ -114,18 +114,11 @@ impl AppService {
             if !self.permissions(tx)?.can_telemetry() {
                 return Ok(false);
             }
-            let today = self.today();
+            let now = self.now().with_timezone(&Shanghai).naive_local();
             let user = bound.as_ref().and_then(|(account, _)| {
-                TelemetryUser::from_confirmed_username(&account.username, today.year())
+                TelemetryUser::from_confirmed_username(&account.username, now.year())
             });
-            queue::enqueue(
-                tx,
-                today,
-                &config.version,
-                self.surface,
-                event,
-                user.as_ref(),
-            )
+            queue::enqueue(tx, now, &config.version, self.surface, event, user.as_ref())
         })
     }
 
