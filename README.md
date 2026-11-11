@@ -13,12 +13,14 @@
 [![Stars](https://img.shields.io/github/stars/BUAASubnet/UBAA?style=flat&logo=github&label=Stars)](https://github.com/BUAASubnet/UBAA/stargazers)
 [![许可证](https://img.shields.io/github/license/BUAASubnet/UBAA?label=%E8%AE%B8%E5%8F%AF%E8%AF%81)](LICENSE)
 
-![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-000000?logo=apple&logoColor=white)
-![HarmonyOS](https://img.shields.io/badge/HarmonyOS-CF0A2C?logo=harmonyos&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows11&logoColor=white)
-![macOS](https://img.shields.io/badge/macOS-000000?logo=macos&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
+[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![flutter_rust_bridge](https://img.shields.io/badge/flutter__rust__bridge-6E4A7E)](https://github.com/fzyzcjy/flutter_rust_bridge)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflareworkers&logoColor=white)](https://workers.cloudflare.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![VitePress](https://img.shields.io/badge/VitePress-646CFF?logo=vitepress&logoColor=white)](https://vitepress.dev)
 
 [**下载安装**](https://github.com/BUAASubnet/UBAA/releases) · [**使用指南**](https://ubaa.top) · [功能一览](#功能一览) · [常见问题](https://ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
 
@@ -78,11 +80,11 @@ ubaa --json grades list --term 2025-2026-1
 
 | 层 | 技术 |
 |---|---|
-| 校园协议与业务核心 | [![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org) 认证、直连/WebVPN、解析、加密缓存 |
+| 校园协议与业务核心 | Rust：认证、直连/WebVPN、解析、加密缓存 |
 | 跨语言桥接 | [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) |
-| 界面 | [![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev) [![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)](https://dart.dev)，HarmonyOS 使用 OpenHarmony Flutter |
+| 界面 | Flutter + Dart，HarmonyOS 使用 OpenHarmony Flutter |
 | 本地存储 | SQLite、系统安全存储 |
-| 应用服务（更新与公告） | [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com) D1、KV |
+| 应用服务（更新与公告） | Cloudflare Workers（TypeScript）、D1、KV |
 | 文档站 | [VitePress](https://vitepress.dev) |
 
 ## 参与开发
