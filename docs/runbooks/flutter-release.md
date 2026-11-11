@@ -96,11 +96,15 @@ bash scripts/release/store-screenshots.sh
 
 | 成品目录 | 尺寸（像素） | 用途 |
 |---|---:|---|
-| `phone/` | 1320 × 2868 | 手机代表图、iPhone 大屏 |
-| `tablet/` | 2064 × 2752 | 平板代表图、13 英寸 iPad |
+| `phone/` | 1179 × 2556 | 手机代表图、iPhone 中屏竖图 |
+| `tablet/` | 2732 × 2048 | 平板代表图、13 英寸 iPad 横图 |
 | `desktop/` | 2880 × 1800 | 桌面版宣传 |
 
-需要 iPhone 中屏或 AppGallery 手机竖图时，运行 `bash scripts/release/store-screenshots.sh --all-sizes`。同一批次会在 `ready/phone/1206x2622/` 和 `ready/phone/1080x1920/` 另外生成这两种尺寸，供商店上传。
+需要为 iPhone 大屏档单独提供截图，或生成其他手机商店尺寸时，运行 `bash scripts/release/store-screenshots.sh --all-sizes`。同一批次会生成三套额外的手机竖图：
+
+- `ready/phone/1320x2868/`：iPhone 大屏档。
+- `ready/phone/1206x2622/`：iPhone 中屏档的另一种尺寸。
+- `ready/phone/1080x1920/`：AppGallery 手机图。
 
 脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)，保持文件名和子目录不变。Git 追踪三组代表图、源数据和渲染代码，额外尺寸留在本地批次中。图片换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
 

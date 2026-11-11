@@ -12,8 +12,16 @@ const storeFontFamily = 'StoreSans';
 
 /// 商店截图规格：画布是商店要求的像素尺寸，屏幕是应用实际排版的逻辑尺寸。
 enum StoreDevice {
-  // App Store 6.9 英寸 iPhone。
+  // 默认手机竖屏。
   iphone(
+    canvas: Size(1179, 2556),
+    screen: Size(393, 852),
+    pixelRatio: 3,
+    padding: EdgeInsets.only(top: 62, bottom: 34),
+    platform: TargetPlatform.iOS,
+  ),
+  // App Store 大屏 iPhone。
+  iphoneLarge(
     canvas: Size(1320, 2868),
     screen: Size(440, 956),
     pixelRatio: 3,
@@ -28,10 +36,10 @@ enum StoreDevice {
     padding: EdgeInsets.only(top: 62, bottom: 34),
     platform: TargetPlatform.iOS,
   ),
-  // App Store 13 英寸 iPad。
+  // 默认平板横屏。
   ipad(
-    canvas: Size(2064, 2752),
-    screen: Size(1032, 1376),
+    canvas: Size(2732, 2048),
+    screen: Size(1366, 1024),
     pixelRatio: 2,
     padding: EdgeInsets.only(top: 24, bottom: 20),
     platform: TargetPlatform.iOS,
@@ -67,7 +75,11 @@ enum StoreDevice {
   final EdgeInsets padding;
   final TargetPlatform platform;
 
-  String get directory => this == iphoneMedium ? 'iphone_medium' : name;
+  String get directory => switch (this) {
+    iphoneLarge => 'iphone_large',
+    iphoneMedium => 'iphone_medium',
+    _ => name,
+  };
 }
 
 /// 按字体目录加载思源黑体（Noto Sans CJK SC）与 Material 图标字体。

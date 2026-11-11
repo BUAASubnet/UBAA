@@ -23,7 +23,7 @@ class StoreFrame extends StatelessWidget {
   final StoreDevice device;
   final ui.Image screen;
 
-  /// 标题分两行：[title] 用正文色，[accent] 用品牌蓝。
+  /// [title] 用正文色，[accent] 用品牌蓝。
   final String title, accent, subtitle;
 
   /// 屏幕内容是否为深色主题；背景与状态栏随之切换。
@@ -33,17 +33,30 @@ class StoreFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = device.canvas;
     final unit = size.shortestSide / 100;
+    final tablet = device == StoreDevice.ipad;
     final headline = switch (device) {
       StoreDevice.iphone ||
+      StoreDevice.iphoneLarge ||
       StoreDevice.iphoneMedium ||
       StoreDevice.android => unit * 7.6,
-      StoreDevice.ipad => unit * 5.6,
+      StoreDevice.ipad => unit * 4.8,
       StoreDevice.desktop => unit * 5.4,
     };
     final top = switch (device) {
+      StoreDevice.ipad => size.height * .027,
       StoreDevice.desktop => size.height * .045,
       _ => size.height * .04,
     };
+    final titleStyle = TextStyle(
+      fontFamily: storeFontFamily,
+      fontSize: headline,
+      height: 1.2,
+      fontWeight: FontWeight.w900,
+      color: dark ? Colors.white : _ink,
+    );
+    final accentStyle = titleStyle.copyWith(
+      color: dark ? const Color(0xFF83BEF7) : _brand,
+    );
     return SizedBox.fromSize(
       size: size,
       child: DecoratedBox(
@@ -76,36 +89,28 @@ class StoreFrame extends StatelessWidget {
                   'UBAA',
                   style: TextStyle(
                     fontFamily: storeFontFamily,
-                    fontSize: unit * 2.7,
+                    fontSize: unit * (tablet ? 2.1 : 2.7),
                     fontWeight: FontWeight.w900,
                     letterSpacing: unit * .28,
                     color: dark ? const Color(0xFF83BEF7) : _brand,
                   ),
                 ),
-                SizedBox(height: headline * .22),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: storeFontFamily,
-                    fontSize: headline,
-                    height: 1.2,
-                    fontWeight: FontWeight.w900,
-                    color: dark ? Colors.white : _ink,
-                  ),
-                ),
-                Text(
-                  accent,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: storeFontFamily,
-                    fontSize: headline,
-                    height: 1.2,
-                    fontWeight: FontWeight.w900,
-                    color: dark ? const Color(0xFF83BEF7) : _brand,
-                  ),
-                ),
-                SizedBox(height: headline * .42),
+                SizedBox(height: headline * (tablet ? .13 : .22)),
+                // 横屏把两句标题排在一行，给应用界面留出高度。
+                if (tablet)
+                  Text.rich(
+                    TextSpan(
+                      text: '$title　',
+                      children: [TextSpan(text: accent, style: accentStyle)],
+                    ),
+                    textAlign: TextAlign.center,
+                    style: titleStyle,
+                  )
+                else ...[
+                  Text(title, textAlign: TextAlign.center, style: titleStyle),
+                  Text(accent, textAlign: TextAlign.center, style: accentStyle),
+                ],
+                SizedBox(height: headline * (tablet ? .16 : .42)),
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
@@ -117,7 +122,7 @@ class StoreFrame extends StatelessWidget {
                     color: dark ? const Color(0xFFB8C7D9) : _muted,
                   ),
                 ),
-                SizedBox(height: headline * .9),
+                SizedBox(height: headline * (tablet ? .43 : .9)),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -186,6 +191,7 @@ class _Device extends StatelessWidget {
     // 外框以屏幕逻辑尺寸排版，再整体缩放进可用区域，圆角与状态栏随之等比。
     final bezel = switch (device) {
       StoreDevice.iphone ||
+      StoreDevice.iphoneLarge ||
       StoreDevice.iphoneMedium ||
       StoreDevice.android => 11.0,
       StoreDevice.ipad => 18.0,
@@ -193,7 +199,9 @@ class _Device extends StatelessWidget {
     };
     final titleBar = desktop ? 34.0 : 0.0;
     final radius = switch (device) {
-      StoreDevice.iphone || StoreDevice.iphoneMedium => 52.0,
+      StoreDevice.iphone ||
+      StoreDevice.iphoneLarge ||
+      StoreDevice.iphoneMedium => 52.0,
       StoreDevice.android => 40.0,
       StoreDevice.ipad => 26.0,
       StoreDevice.desktop => 14.0,
@@ -308,7 +316,9 @@ class _StatusBar extends StatelessWidget {
     final ipad = device == StoreDevice.ipad;
     final iconSize = android ? 16.0 : (ipad ? 15.0 : 18.0);
     final camera = switch (device) {
-      StoreDevice.iphone || StoreDevice.iphoneMedium => 13.0,
+      StoreDevice.iphone ||
+      StoreDevice.iphoneLarge ||
+      StoreDevice.iphoneMedium => 13.0,
       StoreDevice.android => 11.0,
       _ => 7.0,
     };

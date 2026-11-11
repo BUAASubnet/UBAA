@@ -46,6 +46,7 @@ for image in "${images[@]}"; do
     iphone) group=phone ;;
     ipad) group=tablet ;;
     desktop) group=desktop ;;
+    iphone_large) group=phone/1320x2868 ;;
     iphone_medium) group=phone/1206x2622 ;;
     android) group=phone/1080x1920 ;;
     *) printf '未知截图规格：%s\n' "${relative%/*}" >&2; exit 1 ;;

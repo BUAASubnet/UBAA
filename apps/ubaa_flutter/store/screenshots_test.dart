@@ -223,7 +223,7 @@ enum _Scene {
     '课内课外',
     '安排在同一份日程',
     '把学校课程、个人日程和待办放在一起',
-    '项目组会',
+    '图书馆自习',
     destination: UiDestination.agenda,
   ),
   grades(

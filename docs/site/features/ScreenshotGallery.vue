@@ -5,8 +5,8 @@ defineProps({ group: { type: String, required: true } })
 
 const groups = {
   phone: {
-    width: 1320,
-    height: 2868,
+    width: 1179,
+    height: 2556,
     shots: [
       ['01_home', '首页', '查看当天的课程、常用功能和待办。'],
       ['02_schedule', '课表', '按周查看课程时间和上课地点。'],
@@ -17,8 +17,8 @@ const groups = {
     ],
   },
   tablet: {
-    width: 2064,
-    height: 2752,
+    width: 2732,
+    height: 2048,
     shots: [
       ['02_schedule', '平板课表', '侧栏和整周课表并排显示。'],
       ['04_grades', '平板成绩', '同页查看学期统计和各门课程成绩。'],
@@ -67,10 +67,7 @@ const groups = {
   margin: 1.5rem 0;
 }
 
-.gallery.tablet {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-}
-
+.gallery.tablet,
 .gallery.desktop {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -80,6 +77,7 @@ figure {
   margin: 0 auto;
 }
 
+.tablet figure,
 .desktop figure {
   width: 100%;
 }

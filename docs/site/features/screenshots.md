@@ -16,7 +16,7 @@ import ScreenshotGallery from './ScreenshotGallery.vue'
 
 ## 平板
 
-从侧栏切换功能，主区域可以显示整周课表或一学期的成绩。
+横屏时，从侧栏切换功能，主区域可以显示整周课表或一学期的成绩。
 
 <ScreenshotGallery group="tablet" />
 
