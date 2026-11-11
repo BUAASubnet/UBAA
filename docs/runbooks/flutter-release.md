@@ -27,6 +27,8 @@
 
 工作流固定同一提交并执行完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
 
+iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode 26.3，使用 iOS 26 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。不依赖托管镜像的默认 Xcode。
+
 | 平台 | 正式产物与渠道 |
 |---|---|
 | Android | arm64-v8a、armeabi-v7a、x86_64 各一个带签名 APK，每个 APK 只包含目标 ABI，构建号保持一致 |

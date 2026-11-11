@@ -49,6 +49,15 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: ./.github/actions/toolchain
 
+      - name: 选择 iOS 固定 Xcode
+        if: matrix.platform == 'ios-simulator'
+        shell: bash
+        run: |
+          source scripts/tools/versions.env
+          sudo xcode-select --switch "/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
       - name: 安装 Linux 构建依赖
         if: runner.os == 'Linux'
         run: >-

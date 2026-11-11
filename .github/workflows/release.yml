@@ -270,6 +270,14 @@ jobs:
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: python3 scripts/release/platforms/apple_signing.py ios
+      - &ios_xcode
+        name: 选择 iOS 固定 Xcode
+        shell: bash
+        run: |
+          source scripts/tools/versions.env
+          sudo xcode-select --switch "/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
       - name: 归档并导出 IPA
         run: bash scripts/release/platforms/ios.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
@@ -405,6 +413,7 @@ jobs:
     env: *a2
     steps:
       - *a1
+      - *ios_xcode
       - *a6
       - *a7
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
