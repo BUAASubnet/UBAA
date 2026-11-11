@@ -305,9 +305,19 @@ jobs:
           just quality-tools-bootstrap
           just flutter-dependencies
           (cd apps/ubaa_ohos && just flutter-ohos pub get --enforce-lockfile)
+          (cd packages/ubaa_bindings/cargokit/build_tool && just dart pub get --enforce-lockfile)
           just release-preflight "$GITHUB_WORKSPACE/.ubaa_local/release/licenses"
           mkdir -p .ubaa_local/release/public
           (cd .ubaa_local/release/licenses && zip -qr ../public/licenses.zip .)
+      - name: 保存发布许可材料
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: license-materials
+          path: .ubaa_local/release/licenses
+          if-no-files-found: ignore
+          retention-days: 7
+          include-hidden-files: true
       - name: 还原 HarmonyOS 签名文件
         env:
           OHOS_KEYSTORE_BASE64: ${{ secrets.OHOS_KEYSTORE_BASE64 }}

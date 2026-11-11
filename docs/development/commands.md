@@ -130,7 +130,7 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | [release.yml](../../.github/workflows/release.yml) | main 手动发布或 Release published：固定主线候选，复用完整验收，构建分架构正式包，分发 GitHub/R2，上传 Apple 与 AppGallery 并等待处理完成 |
 | [docs.yml](../../.github/workflows/docs.yml) | dev 文档站相关改动构建并部署 Cloudflare Workers Static Assets；PR 只构建，docs-production 仅允许 dev |
 
-三个工作流统一 push 分支为 main/dev，PR 保留各自路径过滤，使用 concurrency 管理同一 ref 的运行；CI 的 push 保留在途运行，以免中断 D1 迁移或 Worker 部署；PR 和其他工作流仍会取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+开发检查和文档部署允许取消同一分支的旧运行。Worker 部署与 Release 分发串行执行并保留在途运行，避免中断 D1 迁移或上传。main 的完整验收覆盖每个 PR，不使用路径过滤。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
 
 ## 构建与发布命令
 
@@ -148,6 +148,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
+
+Release 作业在收集许可证前分别准备根 Pub workspace、OHOS 宿主和 Cargokit 构建工具的锁定依赖。Cargokit 的独立锁文件包含构建工具开发依赖，普通应用依赖准备不会下载这些源码。许可材料报告在预检失败时也保留为 Actions artifact，便于定位缺失来源。
 
 Android/OHOS 构建的签名参数统一从根 `.env` 或同名进程变量读取，按平台和模式选择，规则见[构建签名参数](setup.md#构建签名参数)。构建脚本中的依赖准备、分析和测试不取得这些环境变量。iOS/macOS 的原生签名及商店上传仍按[签名手册](../runbooks/app-signing.md)执行。
 

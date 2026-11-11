@@ -21,6 +21,8 @@ from pathlib import Path
 with zipfile.ZipFile(sys.argv[1]) as archive:
     abis={path.split('/')[1] for path in archive.namelist() if path.startswith('lib/') and path.endswith('.so')}
     assert abis=={os.environ['ANDROID_ABI']}, abis
+    for library in ('libapp.so', 'libflutter.so', 'libubaa_flutter_bridge.so'):
+        assert f"lib/{os.environ['ANDROID_ABI']}/{library}" in archive.namelist(), library
 badging=Path(sys.argv[2]).read_text()
 assert "name='cn.edu.ubaa'" in badging
 assert "versionName='"+os.environ['RELEASE_VERSION']+"'" in badging
