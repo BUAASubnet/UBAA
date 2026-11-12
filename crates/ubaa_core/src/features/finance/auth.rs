@@ -3,7 +3,7 @@ use super::parser::invalid;
 use crate::domain::{ConnectionMode, SecretValue};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::FinanceCredential;
-use crate::ports::HttpRequest;
+use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 use url::Url;
 
@@ -14,6 +14,36 @@ pub(super) fn check(runtime: &ClientRuntime, generation: u64) -> Result<()> {
     }
     Ok(())
 }
+
+pub(super) fn check_response(
+    runtime: &ClientRuntime,
+    response: &HttpResponse,
+    expected: &str,
+    generation: u64,
+) -> Result<()> {
+    check(runtime, generation)?;
+    if response.final_url != expected {
+        return Err(invalid());
+    }
+    // 网关缺少会话时会用自己的登录页拦截业务请求；不向登录页转发原请求。
+    if runtime.mode() == ConnectionMode::WebVpn
+        && response.status == 302
+        && response.header_first("location").is_some_and(|location| {
+            Url::parse(expected)
+                .and_then(|base| base.join(location))
+                .is_ok_and(|url| {
+                    crate::connection::is_valid_webvpn_gateway(&url)
+                        && url.path() == "/login"
+                        && url.query().is_none()
+                        && url.fragment().is_none()
+                })
+        })
+    {
+        return Err(required());
+    }
+    Ok(())
+}
+
 fn required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -59,19 +89,12 @@ pub(super) fn target(raw: &str, mode: ConnectionMode) -> Result<Url> {
     url.set_port(None).map_err(|()| invalid())?;
     Ok(url)
 }
-async fn get(
-    runtime: &mut ClientRuntime,
-    url: &Url,
-    generation: u64,
-) -> Result<crate::ports::HttpResponse> {
+async fn get(runtime: &mut ClientRuntime, url: &Url, generation: u64) -> Result<HttpResponse> {
     let expected = runtime.url(url.as_str())?;
     let response = runtime
         .request_with_pre_send_check(HttpRequest::get(&expected), |r| check(r, generation))
         .await?;
-    check(runtime, generation)?;
-    if response.final_url != expected {
-        return Err(invalid());
-    }
+    check_response(runtime, &response, &expected, generation)?;
     Ok(response)
 }
 pub(super) async fn ensure(runtime: &mut ClientRuntime) -> Result<FinanceCredential> {
@@ -125,8 +148,8 @@ pub(super) async fn ensure(runtime: &mut ClientRuntime) -> Result<FinanceCredent
     let response = runtime
         .request_with_pre_send_check(request, |r| check(r, generation))
         .await?;
-    check(runtime, generation)?;
-    if response.status != 200 || response.final_url != expected {
+    check_response(runtime, &response, &expected, generation)?;
+    if response.status != 200 {
         return Err(invalid());
     }
     let value = super::parser::envelope(&response.body)?;

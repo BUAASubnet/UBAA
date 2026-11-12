@@ -47,7 +47,7 @@ async fn read_all(runtime: &mut ClientRuntime) -> Result<FinanceIncomes> {
         let response = runtime
             .request_with_pre_send_check(request, |r| auth::check(r, generation))
             .await?;
-        auth::check(runtime, generation)?;
+        auth::check_response(runtime, &response, &expected, generation)?;
         if response.status == 401 {
             return Err(crate::error::UbaaError::new(
                 ErrorCode::AuthenticationRequired,
@@ -56,7 +56,7 @@ async fn read_all(runtime: &mut ClientRuntime) -> Result<FinanceIncomes> {
                 "财务登录已失效",
             ));
         }
-        if response.status != 200 || response.final_url != expected {
+        if response.status != 200 {
             return Err(invalid());
         }
         let (rows, total) = parser::page(&parser::envelope(&response.body)?)?;
