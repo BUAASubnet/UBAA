@@ -1,8 +1,15 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../../contracts/recovery.dart';
 
 /// 绑定创建时的账号代次；账号或会话变化后，旧页面的请求与结果都被拒绝。
 class GuardedCampusAccountService implements CampusAccountService {
-  GuardedCampusAccountService(this.delegate, this.current, {this.onRejected});
+  GuardedCampusAccountService(
+    this.delegate,
+    this.current, {
+    this.onRejected,
+    this.read,
+  });
+  final ServiceRead? read;
   final CampusAccountService delegate;
   final bool Function() current;
   final void Function(Object)? onRejected;
@@ -37,10 +44,18 @@ class GuardedCampusAccountService implements CampusAccountService {
     return current() ? value : const CampusAccountSnapshot();
   }
 
+  Future<T> _read<T>(RecoveryTarget target, Future<T> Function() call) async {
+    _check();
+    return read?.call(target, () => _run(call)) ?? _run(call);
+  }
+
   @override
-  Future<PortalIdentity> identity() => _run(delegate.identity);
+  Future<PortalIdentity> identity() =>
+      _read(RecoveryTarget.portal, delegate.identity);
   @override
-  Future<CampusMetrics> metrics() => _run(delegate.metrics);
+  Future<CampusMetrics> metrics() =>
+      _read(RecoveryTarget.portal, delegate.metrics);
   @override
-  Future<NetworkUsage> networkUsage() => _run(delegate.networkUsage);
+  Future<NetworkUsage> networkUsage() =>
+      _read(RecoveryTarget.network, delegate.networkUsage);
 }

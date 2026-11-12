@@ -8,6 +8,21 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
+  testWidgets('日程冲突筛选可以开启并通过恢复默认关闭', (tester) async {
+    final state = _Scenario();
+    await _mount(tester, state);
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
+    expect(find.widgetWithText(FilterChip, '隐藏与日程冲突的课程'), findsOneWidget);
+    await _chip(tester, '隐藏与日程冲突的课程');
+    expect(_selected(tester, '隐藏与日程冲突的课程'), isTrue);
+    expect(state.saved.last.$2.isDefault, isFalse);
+    await _button(tester, '恢复默认');
+    expect(_selected(tester, '隐藏与日程冲突的课程'), isFalse);
+    expect(state.saved.last.$2.isDefault, isTrue);
+    expect(state.queries, 0);
+  });
+
   testWidgets('偏好慢读取不覆盖已编辑三维，筛选及恢复均不增学校查询', (tester) async {
     final pending = Completer<BykcCourseFilters?>();
     final state = _Scenario()..load = (_) => pending.future;

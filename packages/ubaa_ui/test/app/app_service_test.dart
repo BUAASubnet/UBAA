@@ -51,7 +51,6 @@ AppServiceView _view({
 class _Calls {
   final log = <String>[];
   Object? failure;
-  AppServiceEraseOutcome eraseOutcome = AppServiceEraseOutcome.succeeded;
 
   Future<void> _record(String name) async {
     log.add(name);
@@ -63,12 +62,7 @@ class _Calls {
     policy: _policy,
     onAgree: () => _record('agree'),
     onDecline: () => _record('decline'),
-    onWithdraw: () => _record('withdraw'),
     onTelemetryChanged: (value) => _record('telemetry:$value'),
-    onErase: () async {
-      log.add('erase');
-      return eraseOutcome;
-    },
   );
 }
 
@@ -175,7 +169,7 @@ void main() {
       expect(find.byType(PrivacyConsentDialog), findsNothing);
     });
 
-    testWidgets('政策更新时列出变更要点并说明保留的统计开关', (tester) async {
+    testWidgets('政策更新时列出变更要点', (tester) async {
       await _pushConsent(
         tester,
         view: _view(
@@ -186,7 +180,6 @@ void main() {
         onDecline: () async {},
       );
       expect(find.text('合成变更要点'), findsOneWidget);
-      expect(find.textContaining('目前为关闭，同意后仍然关闭'), findsOneWidget);
     });
 
     testWidgets('从弹窗查看离线政策全文后回到选择', (tester) async {
@@ -211,12 +204,9 @@ void main() {
   });
 
   group('设置页应用服务条目', () {
-    testWidgets('基础模式和硬关闭时开关显示为关闭且不可操作', (tester) async {
+    testWidgets('硬关闭时开关显示为关闭且不可操作', (tester) async {
       final calls = _Calls();
-      for (final view in [
-        _view(consent: AppServiceConsent.basic),
-        _view(telemetryAllowed: false),
-      ]) {
+      for (final view in [_view(telemetryAllowed: false)]) {
         await _mountSettings(tester, calls.controls(view));
         final tile = tester.widget<SwitchListTile>(
           find.byKey(const ValueKey('settings-product-telemetry')),
@@ -238,67 +228,48 @@ void main() {
       expect(find.text('统计设置未能保存，请重试'), findsOneWidget);
     });
 
-    testWidgets('撤回同意先确认，取消时不改变状态', (tester) async {
-      final calls = _Calls();
-      await _mountSettings(tester, calls.controls(_view()));
-      await tester.tap(find.byKey(const ValueKey('settings-privacy-withdraw')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
-      expect(calls.log, isEmpty);
-
-      await tester.tap(find.byKey(const ValueKey('settings-privacy-withdraw')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, '撤回'));
-      await tester.pumpAndSettle();
-      expect(calls.log, ['withdraw']);
-    });
-
-    testWidgets('基础模式可以从设置页重新打开同意弹窗', (tester) async {
+    testWidgets('基础模式通过统计开关确认后重新启用', (tester) async {
       final calls = _Calls();
       await _mountSettings(
         tester,
         calls.controls(_view(consent: AppServiceConsent.basic)),
       );
-      await tester.tap(find.byKey(const ValueKey('settings-privacy-agree')));
+      await tester.tap(
+        find.byKey(const ValueKey('settings-product-telemetry')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('privacy-consent-agree')));
       await tester.pumpAndSettle();
-      expect(calls.log, ['agree']);
+      expect(calls.log, ['agree', 'telemetry:true']);
       expect(find.byType(PrivacyConsentDialog), findsNothing);
     });
 
-    testWidgets('删除需要确认，结果未知时说明会自动重试', (tester) async {
-      final calls = _Calls()..eraseOutcome = AppServiceEraseOutcome.pending;
-      await _mountSettings(tester, calls.controls(_view()));
-      await tester.tap(find.byKey(const ValueKey('settings-erase-telemetry')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, '删除'));
-      await tester.pumpAndSettle();
-      expect(calls.log, ['erase']);
-      expect(find.text('暂时无法连接统计服务，删除会在稍后自动重试'), findsOneWidget);
-    });
-
-    testWidgets('删除未完成时点按直接重试，删除进行中不能重复提交', (tester) async {
+    testWidgets('基础模式选择不同意时不启用统计', (tester) async {
       final calls = _Calls();
       await _mountSettings(
         tester,
-        calls.controls(_view(erase: AppServiceEraseStatus.pending)),
+        calls.controls(_view(consent: AppServiceConsent.basic)),
       );
-      await tester.tap(find.byKey(const ValueKey('settings-erase-telemetry')));
+      await tester.tap(
+        find.byKey(const ValueKey('settings-product-telemetry')),
+      );
       await tester.pumpAndSettle();
-      expect(calls.log, ['erase']);
-      expect(find.text('已删除已上传的统计数据'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('privacy-consent-decline')));
+      await tester.pumpAndSettle();
+      expect(calls.log, ['decline']);
+    });
 
+    testWidgets('删除进行中统计开关不能修改', (tester) async {
+      final calls = _Calls();
       await _mountSettings(
         tester,
         calls.controls(_view(erase: AppServiceEraseStatus.running)),
       );
-      // 进度指示一直转动，只推进有限时间。
-      await tester.tap(find.byKey(const ValueKey('settings-erase-telemetry')));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(calls.log, ['erase']);
+      final tile = tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('settings-product-telemetry')),
+      );
+      expect(tile.onChanged, isNull);
+      expect(calls.log, isEmpty);
     });
   });
 

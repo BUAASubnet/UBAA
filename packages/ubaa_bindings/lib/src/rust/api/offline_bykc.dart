@@ -9,8 +9,8 @@ import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
-// These functions are ignored because they are not marked as `pub`: `map_cached_bykc_chosen_course`, `map_cached_bykc_chosen`, `map_cached_bykc_course_page`, `map_cached_bykc_course`, `map_cached_bykc_sign_window`, `refresh_bykc_record`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `map_cached_bykc_chosen_course`, `map_cached_bykc_chosen`, `map_cached_bykc_course_page`, `map_cached_bykc_course`, `map_cached_bykc_sign_window`, `map_cached_bykc_supplement`, `refresh_bykc_record`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCatalogRefresh {
   final BridgeBykcCourseCatalogPage data;
@@ -364,6 +364,7 @@ class BridgeCachedBykcCourse {
   final BridgeBykcCourseSubCategory? subCategory;
   final List<String>? audienceCampuses;
   final bool? hasSignPoints;
+  final BridgeCachedBykcSupplement? supplement;
 
   const BridgeCachedBykcCourse({
     required this.id,
@@ -383,6 +384,7 @@ class BridgeCachedBykcCourse {
     this.subCategory,
     this.audienceCampuses,
     this.hasSignPoints,
+    this.supplement,
   });
 
   @override
@@ -403,7 +405,8 @@ class BridgeCachedBykcCourse {
       category.hashCode ^
       subCategory.hashCode ^
       audienceCampuses.hashCode ^
-      hasSignPoints.hashCode;
+      hasSignPoints.hashCode ^
+      supplement.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -426,7 +429,8 @@ class BridgeCachedBykcCourse {
           category == other.category &&
           subCategory == other.subCategory &&
           audienceCampuses == other.audienceCampuses &&
-          hasSignPoints == other.hasSignPoints;
+          hasSignPoints == other.hasSignPoints &&
+          supplement == other.supplement;
 }
 
 class BridgeCachedBykcCoursePage {
@@ -621,4 +625,55 @@ class BridgeCachedBykcStatisticsRecord {
           sourceRoute == other.sourceRoute &&
           fetchedAt == other.fetchedAt &&
           complete == other.complete;
+}
+
+class BridgeCachedBykcSupplement {
+  final String? courseContact;
+  final String? courseContactMobile;
+  final String? organizerCollegeName;
+  final String? descriptionPlainText;
+  final List<String> audienceColleges;
+  final List<String> audienceTerms;
+  final List<String> audienceGroups;
+  final BridgeBykcSignDisplayConfig? signConfig;
+  final BridgeBykcCourseAttendanceDisplay? attendance;
+
+  const BridgeCachedBykcSupplement({
+    this.courseContact,
+    this.courseContactMobile,
+    this.organizerCollegeName,
+    this.descriptionPlainText,
+    required this.audienceColleges,
+    required this.audienceTerms,
+    required this.audienceGroups,
+    this.signConfig,
+    this.attendance,
+  });
+
+  @override
+  int get hashCode =>
+      courseContact.hashCode ^
+      courseContactMobile.hashCode ^
+      organizerCollegeName.hashCode ^
+      descriptionPlainText.hashCode ^
+      audienceColleges.hashCode ^
+      audienceTerms.hashCode ^
+      audienceGroups.hashCode ^
+      signConfig.hashCode ^
+      attendance.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCachedBykcSupplement &&
+          runtimeType == other.runtimeType &&
+          courseContact == other.courseContact &&
+          courseContactMobile == other.courseContactMobile &&
+          organizerCollegeName == other.organizerCollegeName &&
+          descriptionPlainText == other.descriptionPlainText &&
+          audienceColleges == other.audienceColleges &&
+          audienceTerms == other.audienceTerms &&
+          audienceGroups == other.audienceGroups &&
+          signConfig == other.signConfig &&
+          attendance == other.attendance;
 }

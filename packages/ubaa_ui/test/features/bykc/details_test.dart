@@ -123,7 +123,7 @@ void main() {
     ];
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
-    expect(find.text('已加载内容中没有匹配项'), findsOneWidget);
+    expect(find.text('没有匹配的课程'), findsOneWidget);
     await openQueryPanel(tester);
     expect(
       tester
@@ -185,7 +185,7 @@ void main() {
     await _chip(tester, '美育');
     await _chip(tester, '沙河校区');
     await closeQueryPanel(tester);
-    expect(find.text('已加载内容中没有匹配项'), findsOneWidget);
+    expect(find.text('没有匹配的课程'), findsOneWidget);
     await openQueryPanel(tester);
     await _chip(tester, '学院路校区');
     await _chip(tester, '人数已满');
@@ -338,6 +338,7 @@ void main() {
     expect(find.text('退选'), findsNothing);
     expect(find.text('查看签到与签退'), findsNothing);
     expect(find.textContaining('合成会话失效'), findsWidgets);
+    expect(find.text('合成联系人'), findsOneWidget);
   });
 
   testWidgets('首页博雅待办进入同一完整详情读取', (tester) async {

@@ -185,39 +185,6 @@ List<String> uiBykcSearchValues(FeaturePresentation? value) => switch (value) {
   _ => const [],
 };
 
-/// 课程列表按上课开始时间升序；无法解析的时间排在最后，同时间保持原顺序。
-List<FeatureDetail> uiSortBykcCourses(List<FeatureDetail> details) {
-  DateTime? start(FeatureDetail detail) => switch (detail.presentation) {
-    BykcCoursePresentation p when !p.isDetail => DateTime.tryParse(
-      p.courseStartDate?.trim() ?? '',
-    ),
-    _ => null,
-  };
-  // 只排序课程列表；课程详情、统计等其他视图保持调用者顺序。
-  if (!details.every(
-    (d) => switch (d.presentation) {
-      BykcCoursePresentation p => !p.isDetail,
-      _ => false,
-    },
-  )) {
-    return details;
-  }
-  final indexed = [
-    for (final (index, detail) in details.indexed)
-      (index, start(detail), detail),
-  ];
-  indexed.sort((a, b) {
-    final (ia, ta, _) = a;
-    final (ib, tb, _) = b;
-    if (ta == null || tb == null) {
-      return ta == tb ? ia.compareTo(ib) : (ta == null ? 1 : -1);
-    }
-    final order = ta.compareTo(tb);
-    return order == 0 ? ia.compareTo(ib) : order;
-  });
-  return [for (final (_, _, detail) in indexed) detail];
-}
-
 const uiDefaultBykcStatuses = BykcCourseFilters.defaultStatuses;
 
 bool _matchesBykcStatuses(

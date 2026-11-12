@@ -192,6 +192,7 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；加 `--all-sizes` 可生成额外的手机商店尺寸。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
 | `just app-service-publish` | 校验渠道和公告，与目标 KV 内容比较，只写入有差异的键 |
 | `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
+| `just app-service-dashboard` | 用 `.env` 中的账号与 D1 ID 生成 Grafana 使用情况看板 JSON，默认写入 `.ubaa_local/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
 

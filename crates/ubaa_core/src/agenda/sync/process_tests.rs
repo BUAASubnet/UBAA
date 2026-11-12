@@ -1,4 +1,4 @@
-use super::{state::SyncStep, tests::root};
+use super::{pending::SyncAttempt, tests::root};
 use crate::{
     agenda::{
         AgendaStore,
@@ -23,7 +23,7 @@ fn publication_child() {
     let mut release = String::new();
     std::io::stdin().read_line(&mut release).unwrap();
     assert_eq!(release.trim(), "发送");
-    match store.begin_sync_attempt(&mut snapshot, SyncStep::File, None) {
+    match store.begin_sync_attempt(&mut snapshot, SyncAttempt::Publication) {
         Ok(_) => println!(
             "分配:{}:{}",
             snapshot.device_id,
@@ -95,10 +95,10 @@ fn two_processes_allocate_only_one_durable_publication_and_clear_keeps_the_limit
     let restored = reopened.restore_sync_attempt().unwrap().unwrap();
     assert_eq!(restored.snapshot.device_id, device);
     assert_eq!(restored.snapshot.publication, Some(1));
-    assert!(!restored.body_retained);
+    assert!(!restored.retains_body());
     let mut next = reopened.sync_snapshot().unwrap();
     assert!(matches!(
-        reopened.begin_sync_attempt(&mut next, SyncStep::File, None),
+        reopened.begin_sync_attempt(&mut next, SyncAttempt::Publication),
         Err(CacheError::Superseded)
     ));
     let db =
@@ -129,7 +129,7 @@ fn delayed_process_publication_preserves_another_process_completed_deletion() {
         .unwrap();
     let mut newer = store.sync_snapshot().unwrap();
     store
-        .begin_sync_attempt(&mut newer, SyncStep::File, None)
+        .begin_sync_attempt(&mut newer, SyncAttempt::Publication)
         .unwrap();
     store.confirm_sync(&newer, newer.document()).unwrap();
     held.child

@@ -1,6 +1,19 @@
 part of 'shell.dart';
 
 extension UbaaShellWriteActions on _UbaaMainShellState {
+  BykcAgendaContext? get _bykcAgendaContext =>
+      widget.agenda.service == null && widget.agenda.failure == null
+      ? null
+      : BykcAgendaContext(
+          access: widget.agenda,
+          route: agendaRoute(
+            widget.routePolicy,
+            widget.activeRoutes,
+            schoolRoute: widget.agendaSchoolRoute,
+          ),
+          epoch: (_contentEpoch, widget.readCacheEpoch, widget.agendaEpoch),
+        );
+
   Future<WriteOutcome?> _runBhpanWrite(
     BhpanMutation request, [
     BhpanWriteStyle style = const BhpanWriteStyle(),

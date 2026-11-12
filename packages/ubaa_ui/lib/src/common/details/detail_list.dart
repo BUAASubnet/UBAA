@@ -15,7 +15,6 @@ import '../../features/bykc/chosen_card.dart' show BykcChosenCard;
 import '../../features/bykc/course_card.dart' show BykcCourseCard;
 import '../../features/bykc/display.dart'
     show
-        uiSortBykcCourses,
         BykcInfoLine,
         BykcStatusChip,
         uiBykcCheckinLabel,
@@ -87,6 +86,8 @@ class FeatureDetailList extends StatefulWidget {
     this.loadingMore = false,
     this.moreError,
     this.hasMore = false,
+    this.bykcEndReached = false,
+    this.bykcConflictIds = const {},
     this.onLoadMore,
     this.query,
     this.onQuery,
@@ -122,6 +123,8 @@ class FeatureDetailList extends StatefulWidget {
   final FeaturePagination? pagination;
   final int paginationGeneration;
   final bool loadingMore, hasMore;
+  final bool bykcEndReached;
+  final Set<int> bykcConflictIds;
   final String? moreError;
   final Future<void> Function()? onLoadMore;
   final FeatureQuery? query;
@@ -175,22 +178,22 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     final query = widget.filter.trim().toLowerCase();
     final candidates = widget.feature != FeatureId.bykc
         ? widget.details
-        : uiSortBykcCourses(
-            widget.details
-                .where(
-                  (detail) =>
-                      detail.presentation is! BykcCoursePresentation ||
-                      (detail.presentation! as BykcCoursePresentation)
-                          .isDetail ||
-                      uiMatchesBykcFilters(
-                        detail.presentation! as BykcCoursePresentation,
-                        widget.bykcStatuses,
-                        widget.bykcCategories,
-                        widget.bykcCampuses,
-                      ),
-                )
-                .toList(),
-          );
+        : widget.details
+              .where(
+                (detail) =>
+                    detail.presentation is! BykcCoursePresentation ||
+                    (detail.presentation! as BykcCoursePresentation).isDetail ||
+                    (!widget.bykcConflictIds.contains(
+                          (detail.presentation! as BykcCoursePresentation).id,
+                        ) &&
+                        uiMatchesBykcFilters(
+                          detail.presentation! as BykcCoursePresentation,
+                          widget.bykcStatuses,
+                          widget.bykcCategories,
+                          widget.bykcCampuses,
+                        )),
+              )
+              .toList();
     final details = query.isEmpty
         ? candidates
         : candidates
@@ -261,15 +264,26 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                   : details.isEmpty
                   ? RefreshViewport(
                       child: Center(
-                        child: Text(
-                          widget.feature == FeatureId.bykc &&
-                                  widget.query?.view == FeatureQueryView.summary
-                              ? '已加载内容中没有匹配项'
-                              : widget.feature == FeatureId.judge
-                              ? '暂无符合条件的希冀作业'
-                              : widget.feature == FeatureId.spoc
-                              ? '暂无符合条件的 SPOC 作业'
-                              : '没有匹配的详情',
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.feature == FeatureId.bykc &&
+                                      widget.query?.view ==
+                                          FeatureQueryView.summary
+                                  ? (widget.bykcEndReached
+                                        ? (widget.details.isEmpty
+                                              ? '暂无课程'
+                                              : '没有匹配的课程')
+                                        : '已加载内容中没有匹配项')
+                                  : widget.feature == FeatureId.judge
+                                  ? '暂无符合条件的希冀作业'
+                                  : widget.feature == FeatureId.spoc
+                                  ? '暂无符合条件的 SPOC 作业'
+                                  : '没有匹配的详情',
+                            ),
+                            if (widget.bykcEndReached) const _BykcListEnd(),
+                          ],
                         ),
                       ),
                     )
@@ -298,9 +312,12 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                     )
                   : ListView.separated(
                       padding: UbaaTheme.pageInsets(context, top: 8),
-                      itemCount: visible.length,
+                      itemCount:
+                          visible.length + (widget.bykcEndReached ? 1 : 0),
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
+                        if (index == visible.length)
+                          return const _BykcListEnd();
                         final detail = visible[index];
                         if (uiSupportsAssignmentContent(widget.feature, [
                           detail,
@@ -559,4 +576,28 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
       ],
     );
   }
+}
+
+class _BykcListEnd extends StatelessWidget {
+  const _BykcListEnd();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+    child: Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            '没有更多课程',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    ),
+  );
 }

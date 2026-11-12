@@ -61,8 +61,8 @@ Future<SecureMaterialStore> createNativeTestMaterials({
         ),
         aOptions: AndroidOptions(
           sharedPreferencesName: name,
-          resetOnError: false,
-          migrateOnAlgorithmChange: false,
+          resetOnError: true,
+          migrateOnAlgorithmChange: true,
         ),
       ),
     );

@@ -1,4 +1,7 @@
-use super::state::{Stamp, StoredPending, SyncState, SyncStep};
+use super::{
+    pending::{PendingOperation, PublicationReceipt, StoredPending},
+    state::{Stamp, SyncState},
+};
 use crate::{
     agenda::store::AgendaData,
     cache::{CacheError, CacheResult},
@@ -169,30 +172,30 @@ fn load_pending(tx: &Transaction<'_>, data: &mut AgendaData) -> CacheResult<()> 
         {
             return Err(CacheError::Corrupt);
         }
-        if match (step, publication) {
-            (1, None) => false,
-            (2, Some(sequence)) => {
-                sequence <= 0 || sequence.cast_unsigned() >= data.sync.next_publication
+        let operation = match (step, publication) {
+            (1, None) => PendingOperation::Directory { target: object },
+            (2, Some(sequence))
+                if sequence > 0 && sequence.cast_unsigned() < data.sync.next_publication =>
+            {
+                PendingOperation::Publication {
+                    sequence: sequence.cast_unsigned(),
+                    receipt: if registered == 1 {
+                        PublicationReceipt::Registered(object.ok_or(CacheError::Corrupt)?)
+                    } else {
+                        PublicationReceipt::Unknown(object)
+                    },
+                }
             }
-            _ => true,
-        } {
-            return Err(CacheError::Corrupt);
-        }
-        data.sync.pending = Some(StoredPending {
-            id: device(&attempt)?,
-            step: match step {
-                1 => SyncStep::Directory,
-                2 => SyncStep::File,
-                _ => return Err(CacheError::Corrupt),
-            },
-            document: bytes
+            _ => return Err(CacheError::Corrupt),
+        };
+        data.sync.pending = Some(StoredPending::restore(
+            device(&attempt)?,
+            bytes
                 .as_deref()
                 .map(super::AgendaSyncDocument::decode)
                 .transpose()?,
-            publication: publication.map(i64::cast_unsigned),
-            object,
-            registered: registered == 1,
-        });
+            operation,
+        ));
     }
     Ok(())
 }
@@ -212,11 +215,15 @@ pub(crate) fn save(tx: &Transaction<'_>, before: &SyncState, after: &SyncState) 
     }
     if before.pending != after.pending {
         if let Some(pending) = &after.pending {
-            let step = match pending.step {
-                SyncStep::Directory => 1,
-                SyncStep::File => 2,
+            let (step, publication, registered) = match pending.operation() {
+                PendingOperation::Directory { .. } => (1, None, false),
+                PendingOperation::Publication { sequence, receipt } => (
+                    2,
+                    Some(integer(*sequence)?),
+                    matches!(receipt, PublicationReceipt::Registered(_)),
+                ),
             };
-            tx.execute("INSERT INTO agenda_sync_pending VALUES(1,?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO UPDATE SET attempt=excluded.attempt,step=excluded.step,document=excluded.document,object=excluded.object,publication=excluded.publication,registered=excluded.registered", params![pending.id.to_string(), step, pending.document.as_ref().map(super::AgendaSyncDocument::encode).transpose()?, pending.object, pending.publication.map(integer).transpose()?, pending.registered])?;
+            tx.execute("INSERT INTO agenda_sync_pending VALUES(1,?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO UPDATE SET attempt=excluded.attempt,step=excluded.step,document=excluded.document,object=excluded.object,publication=excluded.publication,registered=excluded.registered", params![pending.id().to_string(), step, pending.document().map(super::AgendaSyncDocument::encode).transpose()?, pending.operation().object(), publication, registered])?;
         } else {
             tx.execute("DELETE FROM agenda_sync_pending WHERE id=1", [])?;
         }

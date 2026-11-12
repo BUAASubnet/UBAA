@@ -5,10 +5,10 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 import '../../cache/lifecycle.dart' show bridgeAwaitOfflineScope;
-import 'cache.dart' show bridgeCachedBykcProjection;
 import 'projection.dart'
     show
         bridgeBykcCatalogPageSize,
+        bridgeIsBykcCacheQuery,
         bridgeBykcCoursePresentation,
         bridgeBykcSupplement,
         bridgeProjectBykcCatalog,
@@ -20,9 +20,7 @@ import '../../support/mapping.dart'
     show
         bridgeCacheTime,
         bridgeRequiredPositiveQueryInt,
-        bridgeToBridgeConnectionMode,
         bridgeToConnectionMode;
-part 'cache_read.dart';
 
 Future<FeatureResult> bridgeLoadBykcFeature(
   BridgeContext backend,
@@ -32,30 +30,12 @@ Future<FeatureResult> bridgeLoadBykcFeature(
 }) async {
   if (feature != FeatureId.bykc)
     throw const BackendException(UbaaErrorCode.invalidInput);
-  if (useCache) await bridgeAwaitOfflineScope(backend);
-  final cache = useCache ? backend.cache.handle : null;
-  final account = useCache ? backend.cache.account : null;
+  final cacheEnabled = useCache && bridgeIsBykcCacheQuery(feature, query);
+  if (cacheEnabled) await bridgeAwaitOfflineScope(backend);
+  final cache = cacheEnabled ? backend.cache.handle : null;
+  final account = cacheEnabled ? backend.cache.account : null;
   switch (query.view) {
     case FeatureQueryView.summary:
-      if (cache != null && account != null) {
-        final value = await backend.client.bykcCatalogCached(
-          cache: cache,
-          page: query.page <= 0 ? 1 : query.page,
-          size: bridgeBykcCatalogPageSize,
-          all: true,
-        );
-        return _finishBykcRefresh(
-          backend,
-          account,
-          bridgeProjectBykcCatalog(
-            value.data,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-            requestedPage: query.page <= 0 ? 1 : query.page,
-            requestedSize: bridgeBykcCatalogPageSize,
-          ),
-          value.state,
-        );
-      }
       final value = await backend.client.bykcCourseCatalog(
         page: query.page <= 0 ? 1 : query.page,
         size: bridgeBykcCatalogPageSize,
@@ -68,34 +48,18 @@ Future<FeatureResult> bridgeLoadBykcFeature(
         requestedSize: bridgeBykcCatalogPageSize,
       );
     case FeatureQueryView.bykcDetail:
-      if (cache != null && account != null) {
-        final value = await backend.client.bykcFullDetailCached(
-          cache: cache,
-          courseId: bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'),
-        );
-        if (value.data.course.course.id !=
-            bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID')) {
-          return _preserveBykcDetail(
-            backend,
-            cache,
-            account,
-            query,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-          );
-        }
-        return _finishBykcRefresh(
-          backend,
-          account,
-          bridgeProjectBykcFullDetail(
-            value.data,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-          ),
-          value.state,
-        );
-      }
       final value = await backend.client.bykcCourseFullDetail(
         id: bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'),
       );
+      if (value.data.course.course.id !=
+          bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID')) {
+        throw BackendException(
+          UbaaErrorCode.upstreamChanged,
+          kind: UbaaErrorKind.upstream,
+          retryable: false,
+          resolvedRoute: bridgeToConnectionMode(value.route.resolvedRoute),
+        );
+      }
       return bridgeProjectBykcFullDetail(
         value.data,
         bridgeToConnectionMode(value.route.resolvedRoute),
@@ -122,18 +86,33 @@ Future<FeatureResult> bridgeLoadBykcFeature(
       final detailId = query.courseId == null
           ? null
           : bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID');
+      BridgeBykcRefreshState? detailState;
       Future<BykcCoursePresentation?> fullDetail(ConnectionMode route) async {
         if (detailId == null) return null;
-        final full = await backend.client.bykcCourseFullDetail(id: detailId);
-        if (full.data.course.course.id != detailId ||
-            bridgeToConnectionMode(full.route.resolvedRoute) != route) {
+        final BridgeBykcCourseFullDetail data;
+        final BridgeRouteDecision detailRoute;
+        if (cache != null && account != null) {
+          final full = await backend.client.bykcFullDetailCached(
+            cache: cache,
+            courseId: detailId,
+          );
+          data = full.data;
+          detailRoute = full.route;
+          detailState = full.state;
+        } else {
+          final full = await backend.client.bykcCourseFullDetail(id: detailId);
+          data = full.data;
+          detailRoute = full.route;
+        }
+        if (data.course.course.id != detailId ||
+            bridgeToConnectionMode(detailRoute.resolvedRoute) != route) {
           throw const BackendException(UbaaErrorCode.operationConflict);
         }
         return bridgeBykcCoursePresentation(
-          full.data.course.course,
+          data.course.course,
           isDetail: true,
-          catalog: full.data.course,
-          supplement: bridgeBykcSupplement(full.data),
+          catalog: data.course,
+          supplement: bridgeBykcSupplement(data),
         );
       }
       if (cache != null && account != null) {
@@ -148,7 +127,16 @@ Future<FeatureResult> bridgeLoadBykcFeature(
               bridgeToConnectionMode(value.route.resolvedRoute),
             ),
           ),
-          value.state,
+          BridgeBykcRefreshState(
+            fetchedAt:
+                detailState != null &&
+                    detailState!.fetchedAt < value.state.fetchedAt
+                ? detailState!.fetchedAt
+                : value.state.fetchedAt,
+            saveError: value.state.saveError ?? detailState?.saveError,
+            semesterStart: value.state.semesterStart,
+            semesterEnd: value.state.semesterEnd,
+          ),
         );
       }
       final value = await backend.client.bykcChosenCourses();

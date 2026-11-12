@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import '../state/recovery_result.dart';
 import '../state/models.dart'
     show RecoveryRequest, RecoveryRetry, controllerRecoveryRetryDelays;
 import '../state/state.dart' show ControllerState;
@@ -39,19 +40,23 @@ mixin ControllerRecoveryRetry on ControllerState {
   }
 
   @internal
-  void internalFinishRecoveryRetry(RecoveryRequest request) {
+  void internalFinishRecoveryRetry(
+    RecoveryRequest request,
+    ControllerRecoveryResult? result,
+  ) {
     final previous = internalRecoveryRetries.remove(request.feature);
     previous?.timer?.cancel();
     if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut)
       return;
-    if (request.transientFailure) {
+    if (result?.transientFailure ?? false) {
       final attempt = ((previous?.attempt ?? -1) + 1).clamp(0, 2);
       internalRecoveryRetries[request.feature] = RecoveryRetry(
         request.epoch,
         attempt,
         internalSnapshots[request.feature]!.readContext?.query,
       );
-    } else if (internalSessionRecoveryStatus == SessionRecoveryStatus.ready &&
+    } else if (result?.forSession(targetOnly: request.targetOnly).status ==
+            SessionRecoveryStatus.ready &&
         previous?.query != null) {
       final query = previous!.query!;
       // 只刷新仍属于原查询的失败页；新选项、草稿与导航由现有读代次保护。

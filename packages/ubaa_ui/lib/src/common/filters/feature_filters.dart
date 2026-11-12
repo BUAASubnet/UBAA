@@ -31,7 +31,7 @@ const _statusViews = <FeatureId, List<(FeatureQueryView, String)>>{
   ],
   FeatureId.signin: [
     (FeatureQueryView.summary, '全部'),
-    (FeatureQueryView.signinPending, '可签到'),
+    (FeatureQueryView.signinPending, '未签到'),
     (FeatureQueryView.signinCompleted, '已签到'),
   ],
 };
@@ -68,7 +68,8 @@ int uiActiveFilterCount({
   FeatureFilterKind.bykc =>
     (setEquals(bykcFilters.statuses, uiDefaultBykcStatuses) ? 0 : 1) +
         (bykcFilters.categories.isEmpty ? 0 : 1) +
-        (bykcFilters.campuses.isEmpty ? 0 : 1),
+        (bykcFilters.campuses.isEmpty ? 0 : 1) +
+        (bykcFilters.hideAgendaConflicts ? 1 : 0),
   FeatureFilterKind.assignments => switch (assignmentFilters) {
     final f? =>
       (f.byStart ? 1 : 0) +
@@ -239,6 +240,14 @@ class FeatureFilterControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _section(context, '日程', [
+          FilterChip(
+            label: const Text('隐藏与日程冲突的课程'),
+            selected: bykcFilters.hideAgendaConflicts,
+            onSelected: (value) =>
+                update(bykcFilters.copyWith(hideAgendaConflicts: value)),
+          ),
+        ]),
         _section(context, '课程状态', [
           for (final status in BykcCourseStatus.values)
             FilterChip(
@@ -287,7 +296,7 @@ class FeatureFilterControls extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 12),
           child: Text(
-            '只筛选已加载的课程，向下滚动会继续加载。',
+            '只筛选已加载的课程，向下滚动会继续加载。时间冲突依据本机已同步的日程检查。',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

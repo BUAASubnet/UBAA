@@ -25,7 +25,7 @@ mixin ControllerScheduledSession on ControllerState {
 
   /// 主会话就绪后，按功能建立目标会话只影响该功能的读取，
   /// 不让首页反复进入“连接中”。恢复中的账号与路线变化仍按原交付检查处理。
-  /// 写入继续由过渡计数保护。
+  /// 写入继续等待操作占用释放。
   @internal
   bool get internalTargetRecoveryOnly =>
       internalHasScheduledTargetRecovery &&
@@ -33,8 +33,9 @@ mixin ControllerScheduledSession on ControllerState {
 
   @internal
   bool get internalReadTransitionBlocked =>
-      internalWriteTransitions != 0 &&
-      !(internalHasScheduledTargetRecovery && internalActiveRecovery != null);
+      internalActivities.blocksScheduledRead(
+        recoveryRunsInReadLane: internalHasScheduledTargetRecovery,
+      );
 
   @internal
   Future<void> internalEnsureReadTarget(

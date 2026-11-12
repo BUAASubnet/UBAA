@@ -3,10 +3,9 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/form_page.dart' show showUiPage;
 import '../../theme.dart' show UbaaTheme;
 
-/// 首启与政策更新时的同意弹窗路由。
+/// 从统计开关重新启用应用服务时的同意弹窗路由。
 ///
-/// 只能通过「同意」或「不同意」关闭：返回键和点击外部都不生效，
-/// 避免用户未作选择就进入应用，之后又被同一弹窗反复打断。
+/// 只能通过「同意」或「不同意」关闭，保存失败时留在当前弹窗重试。
 DialogRoute<void> uiPrivacyConsentRoute(
   BuildContext context, {
   required PrivacyPolicyDocument policy,
@@ -93,9 +92,7 @@ class _PrivacyConsentDialogState extends State<PrivacyConsentDialog> {
     final points = _updated
         ? [
             for (final change in widget.policy.changes) change,
-            widget.view.telemetryEnabled
-                ? '产品改进统计目前为开启，同意后保持开启，可以随时在设置中关闭。'
-                : '产品改进统计目前为关闭，同意后仍然关闭。',
+            '同意后将按本次选择开启产品改进统计，可以随时在设置中关闭。',
           ]
         : const [
             '同意后默认开启「产品改进统计」：按天汇总功能使用次数、错误类别和加载耗时，并按分钟汇总登录与功能加载次数，不包含密码、成绩、课表等内容。可以随时在设置中关闭。',

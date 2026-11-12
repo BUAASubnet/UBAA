@@ -1,6 +1,8 @@
 use super::{
-    AgendaSyncDocument, AgendaSyncError, AgendaSyncSnapshot, publication::Publication,
-    state::SyncStep, transaction::RestoredAttempt,
+    AgendaSyncDocument, AgendaSyncError, AgendaSyncSnapshot,
+    pending::{PendingOperation, PublicationReceipt, SyncAttempt},
+    publication::Publication,
+    transaction::RestoredAttempt,
 };
 use crate::{
     agenda::AgendaStore,
@@ -109,12 +111,12 @@ impl<R: SyncRemote> SyncCoordinator<R> {
             .map(|v| v.snapshot.clone())
             .map_or_else(|| self.store.sync_snapshot(), Ok)?;
         if pending.as_ref().is_none_or(|pending| {
-            !pending.body_retained
+            !pending.retains_body()
                 || self.committed.as_ref().is_none_or(|cached| {
                     pending.snapshot.attempt != Some(cached.attempt)
                         || pending.snapshot.epoch != cached.epoch
-                        || pending.object.as_ref()
-                            != Some(&self.remote.object_key(&cached.uploaded))
+                        || pending.operation.object()
+                            != Some(self.remote.object_key(&cached.uploaded).as_str())
                 })
         }) {
             self.committed = None;
@@ -153,7 +155,7 @@ impl<R: SyncRemote> SyncCoordinator<R> {
     ) -> RunResult<AgendaSyncReport> {
         self.check(scope)?;
         if let Some(pending) = pending {
-            if pending.step == SyncStep::Directory {
+            if matches!(&pending.operation, PendingOperation::Directory { .. }) {
                 return self.reconcile_directory(scope, pending).await;
             }
             return self.reconcile_file(scope, pending, now, changed).await;
@@ -196,7 +198,7 @@ impl<R: SyncRemote> SyncCoordinator<R> {
         }
         let attempt = self
             .store
-            .begin_sync_attempt(&mut sent, SyncStep::File, None)?;
+            .begin_sync_attempt(&mut sent, SyncAttempt::Publication)?;
         let identity = Publication::from_snapshot(&sent)?;
         let body = match identity.encode(sent.document()) {
             Ok(body) => body,
@@ -220,18 +222,18 @@ impl<R: SyncRemote> SyncCoordinator<R> {
                 Err(error.into())
             }
             Ok(RemoteCommit::OutcomeUnknown(uploaded)) => {
-                self.store.update_sync_attempt(
+                self.store.record_sync_receipt(
                     &sent,
-                    uploaded.as_ref().map(|v| self.remote.object_key(v)),
-                    false,
+                    PublicationReceipt::Unknown(
+                        uploaded.as_ref().map(|v| self.remote.object_key(v)),
+                    ),
                 )?;
                 Ok(self.report(scope, AgendaSyncStatus::OutcomeUnknown, *changed)?)
             }
             Ok(RemoteCommit::Committed(uploaded)) => {
-                self.store.update_sync_attempt(
+                self.store.record_sync_receipt(
                     &sent,
-                    Some(self.remote.object_key(&uploaded)),
-                    true,
+                    PublicationReceipt::Registered(self.remote.object_key(&uploaded)),
                 )?;
                 self.committed = Some(Committed {
                     attempt,
@@ -301,19 +303,19 @@ impl<R: SyncRemote> SyncCoordinator<R> {
         let RemoteLocation::Found(versions) = location? else {
             return Ok(self.report(scope, AgendaSyncStatus::OutcomeUnknown, *changed)?);
         };
-        let received = pending.body_retained && pending.registered;
-        let current_matches = received
-            && versions.iter().any(|version| {
+        let current_matches = pending.confirmable_object().is_some_and(|object| {
+            versions.iter().any(|version| {
                 Publication::from_snapshot(&pending.snapshot).ok()
                     == Some(self.remote.publication(version))
-                    && pending.object.as_ref() == Some(&self.remote.object_key(version))
-            });
+                    && object == self.remote.object_key(version)
+            })
+        });
         let ignored = (!current_matches).then_some(scope.device_id);
         let expected = current_matches.then_some(&pending.snapshot);
         let (document, matching) = self.read_all(scope, versions, ignored, expected).await?;
         *changed += self.store.merge_sync_at(scope, &document, now)?;
         if let Some(current) = matching
-            && pending.object.as_ref() == Some(&self.remote.object_key(&current))
+            && pending.confirmable_object() == Some(self.remote.object_key(&current).as_str())
         {
             self.store
                 .confirm_sync(&pending.snapshot, pending.snapshot.document())?;
@@ -330,7 +332,7 @@ impl<R: SyncRemote> SyncCoordinator<R> {
         let mut sent = scope.clone();
         sent.document = AgendaSyncDocument::default();
         self.store
-            .begin_sync_attempt(&mut sent, SyncStep::Directory, Some(target))?;
+            .begin_sync_attempt(&mut sent, SyncAttempt::Directory(target))?;
         let result = self
             .remote
             .create_directory_once(&|| {
@@ -351,12 +353,15 @@ impl<R: SyncRemote> SyncCoordinator<R> {
         scope: &AgendaSyncSnapshot,
         pending: RestoredAttempt,
     ) -> RunResult<AgendaSyncReport> {
-        let Some(target) = pending.object.as_deref() else {
+        let PendingOperation::Directory {
+            target: Some(target),
+        } = &pending.operation
+        else {
             return Err(CacheError::Corrupt.into());
         };
         let exists = self.remote.directory_exists(target).await;
         self.check(scope)?;
-        if exists? && pending.body_retained {
+        if exists? && pending.retains_body() {
             self.store.clear_sync_attempt(&pending.snapshot)?;
             return Ok(self.report(scope, AgendaSyncStatus::NeedsCreation, 0)?);
         }

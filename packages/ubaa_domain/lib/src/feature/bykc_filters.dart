@@ -6,6 +6,7 @@ final class BykcCourseFilters {
     Iterable<BykcCourseStatus> statuses = defaultStatuses,
     Iterable<String> categories = const [],
     Iterable<String> campuses = const [],
+    bool hideAgendaConflicts = false,
   }) {
     final normalizedCategories = _normalize(categories);
     final allowed = BykcCourseSubCategory.values
@@ -19,15 +20,22 @@ final class BykcCourseFilters {
       Set.unmodifiable(statuses),
       normalizedCategories,
       _normalize(campuses),
+      hideAgendaConflicts,
     );
   }
 
   const BykcCourseFilters.defaults()
     : statuses = defaultStatuses,
       categories = const {},
-      campuses = const {};
+      campuses = const {},
+      hideAgendaConflicts = false;
 
-  const BykcCourseFilters._(this.statuses, this.categories, this.campuses);
+  const BykcCourseFilters._(
+    this.statuses,
+    this.categories,
+    this.campuses,
+    this.hideAgendaConflicts,
+  );
 
   static const defaultStatuses = <BykcCourseStatus>{
     BykcCourseStatus.preview,
@@ -39,6 +47,7 @@ final class BykcCourseFilters {
   /// 空集合明确表示不限；只有缺失整个偏好才使用默认四状态。
   final Set<BykcCourseStatus> statuses;
   final Set<String> categories, campuses;
+  final bool hideAgendaConflicts;
 
   bool get isDefault => this == const BykcCourseFilters.defaults();
 
@@ -46,10 +55,12 @@ final class BykcCourseFilters {
     Iterable<BykcCourseStatus>? statuses,
     Iterable<String>? categories,
     Iterable<String>? campuses,
+    bool? hideAgendaConflicts,
   }) => BykcCourseFilters(
     statuses: statuses ?? this.statuses,
     categories: categories ?? this.categories,
     campuses: campuses ?? this.campuses,
+    hideAgendaConflicts: hideAgendaConflicts ?? this.hideAgendaConflicts,
   );
 
   static Set<String> _normalize(Iterable<String> values) => Set.unmodifiable(
@@ -61,7 +72,8 @@ final class BykcCourseFilters {
       other is BykcCourseFilters &&
       _same(statuses, other.statuses) &&
       _same(categories, other.categories) &&
-      _same(campuses, other.campuses);
+      _same(campuses, other.campuses) &&
+      hideAgendaConflicts == other.hideAgendaConflicts;
 
   static bool _same<T>(Set<T> left, Set<T> right) =>
       left.length == right.length && left.containsAll(right);
@@ -71,5 +83,6 @@ final class BykcCourseFilters {
     Object.hashAllUnordered(statuses),
     Object.hashAllUnordered(categories),
     Object.hashAllUnordered(campuses),
+    hideAgendaConflicts,
   );
 }

@@ -6,6 +6,7 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/cache_management.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase;
 
@@ -32,7 +33,7 @@ mixin ControllerCacheManagement on ControllerState {
         internalClearingBusinessCache ||
         isLoggingIn ||
         internalRebuildingBackend ||
-        internalWriteTransitions != 0 ||
+        internalActivities.hasActive ||
         internalActiveRecovery != null ||
         internalWriteCoordinator.hasPendingOperation) {
       throw const BackendException(UbaaErrorCode.operationConflict);
@@ -73,7 +74,9 @@ mixin ControllerCacheManagement on ControllerState {
     final backend = internalBackend;
     var epoch = internalLifecycleEpoch;
     internalCacheLifecycle.beginClearing();
-    internalWriteTransitions++;
+    final activity = internalActivities.begin(
+      ControllerActivityKind.cacheClear,
+    );
     internalCancelDeferredRecovery();
     internalNotify();
     try {
@@ -104,7 +107,7 @@ mixin ControllerCacheManagement on ControllerState {
       if (internalCacheOwnerCurrent(accountId, backend, epoch))
         internalSettleCancelledLoads();
       internalCacheLifecycle.endClearing();
-      internalWriteTransitions--;
+      activity.finish();
       internalNotify();
     }
   }

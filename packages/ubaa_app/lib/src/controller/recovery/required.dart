@@ -50,6 +50,35 @@ mixin ControllerRequiredRecovery on ControllerState {
     FeatureId feature,
     int epoch,
   ) async {
+    final target =
+        internalActiveRecovery?.refreshHomeAfter == true &&
+            backend is RequiredTargetSessionBackend
+        ? RecoveryTarget.connection
+        : RecoveryTarget.fromFeature(feature);
+    final result = await internalRecoverTargetSession(
+      backend,
+      target,
+      epoch,
+      publishReusedSession:
+          internalActiveRecovery?.targetOnly != true ||
+          internalActiveRecovery?.refreshHomeAfter == true,
+    );
+    if (result == null) return null;
+    internalSharedRecoveryScope = result.scope;
+    if (result.disposition == RecoveryDisposition.reauthenticated) {
+      internalActiveRecovery?.replacedRoute = result.session.route;
+    }
+    internalRecoveredRoute = result.session.route;
+    return result.session.profile;
+  }
+
+  @internal
+  Future<RecoveryResult?> internalRecoverTargetSession(
+    RequiredSessionBackend backend,
+    RecoveryTarget target,
+    int epoch, {
+    required bool publishReusedSession,
+  }) async {
     final session = internalCaptureSessionScope();
     final account = internalLocalAccount;
     final expected =
@@ -63,6 +92,15 @@ mixin ControllerRequiredRecovery on ControllerState {
         backend: backend,
         credentials: internalCredentialVault,
         beforeSharedRebind: () {
+          // 重绑开始即作废旧读取，不能等新会话发布后才撤销迟到错误。
+          internalWriteReadbackRevision++;
+          internalWriteReadbackLoadedEpoch = -1;
+          for (final read in internalReadScopes) {
+            if (read.valid && (read.task != null || read.preparing)) {
+              read.restartRequested = true;
+              read.task?.cancel();
+            }
+          }
           if (internalActiveRecovery case final request?) {
             request.replacedAllRoutes = true;
             internalInvalidateReadPlansAfterLogin(request);
@@ -97,15 +135,14 @@ mixin ControllerRequiredRecovery on ControllerState {
                 !internalAutomaticCredentialBlocked &&
                 !internalAutomaticLoginDisabled &&
                 !internalManualAuthenticationRequired,
-            publishReusedSession:
-                internalActiveRecovery?.targetOnly != true ||
-                internalActiveRecovery?.refreshHomeAfter == true,
+            publishReusedSession: publishReusedSession,
             isCurrent: current,
           )
         : RecoveryScope(
             accountAlias: account?.id ?? '',
             expectedUsername: expected,
             accountGeneration: epoch,
+            publishReusedSession: publishReusedSession,
             routeGeneration: routeGeneration,
             backendGeneration: epoch,
             credentialGeneration: credentials,
@@ -119,12 +156,7 @@ mixin ControllerRequiredRecovery on ControllerState {
           );
     if (scope.accountAlias != (account?.id ?? ''))
       throw const RecoveryInterrupted(RecoveryStopReason.superseded);
-    internalSharedRecoveryScope = scope;
-    final target =
-        internalActiveRecovery?.refreshHomeAfter == true &&
-            backend is RequiredTargetSessionBackend
-        ? RecoveryTarget.connection
-        : RecoveryTarget.fromFeature(feature);
+    if (internalActiveRecovery != null) internalSharedRecoveryScope = scope;
     final result = await service.ensureTargetSession(
       target: target,
       scope: scope,
@@ -133,11 +165,7 @@ mixin ControllerRequiredRecovery on ControllerState {
     await scope.validatePersistent();
     if (!scope.isCurrent) return null;
     internalSharedAccountSnapshot = scope.sharedSnapshot;
-    if (result.disposition == RecoveryDisposition.reauthenticated) {
-      internalActiveRecovery?.replacedRoute = result.session.route;
-    }
-    internalRecoveredRoute = result.session.route;
-    return result.session.profile;
+    return result;
   }
 
   @internal

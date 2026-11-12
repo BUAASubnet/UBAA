@@ -106,6 +106,13 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         term: _controller.currentAgendaTerm,
         onChanged: _controller.notifyAgendaChanged,
         prepareSync: _controller.prepareAgendaSync,
+        ensureSchedule: _controller.canSaveScheduleSemester
+            ? () async {
+                await _controller.loadHomeSupplement(
+                  HomeSupplement.currentWeek,
+                );
+              }
+            : null,
         saveFile: (result, name, current) async {
           final saved = await widget.agendaFileSaver.save(
             result.ics,

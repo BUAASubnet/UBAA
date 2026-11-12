@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../features/bykc/agenda_conflicts.dart';
 import 'package:flutter/material.dart';
 import 'search_field.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -67,6 +68,7 @@ class FeatureDetailView extends StatefulWidget {
     required this.bykcFilters,
     required this.onBykcFiltersChanged,
     this.bykcFilterError,
+    this.bykcAgenda,
     this.ygdkRecordsReadback,
     this.reminderSettings,
     this.reminderError,
@@ -106,6 +108,7 @@ class FeatureDetailView extends StatefulWidget {
     super.key,
   });
 
+  final BykcAgendaContext? bykcAgenda;
   final int paginationGeneration;
   final bool loadingMore, hasMore;
   final String? moreError;
@@ -310,9 +313,10 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     }
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
-            widget.snapshot.status == FeatureLoadStatus.stale ||
-            widget.snapshot.status == FeatureLoadStatus.loading) &&
-        widget.snapshot.details.isNotEmpty;
+                widget.snapshot.status == FeatureLoadStatus.stale ||
+                widget.snapshot.status == FeatureLoadStatus.loading) &&
+            widget.snapshot.details.isNotEmpty ||
+        (_bykcEndReached && widget.snapshot.status == FeatureLoadStatus.empty);
     final defaultContent = Column(
       children: [
         if (widget.bykcFilterError case final message?
@@ -716,61 +720,92 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       ? widget.snapshot.overview as ScheduleWeekOverview
       : null;
 
+  bool get _bykcCatalog =>
+      widget.feature == FeatureId.bykc &&
+      (widget.query?.view ?? FeatureQueryView.summary) ==
+          FeatureQueryView.summary;
+
+  bool get _bykcEndReached {
+    final snapshot = widget.snapshot;
+    final page = snapshot.pagination;
+    return _bykcCatalog &&
+        !widget.loadingMore &&
+        widget.moreError == null &&
+        snapshot.error == null &&
+        (snapshot.status == FeatureLoadStatus.success ||
+            snapshot.status == FeatureLoadStatus.empty) &&
+        snapshot.evidence?.origin != DataOrigin.persisted &&
+        snapshot.evidence?.complete != false &&
+        page != null &&
+        (snapshot.status == FeatureLoadStatus.empty ||
+            !(page.hasMore ?? (page.page < page.effectiveTotalPages)));
+  }
+
   Widget _details(BuildContext context) {
-    return FeatureDetailList(
-      feature: widget.feature,
-      // 后台续载下一页不影响已显示条目的操作；整页读取或刷新时才禁用。
-      writesEnabled:
-          (widget.snapshot.status != FeatureLoadStatus.loading ||
-              widget.loadingMore) &&
-          widget.bykcPendingCourseId == null &&
-          !widget.writeBusy,
-      details: _isAssignmentList
-          ? _assignmentFilters.apply(
-              widget.snapshot.details,
-              _searchController.text,
-            )
-          : widget.snapshot.details,
-      timeline: _scheduleTimeline,
-      filter: _isAssignmentList || _isCgyyReservation
-          ? ''
-          : _searchController.text,
-      bykcStatuses: _bykcStatuses,
-      onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
-        widget.bykcFilters.copyWith(statuses: statuses),
+    return BykcAgendaGuard(
+      agenda: widget.feature == FeatureId.bykc ? widget.bykcAgenda : null,
+      details: widget.snapshot.details,
+      hideConflicts: _bykcCatalog && widget.bykcFilters.hideAgendaConflicts,
+      visible: widget.visible,
+      onWrite: widget.onBykcWrite,
+      builder: (hidden, checkingSelection, onWrite) => FeatureDetailList(
+        bykcConflictIds: hidden,
+        feature: widget.feature,
+        // 后台续载下一页不影响已显示条目的操作；整页读取或刷新时才禁用。
+        writesEnabled:
+            (widget.snapshot.status != FeatureLoadStatus.loading ||
+                widget.loadingMore) &&
+            widget.bykcPendingCourseId == null &&
+            !widget.writeBusy &&
+            !checkingSelection,
+        details: _isAssignmentList
+            ? _assignmentFilters.apply(
+                widget.snapshot.details,
+                _searchController.text,
+              )
+            : widget.snapshot.details,
+        timeline: _scheduleTimeline,
+        filter: _isAssignmentList || _isCgyyReservation
+            ? ''
+            : _searchController.text,
+        bykcStatuses: _bykcStatuses,
+        onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
+          widget.bykcFilters.copyWith(statuses: statuses),
+        ),
+        bykcCategories: _bykcCategories,
+        bykcCampuses: _bykcCampuses,
+        isBykcChosenDetail: widget.isBykcChosenDetail,
+        bykcListCourse: widget.bykcListCourse,
+        bykcPendingCourseId: widget.bykcPendingCourseId,
+        onOpenBykcChosen: widget.onOpenBykcChosen,
+        pagination: widget.snapshot.pagination,
+        bykcEndReached: _bykcEndReached,
+        paginationGeneration: widget.paginationGeneration,
+        loadingMore: widget.loadingMore,
+        moreError: widget.moreError,
+        hasMore: widget.hasMore,
+        onLoadMore: widget.onLoadMore,
+        query: widget.query ?? const FeatureQuery(),
+        onQuery: widget.onQuery == null
+            ? null
+            : (query) {
+                return widget.onQuery!(query);
+              },
+        onNavigate: widget.onNavigate,
+        onBykcWrite: onWrite,
+        onBykcSignWrite: widget.onBykcSignWrite,
+        onSigninWrite: widget.onSigninWrite,
+        onCgyyCancelWrite: widget.onCgyyCancelWrite,
+        onLibbookReserveWrite: widget.onLibbookReserveWrite,
+        onLibbookCancelWrite: widget.onLibbookCancelWrite,
+        onCgyySubmitWrite: widget.onCgyySubmitWrite,
+        cgyyFormContext: _cgyyFormContext,
+        ygdkFormContext: _ygdkFormContext,
+        onEvaluationWrite: widget.onEvaluationWrite,
+        onYgdkSubmitWrite: widget.onYgdkSubmitWrite,
+        onPickYgdkPhoto: widget.onPickYgdkPhoto,
+        onCaptureYgdkPhoto: widget.onCaptureYgdkPhoto,
       ),
-      bykcCategories: _bykcCategories,
-      bykcCampuses: _bykcCampuses,
-      isBykcChosenDetail: widget.isBykcChosenDetail,
-      bykcListCourse: widget.bykcListCourse,
-      bykcPendingCourseId: widget.bykcPendingCourseId,
-      onOpenBykcChosen: widget.onOpenBykcChosen,
-      pagination: widget.snapshot.pagination,
-      paginationGeneration: widget.paginationGeneration,
-      loadingMore: widget.loadingMore,
-      moreError: widget.moreError,
-      hasMore: widget.hasMore,
-      onLoadMore: widget.onLoadMore,
-      query: widget.query ?? const FeatureQuery(),
-      onQuery: widget.onQuery == null
-          ? null
-          : (query) {
-              return widget.onQuery!(query);
-            },
-      onNavigate: widget.onNavigate,
-      onBykcWrite: widget.onBykcWrite,
-      onBykcSignWrite: widget.onBykcSignWrite,
-      onSigninWrite: widget.onSigninWrite,
-      onCgyyCancelWrite: widget.onCgyyCancelWrite,
-      onLibbookReserveWrite: widget.onLibbookReserveWrite,
-      onLibbookCancelWrite: widget.onLibbookCancelWrite,
-      onCgyySubmitWrite: widget.onCgyySubmitWrite,
-      cgyyFormContext: _cgyyFormContext,
-      ygdkFormContext: _ygdkFormContext,
-      onEvaluationWrite: widget.onEvaluationWrite,
-      onYgdkSubmitWrite: widget.onYgdkSubmitWrite,
-      onPickYgdkPhoto: widget.onPickYgdkPhoto,
-      onCaptureYgdkPhoto: widget.onCaptureYgdkPhoto,
     );
   }
 

@@ -27,7 +27,11 @@ extension _IhomeCards on _IhomeViewState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(appeal.content),
+                // 正文完整展开，由外层列表滚动，避免继承下拉刷新的滚动配置。
+                SelectableText(
+                  appeal.content,
+                  scrollPhysics: const NeverScrollableScrollPhysics(),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   [
@@ -46,6 +50,7 @@ extension _IhomeCards on _IhomeViewState {
                         reply.department.isEmpty
                             ? reply.content
                             : '${reply.department}：${reply.content}',
+                        scrollPhysics: const NeverScrollableScrollPhysics(),
                       ),
                     ),
                 ],
@@ -214,7 +219,10 @@ Widget _ihomeHistoryStep(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(body),
+                SelectableText(
+                  body,
+                  scrollPhysics: const NeverScrollableScrollPhysics(),
+                ),
                 if (date.isNotEmpty)
                   Text(
                     date,
@@ -289,7 +297,10 @@ class _IhomeNoticeCardState extends State<_IhomeNoticeCard> {
                     ),
                     child: const Text('读取失败，点击重试'),
                   );
-                return SelectableText(snapshot.data!.data.content);
+                return SelectableText(
+                  snapshot.data!.data.content,
+                  scrollPhysics: const NeverScrollableScrollPhysics(),
+                );
               },
             ),
           ),

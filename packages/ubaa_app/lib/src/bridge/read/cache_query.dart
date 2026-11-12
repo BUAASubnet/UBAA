@@ -37,6 +37,8 @@ Future<OfflineQueryRead> bridgeReadCachedQuery(
   FeatureQuery query,
   RoutePolicy policy,
 ) async {
+  if (feature == FeatureId.bykc && !bridgeIsBykcCacheQuery(feature, query))
+    return const OfflineQueryRead(null);
   await bridgeAwaitOfflineScope(backend);
   final cache = backend.cache.handle;
   final account = backend.cache.account;

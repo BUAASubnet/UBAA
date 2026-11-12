@@ -153,6 +153,26 @@ mixin ControllerHomeSources on ControllerState {
           forceRefresh: forceRefresh,
         );
         if (result.error == null && result.evidence?.complete != false) {
+          if (current()) {
+            internalAgendaSchoolScope = (
+              accountId: internalLocalAccount?.id ?? internalUser?.username,
+              routeGeneration: internalRoutePolicyGeneration,
+              term: term,
+              route: result.resolvedRoute,
+            );
+            if (canSaveScheduleSemester) {
+              internalPruneScheduleImports();
+              // 默认同步一次，失败或取消等待显式刷新，避免重建反复请求。
+              if (forceRefresh ||
+                  !internalScheduleImports.containsKey(term) ||
+                  internalScheduleImports[term]?.status ==
+                      ScheduleImportStatus.running) {
+                entry.schoolCacheCompletion = internalSaveScheduleSemester(
+                  term,
+                );
+              }
+            }
+          }
           final weeks = result.details.where((d) {
             final p = d.presentation;
             return p is WeekPresentation &&
@@ -224,13 +244,7 @@ mixin ControllerHomeSources on ControllerState {
             stable.evidence?.complete != false &&
             stable.details.length == 1) {
           final week = stable.details.single.presentation;
-          if (week is WeekPresentation) {
-            internalAgendaSchoolScope = (
-              accountId: internalLocalAccount?.id ?? internalUser?.username,
-              routeGeneration: internalRoutePolicyGeneration,
-              term: week.responseTerm,
-              route: stable.resolvedRoute,
-            );
+          if (week is WeekPresentation && !canSaveScheduleSemester) {
             entry.schoolCacheCompletion = _cacheHomeWeek(
               this,
               week,

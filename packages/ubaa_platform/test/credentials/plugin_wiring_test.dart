@@ -17,6 +17,47 @@ void main() {
     await coordination.delete(recursive: true);
   });
 
+  test('Android 首次算法初始化允许迁移并可从损坏存储恢复', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    const plugin = MethodChannel(
+      'plugins.it_nomads.com/flutter_secure_storage',
+    );
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final values = <String, String>{};
+    messenger.setMockMethodCallHandler(plugin, (call) async {
+      final args = call.arguments as Map<Object?, Object?>;
+      final options = args['options']! as Map<Object?, Object?>;
+      if (options['migrateOnAlgorithmChange'] != 'true' ||
+          options['resetOnError'] != 'true') {
+        throw PlatformException(code: 'storage_initialization_failed');
+      }
+      final key = args['key']! as String;
+      switch (call.method) {
+        case 'read':
+          return values[key];
+        case 'write':
+          values[key] = args['value']! as String;
+        case 'delete':
+          values.remove(key);
+      }
+      return null;
+    });
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      messenger.setMockMethodCallHandler(plugin, null);
+    });
+    final materials = SecureMaterialStore(
+      coordinator: MaterialCoordinator(directory: coordination),
+      transport: const PlatformSecureMaterialTransport(
+        operatingSystem: 'android',
+      ),
+    );
+    await materials.probe();
+    expect(materials.isAvailable, isTrue);
+    expect(values, isEmpty);
+  });
+
   test('生产凭据与缓存材料共用插件，旧通道即使宣称可用也不得选中', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
     const legacy = MethodChannel('cn.edu.buaa.ubaa/platform');

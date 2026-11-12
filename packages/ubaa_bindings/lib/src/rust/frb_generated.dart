@@ -16238,6 +16238,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedBykcSupplement
+  dco_decode_box_autoadd_bridge_cached_bykc_supplement(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_bykc_supplement(raw);
+  }
+
+  @protected
   BridgeCachedCampusSection dco_decode_box_autoadd_bridge_cached_campus_section(
     dynamic raw,
   ) {
@@ -18233,8 +18240,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCachedBykcCourse dco_decode_bridge_cached_bykc_course(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 17)
-      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return BridgeCachedBykcCourse(
       id: dco_decode_i_64(arr[0]),
       courseName: dco_decode_String(arr[1]),
@@ -18255,6 +18262,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ),
       audienceCampuses: dco_decode_opt_list_String(arr[15]),
       hasSignPoints: dco_decode_opt_box_autoadd_bool(arr[16]),
+      supplement: dco_decode_opt_box_autoadd_bridge_cached_bykc_supplement(
+        arr[17],
+      ),
     );
   }
 
@@ -18352,6 +18362,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
       fetchedAt: dco_decode_i_64(arr[2]),
       complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedBykcSupplement dco_decode_bridge_cached_bykc_supplement(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeCachedBykcSupplement(
+      courseContact: dco_decode_opt_String(arr[0]),
+      courseContactMobile: dco_decode_opt_String(arr[1]),
+      organizerCollegeName: dco_decode_opt_String(arr[2]),
+      descriptionPlainText: dco_decode_opt_String(arr[3]),
+      audienceColleges: dco_decode_list_String(arr[4]),
+      audienceTerms: dco_decode_list_String(arr[5]),
+      audienceGroups: dco_decode_list_String(arr[6]),
+      signConfig: dco_decode_opt_box_autoadd_bridge_bykc_sign_display_config(
+        arr[7],
+      ),
+      attendance:
+          dco_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(
+            arr[8],
+          ),
     );
   }
 
@@ -23401,6 +23437,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedBykcSupplement?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_supplement(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_bykc_supplement(raw);
+  }
+
+  @protected
   BridgeCachedCampusSection?
   dco_decode_opt_box_autoadd_bridge_cached_campus_section(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -25242,6 +25287,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_cached_bykc_statistics_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedBykcSupplement
+  sse_decode_box_autoadd_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_bykc_supplement(deserializer));
   }
 
   @protected
@@ -27730,6 +27784,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         );
     var var_audienceCampuses = sse_decode_opt_list_String(deserializer);
     var var_hasSignPoints = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_supplement =
+        sse_decode_opt_box_autoadd_bridge_cached_bykc_supplement(deserializer);
     return BridgeCachedBykcCourse(
       id: var_id,
       courseName: var_courseName,
@@ -27748,6 +27804,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       subCategory: var_subCategory,
       audienceCampuses: var_audienceCampuses,
       hasSignPoints: var_hasSignPoints,
+      supplement: var_supplement,
     );
   }
 
@@ -27855,6 +27912,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sourceRoute: var_sourceRoute,
       fetchedAt: var_fetchedAt,
       complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedBykcSupplement sse_decode_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseContact = sse_decode_opt_String(deserializer);
+    var var_courseContactMobile = sse_decode_opt_String(deserializer);
+    var var_organizerCollegeName = sse_decode_opt_String(deserializer);
+    var var_descriptionPlainText = sse_decode_opt_String(deserializer);
+    var var_audienceColleges = sse_decode_list_String(deserializer);
+    var var_audienceTerms = sse_decode_list_String(deserializer);
+    var var_audienceGroups = sse_decode_list_String(deserializer);
+    var var_signConfig =
+        sse_decode_opt_box_autoadd_bridge_bykc_sign_display_config(
+          deserializer,
+        );
+    var var_attendance =
+        sse_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(
+          deserializer,
+        );
+    return BridgeCachedBykcSupplement(
+      courseContact: var_courseContact,
+      courseContactMobile: var_courseContactMobile,
+      organizerCollegeName: var_organizerCollegeName,
+      descriptionPlainText: var_descriptionPlainText,
+      audienceColleges: var_audienceColleges,
+      audienceTerms: var_audienceTerms,
+      audienceGroups: var_audienceGroups,
+      signConfig: var_signConfig,
+      attendance: var_attendance,
     );
   }
 
@@ -34197,6 +34287,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedBykcSupplement?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_bykc_supplement(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeCachedCampusSection?
   sse_decode_opt_box_autoadd_bridge_cached_campus_section(
     SseDeserializer deserializer,
@@ -36471,6 +36577,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_bykc_supplement(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_campus_section(
     BridgeCachedCampusSection self,
     SseSerializer serializer,
@@ -38513,6 +38628,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
     sse_encode_opt_list_String(self.audienceCampuses, serializer);
     sse_encode_opt_box_autoadd_bool(self.hasSignPoints, serializer);
+    sse_encode_opt_box_autoadd_bridge_cached_bykc_supplement(
+      self.supplement,
+      serializer,
+    );
   }
 
   @protected
@@ -38587,6 +38706,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
     sse_encode_i_64(self.fetchedAt, serializer);
     sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.courseContact, serializer);
+    sse_encode_opt_String(self.courseContactMobile, serializer);
+    sse_encode_opt_String(self.organizerCollegeName, serializer);
+    sse_encode_opt_String(self.descriptionPlainText, serializer);
+    sse_encode_list_String(self.audienceColleges, serializer);
+    sse_encode_list_String(self.audienceTerms, serializer);
+    sse_encode_list_String(self.audienceGroups, serializer);
+    sse_encode_opt_box_autoadd_bridge_bykc_sign_display_config(
+      self.signConfig,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_bykc_course_attendance_display(
+      self.attendance,
+      serializer,
+    );
   }
 
   @protected
@@ -43596,6 +43738,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         self,
         serializer,
       );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_bykc_supplement(self, serializer);
     }
   }
 

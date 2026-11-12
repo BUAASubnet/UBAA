@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:ubaa_ui/src/features/agenda/format.dart' show AgendaAccess;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -179,6 +180,8 @@ class Scenario {
                 status: BykcCourseStatus.available,
                 selected: false,
                 isDetail: query.view == FeatureQueryView.bykcDetail,
+                courseStartDate: '2026-11-18 14:00:00',
+                courseEndDate: '2026-11-18 16:00:00',
               ),
         actions: [
           chosen
@@ -211,6 +214,7 @@ Future<Scenario> mount(
   WidgetTester tester, {
   bool chosen = false,
   bool allowed = true,
+  AgendaAccess agenda = const AgendaAccess(),
   required Future<WriteCommitResult> Function() commit,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -226,6 +230,7 @@ Future<Scenario> mount(
           state.update = update;
           return coordinatedShell(
             user: const UserSummary(username: 'synthetic'),
+            agenda: agenda,
             routePolicy: RoutePolicy.direct,
             snapshots: {
               for (final feature in FeatureId.values)

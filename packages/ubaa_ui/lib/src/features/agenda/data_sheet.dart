@@ -107,10 +107,7 @@ extension _AgendaDataSheet on AgendaViewState {
                       (s.missingScopes.isNotEmpty ||
                           s.semesterImported != true),
                 ))
-                  note(
-                    Icons.calendar_month_outlined,
-                    '只显示看过的几周课表，导入整学期课表可查看全部周。',
-                  ),
+                  note(Icons.calendar_month_outlined, '课表尚未同步完整。'),
                 if (data.sources.fold<int>(
                       0,
                       (sum, s) => sum + s.unprojectableCount,
@@ -137,7 +134,7 @@ extension _AgendaDataSheet on AgendaViewState {
                       }
                     : null,
                 icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                label: const Text('导入整学期课表'),
+                label: const Text('刷新课表'),
               ),
             ],
           );
@@ -152,7 +149,7 @@ extension _AgendaDataSheet on AgendaViewState {
     final data = result;
     final noSchool =
         data != null && data.sources.every((s) => s.observations.isEmpty);
-    // 课表其他周未缓存属于正常情况，提示导入整学期而不是警告。
+    // 课表同步进度在数据面板显示，已有日程继续可用。
     final partial =
         data != null &&
         (data.schoolCacheFailure != null ||

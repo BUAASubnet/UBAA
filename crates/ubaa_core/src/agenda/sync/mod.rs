@@ -1,6 +1,8 @@
 //! 跨设备同步的文档、稳定记录版本及本机快照。
 mod deletions;
 mod document;
+mod pending;
+pub(super) use pending::StoredPending;
 pub(crate) mod publication;
 pub(super) mod sqlite;
 mod state;
