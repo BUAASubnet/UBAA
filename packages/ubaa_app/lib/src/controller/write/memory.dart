@@ -159,6 +159,7 @@ mixin ControllerWriteCache on ControllerState {
         !internalCanRefreshAfterWrite)
       return;
     internalWriteRefreshScheduled = true;
+    final generations = Map.of(internalFeatureRefreshGenerations);
     scheduleMicrotask(() {
       internalWriteRefreshScheduled = false;
       if (!internalCanRefreshAfterWrite) return;
@@ -166,7 +167,15 @@ mixin ControllerWriteCache on ControllerState {
       internalWriteRefreshes.clear();
       for (final entry in pending.entries) {
         if (!entry.value.current()) continue;
-        unawaited(internalRefreshWrittenFeature(entry.key, entry.value));
+        unawaited(
+          internalRefreshWrittenFeature(
+            entry.key,
+            entry.value,
+            refreshQuery:
+                generations[entry.key] ==
+                internalFeatureRefreshGenerations[entry.key],
+          ),
+        );
       }
     });
   }
@@ -174,14 +183,18 @@ mixin ControllerWriteCache on ControllerState {
   @internal
   Future<void> internalRefreshWrittenFeature(
     FeatureId feature,
-    WriteRefreshRequest request,
-  ) async {
+    WriteRefreshRequest request, {
+    required bool refreshQuery,
+  }) async {
     if (!request.current()) return;
-    final query = internalSnapshots[feature]!.readContext?.query;
-    if (query == null) {
-      await internalRefreshHome(only: [feature]);
-    } else {
-      await internalRefreshFeatureQuery(feature, query);
+    // 页面可能已开始新查询并正在预读缓存，不能用旧快照的查询撤销它。
+    if (refreshQuery) {
+      final query = internalSnapshots[feature]!.readContext?.query;
+      if (query == null) {
+        await internalRefreshHome(only: [feature]);
+      } else {
+        await internalRefreshFeatureQuery(feature, query);
+      }
     }
     if (!request.current()) return;
     final source = switch (feature) {

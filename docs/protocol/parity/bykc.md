@@ -34,6 +34,12 @@ Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` �
 
 ## 专项记录
 
+### 选课后列表刷新调度（2026-11-12）
+
+本次重新核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `BykcViewModel.selectCourse/deselectCourse`、`LocalBykcApi.getCourses/selectCourse/deselectCourse`，以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/opt.rs`。旧版成功后刷新详情、已选和课程列表；示例的选退课方法只返回操作结果，没有界面刷新调度。
+
+CAS/service、跳转及最终 URL、Cookie/Token 作用域、HTTP 方法与参数、头与正文编码、加密常量、DTO 解析和上游错误均沿本页基线。调整仅限 App 读取并发：写后排队的后台刷新不得撤销随后发起的页面查询，包括页面查询等待本机预读的阶段。固定原路线的写后核对继续完成，首页已选补充继续更新；页面按在线结果替换列表，真正读取失败仍保留旧列表并提示重试。写请求不重发。
+
 ### 选课日程冲突提示与筛选（2026-11-12）
 
 冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalBykcApi.getCourses/getCourseDetail` 和 `Bykc.kt`、固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/{opt,data}.rs` 均提供 `courseStartDate/courseEndDate`；两源没有与本机日程比较的功能。新增比较属于本机展示逻辑：CAS/service、跳转、Cookie/Token、方法与参数、请求头与编码、加密常量、DTO、学校重试与错误均沿用上文基线，不新增学校请求或写入协议。
