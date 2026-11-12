@@ -15,9 +15,8 @@ Future<String> readMacOSProductVersion() async {
 
 ({bool available, PlatformPermissionStatus permission})
 photoExpectationForMacOS(String productVersion) {
-  final version = RegExp(
-    r'^(\d+)\.(\d+)(?:\.\d+)?$',
-  ).firstMatch(productVersion);
+  final version = RegExp(r'^(\d+)\.(\d+)(?:\.\d+)?$')
+      .firstMatch(productVersion);
   if (version == null) throw const FormatException('macOS 系统版本格式无效');
   final available = int.parse(version.group(1)!) >= 11;
   return (

@@ -1,12 +1,15 @@
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
+
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
 import '../../../test/support/navigation/native.dart';
 import '../../../test/support/assignments/backend.dart';
 
@@ -161,12 +164,10 @@ Future<void> _shot(
   await tester.pump(const Duration(milliseconds: 300));
   expect(tester.takeException(), isNull);
   final size = tester.view.physicalSize, ratio = tester.view.devicePixelRatio;
-  final rows =
-      (binding.reportData ??= <String, dynamic>{}).putIfAbsent(
-            'uiEvidence',
-            () => <Object?>[],
-          )
-          as List;
+  final rows = (binding.reportData ??= <String, dynamic>{}).putIfAbsent(
+    'uiEvidence',
+    () => <Object?>[],
+  ) as List;
   rows.add({
     'name': name,
     'steps': steps,

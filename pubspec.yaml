@@ -1,7 +1,7 @@
 name: ubaa_workspace
 publish_to: none
 environment:
-  sdk: ">=3.11.5 <4.0.0"
+  sdk: ">=3.14.0 <4.0.0"
 workspace:
   - packages/ubaa_domain
   - packages/ubaa_platform

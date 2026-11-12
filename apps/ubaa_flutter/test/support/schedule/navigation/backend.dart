@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+
 import '../parity/backend.dart';
 
 /// 周导航用明确合成学期/教学周，沿既有课表fake，不触及学校网络。

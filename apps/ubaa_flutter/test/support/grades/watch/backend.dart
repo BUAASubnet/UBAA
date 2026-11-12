@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../parity/backend.dart';
 
 /// 成绩变化验收的显式内存backend；score由测试动作改变，不访问学校。

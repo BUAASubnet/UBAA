@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
 import '../../../test/support/platform/native_materials.dart';
 
 void main() {

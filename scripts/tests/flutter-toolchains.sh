@@ -47,15 +47,15 @@ if [[ $UBAA_TEST_SDK_OUTPUT == long ]]; then
   done
 fi
 if [[ $UBAA_TEST_SDK_OUTPUT == later-banner ]]; then
-  printf '%s\n' 'Flutter 3.41.9'
+  printf '%s\n' 'Flutter 3.50.0'
 fi
-printf '%s\n' '后续诊断包含 Flutter 3.41.9，但不能替代独立版本行'
+printf '%s\n' '后续诊断包含 Flutter 3.50.0，但不能替代独立版本行'
 printf '%s\n' 'stdout 已完整写出' >"$UBAA_TEST_SDK_COMPLETED"
 FAKE_FLUTTER
 chmod +x "$test_root/fake-bin/git" "$sdk_root/bin/flutter"
 
 pass_count=0
-official_commit=00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+official_commit=ab2912035e160d9cad6306df307576da6128ebdb
 ohos_commit=adaf911c35c9136a7d18fc424d714c9ec7724e60
 
 fail() {
@@ -88,9 +88,9 @@ run_checker() {
     bash "$checker" "$mode" >"$test_root/$name.out" 2>"$test_root/$name.err"
 }
 
-if run_checker long "$official_commit" 'Flutter 3.41.9' long; then
+if run_checker long "$official_commit" 'Flutter 3.50.0' long; then
   [[ -f "$test_root/long.complete" ]] || fail '成功检查必须等待 stdout 全部写出'
-  [[ $(<"$test_root/long.out") == "官方Flutter 已锁定：3.41.9 @ $official_commit" ]] \
+  [[ $(<"$test_root/long.out") == "官方Flutter 已锁定：3.50.0 @ $official_commit" ]] \
     || fail '版本检查输出必须只保留确认信息'
   grep -F 'bootstrap 诊断写入 stderr' "$test_root/long.err" >/dev/null
 else
@@ -105,14 +105,14 @@ fi
 grep -F '版本不匹配' "$test_root/wrong-version.err" >/dev/null
 pass '第一条版本行错误时拒绝，即使后续存在正确版本行'
 
-if run_checker wrong-commit 0000000000000000000000000000000000000000 'Flutter 3.41.9' short; then
+if run_checker wrong-commit 0000000000000000000000000000000000000000 'Flutter 3.50.0' short; then
   fail '错误 commit 被接受'
 fi
 grep -F 'commit 不匹配' "$test_root/wrong-commit.err" >/dev/null
 [[ ! -e "$test_root/wrong-commit.complete" ]] || fail 'commit 不符时不得执行 Flutter'
 pass '错误 commit 在启动 Flutter 前被拒绝'
 
-if run_checker failed "$official_commit" 'Flutter 3.41.9' fail; then
+if run_checker failed "$official_commit" 'Flutter 3.50.0' fail; then
   fail 'Flutter 输出正确版本后执行失败被错误接受'
 else
   status=$?
@@ -133,7 +133,7 @@ else
 fi
 pass 'OHOS 同样完整消费 stdout 并接受其锁定版本'
 
-if run_checker cold "$official_commit" 'Flutter 3.41.9' cold; then
+if run_checker cold "$official_commit" 'Flutter 3.50.0' cold; then
   [[ -f "$test_root/cold.complete" ]] || fail '冷启动输出未被完整消费'
 else
   status=$?
@@ -141,10 +141,10 @@ else
 fi
 pass '允许冷启动进度、下载文案及空行出现在真正版本行之前'
 
-if run_checker version-collision "$official_commit" 'Flutter 3.41.90' short; then
-  fail '版本前缀碰撞 3.41.90 被错误接受为 3.41.9'
+if run_checker version-collision "$official_commit" 'Flutter 3.50.00' short; then
+  fail '版本前缀碰撞 3.50.00 被错误接受为 3.50.0'
 fi
 grep -F '版本不匹配' "$test_root/version-collision.err" >/dev/null
-pass '精确比较版本 token，拒绝 3.41.90 前缀碰撞'
+pass '精确比较版本 token，拒绝 3.50.00 前缀碰撞'
 
 printf 'Flutter 工具链 Shell 合同通过：%s 项\n' "$pass_count"

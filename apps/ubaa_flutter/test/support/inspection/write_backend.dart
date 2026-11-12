@@ -210,8 +210,7 @@ final class _AllWritesIntegrationBackend
             FeatureField(label: '状态', value: '待评'),
             FeatureField(
               label: '课程 ID',
-              value:
-                  'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
+              value: 'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
             ),
           ],
           actions: <FeatureAction>[

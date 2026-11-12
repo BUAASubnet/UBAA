@@ -489,7 +489,7 @@ class _BhpanViewState extends State<BhpanView> {
           );
           if (!_current(generation) || name == null || name == item.name)
             return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               BhpanMutationKind.rename,
               target: item.handle,
@@ -516,7 +516,7 @@ class _BhpanViewState extends State<BhpanView> {
                 : null,
           );
           if (!_current(generation) || dest == null) return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               action == BhpanAction.move
                   ? BhpanMutationKind.move
@@ -533,7 +533,7 @@ class _BhpanViewState extends State<BhpanView> {
             isFolder: item.isFolder,
           );
           if (!_current(generation) || settings == null) return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               BhpanMutationKind.createShare,
               target: item.handle,
@@ -541,7 +541,7 @@ class _BhpanViewState extends State<BhpanView> {
             ),
           );
         case BhpanAction.recycle:
-          return _mutate(
+          return await _mutate(
             BhpanMutation(BhpanMutationKind.recycle, target: item.handle),
             style,
           );

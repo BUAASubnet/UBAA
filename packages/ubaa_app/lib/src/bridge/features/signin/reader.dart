@@ -20,7 +20,7 @@ Future<FeatureResult> bridgeLoadSigninHome(
     final account = useCache ? backend.cache.account : null;
     if (cache != null && account != null) {
       final value = await backend.client.homeSigninCached(cache: cache);
-      return bridgeFinishHomeRefresh(
+      return await bridgeFinishHomeRefresh(
         backend,
         cache,
         account,

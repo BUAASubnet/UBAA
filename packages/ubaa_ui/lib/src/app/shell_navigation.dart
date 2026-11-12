@@ -2,6 +2,24 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  Widget _withRefreshShortcuts(
+    Widget shell,
+    Future<void> Function()? refreshPage,
+  ) {
+    // 桌面快捷键的父层级保持稳定，切页时只调整可用的绑定。
+    void refresh() => unawaited(refreshPage?.call());
+    return CallbackShortcuts(
+      bindings: {
+        if (refreshPage != null)
+          const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
+        if (refreshPage != null)
+          const SingleActivator(LogicalKeyboardKey.keyR, control: true):
+              refresh,
+      },
+      child: Focus(autofocus: true, child: shell),
+    );
+  }
+
   void _goBack() {
     if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {

@@ -63,6 +63,8 @@ check(!hasPartialReleaseSigning || hasReleaseSigning) {
     "Android 签名必须同时提供 keystore 文件、store/key 密码和 key alias"
 }
 
+// 部分插件仍使用旧 Android DSL，AGP 9 兼容模式保留此入口。
+@Suppress("DEPRECATION")
 android {
     namespace = "cn.edu.ubaa.ubaa_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -72,10 +74,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     // 本地与 CI 默认压缩原生库；从 App Bundle 生成的 APK 同样沿用此设置。
@@ -134,6 +132,16 @@ android {
             ndk.abiFilters.clear()
             ndk.abiFilters.add(abi)
         }
+        // AGP 9 的 NDK 筛选不排除依赖中的预编译库，打包时同步收拢 ABI。
+        packaging.jniLibs.excludes.addAll(
+            (setOf("armeabi-v7a", "arm64-v8a", "x86_64") - abi).map { "**/$it/**" }
+        )
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
@@ -143,7 +151,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     // 与锁定Flutter integration_test原生运行时保持一致，避免跨配置强约束冲突。
-    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:runner:1.3.0")
 }
 
 flutter {
