@@ -159,36 +159,42 @@ def build(account_id, database_id):
                     f"ON a.day=d.day AND a.{FILT.replace(' AND channel', ' AND a.channel')} "
                     f"GROUP BY d.day ORDER BY d.day")
     panels += [
-        stat("今日活跃用户", (0, y, 4, 5), daily_active,
-             [("time", "时间", "timestamp_epoch"), ("users", "活跃用户", "number")], C[0],
-             "今天登记了账号的去重用户数，曲线为所选时段每日值。未绑定账号的设备不计入。",
+        stat("今日活跃", (0, y, 4, 5), daily_active,
+             [("time", "时间", "timestamp_epoch"), ("users", "用户", "number"), ("devices", "设备", "number")],
+             C[0],
+             "今天的去重用户数和设备数，曲线为所选时段每日值。用户只计登记了账号的，设备按安装标识去重。"
+             "客户端约每 6 小时上传一次，启动时的首次上传通常还没有账号，所以当天用户数会滞后几小时。",
              fmt="timeseries", spark=True),
-        stat("今日活跃设备", (4, y, 4, 5), daily_active,
-             [("time", "时间", "timestamp_epoch"), ("devices", "活跃设备", "number")], C[2],
-             "今天上报过的去重安装标识数。重装会产生新标识，不等于物理设备数。",
-             fmt="timeseries", spark=True),
-        stat("时段内活跃用户", (8, y, 4, 5),
+        stat("昨日用户", (4, y, 4, 5),
+             f"SELECT COUNT(DISTINCT NULLIF(user_key,'')) AS users FROM active_days "
+             f"WHERE day=date('now','+8 hours','-1 day') AND {FILT}",
+             [("users", "用户", "number")], C[0],
+             "昨天（北京时间）登记了账号的去重用户数，不受所选时段影响。完整自然日的数据基本已到齐，比今日数字更能代表日活；7 天内的迟到上传仍可能小幅修订。"),
+        stat("时段内用户", (8, y, 4, 5),
              f"SELECT COUNT(DISTINCT NULLIF(user_key,'')) AS users FROM active_days WHERE {WHERE}",
              [("users", "用户", "number")], C[6], "所选时段内去重的活跃用户总数（不是每日之和）。"),
-        stat("今日启动次数", (12, y, 4, 5),
+        stat("今日启动", (12, y, 4, 5),
              f"{DAYS} SELECT {TS}, COALESCE(SUM(c.count),0) AS starts FROM d LEFT JOIN counter_days c "
              f"ON c.day=d.day AND c.event='app_started' AND c.{FILT.replace(' AND channel', ' AND c.channel')} "
              f"GROUP BY d.day ORDER BY d.day",
              [("time", "时间", "timestamp_epoch"), ("starts", "启动", "number")], C[1],
              "今天的冷启动次数，曲线为所选时段每日值。", fmt="timeseries", spark=True),
-        stat("功能加载成功率", (16, y, 4, 5),
+        stat("加载成功率", (16, y, 4, 5),
              f"SELECT CAST(SUM(CASE WHEN result<>'failure' THEN count ELSE 0 END) AS REAL)/NULLIF(SUM(count),0) AS rate "
              f"FROM counter_days WHERE event='feature_loaded' AND {WHERE}",
              [("rate", "成功率", "number")], GOOD,
              "所选时段内功能加载的成功率。空结果（如本学期无考试）按成功计。",
              unit="percentunit", decimals=1,
              thresholds=[{"color": CRIT, "value": None}, {"color": WARN, "value": 0.9}, {"color": GOOD, "value": 0.97}]),
-        stat("最近一次上报", (20, y, 4, 5),
+        stat("最近上报", (20, y, 4, 5),
              "SELECT unixepoch(MAX(received_at))*1000 AS t FROM batches",
              [("t", "最近上报", "number")], C[0],
              "服务端最近收到遥测批次的时间，不受筛选影响。长时间没有更新时应检查客户端或 Worker。",
              unit="dateTimeFromNow"),
     ]
+    today = next(panel for panel in panels if panel.get("title") == "今日活跃")
+    today["options"]["textMode"] = "value_and_name"
+    today["fieldConfig"]["overrides"] = [color_override("设备", C[2])]
     y += 5
 
     # ───────── 活跃 ─────────
