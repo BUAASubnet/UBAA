@@ -102,6 +102,7 @@ final class AgendaAccess {
     this.term = '',
     this.onChanged,
     this.prepareSync,
+    this.ensureSchedule,
     this.saveFile,
   });
   final AgendaService? service;
@@ -109,6 +110,7 @@ final class AgendaAccess {
   final String term;
   final void Function()? onChanged;
   final AgendaSyncPrepare? prepareSync;
+  final Future<void> Function()? ensureSchedule;
   final Future<String?> Function(AgendaExportResult, String, bool Function())?
   saveFile;
 }

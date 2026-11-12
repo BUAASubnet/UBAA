@@ -958,6 +958,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onOpenSchool: _openHomeNavigation,
       onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
       onImportSchedule: _importAgendaSchedule,
+      onEnsureSchedule: widget.connecting ? null : widget.agenda.ensureSchedule,
       onChanged: widget.agenda.onChanged,
       onSaveFile: widget.agenda.saveFile,
     ),

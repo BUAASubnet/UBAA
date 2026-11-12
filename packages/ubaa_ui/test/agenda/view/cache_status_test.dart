@@ -121,7 +121,7 @@ void main() {
       isTrue,
     );
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(OutlinedButton, '导入整学期课表'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '刷新课表'));
     await tester.pumpAndSettle();
     expect(imported, 1);
     expect(refreshed, 1);
@@ -134,7 +134,7 @@ void main() {
     await service.dispose();
   });
 
-  testWidgets('仅缺其他教学周的课表时提示导入整学期课表', (tester) async {
+  testWidgets('课表未同步完整时保留刷新入口', (tester) async {
     final backend = MemoryAgenda();
     final epoch = DateTime.utc(2026, 11, 5, 1).millisecondsSinceEpoch ~/ 1000;
     backend.sources.add(
@@ -188,7 +188,7 @@ void main() {
     // 正常状态不显示数据提示条，入口在更多菜单。
     expect(find.byKey(const ValueKey('agenda-data-notice')), findsNothing);
     await openAgendaDataSheet(tester);
-    expect(find.text('只显示看过的几周课表，导入整学期课表可查看全部周。'), findsOneWidget);
+    expect(find.text('课表尚未同步完整。'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('agenda-cache-schedule')),
@@ -196,7 +196,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, '导入整学期课表'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '刷新课表'));
     await tester.pumpAndSettle();
     expect(imported, 1);
     expect(
