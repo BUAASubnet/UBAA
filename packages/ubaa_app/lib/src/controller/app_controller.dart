@@ -35,6 +35,7 @@ import 'recovery/grades.dart' show ControllerOfflineGrades;
 import 'recovery/query.dart' show ControllerOfflineQuery;
 import 'recovery/read_options.dart' show ControllerLocalReadOptions;
 import 'recovery/required.dart' show ControllerRequiredRecovery;
+import 'recovery/services.dart' show ControllerServiceRecovery;
 import 'recovery/resume.dart' show ControllerDeferredRecovery;
 import 'recovery/retry.dart' show ControllerRecoveryRetry;
 import 'recovery/startup.dart' show ControllerOfflineStartup;
@@ -88,6 +89,7 @@ class AppController extends ControllerState
         ControllerRecoveryRetry,
         ControllerBusinessRetry,
         ControllerRequiredRecovery,
+        ControllerServiceRecovery,
         ControllerAuthentication,
         ControllerAuthenticationCompletion,
         ControllerSettings,
@@ -217,7 +219,9 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        readService: internalReadService,
         onRejected: internalReportUserSchoolRejection,
+        recordFailure: internalRecordServiceFailure,
       );
     }
     return _bhpanService;
@@ -243,6 +247,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        read: internalReadService,
         onRejected: internalReportUserSchoolRejection,
       );
     }

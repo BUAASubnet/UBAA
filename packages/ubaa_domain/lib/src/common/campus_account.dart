@@ -38,7 +38,14 @@ final class CampusMetricValue<T> extends CampusMetric<T> {
 }
 
 final class CampusMetricFailure<T> extends CampusMetric<T> {
-  const CampusMetricFailure(this.message, {required super.fetchedAt});
+  const CampusMetricFailure(
+    this.message, {
+    required super.fetchedAt,
+    this.error,
+  });
+
+  /// 保留错误分类与实际路线，供恢复和脱敏诊断使用。
+  final UiError? error;
 
   /// 已脱敏的用户可读说明。
   final String message;
