@@ -34,6 +34,12 @@ Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` �
 
 ## 专项记录
 
+### 博雅列表展示顺序（2026-11-12）
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `BykcViewModel.loadCourses` 保留响应顺序，`loadMoreCourses` 在已有课程后追加新页；`BykcCoursesScreen` 展示 `filterBykcCourses` 筛选后的原顺序。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/opt.rs::query_courses` 直接返回解析后的课程列表，没有额外排序或 UI 缓存实现。
+
+选课列表按服务端返回顺序展示，缓存与在线内容共用这一规则，搜索和筛选保留课程相对顺序。续载沿用按 ID 去重、原位置更新和末尾追加，不按开课时间重排已加载集合。请求、DTO、缓存格式、并发和错误处理沿用上文逐操作基线，纯展示调整不新增认证或学校请求。原开课时间升序测试由服务端顺序测试替代，另覆盖缓存转在线、后页包含更早课程时的首屏位置以及筛选后的相对顺序。
+
 ### 博雅列表缓存与按需分页（2026-11-11）
 
 冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `BykcViewModel.ensureCoursesLoaded/loadCourses/loadMoreCourses` 在同一查询范围复用已加载列表，滚动时才追加下一页，刷新失败保留旧内容。`LocalBykcApi.kt` 与 `Bykc.kt` 提供课程分页及时间、状态字段。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/boya/opt.rs::query_courses` 由调用者提供页码和大小，没有本机缓存或自动批量预取。

@@ -2,6 +2,8 @@ import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/common/details/detail_list.dart';
+import 'package:ubaa_ui/src/common/paged_results.dart';
 import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
@@ -133,7 +135,7 @@ void main() {
     );
     expect(queries, isEmpty);
   });
-  testWidgets('博雅课程列表按上课时间升序', (tester) async {
+  testWidgets('博雅课程列表保留服务端返回顺序', (tester) async {
     FeatureDetail course(int id, String name, String start) => FeatureDetail(
       title: name,
       presentation: BykcCoursePresentation(
@@ -149,11 +151,93 @@ void main() {
       course(3, '中间博雅', '2026-11-22 18:00:00'),
     ]);
     final order = [
+      '较晚博雅',
       '较早博雅',
       '中间博雅',
-      '较晚博雅',
     ].map((name) => tester.getTopLeft(find.text(name)).dy).toList();
     expect(order, [...order]..sort());
+  });
+  testWidgets('博雅缓存转在线及续载保留首屏，筛选和搜索保持课程相对顺序', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(402, 874);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    FeatureDetail course(int id, String start, BykcCourseStatus status) =>
+        FeatureDetail(
+          title: '合成课程$id',
+          presentation: BykcCoursePresentation(
+            id: id,
+            courseName: '合成课程$id',
+            courseStartDate: start,
+            status: status,
+          ),
+        );
+    final first = [
+      course(1, '2026-11-18 19:00:00', BykcCourseStatus.preview),
+      course(2, '2026-11-01 19:00:00', BykcCourseStatus.expired),
+      course(3, '2026-11-20 19:00:00', BykcCourseStatus.preview),
+    ];
+    FeatureSnapshot page(int number, List<FeatureDetail> details) =>
+        FeatureSnapshot(
+          feature: FeatureId.bykc,
+          status: FeatureLoadStatus.success,
+          resolvedRoute: ConnectionMode.direct,
+          pagination: FeaturePagination(page: number, size: 3, total: 4),
+          details: details,
+        );
+    final feed = PagedResults();
+    Future<void> show(FeatureSnapshot snapshot, {String filter = ''}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FeatureDetailList(
+              feature: FeatureId.bykc,
+              details: snapshot.details,
+              filter: filter,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    const query = FeatureQuery(page: 1);
+    final cached = CachedFeatureProjection(
+      feature: FeatureId.bykc,
+      accountId: 'synthetic',
+      route: ConnectionMode.direct,
+      fetchedAt: DateTime(2026, 11, 12),
+      complete: true,
+      query: query,
+      pagination: page(1, first).pagination,
+      details: first,
+    ).toSnapshot();
+    await show(feed.accept(cached, query));
+    final top = tester.getTopLeft(find.text('合成课程1')).dy;
+    expect(find.text('合成课程2'), findsNothing);
+    final online = feed.accept(page(1, first), query);
+    await show(online);
+    expect(tester.getTopLeft(find.text('合成课程1')).dy, top);
+    final next = feed.begin(online, query);
+    expect(next?.page, 2);
+    final merged = feed.accept(
+      page(2, [course(4, '2026-11-12 19:00:00', BykcCourseStatus.full)]),
+      next,
+    );
+    await show(merged);
+    expect(tester.getTopLeft(find.text('合成课程1')).dy, top);
+    expect(
+      tester.state<ScrollableState>(find.byType(Scrollable)).position.pixels,
+      0,
+    );
+    await show(merged, filter: '合成课程');
+    final positions = [
+      1,
+      3,
+      4,
+    ].map((id) => tester.getTopLeft(find.text('合成课程$id')).dy).toList();
+    expect(positions, [...positions]..sort());
+    expect(find.text('合成课程2'), findsNothing);
   });
   testWidgets('博雅卡片正文仍进入详情且列表显示选课入口', (tester) async {
     final queries = <FeatureQuery>[];

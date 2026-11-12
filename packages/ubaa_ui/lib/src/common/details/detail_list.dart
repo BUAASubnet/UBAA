@@ -15,7 +15,6 @@ import '../../features/bykc/chosen_card.dart' show BykcChosenCard;
 import '../../features/bykc/course_card.dart' show BykcCourseCard;
 import '../../features/bykc/display.dart'
     show
-        uiSortBykcCourses,
         BykcInfoLine,
         BykcStatusChip,
         uiBykcCheckinLabel,
@@ -175,22 +174,19 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     final query = widget.filter.trim().toLowerCase();
     final candidates = widget.feature != FeatureId.bykc
         ? widget.details
-        : uiSortBykcCourses(
-            widget.details
-                .where(
-                  (detail) =>
-                      detail.presentation is! BykcCoursePresentation ||
-                      (detail.presentation! as BykcCoursePresentation)
-                          .isDetail ||
-                      uiMatchesBykcFilters(
-                        detail.presentation! as BykcCoursePresentation,
-                        widget.bykcStatuses,
-                        widget.bykcCategories,
-                        widget.bykcCampuses,
-                      ),
-                )
-                .toList(),
-          );
+        : widget.details
+              .where(
+                (detail) =>
+                    detail.presentation is! BykcCoursePresentation ||
+                    (detail.presentation! as BykcCoursePresentation).isDetail ||
+                    uiMatchesBykcFilters(
+                      detail.presentation! as BykcCoursePresentation,
+                      widget.bykcStatuses,
+                      widget.bykcCategories,
+                      widget.bykcCampuses,
+                    ),
+              )
+              .toList();
     final details = query.isEmpty
         ? candidates
         : candidates
