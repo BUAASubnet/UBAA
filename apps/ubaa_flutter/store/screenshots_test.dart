@@ -204,7 +204,6 @@ Future<void> _writeFrame(
 
 Iterable<_Scene> _scenes(StoreDevice device) => switch (device) {
   StoreDevice.desktop => const [_Scene.home, _Scene.schedule, _Scene.agenda],
-  StoreDevice.android => _Scene.values.take(5),
   _ => _Scene.values,
 };
 
