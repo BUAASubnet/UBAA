@@ -52,6 +52,14 @@ enum StoreDevice {
     padding: EdgeInsets.only(top: 36, bottom: 24),
     platform: TargetPlatform.android,
   ),
+  // AppGallery 的 3:2 平板横图。
+  androidTablet(
+    canvas: Size(1920, 1280),
+    screen: Size(1200, 800),
+    pixelRatio: 1.6,
+    padding: EdgeInsets.only(top: 24, bottom: 24),
+    platform: TargetPlatform.android,
+  ),
   // Mac App Store 与使用指南网站的桌面图。
   desktop(
     canvas: Size(2880, 1800),
@@ -75,9 +83,12 @@ enum StoreDevice {
   final EdgeInsets padding;
   final TargetPlatform platform;
 
+  bool get isTablet => this == ipad || this == androidTablet;
+
   String get directory => switch (this) {
     iphoneLarge => 'iphone_large',
     iphoneMedium => 'iphone_medium',
+    androidTablet => 'android_tablet',
     _ => name,
   };
 }

@@ -33,17 +33,17 @@ class StoreFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = device.canvas;
     final unit = size.shortestSide / 100;
-    final tablet = device == StoreDevice.ipad;
+    final tablet = device.isTablet;
     final headline = switch (device) {
       StoreDevice.iphone ||
       StoreDevice.iphoneLarge ||
       StoreDevice.iphoneMedium ||
       StoreDevice.android => unit * 7.6,
-      StoreDevice.ipad => unit * 4.8,
+      StoreDevice.ipad || StoreDevice.androidTablet => unit * 4.8,
       StoreDevice.desktop => unit * 5.4,
     };
     final top = switch (device) {
-      StoreDevice.ipad => size.height * .027,
+      StoreDevice.ipad || StoreDevice.androidTablet => size.height * .027,
       StoreDevice.desktop => size.height * .045,
       _ => size.height * .04,
     };
@@ -194,7 +194,7 @@ class _Device extends StatelessWidget {
       StoreDevice.iphoneLarge ||
       StoreDevice.iphoneMedium ||
       StoreDevice.android => 11.0,
-      StoreDevice.ipad => 18.0,
+      StoreDevice.ipad || StoreDevice.androidTablet => 18.0,
       StoreDevice.desktop => 0.0,
     };
     final titleBar = desktop ? 34.0 : 0.0;
@@ -203,7 +203,7 @@ class _Device extends StatelessWidget {
       StoreDevice.iphoneLarge ||
       StoreDevice.iphoneMedium => 52.0,
       StoreDevice.android => 40.0,
-      StoreDevice.ipad => 26.0,
+      StoreDevice.ipad || StoreDevice.androidTablet => 26.0,
       StoreDevice.desktop => 14.0,
     };
     final outer = Size(
@@ -312,7 +312,8 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = dark ? Colors.white : const Color(0xFF111111);
     final height = device.padding.top;
-    final android = device == StoreDevice.android;
+    final android =
+        device == StoreDevice.android || device == StoreDevice.androidTablet;
     final ipad = device == StoreDevice.ipad;
     final iconSize = android ? 16.0 : (ipad ? 15.0 : 18.0);
     final camera = switch (device) {
@@ -328,16 +329,17 @@ class _StatusBar extends StatelessWidget {
         height: height,
         child: Stack(
           children: [
-            Center(
-              child: Container(
-                width: camera,
-                height: camera,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0B0D10),
-                  shape: BoxShape.circle,
+            if (device != StoreDevice.androidTablet)
+              Center(
+                child: Container(
+                  width: camera,
+                  height: camera,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0B0D10),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
             Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: android ? 22 : (ipad ? 24 : 36),
