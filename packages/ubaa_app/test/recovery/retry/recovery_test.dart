@@ -170,6 +170,46 @@ void main() {
       controller.dispose();
     });
   }
+  testWidgets('单功能退避后遇到非临时失败仍更新原查询的错误状态', (tester) async {
+    final backend = _TargetQueryBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: ClockAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession(refreshHomeAfter: false);
+    const query = FeatureQuery(term: 'synthetic-term');
+    await controller.refreshFeatureQuery(FeatureId.spoc, query);
+    expect(controller.snapshots[FeatureId.spoc]!.error, isNull);
+
+    backend.targetError = const BackendException(UbaaErrorCode.networkError);
+    await controller.recoverSession(
+      feature: FeatureId.spoc,
+      refreshHomeAfter: false,
+    );
+    backend.targetError = const BackendException(UbaaErrorCode.parseError);
+    await controller.recoverSession(
+      feature: FeatureId.spoc,
+      refreshHomeAfter: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+    expect(
+      controller.recoveryStatusFor(FeatureId.spoc),
+      SessionRecoveryStatus.unavailable,
+    );
+    expect(
+      controller.snapshots[FeatureId.spoc]!.error?.code,
+      UbaaErrorCode.parseError,
+    );
+    expect(
+      controller.snapshots[FeatureId.spoc]!.readContext?.hasSameQuery(query),
+      isTrue,
+    );
+    controller.dispose();
+  });
   testWidgets('明确不可重试的临时错误和销毁后的回调不启动恢复', (tester) async {
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(
@@ -238,4 +278,41 @@ class _NetworkWakeBackend extends fixtures.FakeRecoveryBackend
     ConnectionMode route,
     LoginInput input,
   ) async => throw StateError('本测试不应提交密码');
+}
+
+class _TargetQueryBackend extends fixtures.FakeRecoveryBackend
+    implements
+        RequiredSessionBackend,
+        ProgressiveReadBackend,
+        FeatureQueryBackend {
+  BackendException? targetError;
+
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(
+    FeatureId feature,
+  ) async {
+    if (feature == FeatureId.spoc && targetError != null) throw targetError!;
+    return const RecoveredRouteSession(
+      route: ConnectionMode.direct,
+      profile: UserSummary(username: 'fixture-user'),
+    );
+  }
+
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) => throw StateError('查询状态测试不提交登录材料');
+
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async => null;
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async => const FeatureResult.empty();
 }

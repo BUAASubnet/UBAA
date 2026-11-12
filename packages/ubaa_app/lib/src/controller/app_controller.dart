@@ -97,12 +97,9 @@ class AppController extends ControllerState
         ControllerActions {
   int _homeProjectionGeneration = 0;
 
-  /// 沿用 transition 计数，但扣除进行中的会话恢复所占的一个：投影只读取本机
-  /// 已显示的缓存，账号若在恢复中被判定不符，交付前的账号与读取范围核对会丢弃结果。
-  /// 其余过渡（原地登录、清缓存、写入等）仍阻塞纯本地投影。
+  /// 本地投影可以与会话恢复并行，交付时仍核对账号和读取范围。
   bool get homeTodoProjectionBlocked =>
-      internalRoutePolicyInFlight ||
-      internalWriteTransitions - (internalActiveRecovery != null ? 1 : 0) != 0;
+      internalRoutePolicyInFlight || internalActivities.blocksHomeProjection;
 
   /// 纯本地投影沿用读取、账号和路线栅栏，不排入学校读取队列。
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
@@ -190,7 +187,7 @@ class AppController extends ControllerState
             !internalIsSigningOut &&
             !internalInteractiveEngaged &&
             internalPhase == AppPhase.home &&
-            internalWriteTransitions == 0 &&
+            !internalActivities.hasActive &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
         onRejected: internalReportUserSchoolRejection,

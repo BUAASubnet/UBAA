@@ -20,7 +20,7 @@ mixin ControllerBackendRecovery on ControllerState {
         internalIsSigningOut ||
         !internalRecoveryIsCurrent(request.epoch) ||
         !identical(internalActiveRecovery, request) ||
-        internalWriteTransitions != 1 ||
+        !internalActivities.onlyRecovery ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
     final shared = internalSharedRecoveryScope;

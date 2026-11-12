@@ -293,7 +293,7 @@ fn clear_during_finalization_keeps_one_bodyless_attempt_and_rejects_late_confirm
     store.create(x).unwrap();
     let mut p6 = store.sync_snapshot().unwrap();
     store
-        .begin_sync_attempt(&mut p6, super::state::SyncStep::File, None)
+        .begin_sync_attempt(&mut p6, super::pending::SyncAttempt::Publication)
         .unwrap();
     assert_eq!(p6.publication, Some(6));
     store.confirm_sync(&p6, p6.document()).unwrap();
@@ -307,10 +307,12 @@ fn clear_during_finalization_keeps_one_bodyless_attempt_and_rejects_late_confirm
         .unwrap();
     let mut p7 = store.sync_snapshot().unwrap();
     store
-        .begin_sync_attempt(
-            &mut p7,
-            super::state::SyncStep::File,
-            Some("合成对象p7".into()),
+        .begin_sync_attempt(&mut p7, super::pending::SyncAttempt::Publication)
+        .unwrap();
+    store
+        .record_sync_receipt(
+            &p7,
+            super::pending::PublicationReceipt::Unknown(Some("合成对象p7".into())),
         )
         .unwrap();
     assert_eq!(p7.publication, Some(7));
@@ -340,7 +342,7 @@ fn clear_during_finalization_keeps_one_bodyless_attempt_and_rejects_late_confirm
     let scope = store.sync_snapshot().unwrap();
     store.merge_sync(&scope, p6.document()).unwrap();
     let mut p8 = store.sync_snapshot().unwrap();
-    let blocked = store.begin_sync_attempt(&mut p8, super::state::SyncStep::File, None);
+    let blocked = store.begin_sync_attempt(&mut p8, super::pending::SyncAttempt::Publication);
     released.wait();
     late.join().unwrap();
     assert!(

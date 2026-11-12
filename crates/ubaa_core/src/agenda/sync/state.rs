@@ -1,3 +1,4 @@
+use super::pending::StoredPending;
 use crate::{
     agenda::store::AgendaData,
     cache::{CacheError, CacheResult},
@@ -33,20 +34,6 @@ impl Deletion {
     pub(super) fn version(self) -> (AgendaTime, Uuid, u64) {
         (self.updated_at, self.stamp.device_id, self.stamp.sequence)
     }
-}
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct StoredPending {
-    pub id: Uuid,
-    pub(super) step: SyncStep,
-    pub document: Option<super::AgendaSyncDocument>,
-    pub publication: Option<u64>,
-    pub object: Option<String>,
-    pub registered: bool,
-}
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum SyncStep {
-    Directory,
-    File,
 }
 impl SyncState {
     pub fn fresh() -> Self {

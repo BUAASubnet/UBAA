@@ -147,7 +147,7 @@ mixin ControllerWriteCache on ControllerState {
       !isLoggingIn &&
       !internalClearingBusinessCache &&
       !internalRebuildingBackend &&
-      internalWriteTransitions == 0 &&
+      !internalActivities.hasActive &&
       !internalWriteCoordinator.hasPendingOperation &&
       internalActiveRecovery == null;
 

@@ -7,6 +7,7 @@ import '../../contracts/recovery.dart';
 import '../../contracts/session_recovery.dart';
 import '../error_mapper.dart';
 import '../state/state.dart';
+import '../state/activity.dart';
 
 /// 专用服务复用所需路线恢复；业务读取最多重试一次，写入不进入本流程。
 mixin ControllerServiceRecovery on ControllerState {
@@ -81,7 +82,9 @@ mixin ControllerServiceRecovery on ControllerState {
         if (internalWriteCoordinator.hasPendingOperation ||
             internalInteractiveEngaged)
           rethrow;
-        internalWriteTransitions++;
+        final activity = internalActivities.begin(
+          ControllerActivityKind.serviceRecovery,
+        );
         internalWriteCoordinator.invalidate();
         try {
           final result = await internalRecoverTargetSession(
@@ -116,7 +119,7 @@ mixin ControllerServiceRecovery on ControllerState {
           }
           rethrow;
         } finally {
-          internalWriteTransitions--;
+          activity.finish();
           internalDrainDeferredRecovery();
           internalPumpReadTasks();
           if (!internalDisposed) internalNotify();

@@ -16,7 +16,7 @@ pub(super) fn finish(
         refresh.summaries.retain(|(course, _), _| {
             refresh
                 .scan
-                .courses
+                .courses()
                 .iter()
                 .any(|item| item.course_id == *course)
         });
@@ -170,28 +170,21 @@ fn apply_content(
 }
 
 fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
-    let Some(items) = refresh.scan.assignments.take() else {
-        return;
-    };
-    let known: std::collections::HashMap<_, _> = history::known_summaries(refresh)
+    let known: std::collections::HashMap<_, _> = history::known_summaries(refresh.history.as_ref())
         .iter()
         .map(|item| (item.assignment_id.as_str(), item))
         .collect();
-    let mut ranked = Vec::with_capacity(items.len());
-    for item in items {
-        let current = refresh
-            .options
-            .current_assignment
-            .as_ref()
-            .is_some_and(|key| {
-                key.course_id == item.course_id && key.assignment_id == item.assignment_id
-            });
-        let summary = known.get(item.assignment_id.as_str()).copied().or_else(|| {
-            refresh
-                .summaries
-                .get(&(item.course_id.clone(), item.assignment_id.clone()))
+    let options = &refresh.options;
+    let summaries = &refresh.summaries;
+    refresh.scan.cursor.prioritize_pending(|item| {
+        let current = options.current_assignment.as_ref().is_some_and(|key| {
+            key.course_id == item.course_id && key.assignment_id == item.assignment_id
         });
-        let rank = if current {
+        let summary = known
+            .get(item.assignment_id.as_str())
+            .copied()
+            .or_else(|| summaries.get(&(item.course_id.clone(), item.assignment_id.clone())));
+        if current {
             0
         } else {
             match summary {
@@ -206,9 +199,6 @@ fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
                 }
                 _ => 1,
             }
-        };
-        ranked.push((rank, item));
-    }
-    ranked.sort_by_key(|(rank, _)| *rank);
-    refresh.scan.assignments = Some(ranked.into_iter().map(|(_, item)| item).collect());
+        }
+    });
 }

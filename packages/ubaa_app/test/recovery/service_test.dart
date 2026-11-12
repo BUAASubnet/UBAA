@@ -51,6 +51,20 @@ void main() {
     expect(controller.diagnostics.records, isEmpty);
   });
 
+  test('专用服务恢复期间阻塞其他操作，完成后解除阻塞', () async {
+    final backend = _Backend()..recoveryGate = Completer<void>();
+    final controller = await start(backend);
+    final pending = controller.campusAccountService!.networkUsage();
+    await backend.recoveryStarted.future.timeout(const Duration(seconds: 2));
+    expect(controller.homeTodoProjectionBlocked, isTrue);
+    expect(controller.internalReadTransitionBlocked, isTrue);
+    expect(controller.canClearBusinessCache, isFalse);
+    backend.recoveryGate!.complete();
+    await pending;
+    expect(controller.homeTodoProjectionBlocked, isFalse);
+    expect(controller.internalReadTransitionBlocked, isFalse);
+  });
+
   test('所需路线为 WebVPN 时仅恢复 WebVPN', () async {
     final backend = _Backend()..route = ConnectionMode.webvpn;
     final controller = await start(backend);

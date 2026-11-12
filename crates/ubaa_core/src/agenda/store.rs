@@ -1,5 +1,5 @@
 //! 独立账号库，不参与只读缓存容量、退出清理或格式重建。
-use super::recurrence::validate_item;
+use super::{recurrence::validate_item, sync::StoredPending};
 use crate::cache::{CacheError, CacheResult};
 use crate::domain::agenda::{AgendaItem, SchoolAgendaOverlay};
 use rusqlite::{Connection, TransactionBehavior};
@@ -20,15 +20,11 @@ pub(super) struct AgendaData {
 impl AgendaData {
     fn clear_local_rows(&mut self) -> CacheResult<()> {
         self.sync.advance_epoch()?;
-        // 目录创建没有待发布正文，只有文件发布保留无正文的未决身份。
         self.sync.pending = self
             .sync
             .pending
             .take()
-            .filter(|pending| pending.publication.is_some());
-        if let Some(pending) = &mut self.sync.pending {
-            pending.document = None;
-        }
+            .and_then(StoredPending::retain_publication_identity);
         self.sync.item_deletions.clear();
         self.sync.overlay_deletions.clear();
         self.items.clear();

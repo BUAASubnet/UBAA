@@ -41,6 +41,37 @@ void main() {
     expect((await vault.read())!.autoLogin, isTrue);
     expect(backend.requiredLogins, 1);
   });
+  test('人工接管期间保持待登录，恢复收尾不覆盖接管错误', () async {
+    final accounts = await recovery.savedAccounts();
+    await accounts.retain('synthetic-account', retainSession: true);
+    final backend = _RecoveryCaptchaBackend()
+      ..manualResponse = Completer<LoginVerificationState>();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+      credentialVault: MemoryCredentialVault(
+        initial: const Credential(
+          username: 'synthetic-account',
+          password: 'synthetic-password',
+          autoLogin: true,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final pending = controller.recoverSession(refreshHomeAfter: false);
+    await backend.manualStarted.future;
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.needsLogin);
+    expect(controller.phase, AppPhase.home);
+    backend.manualResponse!.completeError(
+      const BackendException(UbaaErrorCode.networkError),
+    );
+    await pending;
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.needsLogin);
+    expect(controller.error?.code, UbaaErrorCode.networkError);
+    expect(controller.loginVerification, isNull);
+    expect(controller.loginForm.password, isEmpty);
+  });
   test('明确WebVPN已就绪时进入首页，不要求另一条路线的验证码', () async {
     final backend = _WebVpnReadyBackend();
     final controller = await _controller(backend);
@@ -562,6 +593,8 @@ class _WebVpnReadyBackend extends _InteractiveBackend {
 class _RecoveryCaptchaBackend extends _InteractiveBackend
     implements RequiredSessionBackend, ManualCaptchaBackend {
   int resumes = 0, requiredLogins = 0;
+  Completer<LoginVerificationState>? manualResponse;
+  final manualStarted = Completer<void>();
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(
     FeatureId feature,
@@ -593,6 +626,10 @@ class _RecoveryCaptchaBackend extends _InteractiveBackend
     resumes++;
     expect(route, ConnectionMode.webvpn);
     expect(input.password, 'synthetic-password');
+    if (manualResponse case final response?) {
+      manualStarted.complete();
+      return response.future;
+    }
     final waiting = _waiting(1);
     return LoginVerificationState(
       routes: waiting.routes,

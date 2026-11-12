@@ -8,6 +8,96 @@ use crate::{
 };
 use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
+
+#[test]
+fn schema4_pending_rows_keep_receipts_and_identity_when_local_content_is_cleared() {
+    // 固定旧列格式覆盖目录、未取得对象、已知对象及登记回执，包含清理后的无正文文件。
+    for (step, body_retained, object, registered) in [
+        (1, true, Some("合成目录"), false),
+        (2, true, None, false),
+        (2, true, Some("合成文件对象"), false),
+        (2, true, Some("合成文件对象"), true),
+        (2, false, None, false),
+        (2, false, Some("合成文件对象"), false),
+        (2, false, Some("合成文件对象"), true),
+    ] {
+        let root = root();
+        let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+        store.create(event()).unwrap();
+        let original = store.sync_snapshot().unwrap();
+        let bytes = body_retained.then(|| original.document().encode().unwrap());
+        let attempt = uuid::Uuid::new_v4();
+        let publication = (step == 2).then_some(1_i64);
+        drop(store);
+        let db = Connection::open(root.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
+        db.execute("UPDATE agenda_sync_meta SET next_publication=2", [])
+            .unwrap();
+        db.execute(
+            "INSERT INTO agenda_sync_pending(id,attempt,step,document,object,publication,registered) VALUES(1,?1,?2,?3,?4,?5,?6)",
+            params![attempt.to_string(), step, bytes, object, publication, registered],
+        )
+        .unwrap();
+
+        let reopened = AgendaStore::open(&root, ACCOUNT).unwrap();
+        let pending = reopened.restore_sync_attempt().unwrap().unwrap();
+        assert_eq!(pending.snapshot.attempt, Some(attempt));
+        assert_eq!(
+            pending.snapshot.publication,
+            publication.map(i64::cast_unsigned)
+        );
+        assert_eq!(pending.retains_body(), body_retained);
+        assert_eq!(pending.operation.object(), object);
+        assert_eq!(
+            pending.confirmable_object(),
+            if registered && body_retained {
+                object
+            } else {
+                None
+            }
+        );
+        if body_retained {
+            assert_eq!(pending.snapshot.document(), original.document());
+        }
+
+        reopened.clear_local_data().unwrap();
+        drop(reopened);
+        let cleared = AgendaStore::open(&root, ACCOUNT).unwrap();
+        let pending = cleared.restore_sync_attempt().unwrap();
+        if step == 1 {
+            assert!(pending.is_none());
+        } else {
+            let pending = pending.unwrap();
+            assert_eq!(pending.snapshot.attempt, Some(attempt));
+            assert_eq!(pending.snapshot.publication, Some(1));
+            assert!(!pending.retains_body());
+            assert_eq!(pending.operation.object(), object);
+            assert_eq!(pending.confirmable_object(), None);
+            let row: (String, Option<Vec<u8>>, Option<String>, i64, bool) = db
+                .query_row(
+                    "SELECT attempt,document,object,publication,registered FROM agenda_sync_pending WHERE id=1",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+                )
+                .unwrap();
+            assert_eq!(
+                row,
+                (
+                    attempt.to_string(),
+                    None,
+                    object.map(str::to_owned),
+                    1,
+                    registered
+                )
+            );
+            let mut next = cleared.sync_snapshot().unwrap();
+            assert!(matches!(
+                cleared.begin_sync_attempt(&mut next, super::pending::SyncAttempt::Publication),
+                Err(crate::cache::CacheError::Superseded)
+            ));
+        }
+    }
+}
+
 fn legacy(root: &Path, active: bool) -> (PathBuf, Connection, AgendaItem, SchoolAgendaOverlay) {
     let dir = root.join("agenda");
     std::fs::create_dir_all(&dir).unwrap();

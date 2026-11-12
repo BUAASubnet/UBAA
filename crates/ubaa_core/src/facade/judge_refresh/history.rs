@@ -128,8 +128,8 @@ pub(super) fn apply(
     }
     if refresh
         .scan
-        .courses
-        .get(refresh.scan.course_index)
+        .cursor
+        .current_course()
         .is_some_and(|course| course.course_id == progress.course_id)
     {
         return Ok(());
@@ -192,10 +192,10 @@ pub(super) fn fail(refresh: &mut JudgeRefresh) {
     }
 }
 
-pub(super) fn known_summaries(refresh: &JudgeRefresh) -> &[super::JudgeAssignmentSummary] {
-    match refresh
-        .history
-        .as_ref()
+pub(super) fn known_summaries(
+    history: Option<&CourseProgress>,
+) -> &[super::JudgeAssignmentSummary] {
+    match history
         .and_then(|progress| progress.previous.as_ref())
         .map(|record| &record.payload)
     {
