@@ -19,6 +19,9 @@ void main() {
     expect((metrics.unreadMail as CampusMetricValue<int>).value, 0);
     expect(metrics.borrowedBooks, isNull);
     expect(metrics.networkBalance, isA<CampusMetricFailure<CampusAmount>>());
+    final failure = metrics.networkBalance as CampusMetricFailure<CampusAmount>;
+    expect(failure.error?.code, UbaaErrorCode.networkError);
+    expect(failure.error?.resolvedRoute, ConnectionMode.direct);
     final network = await service.networkUsage();
     expect(network.remainingExcludesPackages, isTrue);
     expect(

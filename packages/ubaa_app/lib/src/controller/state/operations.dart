@@ -9,6 +9,7 @@ import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import 'package:ubaa_app/src/contracts/session_recovery.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
 import 'models.dart' show ProgressiveScope, RecoveryRequest;
@@ -498,6 +499,13 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalSyncBusinessRetries();
 
+  @internal
+  Future<RecoveryResult?> internalRecoverTargetSession(
+    RequiredSessionBackend backend,
+    RecoveryTarget target,
+    int epoch, {
+    required bool publishReusedSession,
+  });
   @internal
   Future<UserSummary?> internalRecoverRequiredProfile(
     RequiredSessionBackend backend,
