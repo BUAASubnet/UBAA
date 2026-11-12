@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 3,
+  version: 4,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -76,7 +76,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '支持应用服务的版本默认请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
+          '支持应用服务的版本默认请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告。旧版已保存的基础模式不发送此类请求。公告已读记录仅保存在本机。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -86,7 +86,8 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '支持应用服务的版本默认开启产品改进统计，应用启动时不再弹出隐私选择。您可以在设置中查看本政策、关闭统计，或撤回同意并使用基础模式。',
+      text:
+          '支持应用服务的版本默认开启产品改进统计，应用启动时不再弹出隐私选择。您可以通过设置中的“产品改进统计”开关选择是否参与，并在项目网站查阅本政策。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -153,28 +154,24 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
       level: 2,
-      text: '关闭、撤回与删除',
-    ),
-    PrivacyPolicyBlock(
-      kind: PrivacyPolicyBlockKind.bullet,
-      level: 0,
-      text: '在设置中关闭“产品改进统计”会停止收集和上传，并清空设备中尚未确认上传完成的数据。已上传的数据可以单独删除。',
-    ),
-    PrivacyPolicyBlock(
-      kind: PrivacyPolicyBlockKind.bullet,
-      level: 0,
-      text: '在设置中撤回同意会进入基础模式，停止统计、更新检查和公告等应用服务请求，删除请求仍可发送。撤回不影响学校功能和设备上的本地功能。',
-    ),
-    PrivacyPolicyBlock(
-      kind: PrivacyPolicyBlockKind.bullet,
-      level: 0,
-      text:
-          '“删除已上传的统计数据”会请求清除当前安装 ID 对应的服务端明细。删除未完成时，应用会暂停上传并重试。未定稿的汇总会在后续计算中反映删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。按分钟汇总的次数同样没有安装 ID 或用户标识，无法按设备删除，会在 30 天后自动清除。',
+      text: '关闭统计与数据请求',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '隐私政策更新后，应用保留您先前保存的统计开关和基础模式选择。您可以随时在设置中查看最新版政策。',
+      text:
+          '在设置中关闭“产品改进统计”会停止收集和上传，并清空设备中尚未确认上传完成的数据。已上传的数据按上述保留期处理；如需提出撤回或删除请求，请通过下方联系方式联系维护者。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text:
+          '已上传明细按安装 ID 区分。未定稿的汇总会在后续计算中反映明细删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。按分钟汇总的次数同样没有安装 ID 或用户标识，无法按设备删除，会在 30 天后自动清除。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text: '隐私政策更新后，应用保留您先前保存的统计开关和基础模式选择。旧版基础模式用户可以通过“产品改进统计”开关确认后重新启用。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -200,7 +197,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     ),
   ],
   changes: <String>[
-    '新增按分钟汇总的登录与功能加载次数，不含安装 ID 和用户标识，保留 30 天。',
-    '说明删除已上传数据无法清除按分钟汇总的次数。',
+    '设置页仅保留产品改进统计开关，撤回或删除数据请求可联系维护者。',
+    '旧版基础模式用户可通过统计开关确认后重新启用。',
   ],
 );

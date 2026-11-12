@@ -169,7 +169,7 @@ class ProfileView extends StatelessWidget {
                   enabled: canClearBusinessCache,
                   inCard: false,
                 ),
-              // 未接入应用服务的构建不显示政策、同意和统计条目。
+              // 未接入应用服务的构建不显示统计开关。
               if (appService case final controls?) ...[
                 if (hasCache) const Divider(height: 1),
                 AppServiceSettings(controls: controls),
