@@ -11,6 +11,7 @@ just flutter build apk --release --target-platform="$ANDROID_TARGET" \
   --dart-define="UBAA_APP_SERVICE_URL=$UBAA_APP_SERVICE_URL" \
   --dart-define=UBAA_DISTRIBUTION_CHANNEL=github
 apk=build/app/outputs/flutter-apk/app-release.apk
+bash "$repo_root/scripts/release/verify-flutter-artifact.sh" android-apk "$apk" "$ANDROID_ABI"
 tools="$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS"
 "$tools/apksigner" verify "$apk"
 "$tools/zipalign" -c -P 16 4 "$apk"

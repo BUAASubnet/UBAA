@@ -138,15 +138,17 @@ for abi in arm64-v8a armeabi-v7a x86_64; do
 done
 printf '%s\n' 'fixture dex' >"$apk_root/classes.dex"
 printf '%s\n' 'fixture assets' >"$apk_root/assets/flutter_assets/AssetManifest.bin"
-(
-  cd "$apk_root"
-  zip -q "$apk_artifact" \
-    classes.dex \
-    assets/flutter_assets/AssetManifest.bin \
-    lib/arm64-v8a/libubaa_flutter_bridge.so \
-    lib/armeabi-v7a/libubaa_flutter_bridge.so \
-    lib/x86_64/libubaa_flutter_bridge.so
-)
+python3 - "$apk_root" "$apk_artifact" <<'PY'
+from pathlib import Path
+import sys
+import zipfile
+
+root = Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2], 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+    for path in root.rglob('*'):
+        if path.is_file():
+            archive.write(path, path.relative_to(root))
+PY
 
 cat >"$test_root/fake-bin/codesign" <<'FAKE_CODESIGN'
 #!/usr/bin/env bash

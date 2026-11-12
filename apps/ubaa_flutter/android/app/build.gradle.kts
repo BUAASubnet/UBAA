@@ -78,6 +78,13 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    // 本地与 CI 默认压缩原生库；从 App Bundle 生成的 APK 同样沿用此设置。
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         applicationId = "cn.edu.ubaa"

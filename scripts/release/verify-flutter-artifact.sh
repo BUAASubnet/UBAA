@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 检查 Flutter 无签名 Debug 产物的结构；不签名、不安装、不读取运行时数据。
+# 检查 Flutter 产物结构；不签名、不安装、不读取运行时数据。
 set -euo pipefail
 # shellcheck source=../lib/checksum.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/checksum.sh"
@@ -95,6 +95,16 @@ case "$platform" in
     for abi in "${abis[@]}"; do
       require_zip_entry "lib/$abi/libubaa_flutter_bridge.so"
     done
+    python3 - "$artifact" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    for entry in archive.infolist():
+        if entry.filename.startswith('lib/') and entry.filename.endswith('.so'):
+            if entry.compress_type != zipfile.ZIP_DEFLATED:
+                sys.exit(f'error: Android 原生库必须压缩：{entry.filename}')
+PY
     ;;
   *)
     printf 'error: 不支持的 Flutter 产物平台：%s\n' "$platform" >&2
