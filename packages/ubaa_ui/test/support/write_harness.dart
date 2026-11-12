@@ -1,4 +1,5 @@
 import 'home_shell_harness.dart';
+import 'package:ubaa_ui/src/features/agenda/format.dart' show AgendaAccess;
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -15,6 +16,7 @@ Widget coordinatedShell({
   required Future<void> Function() onLogoutAndClearAccount,
   required ValueChanged<RoutePolicy> onRoutePolicyChanged,
   UiDestination initialDestination = UiDestination.home,
+  AgendaAccess agenda = const AgendaAccess(),
   Future<FeatureResult> Function(HomeSupplement, bool)? onLoadHomeSupplement,
   List<ConnectionMode> activeRoutes = const <ConnectionMode>[],
   Future<void> Function(FeatureId, FeatureQuery)? onFeatureQuery,
@@ -50,6 +52,7 @@ Widget coordinatedShell({
     onLogoutAndClearAccount: onLogoutAndClearAccount,
     onRoutePolicyChanged: onRoutePolicyChanged,
     initialDestination: initialDestination,
+    agenda: agenda,
     activeRoutes: activeRoutes,
     onLoadCgyyPurposes: (_) async => const FeatureResult.success(
       details: [
@@ -145,6 +148,7 @@ class _WriteHarnessState extends State<_WriteHarness> {
           onLogoutAndClearAccount: shell.onLogoutAndClearAccount,
           onRoutePolicyChanged: shell.onRoutePolicyChanged,
           initialDestination: shell.initialDestination,
+          agenda: shell.agenda,
           activeRoutes: shell.activeRoutes,
           writeState: _coordinator.state,
           onRunWritePrepare: _coordinator.prepareForUi,

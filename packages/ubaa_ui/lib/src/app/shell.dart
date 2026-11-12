@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../features/bykc/agenda_conflicts.dart';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
 import '../shared/layout/connection_status.dart' show UiConnectionStatusButton;
@@ -778,6 +779,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         writeBusy: _directWriteActive != null,
         onOpenBykcChosen: page.onOpenBykcChosen,
         bykcFilters: _bykcFilters,
+        bykcAgenda: _bykcAgendaContext,
         bykcFilterError: _bykcFilterError,
         onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
         ygdkRecordsReadback: widget.ygdkRecordsReadback,

@@ -87,6 +87,7 @@ class FeatureDetailList extends StatefulWidget {
     this.moreError,
     this.hasMore = false,
     this.bykcEndReached = false,
+    this.bykcConflictIds = const {},
     this.onLoadMore,
     this.query,
     this.onQuery,
@@ -123,6 +124,7 @@ class FeatureDetailList extends StatefulWidget {
   final int paginationGeneration;
   final bool loadingMore, hasMore;
   final bool bykcEndReached;
+  final Set<int> bykcConflictIds;
   final String? moreError;
   final Future<void> Function()? onLoadMore;
   final FeatureQuery? query;
@@ -181,12 +183,15 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                 (detail) =>
                     detail.presentation is! BykcCoursePresentation ||
                     (detail.presentation! as BykcCoursePresentation).isDetail ||
-                    uiMatchesBykcFilters(
-                      detail.presentation! as BykcCoursePresentation,
-                      widget.bykcStatuses,
-                      widget.bykcCategories,
-                      widget.bykcCampuses,
-                    ),
+                    (!widget.bykcConflictIds.contains(
+                          (detail.presentation! as BykcCoursePresentation).id,
+                        ) &&
+                        uiMatchesBykcFilters(
+                          detail.presentation! as BykcCoursePresentation,
+                          widget.bykcStatuses,
+                          widget.bykcCategories,
+                          widget.bykcCampuses,
+                        )),
               )
               .toList();
     final details = query.isEmpty

@@ -51,7 +51,17 @@ final class PreferencesBykcCourseFilterStore
        );
   final AccountPreferences<BykcCourseFilters> _store;
   static BykcCourseFilters _decode(Object? value) {
-    if (value is! Map<String, dynamic> || value.length != 3)
+    if (value is! Map<String, dynamic> ||
+        value.keys.any(
+          (key) => !{
+            'statuses',
+            'categories',
+            'campuses',
+            'hideAgendaConflicts',
+          }.contains(key),
+        ) ||
+        (value.containsKey('hideAgendaConflicts') &&
+            value['hideAgendaConflicts'] is! bool))
       throw const FormatException();
     List<String> strings(String field) {
       final items = value[field];
@@ -71,6 +81,7 @@ final class PreferencesBykcCourseFilterStore
         statuses: statuses,
         categories: strings('categories'),
         campuses: strings('campuses'),
+        hideAgendaConflicts: value['hideAgendaConflicts'] as bool? ?? false,
       );
     } on ArgumentError {
       throw const FormatException();
@@ -84,6 +95,7 @@ final class PreferencesBykcCourseFilterStore
     ],
     'categories': value.categories.toList()..sort(),
     'campuses': value.campuses.toList()..sort(),
+    'hideAgendaConflicts': value.hideAgendaConflicts,
   };
   Future<T> _safe<T>(Future<T> Function() action) async {
     try {
