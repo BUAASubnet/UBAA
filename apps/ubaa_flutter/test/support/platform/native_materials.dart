@@ -54,13 +54,17 @@ Future<SecureMaterialStore> createNativeTestMaterials({
         'ubaa.synthetic.${domain.uri.pathSegments.where((s) => s.isNotEmpty).last}';
     transport = _PluginTransport(
       FlutterSecureStorage(
-        mOptions: _MacSyntheticOptions(name),
+        mOptions: MacOsOptions(
+          accountName: name,
+          usesDataProtectionKeychain: false,
+          accessibility: null,
+        ),
         iOptions: IOSOptions(
           accountName: name,
           accessibility: KeychainAccessibility.first_unlock_this_device,
         ),
         aOptions: AndroidOptions(
-          sharedPreferencesName: name,
+          storageNamespace: name,
           resetOnError: true,
           migrateOnAlgorithmChange: true,
         ),
@@ -75,20 +79,6 @@ Future<SecureMaterialStore> createNativeTestMaterials({
     ),
     transport: _NativeDiagnostics(transport),
   );
-}
-
-class _MacSyntheticOptions extends MacOsOptions {
-  _MacSyntheticOptions(String name)
-    : super(
-        accountName: name,
-        usesDataProtectionKeychain: false,
-        accessibility: null,
-      );
-  @override
-  Map<String, String> toMap() => {
-    ...super.toMap(),
-    'useDataProtectionKeyChain': 'false',
-  };
 }
 
 class _PluginTransport implements SecureMaterialTransport {

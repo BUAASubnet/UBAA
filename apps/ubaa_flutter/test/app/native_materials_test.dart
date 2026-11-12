@@ -131,10 +131,7 @@ void main() {
           final args = Map<String, Object?>.from(call.arguments as Map);
           final key = args['key']! as String;
           final options = Map<String, Object?>.from(args['options']! as Map);
-          expect(
-            options['sharedPreferencesName'],
-            startsWith('ubaa.synthetic.'),
-          );
+          expect(options['storageNamespace'], startsWith('ubaa.synthetic.'));
           expect(options['resetOnError'], 'true');
           expect(options['migrateOnAlgorithmChange'], 'true');
           switch (call.method) {

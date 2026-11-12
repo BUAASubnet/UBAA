@@ -42,7 +42,9 @@ Future<void> replaceWindowsMaterial(
 
 ({int attributes, int errorCode}) _queryWindowsMaterial(File target) {
   final attributes = using(
-    (arena) => GetFileAttributes(target.path.toNativeUtf16(allocator: arena)),
+    (arena) => GetFileAttributes(
+      PCWSTR(target.path.toNativeUtf16(allocator: arena)),
+    ).value,
   );
   if (attributes != 0xffffffff) return (attributes: attributes, errorCode: 0);
 
@@ -59,11 +61,14 @@ Future<void> replaceWindowsMaterial(
 }
 
 int _moveWindowsMaterial(File pending, File target, int flags) => using(
-  (arena) => MoveFileEx(
-    pending.path.toNativeUtf16(allocator: arena),
-    target.path.toNativeUtf16(allocator: arena),
-    flags,
-  ),
+  (arena) =>
+      MoveFileEx(
+        PCWSTR(pending.path.toNativeUtf16(allocator: arena)),
+        PCWSTR(target.path.toNativeUtf16(allocator: arena)),
+        MOVE_FILE_FLAGS(flags),
+      ).value
+      ? 1
+      : 0,
 );
 
 int _replaceWindowsMaterial(File pending, File target, File backup, int flags) {
@@ -111,25 +116,9 @@ final class WindowsDpapiCodec implements WindowsMaterialCodec {
     input.ref.pbData.asTypedList(bytes.length).setAll(0, bytes);
     try {
       final status = encrypting
-          ? CryptProtectData(
-              input,
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              0,
-              output,
-            )
-          : CryptUnprotectData(
-              input,
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              0,
-              output,
-            );
-      if (status == 0 || output.ref.pbData == nullptr)
+          ? CryptProtectData(input, null, null, null, 0, output)
+          : CryptUnprotectData(input, null, null, null, 0, output);
+      if (!status.value || output.ref.pbData == nullptr)
         throw const SecureMaterialException();
       return Uint8List.fromList(
         output.ref.pbData.asTypedList(output.ref.cbData),
@@ -140,7 +129,7 @@ final class WindowsDpapiCodec implements WindowsMaterialCodec {
         output.ref.pbData
             .asTypedList(output.ref.cbData)
             .fillRange(0, output.ref.cbData, 0);
-        LocalFree(output.ref.pbData);
+        LocalFree(HLOCAL(output.ref.pbData));
       }
     }
   });

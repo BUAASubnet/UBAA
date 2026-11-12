@@ -47,7 +47,10 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
-    mOptions: _MacLoginKeychainOptions(),
+    mOptions: MacOsOptions(
+      usesDataProtectionKeychain: false,
+      accessibility: null,
+    ),
   );
   // 官方门面尚未识别OHOS；沿其公开平台接口调用同一插件通道，不自建通道。
   static const _ohosOptions = <String, String>{
@@ -107,16 +110,4 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
           options: _ohosOptions,
         )
       : _storage.delete(key: key);
-}
-
-/// 固定 darwin 0.2.0 的原生参数拼写与 Dart 参数不同；显式传递真实读取键。
-/// 登录钥匙串使用自身锁定与访问控制，不设置仅适用于数据保护钥匙串的属性。
-class _MacLoginKeychainOptions extends MacOsOptions {
-  const _MacLoginKeychainOptions()
-    : super(usesDataProtectionKeychain: false, accessibility: null);
-  @override
-  Map<String, String> toMap() => {
-    ...super.toMap(),
-    'useDataProtectionKeyChain': 'false',
-  };
 }

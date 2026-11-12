@@ -8,17 +8,19 @@ import 'package:win32/win32.dart';
 Directory systemMaterialDirectory() {
   if (Platform.isWindows) {
     return using((arena) {
-      final result = arena<Pointer<Utf16>>();
-      final folder = GUIDFromString(FOLDERID_LocalAppData, allocator: arena);
-      final status = SHGetKnownFolderPath(folder, 0, NULL, result);
+      final folder = FOLDERID_LocalAppData.toNative(allocator: arena);
+      final result = SHGetKnownFolderPath(
+        folder,
+        const KNOWN_FOLDER_FLAG(0),
+        null,
+      );
       try {
-        if (FAILED(status) || result.value == nullptr)
-          throw const FileSystemException();
+        if (result.address == 0) throw const FileSystemException();
         return Directory(
-          '${result.value.toDartString()}/UBAA/material_coordination_v1',
+          '${result.toDartString()}/UBAA/material_coordination_v1',
         );
       } finally {
-        if (result.value != nullptr) CoTaskMemFree(result.value);
+        if (result.address != 0) CoTaskMemFree(result);
       }
     });
   }
