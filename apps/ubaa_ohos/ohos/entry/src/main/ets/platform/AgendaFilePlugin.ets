@@ -28,7 +28,10 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
   }
   onMethodCall(call: MethodCall, result: MethodResult): void {
     const args = call.args as Map<string, Object>;
-    if (call.method === 'pickFile') { this.pickFile(result); return; }
+    if (call.method === 'pickFolder') { this.pickFolder(result); return; }
+    if (call.method === 'pickFile' || call.method === 'pickFiles') {
+      this.pickFiles(call.method === 'pickFiles', result); return;
+    }
     if (call.method === 'releaseFile') {
       const path = args.get('path') as string;
       if (this.pickedFiles.delete(path)) { try { fileIo.unlinkSync(path); } catch (_) { result.error('cleanup_failed', '本机暂存文件未清理', null); return; } }
@@ -62,31 +65,58 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
       result.success(null);
     } catch (_) { result.error('write_failed', '日历文件未保存', null); }
   }
-  private async pickFile(result: MethodResult): Promise<void> {
+  private async pickFiles(multiple: boolean, result: MethodResult): Promise<void> {
     if (this.selecting || this.target !== null) {result.error('busy', '请先结束当前文件选择', null); return;}
     this.selecting = true;
-    let source: fileIo.File | null = null;
-    let cached: string | null = null;
+    const staged: Array<string> = [];
+    let delivered: boolean = false;
     try {
       const options = new picker.DocumentSelectOptions();
-      options.maxSelectNumber = 1;
+      options.maxSelectNumber = multiple ? 20 : 1;
+      if (multiple) options.fileSuffixFilters = ['可打印文件|.jpg,.jpeg,.heic,.png,.pdf,.txt,.doc,.xls,.xslx,.ppt,.docx,.xlsx,.pptx,.wps,.wpt,.dot,.rtf,.dotx,.docm,.dotm,.xml,.mht,.mhtml,.html,.htm,.xps,.odt,.xlsm,.xlsb,.csv,.xltx,.xltm,.xlt,.prn,.dif,.slk,.xla,.xlam,.ods,.dps,.dpt,.pot,.pps,.pptm,.potm,.ppsm'];
       const locations = await new picker.DocumentViewPicker(this.context).select(options);
       if (locations.length === 0) {result.success(null); return;}
+      const files: Array<Map<string, Object>> = [];
+      for (const uri of locations) {
+        if (this.channel === null) {result.error('closed', '文件选择已结束', null); return;}
+        const name = new fileUri.FileUri(uri).name;
+        const cached = this.context.cacheDir + '/selected_' + util.generateRandomUUID();
+        staged.push(cached);
+        const source = await fileIo.open(uri, fileIo.OpenMode.READ_ONLY);
+        try { await fileIo.copyFile(source.fd, cached); }
+        finally { fileIo.closeSync(source); }
+        files.push(new Map<string, Object>([['path', cached], ['name', name]]));
+      }
       if (this.channel === null) {result.error('closed', '文件选择已结束', null); return;}
-      const name = new fileUri.FileUri(locations[0]).name;
-      cached = this.context.cacheDir + '/bhpan_' + util.generateRandomUUID();
-      source = await fileIo.open(locations[0], fileIo.OpenMode.READ_ONLY);
-      await fileIo.copyFile(source.fd, cached);
-      if (this.channel === null) {fileIo.unlinkSync(cached); cached = null; result.error('closed', '文件选择已结束', null); return;}
-      this.pickedFiles.add(cached);
-      result.success(new Map<string, Object>([['path', cached], ['name', name]]));
-      cached = null;
+      staged.forEach((path: string) => this.pickedFiles.add(path));
+      result.success(multiple ? files : files[0]);
+      delivered = true;
     } catch (_) {result.error('read_failed', '所选文件无法读取', null);}
     finally {
-      if (source !== null) fileIo.closeSync(source);
-      if (cached !== null) {try {fileIo.unlinkSync(cached);} catch (_) {}}
+      if (!delivered) {
+        staged.forEach((path: string) => {
+          this.pickedFiles.delete(path);
+          try { fileIo.unlinkSync(path); } catch (_) {}
+        });
+      }
       this.selecting = false;
     }
+  }
+  private async pickFolder(result: MethodResult): Promise<void> {
+    if (this.selecting || this.target !== null) {
+      result.error('busy', '请先结束当前文件选择', null); return;
+    }
+    this.selecting = true;
+    try {
+      const options = new picker.DocumentSelectOptions();
+      options.selectMode = picker.DocumentSelectMode.FOLDER;
+      options.maxSelectNumber = 1;
+      const locations = await new picker.DocumentViewPicker(this.context).select(options);
+      if (this.channel === null) { result.error('closed', '文件选择已结束', null); return; }
+      if (locations.length === 0) { result.success(null); return; }
+      this.resolveFile(locations[0], result);
+    } catch (_) { result.error('unavailable', '无法打开文件夹选择面板', null); }
+    finally { this.selecting = false; }
   }
   private resolveFile(uri: string, result: MethodResult): void {
     try {

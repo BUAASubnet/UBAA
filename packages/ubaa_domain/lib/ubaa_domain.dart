@@ -3,6 +3,7 @@ library;
 
 export 'src/bhpan/models.dart';
 export 'src/bhpan/service.dart';
+export 'src/cloud_print/service.dart';
 
 export 'src/models.dart';
 

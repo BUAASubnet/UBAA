@@ -36,6 +36,7 @@ pub mod finance;
 
 pub mod agenda;
 pub mod bhpan;
+pub mod cloud_print;
 
 pub mod shared_account;
 

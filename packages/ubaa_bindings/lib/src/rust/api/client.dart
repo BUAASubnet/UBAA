@@ -10,6 +10,7 @@ import 'app_service.dart';
 import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
+import 'cloud_print.dart';
 import 'command.dart';
 import 'finance.dart';
 import 'ihome.dart';
@@ -460,6 +461,33 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedClassroomQuery> classroomSearch({
     required int campus,
     required String date,
+  });
+
+  Future<List<BridgeError?>> cloudPrintDelete({
+    required bool scans,
+    required List<String> ids,
+  });
+
+  Future<List<BridgePrintDocument>> cloudPrintDocuments({required bool scans});
+
+  Future<Uint8List> cloudPrintPreview({required String id, required int page});
+
+  Future<BridgePrintRecords> cloudPrintRecords({
+    required String begin,
+    required String end,
+    required BridgePrintRecordKind kind,
+    required int page,
+  });
+
+  Future<Uint8List> cloudPrintScan({required String id});
+
+  Future<Uint8List> cloudPrintScanPdf({required List<String> ids});
+
+  Future<List<BridgePrintStation>> cloudPrintStations();
+
+  Future<List<BridgeError?>> cloudPrintUpload({
+    required List<BridgePrintFile> files,
+    required BridgePrintOptions options,
   });
 
   /// # Errors
