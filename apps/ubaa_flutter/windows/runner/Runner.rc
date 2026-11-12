@@ -72,6 +72,13 @@ IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 #define VERSION_AS_STRING "1.0.0"
 #endif
 
+#ifndef UBAA_EXECUTABLE_NAME
+#define UBAA_EXECUTABLE_NAME "UBAA.exe"
+#endif
+#ifndef UBAA_INTERNAL_NAME
+#define UBAA_INTERNAL_NAME "UBAA"
+#endif
+
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VERSION_AS_NUMBER
  PRODUCTVERSION VERSION_AS_NUMBER
@@ -92,9 +99,9 @@ BEGIN
             VALUE "CompanyName", "cn.edu.ubaa" "\0"
             VALUE "FileDescription", "UBAA" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ubaa_flutter" "\0"
+            VALUE "InternalName", UBAA_INTERNAL_NAME "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 cn.edu.ubaa. All rights reserved." "\0"
-            VALUE "OriginalFilename", "ubaa_flutter.exe" "\0"
+            VALUE "OriginalFilename", UBAA_EXECUTABLE_NAME "\0"
             VALUE "ProductName", "UBAA" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

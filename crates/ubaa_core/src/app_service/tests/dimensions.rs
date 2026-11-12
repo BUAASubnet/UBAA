@@ -39,10 +39,7 @@ fn wire_enums_match_the_worker_schema() {
         CounterEvent::ALL,
         &definitions["counter"]["properties"]["event"],
     );
-    check(
-        CounterResult::ALL,
-        &definitions["counter"]["properties"]["result"],
-    );
+    check(CounterResult::ALL, &definitions["result"]);
     check(
         ErrorEvent::ALL,
         &definitions["error"]["properties"]["event"],

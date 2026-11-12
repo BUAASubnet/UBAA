@@ -33,6 +33,7 @@ beforeEach(async () => {
       "job_state",
       "batches",
       "erased_installs",
+      "minute_counts",
     ].map((table) => env.DB.prepare(`DELETE FROM ${table}`)),
   );
 });
@@ -67,6 +68,12 @@ function active(
     user ? "undergrad" : "",
     user ? 2024 : "",
   );
+}
+
+function minute(minuteAt: string) {
+  return env.DB.prepare(
+    "INSERT INTO minute_counts VALUES (?, 'feature_loaded', 'schedule', 'success', 'linux', 'github', 1)",
+  ).bind(minuteAt);
 }
 
 function lastSuccess() {
@@ -172,9 +179,13 @@ it("漏跑一天补算错过的定稿日期和月份，忽略晚到的旧触发"
   await env.DB.prepare(
     "DELETE FROM active_days WHERE day = '2025-01-31'",
   ).run();
+  await minute("2024-12-01T00:00").run();
   await scheduled("2025-02-07T19:00:00Z");
   expect(await lastSuccess()).toBe("2025-02-09");
   expect((await groups("2025-01"))["all/"]).toEqual([0, 1]);
+  expect(await column("minute_counts", "minute_at")).toEqual([
+    "2024-12-01T00:00",
+  ]);
 });
 
 it("计数、错误和耗时按主键聚合；删除未定稿设备后旧分组消失", async () => {
@@ -273,6 +284,9 @@ it("长期漏跑按各表保留期截断日表，清理前用完整月明细汇�
     env.DB.prepare(
       "INSERT INTO erased_installs VALUES ('old', '2025-02-28T18:59:59.999Z'), ('keep', '2025-02-28T19:00:00.000Z')",
     ),
+    minute("2025-03-01T02:59"),
+    minute("2025-03-01T03:00"),
+    minute("2025-03-01T03:01"),
   ]);
 
   // 2025-03-31 向前 13 个自然月落在闰年 2 月最后一天。
@@ -292,11 +306,16 @@ it("长期漏跑按各表保留期截断日表，清理前用完整月明细汇�
   }
   expect(await column("batches", "batch_id")).toEqual(["keep"]);
   expect(await column("erased_installs", "install_id")).toEqual(["keep"]);
+  expect(await column("minute_counts", "minute_at")).toEqual([
+    "2025-03-01T03:00",
+    "2025-03-01T03:01",
+  ]);
 });
 
 it.each([
   ["INSERT", "active_monthly"],
   ["DELETE", "batches"],
+  ["DELETE", "minute_counts"],
   ["UPDATE", "job_state"],
 ])(
   "%s %s 失败保留已完成的汇总，跳过清理与成功日期更新，下一轮覆盖重算",
@@ -317,6 +336,7 @@ it.each([
       env.DB.prepare(
         "INSERT INTO erased_installs VALUES ('old', '2025-01-01T00:00:00.000Z')",
       ),
+      minute("2025-01-01T00:00"),
       env.DB
         .prepare(`CREATE TRIGGER fail_aggregate BEFORE ${operation} ON ${table}
       ${table === "active_monthly" ? "WHEN NEW.month = '2025-05'" : ""}
@@ -346,6 +366,9 @@ it.each([
       }
       expect(await column("batches", "batch_id")).toEqual(["old"]);
       expect(await column("erased_installs", "install_id")).toEqual(["old"]);
+      expect(await column("minute_counts", "minute_at")).toEqual([
+        "2025-01-01T00:00",
+      ]);
     } finally {
       await env.DB.prepare("DROP TRIGGER fail_aggregate").run();
     }
@@ -364,5 +387,6 @@ it.each([
     ]);
     expect(await column("batches", "batch_id")).toEqual([]);
     expect(await column("erased_installs", "install_id")).toEqual([]);
+    expect(await column("minute_counts", "minute_at")).toEqual([]);
   },
 );

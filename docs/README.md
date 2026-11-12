@@ -58,3 +58,4 @@
 | [0006](adr/0006-explicit-dart-modules.md) | 显式 Dart 模块 |
 | [0007](adr/0007-operation-scopes-and-verification.md) | 操作作用域与验证闭包 |
 | [0008](adr/0008-app-service-worker.md) | 应用服务 Worker |
+| [0009](adr/0009-minute-telemetry-counts.md) | 登录与功能加载的匿名分钟级计数 |

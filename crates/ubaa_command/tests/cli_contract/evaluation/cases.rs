@@ -1,7 +1,7 @@
 #[test]
 fn 评教仅保留_typed_submit_pending_且删除_raw_payload_入口() {
     let error = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "evaluation",
         "submit",
         "--payload",
@@ -15,12 +15,12 @@ fn 评教仅保留_typed_submit_pending_且删除_raw_payload_入口() {
             .to_string()
             .contains("unrecognized subcommand 'submit'")
     );
-    Cli::try_parse_from(["ubaa", "evaluation", "submit-pending", "--confirm-write"]).unwrap();
+    Cli::try_parse_from(["ubaa-cli", "evaluation", "submit-pending", "--confirm-write"]).unwrap();
 }
 
 #[tokio::test]
 async fn 自动评教未确认时零读取零提交零回读() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "evaluation", "submit-pending"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "evaluation", "submit-pending"]).unwrap();
     let mut backend = EvaluationBackend::default();
 
     let (exit, value, stderr) = run_json(cli, &mut backend).await;
@@ -329,7 +329,7 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
 
 #[tokio::test]
 async fn 评教读取只输出安全课程投影且符合_schema_v10() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "evaluation", "all"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "evaluation", "all"]).unwrap();
     let mut backend = EvaluationBackend {
         courses: vec![pending_course(
             "safe",
@@ -427,7 +427,7 @@ async fn run_json(cli: Cli, backend: &mut EvaluationBackend) -> (i32, serde_json
 
 fn submit_pending_cli() -> Cli {
     Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "evaluation",
         "submit-pending",

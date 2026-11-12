@@ -6,9 +6,9 @@ use ubaa_core::facade::{
 #[test]
 fn 同步命令只读与确认上传进入一次网络作业() {
     for args in [
-        vec!["ubaa", "agenda", "sync", "--pull"],
-        vec!["ubaa", "agenda", "sync", "--confirm-write"],
-        vec!["ubaa", "agenda", "sync", "--create", "--confirm-write"],
+        vec!["ubaa-cli", "agenda", "sync", "--pull"],
+        vec!["ubaa-cli", "agenda", "sync", "--confirm-write"],
+        vec!["ubaa-cli", "agenda", "sync", "--create", "--confirm-write"],
     ] {
         let plan = parse(args);
         assert!(plan.is_ok(), "同步命令必须可由 App 命令入口解析");
@@ -17,7 +17,7 @@ fn 同步命令只读与确认上传进入一次网络作业() {
         assert!(plan.validate_local_arguments().is_ok());
     }
     assert!(
-        parse(["ubaa", "agenda", "sync"])
+        parse(["ubaa-cli", "agenda", "sync"])
             .unwrap()
             .validate_local_arguments()
             .is_err()

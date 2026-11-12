@@ -2,7 +2,7 @@
 
 本页写给维护者和贡献者，回答三个问题：现在实现了什么，在哪里验证过，发布前还差什么。这里只记录当前事实。每次验证用的命令和结果写在对应提交说明里，旧的逐日记录见[状态流水归档](../archive/history/2026-11-11-status-log.md)。
 
-更新：2026-11-11
+更新：2026-11-12
 
 ## 版本与合同
 
@@ -11,7 +11,7 @@
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
 | Rust 与 Dart 之间的接口 | Flutter bridge contract v61 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
-| 应用服务 | 接口 Schema v1，安装级 SQLite v3，隐私政策 v1 | [应用服务合同](../contracts/app-service.md) |
+| 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v3 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
 
@@ -34,14 +34,14 @@
 | 日程跨设备同步（经北航云盘） | ✅ | ✅ 2026-11-05 | ⏳ 需人工完成验证码登录后补验 | GUI 文件面板与其他平台实机 |
 | 北航云盘 | ✅ | ✅ 2026-11-05（合成测试目录） | ⏳ | WebVPN 完整链路；系统文件面板的设备实测 |
 | 桌面命令模式 | ✅ | — | — | 签名 Release、安装升级，以及沿用旧版本机材料 |
-| 应用服务（更新、公告、统计） | ✅ 本地端到端和生产部署通过，合成统计上报、去重与删除已验证 | — | — | 真实定时任务执行；本地验收对照见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
+| 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 分钟计数的 Worker 迁移和客户端发布、生产定时任务；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 ## 平台
 
 | 平台 | 已验证 | 尚未验证 |
 |---|---|---|
 | macOS | Debug 构建；原生集成测试（真实 FRB、本机缓存、日程、共享生命周期）；命令与 GUI 双进程（合成材料） | 签名公证的 Release 安装与升级；沿用旧版本机材料 |
-| Windows | Windows 11 x64 Debug：GUI、`ubaa.exe` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
+| Windows | Windows 11 x64 Debug：GUI、`ubaa-cli` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
 | Linux | Debian 12 arm64：AOT 命令、Secret Service、SSH/PAM（隔离容器）；托管 x64、arm64 Release 构建 | 部署安装 |
 | Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
 | iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |

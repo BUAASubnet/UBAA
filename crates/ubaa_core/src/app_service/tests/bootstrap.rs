@@ -173,6 +173,7 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
     let clock = clock();
     let gui = dir.open("github", "1.9.0+9", Surface::Gui, 1, &clock);
     let required = Mock::named("未知顶层字段不妨碍识别更新要求");
+    gui.enter_basic().unwrap();
     assert!(
         gui.refresh_bootstrap_with(&required, true)
             .await
@@ -246,15 +247,8 @@ async fn 门控在撤回时停用并在重新同意刷新失败或未知状态�
         &gui.refresh_bootstrap_with(&required, true).await.unwrap()
     ));
     let new_policy = dir.open("github", "1.9.0", Surface::Gui, 2, &clock);
-    assert!(!gui.update_gate_active().unwrap());
-    assert!(
-        new_policy
-            .refresh_bootstrap_with(&required, true)
-            .await
-            .unwrap()
-            .update
-            .is_none()
-    );
+    assert!(gui.update_gate_active().unwrap());
+    assert!(new_policy.update_gate_active().unwrap());
     assert_eq!(required.count(), 1);
     gui.enter_basic().unwrap();
     assert!(!new_policy.update_gate_active().unwrap());

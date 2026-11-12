@@ -51,6 +51,12 @@
             ],
             "timings": [
               {"metric": "feature_load", "feature": "schedule", "route": "direct", "bucket": "lt_1000", "count": 2}
+            ],
+            "minutes": [
+              {"minute": 0, "event": "auth_started", "feature": "auth", "result": "success", "count": 1},
+              {"minute": 0, "event": "auth_succeeded", "feature": "auth", "result": "success", "count": 1},
+              {"minute": 0, "event": "auth_failed", "feature": "auth", "result": "failure", "count": 1},
+              {"minute": 1439, "event": "feature_loaded", "feature": "schedule", "result": "empty", "count": 2}
             ]
           }
         ]
@@ -75,6 +81,14 @@
     {"name": "计数条目未知字段", "caseIndex": 1, "path": ["days", 0, "counters", 0, "unexpected"], "value": 1},
     {"name": "错误条目未知字段", "caseIndex": 1, "path": ["days", 0, "errors", 0, "unexpected"], "value": 1},
     {"name": "耗时条目未知字段", "caseIndex": 1, "path": ["days", 0, "timings", 0, "unexpected"], "value": 1},
+    {"name": "分钟条目拒绝安装标识", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "install_id"], "value": "00000000-0000-4000-8000-000000000002"},
+    {"name": "分钟不能小于零", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "minute"], "value": -1},
+    {"name": "分钟不能达到 1440", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "minute"], "value": 1440},
+    {"name": "分钟必须是整数", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "minute"], "value": 0.5},
+    {"name": "分钟条目拒绝非分钟事件", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "event"], "value": "app_started"},
+    {"name": "分钟条目拒绝未知功能", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "feature"], "value": "future_feature"},
+    {"name": "分钟条目拒绝未知结果", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "result"], "value": "future_result"},
+    {"name": "分钟计数不能为零", "caseIndex": 1, "path": ["days", 0, "minutes", 0, "count"], "value": 0},
     {"name": "用户条目未知字段", "caseIndex": 1, "path": ["days", 0, "users", 0, "unexpected"], "value": 1},
     {"name": "未知功能", "caseIndex": 1, "path": ["days", 0, "counters", 0, "feature"], "value": "future_feature"},
     {"name": "未知错误分类", "caseIndex": 1, "path": ["days", 0, "errors", 0, "error_kind"], "value": "future_error_kind"},

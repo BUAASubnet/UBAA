@@ -57,6 +57,13 @@ export type TelemetryDay = {
     source?: string;
   })[];
   timings: (FeatureCount & { metric: string; bucket: string })[];
+  minutes?: {
+    minute: number;
+    event: string;
+    feature: string;
+    result: string;
+    count: number;
+  }[];
 };
 
 export type TelemetryRequest = EraseRequest & {
@@ -66,7 +73,7 @@ export type TelemetryRequest = EraseRequest & {
   days: TelemetryDay[];
 };
 
-// Schema 校验单个字段；日期与版本组合、随校园年份变化的上限在这里判断。
+// Schema 校验单个字段；组合唯一性和随校园年份变化的上限在这里判断。
 export function validateTelemetryRequest(
   payload: unknown,
   campusYear: number,
@@ -88,6 +95,12 @@ export function validateTelemetryRequest(
       return false;
     }
     seen.add(key);
+    const minuteKeys = new Set<string>();
+    for (const { minute, event, feature, result } of day.minutes ?? []) {
+      const minuteKey = `${minute}/${event}/${feature}/${result}`;
+      if (minuteKeys.has(minuteKey)) return false;
+      minuteKeys.add(minuteKey);
+    }
   }
   return true;
 }

@@ -1,4 +1,4 @@
-import { campusDay, shiftDay } from "./campus_time";
+import { campusDay, campusMinute, shiftDay } from "./campus_time";
 
 const JOB = "aggregate";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -125,7 +125,8 @@ export async function runAggregation(
     (sql) =>
       db.prepare(BOUNDS + sql).bind(day, firstDay, start, end);
   const timestampCutoff = (days: number) =>
-    new Date(scheduledTime - days * DAY_MS).toISOString();
+    new Date(scheduledTime - days * DAY_MS);
+  const thirtyDayCutoff = timestampCutoff(30);
   const cleanup = (
     table: string,
     column: string,
@@ -164,8 +165,9 @@ export async function runAggregation(
     ...Object.keys(COUNT_KEYS).map((name) =>
       cleanup(`${name}_days`, "day", countCutoff),
     ),
-    cleanup("batches", "received_at", timestampCutoff(14)),
-    cleanup("erased_installs", "erased_at", timestampCutoff(30)),
+    cleanup("batches", "received_at", timestampCutoff(14).toISOString()),
+    cleanup("erased_installs", "erased_at", thirtyDayCutoff.toISOString()),
+    cleanup("minute_counts", "minute_at", campusMinute(thirtyDayCutoff)),
     db
       .prepare(
         `

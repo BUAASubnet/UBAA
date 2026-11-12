@@ -18,7 +18,7 @@ func runCommand(_ arguments: [String]) {
   signal(SIGPIPE, SIG_IGN)
   _ = NSApplication.shared
   let project = FlutterDartProject()
-  project.dartEntrypointArguments = ["ubaa"] + arguments
+  project.dartEntrypointArguments = ["ubaa-cli"] + arguments
   let engine = FlutterEngine(name: "ubaa_command", project: project, allowHeadlessExecution: true)
   FlutterSecureStorageDarwinPlugin.register(with: engine.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
   FPPPackageInfoPlusPlugin.register(with: engine.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))

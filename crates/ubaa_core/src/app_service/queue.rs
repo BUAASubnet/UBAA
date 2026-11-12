@@ -5,21 +5,23 @@ use super::{
     privacy::TelemetryUser,
     types::{Channel, Platform, Surface, TelemetryEvent},
 };
-use chrono::{Days, NaiveDate};
+use chrono::{Days, NaiveDate, NaiveDateTime};
 use rusqlite::{OptionalExtension, Transaction, params};
 use uuid::Uuid;
 
 mod batch;
+mod minutes;
 #[cfg(test)]
 mod tests;
 
 pub use batch::FrozenBatch;
 pub(super) use batch::{batch_for_send, freeze};
+pub(super) use minutes::MINUTE_SCHEMA;
 
 const COUNT_LIMIT: i64 = 100_000;
 const CAPACITY_BYTES: usize = 256 * 1024;
 // 一个批次的固定字段和至多八组外壳（含最长版本、两种来源）。
-// 待发事件及待发用户各自另计序列化长度和分隔符。
+// 含可选分钟数组的字段名。待发事件及用户各自另计序列化长度和分隔符。
 const FRAME_RESERVE: usize = 2 * 1024;
 // `,"count":100000,` 最多增加 16 字节（含数组分隔符）。
 const COUNT_AND_SEPARATOR_BYTES: u8 = 16;
@@ -99,6 +101,7 @@ pub(super) fn finish(
 pub(super) fn clear(tx: &Transaction<'_>) -> AppServiceResult<()> {
     tx.execute_batch(
         "DELETE FROM app_service_pending;
+         DELETE FROM app_service_minutes;
          DELETE FROM app_service_batches;
          DELETE FROM app_service_registrations
          WHERE pending_body IS NOT NULL OR batch_id IS NOT NULL;",
@@ -117,7 +120,7 @@ pub(super) fn reset(tx: &Transaction<'_>) -> AppServiceResult<()> {
 
 pub(super) fn enqueue(
     tx: &Transaction<'_>,
-    day: NaiveDate,
+    now: NaiveDateTime,
     version: &str,
     surface: Surface,
     event: &TelemetryEvent,
@@ -126,6 +129,7 @@ pub(super) fn enqueue(
     if !event.is_valid() {
         return Ok(false);
     }
+    let day = now.date();
     purge_expired(tx, day)?;
     let (category, dimensions) = match event {
         TelemetryEvent::Counter(dimensions) => (0, serde_json::to_vec(dimensions)?),
@@ -154,9 +158,11 @@ pub(super) fn enqueue(
         0
     };
     let user_delta = registration.as_ref().map_or(0, |(_, body)| body.len() + 1);
-    if queued_bytes(tx)? + event_delta + user_delta + FRAME_RESERVE > CAPACITY_BYTES {
+    let Some(spare) =
+        CAPACITY_BYTES.checked_sub(queued_bytes(tx)? + event_delta + user_delta + FRAME_RESERVE)
+    else {
         return Ok(false);
-    }
+    };
     let surfaces = match surface {
         Surface::Gui => 1,
         Surface::Command => 2,
@@ -177,6 +183,9 @@ pub(super) fn enqueue(
             "INSERT OR IGNORE INTO app_service_daily_accounts(day,user_key) VALUES(?1,?2)",
             params![day, key],
         )?;
+    }
+    if let Some(dimensions) = minutes::Dimensions::from_event(now.time(), event) {
+        minutes::record(tx, &day, version, surfaces, &dimensions, spare)?;
     }
     Ok(true)
 }
@@ -203,6 +212,8 @@ fn queued_bytes(tx: &Transaction<'_>) -> AppServiceResult<usize> {
     let size: i64 = tx.query_row(
         "SELECT
             (SELECT coalesce(sum((length(dimensions)+?1)*(1+(count-1)/?2)),0) FROM app_service_pending)
+            + (SELECT coalesce(sum((length(dimensions)+?1)*(1+(count-1)/?2)),0)
+               FROM app_service_minutes WHERE count>0)
             + (SELECT coalesce(sum(length(pending_body)+1),0) FROM app_service_registrations)
             + (SELECT coalesce(sum(length(body)),0) FROM app_service_batches)",
         params![COUNT_AND_SEPARATOR_BYTES, COUNT_LIMIT],
@@ -221,6 +232,7 @@ fn oldest_day(today: NaiveDate) -> String {
 fn purge_expired(tx: &Transaction<'_>, today: NaiveDate) -> AppServiceResult<()> {
     let cutoff = oldest_day(today);
     tx.execute("DELETE FROM app_service_pending WHERE day < ?1", [&cutoff])?;
+    tx.execute("DELETE FROM app_service_minutes WHERE day < ?1", [&cutoff])?;
     tx.execute(
         "DELETE FROM app_service_registrations WHERE day < ?1",
         [&cutoff],

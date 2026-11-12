@@ -12,7 +12,7 @@ async fn 校园与财务命令投影符合_json_合同() {
         ("finance", "incomes", "entries"),
     ] {
         for routed in [true, false] {
-            let cli = Cli::try_parse_from(["ubaa", "--json", group, operation]).unwrap();
+            let cli = Cli::try_parse_from(["ubaa-cli", "--json", group, operation]).unwrap();
             let mut output = Vec::new();
             let mut errors = Vec::new();
             let code = if routed {
@@ -71,7 +71,7 @@ async fn 校园人类输出保留中文含义和单项错误() {
             ],
         ),
     ] {
-        let cli = Cli::try_parse_from(["ubaa", group, operation]).unwrap();
+        let cli = Cli::try_parse_from(["ubaa-cli", group, operation]).unwrap();
         let mut output = Vec::new();
         let mut errors = Vec::new();
         assert_eq!(

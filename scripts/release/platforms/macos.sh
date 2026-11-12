@@ -14,7 +14,7 @@ ONLY_ACTIVE_ARCH = YES
 CONFIG
 export FLUTTER_XCODE_ARCHS="$arch"
 just flutter-build platform=macos mode=release
-app=apps/ubaa_flutter/build/macos/Build/Products/Release/ubaa_flutter.app
+app=apps/ubaa_flutter/build/macos/Build/Products/Release/UBAA.app
 # 从内部动态库到 Framework 再到主应用签名，保留相同的 Developer ID。
 while IFS= read -r -d '' library; do
   codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$library"
@@ -25,7 +25,7 @@ done < <(find "$app/Contents/Frameworks" -depth -name '*.framework' -type d -pri
 codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" \
   --entitlements apps/ubaa_flutter/macos/Runner/Release.entitlements "$app"
 codesign --verify --deep --strict "$app"
-lipo "$app/Contents/MacOS/ubaa_flutter" -verify_arch "$arch"
+lipo "$app/Contents/MacOS/UBAA" -verify_arch "$arch"
 ditto -c -k --keepParent "$app" "$output/notarize.zip"
 xcrun notarytool submit "$output/notarize.zip" \
   --key "$API_PRIVATE_KEYS_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \

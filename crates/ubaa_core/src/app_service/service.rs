@@ -54,7 +54,7 @@ impl AppService {
         }
         let policy = config.available().map(|_| policy_version);
         Ok(Self {
-            store: Store::open(config_dir, policy)?,
+            store: Store::open(config_dir, policy, surface)?,
             config,
             surface,
             telemetry_hard_closed: config::telemetry_hard_closed,
@@ -114,18 +114,11 @@ impl AppService {
             if !self.permissions(tx)?.can_telemetry() {
                 return Ok(false);
             }
-            let today = self.today();
+            let now = self.now().with_timezone(&Shanghai).naive_local();
             let user = bound.as_ref().and_then(|(account, _)| {
-                TelemetryUser::from_confirmed_username(&account.username, today.year())
+                TelemetryUser::from_confirmed_username(&account.username, now.year())
             });
-            queue::enqueue(
-                tx,
-                today,
-                &config.version,
-                self.surface,
-                event,
-                user.as_ref(),
-            )
+            queue::enqueue(tx, now, &config.version, self.surface, event, user.as_ref())
         })
     }
 

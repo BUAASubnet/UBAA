@@ -73,13 +73,10 @@ void main() {
         return;
       }
 
-      expect((await gui.refreshAppService()).needsConsentPrompt, isTrue);
-      expect((await command.state()).consent, BridgeAppServiceConsent.unasked);
-      expect(
-        (await gui.agreePrivacyPolicy()).consent,
-        AppServiceConsent.agreed,
-      );
+      expect((await gui.refreshAppService()).consent, AppServiceConsent.agreed);
+      expect(gui.appService.telemetryEnabled, isTrue);
       expect((await command.state()).consent, BridgeAppServiceConsent.agreed);
+      await gui.refreshAppBootstrap(force: true);
       await gui.recordAppStarted();
       await gui.uploadAppService(force: true);
       await bootstrapArrived.future.timeout(const Duration(seconds: 10));

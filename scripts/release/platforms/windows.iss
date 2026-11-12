@@ -17,13 +17,13 @@ OutputBaseFilename=UBAA-{#AppVersion}-windows-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\ubaa_flutter.exe
+UninstallDisplayIcon={app}\UBAA.exe
 [Files]
 Source: "../../../apps/ubaa_flutter/build/windows/x64/runner/Release/*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
-Name: "{group}\UBAA"; Filename: "{app}\ubaa_flutter.exe"
-Name: "{autodesktop}\UBAA"; Filename: "{app}\ubaa_flutter.exe"; Tasks: desktopicon
+Name: "{group}\UBAA"; Filename: "{app}\UBAA.exe"
+Name: "{autodesktop}\UBAA"; Filename: "{app}\UBAA.exe"; Tasks: desktopicon
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; Flags: unchecked
 [Run]
-Filename: "{app}\ubaa_flutter.exe"; Description: "启动 UBAA"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\UBAA.exe"; Description: "启动 UBAA"; Flags: nowait postinstall skipifsilent

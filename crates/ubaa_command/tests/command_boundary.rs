@@ -46,7 +46,7 @@ impl io::BufRead for LineLimitedInput {
 
 async fn assert_invalid_stdin_username(first_line: &[u8], message: &str) {
     let argv = [
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "auth",
         "login",
@@ -112,7 +112,7 @@ impl Write for FlushFailure {
 }
 #[tokio::test]
 async fn success_requires_output_flush() {
-    let cli = Cli::try_parse_from(["ubaa", "--json", "user", "show"]).unwrap();
+    let cli = Cli::try_parse_from(["ubaa-cli", "--json", "user", "show"]).unwrap();
     let code = run_with_backend(
         cli,
         &mut common::FakeBackend::default(),
@@ -126,7 +126,7 @@ async fn success_requires_output_flush() {
 #[tokio::test]
 async fn cgyy_request_uses_injected_stdin() {
     let cli = Cli::try_parse_from([
-        "ubaa",
+        "ubaa-cli",
         "--json",
         "cgyy",
         "submit",
@@ -174,7 +174,7 @@ fn prepared(argv: &[&str]) -> (ubaa_command::PreparedCommand, CommandControl) {
 }
 #[tokio::test]
 async fn expired_attempt_is_discarded_before_only_success_is_rendered() {
-    let (input, control) = prepared(&["ubaa", "--json", "schedule", "terms"]);
+    let (input, control) = prepared(&["ubaa-cli", "--json", "schedule", "terms"]);
     let mut backend = common::FakeRoutedBackend {
         fail_schedule: true,
         ..Default::default()
@@ -234,18 +234,18 @@ fn every_existing_write_operation_is_classified_before_execution() {
         vec!["evaluation", "submit-pending"],
     ];
     for args in cases {
-        let plan = parse(std::iter::once("ubaa").chain(args)).unwrap();
+        let plan = parse(std::iter::once("ubaa-cli").chain(args)).unwrap();
         assert_eq!(plan.requirements().class, CommandClass::SchoolWrite);
     }
     assert_eq!(
-        parse(["ubaa", "agenda", "unsynced"])
+        parse(["ubaa-cli", "agenda", "unsynced"])
             .unwrap()
             .requirements()
             .class,
         CommandClass::Local
     );
     assert_eq!(
-        parse(["ubaa", "auth", "status"])
+        parse(["ubaa-cli", "auth", "status"])
             .unwrap()
             .requirements()
             .class,
@@ -255,7 +255,7 @@ fn every_existing_write_operation_is_classified_before_execution() {
 #[tokio::test]
 async fn online_stop_codes_preserve_v13() {
     for deadline in [false, true] {
-        let (input, _) = prepared(&["ubaa", "--json", "user", "show"]);
+        let (input, _) = prepared(&["ubaa-cli", "--json", "user", "show"]);
         let control = CommandControl::new(
             Instant::now(),
             if deadline {
@@ -306,7 +306,7 @@ fn invalid_write_confirmation_does_not_consume_stdin() {
     }
     let control = CommandControl::default();
     prepare_input(
-        parse(["ubaa", "cgyy", "submit", "--request-stdin"]).unwrap(),
+        parse(["ubaa-cli", "cgyy", "submit", "--request-stdin"]).unwrap(),
         &mut NeverRead,
         &control,
     )
@@ -361,7 +361,7 @@ fn full_output_queue_wakes_on_cancellation_and_reader_failure() {
 #[tokio::test]
 async fn stopped_result_can_deliver_one_bounded_timeout_envelope() {
     use ubaa_command::runtime::bounded_output;
-    let (input, _) = prepared(&["ubaa", "--json", "user", "show"]);
+    let (input, _) = prepared(&["ubaa-cli", "--json", "user", "show"]);
     let control = CommandControl::new(Instant::now(), Duration::ZERO);
     let result = execute_fixed_attempt(&input, &mut common::FakeBackend::default(), &control)
         .await
@@ -401,7 +401,7 @@ async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
         ),
     ] {
         let plan = parse(
-            ["ubaa", "--json", "auth", "login"]
+            ["ubaa-cli", "--json", "auth", "login"]
                 .into_iter()
                 .chain(username_args)
                 .chain(["--password-stdin"]),
@@ -440,7 +440,7 @@ fn invalid_config_is_rejected_before_prompting_for_password() {
     let config = root.join(format!("invalid_config_{}", uuid::Uuid::new_v4()));
     std::fs::write(&config, "合成普通文件").unwrap();
     let plan = parse([
-        "ubaa",
+        "ubaa-cli",
         "--config-dir",
         config.to_str().unwrap(),
         "auth",

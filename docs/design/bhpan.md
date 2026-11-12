@@ -53,7 +53,7 @@
 | `crates/ubaa_core/src/domain/bhpan/` | 文件、目录、分享设置、读取范围、传输状态与稳定错误类型，不含秘密字段 |
 | `crates/ubaa_core/src/features/bhpan/` | 分离认证、目录、文件写操作、分享和传输协议，复用现有 transport、路线与会话边界 |
 | `crates/ubaa_core/src/facade/bhpan/` | 生产宿主的读取、操作准备、单次提交、传输观察与取消入口 |
-| 公共 App 命令库及最终入口 | `ubaa bhpan` 命令族，支持 human/JSON 与现有 CLI 确认规则 |
+| 公共 App 命令库及最终入口 | `ubaa-cli bhpan` 命令族，支持 human/JSON 与现有 CLI 确认规则 |
 | `crates/ubaa_flutter_bridge/src/api/bhpan/` | 类型化读取、操作和传输投影，按合同规则更新版本与生成物 |
 | `packages/ubaa_domain`、`packages/ubaa_app` | 展示模型、账号与路线代次、状态恢复和交互编排，复用现有写协调规则 |
 | `packages/ubaa_platform`、`packages/ubaa_host` | 文件选择、私有暂存、保存和打开能力，逐平台实现与验证 |

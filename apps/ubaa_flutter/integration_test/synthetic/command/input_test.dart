@@ -25,7 +25,7 @@ void main() {
       await initializeRustLibrary();
       for (final arguments in [
         [
-          'ubaa',
+          'ubaa-cli',
           '--json',
           'auth',
           'login',
@@ -34,7 +34,7 @@ void main() {
           '--password-stdin',
         ],
         [
-          'ubaa',
+          'ubaa-cli',
           '--json',
           'ygdk',
           'submit',
@@ -51,7 +51,7 @@ void main() {
           '--confirm-write',
         ],
         [
-          'ubaa',
+          'ubaa-cli',
           '--json',
           'ygdk',
           'submit',

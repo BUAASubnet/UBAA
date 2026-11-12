@@ -84,7 +84,7 @@ Rust `CommandControl` 控制异步尝试和输出队列。Core 的操作作用�
 
 同一 `.app` 主程序在 `NSApplicationMain`、XIB 和 GUI 锁之前分流。命令角色使用无窗口 FlutterEngine，窄注册材料等必要能力，运行 RunLoop，结束后关闭本进程 Engine。GUI 角色继续正常界面启动。GUI 专有角色锁放固定 OS 用户私有目录，O_NOFOLLOW、0600、非阻塞 flock，持有到 GUI 退出，不删除或替换锁文件。第二 GUI 只能经本机激活端点唤起持有者，不能按 Bundle ID 把命令误认作 GUI。
 
-PATH 首期文档化安装 `~/.local/bin/ubaa` 符号链接，直接 App 二进制支持 `--command`。默认 App 启动 GUI，名为 ubaa 的命令入口无参数进入帮助。安装入口随 App 升级，不新增常驻守护进程。
+PATH 首期文档化安装 `~/.local/bin/ubaa-cli` 符号链接，直接 App 二进制支持 `--command`。默认 App 启动 GUI，名为 `ubaa-cli` 的命令入口无参数进入帮助。安装入口随 App 升级，不新增常驻守护进程。
 
 目录保持既有 path_provider 算法。旧沙箱容器、非沙箱目标、历史 CLI 资料和旧签名先只读盘点。停用旧入口并等待全部旧进程退出后，取得迁移锁和已知旧锁，核对 UID、目录身份、权限和符号链接。目标为空才复制到同文件系统私有 staging；SQLite 用 backup API，或在全部连接关闭后完整处理主库、WAL、SHM。会话、alias、CacheKey、恢复许可、schema 及未完成材料事务都保留。验证后原子落位并持久化标记，异常可续接，旧资料不自动删除。目标冲突、密钥不一致、多个历史索引或事务未完成时停止，不按用户名合库或覆盖原件。
 
@@ -112,7 +112,7 @@ Release 性能目标：热启动本机命令 P95≤0.5 秒、正常冷启动 P95
 
 ## Windows
 
-采用控制台子系统 `ubaa.exe`，GUI 保留 WIN32。两个 EXE 位于同一目录，共用 data、Engine/Rust DLL 和版本清单。CompanyName、ProductName、版本和资料目录规则保持一致，OriginalFilename 可区分。命令不取得 GUI mutex，复用 H1-b2 最终 DPAPI/DACL 材料适配，不新建命令材料库。
+采用控制台子系统 `ubaa-cli.exe`，图形程序 `UBAA.exe` 使用 WIN32 子系统。两个程序位于同一目录，共用 data、Engine/Rust DLL 和版本清单。终端使用 `ubaa-cli`；图形启动器和快捷方式指向 `UBAA.exe`。CompanyName、ProductName、版本和资料目录规则保持一致，OriginalFilename 分别记录实际文件名。命令不取得 GUI mutex，复用 H1-b2 最终 DPAPI/DACL 材料适配，不新建命令材料库。
 
 控制台入口使用 wmain，严格逐项 UTF-16→UTF-8，保留空参数和非 ASCII 内容。创建 DartProject、无 view FlutterEngine、必要插件与完成/取消通道，不创建 FlutterWindow。通过 `MsgWaitForMultipleObjectsEx`、PeekMessage/DispatchMessage 保持 Engine 消息处理，取消后继续处理收尾，不能只轮询 ProcessMessages。message-only window 与用户可见窗口分别检查。
 

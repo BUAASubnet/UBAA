@@ -19,8 +19,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final _navigatorKey = GlobalKey<NavigatorState>();
   DialogRoute<void>? _captchaDialogRoute;
-  DialogRoute<void>? _consentRoute;
-  bool _consentScheduled = false;
   StreamSubscription<void>? _updatePromptSubscription;
   bool _updatePromptOpen = false;
   bool _announcementOpen = false;
@@ -266,7 +264,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
-    _controller.addListener(_syncConsentPrompt);
     _controller.addListener(_syncAnnouncementPopup);
     _updatePromptSubscription = _controller.updatePromptRequests.listen(
       (_) => unawaited(_showUpdatePrompt()),
@@ -320,7 +317,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncCaptchaDialog);
-    _controller.removeListener(_syncConsentPrompt);
     _controller.removeListener(_syncAnnouncementPopup);
     unawaited(_updatePromptSubscription?.cancel());
     _controller.removeListener(_syncScheduleWidgets);

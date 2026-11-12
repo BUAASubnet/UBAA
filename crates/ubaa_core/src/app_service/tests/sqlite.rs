@@ -1,5 +1,5 @@
 use super::{
-    AppServiceError,
+    AppServiceError, Surface,
     sqlite::{DATABASE_NAME, Store},
 };
 use rusqlite::Connection;
@@ -17,7 +17,7 @@ fn failed_migration_leaves_both_databases_intact() {
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch("CREATE TABLE app_service_pending (value INTEGER); INSERT INTO app_service_pending VALUES (9)").unwrap();
 
-    assert!(Store::open(&root, None).is_err());
+    assert!(Store::open(&root, None, Surface::Gui).is_err());
     assert_eq!(
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
@@ -44,7 +44,7 @@ fn failed_migration_leaves_both_databases_intact() {
         .pragma_update(None, "user_version", 99)
         .unwrap();
     assert!(matches!(
-        Store::open(&root, None),
+        Store::open(&root, None, Surface::Gui),
         Err(AppServiceError::UnsupportedSchema)
     ));
     assert_eq!(
@@ -232,13 +232,15 @@ fn 校园午夜后原会话再次登记同一用户和年级() {
 
 #[test]
 fn 既有安装数据库迁移保留同意开关和交付时间() {
-    for version in [1, 2] {
+    for version in [1, 2, 3] {
         check_migration(version);
     }
 }
 
 fn check_migration(version: u32) {
-    use super::{AppService, AppServiceConfig, Consent, Surface, queue, state};
+    use super::{
+        AppService, AppServiceConfig, BatchDisposition, Consent, Surface, bootstrap, queue, state,
+    };
 
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.ubaa_local/app_service/test_sqlite")
@@ -247,13 +249,16 @@ fn check_migration(version: u32) {
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch(state::SCHEMA).unwrap();
     installation.execute_batch(queue::SCHEMA).unwrap();
-    if version == 2 {
+    if version >= 2 {
         installation
             .execute_batch(
                 "ALTER TABLE app_service_state ADD COLUMN last_delivery_attempt INTEGER;
              UPDATE app_service_state SET last_delivery_attempt = 7",
             )
             .unwrap();
+    }
+    if version == 3 {
+        installation.execute_batch(bootstrap::SCHEMA).unwrap();
     }
     installation
         .pragma_update(None, "user_version", version)
@@ -263,13 +268,39 @@ fn check_migration(version: u32) {
         "UPDATE app_service_state SET accepted_policy = 1, telemetry_enabled = 0, install_id = ?1 WHERE id = 1",
         [previous.to_string()],
     ).unwrap();
+    let batch_id = uuid::Uuid::new_v4();
+    let old_body = serde_json::to_vec(&serde_json::json!({
+        "schema": 1,
+        "batch_id": batch_id,
+        "install_id": previous,
+        "platform": "macos",
+        "channel": "github",
+        "days": [{
+            "day": "2026-11-11", "app_version": "2.0.0", "surfaces": ["gui"],
+            "users": [], "counters": [], "errors": [], "timings": []
+        }]
+    }))
+    .unwrap();
+    if version == 3 {
+        installation.execute(
+            "INSERT INTO app_service_batches(id,install_id,last_day,body) VALUES(?1,?2,'2026-11-11',?3)",
+            rusqlite::params![batch_id.to_string(), previous.to_string(), old_body],
+        ).unwrap();
+    }
     let service = AppService::open(
         &root,
-        AppServiceConfig::from_build(None, None, None, super::Platform::Macos, false),
+        AppServiceConfig::from_build(
+            Some("http://127.0.0.1:8787"),
+            Some("github"),
+            Some("2.0.0"),
+            super::Platform::Macos,
+            false,
+        ),
         Surface::Gui,
         1,
     )
-    .unwrap();
+    .unwrap()
+    .with_runtime(|| "2026-11-11T00:00:00Z".parse().unwrap(), false);
     let snapshot = service.snapshot().unwrap();
     assert_eq!(snapshot.consent, Consent::Agreed(1));
     assert_eq!(snapshot.telemetry_enabled, Some(false));
@@ -278,7 +309,7 @@ fn check_migration(version: u32) {
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        3
+        4
     );
     let attempt: Option<i64> = installation
         .query_row(
@@ -287,7 +318,19 @@ fn check_migration(version: u32) {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(attempt, (version == 2).then_some(7));
+    assert_eq!(attempt, (version >= 2).then_some(7));
+    assert!(service.set_telemetry(true).unwrap());
+    if version == 3 {
+        let batch = service.freeze_next().unwrap().unwrap();
+        assert_eq!(batch.id(), batch_id);
+        assert!(batch.body() == old_body);
+        assert!(
+            service
+                .finish_batch(batch_id, BatchDisposition::Accepted)
+                .unwrap()
+        );
+    }
+    assert!(service.freeze_next().unwrap().is_none());
     drop(service);
     drop(installation);
     std::fs::remove_dir_all(root).unwrap();

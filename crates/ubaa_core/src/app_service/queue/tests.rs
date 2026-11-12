@@ -8,6 +8,8 @@ use crate::{
 };
 use rusqlite::{Connection, TransactionBehavior};
 
+mod minutes;
+
 const VERSION: &str = "2.1.0-rc.1+15";
 
 fn day() -> NaiveDate {
@@ -17,7 +19,26 @@ fn day() -> NaiveDate {
 fn database() -> Connection {
     let db = Connection::open_in_memory().unwrap();
     db.execute_batch(SCHEMA).unwrap();
+    db.execute_batch(MINUTE_SCHEMA).unwrap();
     db
+}
+
+fn enqueue(
+    tx: &Transaction<'_>,
+    day: NaiveDate,
+    version: &str,
+    surface: Surface,
+    event: &TelemetryEvent,
+    user: Option<&TelemetryUser>,
+) -> AppServiceResult<bool> {
+    super::enqueue(
+        tx,
+        day.and_hms_opt(0, 0, 0).unwrap(),
+        version,
+        surface,
+        event,
+        user,
+    )
 }
 
 fn transaction(db: &mut Connection) -> Transaction<'_> {
@@ -100,6 +121,7 @@ fn app_service_queue_stores_only_whitelisted_aggregate_dimensions() {
     assert_eq!(groups[0]["timings"][0]["count"], 2);
     assert_eq!(groups[0]["users"].as_array().unwrap().len(), 0);
     assert_eq!(groups[0]["errors"].as_array().unwrap().len(), 0);
+    assert!(!String::from_utf8_lossy(batch.body()).contains("\"minutes\""));
 }
 
 #[test]
@@ -407,8 +429,11 @@ fn app_service_pending_expiry_does_not_change_partially_expired_frozen_body() {
     }
     let install = Uuid::new_v4();
     let first = frozen(&tx, day(), install);
-    assert_eq!(days(&first).len(), 2);
-    assert_eq!(days(&first)[0]["day"], old.to_string());
+    let groups = days(&first);
+    assert_eq!(groups.len(), 2);
+    assert_eq!(groups[0]["day"], old.to_string());
+    assert_eq!(groups[0]["minutes"][0]["count"], 1);
+    assert_eq!(groups[1]["minutes"][0]["count"], 1);
 
     let next_day = day() + Days::new(1);
     let retry = frozen(&tx, next_day, install);
@@ -438,4 +463,10 @@ fn app_service_pending_expiry_does_not_change_partially_expired_frozen_body() {
         .is_none()
     );
     assert!(!finish(&tx, first.id(), BatchDisposition::Retry).unwrap());
+    assert_eq!(
+        tx.query_row("SELECT count(*) FROM app_service_minutes", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
 }

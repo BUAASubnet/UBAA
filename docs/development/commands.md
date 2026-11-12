@@ -186,7 +186,7 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `just flutter-build platform=<平台> mode=debug` | 官方目标 host/macos/linux/windows/android-apk/ios-simulator 的原生构建，具体目标由脚本白名单限定 |
 | `just cache`、`just cache-clean <范围…>` | 只读显示仓库内构建缓存占用；按范围删除可重建产物（如 `rust-incremental`、`flutter-macos`、`ohos`），任一目录受跟踪或未被忽略时整体拒绝；`.ubaa_local` 只显示不清理 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
-| `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
+| `just flutter-artifact-check macos <私有绝对路径>/UBAA.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
 | `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；加 `--all-sizes` 可生成额外的手机商店尺寸。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |

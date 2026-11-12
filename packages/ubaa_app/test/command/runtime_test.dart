@@ -412,7 +412,7 @@ void main() {
         );
         expect(
           await runtime
-              .run(['ubaa', 'user', 'show'])
+              .run(['ubaa-cli', 'user', 'show'])
               .timeout(const Duration(seconds: 3)),
           0,
         );
@@ -443,7 +443,7 @@ void main() {
         openClient: ({required configDir}) async => client,
       );
       expect(
-        await runtime.run(['ubaa', 'agenda', 'sync', '--confirm-write']),
+        await runtime.run(['ubaa-cli', 'agenda', 'sync', '--confirm-write']),
         6,
       );
       expect(command.calls, 1);
@@ -474,7 +474,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) async => ++opens == 1 ? old : fresh,
       );
-      expect(await runtime.run(['ubaa', 'signin', 'perform']), 0);
+      expect(await runtime.run(['ubaa-cli', 'signin', 'perform']), 0);
       expect(opens, 2);
       expect(old.disposals, 1);
       expect(old.attempts, 0);
@@ -512,8 +512,8 @@ void main() {
           try {
             final done = runtime.run(
               kind == BridgeCommandClass.readonly
-                  ? ['ubaa', 'user', 'show']
-                  : ['ubaa', 'signin', 'perform'],
+                  ? ['ubaa-cli', 'user', 'show']
+                  : ['ubaa-cli', 'signin', 'perform'],
               budget: const Duration(seconds: 5),
             );
             await client.entered.future;
@@ -563,7 +563,7 @@ void main() {
       openMaterials: (_) => throw StateError('不得初始化材料'),
       openClient: ({required configDir}) => throw StateError('不得创建网络客户端'),
     );
-    expect(await runtime.run(['ubaa', '--help']), 0);
+    expect(await runtime.run(['ubaa-cli', '--help']), 0);
     expect(utf8.decode(io.out), contains('help'));
   });
   test('语义无效命令的早期结果不会访问注入的材料 factory', () async {
@@ -577,7 +577,7 @@ void main() {
       openMaterials: (_) => throw StateError('材料 factory 被调用'),
     );
     expect(
-      await runtime.run(['ubaa', '--json', 'agenda', 'export', '--stdout']),
+      await runtime.run(['ubaa-cli', '--json', 'agenda', 'export', '--stdout']),
       2,
     );
   });
@@ -589,7 +589,7 @@ void main() {
       parse: ({required argv, required remainingMillis}) => command,
       openMaterials: (_) => throw StateError('无效输入不得初始化材料'),
     );
-    expect(await runtime.run(['ubaa', 'agenda', 'create']), 0);
+    expect(await runtime.run(['ubaa-cli', 'agenda', 'create']), 0);
     expect(io.bytes, [123, 125]);
   });
   test('只读过期恢复后只重跑一次完整命令且只交付最终结果', () async {
@@ -612,7 +612,7 @@ void main() {
       );
       expect(
         await runtime.run([
-          'ubaa',
+          'ubaa-cli',
           'user',
           'show',
         ], budget: const Duration(seconds: 5)),
@@ -649,7 +649,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) async => client,
       );
-      expect(await runtime.run(['ubaa', 'signin', 'perform']), 5);
+      expect(await runtime.run(['ubaa-cli', 'signin', 'perform']), 5);
       expect(client.attempts, 1);
       expect(client.recoveries, 1);
       expect(client.logouts, 0);
@@ -673,7 +673,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) async => client,
       );
-      expect(await runtime.run(['ubaa', 'user', 'show']), 3);
+      expect(await runtime.run(['ubaa-cli', 'user', 'show']), 3);
       expect(old.delivery.reads, 0);
       expect(utf8.decode(io.out), isNot(contains('private-a')));
       expect(client.attempts, 1);
@@ -693,7 +693,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) => throw StateError('本机命令不得创建学校客户端'),
       );
-      expect(await runtime.run(['ubaa', 'agenda', 'unsynced']), 0);
+      expect(await runtime.run(['ubaa-cli', 'agenda', 'unsynced']), 0);
     } finally {
       await fixture.root.delete(recursive: true);
     }
@@ -713,7 +713,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) async => client,
       );
-      expect(await runtime.run(['ubaa', 'auth', 'logout']), 0);
+      expect(await runtime.run(['ubaa-cli', 'auth', 'logout']), 0);
       expect(client.attempts, 1);
       expect(client.logouts, 0);
       final state = (await fixture.accounts.capture())!.state;
@@ -736,7 +736,7 @@ void main() {
         openMaterials: (_) async => fixture.environment,
         openClient: ({required configDir}) async => client,
       );
-      expect(await runtime.run(['ubaa', 'user', 'show']), 7);
+      expect(await runtime.run(['ubaa-cli', 'user', 'show']), 7);
       expect(client.attempts, 1);
       expect(result.delivery.failed, true);
       expect(result.delivery.acknowledged, false);
@@ -759,7 +759,7 @@ void main() {
         openClient: ({required configDir}) async => client,
       );
       final running = runtime.run([
-        'ubaa',
+        'ubaa-cli',
         'bhpan',
         'download',
       ], budget: const Duration(seconds: 5));
@@ -789,7 +789,7 @@ void main() {
           openClient: ({required configDir}) async => client,
         );
         final running = runtime.run([
-          'ubaa',
+          'ubaa-cli',
           'bhpan',
           'download',
         ], budget: const Duration(seconds: 5));
@@ -825,7 +825,7 @@ void main() {
           openClient: ({required configDir}) async => client,
         );
         final running = runtime.run([
-          'ubaa',
+          'ubaa-cli',
           'bhpan',
           'download',
         ], budget: const Duration(milliseconds: 850));

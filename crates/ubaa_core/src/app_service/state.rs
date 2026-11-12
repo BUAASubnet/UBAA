@@ -139,6 +139,19 @@ pub(super) fn require_policy(tx: &Transaction<'_>, version: u32) -> AppServiceRe
     Ok(())
 }
 
+/// 图形宿主默认启用当前构建的服务，保留关闭、撤回和更高版本的选择。
+pub(super) fn apply_gui_defaults(tx: &Transaction<'_>, version: u32) -> AppServiceResult<()> {
+    tx.execute(
+        "UPDATE app_service_state SET accepted_policy = ?1,
+            telemetry_enabled = COALESCE(telemetry_enabled, 1),
+            install_id = COALESCE(install_id, ?2),
+            bootstrap_consent_epoch = bootstrap_consent_epoch + 1
+            WHERE id = 1 AND basic = 0 AND policy_version = ?1 AND accepted_policy IS NOT ?1",
+        params![version, Uuid::new_v4().to_string()],
+    )?;
+    Ok(())
+}
+
 impl AppService {
     /// 读取供宿主显示的最新状态。
     ///

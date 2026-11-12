@@ -57,15 +57,17 @@ require_zip_entry() {
 
 case "$platform" in
   linux)
-    require_file "$artifact/ubaa_flutter"
+    require_file "$artifact/UBAA"
+    require_file "$artifact/ubaa-cli"
     require_file "$artifact/data/flutter_assets/AssetManifest.bin"
     ;;
   windows)
-    require_file "$artifact/ubaa_flutter.exe"
+    require_file "$artifact/UBAA.exe"
+    require_file "$artifact/ubaa-cli.exe"
     require_file "$artifact/data/flutter_assets/AssetManifest.bin"
     ;;
   macos)
-    require_file "$artifact/Contents/MacOS/ubaa_flutter"
+    require_file "$artifact/Contents/MacOS/UBAA"
     require_dir "$artifact/Contents/Frameworks/App.framework"
     require_file "$artifact/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/AssetManifest.bin"
     verify_macos_entitlements "$artifact" /usr/bin/codesign /usr/libexec/PlistBuddy

@@ -45,7 +45,7 @@ pub use ygdk::{YgdkArgs, YgdkCommand};
 
 /// UBAA 命令行接口。
 #[derive(Clone, Debug, Parser)]
-#[command(name = "ubaa", version, about = "北航统一认证命令行客户端")]
+#[command(name = "ubaa-cli", version, about = "北航统一认证命令行客户端")]
 pub struct Cli {
     /// 在标准输出中生成带版本号的 JSON 信封。
     #[arg(long, global = true)]

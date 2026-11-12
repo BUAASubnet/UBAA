@@ -35,7 +35,7 @@ jobs:
           - label: macOS
             os: macos-15
             platform: macos
-            artifact: apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app
+            artifact: apps/ubaa_flutter/build/macos/Build/Products/Debug/UBAA.app
           - label: iOS simulator
             os: macos-15
             platform: ios-simulator
@@ -78,7 +78,7 @@ jobs:
       - name: 安装 Linux 构建依赖
         if: runner.os == 'Linux'
         run: >-
-          sudo apt-get update && sudo apt-get install -y
+          sudo apt-get update --error-on=any && sudo apt-get install -y
           clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
 
       - name: 安装 Linux 安全存储运行验证依赖
@@ -146,6 +146,11 @@ jobs:
         shell: bash
         run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}" "${{ matrix.abi }}"
 
+      - name: 验证桌面命令入口
+        if: contains(fromJSON('["linux", "windows", "macos"]'), matrix.platform)
+        shell: bash
+        run: python3 scripts/tests/platform/desktop_command.py "${{ matrix.platform }}" "${{ matrix.artifact }}"
+
       - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'
         shell: bash
@@ -189,7 +194,7 @@ jobs:
       - name: 准备 HarmonyOS 托管环境
         shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
+          sudo apt-get update --error-on=any && sudo apt-get install -y libgl1 libglu1-mesa libgtk-3-dev libsecret-1-dev ninja-build cmake unzip zip
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet
           bash scripts/bootstrap/ohos.sh
       - name: 验证 Hvigor 签名密码格式

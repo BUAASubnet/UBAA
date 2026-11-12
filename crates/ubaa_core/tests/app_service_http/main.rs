@@ -60,8 +60,8 @@ async fn bootstrap_and_gate_over_http() {
     fs::create_dir(&root).unwrap();
     let config = test_config(&url);
     let gui = open_installation(&root, config.clone(), Surface::Gui, 1).unwrap();
-    assert!(gui.refresh_bootstrap(true).await.unwrap().update.is_none());
-    gui.agree(1).unwrap();
+    assert_eq!(gui.snapshot().unwrap().consent, Consent::Agreed(1));
+    assert!(gui.snapshot().unwrap().can_telemetry());
     gui.set_telemetry(false).unwrap();
     let view = gui.refresh_bootstrap(true).await.unwrap();
     let update = view.update.as_ref().unwrap();
@@ -124,7 +124,7 @@ async fn upload_retry_and_erase_over_http() {
     let gui = client
         .open_app_service(config.clone(), Surface::Gui, 1)
         .unwrap();
-    gui.agree(1).unwrap();
+    assert!(gui.snapshot().unwrap().can_telemetry());
     let old_install = gui.snapshot().unwrap().install_id;
     assert!(old_install.is_some());
 
@@ -248,7 +248,7 @@ async fn reject_untrusted_certificate(root: &Path) {
     let app = client
         .open_app_service(test_config(&url), Surface::Gui, 1)
         .unwrap();
-    app.agree(1).unwrap();
+    assert!(app.snapshot().unwrap().can_telemetry());
     let counter = TelemetryEvent::Counter(CounterDimensions {
         event: CounterEvent::AppStarted,
         feature: Feature::App,

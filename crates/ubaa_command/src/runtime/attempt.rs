@@ -549,7 +549,7 @@ mod delivery_tests {
     fn assert_unknown(control: &CommandControl) {
         let prepared = prepare_input(
             crate::parse([
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "bykc",
                 "select",

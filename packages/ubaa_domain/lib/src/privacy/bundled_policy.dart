@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 1,
+  version: 3,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -76,7 +76,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '您同意本政策后，图形界面会向 UBAA 应用服务请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
+          '支持应用服务的版本默认请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告；撤回同意后不再发送此类请求。公告已读记录仅保存在本机。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -86,7 +86,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '支持应用服务的版本会在取得同意后启用产品改进统计，第一次同意时默认打开。您可以关闭统计，或者选择不同意并使用基础模式。',
+      text: '支持应用服务的版本默认开启产品改进统计，应用启动时不再弹出隐私选择。您可以在设置中查看本政策、关闭统计，或撤回同意并使用基础模式。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -116,6 +116,12 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '按校园日期汇总的功能使用次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
     ),
     PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.bullet,
+      level: 0,
+      text:
+          '按分钟汇总的登录发起、成功、失败次数和各功能的加载次数及结果，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
+    ),
+    PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
@@ -142,7 +148,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '活跃明细保留 13 个月，功能、错误和耗时明细保留 90 天。用于去重的批次记录保留 14 天，删除标记保留 30 天。没有安装 ID 或用户标识的汇总数据长期保留。',
+          '活跃明细保留 13 个月，功能、错误和耗时明细保留 90 天，按分钟汇总的次数保留 30 天。用于去重的批次记录保留 14 天，删除标记保留 30 天。没有安装 ID 或用户标识的汇总数据长期保留。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -163,12 +169,12 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
-          '“删除已上传的统计数据”会请求清除当前安装 ID 对应的服务端明细。删除未完成时，应用会暂停上传并重试。未定稿的汇总会在后续计算中反映删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。',
+          '“删除已上传的统计数据”会请求清除当前安装 ID 对应的服务端明细。删除未完成时，应用会暂停上传并重试。未定稿的汇总会在后续计算中反映删除；已定稿的汇总没有安装 ID 或用户标识，保留原值。按分钟汇总的次数同样没有安装 ID 或用户标识，无法按设备删除，会在 30 天后自动清除。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '隐私政策的重要内容发生变化时，应用会请您重新选择。重新同意时会保留您先前保存的统计开关。',
+      text: '隐私政策更新后，应用保留您先前保存的统计开关和基础模式选择。您可以随时在设置中查看最新版政策。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -194,8 +200,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     ),
   ],
   changes: <String>[
-    '首次说明产品改进统计的收集范围、境外处理和保留期限。',
-    '说明更新检查和公告请求发送的版本与平台信息。',
-    '说明如何关闭统计、撤回同意和删除已上传的统计数据。',
+    '新增按分钟汇总的登录与功能加载次数，不含安装 ID 和用户标识，保留 30 天。',
+    '说明删除已上传数据无法清除按分钟汇总的次数。',
   ],
 );

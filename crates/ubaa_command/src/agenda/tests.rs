@@ -31,7 +31,7 @@ impl Fixture {
         Self { root, store, scope }
     }
     fn run(&self, args: &[&str], input: &str) -> (i32, serde_json::Value, String) {
-        let mut command_line = vec!["ubaa", "--json", "agenda"];
+        let mut command_line = vec!["ubaa-cli", "--json", "agenda"];
         command_line.extend(args);
         let control = CommandControl::default();
         let prepared = prepare_input(
@@ -190,7 +190,7 @@ fn 导出文件默认保留原件且明确覆盖才交付_ics() {
     assert!(text.starts_with("BEGIN:VCALENDAR\r\n"));
     assert!(
         parse([
-            "ubaa",
+            "ubaa-cli",
             "--json",
             "agenda",
             "export",
@@ -214,7 +214,7 @@ fn 编辑拒绝内部例外映射且撤销后不交付旧正文() {
     assert!(
         prepare_input(
             parse([
-                "ubaa",
+                "ubaa-cli",
                 "--json",
                 "agenda",
                 "edit",
@@ -234,7 +234,7 @@ fn 编辑拒绝内部例外映射且撤销后不交付旧正文() {
     );
     let control = CommandControl::default();
     let prepared = prepare_input(
-        parse(["ubaa", "--json", "agenda", "show", "--id", id]).unwrap(),
+        parse(["ubaa-cli", "--json", "agenda", "show", "--id", id]).unwrap(),
         &mut Cursor::new([]),
         &control,
     )
@@ -262,7 +262,7 @@ fn 本机取消与期限均保留_v13_storage退出码() {
     for deadline in [false, true] {
         let active = CommandControl::default();
         let input = prepare_input(
-            parse(["ubaa", "--json", "agenda", "unsynced"]).unwrap(),
+            parse(["ubaa-cli", "--json", "agenda", "unsynced"]).unwrap(),
             &mut Cursor::new([]),
             &active,
         )
@@ -330,7 +330,7 @@ fn 命令编辑复用完整草稿并平移未改排除日期() {
 #[test]
 fn 云盘写入缺少确认时不读取密码或账号材料() {
     let plan = parse([
-        "ubaa",
+        "ubaa-cli",
         "bhpan",
         "share",
         "save",
