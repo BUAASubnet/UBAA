@@ -5,10 +5,10 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 import '../../cache/lifecycle.dart' show bridgeAwaitOfflineScope;
-import 'cache.dart' show bridgeCachedBykcProjection;
 import 'projection.dart'
     show
         bridgeBykcCatalogPageSize,
+        bridgeIsBykcCacheQuery,
         bridgeBykcCoursePresentation,
         bridgeBykcSupplement,
         bridgeProjectBykcCatalog,
@@ -20,9 +20,7 @@ import '../../support/mapping.dart'
     show
         bridgeCacheTime,
         bridgeRequiredPositiveQueryInt,
-        bridgeToBridgeConnectionMode,
         bridgeToConnectionMode;
-part 'cache_read.dart';
 
 Future<FeatureResult> bridgeLoadBykcFeature(
   BridgeContext backend,
@@ -32,30 +30,12 @@ Future<FeatureResult> bridgeLoadBykcFeature(
 }) async {
   if (feature != FeatureId.bykc)
     throw const BackendException(UbaaErrorCode.invalidInput);
-  if (useCache) await bridgeAwaitOfflineScope(backend);
-  final cache = useCache ? backend.cache.handle : null;
-  final account = useCache ? backend.cache.account : null;
+  final cacheEnabled = useCache && bridgeIsBykcCacheQuery(feature, query);
+  if (cacheEnabled) await bridgeAwaitOfflineScope(backend);
+  final cache = cacheEnabled ? backend.cache.handle : null;
+  final account = cacheEnabled ? backend.cache.account : null;
   switch (query.view) {
     case FeatureQueryView.summary:
-      if (cache != null && account != null) {
-        final value = await backend.client.bykcCatalogCached(
-          cache: cache,
-          page: query.page <= 0 ? 1 : query.page,
-          size: bridgeBykcCatalogPageSize,
-          all: true,
-        );
-        return _finishBykcRefresh(
-          backend,
-          account,
-          bridgeProjectBykcCatalog(
-            value.data,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-            requestedPage: query.page <= 0 ? 1 : query.page,
-            requestedSize: bridgeBykcCatalogPageSize,
-          ),
-          value.state,
-        );
-      }
       final value = await backend.client.bykcCourseCatalog(
         page: query.page <= 0 ? 1 : query.page,
         size: bridgeBykcCatalogPageSize,
@@ -68,34 +48,18 @@ Future<FeatureResult> bridgeLoadBykcFeature(
         requestedSize: bridgeBykcCatalogPageSize,
       );
     case FeatureQueryView.bykcDetail:
-      if (cache != null && account != null) {
-        final value = await backend.client.bykcFullDetailCached(
-          cache: cache,
-          courseId: bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'),
-        );
-        if (value.data.course.course.id !=
-            bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID')) {
-          return _preserveBykcDetail(
-            backend,
-            cache,
-            account,
-            query,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-          );
-        }
-        return _finishBykcRefresh(
-          backend,
-          account,
-          bridgeProjectBykcFullDetail(
-            value.data,
-            bridgeToConnectionMode(value.route.resolvedRoute),
-          ),
-          value.state,
-        );
-      }
       final value = await backend.client.bykcCourseFullDetail(
         id: bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'),
       );
+      if (value.data.course.course.id !=
+          bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID')) {
+        throw BackendException(
+          UbaaErrorCode.upstreamChanged,
+          kind: UbaaErrorKind.upstream,
+          retryable: false,
+          resolvedRoute: bridgeToConnectionMode(value.route.resolvedRoute),
+        );
+      }
       return bridgeProjectBykcFullDetail(
         value.data,
         bridgeToConnectionMode(value.route.resolvedRoute),

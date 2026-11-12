@@ -3,8 +3,6 @@ part of 'projection.dart';
 bool bridgeIsBykcCacheQuery(FeatureId feature, FeatureQuery query) =>
     feature == FeatureId.bykc &&
     {
-      FeatureQueryView.summary,
-      FeatureQueryView.bykcDetail,
       FeatureQueryView.bykcProfile,
       FeatureQueryView.bykcChosenCourses,
       FeatureQueryView.bykcStatistics,
@@ -58,15 +56,6 @@ BridgeBykcChosenCourse bridgeCachedBykcChosen(BridgeCachedBykcChosenCourse v) =>
               signPoints: const [],
             ),
       courseSignType: v.courseSignType,
-    );
-
-BridgeBykcCoursePage bridgeCachedBykcPage(BridgeCachedBykcCoursePage v) =>
-    BridgeBykcCoursePage(
-      content: v.content.map(bridgeCachedBykcCourse).toList(),
-      number: v.number,
-      size: v.size,
-      totalElements: v.totalElements,
-      totalPages: v.totalPages,
     );
 
 BridgeBykcCourseCatalogItem bridgeCachedBykcCatalog(
