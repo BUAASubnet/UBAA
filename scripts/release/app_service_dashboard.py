@@ -22,7 +22,18 @@ FROM = "date(${__from}/1000,'unixepoch','+8 hours')"
 TO = "date(${__to}/1000,'unixepoch','+8 hours')"
 TODAY = "date('now','+8 hours')"
 RANGE = f"day BETWEEN {FROM} AND {TO}"
-FILT = "platform IN (${platform:sqlstring}) AND channel IN (${channel:sqlstring})"
+
+
+def filt(alias=""):
+    """平台与渠道筛选。公开面板不替换模板变量，变量原样保留或为空时按“全部”处理。"""
+    def one(column, variable):
+        value = "'${%s:csv}'" % variable
+        return (f"({value}='' OR {value} LIKE '$%' "
+                f"OR instr(','||{value}||',', ','||{alias}{column}||',')>0)")
+    return f"{one('platform', 'platform')} AND {one('channel', 'channel')}"
+
+
+FILT = filt()
 WHERE = f"{RANGE} AND {FILT}"
 DAYS = (f"WITH RECURSIVE d(day) AS (SELECT {FROM} UNION ALL SELECT date(day,'+1 day') "
         f"FROM d WHERE day < MIN({TO},{TODAY}))")
@@ -156,7 +167,7 @@ def build(account_id, database_id):
     panels.append(row("概览", y)); y += 1
     daily_active = (f"{DAYS} SELECT {TS}, COUNT(DISTINCT NULLIF(a.user_key,'')) AS users, "
                     f"COUNT(DISTINCT a.install_id) AS devices FROM d LEFT JOIN active_days a "
-                    f"ON a.day=d.day AND a.{FILT.replace(' AND channel', ' AND a.channel')} "
+                    f"ON a.day=d.day AND {filt('a.')} "
                     f"GROUP BY d.day ORDER BY d.day")
     panels += [
         stat("今日活跃", (0, y, 4, 5), daily_active,
@@ -175,7 +186,7 @@ def build(account_id, database_id):
              [("users", "用户", "number")], C[6], "所选时段内去重的活跃用户总数（不是每日之和）。"),
         stat("今日启动", (12, y, 4, 5),
              f"{DAYS} SELECT {TS}, COALESCE(SUM(c.count),0) AS starts FROM d LEFT JOIN counter_days c "
-             f"ON c.day=d.day AND c.event='app_started' AND c.{FILT.replace(' AND channel', ' AND c.channel')} "
+             f"ON c.day=d.day AND c.event='app_started' AND {filt('c.')} "
              f"GROUP BY d.day ORDER BY d.day",
              [("time", "时间", "timestamp_epoch"), ("starts", "启动", "number")], C[1],
              "今天的冷启动次数，曲线为所选时段每日值。", fmt="timeseries", spark=True),
@@ -307,7 +318,7 @@ def build(account_id, database_id):
         "timeseries", "每日功能加载", (0, y, 16, 9),
         [target(f"{DAYS} SELECT {TS}, {cols}, COALESCE(SUM(CASE WHEN c.feature NOT IN ({other}) THEN c.count END),0) AS other "
                 f"FROM d LEFT JOIN counter_days c ON c.day=d.day AND c.event='feature_loaded' AND "
-                f"c.{FILT.replace(' AND channel', ' AND c.channel')} GROUP BY d.day ORDER BY d.day",
+                f"{filt('c.')} GROUP BY d.day ORDER BY d.day",
                 [("time", "时间", "timestamp_epoch")] + [(k, v, "number") for k, v in TOP] + [("other", "其他", "number")],
                 "timeseries")],
         "每日功能加载次数，按功能堆叠。成绩、空教室、图书馆、场馆预约、评教合并为“其他”。",
@@ -457,7 +468,7 @@ def build(account_id, database_id):
     panels.append(panel(
         "timeseries", "每日错误（按类型）", (0, y, 10, 10),
         [target(f"{DAYS} SELECT {TS}, {kcols} FROM d LEFT JOIN error_days e ON e.day=d.day AND "
-                f"e.{FILT.replace(' AND channel', ' AND e.channel')} GROUP BY d.day ORDER BY d.day",
+                f"{filt('e.')} GROUP BY d.day ORDER BY d.day",
                 [("time", "时间", "timestamp_epoch")] + [(k, v, "number") for k, v in KIND], "timeseries")],
         "按错误类型堆叠的每日错误次数。",
         ts_defaults(draw="bars", stack=True),
