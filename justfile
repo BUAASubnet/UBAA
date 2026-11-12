@@ -162,6 +162,10 @@ app-service-publish:
 app-service-deploy:
     python3 scripts/lib/toolchain.py release deploy
 
+# 生成使用情况看板 JSON 到 .ubaa_local；只读本地配置，不联网，部署见应用服务手册。
+app-service-dashboard output=".ubaa_local/app_service_dashboard/ubaa.json":
+    python3 scripts/release/app_service_dashboard.py --output "{{output}}"
+
 # 只读核对网站正文摘要和应用内嵌入的政策。
 privacy-policy-check:
     bash scripts/tools/python.sh scripts/check/app_service/privacy_policy.py
@@ -237,6 +241,7 @@ script-test:
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/app_service/enums_test.py
     bash scripts/tools/python.sh scripts/tests/app_service/privacy_policy_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/app_service_dashboard_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py
     python3 scripts/tests/checks/ohos_native_library_test.py
