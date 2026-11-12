@@ -4,6 +4,12 @@
 
 ## 当前规则
 
+### Android 首次安全存储初始化
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt` 使用 Settings 保存凭据。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/store/cred.rs` 使用 JSON 文件。两源没有 Android Keystore 或 flutter_secure_storage 算法标记的等价初始化操作。此本机操作的 CAS/service、重定向与最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列均不适用；学校认证、读取和写入保持原协议。
+
+Android 使用锁定 `flutter_secure_storage 10.0.0` 的 `migrateOnAlgorithmChange=true` 和 `resetOnError=true`。首次空存储通过插件初始化当前 RSA-OAEP 与 AES-GCM 算法；已有材料优先迁移，正常重开保留材料。单项密文解密失败时插件删除该项，算法或密钥迁移失败时允许清空安全存储并重新初始化。清理可能要求重新登录和重新获取加密缓存，不退回明文。能力探测继续验证读取、写入和删除。iOS/macOS 的 Keychain、Windows 的 DPAPI、Linux 的 Secret Service 和 OHOS 的 HUKS 不使用这些 Android 标记，错误处理保持各平台原规则。
+
 ### H1-b3b：共享句柄关闭与持久身份撤销
 
 改生产代码前核对冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`GradeScoreCacheStore.kt` 及其测试，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。普通句柄释放、跨进程缓存/日程事务和交付、持久写资格撤销均为本机操作，两源没有同等协议。因此这些操作的 CAS/service、重定向和最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列不适用。已有学校认证、读取和写入继续沿用本索引各领域的逐操作对照，URL、参数、路线与错误语义保持。

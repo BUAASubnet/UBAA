@@ -41,8 +41,8 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
   final String? operatingSystem;
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
-      resetOnError: false,
-      migrateOnAlgorithmChange: false,
+      resetOnError: true,
+      migrateOnAlgorithmChange: true,
     ),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,

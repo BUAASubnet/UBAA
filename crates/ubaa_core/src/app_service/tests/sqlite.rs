@@ -4,6 +4,77 @@ use super::{
 };
 use rusqlite::Connection;
 
+#[cfg(unix)]
+#[test]
+fn 系统祖先目录链接可以首次建库并重开原安装() {
+    use std::os::unix::fs::symlink;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/app_service/test_sqlite")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    let real = root.join("real");
+    std::fs::create_dir(&real).unwrap();
+    symlink(&real, root.join("system-alias")).unwrap();
+    let config = root.join("system-alias/UBAA");
+    let first = Store::open(&config, Some(1), Surface::Gui).unwrap();
+    let install = first
+        .read(|tx| {
+            Ok(
+                tx.query_row("SELECT install_id FROM app_service_state", [], |row| {
+                    row.get::<_, String>(0)
+                })?,
+            )
+        })
+        .unwrap();
+    drop(first);
+    let reopened = Store::open(&real.join("UBAA"), Some(1), Surface::Gui).unwrap();
+    assert_eq!(
+        reopened
+            .read(|tx| Ok(
+                tx.query_row("SELECT install_id FROM app_service_state", [], |row| row
+                    .get::<_, String>(
+                    0
+                ))?
+            ))
+            .unwrap(),
+        install
+    );
+    assert!(std::fs::metadata(config.join(DATABASE_NAME)).unwrap().len() > 0);
+    drop(reopened);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn 应用目录和数据库文件链接仍然拒绝() {
+    use std::os::unix::fs::symlink;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/app_service/test_sqlite")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    let real = root.join("real");
+    std::fs::create_dir(&real).unwrap();
+    let alias = root.join("UBAA");
+    symlink(&real, &alias).unwrap();
+    assert!(matches!(
+        Store::open(&alias, None, Surface::Gui),
+        Err(AppServiceError::StorageUnavailable)
+    ));
+    for suffix in ["", "-journal", "-wal", "-shm"] {
+        let target = root.join("preserved");
+        std::fs::write(&target, b"synthetic-preserved").unwrap();
+        let file = real.join(format!("{DATABASE_NAME}{suffix}"));
+        symlink(&target, &file).unwrap();
+        assert!(matches!(
+            Store::open(&real, None, Surface::Gui),
+            Err(AppServiceError::StorageUnavailable)
+        ));
+        assert_eq!(std::fs::read(&target).unwrap(), b"synthetic-preserved");
+        std::fs::remove_file(file).unwrap();
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn failed_migration_leaves_both_databases_intact() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

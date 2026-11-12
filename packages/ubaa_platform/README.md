@@ -6,7 +6,7 @@
 
 生产接线统一为 `PlatformCredentialVault → MaterialCredentialStore → SecureMaterialStore → flutter_secure_storage`，不再探测或调用 `credentials.*` 自定义通道。`MemoryCredentialVault`、session-only和Noop仅供显式测试或无持久能力场景；凭据对象的文本表示始终遮盖账号与密码。
 
-官方五端使用固定插件10.0.0；macOS使用插件的登录Keychain配置，iOS使用首次解锁后仅本机可用配置，Android明确禁用错误自动重置。OHOS宿主注册本仓库社区HUKS插件适配，通过相同的插件2.x平台接口读写，不自建宿主加密通道。插件来源、修订与设备验证限制见[OHOS插件说明](../flutter_secure_storage_ohos/README.md)。
+官方五端使用固定插件10.0.0；macOS使用插件的登录Keychain配置，iOS使用首次解锁后仅本机可用配置。Android启用算法自动迁移和错误重置，首次安装可直接初始化；无法解密时允许清理受影响的安全材料，用户可能需要重新登录和重新获取加密缓存。OHOS宿主注册本仓库社区HUKS插件适配，通过相同的插件2.x平台接口读写，不自建宿主加密通道。插件来源、修订与设备验证限制见[OHOS插件说明](../flutter_secure_storage_ohos/README.md)。
 
 开发阶段按用户要求使用材料前缀 `ubaa.material.v2.`，不迁移或删除旧v1材料及旧macOS通道条目。密码、账号索引、缓存密钥各自使用独立键；业务正文仍由Core加密缓存拥有。能力探测必须写入、读回、删除并确认；不可用时不构造本机账号仓库、不降级明文。存储错误采用安全中文提示与类型化诊断，不输出原始平台错误正文。
 

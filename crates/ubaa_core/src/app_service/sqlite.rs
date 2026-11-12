@@ -25,8 +25,15 @@ impl Store {
             .map_err(|_| AppServiceError::StorageUnavailable)?;
         config::restrict_config_directory(config_dir)
             .map_err(|_| AppServiceError::StorageUnavailable)?;
+        // 系统祖先目录允许链接；应用目录自身已经通过无链接检查。
+        let config_dir = config_dir
+            .canonicalize()
+            .map_err(|_| AppServiceError::StorageUnavailable)?;
         let path = config_dir.join(DATABASE_NAME);
-        config::validate_config_target(&path).map_err(|_| AppServiceError::StorageUnavailable)?;
+        for suffix in ["", "-journal", "-wal", "-shm"] {
+            config::validate_config_target(&config_dir.join(format!("{DATABASE_NAME}{suffix}")))
+                .map_err(|_| AppServiceError::StorageUnavailable)?;
+        }
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
         config::restrict_file_creation(&mut options);
