@@ -9,6 +9,7 @@
 | 项目 | 当前值 | 定义位置 |
 |---|---|---|
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
+| 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
 | Rust 与 Dart 之间的接口 | Flutter bridge contract v62 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
@@ -50,6 +51,8 @@
 | Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
 | iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |
 | HarmonyOS | 静态分析与测试、无签名 Debug HAP、arm64 Rust 库；模拟器上的合成 HUKS 流程 | 签名包、实机 |
+
+Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材料文件锁内操作随机测试键，失败后不写入未完成业务事务标记，系统恢复后可在下一次启动重新检测；已有未完成业务事务仍阻止访问。Windows 整文件后端的探测继续保留事务保护。官方八包格式、静态分析与 2,217 项测试通过，另有 1 项既有跳过项。macOS 13 项原生集成、Android 原生代码与测试编译、OHOS 分析与 2 项宿主测试通过。Android 本次未执行设备测试。Xiaomi Android 17 的原生诊断曾在 UBAA 原生库加载前记录 Keystore 系统内部错误 4，具体系统原因尚未确定。该系统错误与应用探测留下事务标记分别处理。
 
 表中的托管 Release 构建来自候选 `cb2a67ac` 的[运行记录](https://github.com/BUAASubnet/UBAA/actions/runs/43015152128)。macOS 两个架构已提交 Apple 公证。Release 当前暂停，等待公证服务恢复后再继续；尚未发布 v2.0.0 Tag、GitHub/R2 产物或商店构建。
 
