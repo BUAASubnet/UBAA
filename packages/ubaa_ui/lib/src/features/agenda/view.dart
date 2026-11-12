@@ -40,6 +40,7 @@ class AgendaView extends StatefulWidget {
   const AgendaView({
     super.key,
     this.service,
+    this.signedIn = false,
     required this.scopeKey,
     this.projectionKey,
     this.syncScopeKey,
@@ -59,6 +60,7 @@ class AgendaView extends StatefulWidget {
     this.onEnsureSchedule,
   });
   final AgendaService? service;
+  final bool signedIn;
   final Object scopeKey;
   final Object? projectionKey;
   final Object? syncScopeKey;
@@ -595,7 +597,13 @@ class AgendaViewState extends State<AgendaView> {
     if (!available && result == null)
       Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(widget.failure == null ? '登录后可使用日程' : '日程暂时无法打开，数据未丢失'),
+        child: Text(
+          widget.failure != null
+              ? '日程暂时无法打开，数据未丢失'
+              : widget.signedIn
+              ? '日程暂不可用，请检查设备安全存储是否已启用'
+              : '登录后可使用日程',
+        ),
       ),
     if (error != null)
       Padding(

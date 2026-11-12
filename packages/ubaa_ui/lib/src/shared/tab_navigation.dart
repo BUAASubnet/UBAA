@@ -35,18 +35,16 @@ class TabPager extends StatelessWidget {
   );
 }
 
-/// 底栏顶部留白 8pt，底部安全区最多保留 20pt，仍避开 Home 指示条。
+/// 底栏顶部留白 8pt，底部由 NavigationBar 保留完整系统安全区。
 class CompactNavigationBar extends StatelessWidget {
   const CompactNavigationBar({super.key, required this.child});
 
   static const double _topGap = 8;
-  static const double _maxBottomInset = 20;
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
     final theme = Theme.of(context);
     return ColoredBox(
       color:
@@ -54,16 +52,7 @@ class CompactNavigationBar extends StatelessWidget {
           theme.colorScheme.surfaceContainer,
       child: Padding(
         padding: const EdgeInsets.only(top: _topGap),
-        child: MediaQuery(
-          data: media.copyWith(
-            padding: media.padding.copyWith(
-              bottom: media.padding.bottom > _maxBottomInset
-                  ? _maxBottomInset
-                  : media.padding.bottom,
-            ),
-          ),
-          child: child,
-        ),
+        child: child,
       ),
     );
   }

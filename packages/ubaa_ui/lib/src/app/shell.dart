@@ -647,7 +647,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               child: Row(
                 children: <Widget>[
                   if (wide) _buildRail(context),
-
                   Expanded(
                     key: const ValueKey<String>('feature-pages'),
                     child: Column(
@@ -931,6 +930,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           _joinRefresh('home', widget.onRefreshHome ?? widget.onRefresh),
     ),
     2 => AgendaView(
+      signedIn: widget.user != null || widget.cacheAccountId != null,
       service: widget.agenda.service,
       prepareSync: widget.agenda.prepareSync,
       syncScopeKey: widget.routePolicy,

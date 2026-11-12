@@ -8,6 +8,37 @@ import 'package:ubaa_ui/src/app/home.dart' show HomeView;
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 
 void main() {
+  for (final inset in [24.0, 34.0, 48.0]) {
+    testWidgets('底栏完整避开 $inset 像素系统导航区', (tester) async {
+      tester.view.padding = FakeViewPadding(bottom: inset);
+      tester.view.viewPadding = FakeViewPadding(bottom: inset);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await mount(tester);
+      final bar = find.byType(NavigationBar);
+      final safeBottom = 874 - inset;
+      for (final destination in find.byType(NavigationDestination).evaluate()) {
+        expect(
+          tester.getRect(find.byWidget(destination.widget)).bottom,
+          lessThanOrEqualTo(safeBottom),
+        );
+      }
+      expect(tester.getSize(bar).height, 56 + inset);
+    });
+  }
+  testWidgets('已登录但日程服务未启用时提示存储条件并禁用新建', (tester) async {
+    await mount(tester, tab: UiDestination.agenda);
+    expect(find.text('日程暂不可用，请检查设备安全存储是否已启用'), findsOneWidget);
+    expect(
+      tester
+          .widget<FloatingActionButton>(
+            find.byKey(const ValueKey('agenda-create')),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('功能页点另一底栏后内容与选中项一致，滑动从该页切到日程', (tester) async {
     await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
