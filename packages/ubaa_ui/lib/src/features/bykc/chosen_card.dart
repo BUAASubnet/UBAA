@@ -37,7 +37,8 @@ class BykcChosenCard extends StatelessWidget {
               ),
               BykcCardTags(
                 category: course.subCategory,
-                selfSign: (course.signPointCount ?? 0) > 0,
+                selfSign:
+                    course.hasSignPoints ?? (course.signPointCount ?? 0) > 0,
               ),
               BykcCardInfo(
                 teacher: course.courseTeacher,

@@ -63,3 +63,7 @@ abstract interface class HomeRecoveryBatchBackend {
   Future<void> endHomeRecoveryBatch(int batch);
   Future<void> invalidateHomeRecoveryBatch();
 }
+
+/// 专用服务只读入口的恢复与最终错误记录，写操作不使用该回调。
+typedef ServiceRead =
+    Future<T> Function<T>(RecoveryTarget target, Future<T> Function() read);

@@ -62,6 +62,8 @@ AppController 是单一的 ChangeNotifier 实例。ControllerState 拥有共享�
 
 `@internal` 只约束包外访问，不能代替同包内的所有权划分。
 
+活动占用、恢复结果及内部流程状态按 [ADR 0008](../adr/0008-internal-state-ownership.md) 管理。ControllerActivityOwner 记录具名活动并集中放行规则，单次恢复以明确结果交给统一发布入口。Core 的 Agenda 未决操作使用具名状态并保持原存储格式，JudgeScanCursor 独占课程与详情的推进；网络读取、缓存复用和在线扫描通过相同游标操作协作。
+
 Bridge 适配层的所有权：
 
 - 领域函数借用 BridgeContext，不反向导入 BridgeBackend。

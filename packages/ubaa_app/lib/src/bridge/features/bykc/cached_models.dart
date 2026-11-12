@@ -3,8 +3,6 @@ part of 'projection.dart';
 bool bridgeIsBykcCacheQuery(FeatureId feature, FeatureQuery query) =>
     feature == FeatureId.bykc &&
     {
-      FeatureQueryView.summary,
-      FeatureQueryView.bykcDetail,
       FeatureQueryView.bykcProfile,
       FeatureQueryView.bykcChosenCourses,
       FeatureQueryView.bykcStatistics,
@@ -60,15 +58,6 @@ BridgeBykcChosenCourse bridgeCachedBykcChosen(BridgeCachedBykcChosenCourse v) =>
       courseSignType: v.courseSignType,
     );
 
-BridgeBykcCoursePage bridgeCachedBykcPage(BridgeCachedBykcCoursePage v) =>
-    BridgeBykcCoursePage(
-      content: v.content.map(bridgeCachedBykcCourse).toList(),
-      number: v.number,
-      size: v.size,
-      totalElements: v.totalElements,
-      totalPages: v.totalPages,
-    );
-
 BridgeBykcCourseCatalogItem bridgeCachedBykcCatalog(
   BridgeCachedBykcCourse value,
 ) => BridgeBykcCourseCatalogItem(
@@ -78,3 +67,22 @@ BridgeBykcCourseCatalogItem bridgeCachedBykcCatalog(
   audienceCampuses: value.audienceCampuses ?? const [],
   hasSignPoints: value.hasSignPoints ?? false,
 );
+
+BykcCourseSupplement? bridgeCachedBykcSupplement(BridgeCachedBykcCourse value) {
+  final supplement = value.supplement;
+  if (supplement == null) return null;
+  return bridgeBykcSupplement(
+    BridgeBykcCourseFullDetail(
+      course: bridgeCachedBykcCatalog(value),
+      courseContact: supplement.courseContact,
+      courseContactMobile: supplement.courseContactMobile,
+      organizerCollegeName: supplement.organizerCollegeName,
+      descriptionPlainText: supplement.descriptionPlainText,
+      audienceColleges: supplement.audienceColleges,
+      audienceTerms: supplement.audienceTerms,
+      audienceGroups: supplement.audienceGroups,
+      signConfig: supplement.signConfig,
+      attendance: supplement.attendance,
+    ),
+  );
+}

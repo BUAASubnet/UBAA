@@ -18,13 +18,8 @@ impl UbaaClient {
         refresh: &mut JudgeRefresh,
     ) -> Result<Step, OfflineReadError> {
         let now = chrono::Utc::now().timestamp();
-        let assignment = refresh
-            .scan
-            .assignments
-            .as_ref()
-            .and_then(|items| items.get(refresh.scan.detail_index))
-            .cloned();
-        let course = refresh.scan.courses.get(refresh.scan.course_index).cloned();
+        let assignment = refresh.scan.cursor.current_assignment().cloned();
+        let course = refresh.scan.cursor.current_course().cloned();
         let query = assignment
             .as_ref()
             .map(|item| CacheQuery::JudgeDetail {
@@ -106,7 +101,7 @@ fn reuse(scan: &mut JudgeScan, record: CacheRecord) -> Result<Step, OfflineReadE
         error: None,
         finished: false,
         complete: false,
-        failed_courses: scan.failed_courses,
+        failed_courses: scan.cursor.failed_courses(),
     };
     let mut index_revision = None;
     match record.payload {
@@ -114,33 +109,22 @@ fn reuse(scan: &mut JudgeScan, record: CacheRecord) -> Result<Step, OfflineReadE
             batch.kind = JudgeScanKind::Detail;
             batch.course_id = Some(detail.course_id.clone());
             batch.detail = Some(*detail);
-            scan.detail_index += 1;
-            if scan
-                .assignments
-                .as_ref()
-                .is_some_and(|items| scan.detail_index == items.len())
-            {
-                scan.advance_course();
-            }
+            scan.cursor.finish_detail();
         }
         CachePayload::JudgeAssignments(assignments) => {
             batch.kind = JudgeScanKind::Assignments;
             batch.course_id = scan
-                .courses
-                .get(scan.course_index)
+                .cursor
+                .current_course()
                 .map(|item| item.course_id.clone());
             batch.assignments.clone_from(&assignments);
             index_revision = Some(record.revision);
-            if assignments.is_empty() {
-                scan.advance_course();
-            } else {
-                scan.assignments = Some(assignments);
-            }
+            scan.cursor.accept_assignments(assignments);
         }
         _ => return Err(OfflineReadError::Cache(CacheError::Corrupt)),
     }
-    batch.finished = scan.course_index >= scan.courses.len();
-    batch.complete = batch.finished && scan.failed_courses == 0;
+    batch.finished = scan.cursor.finished();
+    batch.complete = scan.cursor.complete();
     Ok(Step {
         batch,
         reused: true,

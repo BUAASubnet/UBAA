@@ -4,7 +4,8 @@ import '../../contracts/backend.dart' show BackendException;
 import '../../controller/error_mapper.dart' show UbaaErrorMapper;
 import '../cache/lifecycle.dart' show bridgeAwaitOfflineScope;
 import '../context.dart';
-import '../support/mapping.dart' show bridgeMapError, bridgeTypedErrorCode;
+import '../support/mapping.dart'
+    show bridgeMapError, bridgeTypedErrorCode, bridgeToConnectionMode;
 
 /// 门户与网费读取的桥接投影：先读本机快照，在线成功时同时保存。
 ///
@@ -26,7 +27,7 @@ class BridgeCampusAccountService implements CampusAccountService {
   }
 
   /// 有缓存句柄时走带保存的刷新，并确认期间账号未变化。
-  Future<BridgeCampusSection?> _refresh(BridgeCampusCacheQuery query) async {
+  Future<BridgeCampusRefresh?> _refresh(BridgeCampusCacheQuery query) async {
     await bridgeAwaitOfflineScope(_context);
     final cache = _context.cache.handle, account = _context.cache.account;
     if (cache == null || account == null) return null;
@@ -34,7 +35,7 @@ class BridgeCampusAccountService implements CampusAccountService {
     if (_context.cache.account?.id != account.id) {
       throw const BackendException(UbaaErrorCode.operationConflict);
     }
-    return value.data;
+    return value;
   }
 
   @override
@@ -87,7 +88,7 @@ class BridgeCampusAccountService implements CampusAccountService {
   Future<PortalIdentity> identity() => _call(() async {
     final section = await _refresh(BridgeCampusCacheQuery.profile);
     if (section != null) {
-      final value = section.profile;
+      final value = section.data.profile;
       if (value == null) {
         throw const BackendException(UbaaErrorCode.internalError);
       }
@@ -100,20 +101,27 @@ class BridgeCampusAccountService implements CampusAccountService {
   Future<CampusMetrics> metrics() => _call(() async {
     final section = await _refresh(BridgeCampusCacheQuery.metrics);
     if (section != null) {
-      final value = section.metrics;
+      final value = section.data.metrics;
       if (value == null) {
         throw const BackendException(UbaaErrorCode.internalError);
       }
-      return _metrics(value);
+      return _metrics(
+        value,
+        route: bridgeToConnectionMode(section.route.resolvedRoute),
+      );
     }
-    return _metrics((await _client.campusMetrics()).data);
+    final value = await _client.campusMetrics();
+    return _metrics(
+      value.data,
+      route: bridgeToConnectionMode(value.route.resolvedRoute),
+    );
   });
 
   @override
   Future<NetworkUsage> networkUsage() => _call(() async {
     final section = await _refresh(BridgeCampusCacheQuery.networkUsage);
     if (section != null) {
-      final value = section.networkUsage;
+      final value = section.data.networkUsage;
       if (value == null) {
         throw const BackendException(UbaaErrorCode.internalError);
       }
@@ -147,41 +155,62 @@ NetworkUsage _network(BridgeNetworkUsage data) => NetworkUsage(
   fetchedAt: _time(data.fetchedAt),
 );
 
-CampusMetrics _metrics(BridgeCampusMetrics data) => CampusMetrics(
-  networkBalance: _amountMetric(data.networkBalance),
-  cardBalance: _amountMetric(data.cardBalance),
-  unreadMail: _countMetric(data.unreadMail),
-  borrowedBooks: _countMetric(data.borrowedBooks),
-  cloudStorageRemaining: _amountMetric(data.cloudStorageRemaining),
-);
+CampusMetrics _metrics(BridgeCampusMetrics data, {ConnectionMode? route}) =>
+    CampusMetrics(
+      networkBalance: _amountMetric(data.networkBalance, route),
+      cardBalance: _amountMetric(data.cardBalance, route),
+      unreadMail: _countMetric(data.unreadMail, route),
+      borrowedBooks: _countMetric(data.borrowedBooks, route),
+      cloudStorageRemaining: _amountMetric(data.cloudStorageRemaining, route),
+    );
 
 CampusAmount _amount(BridgeCampusAmount value) =>
     CampusAmount(value: value.value, unit: value.unit);
 
-String _failureMessage(BridgeCampusMetricFailure failure) =>
-    UbaaErrorMapper.fromCode(bridgeTypedErrorCode(failure.code)).message;
+UiError _failureError(
+  BridgeCampusMetricFailure failure,
+  ConnectionMode? route,
+) => UbaaErrorMapper.fromException(
+  BackendException(bridgeTypedErrorCode(failure.code), resolvedRoute: route),
+);
 
 /// 既无值也无失败表示快照中尚未取得该项。
-CampusMetric<CampusAmount>? _amountMetric(BridgeCampusAmountMetric metric) {
+CampusMetric<CampusAmount>? _amountMetric(
+  BridgeCampusAmountMetric metric,
+  ConnectionMode? route,
+) {
   final fetchedAt = _time(metric.fetchedAt);
   final value = metric.value, failure = metric.failure;
   if (value != null && failure == null) {
     return CampusMetricValue(_amount(value), fetchedAt: fetchedAt);
   }
   if (failure != null) {
-    return CampusMetricFailure(_failureMessage(failure), fetchedAt: fetchedAt);
+    final error = _failureError(failure, route);
+    return CampusMetricFailure(
+      error.message,
+      error: error,
+      fetchedAt: fetchedAt,
+    );
   }
   return null;
 }
 
-CampusMetric<int>? _countMetric(BridgeCampusCountMetric metric) {
+CampusMetric<int>? _countMetric(
+  BridgeCampusCountMetric metric,
+  ConnectionMode? route,
+) {
   final fetchedAt = _time(metric.fetchedAt);
   final value = metric.value, failure = metric.failure;
   if (value != null && value >= 0 && failure == null) {
     return CampusMetricValue(value, fetchedAt: fetchedAt);
   }
   if (failure != null) {
-    return CampusMetricFailure(_failureMessage(failure), fetchedAt: fetchedAt);
+    final error = _failureError(failure, route);
+    return CampusMetricFailure(
+      error.message,
+      error: error,
+      fetchedAt: fetchedAt,
+    );
   }
   return null;
 }

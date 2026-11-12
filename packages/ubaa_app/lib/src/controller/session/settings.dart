@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
+import '../state/activity.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase;
 
@@ -20,7 +21,9 @@ mixin ControllerSettings on ControllerState {
     final request = ++internalRoutePolicyGeneration;
     internalRoutePolicyReadRevision = internalReadRequestRevision;
     internalRoutePolicyInFlight = true;
-    internalBeginWriteTransition();
+    final activity = internalBeginOperationTransition(
+      ControllerActivityKind.routeChange,
+    );
     final epoch = internalLifecycleEpoch;
     bool isCurrent() =>
         !internalDisposed &&
@@ -75,7 +78,7 @@ mixin ControllerSettings on ControllerState {
     } finally {
       if (request == internalRoutePolicyGeneration)
         internalRoutePolicyInFlight = false;
-      internalEndWriteTransition();
+      internalEndOperationTransition(activity);
       // 旧请求也可能是最后一个 transition；收尾必须通知首页恢复纯投影。
       internalNotify();
     }

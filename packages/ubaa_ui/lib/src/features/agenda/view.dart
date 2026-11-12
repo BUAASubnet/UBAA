@@ -56,6 +56,7 @@ class AgendaView extends StatefulWidget {
     this.onRefreshSchool,
     this.prepareSync,
     this.onImportSchedule,
+    this.onEnsureSchedule,
   });
   final AgendaService? service;
   final Object scopeKey;
@@ -79,6 +80,7 @@ class AgendaView extends StatefulWidget {
   final Future<void> Function()? onRefreshSchool;
   final AgendaSyncPrepare? prepareSync;
   final VoidCallback? onImportSchedule;
+  final Future<void> Function()? onEnsureSchedule;
   @override
   State<AgendaView> createState() => AgendaViewState();
 }
@@ -223,6 +225,7 @@ class AgendaViewState extends State<AgendaView> {
     _listenSync();
     if (widget.visible) unawaited(load());
     _pullSync();
+    _ensureSchedule();
   }
 
   @override
@@ -231,13 +234,39 @@ class AgendaViewState extends State<AgendaView> {
     final becameVisible = !oldWidget.visible && widget.visible;
     if (becameVisible) _lastSyncKey = null;
     if (oldWidget.service != widget.service) _listenSync();
-    if (_refreshScope() || oldWidget.projectionKey != widget.projectionKey) {
+    final scopeChanged = _refreshScope();
+    if (scopeChanged || oldWidget.projectionKey != widget.projectionKey) {
       _invalidateProjection();
     } else if (becameVisible && (_projectionDirty || result == null)) {
       unawaited(load());
     }
     if (oldWidget.todoRequest != widget.todoRequest) _showAllTodos();
     _pullSync();
+    if (becameVisible ||
+        scopeChanged ||
+        (oldWidget.onEnsureSchedule == null &&
+            widget.onEnsureSchedule != null)) {
+      _ensureSchedule();
+    }
+  }
+
+  void _ensureSchedule() {
+    if (!widget.visible || widget.onEnsureSchedule == null) return;
+    final scope = _scope;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !widget.visible || scope != _scope) return;
+      try {
+        await widget.onEnsureSchedule?.call();
+      } on Object {
+        if (mounted && widget.visible && scope == _scope) {
+          UbaaFeedback.show(
+            context,
+            '课表同步失败，请刷新后重试',
+            kind: UbaaFeedbackKind.warning,
+          );
+        }
+      }
+    });
   }
 
   /// 首页「查看全部」：清除遗留筛选与搜索，回到列表并显示全部待办。

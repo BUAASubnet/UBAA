@@ -98,7 +98,7 @@ impl UbaaClient {
                     repository.publish_guarded(
                         &ticket,
                         &scan.ticket,
-                        CachePayload::JudgeCourses(scan.courses.clone()),
+                        CachePayload::JudgeCourses(scan.courses().to_vec()),
                         now,
                         CacheCompleteness::Complete,
                     )

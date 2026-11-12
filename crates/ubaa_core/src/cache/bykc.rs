@@ -28,6 +28,8 @@ pub struct CachedBykcCourse {
     pub audience_campuses: Option<Vec<String>>,
     #[serde(default)]
     pub has_sign_points: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supplement: Option<Box<CachedBykcSupplement>>,
 }
 impl From<BykcCourse> for CachedBykcCourse {
     fn from(value: BykcCourse) -> Self {
@@ -49,7 +51,55 @@ impl From<BykcCourse> for CachedBykcCourse {
             sub_category: None,
             audience_campuses: None,
             has_sign_points: None,
+            supplement: None,
         }
+    }
+}
+
+/// 完整详情的可阅读补充，不包含签到坐标或写操作资格。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CachedBykcSupplement {
+    pub course_contact: Option<String>,
+    pub course_contact_mobile: Option<String>,
+    pub organizer_college_name: Option<String>,
+    pub description_plain_text: Option<String>,
+    pub audience_colleges: Vec<String>,
+    pub audience_terms: Vec<String>,
+    pub audience_groups: Vec<String>,
+    pub sign_config: Option<CachedBykcSignDisplay>,
+    pub attendance: Option<crate::domain::BykcCourseAttendanceDisplay>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CachedBykcSignDisplay {
+    pub sign_start_date: Option<String>,
+    pub sign_end_date: Option<String>,
+    pub sign_out_start_date: Option<String>,
+    pub sign_out_end_date: Option<String>,
+    pub sign_point_count: usize,
+}
+
+impl From<crate::domain::BykcCourseFullDetail> for CachedBykcCourse {
+    fn from(value: crate::domain::BykcCourseFullDetail) -> Self {
+        let mut course = Self::from(value.course);
+        course.supplement = Some(Box::new(CachedBykcSupplement {
+            course_contact: value.course_contact,
+            course_contact_mobile: value.course_contact_mobile,
+            organizer_college_name: value.organizer_college_name,
+            description_plain_text: value.description_plain_text,
+            audience_colleges: value.audience_colleges,
+            audience_terms: value.audience_terms,
+            audience_groups: value.audience_groups,
+            attendance: value.attendance,
+            sign_config: value.sign_config.map(|config| CachedBykcSignDisplay {
+                sign_start_date: config.sign_start_date,
+                sign_end_date: config.sign_end_date,
+                sign_out_start_date: config.sign_out_start_date,
+                sign_out_end_date: config.sign_out_end_date,
+                sign_point_count: config.sign_points.len(),
+            }),
+        }));
+        course
     }
 }
 
@@ -165,5 +215,56 @@ impl From<crate::domain::BykcCourseCatalogPage> for CachedBykcCoursePage {
             size: value.size,
             number: value.number,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn 完整详情补充可往返且旧缓存缺补充仍可读取() {
+        let mut full = crate::domain::BykcCourseFullDetail::default();
+        full.course.course.id = 42;
+        full.description_plain_text = Some("合成简介\n第二段".into());
+        full.course_contact = Some("合成联系人".into());
+        full.organizer_college_name = Some("合成单位".into());
+        full.audience_colleges = vec!["合成学院".into()];
+        full.sign_config = Some(BykcSignConfig {
+            sign_start_date: Some("2026-11-12 08:00:00".into()),
+            sign_points: vec![crate::domain::BykcSignPoint::default(); 2],
+            ..Default::default()
+        });
+        full.attendance = Some(crate::domain::BykcCourseAttendanceDisplay {
+            record_id: 1,
+            course_id: 42,
+            checkin: Some(0),
+            pass: None,
+        });
+        let cached = CachedBykcCourse::from(full);
+        let serialized = serde_json::to_value(&cached).unwrap();
+        assert_eq!(
+            serde_json::from_value::<CachedBykcCourse>(serialized.clone()).unwrap(),
+            cached
+        );
+        let supplement = cached.supplement.as_ref().unwrap();
+        assert_eq!(
+            supplement.description_plain_text.as_deref(),
+            Some("合成简介\n第二段")
+        );
+        assert_eq!(supplement.sign_config.as_ref().unwrap().sign_point_count, 2);
+        assert_eq!(supplement.attendance.as_ref().unwrap().checkin, Some(0));
+        let text = serialized.to_string();
+        assert!(
+            !text.contains("\"sign_points\"")
+                && !text.contains("\"lat\"")
+                && !text.contains("\"lng\"")
+                && !text.contains("eligibility")
+        );
+        let mut legacy = serialized;
+        legacy.as_object_mut().unwrap().remove("supplement");
+        let legacy: CachedBykcCourse = serde_json::from_value(legacy).unwrap();
+        assert_eq!(legacy.id, 42);
+        assert!(legacy.supplement.is_none());
     }
 }

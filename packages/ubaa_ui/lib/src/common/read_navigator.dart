@@ -296,10 +296,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
           incoming.feature == FeatureId.bykc &&
               context?.query?.view == FeatureQueryView.bykcDetail &&
               incoming.status == FeatureLoadStatus.stale
-          ? incoming.copyWith(
-              status: FeatureLoadStatus.failure,
-              clearDetails: true,
-            )
+          ? incoming.copyWith(details: readonlyFeatureDetails(incoming.details))
           : _current.feed.accept(incoming, _current.query);
       if (incoming.status != FeatureLoadStatus.loading) {
         _scheduleRecoveryRead(_current);
@@ -870,8 +867,7 @@ class _ReadFrame {
           : null;
       final complete = full?.id == key.$2 && full?.supplement != null;
       _chosenSource = snapshot;
-      if (snapshot.status == FeatureLoadStatus.stale ||
-          unique && snapshot.status == FeatureLoadStatus.success && !complete) {
+      if (unique && snapshot.status == FeatureLoadStatus.success && !complete) {
         _chosenSnapshot = snapshot.copyWith(
           status: FeatureLoadStatus.failure,
           clearDetails: true,
@@ -888,7 +884,11 @@ class _ReadFrame {
         return _chosenSnapshot!;
       }
       _chosenSnapshot = snapshot.copyWith(
-        details: unique ? matches : const [],
+        details: unique
+            ? snapshot.status == FeatureLoadStatus.stale
+                  ? readonlyFeatureDetails(matches)
+                  : matches
+            : const [],
         clearPagination: true,
         status: !unique && snapshot.status == FeatureLoadStatus.success
             ? FeatureLoadStatus.empty

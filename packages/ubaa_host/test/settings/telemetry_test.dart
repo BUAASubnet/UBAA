@@ -145,30 +145,30 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('撤回后再次启动保留基础模式且开关不可操作', (tester) async {
-    final backend = _ConsentBackend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
+  testWidgets('旧版基础模式重启后保持关闭，可从开关确认后重新启用', (tester) async {
+    final backend = _ConsentBackend()..consent = AppServiceConsent.basic;
+    for (var startup = 0; startup < 2; startup++) {
+      await tester.pumpWidget(UbaaAppHost(backend: backend));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      final tile = tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('settings-product-telemetry')),
+      );
+      expect(tile.value, isFalse);
+      expect(backend.consent, AppServiceConsent.basic);
+      if (startup == 0) await tester.pumpWidget(const SizedBox.shrink());
+    }
     await tester.ensureVisible(
-      find.byKey(const ValueKey('settings-privacy-withdraw')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('settings-privacy-withdraw')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, '撤回'));
-    await tester.pumpAndSettle();
-    expect(backend.consent, AppServiceConsent.basic);
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    final tile = tester.widget<SwitchListTile>(
       find.byKey(const ValueKey('settings-product-telemetry')),
     );
-    expect((tile.value, tile.onChanged), (false, null));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-product-telemetry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('privacy-consent-agree')));
+    await tester.pumpAndSettle();
+    expect(backend.consent, AppServiceConsent.agreed);
+    expect(backend.telemetryEnabled, isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

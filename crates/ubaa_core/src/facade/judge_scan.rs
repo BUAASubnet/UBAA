@@ -11,7 +11,9 @@ use std::sync::{
     Arc, Weak,
     atomic::{AtomicBool, Ordering},
 };
+mod cursor;
 mod routing;
+use cursor::JudgeScanCursor;
 
 /// 取消只阻止后续批次和迟到返回；不会中断已经发送的 HTTP 请求。
 #[derive(Clone)]
@@ -47,11 +49,7 @@ pub struct JudgeScan {
     route_generation: u64,
     pub(super) cache: OfflineCache,
     pub(super) ticket: CacheReadTicket,
-    pub(super) courses: Vec<Course>,
-    pub(super) course_index: usize,
-    pub(super) assignments: Option<Vec<Assignment>>,
-    pub(super) detail_index: usize,
-    pub(super) failed_courses: usize,
+    pub(super) cursor: JudgeScanCursor,
     pub(super) cancellation: JudgeScanCancellation,
     force_fresh: bool,
     // 仅复用本计划的业务激活；选课仍在每个网络批次内重新执行。
@@ -61,16 +59,11 @@ pub struct JudgeScan {
 impl JudgeScan {
     #[must_use]
     pub fn courses(&self) -> &[Course] {
-        &self.courses
+        self.cursor.courses()
     }
     #[must_use]
     pub fn cancellation(&self) -> JudgeScanCancellation {
         self.cancellation.clone()
-    }
-    pub(super) fn advance_course(&mut self) {
-        self.course_index += 1;
-        self.assignments = None;
-        self.detail_index = 0;
     }
 }
 impl UbaaClient {
@@ -200,11 +193,7 @@ impl UbaaClient {
             route_generation: self.route_generation,
             cache: cache.clone(),
             ticket,
-            courses,
-            course_index: 0,
-            assignments: None,
-            detail_index: 0,
-            failed_courses: 0,
+            cursor: JudgeScanCursor::new(courses),
             cancellation: JudgeScanCancellation(Arc::new(AtomicBool::new(false))),
         })
     }
@@ -246,17 +235,15 @@ impl UbaaClient {
             error: None,
             finished: false,
             complete: false,
-            failed_courses: plan.failed_courses,
+            failed_courses: plan.cursor.failed_courses(),
         };
-        if let Some(course) = plan.courses.get(plan.course_index).cloned() {
+        if let Some(course) = plan.cursor.current_course().cloned() {
             batch.course_id = Some(course.course_id.clone());
             let (resolution, read, activated) = self
                 .read_judge_batch(
                     plan.resolution,
                     &course,
-                    plan.assignments
-                        .as_ref()
-                        .map(|items| &items[plan.detail_index]),
+                    plan.cursor.current_assignment(),
                     plan.activated,
                     plan.force_fresh,
                 )
@@ -288,35 +275,21 @@ impl UbaaClient {
             match result {
                 Ok(_) => match batch.kind {
                     JudgeScanKind::Assignments => {
-                        if batch.assignments.is_empty() {
-                            plan.advance_course();
-                        } else {
-                            plan.assignments = Some(batch.assignments.clone());
-                        }
+                        plan.cursor.accept_assignments(batch.assignments.clone());
                     }
-                    JudgeScanKind::Detail => {
-                        plan.detail_index += 1;
-                        if plan
-                            .assignments
-                            .as_ref()
-                            .is_some_and(|items| plan.detail_index == items.len())
-                        {
-                            plan.advance_course();
-                        }
-                    }
+                    JudgeScanKind::Detail => plan.cursor.finish_detail(),
                     _ => unreachable!(),
                 },
                 Err(error) => {
                     batch.kind = JudgeScanKind::CourseFailure;
                     batch.error = Some(error.error);
-                    plan.failed_courses += 1;
-                    plan.advance_course();
+                    plan.cursor.fail_course();
                 }
             }
         }
-        batch.finished = plan.course_index >= plan.courses.len();
-        batch.failed_courses = plan.failed_courses;
-        batch.complete = batch.finished && plan.failed_courses == 0;
+        batch.finished = plan.cursor.finished();
+        batch.failed_courses = plan.cursor.failed_courses();
+        batch.complete = plan.cursor.complete();
         Ok(Routed {
             data: batch,
             resolution: plan.resolution,
@@ -377,11 +350,7 @@ mod tests {
             route_generation: client.route_generation,
             cache: cache.clone(),
             ticket,
-            courses: Vec::new(),
-            course_index: 0,
-            assignments: None,
-            detail_index: 0,
-            failed_courses: 0,
+            cursor: JudgeScanCursor::new(Vec::new()),
             cancellation: JudgeScanCancellation(Arc::new(AtomicBool::new(false))),
         };
         drop(owner);

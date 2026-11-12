@@ -95,7 +95,7 @@ extension _AgendaToolbar on AgendaViewState {
                 _menuItem(
                   'import',
                   Icons.calendar_month_outlined,
-                  '导入整学期课表',
+                  '刷新课表',
                   enabled: available,
                 ),
                 _menuItem('refresh', Icons.refresh, '重新加载', enabled: !loading),

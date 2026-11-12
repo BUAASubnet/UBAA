@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import '../../../test/support/platform/native_materials.dart';
+import '../../support/rust_library.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('系统私有目录不依赖 iOS 环境变量，可保存独立合成文件', (tester) async {
+  testWidgets('系统私有目录可首次创建并重开应用服务数据库', (tester) async {
     await initializePrivateDirectory();
     final root = Directory(defaultConfigDirectory());
     expect(root.isAbsolute, isTrue);
@@ -21,6 +23,36 @@ void main() {
       await file.writeAsString('合成目录探测');
       expect(await file.readAsString(), '合成目录探测');
       expect(defaultConfigDirectory(), root.path);
+      await initializeRustLibrary();
+      Future<BridgeAppService> open() => BridgeAppService.open(
+        configDir: own.path,
+        serviceUrl: 'http://127.0.0.1:9',
+        channel: 'github',
+        appVersion: '2.0.0+2003',
+        platform: BridgeAppServicePlatform.values.byName(
+          Platform.operatingSystem,
+        ),
+        release: false,
+        surface: BridgeAppServiceSurface.gui,
+        policyVersion: 1,
+      );
+      final first = await open();
+      try {
+        expect((await first.state()).available, isTrue);
+        await first.setTelemetry(enabled: false);
+      } finally {
+        first.dispose();
+      }
+      final reopened = await open();
+      try {
+        expect((await reopened.state()).telemetryEnabled, isFalse);
+        expect(
+          await File('${own.path}/app_service.sqlite3').length(),
+          greaterThan(0),
+        );
+      } finally {
+        reopened.dispose();
+      }
     } finally {
       if (await own.exists()) await own.delete(recursive: true);
     }

@@ -128,6 +128,7 @@ final class BykcChosenPresentation extends FeaturePresentation {
     this.signEndDate,
     this.signOutStartDate,
     this.signOutEndDate,
+    this.hasSignPoints,
     this.signPointCount,
     this.courseSignType,
     this.fullDetail,
@@ -138,6 +139,7 @@ final class BykcChosenPresentation extends FeaturePresentation {
   final String? courseCancelEndDate, selectDate, category, subCategory;
   final int? checkin, pass, score;
   final String? signStartDate, signEndDate, signOutStartDate, signOutEndDate;
+  final bool? hasSignPoints;
   final int? signPointCount, courseSignType;
   final BykcCoursePresentation? fullDetail;
 
@@ -161,6 +163,7 @@ final class BykcChosenPresentation extends FeaturePresentation {
         signEndDate: signEndDate,
         signOutStartDate: signOutStartDate,
         signOutEndDate: signOutEndDate,
+        hasSignPoints: hasSignPoints,
         signPointCount: signPointCount,
         courseSignType: courseSignType,
         fullDetail: detail,

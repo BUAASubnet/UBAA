@@ -86,6 +86,17 @@ SELECT month, users, devices FROM active_monthly
 
 `all` 行是全平台、渠道和版本的整体去重结果。按平台、渠道、版本或年级分析时查询相应维度；各分组计数可能重叠。`last_success_day` 是最近一次成功处理的校园日期。漏跑后任务会扩大重算范围。持续落后时，核对 Worker 版本、Cron 和 D1 状态；查询或诊断材料只保留必要的脱敏汇总。
 
+### 使用情况看板
+
+维护者自托管的 Grafana 通过 [Infinity 数据源](https://grafana.com/grafana/plugins/yesoreyeram-infinity-datasource/)查询 D1 明细表，看板源码是 `scripts/release/app_service_dashboard.py`。
+
+1. 在 Cloudflare 创建只有目标 D1 读取权限的 API Token，只保存在 Grafana 主机上，例如 root 私有的环境文件，不进入仓库或 `.env`。
+2. 在 Grafana 中预置 UID 为 `ubaa-d1` 的 Infinity 数据源：认证方式选 Bearer Token，`allowedHosts` 只填 `https://api.cloudflare.com`。
+3. 在 `.env` 中设置 `UBAA_APP_SERVICE_ACCOUNT_ID` 和 `UBAA_APP_SERVICE_D1_ID`，运行 `just app-service-dashboard`。
+4. 把生成的 `.ubaa_local/app_service_dashboard/ubaa.json` 复制到 Grafana 看板预置目录，文件属主设为 grafana，权限 600。Grafana 会自动重新加载，替换前先备份旧文件。
+
+看板全部查询明细表，不依赖每天 03:00 的汇总任务，所以只能覆盖各表的保留期（第 11.2 节）。“使用时段”分区来自不含设备标识的 `minute_counts`，只能看次数，不能去重。新增表、列或功能时，先更新迁移和合同，再运行 `just script-test`；看板自测会在迁移后的表结构上执行每条查询。
+
 ## 故障处理
 
 - D1 迁移失败时，停止部署和后续 CD 内容发布。

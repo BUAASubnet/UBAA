@@ -1,6 +1,6 @@
 //! 无持久缓存时也按完整选课步骤让位，不借用第二个会话或复制Cookie。
 use super::{
-    Arc, Assignment, AtomicBool, Course, JudgeScanBatch, JudgeScanCancellation, JudgeScanKind,
+    Arc, AtomicBool, Course, JudgeScanBatch, JudgeScanCancellation, JudgeScanCursor, JudgeScanKind,
     OfflineReadError, Ordering, ReadonlyFeature, RouteFeatureState, RouteResolution, UbaaClient,
     Weak, scan,
 };
@@ -27,11 +27,7 @@ pub struct JudgeOnlineScan {
     route_generation: u64,
     cancellation: JudgeScanCancellation,
     options: JudgeOnlineOptions,
-    courses: Vec<Course>,
-    course_index: usize,
-    assignments: Option<Vec<Assignment>>,
-    detail_index: usize,
-    failed_courses: usize,
+    cursor: JudgeScanCursor,
     summaries: BTreeMap<(String, String), JudgeAssignmentSummary>,
     fetched_at: i64,
     activated: bool,
@@ -46,21 +42,16 @@ pub struct JudgeOnlineProgress {
 impl JudgeOnlineScan {
     #[must_use]
     pub fn courses(&self) -> &[Course] {
-        &self.courses
+        self.cursor.courses()
     }
     #[must_use]
     pub fn cancellation(&self) -> JudgeScanCancellation {
         self.cancellation.clone()
     }
-    fn advance(&mut self) {
-        self.course_index += 1;
-        self.assignments = None;
-        self.detail_index = 0;
-    }
     fn progress(&self, mut batch: JudgeScanBatch) -> JudgeOnlineProgress {
-        batch.finished = self.course_index >= self.courses.len();
-        batch.failed_courses = self.failed_courses;
-        batch.complete = batch.finished && self.failed_courses == 0;
+        batch.finished = self.cursor.finished();
+        batch.failed_courses = self.cursor.failed_courses();
+        batch.complete = self.cursor.complete();
         let now = chrono::Utc::now().timestamp();
         let summaries = self
             .summaries
@@ -155,11 +146,7 @@ impl UbaaClient {
             route_generation: self.route_generation,
             cancellation: JudgeScanCancellation(Arc::new(AtomicBool::new(false))),
             options,
-            courses,
-            course_index: 0,
-            assignments: None,
-            detail_index: 0,
-            failed_courses: 0,
+            cursor: JudgeScanCursor::new(courses),
             summaries: BTreeMap::new(),
             fetched_at: chrono::Utc::now().timestamp(),
         })
@@ -193,9 +180,9 @@ impl UbaaClient {
             error: None,
             finished: false,
             complete: false,
-            failed_courses: plan.failed_courses,
+            failed_courses: plan.cursor.failed_courses(),
         };
-        let Some(course) = plan.courses.get(plan.course_index).cloned() else {
+        let Some(course) = plan.cursor.current_course().cloned() else {
             return Ok(plan.progress(batch));
         };
         batch.course_id = Some(course.course_id.clone());
@@ -203,9 +190,7 @@ impl UbaaClient {
             .read_judge_batch(
                 plan.resolution,
                 &course,
-                plan.assignments
-                    .as_ref()
-                    .map(|items| &items[plan.detail_index]),
+                plan.cursor.current_assignment(),
                 plan.activated,
                 true,
             )
@@ -235,8 +220,7 @@ impl UbaaClient {
             Err(error) => {
                 batch.kind = JudgeScanKind::CourseFailure;
                 batch.error = Some(error.error);
-                plan.failed_courses += 1;
-                plan.advance();
+                plan.cursor.fail_course();
             }
         }
         Ok(plan.progress(batch))
@@ -266,11 +250,7 @@ fn apply_batch(
                 };
                 batch.assignments = selected;
             }
-            if batch.assignments.is_empty() {
-                plan.advance();
-            } else {
-                plan.assignments = Some(batch.assignments.clone());
-            }
+            plan.cursor.accept_assignments(batch.assignments.clone());
         }
         JudgeScanKind::Detail => {
             if let Some(detail) = &batch.detail {
@@ -279,14 +259,7 @@ fn apply_batch(
                     crate::features::judge::to_summary(detail),
                 );
             }
-            plan.detail_index += 1;
-            if plan
-                .assignments
-                .as_ref()
-                .is_some_and(|items| plan.detail_index == items.len())
-            {
-                plan.advance();
-            }
+            plan.cursor.finish_detail();
         }
         _ => unreachable!(),
     }
@@ -366,11 +339,7 @@ mod tests {
                 route_generation: client.route_generation,
                 cancellation: JudgeScanCancellation(Arc::new(AtomicBool::new(false))),
                 options: JudgeOnlineOptions::default(),
-                courses: Vec::new(),
-                course_index: 0,
-                assignments: None,
-                detail_index: 0,
-                failed_courses: 0,
+                cursor: JudgeScanCursor::new(Vec::new()),
                 summaries: BTreeMap::new(),
                 fetched_at: 1,
             };

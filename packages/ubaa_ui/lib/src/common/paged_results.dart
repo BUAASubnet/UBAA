@@ -208,9 +208,21 @@ class PagedResults {
         }
       }
       _expected = null;
+      final noNewCourses =
+          incoming.feature == FeatureId.bykc && _details.length == oldCount;
+      final page = incoming.pagination!;
       _base = incoming.copyWith(
         details: details,
         status: _details.isEmpty ? incoming.status : FeatureLoadStatus.success,
+        pagination: noNewCourses
+            ? FeaturePagination(
+                page: page.page,
+                size: page.size,
+                total: page.total,
+                totalPages: page.totalPages,
+                hasMore: false,
+              )
+            : page,
       );
       if (_details.length == oldCount && hasMore) fail('本页没有新增内容，请刷新列表');
       return _base!;

@@ -6,7 +6,7 @@ import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
 void _registerQueryTests() {
-  testWidgets('课堂签到筛选点选可签到即提交派生视图', (tester) async {
+  testWidgets('课堂签到筛选点选未签到即提交派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -43,7 +43,7 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.signin);
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, '可签到'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '未签到'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.signinPending);
   });

@@ -18,6 +18,7 @@ void main() {
       statuses: const [],
       categories: [' 美育 ', '美育', ''],
       campuses: [' 沙河校区 ', '沙河校区', ' ', '未指定校区'],
+      hideAgendaConflicts: true,
     );
     expect(value.isDefault, isFalse);
     await store().write('fixture-a', value);
@@ -32,7 +33,22 @@ void main() {
       'statuses': [],
       'categories': ['美育'],
       'campuses': ['未指定校区', '沙河校区'],
+      'hideAgendaConflicts': true,
     });
+  });
+
+  test('旧三维偏好缺少日程开关时保持关闭，可保存并重开新选择', () async {
+    await store().write('fixture-a', _filters('沙河校区'));
+    final key = values.values.keys.single;
+    final old = jsonDecode(values.values[key]!) as Map<String, dynamic>;
+    old.remove('hideAgendaConflicts');
+    values.values[key] = jsonEncode(old);
+    final restored = (await store().read('fixture-a'))!;
+    expect(restored.hideAgendaConflicts, isFalse);
+    final enabled = restored.copyWith(hideAgendaConflicts: true);
+    await store().write('fixture-a', enabled);
+    expect(await store().read('fixture-a'), enabled);
+    expect(const BykcCourseFilters.defaults().hideAgendaConflicts, isFalse);
   });
 
   for (final inMemory in [false, true]) {
@@ -112,6 +128,12 @@ void main() {
   final malformed = <String, Object>{
     '损坏JSON': '{fixture-private-marker',
     '缺少状态集合': {'categories': <String>[], 'campuses': <String>[]},
+    '错误日程开关': {
+      'statuses': <String>[],
+      'categories': <String>[],
+      'campuses': <String>[],
+      'hideAgendaConflicts': 'true',
+    },
     '未知状态': {
       'statuses': ['fixture-private-marker'],
       'categories': <String>[],

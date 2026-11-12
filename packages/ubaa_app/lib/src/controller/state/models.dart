@@ -186,7 +186,6 @@ final class RecoveryRequest {
   int epoch;
   bool refreshHomeAfter;
   bool interactive;
-  bool transientFailure = false;
 
   /// 开始时账号主会话已就绪，本次只建立单个功能的目标会话。
   bool targetOnly = false;

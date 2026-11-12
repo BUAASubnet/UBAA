@@ -19,13 +19,6 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
     }
   }
 
-  Future<void> _withdrawPrivacy() async {
-    final view = await _controller.withdrawPrivacyConsent();
-    if (view.consent != AppServiceConsent.basic) {
-      throw StateError('撤回未保存');
-    }
-  }
-
   Future<void> _setProductTelemetry(bool enabled) async {
     final view = await _controller.setProductTelemetryEnabled(enabled);
     if (view.telemetryEnabled != enabled) throw StateError('开关未保存');
@@ -39,9 +32,7 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
       policy: _controller.privacyPolicy,
       onAgree: _agreePrivacy,
       onDecline: _declinePrivacy,
-      onWithdraw: _withdrawPrivacy,
       onTelemetryChanged: _setProductTelemetry,
-      onErase: _controller.eraseUploadedTelemetry,
     );
   }
 

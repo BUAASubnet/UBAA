@@ -21,7 +21,7 @@ mixin ControllerLockDisplay on ControllerState {
         !internalInteractiveEngaged &&
         internalPhase == AppPhase.home &&
         internalUser != null &&
-        internalWriteTransitions == 0 &&
+        !internalActivities.hasActive &&
         internalSessionRecoveryStatus != SessionRecoveryStatus.needsLogin &&
         (!internalUsesLocalRecovery ||
             internalSessionRecoveryStatus == SessionRecoveryStatus.ready) &&

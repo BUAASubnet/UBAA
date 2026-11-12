@@ -1,6 +1,7 @@
 use super::{
     AgendaSyncDocument, AgendaSyncItem, AgendaSyncOverlay,
-    state::{Stamp, StoredPending, SyncState, SyncStep},
+    pending::{PendingOperation, PublicationReceipt, StoredPending, SyncAttempt},
+    state::{Stamp, SyncState},
 };
 use crate::{
     agenda::{AgendaStore, operations::overlay_key, store::AgendaData},
@@ -21,10 +22,24 @@ pub struct AgendaSyncSnapshot {
 }
 pub(super) struct RestoredAttempt {
     pub snapshot: AgendaSyncSnapshot,
-    pub step: SyncStep,
-    pub object: Option<String>,
-    pub body_retained: bool,
-    pub registered: bool,
+    pub operation: PendingOperation,
+    body_retained: bool,
+}
+impl RestoredAttempt {
+    pub fn retains_body(&self) -> bool {
+        self.body_retained
+    }
+
+    /// 只有保留正文且收到明确登记回执的文件，才可进入读回确认。
+    pub fn confirmable_object(&self) -> Option<&str> {
+        match &self.operation {
+            PendingOperation::Publication {
+                receipt: PublicationReceipt::Registered(object),
+                ..
+            } if self.body_retained => Some(object),
+            _ => None,
+        }
+    }
 }
 impl AgendaSyncSnapshot {
     #[must_use]
@@ -57,22 +72,19 @@ impl AgendaStore {
                     account_alias: self.account_alias().into(),
                     device_id: data.sync.device_id,
                     epoch: data.sync.epoch,
-                    document: pending.document.clone().unwrap_or_default(),
-                    attempt: Some(pending.id),
-                    publication: pending.publication,
+                    document: pending.document().cloned().unwrap_or_default(),
+                    attempt: Some(pending.id()),
+                    publication: pending.operation().publication(),
                 },
-                step: pending.step,
-                object: pending.object.clone(),
-                body_retained: pending.document.is_some(),
-                registered: pending.registered,
+                operation: pending.operation().clone(),
+                body_retained: pending.document().is_some(),
             }))
         })
     }
     pub(super) fn begin_sync_attempt(
         &self,
         sent: &mut AgendaSyncSnapshot,
-        step: SyncStep,
-        object: Option<String>,
+        operation: SyncAttempt,
     ) -> CacheResult<Uuid> {
         let id = Uuid::new_v4();
         let (publication, document) = self.access(true, true, |data| {
@@ -81,29 +93,35 @@ impl AgendaStore {
                 return Err(CacheError::Superseded);
             }
             // 正文与发布序号在同一 IMMEDIATE 事务中确定，包含其他进程已提交的修改。
-            let document = if step == SyncStep::File {
-                document(data)?
-            } else {
-                sent.document.clone()
+            let (document, operation) = match operation {
+                SyncAttempt::Directory(target) => (
+                    sent.document.clone(),
+                    PendingOperation::Directory {
+                        target: Some(target),
+                    },
+                ),
+                SyncAttempt::Publication => {
+                    let document = document(data)?;
+                    let sequence = data.sync.next_publication;
+                    data.sync.next_publication = sequence
+                        .checked_add(1)
+                        .filter(|value| i64::try_from(*value).is_ok())
+                        .ok_or(CacheError::Capacity)?;
+                    (
+                        document,
+                        PendingOperation::Publication {
+                            sequence,
+                            receipt: PublicationReceipt::Unknown(None),
+                        },
+                    )
+                }
             };
-            let publication = if step == SyncStep::File {
-                let value = data.sync.next_publication;
-                data.sync.next_publication = value
-                    .checked_add(1)
-                    .filter(|value| i64::try_from(*value).is_ok())
-                    .ok_or(CacheError::Capacity)?;
-                Some(value)
-            } else {
-                None
-            };
-            data.sync.pending = Some(StoredPending {
+            let publication = operation.publication();
+            data.sync.pending = Some(StoredPending::restore(
                 id,
-                step,
-                document: Some(document.clone()),
-                publication,
-                object,
-                registered: false,
-            });
+                Some(document.clone()),
+                operation,
+            ));
             Ok((publication, document))
         })?;
         sent.document = document;
@@ -111,11 +129,10 @@ impl AgendaStore {
         sent.publication = publication;
         Ok(id)
     }
-    pub(super) fn update_sync_attempt(
+    pub(super) fn record_sync_receipt(
         &self,
         sent: &AgendaSyncSnapshot,
-        object: Option<String>,
-        registered: bool,
+        receipt: PublicationReceipt,
     ) -> CacheResult<()> {
         self.access(true, true, |data| {
             self.check_sync_scope(sent, data)?;
@@ -123,11 +140,9 @@ impl AgendaStore {
                 .sync
                 .pending
                 .as_mut()
-                .filter(|pending| Some(pending.id) == sent.attempt)
+                .filter(|pending| Some(pending.id()) == sent.attempt)
                 .ok_or(CacheError::Superseded)?;
-            pending.object = object;
-            pending.registered = registered;
-            Ok(())
+            pending.record_receipt(receipt)
         })
     }
     pub(super) fn clear_sync_attempt(&self, sent: &AgendaSyncSnapshot) -> CacheResult<()> {
@@ -152,9 +167,9 @@ impl AgendaStore {
     }
     fn require_sync_attempt(sent: &AgendaSyncSnapshot, data: &AgendaData) -> CacheResult<()> {
         if data.sync.pending.as_ref().is_some_and(|pending| {
-            Some(pending.id) == sent.attempt
-                && pending.publication == sent.publication
-                && pending.document.as_ref() == Some(&sent.document)
+            Some(pending.id()) == sent.attempt
+                && pending.operation().publication() == sent.publication
+                && pending.document() == Some(&sent.document)
         }) {
             Ok(())
         } else {

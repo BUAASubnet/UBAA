@@ -51,7 +51,7 @@ impl BykcReadData {
         match self {
             Self::Profile(v) => CachePayload::BykcProfile(v.clone()),
             Self::Catalog(v) => CachePayload::BykcCourses(v.clone().into()),
-            Self::FullDetail(v) => CachePayload::BykcDetail(v.course.clone().into()),
+            Self::FullDetail(v) => CachePayload::BykcDetail(v.as_ref().clone().into()),
             Self::Courses(v) => CachePayload::BykcCourses(v.clone().into()),
             Self::Detail(v) => CachePayload::BykcDetail(v.clone().into()),
             Self::Chosen {

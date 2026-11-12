@@ -135,8 +135,8 @@ void main() {
             options['sharedPreferencesName'],
             startsWith('ubaa.synthetic.'),
           );
-          expect(options['resetOnError'], 'false');
-          expect(options['migrateOnAlgorithmChange'], 'false');
+          expect(options['resetOnError'], 'true');
+          expect(options['migrateOnAlgorithmChange'], 'true');
           switch (call.method) {
             case 'write':
               values[key] = args['value']! as String;

@@ -9,8 +9,11 @@ import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import 'package:ubaa_app/src/contracts/session_recovery.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
+import 'activity.dart';
+import 'recovery_result.dart';
 import 'models.dart' show ProgressiveScope, RecoveryRequest;
 import 'types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -303,9 +306,11 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   WriteCoordinator internalCreateWriteCoordinator(UbaaBackend backend);
   @internal
-  void internalBeginWriteTransition();
+  ControllerActivity internalBeginOperationTransition(
+    ControllerActivityKind kind,
+  );
   @internal
-  void internalEndWriteTransition();
+  void internalEndOperationTransition(ControllerActivity activity);
   @internal
   void internalReplaceWriteCoordinator(UbaaBackend backend);
   @internal
@@ -384,7 +389,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   bool internalRecoveryIsCurrent(int epoch);
   @internal
-  Future<void> internalPerformSessionRecovery(
+  Future<ControllerRecoveryResult?> internalPerformSessionRecovery(
     RecoveryRequest request, {
     bool allowRebuild = true,
   });
@@ -473,7 +478,10 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalClearRecoveryRetries();
   @internal
-  void internalFinishRecoveryRetry(RecoveryRequest request);
+  void internalFinishRecoveryRetry(
+    RecoveryRequest request,
+    ControllerRecoveryResult? result,
+  );
   @internal
   void internalSyncRecoveryRetries();
   @internal
@@ -498,6 +506,13 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalSyncBusinessRetries();
 
+  @internal
+  Future<RecoveryResult?> internalRecoverTargetSession(
+    RequiredSessionBackend backend,
+    RecoveryTarget target,
+    int epoch, {
+    required bool publishReusedSession,
+  });
   @internal
   Future<UserSummary?> internalRecoverRequiredProfile(
     RequiredSessionBackend backend,

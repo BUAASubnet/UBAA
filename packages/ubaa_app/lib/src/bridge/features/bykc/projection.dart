@@ -5,7 +5,7 @@ import '../../support/mapping.dart'
 part 'cached_models.dart';
 
 /// 博雅选课列表每页条数。学校接口生成列表时每门课约需 0.3 秒，
-/// 小页先显示首屏，后续页由列表自动预取；在线与本机缓存共用同一键。
+/// 小页先显示首屏，后续页由列表按需在线读取。
 const bridgeBykcCatalogPageSize = 8;
 
 FeatureResult bridgeProjectBykcCourses(
@@ -170,6 +170,7 @@ FeatureResult bridgeProjectBykcChosen(
   List<BridgeBykcChosenCourse> data,
   ConnectionMode route, {
   bool persisted = false,
+  Map<(int, int), bool> cachedSignPoints = const {},
   BykcCoursePresentation? fullDetail,
 }) {
   final details = data
@@ -185,6 +186,7 @@ FeatureResult bridgeProjectBykcChosen(
           presentation: _bykcChosenPresentation(
             item,
             persisted: persisted,
+            hasSignPoints: cachedSignPoints[(item.id, item.courseId)],
             fullDetail: fullDetail?.id == item.courseId ? fullDetail : null,
           ),
           actions: <FeatureAction>[
@@ -425,6 +427,7 @@ BykcChosenPresentation _bykcChosenPresentation(
   BridgeBykcChosenCourse item, {
   BykcCoursePresentation? fullDetail,
   bool persisted = false,
+  bool? hasSignPoints,
 }) => BykcChosenPresentation(
   recordId: item.id,
   courseId: item.courseId,
@@ -456,6 +459,9 @@ BykcChosenPresentation _bykcChosenPresentation(
   signEndDate: item.signConfig?.signEndDate,
   signOutStartDate: item.signConfig?.signOutStartDate,
   signOutEndDate: item.signConfig?.signOutEndDate,
+  hasSignPoints: persisted
+      ? hasSignPoints
+      : item.signConfig?.signPoints.isNotEmpty,
   signPointCount: persisted ? null : item.signConfig?.signPoints.length,
   courseSignType: item.courseSignType,
   fullDetail: fullDetail,

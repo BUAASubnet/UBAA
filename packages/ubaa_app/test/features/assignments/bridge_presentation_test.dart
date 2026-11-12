@@ -119,11 +119,16 @@ void registerCourseworkTests() {
     );
     expect((result.overview! as EvaluationProgressOverview).pendingCourses, 0);
   });
-  test('签到展示状态不由denied反推成功且既有过滤保持', () async {
+  test('签到资格被拒绝的未签到课程仍属于未签到分组', () async {
     final backend = BridgeBackend(_CourseworkClient());
-    final result = await backend.loadFeatureQuery(
+    final completed = await backend.loadFeatureQuery(
       FeatureId.signin,
       const FeatureQuery(view: FeatureQueryView.signinCompleted),
+    );
+    expect(completed.details, isEmpty);
+    final result = await backend.loadFeatureQuery(
+      FeatureId.signin,
+      const FeatureQuery(view: FeatureQueryView.signinPending),
     );
     expect(result.details, hasLength(1));
     final p = result.details.single.presentation! as SigninPresentation;
