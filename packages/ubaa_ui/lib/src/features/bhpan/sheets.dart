@@ -3,6 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
 import 'format.dart';
 import '../../shared/dialogs/sheet.dart';
+import '../../shared/file_list/file_action_sheet.dart';
 
 /// 条目可执行的操作；标签与图标只在这里维护。
 enum BhpanAction {
@@ -71,96 +72,31 @@ Future<BhpanAction?> bhpanActionSheet(
   required bool Function(BhpanAction) enabled,
   String? location,
   Widget Function(Widget)? boundary,
-}) => showUiSheet<BhpanAction>(
-  context,
-  builder: (context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final quick = [
-      for (final a in _quick)
-        if (actions.contains(a)) a,
-    ];
-    final rest = [
-      for (final a in actions)
-        if (!quick.contains(a) && !a.danger) a,
-    ];
-    final danger = [
-      for (final a in actions)
-        if (a.danger) a,
-    ];
-    Widget quickButton(BhpanAction a) {
-      final on = enabled(a);
-      return Expanded(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: on ? () => Navigator.pop(context, a) : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colors.secondaryContainer.withValues(
-                      alpha: on ? .7 : .3,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    a.icon,
-                    color: on
-                        ? colors.onSecondaryContainer
-                        : colors.onSurface.withValues(alpha: .38),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  a.label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: on ? null : colors.onSurface.withValues(alpha: .38),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+}) {
+  UiFileAction<BhpanAction> map(BhpanAction action, {bool quick = false}) =>
+      UiFileAction(
+        value: action,
+        label: action.label,
+        icon: action.icon,
+        quick: quick,
+        danger: action.danger,
+        key: ValueKey('bhpan-action-${action.name}'),
       );
-    }
 
-    Widget tile(BhpanAction a) => ListTile(
-      key: ValueKey('bhpan-action-${a.name}'),
-      contentPadding: EdgeInsets.zero,
-      enabled: enabled(a),
-      leading: Icon(a.icon, color: a.danger ? colors.error : null),
-      title: Text(
-        a.label,
-        style: a.danger ? TextStyle(color: colors.error) : null,
-      ),
-      onTap: () => Navigator.pop(context, a),
-    );
-    final sheet = UiSheetBody(
-      title: item.name,
-      subtitle: _sheetMeta(item, location),
-      children: [
-        if (quick.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(children: [for (final a in quick) quickButton(a)]),
-          ),
-        if (rest.isNotEmpty) ...[
-          const Divider(height: 1),
-          for (final a in rest) tile(a),
-        ],
-        if (danger.isNotEmpty) ...[
-          const Divider(height: 1),
-          for (final a in danger) tile(a),
-        ],
-      ],
-    );
-    return boundary == null ? sheet : boundary(sheet);
-  },
-);
+  return showUiFileActions(
+    context,
+    name: item.name,
+    meta: _sheetMeta(item, location),
+    enabled: enabled,
+    actions: [
+      for (final action in _quick)
+        if (actions.contains(action)) map(action, quick: true),
+      for (final action in actions)
+        if (!_quick.contains(action)) map(action),
+    ],
+    boundary: boundary,
+  );
+}
 
 /// 详细信息：文件直接展示已知字段，文件夹另行统计内容；可附带主要操作按钮。
 Future<BhpanAction?> showBhpanDetails(
