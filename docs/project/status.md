@@ -10,7 +10,7 @@
 |---|---|---|
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v61 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v62 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v3 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -26,7 +26,7 @@
 | 本科课表、考试、成绩 | ✅ | ✅ 2026-11-06 | ✅ 2026-11-06 | 按门户身份分流本科和研究生（2026-11-08）后，还没有用真实账号复验 |
 | 研究生课表、成绩、考试学期 | ✅ | ⏳ | ⏳ | 需要研究生账号；研究生考试有明细时，目前明确提示“暂不支持” |
 | 空教室、SPOC、阳光打卡、图书馆查询、场馆查询、评教查询、网费流量 | ✅ | ✅ 2026-11-06 | ✅ 2026-11-06 | 相关写操作没有用真实账号执行过 |
-| 博雅课程 | ✅ 选课列表保留服务端顺序 | ✅ 2026-11-06（读取） | ✅ 2026-11-06（读取） | 按需分页、退选截止时间（2026-11-11）尚未真实验证；列表顺序调整（2026-11-12）待设备验证 |
+| 博雅课程 | ✅ 选课列表保留服务端顺序，缓存保留完整详情与自主签到标签 | ✅ 2026-11-06（读取） | ✅ 2026-11-06（读取） | 按需分页、退选截止时间（2026-11-11）尚未真实验证；列表顺序和缓存展示调整（2026-11-12）待设备验证 |
 | 希冀、课堂签到、iHome、信息门户、个人资料 | ✅ | 校外网络下直连读取失败 | ✅ 2026-11-06 | 校园网内直连 |
 | 门户身份、账户指标、流量 | ✅ | ✅（Core） | ✅（Core） | App 内用真实账号读取 |
 | 财务收入 | ✅ | ✅ 2026-11-08（Core） | ✅ 2026-11-08（Core） | App 页面用真实账号运行 |

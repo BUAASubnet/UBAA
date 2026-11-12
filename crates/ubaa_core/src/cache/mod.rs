@@ -7,7 +7,7 @@ pub use cgyy::{
 mod bykc;
 pub use bykc::{
     CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse, CachedBykcCoursePage,
-    CachedBykcSignWindow,
+    CachedBykcSignDisplay, CachedBykcSignWindow, CachedBykcSupplement,
 };
 pub(crate) mod crypto;
 pub(crate) mod files;

@@ -170,6 +170,7 @@ FeatureResult bridgeProjectBykcChosen(
   List<BridgeBykcChosenCourse> data,
   ConnectionMode route, {
   bool persisted = false,
+  Map<(int, int), bool> cachedSignPoints = const {},
   BykcCoursePresentation? fullDetail,
 }) {
   final details = data
@@ -185,6 +186,7 @@ FeatureResult bridgeProjectBykcChosen(
           presentation: _bykcChosenPresentation(
             item,
             persisted: persisted,
+            hasSignPoints: cachedSignPoints[(item.id, item.courseId)],
             fullDetail: fullDetail?.id == item.courseId ? fullDetail : null,
           ),
           actions: <FeatureAction>[
@@ -425,6 +427,7 @@ BykcChosenPresentation _bykcChosenPresentation(
   BridgeBykcChosenCourse item, {
   BykcCoursePresentation? fullDetail,
   bool persisted = false,
+  bool? hasSignPoints,
 }) => BykcChosenPresentation(
   recordId: item.id,
   courseId: item.courseId,
@@ -456,6 +459,9 @@ BykcChosenPresentation _bykcChosenPresentation(
   signEndDate: item.signConfig?.signEndDate,
   signOutStartDate: item.signConfig?.signOutStartDate,
   signOutEndDate: item.signConfig?.signOutEndDate,
+  hasSignPoints: persisted
+      ? hasSignPoints
+      : item.signConfig?.signPoints.isNotEmpty,
   signPointCount: persisted ? null : item.signConfig?.signPoints.length,
   courseSignType: item.courseSignType,
   fullDetail: fullDetail,

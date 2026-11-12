@@ -798,6 +798,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedBykcSupplement
+  dco_decode_box_autoadd_bridge_cached_bykc_supplement(dynamic raw);
+
+  @protected
   BridgeCachedCampusSection dco_decode_box_autoadd_bridge_cached_campus_section(
     dynamic raw,
   );
@@ -1505,6 +1509,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord
   dco_decode_bridge_cached_bykc_statistics_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcSupplement dco_decode_bridge_cached_bykc_supplement(
+    dynamic raw,
+  );
 
   @protected
   BridgeCachedCampusSection dco_decode_bridge_cached_campus_section(
@@ -3033,6 +3042,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedBykcSupplement?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_supplement(dynamic raw);
+
+  @protected
   BridgeCachedCampusSection?
   dco_decode_opt_box_autoadd_bridge_cached_campus_section(dynamic raw);
 
@@ -3992,6 +4005,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedBykcSupplement
+  sse_decode_box_autoadd_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedCampusSection sse_decode_box_autoadd_bridge_cached_campus_section(
     SseDeserializer deserializer,
   );
@@ -4919,6 +4938,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord
   sse_decode_bridge_cached_bykc_statistics_record(SseDeserializer deserializer);
+
+  @protected
+  BridgeCachedBykcSupplement sse_decode_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeCachedCampusSection sse_decode_bridge_cached_campus_section(
@@ -6919,6 +6943,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedBykcSupplement?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_supplement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedCampusSection?
   sse_decode_opt_box_autoadd_bridge_cached_campus_section(
     SseDeserializer deserializer,
@@ -8041,6 +8071,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_campus_section(
     BridgeCachedCampusSection self,
     SseSerializer serializer,
@@ -9159,6 +9195,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_bykc_statistics_record(
     BridgeCachedBykcStatisticsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement self,
     SseSerializer serializer,
   );
 
@@ -11592,6 +11634,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_bykc_statistics_record(
     BridgeCachedBykcStatisticsRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_supplement(
+    BridgeCachedBykcSupplement? self,
     SseSerializer serializer,
   );
 

@@ -34,6 +34,7 @@ pub struct BridgeCachedBykcCourse {
     pub sub_category: Option<BridgeBykcCourseSubCategory>,
     pub audience_campuses: Option<Vec<String>>,
     pub has_sign_points: Option<bool>,
+    pub supplement: Option<BridgeCachedBykcSupplement>,
 }
 fn map_cached_bykc_course(v: core::CachedBykcCourse) -> BridgeCachedBykcCourse {
     BridgeCachedBykcCourse {
@@ -54,6 +55,49 @@ fn map_cached_bykc_course(v: core::CachedBykcCourse) -> BridgeCachedBykcCourse {
         sub_category: v.sub_category.map(map_bykc_subcategory),
         audience_campuses: v.audience_campuses,
         has_sign_points: v.has_sign_points,
+        supplement: v.supplement.map(|value| map_cached_bykc_supplement(*value)),
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeCachedBykcSupplement {
+    pub course_contact: Option<String>,
+    pub course_contact_mobile: Option<String>,
+    pub organizer_college_name: Option<String>,
+    pub description_plain_text: Option<String>,
+    pub audience_colleges: Vec<String>,
+    pub audience_terms: Vec<String>,
+    pub audience_groups: Vec<String>,
+    pub sign_config: Option<super::read::BridgeBykcSignDisplayConfig>,
+    pub attendance: Option<super::read::BridgeBykcCourseAttendanceDisplay>,
+}
+
+fn map_cached_bykc_supplement(v: core::CachedBykcSupplement) -> BridgeCachedBykcSupplement {
+    BridgeCachedBykcSupplement {
+        course_contact: v.course_contact,
+        course_contact_mobile: v.course_contact_mobile,
+        organizer_college_name: v.organizer_college_name,
+        description_plain_text: v.description_plain_text,
+        audience_colleges: v.audience_colleges,
+        audience_terms: v.audience_terms,
+        audience_groups: v.audience_groups,
+        sign_config: v
+            .sign_config
+            .map(|config| super::read::BridgeBykcSignDisplayConfig {
+                sign_start_date: config.sign_start_date,
+                sign_end_date: config.sign_end_date,
+                sign_out_start_date: config.sign_out_start_date,
+                sign_out_end_date: config.sign_out_end_date,
+                sign_point_count: i32::try_from(config.sign_point_count).unwrap_or(i32::MAX),
+            }),
+        attendance: v
+            .attendance
+            .map(|value| super::read::BridgeBykcCourseAttendanceDisplay {
+                record_id: value.record_id,
+                course_id: value.course_id,
+                checkin: value.checkin,
+                pass: value.pass,
+            }),
     }
 }
 
@@ -555,6 +599,28 @@ mod tests {
     use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
     use crate::api::{client::*, offline::BridgeOfflineCache};
     use ubaa_core::facade as core;
+    #[test]
+    fn 完整缓存补充传递到宿主且点数独立于坐标() {
+        let mut detail = core::BykcCourseFullDetail::default();
+        detail.course.course.id = 42;
+        detail.description_plain_text = Some("合成简介".into());
+        detail.sign_config = Some(core::BykcSignConfig {
+            sign_points: vec![core::BykcSignPoint::default(); 2],
+            ..Default::default()
+        });
+        let mapped = super::map_cached_bykc_course(detail.into());
+        let supplement = mapped.supplement.unwrap();
+        assert_eq!(
+            supplement.description_plain_text.as_deref(),
+            Some("合成简介")
+        );
+        assert_eq!(supplement.sign_config.unwrap().sign_point_count, 2);
+        assert!(
+            super::map_cached_bykc_course(core::CachedBykcCourse::default())
+                .supplement
+                .is_none()
+        );
+    }
     #[tokio::test]
     async fn 博雅本地查询不等待网络锁并保留页范围与退出屏障() {
         let root = std::env::temp_dir().join(format!("ubaa-bykc-cache-{}", std::process::id()));

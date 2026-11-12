@@ -122,18 +122,33 @@ Future<FeatureResult> bridgeLoadBykcFeature(
       final detailId = query.courseId == null
           ? null
           : bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID');
+      BridgeBykcRefreshState? detailState;
       Future<BykcCoursePresentation?> fullDetail(ConnectionMode route) async {
         if (detailId == null) return null;
-        final full = await backend.client.bykcCourseFullDetail(id: detailId);
-        if (full.data.course.course.id != detailId ||
-            bridgeToConnectionMode(full.route.resolvedRoute) != route) {
+        final BridgeBykcCourseFullDetail data;
+        final BridgeRouteDecision detailRoute;
+        if (cache != null && account != null) {
+          final full = await backend.client.bykcFullDetailCached(
+            cache: cache,
+            courseId: detailId,
+          );
+          data = full.data;
+          detailRoute = full.route;
+          detailState = full.state;
+        } else {
+          final full = await backend.client.bykcCourseFullDetail(id: detailId);
+          data = full.data;
+          detailRoute = full.route;
+        }
+        if (data.course.course.id != detailId ||
+            bridgeToConnectionMode(detailRoute.resolvedRoute) != route) {
           throw const BackendException(UbaaErrorCode.operationConflict);
         }
         return bridgeBykcCoursePresentation(
-          full.data.course.course,
+          data.course.course,
           isDetail: true,
-          catalog: full.data.course,
-          supplement: bridgeBykcSupplement(full.data),
+          catalog: data.course,
+          supplement: bridgeBykcSupplement(data),
         );
       }
       if (cache != null && account != null) {
@@ -148,7 +163,16 @@ Future<FeatureResult> bridgeLoadBykcFeature(
               bridgeToConnectionMode(value.route.resolvedRoute),
             ),
           ),
-          value.state,
+          BridgeBykcRefreshState(
+            fetchedAt:
+                detailState != null &&
+                    detailState!.fetchedAt < value.state.fetchedAt
+                ? detailState!.fetchedAt
+                : value.state.fetchedAt,
+            saveError: value.state.saveError ?? detailState?.saveError,
+            semesterStart: value.state.semesterStart,
+            semesterEnd: value.state.semesterEnd,
+          ),
         );
       }
       final value = await backend.client.bykcChosenCourses();

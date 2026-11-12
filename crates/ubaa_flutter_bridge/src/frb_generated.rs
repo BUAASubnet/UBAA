@@ -22683,6 +22683,10 @@ impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcCourse {
             <Option<crate::api::read::BridgeBykcCourseSubCategory>>::sse_decode(deserializer);
         let mut var_audienceCampuses = <Option<Vec<String>>>::sse_decode(deserializer);
         let mut var_hasSignPoints = <Option<bool>>::sse_decode(deserializer);
+        let mut var_supplement =
+            <Option<crate::api::offline_bykc::BridgeCachedBykcSupplement>>::sse_decode(
+                deserializer,
+            );
         return crate::api::offline_bykc::BridgeCachedBykcCourse {
             id: var_id,
             course_name: var_courseName,
@@ -22701,6 +22705,7 @@ impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcCourse {
             sub_category: var_subCategory,
             audience_campuses: var_audienceCampuses,
             has_sign_points: var_hasSignPoints,
+            supplement: var_supplement,
         };
     }
 }
@@ -22808,6 +22813,34 @@ impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcStatisticsRecord {
             source_route: var_sourceRoute,
             fetched_at: var_fetchedAt,
             complete: var_complete,
+        };
+    }
+}
+
+impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcSupplement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_courseContact = <Option<String>>::sse_decode(deserializer);
+        let mut var_courseContactMobile = <Option<String>>::sse_decode(deserializer);
+        let mut var_organizerCollegeName = <Option<String>>::sse_decode(deserializer);
+        let mut var_descriptionPlainText = <Option<String>>::sse_decode(deserializer);
+        let mut var_audienceColleges = <Vec<String>>::sse_decode(deserializer);
+        let mut var_audienceTerms = <Vec<String>>::sse_decode(deserializer);
+        let mut var_audienceGroups = <Vec<String>>::sse_decode(deserializer);
+        let mut var_signConfig =
+            <Option<crate::api::read::BridgeBykcSignDisplayConfig>>::sse_decode(deserializer);
+        let mut var_attendance =
+            <Option<crate::api::read::BridgeBykcCourseAttendanceDisplay>>::sse_decode(deserializer);
+        return crate::api::offline_bykc::BridgeCachedBykcSupplement {
+            course_contact: var_courseContact,
+            course_contact_mobile: var_courseContactMobile,
+            organizer_college_name: var_organizerCollegeName,
+            description_plain_text: var_descriptionPlainText,
+            audience_colleges: var_audienceColleges,
+            audience_terms: var_audienceTerms,
+            audience_groups: var_audienceGroups,
+            sign_config: var_signConfig,
+            attendance: var_attendance,
         };
     }
 }
@@ -29348,6 +29381,19 @@ impl SseDecode for Option<crate::api::offline_bykc::BridgeCachedBykcStatisticsRe
     }
 }
 
+impl SseDecode for Option<crate::api::offline_bykc::BridgeCachedBykcSupplement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::offline_bykc::BridgeCachedBykcSupplement>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::campus::BridgeCachedCampusSection> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -35156,6 +35202,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::offline_bykc::BridgeCachedByk
             self.sub_category.into_into_dart().into_dart(),
             self.audience_campuses.into_into_dart().into_dart(),
             self.has_sign_points.into_into_dart().into_dart(),
+            self.supplement.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -35308,6 +35355,34 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_bykc::BridgeCachedByk
     for crate::api::offline_bykc::BridgeCachedBykcStatisticsRecord
 {
     fn into_into_dart(self) -> crate::api::offline_bykc::BridgeCachedBykcStatisticsRecord {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::offline_bykc::BridgeCachedBykcSupplement {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.course_contact.into_into_dart().into_dart(),
+            self.course_contact_mobile.into_into_dart().into_dart(),
+            self.organizer_college_name.into_into_dart().into_dart(),
+            self.description_plain_text.into_into_dart().into_dart(),
+            self.audience_colleges.into_into_dart().into_dart(),
+            self.audience_terms.into_into_dart().into_dart(),
+            self.audience_groups.into_into_dart().into_dart(),
+            self.sign_config.into_into_dart().into_dart(),
+            self.attendance.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_bykc::BridgeCachedBykcSupplement
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_bykc::BridgeCachedBykcSupplement>
+    for crate::api::offline_bykc::BridgeCachedBykcSupplement
+{
+    fn into_into_dart(self) -> crate::api::offline_bykc::BridgeCachedBykcSupplement {
         self
     }
 }
@@ -44181,6 +44256,10 @@ impl SseEncode for crate::api::offline_bykc::BridgeCachedBykcCourse {
         );
         <Option<Vec<String>>>::sse_encode(self.audience_campuses, serializer);
         <Option<bool>>::sse_encode(self.has_sign_points, serializer);
+        <Option<crate::api::offline_bykc::BridgeCachedBykcSupplement>>::sse_encode(
+            self.supplement,
+            serializer,
+        );
     }
 }
 
@@ -44246,6 +44325,27 @@ impl SseEncode for crate::api::offline_bykc::BridgeCachedBykcStatisticsRecord {
         <crate::api::client::BridgeConnectionMode>::sse_encode(self.source_route, serializer);
         <i64>::sse_encode(self.fetched_at, serializer);
         <bool>::sse_encode(self.complete, serializer);
+    }
+}
+
+impl SseEncode for crate::api::offline_bykc::BridgeCachedBykcSupplement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.course_contact, serializer);
+        <Option<String>>::sse_encode(self.course_contact_mobile, serializer);
+        <Option<String>>::sse_encode(self.organizer_college_name, serializer);
+        <Option<String>>::sse_encode(self.description_plain_text, serializer);
+        <Vec<String>>::sse_encode(self.audience_colleges, serializer);
+        <Vec<String>>::sse_encode(self.audience_terms, serializer);
+        <Vec<String>>::sse_encode(self.audience_groups, serializer);
+        <Option<crate::api::read::BridgeBykcSignDisplayConfig>>::sse_encode(
+            self.sign_config,
+            serializer,
+        );
+        <Option<crate::api::read::BridgeBykcCourseAttendanceDisplay>>::sse_encode(
+            self.attendance,
+            serializer,
+        );
     }
 }
 
@@ -48906,6 +49006,16 @@ impl SseEncode for Option<crate::api::offline_bykc::BridgeCachedBykcStatisticsRe
             <crate::api::offline_bykc::BridgeCachedBykcStatisticsRecord>::sse_encode(
                 value, serializer,
             );
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::offline_bykc::BridgeCachedBykcSupplement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::offline_bykc::BridgeCachedBykcSupplement>::sse_encode(value, serializer);
         }
     }
 }

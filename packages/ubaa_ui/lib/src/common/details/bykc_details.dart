@@ -106,6 +106,7 @@ extension BykcDetails on _FeatureDetailListState {
           ]),
         ],
         if (course.selected == true &&
+            detail.actions.isNotEmpty &&
             detail.readNavigation != null &&
             widget.onNavigate != null) ...[
           const SizedBox(height: 12),

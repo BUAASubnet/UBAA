@@ -31,7 +31,7 @@ const _statusViews = <FeatureId, List<(FeatureQueryView, String)>>{
   ],
   FeatureId.signin: [
     (FeatureQueryView.summary, '全部'),
-    (FeatureQueryView.signinPending, '可签到'),
+    (FeatureQueryView.signinPending, '未签到'),
     (FeatureQueryView.signinCompleted, '已签到'),
   ],
 };

@@ -14,21 +14,9 @@ FeatureResult bridgeMapSigninHome(
   final classes = switch (query.view) {
     FeatureQueryView.summary => items,
     FeatureQueryView.signinPending =>
-      items
-          .where(
-            (item) => (persisted
-                ? item.signStatus == 0
-                : item.signinEligibility == BridgeActionEligibility.allowed),
-          )
-          .toList(growable: false),
+      items.where((item) => item.signStatus == 0).toList(growable: false),
     FeatureQueryView.signinCompleted =>
-      items
-          .where(
-            (item) => (persisted
-                ? item.signStatus == 1
-                : item.signinEligibility == BridgeActionEligibility.denied),
-          )
-          .toList(growable: false),
+      items.where((item) => item.signStatus == 1).toList(growable: false),
     _ => throw const BackendException(UbaaErrorCode.invalidInput),
   };
   final details = classes
@@ -58,7 +46,7 @@ FeatureResult bridgeMapSigninHome(
               },
             ),
           ],
-          actions: target == null || target.isEmpty
+          actions: persisted || target == null || target.isEmpty
               ? const <FeatureAction>[]
               : <FeatureAction>[
                   SigninPerformAction(
@@ -72,7 +60,7 @@ FeatureResult bridgeMapSigninHome(
   return bridgeCountResult(
     classes.length,
     switch (query.view) {
-      FeatureQueryView.signinPending => persisted ? '门上次未签到课程' : '门可签到课程',
+      FeatureQueryView.signinPending => '门未签到课程',
       FeatureQueryView.signinCompleted => '门已签到课程',
       _ => '门今日签到课程',
     },

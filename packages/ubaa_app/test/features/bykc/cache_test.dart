@@ -34,6 +34,58 @@ void main() {
       ),
     );
   });
+  test('已选详情通过持久入口保存补充并报告补充保存失败', () async {
+    final client = _Client()..validDetail = true;
+    final backend = BridgeBackend(client, configDirectory: '/synthetic');
+    await backend.openOfflineAccount(
+      const LocalAccount(id: 'synthetic', username: 'synthetic'),
+      List.filled(32, 1),
+    );
+    final result = await backend.loadFeatureQuery(
+      FeatureId.bykc,
+      const FeatureQuery(
+        view: FeatureQueryView.bykcChosenCourses,
+        courseId: '42',
+      ),
+    );
+    expect(client.fullReads, 1);
+    expect(
+      (result.details.single.presentation as BykcChosenPresentation)
+          .fullDetail!
+          .id,
+      42,
+    );
+    expect(result.evidence!.savedForOffline, isFalse);
+    expect(result.evidence!.fetchedAt.millisecondsSinceEpoch, 100000);
+  });
+  test('普通详情和已选详情恢复完整补充且保持只读', () async {
+    final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
+    await backend.openOfflineAccount(
+      const LocalAccount(id: 'synthetic', username: 'synthetic'),
+      List.filled(32, 1),
+    );
+    for (final view in [
+      FeatureQueryView.bykcDetail,
+      FeatureQueryView.bykcChosenCourses,
+    ]) {
+      final result = await backend.readCachedQuery(
+        FeatureId.bykc,
+        FeatureQuery(view: view, courseId: '42'),
+        RoutePolicy.direct,
+      );
+      final detail = result.projection!.details.single;
+      expect(detail.actions, isEmpty);
+      final course = switch (detail.presentation) {
+        BykcCoursePresentation p => p,
+        BykcChosenPresentation p => p.fullDetail!,
+        _ => throw StateError('应返回课程详情'),
+      };
+      expect(course.supplement!.descriptionPlainText, '合成简介');
+      expect(course.supplement!.organizerCollegeName, '合成单位');
+      expect(course.supplement!.audienceColleges, ['合成学院']);
+      expect(course.supplement!.signConfig!.signPointCount, 2);
+    }
+  });
   test('其余博雅查询与首页已选保留范围并剥离学校动作', () async {
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await backend.openOfflineAccount(
@@ -186,6 +238,14 @@ class _Cache implements BridgeOfflineCache {
             id: courseId,
             courseName: '合成详情',
             status: BridgeBykcCourseStatus.available,
+            supplement: const BridgeCachedBykcSupplement(
+              descriptionPlainText: '合成简介',
+              organizerCollegeName: '合成单位',
+              audienceColleges: ['合成学院'],
+              audienceTerms: [],
+              audienceGroups: [],
+              signConfig: BridgeBykcSignDisplayConfig(signPointCount: 2),
+            ),
           ),
           sourceRoute: route,
           fetchedAt: 100,
@@ -290,34 +350,55 @@ class _Cache implements BridgeOfflineCache {
 }
 
 class _Client implements BridgeClient {
-  int cachedReads = 0, plainReads = 0;
+  int cachedReads = 0, plainReads = 0, fullReads = 0;
+  bool validDetail = false;
+  @override
+  Future<BridgeBykcChosenRefresh> bykcChosenCached({
+    required BridgeOfflineCache cache,
+  }) async => BridgeBykcChosenRefresh(
+    data: [
+      BridgeBykcChosenCourse(
+        id: 1,
+        courseId: 42,
+        courseName: '合成已选',
+        signEligibility: BridgeActionEligibility.unknown,
+        signOutEligibility: BridgeActionEligibility.unknown,
+        deselectEligibility: BridgeActionEligibility.unknown,
+      ),
+    ],
+    route: route,
+    state: BridgeBykcRefreshState(fetchedAt: 100),
+  );
   @override
   Future<BridgeBykcFullDetailRefresh> bykcFullDetailCached({
     required BridgeOfflineCache cache,
     required int courseId,
-  }) async => const BridgeBykcFullDetailRefresh(
-    data: BridgeBykcCourseFullDetail(
-      course: BridgeBykcCourseCatalogItem(
-        course: BridgeBykcCourse(
-          id: 88,
-          courseName: '别的课程',
-          status: BridgeBykcCourseStatus.available,
-          selectEligibility: BridgeActionEligibility.allowed,
-          deselectEligibility: BridgeActionEligibility.denied,
+  }) async {
+    fullReads++;
+    return BridgeBykcFullDetailRefresh(
+      data: BridgeBykcCourseFullDetail(
+        course: BridgeBykcCourseCatalogItem(
+          course: BridgeBykcCourse(
+            id: validDetail ? 42 : 88,
+            courseName: '别的课程',
+            status: BridgeBykcCourseStatus.available,
+            selectEligibility: BridgeActionEligibility.allowed,
+            deselectEligibility: BridgeActionEligibility.denied,
+          ),
+          audienceCampuses: [],
+          hasSignPoints: false,
         ),
-        audienceCampuses: [],
-        hasSignPoints: false,
+        audienceColleges: [],
+        audienceTerms: [],
+        audienceGroups: [],
       ),
-      audienceColleges: [],
-      audienceTerms: [],
-      audienceGroups: [],
-    ),
-    route: route,
-    state: BridgeBykcRefreshState(
-      fetchedAt: 200,
-      saveError: BridgeCacheFailure.invalidInput,
-    ),
-  );
+      route: route,
+      state: BridgeBykcRefreshState(
+        fetchedAt: 200,
+        saveError: BridgeCacheFailure.invalidInput,
+      ),
+    );
+  }
 
   @override
   int contractVersion() => 54;

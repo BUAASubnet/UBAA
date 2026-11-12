@@ -9,6 +9,8 @@ import 'projection.dart'
         bridgeCachedBykcCatalog,
         bridgeCachedBykcChosen,
         bridgeCachedBykcCourse,
+        bridgeCachedBykcSupplement,
+        bridgeBykcCoursePresentation,
         bridgeCachedBykcPage,
         bridgeProjectBykcChosen,
         bridgeProjectBykcCourses,
@@ -67,6 +69,7 @@ Future<CachedFeatureProjection?> bridgeCachedBykcProjection(
         bridgeCachedBykcCourse(value.data),
         bridgeToConnectionMode(value.sourceRoute),
         catalog: bridgeCachedBykcCatalog(value.data),
+        supplement: bridgeCachedBykcSupplement(value.data),
       );
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;
@@ -84,13 +87,37 @@ Future<CachedFeatureProjection?> bridgeCachedBykcProjection(
     case FeatureQueryView.bykcChosenCourses:
       final value = await cache.readBykcChosen(route: route);
       if (value == null) return null;
+      BykcCoursePresentation? fullDetail;
+      var chosenFetchedAt = value.fetchedAt.toInt();
+      var chosenComplete = value.complete;
+      if (query.courseId != null) {
+        final id = bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID');
+        final detail = await cache.readBykcDetail(route: route, courseId: id);
+        if (detail != null && detail.data.id == id) {
+          if (detail.fetchedAt.toInt() < chosenFetchedAt)
+            chosenFetchedAt = detail.fetchedAt.toInt();
+          chosenComplete = chosenComplete && detail.complete;
+          fullDetail = bridgeBykcCoursePresentation(
+            bridgeCachedBykcCourse(detail.data),
+            isDetail: true,
+            catalog: bridgeCachedBykcCatalog(detail.data),
+            supplement: bridgeCachedBykcSupplement(detail.data),
+          );
+        }
+      }
       result = bridgeProjectBykcChosen(
         value.data.courses.map(bridgeCachedBykcChosen).toList(),
         bridgeToConnectionMode(value.sourceRoute),
         persisted: true,
+        fullDetail: fullDetail,
+        cachedSignPoints: {
+          for (final item in value.data.courses)
+            if (item.signWindow != null)
+              (item.id, item.courseId): item.signWindow!.hasPoints,
+        },
       );
-      fetchedAt = value.fetchedAt.toInt();
-      complete = value.complete;
+      fetchedAt = chosenFetchedAt;
+      complete = chosenComplete;
       source = value.sourceRoute;
       overview = BykcChosenOverview(
         semesterStart: value.data.semesterStart,

@@ -241,7 +241,7 @@ fn check_replacement(
 }
 
 #[test]
-fn 完整博雅读取与缓存筛选一致且不落盘联系人或资格() {
+fn 完整博雅读取与缓存保留展示字段且不落盘资格() {
     let root = test_root("bykc-catalog-cache");
     let (mut client, cache, transport) = setup(&root);
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -267,7 +267,10 @@ fn 完整博雅读取与缓存筛选一致且不落盘联系人或资格() {
             .unwrap();
         assert_eq!(calls, transport.calls.load(Ordering::SeqCst));
         let serialized = serde_json::to_string(&saved.payload).unwrap();
-        assert!(!serialized.contains("合成联系人"));
+        assert_eq!(
+            serialized.contains("合成联系人"),
+            matches!(query, BykcCacheQuery::FullDetail { .. })
+        );
         assert!(!serialized.contains("eligibility"));
         let course = match saved.payload {
             CachePayload::BykcCourses(page) => page.content.into_iter().next().unwrap(),
@@ -284,6 +287,35 @@ fn 完整博雅读取与缓存筛选一致且不落盘联系人或资格() {
         );
         assert_eq!(course.audience_campuses, Some(vec!["沙河校区".into()]));
     }
+    let query = BykcCacheQuery::FullDetail { course_id: 42 };
+    let previous = cache
+        .read_bykc(ConnectionMode::Direct, &query)
+        .unwrap()
+        .unwrap();
+    runtime
+        .block_on(client.refresh_cached_bykc(&cache, BykcCacheQuery::Detail { course_id: 42 }))
+        .unwrap();
+    let retained = cache
+        .read_bykc(ConnectionMode::Direct, &query)
+        .unwrap()
+        .unwrap();
+    assert_eq!(retained.payload, previous.payload);
+    assert_eq!(retained.fetched_at, previous.fetched_at);
+    assert!(retained.last_attempt_succeeded);
+    transport.fail.store(1, Ordering::SeqCst);
+    assert!(
+        runtime
+            .block_on(client.refresh_cached_bykc(&cache, query.clone()))
+            .is_err()
+    );
+    assert_eq!(
+        cache
+            .read_bykc(ConnectionMode::Direct, &query)
+            .unwrap()
+            .unwrap()
+            .payload,
+        previous.payload
+    );
     drop(cache);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();

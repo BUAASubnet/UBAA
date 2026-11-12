@@ -338,6 +338,7 @@ void main() {
     expect(find.text('退选'), findsNothing);
     expect(find.text('查看签到与签退'), findsNothing);
     expect(find.textContaining('合成会话失效'), findsWidgets);
+    expect(find.text('合成联系人'), findsOneWidget);
   });
 
   testWidgets('首页博雅待办进入同一完整详情读取', (tester) async {

@@ -125,14 +125,15 @@ pub use crate::cache::{
     CacheInvalidationReport, CacheKey, CacheLimits, CacheObservation, CachePayload,
     CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheRecovery, CacheResult,
     CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse,
-    CachedBykcCoursePage, CachedBykcSignWindow, CachedCampusItem, CachedCampusMetrics,
-    CachedCgyyDayInfo, CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus,
-    CachedCgyySpaceAvailability, CachedDisplayProfile, CachedEvaluationCourse,
-    CachedEvaluationCourses, CachedGradeScoreBaseline, CachedGradeScoreEntry, CachedLibBookBooking,
-    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
-    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
-    CachedYgdkRecordsSelection, JudgeCourseReview, OfflineRepository, WriteReadbackHint,
-    WriteReadbackOperation, WriteReadbackTicket,
+    CachedBykcCoursePage, CachedBykcSignDisplay, CachedBykcSignWindow, CachedBykcSupplement,
+    CachedCampusItem, CachedCampusMetrics, CachedCgyyDayInfo, CachedCgyyOrder,
+    CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability, CachedDisplayProfile,
+    CachedEvaluationCourse, CachedEvaluationCourses, CachedGradeScoreBaseline,
+    CachedGradeScoreEntry, CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat,
+    CachedMaskedProfile, CachedSemesterSchedule, CachedSigninClass, CachedYgdkItem,
+    CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
+    JudgeCourseReview, OfflineRepository, WriteReadbackHint, WriteReadbackOperation,
+    WriteReadbackTicket,
 };
 
 mod libbook_cache;

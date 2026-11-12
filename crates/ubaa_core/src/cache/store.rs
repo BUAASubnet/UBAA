@@ -338,11 +338,18 @@ impl OfflineRepository {
         }
         let previous = load_body(&tx, &key)?
             .and_then(|body| self.crypto.open::<CacheRecord>(&body, &key).ok());
-        let preserve = completeness == CacheCompleteness::Partial && previous.is_some();
+        // 基础详情不能覆盖已保存的完整详情，保留原内容及取得时间。
+        let preserve_detail = matches!(
+            (&payload, previous.as_ref().map(|record| &record.payload)),
+            (CachePayload::BykcDetail(incoming), Some(CachePayload::BykcDetail(saved)))
+                if incoming.supplement.is_none() && saved.supplement.is_some()
+        );
+        let preserve =
+            (completeness == CacheCompleteness::Partial && previous.is_some()) || preserve_detail;
         let record = if preserve {
             let mut previous = previous.ok_or(CacheError::Corrupt)?;
             previous.last_attempt_at = now;
-            previous.last_attempt_succeeded = false;
+            previous.last_attempt_succeeded = completeness == CacheCompleteness::Complete;
             previous
         } else {
             CacheRecord {
