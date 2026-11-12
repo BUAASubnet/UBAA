@@ -88,6 +88,10 @@
 
 参考脚本每轮重新登录、明文配置及状态文件、SMTP 通知不纳入本功能。Direct/WebVPN 的生产入口验收分别记录，探针观察不代替生产验收。
 
+2026-11-12 对照上述两个固定版本及财务补充来源：旧版与 buaa-api 仍无这三个财务操作；buaa-api 的 `src/api/sso/auth.rs` 独立激活 WebVPN，财务补充脚本仅走 Direct。无网关会话的只读探测确认：WebVPN 下门户 `jump.aspx`、查询登录与收入读取都返回 HTTP 302，`Location` 为 `https://d.buaa.edu.cn/login`。该已知落点是网关要求认证；不跟随该跳转，也不改变其它未知跳转的协议错误语义。Direct 及三个财务操作的业务 URL、请求方法和字段、请求头、会话作用域、加密、DTO、分页与缓存继续采用上表合同。GUI 在认证失败时走现有财务路线恢复，按账号与自动登录许可重读一次。
+
+修复后 Core-live 的 WebVPN 新会话登录与收入读取通过；会话失效后的错误分类和 GUI 重试由合成测试验证。真实 Direct 未运行（本次授权只含 WebVPN）；安卓切换网络仍需在安装本修复的设备上复测。
+
 ## GUI 按需恢复（2026-11-12）
 
 重新核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt` 中路线 Cookie、会话核验和业务认证失败处理，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs`。两源没有门户资料、余额或流量的同源业务协议，其业务字段仍不适用。业务协议九列继续采用本页逐操作表，通用认证九列采用[认证对照](auth-session.md)。

@@ -30,6 +30,7 @@ struct Scenario {
     duplicate: bool,
     unauthorized: usize,
     logins: usize,
+    redirect: Option<(&'static str, &'static str)>,
 }
 struct Transport(Arc<Mutex<Scenario>>);
 #[async_trait::async_trait]
@@ -45,6 +46,15 @@ impl HttpTransport for Transport {
             body: vec![],
             final_url: r.url.clone(),
         };
+        if let Some((path, location)) = s.redirect
+            && u.path() == path
+        {
+            response.status = 302;
+            response
+                .headers
+                .insert("Location".into(), vec![location.into()]);
+            return Ok(response);
+        }
         let location = match u.path() {
             "/login" => {
                 assert_eq!(
@@ -167,6 +177,48 @@ async fn finance_双路线分页与失效重建保持请求合同() {
         assert!(s.requests.iter().all(|r| r.url.starts_with("https://")));
     }
 }
+#[tokio::test]
+async fn finance_webvpn_网关要求登录时返回认证失效且不跟随跳转() {
+    for path in ["/jump.aspx", "/api-zhcx/login", "/api-zhcx/getStudentSRCX"] {
+        let (mut runtime, state, _root) = fixture(
+            ConnectionMode::WebVpn,
+            Scenario {
+                redirect: Some((path, "https://d.buaa.edu.cn/login")),
+                ..Default::default()
+            },
+        );
+        let error = super::incomes(&mut runtime).await.unwrap_err();
+        assert_eq!(error.code, crate::error::ErrorCode::AuthenticationRequired);
+        assert!(
+            state
+                .lock()
+                .unwrap()
+                .requests
+                .iter()
+                .all(|request| { url::Url::parse(&request.url).unwrap().path() != "/login" })
+        );
+    }
+}
+
+#[tokio::test]
+async fn finance_非网关登录跳转和直连跳转仍是协议错误() {
+    for (mode, location) in [
+        (ConnectionMode::WebVpn, "https://other.example/login"),
+        (ConnectionMode::WebVpn, "https://d.buaa.edu.cn:8443/login"),
+        (ConnectionMode::Direct, "https://d.buaa.edu.cn/login"),
+    ] {
+        let (mut runtime, _, _root) = fixture(
+            mode,
+            Scenario {
+                redirect: Some(("/api-zhcx/getStudentSRCX", location)),
+                ..Default::default()
+            },
+        );
+        let error = super::incomes(&mut runtime).await.unwrap_err();
+        assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
+    }
+}
+
 #[tokio::test]
 async fn finance_缺页重复及连续认证失败均不返回完整结果() {
     for scenario in [

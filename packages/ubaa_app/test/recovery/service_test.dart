@@ -72,6 +72,33 @@ void main() {
     expect(backend.loginRoutes, [ConnectionMode.webvpn]);
   });
 
+  test('财务查询遇到 WebVPN 会话失效时恢复该路线并重读一次', () async {
+    final backend = _Backend()..route = ConnectionMode.webvpn;
+    final controller = await start(backend);
+    final snapshot = await controller.financeService!.refresh();
+    expect(snapshot.route, ConnectionMode.webvpn);
+    expect(snapshot.entries.single.id, 'fixture-income');
+    expect(backend.targets, [RecoveryTarget.finance]);
+    expect(backend.loginRoutes, [ConnectionMode.webvpn]);
+    expect(backend.incomes.reads, 2);
+    expect(controller.diagnostics.records, isEmpty);
+  });
+
+  test('财务 WebVPN 会话失效且关闭自动登录时不提交凭据', () async {
+    final backend = _Backend()..route = ConnectionMode.webvpn;
+    final controller = await start(backend, automatic: false);
+    await expectLater(
+      controller.financeService!.refresh(),
+      throwsA(isA<UiError>()),
+    );
+    expect(backend.targets, [RecoveryTarget.finance]);
+    expect(backend.loginRoutes, isEmpty);
+    expect(backend.incomes.reads, 1);
+    final error = controller.diagnostics.records.single;
+    expect(error.code, UbaaErrorCode.authenticationRequired);
+    expect(error.route, ConnectionMode.webvpn);
+  });
+
   test('待确认写入期间保留确认内容，不开始自动认证', () async {
     final backend = _Backend();
     final controller = await start(backend);
@@ -281,6 +308,7 @@ class _Backend extends support.FakeRecoveryBackend
         CampusAccountBackend,
         CampusAccountService,
         BhpanProvider,
+        FinanceBackend,
         RequiredTargetSessionBackend {
   bool ready = false, alwaysExpired = false;
   ConnectionMode route = ConnectionMode.direct;
@@ -291,10 +319,13 @@ class _Backend extends support.FakeRecoveryBackend
   Completer<void>? recoveryGate;
   final recoveryStarted = Completer<void>();
   late final disk = _Disk(this);
+  late final incomes = _Finance(this);
   @override
   CampusAccountService get campusAccount => this;
   @override
   BhpanService get bhpan => disk;
+  @override
+  FinanceService get finance => incomes;
   @override
   Future<CampusAccountSnapshot> cached() async => const CampusAccountSnapshot();
   void check() {
@@ -382,6 +413,37 @@ class _Backend extends support.FakeRecoveryBackend
     return RecoveredRouteSession(
       route: route,
       profile: UserSummary(username: username),
+    );
+  }
+}
+
+class _Finance implements FinanceService {
+  _Finance(this.backend);
+  final _Backend backend;
+  int reads = 0;
+
+  @override
+  Future<FinanceSnapshot?> cached() async => null;
+
+  @override
+  Future<FinanceSnapshot> refresh() async {
+    reads++;
+    if (!backend.ready) {
+      throw UiError(
+        code: UbaaErrorCode.authenticationRequired,
+        kind: UbaaErrorKind.authentication,
+        resolvedRoute: backend.route,
+        title: '需要登录',
+        message: '合成会话失效',
+      );
+    }
+    return FinanceSnapshot(
+      entries: const [FinanceIncome(id: 'fixture-income')],
+      total: 1,
+      route: backend.route,
+      fetchedAt: DateTime.utc(2026),
+      fromCache: false,
+      savedForOffline: false,
     );
   }
 }
