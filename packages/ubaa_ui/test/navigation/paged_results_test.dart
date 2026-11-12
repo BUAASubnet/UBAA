@@ -21,6 +21,47 @@ FeatureSnapshot page(
 );
 
 void main() {
+  for (final ids in [
+    <int>[],
+    [1, 2],
+  ]) {
+    test('博雅空页或没有新增课程时结束续载，手动刷新可以重新发现课程：$ids', () {
+      final feed = PagedResults();
+      const query = FeatureQuery(page: 1);
+      FeatureSnapshot courses(int number, List<int> values) => FeatureSnapshot(
+        feature: FeatureId.bykc,
+        status: values.isEmpty
+            ? FeatureLoadStatus.empty
+            : FeatureLoadStatus.success,
+        pagination: FeaturePagination(page: number, size: 2, total: 20),
+        details: [
+          for (final id in values)
+            FeatureDetail(
+              title: '课程$id',
+              presentation: BykcCoursePresentation(
+                id: id,
+                courseName: '课程$id',
+                status: BykcCourseStatus.available,
+              ),
+            ),
+        ],
+      );
+      final first = courses(1, [1, 2]);
+      feed.accept(first, query);
+      final next = feed.begin(first, query)!;
+      final shown = feed.accept(courses(2, ids), next);
+      expect(shown.details.map((d) => d.title), ['课程1', '课程2']);
+      expect(feed.error, isNull);
+      expect(feed.hasMore, isFalse);
+      expect(feed.begin(shown, next), isNull);
+      feed.cancelPending();
+      feed.accept(courses(1, [1, 2]), query);
+      final refreshed = feed.accept(courses(2, [3, 4]), feed.recoveryQuery);
+      expect(refreshed.details, hasLength(4));
+      expect(feed.hasMore, isTrue);
+    });
+  }
+
   test('写入打断续载时保留前页且下一次仍请求原页', () {
     final feed = PagedResults();
     const query = FeatureQuery(view: FeatureQueryView.cgyyOrders);

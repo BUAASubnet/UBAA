@@ -2,19 +2,14 @@ import 'dart:async';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'package:ubaa_app/src/backend.dart';
 import 'projection.dart'
     show
-        bridgeBykcCatalogPageSize,
         bridgeCachedBykcCatalog,
         bridgeCachedBykcChosen,
         bridgeCachedBykcCourse,
         bridgeCachedBykcSupplement,
         bridgeBykcCoursePresentation,
-        bridgeCachedBykcPage,
         bridgeProjectBykcChosen,
-        bridgeProjectBykcCourses,
-        bridgeProjectBykcDetail,
         bridgeProjectBykcProfile,
         bridgeProjectBykcStatistics;
 import '../../support/mapping.dart'
@@ -35,45 +30,6 @@ Future<CachedFeatureProjection?> bridgeCachedBykcProjection(
   late BridgeConnectionMode source;
   FeatureOverview? overview;
   switch (query.view) {
-    case FeatureQueryView.summary:
-      final value = await cache.readBykcCourses(
-        route: route,
-        page: query.page <= 0 ? 1 : query.page,
-        size: bridgeBykcCatalogPageSize,
-        all: true,
-      );
-      if (value == null) return null;
-      result = bridgeProjectBykcCourses(
-        bridgeCachedBykcPage(value.data),
-        bridgeToConnectionMode(value.sourceRoute),
-        requestedPage: query.page <= 0 ? 1 : query.page,
-        requestedSize: bridgeBykcCatalogPageSize,
-        catalog: {
-          for (final item in value.data.content)
-            item.id: bridgeCachedBykcCatalog(item),
-        },
-      );
-      fetchedAt = value.fetchedAt.toInt();
-      complete = value.complete;
-      source = value.sourceRoute;
-    case FeatureQueryView.bykcDetail:
-      final value = await cache.readBykcDetail(
-        route: route,
-        courseId: bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'),
-      );
-      if (value == null) return null;
-      if (value.data.id !=
-          bridgeRequiredPositiveQueryInt(query.courseId, '课程 ID'))
-        throw const BackendException(UbaaErrorCode.internalError);
-      result = bridgeProjectBykcDetail(
-        bridgeCachedBykcCourse(value.data),
-        bridgeToConnectionMode(value.sourceRoute),
-        catalog: bridgeCachedBykcCatalog(value.data),
-        supplement: bridgeCachedBykcSupplement(value.data),
-      );
-      fetchedAt = value.fetchedAt.toInt();
-      complete = value.complete;
-      source = value.sourceRoute;
     case FeatureQueryView.bykcProfile:
       final value = await cache.readBykcProfile(route: route);
       if (value == null) return null;

@@ -310,9 +310,10 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     }
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
-            widget.snapshot.status == FeatureLoadStatus.stale ||
-            widget.snapshot.status == FeatureLoadStatus.loading) &&
-        widget.snapshot.details.isNotEmpty;
+                widget.snapshot.status == FeatureLoadStatus.stale ||
+                widget.snapshot.status == FeatureLoadStatus.loading) &&
+            widget.snapshot.details.isNotEmpty ||
+        (_bykcEndReached && widget.snapshot.status == FeatureLoadStatus.empty);
     final defaultContent = Column(
       children: [
         if (widget.bykcFilterError case final message?
@@ -716,6 +717,27 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       ? widget.snapshot.overview as ScheduleWeekOverview
       : null;
 
+  bool get _bykcCatalog =>
+      widget.feature == FeatureId.bykc &&
+      (widget.query?.view ?? FeatureQueryView.summary) ==
+          FeatureQueryView.summary;
+
+  bool get _bykcEndReached {
+    final snapshot = widget.snapshot;
+    final page = snapshot.pagination;
+    return _bykcCatalog &&
+        !widget.loadingMore &&
+        widget.moreError == null &&
+        snapshot.error == null &&
+        (snapshot.status == FeatureLoadStatus.success ||
+            snapshot.status == FeatureLoadStatus.empty) &&
+        snapshot.evidence?.origin != DataOrigin.persisted &&
+        snapshot.evidence?.complete != false &&
+        page != null &&
+        (snapshot.status == FeatureLoadStatus.empty ||
+            !(page.hasMore ?? (page.page < page.effectiveTotalPages)));
+  }
+
   Widget _details(BuildContext context) {
     return FeatureDetailList(
       feature: widget.feature,
@@ -746,6 +768,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       bykcPendingCourseId: widget.bykcPendingCourseId,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
+      bykcEndReached: _bykcEndReached,
       paginationGeneration: widget.paginationGeneration,
       loadingMore: widget.loadingMore,
       moreError: widget.moreError,
