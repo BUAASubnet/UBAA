@@ -176,6 +176,12 @@ pub(crate) fn record_telemetry_rejection(status: u16, elapsed: std::time::Durati
 
 fn response_body_limit(method: HttpMethod, request_url: &str) -> usize {
     if method == HttpMethod::Get {
+        if url::Url::parse(request_url).ok().is_some_and(|url| {
+            url.host_str() == Some("print.lib.buaa.edu.cn")
+                && url.path() == "/api/client/Scan/Download"
+        }) {
+            return 32 * 1024 * 1024;
+        }
         let direct_url = crate::connection::from_webvpn_url(request_url)
             .unwrap_or_else(|_| request_url.to_owned());
         if url::Url::parse(&direct_url).ok().is_some_and(|url| {

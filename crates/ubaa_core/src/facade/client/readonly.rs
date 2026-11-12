@@ -30,6 +30,7 @@ impl UbaaClient {
             sessions: self.sessions.clone(),
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
+            cloud_print: None,
         })
     }
 

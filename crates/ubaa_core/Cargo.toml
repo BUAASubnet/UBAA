@@ -30,6 +30,7 @@ image.workspace = true
 flate2.workspace = true
 tract-onnx.workspace = true
 icalendar.workspace = true
+lopdf.workspace = true
 md-5.workspace = true
 crc32fast = "=1.5.3"
 regex = "1.12.2"
