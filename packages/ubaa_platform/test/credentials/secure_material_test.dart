@@ -20,7 +20,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       final arguments = call.arguments as Map<Object?, Object?>;
       final options = arguments['options'] as Map<Object?, Object?>;
-      expect(options['useDataProtectionKeyChain'], 'false');
+      expect(options['usesDataProtectionKeychain'], 'false');
       expect(options.containsKey('accessibility'), isFalse);
       return null;
     });
