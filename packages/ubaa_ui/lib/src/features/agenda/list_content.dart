@@ -5,6 +5,7 @@ import 'calendar_values.dart';
 import 'format.dart';
 import '../../common/state_panel.dart';
 import '../../common/tag.dart';
+import '../../theme.dart';
 
 /// 列表分组标题：今天/明天/昨天优先，其余显示「11月5日 周四」。
 String agendaDayLabel(DateTime day, DateTime now) {
@@ -82,8 +83,9 @@ List<Widget> agendaListSlivers({
     ];
   }
   final groups = <String, List<AgendaEntry>>{};
+  final dates = <AgendaEntry, DateTime?>{};
   for (final entry in entries) {
-    final date = agendaEntryDate(entry);
+    final date = dates[entry] = agendaEntryDate(entry);
     final overdue =
         !entry.completed &&
         entry.timing.kind == AgendaTimingKind.deadline &&
@@ -103,6 +105,22 @@ List<Widget> agendaListSlivers({
           ? 1
           : a.compareTo(b),
     );
+  final rowsByDay = {
+    for (final day in keys)
+      day: agendaAttachSignins(
+        agendaMergeCourses(
+          groups[day]!..sort((a, b) {
+            final allA = a.timing.kind == AgendaTimingKind.allDay;
+            final allB = b.timing.kind == AgendaTimingKind.allDay;
+            if (allA != allB) return allA ? -1 : 1;
+            final dateA = dates[a], dateB = dates[b];
+            return dateA == null
+                ? (dateB == null ? 0 : -1)
+                : (dateB == null ? 1 : dateA.compareTo(dateB));
+          }),
+        ),
+      ),
+  };
   final todayKey = agendaDate(agendaDay(now));
   return [
     // 每天的标题与事项成组：标题只在本组内吸顶，被下一天的标题顶走，不在顶部层层叠起。
@@ -115,9 +133,7 @@ List<Widget> agendaListSlivers({
               label: day == '逾期待办' || day == '无日期'
                   ? day
                   : agendaDayLabel(DateTime.parse(day), now),
-              count: agendaAttachSignins(
-                agendaMergeCourses(groups[day]!),
-              ).length,
+              count: rowsByDay[day]!.length,
               overdue: day == '逾期待办',
               today: day == todayKey,
               colors: colors,
@@ -127,34 +143,22 @@ List<Widget> agendaListSlivers({
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            sliver: SliverList.list(
-              children: [
-                for (final (entry, end, signin) in agendaAttachSignins(
-                  agendaMergeCourses(
-                    groups[day]!..sort((a, b) {
-                      final allA = a.timing.kind == AgendaTimingKind.allDay,
-                          allB = b.timing.kind == AgendaTimingKind.allDay;
-                      return allA != allB
-                          ? (allA ? -1 : 1)
-                          : (agendaEntryDate(a)?.toIso8601String() ?? '')
-                                .compareTo(
-                                  agendaEntryDate(b)?.toIso8601String() ?? '',
-                                );
-                    }),
-                  ),
-                ))
-                  AgendaEntryTile(
-                    entry: entry,
-                    now: now,
-                    displayEnd: end,
-                    signin: signin,
-                    onOpenSignin: signin == null ? null : () => onOpen(signin),
-                    conflicts: agendaEntryConflicts(entry, allEntries),
-                    onOpen: () => onOpen(entry),
-                    busy: busy,
-                    onComplete: (value) => onComplete(entry, value),
-                  ),
-              ],
+            sliver: SliverList.builder(
+              itemCount: rowsByDay[day]!.length,
+              itemBuilder: (context, index) {
+                final (entry, end, signin) = rowsByDay[day]![index];
+                return AgendaEntryTile(
+                  entry: entry,
+                  now: now,
+                  displayEnd: end,
+                  signin: signin,
+                  onOpenSignin: signin == null ? null : () => onOpen(signin),
+                  conflicts: agendaEntryConflicts(entry, allEntries),
+                  onOpen: () => onOpen(entry),
+                  busy: busy,
+                  onComplete: (value) => onComplete(entry, value),
+                );
+              },
             ),
           ),
         ],
@@ -257,7 +261,7 @@ Color agendaSourceColor(AgendaEntry entry, ColorScheme colors) =>
       ),
       AgendaFeature.spoc || AgendaFeature.judge => const Color(0xFFE8833A),
       AgendaFeature.exam => colors.error,
-      AgendaFeature.bykc => const Color(0xFF8E5CD9),
+      AgendaFeature.bykc => UbaaTheme.category(const Color(0xFF8E5CD9), colors),
       AgendaFeature.cgyy => const Color(0xFF2E9E8F),
       _ => colors.tertiary,
     };

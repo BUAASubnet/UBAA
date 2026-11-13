@@ -71,6 +71,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   };
 
   String? get _connectionStatus {
+    if (!_controller.networkOnline) return '网络已断开，当前页面会保留';
     if (!_controller.usesLocalRecovery) return null;
     return switch (_controller.sessionRecoveryStatus) {
       // 恢复中并入标题栏的“更新中”，不显示断网图标，避免反复闪烁。
@@ -135,6 +136,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       financeService: _controller.financeService,
       campusAccountService: _controller.campusAccountService,
       bhpanService: _controller.bhpanService,
+      cloudPrintService: _controller.cloudPrintService,
+      onPickPrintFiles: const SystemCloudPrintFiles().pick,
+      onPickPrintFolder: const SystemCloudPrintFiles().pickFolder,
+      onRenderScanPdf: const SystemCloudPrintFiles().canRenderPdf
+          ? const SystemCloudPrintFiles().renderPdf
+          : null,
+      onPreviewScanPdf: const SystemCloudPrintFiles().canPreviewPdf
+          ? const SystemCloudPrintFiles().previewPdf
+          : null,
       onPickBhpanFile: widget.bhpanFilePicker.pick,
       onPickBhpanDownload: widget.bhpanFileSaver.select,
       onPreviewBhpanFile: widget.bhpanFilePreviewer.isAvailable

@@ -1,14 +1,14 @@
 //! 当前 SSO 图像验证码的离线识别；模型与字符集随应用提供。
 
 use std::io::{Cursor, Read};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use image::{DynamicImage, Rgb, RgbImage, RgbaImage, imageops};
 use tract_onnx::prelude::*;
 
 use crate::domain::CaptchaFrame;
 
-type Model = TypedRunnableModel<TypedModel>;
+type Model = Arc<TypedRunnableModel>;
 
 const INPUT_WIDTH: u32 = 170;
 const INPUT_HEIGHT: u32 = 64;
@@ -61,13 +61,13 @@ pub(crate) fn recognize(frame: &CaptchaFrame) -> Option<String> {
         })
         .as_ref()?;
     let output = model.run(tvec!(input.into())).ok()?;
-    let logits = output.first()?.to_array_view::<f32>().ok()?;
+    let logits = output.first()?.to_plain_array_view::<f32>().ok()?;
     if logits.shape().last().copied()? != CLASS_COUNT || charset.len() != CLASS_COUNT {
         return None;
     }
     let mut previous = usize::MAX;
     let mut answer = String::new();
-    for scores in logits.as_slice()?.chunks_exact(CLASS_COUNT) {
+    for scores in logits.as_slice()?.as_chunks::<CLASS_COUNT>().0 {
         let index = scores
             .iter()
             .enumerate()

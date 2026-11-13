@@ -46,7 +46,7 @@ async fn 退选截止后准备与提交均拒绝且不发送写请求() {
                 .expect_err("提交前截止时不得写入")
         };
         assert_eq!(error.code, BridgeErrorCode::OperationConflict);
-        assert!(client.write_intents.lock().await.is_empty());
+        assert_eq!(client.write_intents.lock().await.len(), 0);
         direct.assert_exhausted().expect("仅执行详情复核");
         assert!(
             direct
@@ -55,7 +55,7 @@ async fn 退选截止后准备与提交均拒绝且不发送写请求() {
                 .iter()
                 .all(|r| !r.url.contains("delChosenCourse"))
         );
-        assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+        assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
         client.dispose().await.expect("销毁 bridge");
         let _ = std::fs::remove_dir_all(root);
     }
@@ -109,7 +109,7 @@ async fn 博雅签到准备先复核当前学期资格再签发意图() {
     );
     direct.assert_exhausted().expect("必须完整复核签到资格");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 3);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -295,7 +295,7 @@ async fn 博雅签到资格未知时准备拒绝且不签发意图() {
         .expect_err("资格未知时不得准备博雅签到");
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().expect("只允许资格预检请求");
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
@@ -332,7 +332,7 @@ async fn 博雅签到非法类型和不完整坐标在路线解析前拒绝() {
             .expect_err("无效输入必须在访问 Core 前拒绝");
         assert_eq!(error.code, BridgeErrorCode::InvalidInput);
     }
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -547,7 +547,7 @@ async fn 有效准备先复核资格且提交只命中已解析路线() {
     ));
     assert_eq!(intent.resolved_route, BridgeConnectionMode::Direct);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let result = client
         .commit_write(intent.intent_id.clone())
@@ -562,7 +562,7 @@ async fn 有效准备先复核资格且提交只命中已解析路线() {
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     direct.assert_exhausted().expect("Direct 脚本必须全部消费");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 4);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let reused = client
         .commit_write(intent.intent_id)
@@ -597,10 +597,10 @@ async fn 详情标识错配时准备拒绝且不签发意图() {
         .expect_err("错配详情不得准备选课");
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().expect("只允许读取错配详情");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -639,7 +639,7 @@ async fn 提交前资格变化时消费意图且不发送选课写请求() {
     assert!(error.retryable);
     direct.assert_exhausted().expect("不得发送选课写请求");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 3);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let reused = client
         .commit_write(intent.intent_id)
@@ -685,7 +685,7 @@ async fn 提交前详情标识错配时消费意图且不发送选课写请求()
     assert!(!error.retryable);
     direct.assert_exhausted().expect("不得发送选课写请求");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 3);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let reused = client
         .commit_write(intent.intent_id)
@@ -720,10 +720,10 @@ async fn 资格未知时准备拒绝且不签发意图() {
         .expect_err("资格未知时不得准备选课");
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().expect("只允许资格预检请求");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -751,10 +751,10 @@ async fn 退选资格未知时准备拒绝且不签发意图() {
         .expect_err("资格未知时不得准备退选");
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().expect("只允许资格预检请求");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -782,7 +782,7 @@ async fn 退选详情标识错配时准备拒绝且不签发意图() {
         .expect_err("错配详情不得准备退选");
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().expect("只允许读取错配详情");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
     client.dispose().await.expect("销毁 bridge");
@@ -840,7 +840,7 @@ async fn 有效退选在准备和提交时复核且只命中已解析路线() {
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     direct.assert_exhausted().expect("Direct 脚本必须全部消费");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 4);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }

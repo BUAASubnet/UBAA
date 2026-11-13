@@ -255,8 +255,7 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
             '离散数学',
             {
               '状态': evaluated ? '已评' : '待评',
-              '课程 ID':
-                  'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
+              '课程 ID': 'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
             },
             subtitle: '示例教师乙',
             actions: evaluated ? const [] : original.first.actions,

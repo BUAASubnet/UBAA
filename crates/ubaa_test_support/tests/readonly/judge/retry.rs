@@ -198,7 +198,7 @@ async fn judge_business_request_allows_three_reactivations_then_succeeds() {
         .await
         .expect("the fourth business attempt must succeed");
 
-    assert!(result.data.is_empty());
+    assert_eq!(result.data.len(), 0);
     assert_eq!(observed.course_requests.load(Ordering::SeqCst), 4);
     assert_eq!(observed.activation_requests.load(Ordering::SeqCst), 4);
 }

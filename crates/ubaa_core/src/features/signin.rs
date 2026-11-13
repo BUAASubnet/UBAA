@@ -649,7 +649,7 @@ mod tests {
     #[test]
     fn 状态二表示今日没有课程() {
         let classes = super::parse_today(r#"{"STATUS":"2"}"#).expect("空课程状态应成功");
-        assert!(classes.is_empty());
+        assert_eq!(classes.len(), 0);
     }
 
     #[test]

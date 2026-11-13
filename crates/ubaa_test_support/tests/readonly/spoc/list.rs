@@ -1,5 +1,5 @@
 use aes::Aes128;
-use aes::cipher::{BlockDecrypt, KeyInit, generic_array::GenericArray};
+use aes::cipher::{Block, BlockCipherDecrypt, KeyInit};
 use base64::Engine as _;
 use ubaa_core::facade::testing::{HttpRequest, to_webvpn_url};
 use ubaa_core::facade::{ConnectionMode, LoginInput, RouteClient, SecretValue};
@@ -23,9 +23,9 @@ fn decrypt_spoc_page_request(request: &HttpRequest) -> String {
     );
     let cipher = Aes128::new_from_slice(b"inco12345678ocni").expect("static AES key");
     let mut previous = *b"ocni12345678inco";
-    for chunk in encrypted.chunks_exact_mut(16) {
-        let ciphertext = <[u8; 16]>::try_from(&*chunk).expect("AES block");
-        let mut block = GenericArray::clone_from_slice(chunk);
+    for chunk in encrypted.as_chunks_mut::<16>().0 {
+        let ciphertext = *chunk;
+        let mut block = Block::<Aes128>::from(ciphertext);
         cipher.decrypt_block(&mut block);
         for (byte, prior) in block.iter_mut().zip(previous) {
             *byte ^= prior;

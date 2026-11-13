@@ -17,3 +17,25 @@ class BackendRouteSettings {
 abstract interface class RouteSettingsBackend {
   Future<BackendRouteSettings> routeSettings();
 }
+
+/// 保存路线策略，不读取登录页或重置已认证会话。
+abstract interface class RoutePolicyBackend {
+  Future<BackendRouteSettings> setDefaultRoutePolicy(RoutePolicy policy);
+}
+
+enum BackendNetworkState { campus, offCampus, unknown }
+
+/// 换网观察与读取取消独立于业务锁；句柄绑定原始恢复期限。
+abstract interface class NetworkChangeBackend {
+  NetworkChangeOperation beginNetworkChange({
+    required bool online,
+    required Duration budget,
+  });
+  void cancelNetworkReads();
+}
+
+abstract interface class NetworkChangeOperation {
+  Future<BackendNetworkState> inspect();
+  void finish();
+  void cancel();
+}

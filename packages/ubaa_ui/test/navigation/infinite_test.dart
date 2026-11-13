@@ -240,11 +240,10 @@ void main() {
     final beforeRefresh = state.requests.length;
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
-    expect(
-      state.requests.skip(beforeRefresh).map((q) => q.page),
-      [1, 2],
-      reason: '刷新从首页开始复核已经显示的两页',
-    );
+    expect(state.requests.skip(beforeRefresh).map((q) => q.page), [
+      1,
+      2,
+    ], reason: '刷新从首页开始复核已经显示的两页');
     expect(find.text('项目0'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

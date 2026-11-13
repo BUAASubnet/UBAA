@@ -26,6 +26,7 @@ impl HttpTransferObserver for Progress {
 }
 fn transport() -> ReqwestTransport {
     ReqwestTransport {
+        fast_connect_client: reqwest::Client::builder().no_proxy().build().unwrap(),
         client: reqwest::Client::builder().no_proxy().build().unwrap(),
         object_client: reqwest::Client::builder()
             .no_proxy()
@@ -136,7 +137,7 @@ async fn 对象下载大于通用响应上限仍有界写文件且不进入响�
         .await
         .unwrap();
     server.join().unwrap();
-    assert!(response.body.is_empty());
+    assert_eq!(response.body.len(), 0);
     assert_eq!(std::fs::metadata(&path).unwrap().len(), SIZE as u64);
     assert_eq!(progress.bytes.load(Ordering::SeqCst), SIZE as u64);
     assert!(progress.largest.load(Ordering::SeqCst) <= 64 * 1024);

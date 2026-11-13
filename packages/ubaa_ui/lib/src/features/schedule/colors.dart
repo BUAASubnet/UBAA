@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../theme.dart';
 
 /// 课程配色：课表与日程共用，同一门课在本次运行中始终同色。
 ///
@@ -75,13 +76,16 @@ class ScheduleCourseColors {
   }
 
   /// 课程块底色：中等饱和度，浅色与深色主题下都能互相区分。
-  Color background(FeatureDetail detail, Brightness brightness) =>
-      HSLColor.fromAHSL(
-        1,
-        _hue(_key(detail)),
-        brightness == Brightness.dark ? .34 : .58,
-        brightness == Brightness.dark ? .30 : .86,
-      ).toColor();
+  /// 深色下各色相调到同一相对亮度，避免蓝紫色的课程块陷进背景。
+  Color background(FeatureDetail detail, Brightness brightness) {
+    final hue = _hue(_key(detail));
+    return brightness == Brightness.dark
+        ? UbaaTheme.atLuminance(
+            HSLColor.fromAHSL(1, hue, .30, .5).toColor(),
+            .12,
+          )
+        : HSLColor.fromAHSL(1, hue, .58, .86).toColor();
+  }
 
   /// 按课程名取强调色：日程的色条与淡染底色使用，与课表同色相。
   static Color accent(String title, Brightness brightness) => HSLColor.fromAHSL(

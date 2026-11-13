@@ -1,10 +1,13 @@
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
+
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
 import '../../../test/support/ygdk/write_backend.dart';
 
 void main() {
@@ -50,10 +53,9 @@ void main() {
         final label = '${brightness.name}-native-photo-$name';
         final records =
             (binding.reportData ??= <String, dynamic>{}).putIfAbsent(
-                  'uiEvidence',
-                  () => <Object?>[],
-                )
-                as List;
+              'uiEvidence',
+              () => <Object?>[],
+            ) as List;
         records.add({
           'name': label,
           'steps': '真实平台照片探测贯通原生表单，学校业务仅内存；未选择照片或提交',

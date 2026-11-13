@@ -63,10 +63,17 @@ check(!hasPartialReleaseSigning || hasReleaseSigning) {
     "Android 签名必须同时提供 keystore 文件、store/key 密码和 key alias"
 }
 
+val toolVersions = Properties().apply {
+    rootProject.file("../../../scripts/tools/versions.env").inputStream().use { load(it) }
+}
+
+// 部分插件仍使用旧 Android DSL，AGP 9 兼容模式保留此入口。
+@Suppress("DEPRECATION")
 android {
     namespace = "cn.edu.ubaa.ubaa_flutter"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdkVersion("android-${toolVersions.getProperty("ANDROID_API")}")
+    buildToolsVersion = toolVersions.getProperty("ANDROID_BUILD_TOOLS")
+    ndkVersion = toolVersions.getProperty("ANDROID_NDK")
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -74,8 +81,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+    // 本地与 CI 默认压缩原生库；从 App Bundle 生成的 APK 同样沿用此设置。
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     defaultConfig {
@@ -84,7 +94,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = toolVersions.getProperty("ANDROID_API").substringBefore('.').toInt()
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -127,6 +137,16 @@ android {
             ndk.abiFilters.clear()
             ndk.abiFilters.add(abi)
         }
+        // AGP 9 的 NDK 筛选不排除依赖中的预编译库，打包时同步收拢 ABI。
+        packaging.jniLibs.excludes.addAll(
+            (setOf("armeabi-v7a", "arm64-v8a", "x86_64") - abi).map { "**/$it/**" }
+        )
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
@@ -134,9 +154,9 @@ dependencies {
     implementation("org.rustls:rustls-platform-verifier:${verifierPackage["version"]}")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260814")
     // 与锁定Flutter integration_test原生运行时保持一致，避免跨配置强约束冲突。
-    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:runner:1.3.0")
 }
 
 flutter {

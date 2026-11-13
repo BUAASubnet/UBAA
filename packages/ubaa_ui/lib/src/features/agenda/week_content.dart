@@ -37,8 +37,8 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   bool focusPositioned = false;
   double? lastViewport, lastColumn;
 
-  /// 网格显示的整点范围：本周最早事项的开始到最晚事项的结束。
-  int firstHour = 8, lastHour = 18;
+  /// 默认显示 08:00–23:00，超出范围的事项向两端扩展。
+  int firstHour = 8, lastHour = 23;
 
   /// 本周最早开始的事项距网格顶部的小时数；跨午夜后半段把范围拉大时用于首屏定位。
   double? earliestStart;
@@ -192,14 +192,13 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   ) {
     final placements =
         <({int day, _Slot slot, int lane, int lanes, DateTime base})>[];
+    final byDay = agendaEntriesByDay(widget.entries, monday, 7);
     for (var i = 0; i < 7; i++) {
       final day = monday.add(Duration(days: i)),
           tomorrow = monday.add(Duration(days: i + 1));
       final slots = <_Slot>[];
-      for (final entry in widget.entries) {
-        if (entry.timing.kind != AgendaTimingKind.period ||
-            !agendaOnDay(entry, day))
-          continue;
+      for (final entry in byDay[day] ?? const <AgendaEntry>[]) {
+        if (entry.timing.kind != AgendaTimingKind.period) continue;
         final rawStart = agendaStart(entry), rawEnd = agendaEnd(entry);
         if (rawStart == null || rawEnd == null || !rawEnd.isAfter(rawStart))
           continue;
@@ -275,24 +274,17 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
     }
     double hours(DateTime t, DateTime base) =>
         t.difference(base).inSeconds / 3600;
-    // 没有事项时保留 08:00–18:00，便于看清这一周是空的。
-    if (placements.isEmpty) {
-      firstHour = 8;
-      lastHour = 18;
-    } else {
-      // 跨午夜的后半段不把范围拉回零点，只保证露出它结束前的一小时。
-      firstHour = placements
-          .map(
-            (p) => p.slot.start.isAfter(p.base)
-                ? hours(p.slot.start, p.base).floor()
-                : hours(p.slot.end, p.base).ceil() - 1,
-          )
-          .reduce(math.min)
-          .clamp(0, 23);
-      lastHour = placements
-          .map((p) => hours(p.slot.displayEnd, p.base).ceil())
-          .reduce(math.max)
-          .clamp(firstHour + 1, 24);
+    firstHour = 8;
+    lastHour = 23;
+    for (final p in placements) {
+      firstHour = math.min(
+        firstHour,
+        hours(p.slot.start, p.base).floor().clamp(0, 23),
+      );
+      lastHour = math.max(
+        lastHour,
+        hours(p.slot.displayEnd, p.base).ceil().clamp(1, 24),
+      );
     }
     final starts = [
       for (final p in placements)

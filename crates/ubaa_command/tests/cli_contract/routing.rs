@@ -36,7 +36,7 @@ async fn readonly_route_errors_use_schema_v10_diagnostics() {
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(value["meta"]["usedFallback"], false);
     assert_eq!(value["error"]["code"], "authentication_required");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -69,7 +69,7 @@ async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
     assert_eq!(value["meta"]["initialRoute"], "direct");
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(value["meta"]["usedFallback"], false);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -90,7 +90,7 @@ async fn routed_user_success_preserves_core_default_route_diagnostics() {
     assert_eq!(value["meta"]["initialRoute"], "webvpn");
     assert_eq!(value["meta"]["resolvedRoute"], "webvpn");
     assert_ne!(value["data"]["phone"], "PHONE-FIXTURE-VALUE");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[test]
@@ -213,7 +213,7 @@ async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(value["meta"]["usedFallback"], false);
     assert_eq!(value["error"]["code"], "authentication_required");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 fn explicit_direct_route_context() -> ReadonlyRouteContext {

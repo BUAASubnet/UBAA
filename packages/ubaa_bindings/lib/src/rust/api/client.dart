@@ -10,6 +10,7 @@ import 'app_service.dart';
 import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
+import 'cloud_print.dart';
 import 'command.dart';
 import 'finance.dart';
 import 'ihome.dart';
@@ -19,6 +20,7 @@ import 'judge_refresh.dart';
 import 'judge_refresh/details.dart';
 import 'judge_scan.dart';
 import 'judge_scan/online.dart';
+import 'network.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
@@ -43,7 +45,7 @@ import 'write.dart';
 import 'write/cache.dart';
 
 // These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>>
 abstract class BridgeClient implements RustOpaqueInterface {
@@ -166,6 +168,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
     required bool includeExpired,
     String? preferredCourse,
+  });
+
+  /// 立即更新联网状态，取消旧读取并开始统一的恢复期限。
+  /// # Errors
+  /// 客户端已关闭或期限超过两分钟时拒绝。
+  BridgeNetworkChange beginNetworkChange({
+    required bool online,
+    required int timeoutMillis,
   });
 
   /// 开始一次首页只读刷新，身份校验仍按各功能实际路线隔离。
@@ -376,6 +386,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 立即撤销当前交互，永不排队等待 Core 网络锁。
   void cancelInteractiveLogin();
 
+  /// 手动切换前同步取消普通读取，已发送写入仍按原结果收尾。
+  void cancelNetworkReads();
+
   /// 立即捕获当前作用域；客户端忙时拒绝，避免等待到另一个客户端。
   /// # Errors
   /// 客户端忙或已关闭时不建立创建确认。
@@ -460,6 +473,33 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedClassroomQuery> classroomSearch({
     required int campus,
     required String date,
+  });
+
+  Future<List<BridgeError?>> cloudPrintDelete({
+    required bool scans,
+    required List<String> ids,
+  });
+
+  Future<List<BridgePrintDocument>> cloudPrintDocuments({required bool scans});
+
+  Future<Uint8List> cloudPrintPreview({required String id, required int page});
+
+  Future<BridgePrintRecords> cloudPrintRecords({
+    required String begin,
+    required String end,
+    required BridgePrintRecordKind kind,
+    required int page,
+  });
+
+  Future<Uint8List> cloudPrintScan({required String id});
+
+  Future<Uint8List> cloudPrintScanPdf({required List<String> ids});
+
+  Future<List<BridgePrintStation>> cloudPrintStations();
+
+  Future<List<BridgeError?>> cloudPrintUpload({
+    required List<BridgePrintFile> files,
+    required BridgePrintOptions options,
   });
 
   /// # Errors
@@ -1030,11 +1070,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedWeeks> scheduleWeeks({required String term});
 
-  /// 保存新的全局策略、清除 feature override 并重开 Core client。
+  /// 等待在途操作收尾后保存全局策略、清除 feature override 并重开 Core client。
   ///
   /// # Errors
   ///
-  /// 另一个 bridge 操作占用客户端、客户端已销毁、配置保存失败或重开失败时返回安全错误。
+  /// 客户端已销毁、配置保存失败或重开失败时返回安全错误。
   Future<BridgeRouteSettings> setDefaultRoutePolicy({
     required BridgeRoutePolicy policy,
   });

@@ -70,7 +70,7 @@ async fn 图书馆预约记录取消资格与稳定目标符合_schema_v10() {
     assert_eq!(value["data"]["bookings"][3]["cancelEligibility"], "unknown");
     assert!(value["data"]["bookings"][3]["cancelTarget"].is_null());
     assert_eq!(backend.libbook_bookings_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../docs/contracts/cli-json.schema.json"
@@ -107,7 +107,7 @@ async fn 图书馆取消未确认空白目标或非法分页均在路由后端�
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.libbook_cancel_calls, 0);
         assert!(backend.libbook_last_cancel_request.is_none());
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -142,7 +142,7 @@ async fn 图书馆取消确认后向路由后端精确传递一次标准化请�
     assert_eq!(request.booking_id, "booking-safe");
     assert_eq!(request.page, 3);
     assert_eq!(request.limit, 7);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -173,7 +173,7 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
         assert_eq!(value["error"]["code"], "invalid_input");
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 
     let cli = Cli::try_parse_from(cancel_arguments(" fixed-safe ", None, None, true)).unwrap();
@@ -201,7 +201,7 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["schemaVersion"], 16);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -232,7 +232,7 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     for unsafe_fragment in ["private", "secret", "学号", "token", "\\u0000"] {
         assert!(!serialized.contains(unsafe_fragment));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let cli = Cli::try_parse_from(cancel_arguments("booking-safe", None, None, true)).unwrap();
     let mut fixed = FakeBackend {
@@ -257,7 +257,7 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     for unsafe_fragment in ["private", "secret", "学号", "token", "\\u0000"] {
         assert!(!serialized.contains(unsafe_fragment));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let mut arguments = cancel_arguments("booking-safe", None, None, true);
     arguments.retain(|argument| argument != "--json");
@@ -270,7 +270,7 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     let mut stderr = Vec::new();
     let exit = run_with_routed_backend(cli, &mut routed, &mut stdout, &mut stderr).await;
     assert_eq!(exit, 6);
-    assert!(stdout.is_empty());
+    assert_eq!(stdout.len(), 0);
     let rendered = String::from_utf8(stderr).unwrap();
     assert_eq!(rendered, "错误：图书馆预约取消资格核对响应无效\n");
     for unsafe_fragment in ["private", "secret", "学号", "token", "\0"] {

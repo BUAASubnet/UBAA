@@ -147,13 +147,7 @@ class HomeTodoCard extends StatelessWidget {
                 Center(
                   child: FilledButton(
                     onPressed: signing ? null : onSignin ?? onRefreshSignin,
-                    child: Text(
-                      signing
-                          ? '处理中…'
-                          : onSignin != null
-                          ? '签到'
-                          : '刷新状态',
-                    ),
+                    child: Text(signing ? '处理中…' : '签到'),
                   ),
                 ),
               ] else if (item.navigation != null)

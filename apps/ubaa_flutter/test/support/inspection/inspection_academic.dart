@@ -210,11 +210,9 @@ extension _AcademicInspection on _InspectionBackend {
                 (q.section == null ||
                     q.section!.isEmpty ||
                     room.sectionTokens.contains(q.section)))
-              _item(
-                room.roomId == 'room-a201' ? '合成教学楼 A201' : '合成教学楼 B305',
-                {'可用节次': room.availableSections},
-                presentation: room,
-              ),
+              _item(room.roomId == 'room-a201' ? '合成教学楼 A201' : '合成教学楼 B305', {
+                '可用节次': room.availableSections,
+              }, presentation: room),
         ];
       default:
         throw StateError('非学业巡检领域');

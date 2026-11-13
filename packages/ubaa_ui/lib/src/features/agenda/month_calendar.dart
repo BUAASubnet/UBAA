@@ -45,6 +45,13 @@ class AgendaMonthCalendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final first = agendaWeekStart(DateTime.utc(date.year, date.month));
+    final days =
+        7 *
+        ((DateTime.utc(date.year, date.month).difference(first).inDays +
+                DateUtils.getDaysInMonth(date.year, date.month) +
+                6) ~/
+            7);
+    final byDay = agendaEntriesByDay(entries, first, days);
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
     return LayoutBuilder(
       builder: (context, constraints) => Column(
@@ -78,17 +85,10 @@ class AgendaMonthCalendar extends StatelessWidget {
               crossAxisCount: 7,
               mainAxisExtent: math.max(48, 44 * scale),
             ),
-            itemCount:
-                7 *
-                ((DateTime.utc(date.year, date.month).difference(first).inDays +
-                        DateUtils.getDaysInMonth(date.year, date.month) +
-                        6) ~/
-                    7),
+            itemCount: days,
             itemBuilder: (context, index) {
               final day = first.add(Duration(days: index));
-              final dayEntries = entries
-                  .where((e) => agendaOnDay(e, day))
-                  .toList();
+              final dayEntries = byDay[day] ?? const <AgendaEntry>[];
               final count = dayEntries.length;
               final selected = day == agendaDay(date);
               final isToday = today != null && agendaDay(today!) == day;

@@ -165,7 +165,7 @@ OHOS 宿主与三个 `*_ohos` 插件不属于官方 Pub workspace 的八个成�
 | [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter、按生成输入选择 FRB、依赖审计、Worker 合同、文档构建和原生矩阵。main-required 要求全部必要作业成功，FRB 仅在计划明确不需要时允许跳过，不使用顶层路径过滤 |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator，Android 的三个 ABI 分别构建 APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储，HarmonyOS 使用托管 Linux runner 构建无签名 Debug HAP |
 | [worker.yml](../../.github/workflows/worker.yml) | main 的服务或发布内容改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境迁移 D1、部署 Worker、同步 KV。部署前核对分支最新提交，同一生产环境串行执行 |
-| [release.yml](../../.github/workflows/release.yml) | main 手动发布或 Release published：固定主线候选，复用完整验收，构建分架构正式包，分发 GitHub/R2，上传 Apple 与 AppGallery 并等待处理完成 |
+| [release.yml](../../.github/workflows/release.yml) | main 手动运行：固定主线候选，复用完整验收，构建分架构正式包，上传 GitHub Release 草稿与 R2，上传 Apple 与 AppGallery 并等待处理完成；维护者手动发布草稿 |
 | [docs.yml](../../.github/workflows/docs.yml) | dev 文档站相关改动构建并部署 Cloudflare Workers Static Assets；PR 只构建，docs-production 仅允许 dev |
 
 - 开发检查和文档部署允许取消同一分支的旧运行。Worker 部署与 Release 分发串行执行并保留在途运行，避免中断 D1 迁移或上传。
@@ -189,7 +189,7 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `just flutter-artifact-check macos <私有绝对路径>/UBAA.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
-| `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；加 `--all-sizes` 可生成额外的手机商店尺寸。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
+| `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；`--appgallery` 和 `--appgallery-tablet` 分别生成 AppGallery 手机图和平板图，`--all-sizes` 生成全部规格。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
 | `just app-service-publish` | 校验渠道和公告，与目标 KV 内容比较，只写入有差异的键 |
 | `just app-service-deploy` | 校验内容及本地 Worker，确认自定义域名和 Worker Secret，依次迁移目标 D1、部署目标 Worker；配置见[应用服务部署手册](../runbooks/app-service.md) |
 | `just app-service-dashboard` | 用 `.env` 中的账号与 D1 ID 生成 Grafana 使用情况看板 JSON，默认写入 `.ubaa_local/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
@@ -230,7 +230,7 @@ just verify-live mode=webvpn
 - 授权或网络条件不足时，如实登记未运行或失败以及重跑条件。双路线要求保持，不静默豁免。
 - 以上入口只读，不能验证写入成功；真实写入须逐次具体授权。
 
-`verify-live` 按真实验证白名单取得非空学校凭据，经 stdin 交给 [Core-live](glossary.md#core-live)；Cloudflare API Token 不进入真实验证进程。每条路线使用一个固定 RouteClient 串行执行，只输出安全摘要。Core-live 只是脚本化只读验证的联网程序，真实 App 另行按授权验收。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
+`verify-live` 按真实验证白名单取得非空学校凭据，经 stdin 交给 [Core-live](glossary.md#core-live)；Cloudflare API Token 不进入真实验证进程。每条路线使用一个固定策略的 `UbaaClient`，复用客户端的静默认证后串行执行只读操作，只输出安全摘要。图片验证码由 Core 自动识别，耗尽后以 `captcha_required` 失败退出，不等待人工输入。Core-live 只是脚本化只读验证的联网程序，真实 App 另行按授权验收。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
 
 ## 网络与写入边界
 

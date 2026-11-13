@@ -2,6 +2,20 @@ part of 'view.dart';
 
 /// 云盘列表的错误、空状态与读取内容。
 extension _BhpanContent on _BhpanViewState {
+  List<BhpanItem> _visibleItems() {
+    final query = _filter.toLowerCase();
+    final key = (_page, query, _sort, _ascending);
+    if (_listingKey != key) {
+      // 目录快照或筛选变化才重排，传输进度和选择状态复用展示结果。
+      _listing = [
+        for (final item in _page?.items ?? const <BhpanItem>[])
+          if (query.isEmpty || item.name.toLowerCase().contains(query)) item,
+      ]..sort(_compare);
+      _listingKey = key;
+    }
+    return _listing;
+  }
+
   Widget _errorPanel(Object error) {
     final code = error is UiError ? error.code : null;
     // 学校 SSO 会话过期时上游给的是「权限不足」码、认证类错误，按登录失效展示。

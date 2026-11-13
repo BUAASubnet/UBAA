@@ -44,7 +44,7 @@ impl ClassroomState {
     pub(crate) fn clear(&self) {
         let _ =
             self.generation_and_synced
-                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| {
+                .try_update(Ordering::AcqRel, Ordering::Acquire, |state| {
                     Some((state & !1).wrapping_add(2))
                 });
     }

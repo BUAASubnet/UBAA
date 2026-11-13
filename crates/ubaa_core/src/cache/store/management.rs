@@ -52,9 +52,9 @@ pub(super) fn prepare_control(
     Ok(control.handle_generation())
 }
 fn database_id() -> CacheResult<[u8; 16]> {
-    use rand::RngCore as _;
+    use rand::TryRng as _;
     let mut id = [0; 16];
-    rand::rngs::OsRng
+    rand::rngs::SysRng
         .try_fill_bytes(&mut id)
         .map_err(|_| CacheError::Unavailable)?;
     Ok(id)

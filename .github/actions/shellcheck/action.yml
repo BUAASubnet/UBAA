@@ -1,0 +1,23 @@
+name: 安装固定 ShellCheck
+description: 按 versions.env 下载 Linux x86_64 ShellCheck，核对 SHA-256 与版本后加入 PATH
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        source scripts/tools/versions.env
+        shellcheck_version=$SHELLCHECK_VERSION
+        archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+        bin_dir="$RUNNER_TEMP/shellcheck-bin"
+        curl --retry 4 --retry-delay 3 --retry-max-time 120 -fsSLo "$archive" \
+          "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+        printf '%s  %s\n' \
+          "$SHELLCHECK_LINUX_SHA256" \
+          "$archive" | sha256sum -c -
+        mkdir -p "$bin_dir"
+        tar -xJf "$archive" -C "$RUNNER_TEMP"
+        install -m 0755 \
+          "$RUNNER_TEMP/shellcheck-v${shellcheck_version}/shellcheck" \
+          "$bin_dir/shellcheck"
+        test "$("$bin_dir/shellcheck" --version | awk '/^version:/ { print $2 }')" = "$shellcheck_version"
+        printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"

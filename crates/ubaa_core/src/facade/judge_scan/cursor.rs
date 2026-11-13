@@ -6,6 +6,10 @@ pub(in crate::facade) struct JudgeScanCursor {
     course_index: usize,
     stage: CourseStage,
     failed_courses: usize,
+    prepared: std::collections::BTreeMap<
+        (String, String),
+        crate::features::judge::parallel::PreparedDetail,
+    >,
 }
 
 enum CourseStage {
@@ -20,11 +24,16 @@ impl JudgeScanCursor {
             course_index: 0,
             stage: CourseStage::Assignments,
             failed_courses: 0,
+            prepared: std::collections::BTreeMap::default(),
         }
     }
 
     pub(in crate::facade) fn courses(&self) -> &[Course] {
         &self.courses
+    }
+
+    pub(in crate::facade) fn prioritize_courses<K: Ord>(&mut self, rank: impl FnMut(&Course) -> K) {
+        self.courses.sort_by_cached_key(rank);
     }
 
     pub(in crate::facade) fn current_course(&self) -> Option<&Course> {
@@ -43,6 +52,13 @@ impl JudgeScanCursor {
             self.advance_course();
         } else {
             self.stage = CourseStage::Details { items, next: 0 };
+        }
+    }
+
+    pub(in crate::facade) fn pending_assignments(&self) -> &[Assignment] {
+        match &self.stage {
+            CourseStage::Details { items, next } => &items[*next..],
+            CourseStage::Assignments => &[],
         }
     }
 
@@ -83,7 +99,42 @@ impl JudgeScanCursor {
         self.finished() && self.failed_courses == 0
     }
 
+    pub(in crate::facade) fn push_prepared(
+        &mut self,
+        value: crate::features::judge::parallel::PreparedDetail,
+    ) {
+        self.prepared.insert(value.key.clone(), value);
+    }
+
+    pub(in crate::facade) fn take_prepared(
+        &mut self,
+    ) -> Option<crate::features::judge::parallel::PreparedDetail> {
+        let assignment = self.current_assignment()?;
+        self.prepared.remove(&(
+            assignment.course_id.clone(),
+            assignment.assignment_id.clone(),
+        ))
+    }
+
+    pub(in crate::facade) fn has_prepared(&self, assignment: &Assignment) -> bool {
+        self.prepared.contains_key(&(
+            assignment.course_id.clone(),
+            assignment.assignment_id.clone(),
+        ))
+    }
+
+    pub(in crate::facade) fn drain_prepared(
+        &mut self,
+    ) -> Vec<crate::features::judge::parallel::PreparedDetail> {
+        std::mem::take(&mut self.prepared).into_values().collect()
+    }
+
+    pub(in crate::facade) fn clear_prepared(&mut self) {
+        self.prepared.clear();
+    }
+
     fn advance_course(&mut self) {
+        self.prepared.clear();
         self.course_index += 1;
         self.stage = CourseStage::Assignments;
     }

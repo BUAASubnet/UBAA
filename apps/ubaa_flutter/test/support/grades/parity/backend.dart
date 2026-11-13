@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../../academic/parity/backend.dart';
 
 /// 成绩旧版验收仅使用合成课程与学期，不访问学校服务。

@@ -42,7 +42,7 @@ def flutter_files(root, package, group):
 def flutter_matrix(root):
     return {'include': [
         {'package': package, 'group': group,
-         'os': 'macos-15' if group == 'golden' else 'ubuntu-24.04'}
+         'os': 'macos-26' if group == 'golden' else 'ubuntu-24.04'}
         for package in PACKAGES
         for group in (('0', '1', 'golden') if package == 'ubaa_ui' else ('all',))
         if flutter_files(root, package, group)

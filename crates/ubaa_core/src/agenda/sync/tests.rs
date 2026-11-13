@@ -114,7 +114,7 @@ fn snapshot_roundtrip_preserves_repeat_exceptions_overlay_and_deletion() {
     let sent = store.sync_snapshot().unwrap();
     let received = AgendaSyncDocument::decode(&sent.document().encode().unwrap()).unwrap();
     assert_eq!(&received, sent.document());
-    assert!(received.items.is_empty());
+    assert_eq!(received.items.len(), 0);
     assert_eq!(received.item_deletions[0].id, id);
     let local = store.get(id).unwrap().unwrap();
     assert_eq!(local.completions.get(&at.recurrence_id()), Some(&None));
@@ -194,14 +194,15 @@ fn two_devices_merge_by_time_then_device_and_keep_deletions() {
     let deleted = left.sync_snapshot().unwrap();
     right.merge_sync(&b, deleted.document()).unwrap();
     assert!(right.get(id).unwrap().unwrap().deleted_at.is_some());
-    assert!(
+    assert_eq!(
         right
             .query(
                 t("2026-01-01T00:00:00+08:00").datetime.date_naive(),
                 t("2026-04-01T00:00:00+08:00").datetime.date_naive()
             )
             .unwrap()
-            .is_empty()
+            .len(),
+        0
     );
 }
 #[test]
@@ -223,7 +224,7 @@ fn unconfirmed_deletion_is_retained_and_confirmed_deletion_expires_strictly_afte
         crate::domain::agenda::AgendaTime::new(deleted_at.datetime + chrono::Duration::days(180));
     assert_eq!(store.purge_tombstones(exact).unwrap(), 0);
     assert_eq!(store.purge_tombstones(later).unwrap(), 1);
-    assert!(store.sync_snapshot().unwrap().document().items.is_empty());
+    assert_eq!(store.sync_snapshot().unwrap().document().items.len(), 0);
 }
 #[test]
 fn mismatching_readback_or_schema_does_not_acknowledge_or_replace_local_records() {

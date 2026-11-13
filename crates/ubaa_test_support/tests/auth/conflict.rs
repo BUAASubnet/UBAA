@@ -306,8 +306,8 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     assert_eq!(error.code, ErrorCode::InternalError);
     assert!(error.retryable);
     assert_eq!(direct_observer.requests().unwrap().len(), 2);
-    assert!(webvpn_observer.requests().unwrap().is_empty());
-    assert!(client.active_routes().is_empty());
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 0);
+    assert_eq!(client.active_routes().len(), 0);
     assert_eq!(store.load_dual().unwrap(), Some(newer));
 
     let preparation = client.prepare_login().await;
@@ -331,7 +331,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     let repeated_logout = client.logout().await.unwrap_err();
     assert_eq!(repeated_logout.code, ErrorCode::InternalError);
     assert_eq!(direct_observer.requests().unwrap().len(), 2);
-    assert!(webvpn_observer.requests().unwrap().is_empty());
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 0);
     let _ = std::fs::remove_dir_all(root);
 }
 

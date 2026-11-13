@@ -90,6 +90,8 @@ class _BhpanViewState extends State<BhpanView> {
   /// 个人文档库自动进入唯一根目录，该层不显示在路径里，也不能再向上返回。
   int _baseDepth = 0;
   BhpanPage? _page;
+  (BhpanPage?, String, BhpanSortKey, bool)? _listingKey;
+  List<BhpanItem> _listing = const [];
   Object? _error;
   String _filter = '';
   final _search = TextEditingController();
@@ -489,7 +491,7 @@ class _BhpanViewState extends State<BhpanView> {
           );
           if (!_current(generation) || name == null || name == item.name)
             return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               BhpanMutationKind.rename,
               target: item.handle,
@@ -516,7 +518,7 @@ class _BhpanViewState extends State<BhpanView> {
                 : null,
           );
           if (!_current(generation) || dest == null) return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               action == BhpanAction.move
                   ? BhpanMutationKind.move
@@ -533,7 +535,7 @@ class _BhpanViewState extends State<BhpanView> {
             isFolder: item.isFolder,
           );
           if (!_current(generation) || settings == null) return null;
-          return _mutate(
+          return await _mutate(
             BhpanMutation(
               BhpanMutationKind.createShare,
               target: item.handle,
@@ -541,7 +543,7 @@ class _BhpanViewState extends State<BhpanView> {
             ),
           );
         case BhpanAction.recycle:
-          return _mutate(
+          return await _mutate(
             BhpanMutation(BhpanMutationKind.recycle, target: item.handle),
             style,
           );
@@ -813,13 +815,7 @@ class _BhpanViewState extends State<BhpanView> {
         title: '此版本暂不支持北航云盘',
       );
     }
-    final query = _filter.toLowerCase();
-    final items =
-        (_page?.items
-                  .where((i) => i.name.toLowerCase().contains(query))
-                  .toList() ??
-              <BhpanItem>[])
-          ..sort(_compare);
+    final items = _visibleItems();
     final selecting = _selected.isNotEmpty;
     final all = _page?.items ?? const <BhpanItem>[];
     final body = Column(

@@ -9,7 +9,7 @@ pub(crate) struct ScanRead<T> {
     pub(crate) result: Result<T>,
     pub(crate) fatal: bool,
 }
-async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T> {
+pub(super) async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T> {
     let fatal = result.as_ref().is_err_and(|error| {
         matches!(
             error.code,
@@ -46,9 +46,9 @@ pub(crate) async fn assignments(
     course: &Course,
     activated: &mut bool,
     force_fresh: bool,
-) -> ScanRead<Vec<Assignment>> {
+) -> ScanRead<super::service::AssignmentPage> {
     let state = runtime.feature_state();
-    let result = super::service::get_course_assignments_cached(
+    let result = super::service::get_assignment_page_cached(
         runtime,
         &state,
         state.judge.generation(),
@@ -56,8 +56,7 @@ pub(crate) async fn assignments(
         activated,
         force_fresh,
     )
-    .await
-    .map(|list| list.assignments);
+    .await;
     finish(runtime, result).await
 }
 pub(crate) async fn detail(
@@ -78,3 +77,5 @@ pub(crate) async fn detail(
     .await;
     finish(runtime, result).await
 }
+
+pub(crate) use super::service::AssignmentPage;

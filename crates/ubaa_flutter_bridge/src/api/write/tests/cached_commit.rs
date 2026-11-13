@@ -118,7 +118,7 @@ async fn 单次提交成功或未知时失效两路线共享内容_不自动重�
                 .dismiss_write_readback(result.readback_hint_id.unwrap())
                 .await
                 .unwrap();
-            assert!(cache.write_readback_hints().await.unwrap().is_empty());
+            assert_eq!(cache.write_readback_hints().await.unwrap().len(), 0);
         }
         assert!(
             repo.read(&scope(ConnectionMode::Direct, 42), 200)
@@ -149,13 +149,13 @@ async fn 单次提交成功或未知时失效两路线共享内容_不自动重�
         client.dispose().await.unwrap();
         if unknown {
             let restarted = BridgeClient::open(root.to_string_lossy().into()).unwrap();
-            assert!(restarted.write_intents.lock().await.is_empty());
+            assert_eq!(restarted.write_intents.lock().await.len(), 0);
             assert_eq!(cache.write_readback_hints().await.unwrap().len(), 1);
             cache
                 .dismiss_write_readback(hints[0].id.clone())
                 .await
                 .unwrap();
-            assert!(cache.write_readback_hints().await.unwrap().is_empty());
+            assert_eq!(cache.write_readback_hints().await.unwrap().len(), 0);
             restarted.dispose().await.unwrap();
         }
         drop((client, cache, repo));
@@ -202,7 +202,7 @@ async fn 本地缓存失效失败不改变学校提交成功且仍只消费一�
     assert!(result.error.is_none());
     assert_eq!(result.cache_error, Some(BridgeCacheFailure::Inactive));
     direct.assert_exhausted().unwrap();
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     client.dispose().await.unwrap();
     drop((client, cache, repo));
     std::fs::remove_dir_all(root).unwrap();
@@ -230,7 +230,7 @@ async fn 提交结果保留实际路线且失效同一份业务缓存() {
     )
     .await;
     assert!(result.cache_error.is_none());
-    assert!(cache.write_readback_hints().await.unwrap().is_empty());
+    assert_eq!(cache.write_readback_hints().await.unwrap().len(), 0);
     assert!(
         repo.read(&scope(ConnectionMode::Direct, 42), 200)
             .unwrap()

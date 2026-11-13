@@ -100,7 +100,7 @@ async fn bootstrap_and_gate_over_http() {
     let restarted = open_installation(&root, config, Surface::Gui, 1).unwrap();
     let persisted = restarted.bootstrap_view().unwrap();
     assert_eq!(persisted.update, view.update);
-    assert!(persisted.announcements.is_empty());
+    assert_eq!(persisted.announcements.len(), 0);
 }
 
 #[tokio::test]
@@ -173,7 +173,7 @@ async fn upload_retry_and_erase_over_http() {
         late.unwrap().last_batch,
         Some(BatchDisposition::InstallErased)
     );
-    assert!(gui.snapshot().unwrap().erasing_install_id == old_install);
+    assert_eq!(gui.snapshot().unwrap().erasing_install_id, old_install);
     gui.enter_basic().unwrap();
     drop(gui);
     drop(client);

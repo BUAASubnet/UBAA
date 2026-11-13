@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
+import 'package:ubaa_app/src/contracts/offline.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
 import '../../state/models.dart' show AcademicWeekEntry, AcademicWeeksCache;
 import '../../state/state.dart' show ControllerState;
@@ -62,7 +63,14 @@ mixin ControllerAcademicWeeks on ControllerState {
       return existing.completer.future;
     final entry = AcademicWeekEntry();
     cache.entries[term] = entry;
-    unawaited(internalFetchAcademicWeeks(cache, entry, term));
+    unawaited(
+      internalFetchAcademicWeeks(
+        cache,
+        entry,
+        term,
+        forceRefresh: forceRefresh,
+      ),
+    );
     return entry.completer.future;
   }
 
@@ -70,21 +78,47 @@ mixin ControllerAcademicWeeks on ControllerState {
   Future<void> internalFetchAcademicWeeks(
     AcademicWeeksCache cache,
     AcademicWeekEntry entry,
-    String term,
-  ) async {
+    String term, {
+    required bool forceRefresh,
+  }) async {
     FeatureResult result;
     try {
-      // 先登记entry再调用backend，同步抛错也不会留下悬空在途状态。
-      result = await internalScheduleAuxiliaryRead(
-        cache.backend,
-        FeatureId.schedule,
-        ReadPriority.interactive,
-        () => internalWeeksCurrent(cache),
-        () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+      final saved =
+          forceRefresh ||
+              internalBackend is! OfflineQueryBackend ||
+              internalLocalAccount == null
+          ? null
+          : await internalPeekCachedQuery(
+              FeatureId.schedule,
+              FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+              waitForCache: true,
+            );
+      if (!internalWeeksCurrent(cache)) {
+        result = internalAcademicTermsConflict();
+      } else if (saved?.evidence?.complete == true) {
+        result = saved!.details.isEmpty
+            ? FeatureResult.empty(
+                resolvedRoute: saved.resolvedRoute,
+                evidence: saved.evidence,
+              )
+            : FeatureResult.success(
+                details: saved.details,
+                resolvedRoute: saved.resolvedRoute,
+                evidence: saved.evidence,
+              );
+      } else {
+        // 先登记entry再调用backend，同步抛错也不会留下悬空在途状态。
+        result = await internalScheduleAuxiliaryRead(
+          cache.backend,
           FeatureId.schedule,
-          FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
-        ),
-      );
+          ReadPriority.interactive,
+          () => internalWeeksCurrent(cache),
+          () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+            FeatureId.schedule,
+            FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+          ),
+        );
+      }
       if (!internalWeeksCurrent(cache)) {
         result = internalAcademicTermsConflict();
       } else if (result.error case final error?) {

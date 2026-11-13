@@ -1,24 +1,23 @@
 name: 安装项目工具入口
-description: 使用唯一版本清单准备 Rust、just 和托管 Linux 软件源
+description: 使用唯一版本清单准备 Rust 和 just，并输出 Node 等工具版本
 inputs:
   rust:
     description: 是否需要 Rust 编译器
     default: 'true'
+outputs:
+  node:
+    value: ${{ steps.versions.outputs.node }}
+    description: Node 版本
 runs:
   using: composite
   steps:
-    - name: 配置 Ubuntu 软件源
-      if: runner.os == 'Linux' && runner.arch == 'X64'
-      shell: bash
-      run: |
-        printf '%s\n' 'https://mirrors.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
     - id: versions
       uses: ./.github/actions/versions
-    - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+    - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
       if: inputs.rust == 'true'
       with:
         toolchain: ${{ steps.versions.outputs.rust }}
         components: clippy,rustfmt
-    - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+    - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
       with:
         tool: just@${{ steps.versions.outputs.just }}

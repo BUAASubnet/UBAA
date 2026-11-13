@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../../academic/parity/backend.dart';
 
 /// 只用于旧课表原生验收的明确合成数据；写入继承禁止。

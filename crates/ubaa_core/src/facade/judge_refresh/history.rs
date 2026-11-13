@@ -56,6 +56,7 @@ pub(super) fn cached_index(
     now: i64,
 ) -> Result<Option<CacheRecord>, OfflineReadError> {
     if refresh.options.full_refresh
+        || refresh.options.refresh_indices
         || refresh.options.preferred_course.as_deref() == Some(course_id)
         || refresh
             .options
@@ -79,10 +80,7 @@ pub(super) fn cached_index(
         let CachePayload::JudgeCourseReview(metadata) = &review.payload else {
             return Ok(None);
         };
-        if !metadata.all_items_historical
-            || metadata.next_index_check_at <= now
-            || metadata.index_checked_at > now
-        {
+        if metadata.next_index_check_at <= now || metadata.index_checked_at > now {
             return Ok(None);
         }
         let index = repository.read(
@@ -97,7 +95,14 @@ pub(super) fn cached_index(
         Ok(index.filter(|record| {
             record.revision == metadata.index_revision
                 && record.last_verified_at == metadata.index_checked_at
-                && record.is_fresh(now, 86400)
+                && record.is_fresh(
+                    now,
+                    if metadata.all_items_historical {
+                        86400
+                    } else {
+                        300
+                    },
+                )
         }))
     });
     match result {

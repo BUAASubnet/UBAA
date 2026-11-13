@@ -85,7 +85,7 @@ Future<ui.Image> _renderScreen(
   tester.view.padding = padding;
   tester.view.viewPadding = padding;
 
-  if (device == StoreDevice.ipad || device == StoreDevice.desktop) {
+  if (device.isTablet || device == StoreDevice.desktop) {
     // 侧栏图标由资源包异步解码，布局稳定时图片未必已经可绘制。
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.runAsync(() async {
@@ -204,7 +204,6 @@ Future<void> _writeFrame(
 
 Iterable<_Scene> _scenes(StoreDevice device) => switch (device) {
   StoreDevice.desktop => const [_Scene.home, _Scene.schedule, _Scene.agenda],
-  StoreDevice.android => _Scene.values.take(5),
   _ => _Scene.values,
 };
 

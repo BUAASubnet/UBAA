@@ -155,7 +155,7 @@ fn 不覆盖日期和未知星期不能显示无课_真实空周可以() {
     value.schedules.get_mut(&1).unwrap().arranged_list[0].day_of_week = None;
     assert!(value.today("2026-09-22").unwrap().is_none());
     value.schedules.get_mut(&1).unwrap().arranged_list.clear();
-    assert!(value.today("2026-09-22").unwrap().unwrap().is_empty());
+    assert_eq!(value.today("2026-09-22").unwrap().unwrap().len(), 0);
 }
 #[test]
 fn 新导入失败和迟到发布不能覆盖旧快照() {

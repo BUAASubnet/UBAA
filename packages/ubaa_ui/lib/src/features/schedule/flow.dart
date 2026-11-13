@@ -12,6 +12,7 @@ import 'week_picker.dart' show AcademicWeekDialog;
 import '../../shared/dialogs/sheet.dart' show showUiSheet;
 import '../academic/terms.dart' show AcademicTermDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
+import '../../shared/layout/page_transition.dart' show UiPageTransition;
 
 enum _ScheduleAutoStage { terms, weeks, week }
 
@@ -57,6 +58,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   FeatureResult? _weeks;
   final _downloadAttempts = <String>{};
   final _courseColors = <String, ScheduleCourseColors>{};
+
+  /// 正文当前画出的周；目标周的数据到达后才更新，过渡与内容一起出现。
+  (String?, int?) _shownWeek = (null, null);
   @override
   void initState() {
     super.initState();
@@ -80,7 +84,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     }
     final route = widget.snapshot.resolvedRoute;
     if (route != null &&
-        route != (_weeks?.resolvedRoute ?? old.snapshot.resolvedRoute)) {
+        route != (_weeks?.resolvedRoute ?? old.snapshot.resolvedRoute) &&
+        !_hasAccountWeeks) {
       _generation++;
       _weeks = null;
       _weeksTerm = null;
@@ -119,6 +124,13 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   bool get _hasSavedRead =>
       widget.snapshot.evidence?.origin == DataOrigin.persisted &&
       widget.snapshot.evidence?.complete == true;
+
+  // 同账号的教学周缓存按学期匹配；原始采集路线不影响日历日期。
+  bool get _hasAccountWeeks =>
+      _weeks?.evidence?.origin == DataOrigin.persisted &&
+      _weeks?.evidence?.complete == true &&
+      widget.snapshot.evidence?.complete == true &&
+      _weeks?.evidence?.accountId == widget.snapshot.evidence?.accountId;
 
   bool get _settled =>
       ({
@@ -300,7 +312,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         }.contains(widget.snapshot.status) ||
         !_sameQuery(widget.snapshot.readContext?.query, q) ||
         _weeks?.resolvedRoute == null ||
-        _weeks?.resolvedRoute != widget.snapshot.resolvedRoute)
+        (_weeks?.resolvedRoute != widget.snapshot.resolvedRoute &&
+            !_hasAccountWeeks))
       return null;
     final matching = _weekCandidates(q!.term!)
         .where((d) => (d.presentation! as WeekPresentation).number == q.week)
@@ -324,7 +337,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         q?.term == null ||
         q?.week == null ||
         _weeks?.resolvedRoute == null ||
-        (!awaitingRoute && _weeks?.resolvedRoute != route)) {
+        (!awaitingRoute &&
+            _weeks?.resolvedRoute != route &&
+            !_hasAccountWeeks)) {
       return null;
     }
     final matching = _weekCandidates(q!.term!)
@@ -552,7 +567,18 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         ),
       );
     } else {
-      content = widget.child;
+      final shown = widget.snapshot.readContext?.query;
+      if (uiIsWeeklyScheduleQuery(shown) &&
+          (widget.snapshot.status != FeatureLoadStatus.loading ||
+              widget.snapshot.details.isNotEmpty)) {
+        _shownWeek = (shown!.term, shown.week);
+      }
+      content = UiPageTransition(
+        pageKey: _shownWeek,
+        order: _shownWeek.$2 ?? 0,
+        lane: _shownWeek.$1,
+        child: widget.child,
+      );
     }
 
     return ScheduleWeekScope(

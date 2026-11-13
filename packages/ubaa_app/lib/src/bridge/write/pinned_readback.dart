@@ -50,7 +50,7 @@ Future<FeatureResult> bridgePinnedWriteReadback(
           selected,
         );
       case WriteOperation.cgyySubmitReservation:
-        return bridgeLoadCgyyOrdersOnRoute(
+        return await bridgeLoadCgyyOrdersOnRoute(
           backend,
           route: route,
           page: 1,

@@ -115,7 +115,7 @@ fn 云盘认证使用编码service并在回调后清理临时challenge() {
                 .unwrap()
                 .is_none()
         );
-        assert!(n.0.lock().unwrap().is_empty());
+        assert_eq!(n.0.lock().unwrap().len(), 0);
         drop(runtime);
         std::fs::remove_dir_all(root).unwrap();
     });
@@ -144,7 +144,7 @@ fn 跨域回调和缺token立即失败且不重试() {
             }
             let (mut runtime, root) = runtime(n.clone());
             assert!(auth::login(&mut runtime).await.is_err());
-            assert!(n.0.lock().unwrap().is_empty());
+            assert_eq!(n.0.lock().unwrap().len(), 0);
             assert!(
                 runtime
                     .cookie_value("login_challenge", wire::ORIGIN)

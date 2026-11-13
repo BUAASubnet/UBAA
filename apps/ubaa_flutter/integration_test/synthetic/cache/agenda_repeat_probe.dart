@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -9,15 +10,15 @@ import 'package:ubaa_ui/src/features/agenda/list_content.dart'
     show AgendaEntryTile;
 import 'package:ubaa_ui/src/features/agenda/format.dart'
     show agendaTime, campusDate;
+
 import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart'
     show openAccounts;
 
 /// 通过真实编辑器和 FFI 验证系列平移保留单次删除。
 Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
   for (final scope in [AgendaEditScope.all, AgendaEditScope.thisAndFuture]) {
-    final root = await Directory(
-      '$directory/repeat_${scope.name}',
-    ).create(recursive: true);
+    final root = await Directory('$directory/repeat_${scope.name}')
+        .create(recursive: true);
     final accounts = await openAccounts(root);
     final account = await accounts.retain(
       'synthetic-agenda-repeat',
@@ -70,9 +71,8 @@ Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
         agendaTime(campusDate(DateTime.now())),
       );
       expect(
-        (await service.query(
-          query,
-        )).entries.map((e) => e.local!.content.start!.rfc3339.substring(8, 10)),
+        (await service.query(query)).entries
+            .map((e) => e.local!.content.start!.rfc3339.substring(8, 10)),
         ['05', '06', '07', '09'],
       );
       final saved = Completer<void>();
@@ -131,9 +131,8 @@ Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
         await tester.tap(
           find.descendant(of: dialog, matching: find.text('$day')),
         );
-        final confirm = MaterialLocalizations.of(
-          tester.element(dialog),
-        ).okButtonLabel;
+        final confirm = MaterialLocalizations.of(tester.element(dialog))
+            .okButtonLabel;
         await tester.tap(
           find.descendant(of: dialog, matching: find.text(confirm)),
         );

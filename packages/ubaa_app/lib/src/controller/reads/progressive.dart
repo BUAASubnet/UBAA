@@ -79,6 +79,7 @@ mixin ControllerProgressive on ControllerState {
             internalSessionRecoveryStatus == SessionRecoveryStatus.idle))
       return false;
     if (priority == ReadPriority.writeReadback) return true;
+    if (internalNetworkChecking) return false;
     return internalAppForeground &&
         !internalWriteCoordinator.hasPendingOperation &&
         (internalTargetRecoveryOnly ||
@@ -127,6 +128,7 @@ mixin ControllerProgressive on ControllerState {
     required bool writeReadback,
     required void Function(FeatureReadBatch) onBatch,
   }) async {
+    scope.writeReadback = writeReadback;
     final backend = internalBackend;
     if (!writeReadback &&
         backend is ProgressiveReadBackend &&
@@ -194,6 +196,10 @@ mixin ControllerProgressive on ControllerState {
         ordinary,
         writeReadback: true,
       );
+    final requestQuery =
+        feature == FeatureId.judge && internalSchoolPrompt != null
+        ? (query ?? const FeatureQuery()).copyWith(refreshIndices: true)
+        : query;
     var authenticationRetried = false;
     while (scope.valid) {
       scope.restartRequested = false;
@@ -211,10 +217,10 @@ mixin ControllerProgressive on ControllerState {
                   backend is AccountScopedProgressiveReadBackend &&
                       account != null
                   ? await (backend as AccountScopedProgressiveReadBackend)
-                        .beginAccountFeatureRead(feature, query, account)
+                        .beginAccountFeatureRead(feature, requestQuery, account)
                   : await (backend as ProgressiveReadBackend).beginFeatureRead(
                       feature,
-                      query,
+                      requestQuery,
                     );
               if (scope.restartRequested) {
                 prepared?.cancel();
@@ -236,6 +242,7 @@ mixin ControllerProgressive on ControllerState {
         );
         final activeTask = start.task;
         task = activeTask;
+        if (scope.restartRequested) throw const ReadPlanRestart();
         if (activeTask == null) return start.result!;
         scope.task = activeTask;
         // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。

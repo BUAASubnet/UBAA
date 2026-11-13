@@ -221,7 +221,7 @@ fn unverified_sync_performs_no_remote_operation() {
         assert_eq!(report.pending_count, 1);
         let s = server.lock().unwrap();
         assert_eq!(s.lookups, 0);
-        assert!(s.published.is_empty());
+        assert_eq!(s.published.len(), 0);
     });
 }
 #[test]
@@ -235,7 +235,7 @@ fn opening_only_pulls_and_confirmed_creation_reads_back_the_publication() {
             d.run(AgendaSyncAction::Pull, now()).await.unwrap().status,
             AgendaSyncStatus::NeedsCreation
         );
-        assert!(server.lock().unwrap().published.is_empty());
+        assert_eq!(server.lock().unwrap().published.len(), 0);
         assert_eq!(
             d.run(AgendaSyncAction::CreateConfirmed, now())
                 .await
@@ -341,7 +341,7 @@ fn unknown_location_does_not_create_or_publish_even_when_confirmed() {
             );
         }
         let s = server.lock().unwrap();
-        assert!(s.published.is_empty());
+        assert_eq!(s.published.len(), 0);
         assert_eq!(s.directory_creates, 0);
     });
 }
@@ -385,7 +385,7 @@ fn route_change_or_same_account_relogin_during_read_does_not_merge_or_publish() 
             ));
             assert!(store.get(id).unwrap().is_some());
             assert!(store.get(remote_id).unwrap().is_none());
-            assert!(server.lock().unwrap().published.is_empty());
+            assert_eq!(server.lock().unwrap().published.len(), 0);
         }
     });
 }
@@ -467,7 +467,7 @@ fn failure_to_persist_attempt_stops_before_the_first_remote_write() {
         db.execute_batch("CREATE TRIGGER reject_attempt BEFORE INSERT ON agenda_sync_pending BEGIN SELECT RAISE(FAIL,'合成写入失败'); END;").unwrap();
         let mut d=SyncCoordinator::new(store.clone(),remote);
         assert!(matches!(d.run(AgendaSyncAction::Push,now()).await,Err(super::AgendaSyncError::Local(_))));
-        assert!(server.lock().unwrap().published.is_empty()); assert!(store.restore_sync_attempt().unwrap().is_none()); assert_eq!(store.unsynced_count().unwrap(),1);
+        assert_eq!(server.lock().unwrap().published.len(), 0); assert!(store.restore_sync_attempt().unwrap().is_none()); assert_eq!(store.unsynced_count().unwrap(),1);
         db.execute_batch("DROP TRIGGER reject_attempt").unwrap();
         assert_eq!(d.run(AgendaSyncAction::Push,now()).await.unwrap().status,AgendaSyncStatus::UpToDate);
         assert_eq!(server.lock().unwrap().published.len(),1);

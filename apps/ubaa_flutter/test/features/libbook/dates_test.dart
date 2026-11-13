@@ -1,39 +1,38 @@
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_test_support/navigation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
 import '../../support/libbook/backend.dart';
 
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final width in [402.0, 900.0]) {
-    testWidgets(
-      '座位刷新同步重读楼馆和分区汇总且保留所选日期 $width',
-      (tester) async {
-        final backend = await _open(tester, width: width);
-        await _secondDay(tester);
-        final before = backend.libraryReads.length;
-        final selected = backend.libraryReads.last;
-        backend.refreshedFree = 7;
-        await tapVisible(tester, find.byTooltip('刷新当前查询'));
-        expect(backend.libraryReads.skip(before).map((q) => q.view), [
-          FeatureQueryView.summary,
-          FeatureQueryView.libbookAreas,
-          FeatureQueryView.libbookAreaDetail,
-          FeatureQueryView.libbookSeats,
-        ]);
-        expect(backend.libraryReads.last.hasSameParameters(selected), isTrue);
-        expect(backend.libraryReads[before].date, selected.date);
-        expect(find.textContaining('一层 · 空 7/20'), findsWidgets);
-        expect(find.textContaining('空 7/10'), findsWidgets);
-        expect(backend.preparedSeats, isEmpty);
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-    );
+    testWidgets('座位刷新同步重读楼馆和分区汇总且保留所选日期 $width', (tester) async {
+      final backend = await _open(tester, width: width);
+      await _secondDay(tester);
+      final before = backend.libraryReads.length;
+      final selected = backend.libraryReads.last;
+      backend.refreshedFree = 7;
+      await tapVisible(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.libraryReads.skip(before).map((q) => q.view), [
+        FeatureQueryView.summary,
+        FeatureQueryView.libbookAreas,
+        FeatureQueryView.libbookAreaDetail,
+        FeatureQueryView.libbookSeats,
+      ]);
+      expect(backend.libraryReads.last.hasSameParameters(selected), isTrue);
+      expect(backend.libraryReads[before].date, selected.date);
+      expect(find.textContaining('一层 · 空 7/20'), findsWidgets);
+      expect(find.textContaining('空 7/10'), findsWidgets);
+      expect(backend.preparedSeats, isEmpty);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
     testWidgets('进入分区自动读取首日首时段并只显示可预约座位 $width', (tester) async {
       final backend = await _open(tester, width: width);
       expect(backend.libraryReads.map((q) => q.view), [
@@ -55,58 +54,43 @@ void main() {
       expect(backend.commitCalls, 0);
     });
   }
-  testWidgets(
-    '汇总刷新失败不继续读取座位，也不清空已有馆区选择',
-    (tester) async {
-      final backend = await _open(tester);
-      final before = backend.libraryReads.length;
-      backend.failNext = true;
-      await tapVisible(tester, find.byTooltip('刷新当前查询'));
-      expect(backend.libraryReads.skip(before).map((q) => q.view), [
-        FeatureQueryView.summary,
-      ]);
-      expect(find.text('重试'), findsOneWidget);
-      expect(backend.preparedSeats, isEmpty);
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-  );
-  testWidgets(
-    '刷新汇总挂起后离开页面不再扩展分区座位读取',
-    (tester) async {
-      final backend = await _open(tester);
-      final before = backend.libraryReads.length;
-      final gate = Completer<void>();
-      backend.pending = gate;
-      await tester.tap(find.byTooltip('刷新当前查询'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pump();
-      gate.complete();
-      await tester.pumpAndSettle();
-      expect(backend.libraryReads.skip(before).map((q) => q.view), [
-        FeatureQueryView.summary,
-      ]);
-      expect(
-        find.widgetWithText(Card, FeatureId.libbook.title),
-        findsOneWidget,
-      );
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-  );
-  testWidgets(
-    '刷新后座位不可预约时清除原选择且展示可用座位为空',
-    (tester) async {
-      final backend = await _open(tester);
-      await tapVisible(tester, find.widgetWithText(Card, 'A1'));
-      backend.noAvailableSeats = true;
-      await tapVisible(tester, find.byTooltip('刷新当前查询'));
-      expect(find.text('当前分区暂无可预约座位'), findsOneWidget);
-      expect(find.text('已选座位：A1'), findsNothing);
-      expect(find.text('预约此座位'), findsNothing);
-      expect(backend.preparedSeats, isEmpty);
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-  );
+  testWidgets('汇总刷新失败不继续读取座位，也不清空已有馆区选择', (tester) async {
+    final backend = await _open(tester);
+    final before = backend.libraryReads.length;
+    backend.failNext = true;
+    await tapVisible(tester, find.byTooltip('刷新当前查询'));
+    expect(backend.libraryReads.skip(before).map((q) => q.view), [
+      FeatureQueryView.summary,
+    ]);
+    expect(find.text('重试'), findsOneWidget);
+    expect(backend.preparedSeats, isEmpty);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+  testWidgets('刷新汇总挂起后离开页面不再扩展分区座位读取', (tester) async {
+    final backend = await _open(tester);
+    final before = backend.libraryReads.length;
+    final gate = Completer<void>();
+    backend.pending = gate;
+    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pump();
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(backend.libraryReads.skip(before).map((q) => q.view), [
+      FeatureQueryView.summary,
+    ]);
+    expect(find.widgetWithText(Card, FeatureId.libbook.title), findsOneWidget);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+  testWidgets('刷新后座位不可预约时清除原选择且展示可用座位为空', (tester) async {
+    final backend = await _open(tester);
+    await tapVisible(tester, find.widgetWithText(Card, 'A1'));
+    backend.noAvailableSeats = true;
+    await tapVisible(tester, find.byTooltip('刷新当前查询'));
+    expect(find.text('当前分区暂无可预约座位'), findsOneWidget);
+    expect(find.text('已选座位：A1'), findsNothing);
+    expect(find.text('预约此座位'), findsNothing);
+    expect(backend.preparedSeats, isEmpty);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
   testWidgets('窄屏大字和键盘占位下可滚动选择座位并直接提交', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

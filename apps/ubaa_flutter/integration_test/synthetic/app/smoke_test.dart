@@ -12,6 +12,7 @@ import 'package:ubaa_test_support/recovery.dart' as fixtures;
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+
 import '../../support/rust_library.dart';
 
 void main() {

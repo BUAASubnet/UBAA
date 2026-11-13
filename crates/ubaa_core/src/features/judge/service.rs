@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use crate::domain::{Assignment, Course, JudgeAssignmentDetail};
 
 use super::AssignmentList;
-use super::parser::{parse_assignment_list, parse_courses, parse_detail};
+use super::parser::{parse_assignment_page, parse_courses, parse_detail};
 
 /// 官网当前提供的 HTTPS Judge 服务登录地址。
 pub const LOGIN_URL: &str =
@@ -61,26 +61,63 @@ pub(super) async fn get_course_assignments_cached(
     activated: &mut bool,
     force_fresh: bool,
 ) -> crate::error::Result<AssignmentList> {
+    Ok(
+        get_assignment_page_cached(runtime, state, generation, course, activated, force_fresh)
+            .await?
+            .list,
+    )
+}
+
+pub(crate) struct AssignmentPage {
+    pub(crate) list: AssignmentList,
+    pub(crate) detail: Option<JudgeAssignmentDetail>,
+    pub(crate) source_at: i64,
+}
+
+pub(super) async fn get_assignment_page_cached(
+    runtime: &mut crate::runtime::ClientRuntime,
+    state: &crate::features::state::RouteFeatureState,
+    generation: u64,
+    course: &Course,
+    activated: &mut bool,
+    force_fresh: bool,
+) -> crate::error::Result<AssignmentPage> {
     if !force_fresh
         && let Some(assignments) =
             state
                 .judge
                 .assignments(generation, &course.course_id, Instant::now(), LIST_TTL)
     {
-        return Ok(assignments);
+        return Ok(AssignmentPage {
+            list: assignments,
+            detail: None,
+            source_at: state
+                .judge
+                .source_time(Some(&course.course_id), None)
+                .unwrap_or_default(),
+        });
     }
     ensure_worker_activated(runtime, activated).await?;
     select_course(runtime, &course.course_id).await?;
     let index_url = runtime.url(&format!("{BASE_URL}/assignment/index.jsp"))?;
     let response = get_html(runtime, index_url, Some(&course.course_id)).await?;
-    let assignments = parse_assignment_list(&crate::features::body(&response), course);
+    let page = parse_assignment_page(&crate::features::body(&response), course);
     state.judge.store_assignments(
         generation,
         &course.course_id,
-        assignments.clone(),
+        page.list.clone(),
         Instant::now(),
     );
-    Ok(assignments)
+    if let Some(detail) = &page.detail {
+        state.judge.store_detail(
+            generation,
+            &detail.course_id,
+            &detail.assignment_id,
+            detail.clone(),
+            Instant::now(),
+        );
+    }
+    Ok(page)
 }
 
 pub(super) async fn get_detail_cached(
@@ -99,6 +136,8 @@ pub(super) async fn get_detail_cached(
             Instant::now(),
             DETAIL_TTL,
         )
+        && detail.title == assignment.title
+        && detail.course_name == assignment.course_name
     {
         return Ok(detail);
     }
@@ -132,7 +171,7 @@ pub(super) async fn get_detail_cached(
     Ok(detail)
 }
 
-async fn select_course(
+pub(super) async fn select_course(
     runtime: &mut crate::runtime::ClientRuntime,
     course: &str,
 ) -> crate::error::Result<()> {
@@ -164,7 +203,7 @@ async fn ensure_worker_activated(
     Ok(())
 }
 
-fn judge_headers() -> &'static [(&'static str, &'static str)] {
+pub(super) fn judge_headers() -> &'static [(&'static str, &'static str)] {
     &[
         (
             "Accept",
@@ -194,10 +233,12 @@ async fn request_html(
     result
 }
 
-fn check_judge_response(response: &crate::ports::HttpResponse) -> crate::error::Result<()> {
+pub(super) fn check_judge_response(
+    response: &crate::ports::HttpResponse,
+) -> crate::error::Result<()> {
     let direct_url = crate::connection::from_webvpn_url(&response.final_url)
         .unwrap_or_else(|_| response.final_url.clone());
-    let native_login = url::Url::parse(&direct_url).ok().is_some_and(|url| {
+    let native_login = url::Url::parse(&direct_url).is_ok_and(|url| {
         url.host_str() == Some("judge.buaa.edu.cn") && url.path() == "/indexcs/simple.jsp"
     });
     if native_login || crate::features::body(response).contains("cgstuloginbtn") {

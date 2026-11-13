@@ -20,6 +20,32 @@ mixin ControllerServiceRecovery on ControllerState {
     RecoveryTarget target,
     Future<T> Function() read,
   ) async {
+    final completion = Completer<void>();
+    internalServiceReads.add(completion);
+    try {
+      while (true) {
+        await internalAwaitNetworkReady();
+        final network = internalNetworkRevision;
+        try {
+          final value = await _readServiceAttempt(target, read);
+          if (network == internalNetworkRevision) return value;
+        } on Object {
+          if (network == internalNetworkRevision ||
+              internalDisposed ||
+              internalIsSigningOut)
+            rethrow;
+        }
+      }
+    } finally {
+      internalServiceReads.remove(completion);
+      completion.complete();
+    }
+  }
+
+  Future<T> _readServiceAttempt<T>(
+    RecoveryTarget target,
+    Future<T> Function() read,
+  ) async {
     final session = internalCaptureSessionScope();
     final credentialRevision = internalLoginCredentialRevision;
     bool current() =>

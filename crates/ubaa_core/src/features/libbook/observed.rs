@@ -59,14 +59,10 @@ pub(super) fn detail_complete(value: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     fn list_complete(body: &str, keys: &[&str]) -> bool {
-        super::super::parser::envelope(body)
-            .ok()
-            .is_some_and(|value| super::list_complete(&value, keys))
+        super::super::parser::envelope(body).is_ok_and(|value| super::list_complete(&value, keys))
     }
     fn detail_complete(body: &str) -> bool {
-        super::super::parser::envelope(body)
-            .ok()
-            .is_some_and(|value| super::detail_complete(&value))
+        super::super::parser::envelope(body).is_ok_and(|value| super::detail_complete(&value))
     }
     #[test]
     fn 缺失列表和丢弃项不证明完整而显式空集合可以替换() {

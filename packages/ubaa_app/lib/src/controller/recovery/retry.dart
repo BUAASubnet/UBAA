@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import 'package:ubaa_app/src/contracts/routing.dart';
 import '../state/recovery_result.dart';
 import '../state/models.dart'
     show RecoveryRequest, RecoveryRetry, controllerRecoveryRetryDelays;
@@ -35,8 +36,6 @@ mixin ControllerRecoveryRetry on ControllerState {
       retry.timer?.cancel();
     }
     internalRecoveryRetries.clear();
-    internalNetworkWakeCooldown?.cancel();
-    internalNetworkWakeCooldown = null;
   }
 
   @internal
@@ -46,7 +45,9 @@ mixin ControllerRecoveryRetry on ControllerState {
   ) {
     final previous = internalRecoveryRetries.remove(request.feature);
     previous?.timer?.cancel();
-    if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut)
+    if (!internalRecoveryIsCurrent(request.epoch) ||
+        internalIsSigningOut ||
+        request.networkRevision != internalNetworkRevision)
       return;
     if (result?.transientFailure ?? false) {
       final attempt = ((previous?.attempt ?? -1) + 1).clamp(0, 2);
@@ -127,17 +128,13 @@ mixin ControllerRecoveryRetry on ControllerState {
         !internalHomeFrameReported ||
         internalPhase != AppPhase.home ||
         internalAutomaticCredentialBlocked ||
-        internalSessionRecoveryStatus == SessionRecoveryStatus.needsLogin ||
-        internalNetworkWakeCooldown != null)
+        internalSessionRecoveryStatus == SessionRecoveryStatus.needsLogin)
       return;
-    // Auto 网络变化先准备当前网络需要的会话；由 Core 重新探测并选择路线。
-    if (internalBackend is RequiredTargetSessionBackend &&
+    if (internalBackend is! NetworkChangeBackend &&
+        internalBackend is RequiredTargetSessionBackend &&
         internalLoginForm.routePolicy == RoutePolicy.auto &&
         (internalSessionRecoveryStatus == SessionRecoveryStatus.ready ||
             internalSessionRecoveryStatus == SessionRecoveryStatus.restoring)) {
-      internalNetworkWakeCooldown = Timer(const Duration(seconds: 30), () {
-        internalNetworkWakeCooldown = null;
-      });
       unawaited(internalRecoverSession(forceConnectionCheck: true));
     }
     // 同时唤醒临时失败的读取。
@@ -166,9 +163,6 @@ mixin ControllerRecoveryRetry on ControllerState {
       retry.timer = null;
       if (!retry.running) retry.due = true;
     }
-    internalNetworkWakeCooldown ??= Timer(const Duration(seconds: 30), () {
-      internalNetworkWakeCooldown = null;
-    });
     for (final retry in internalRecoveryRetries.values) {
       retry.timer?.cancel();
       retry.timer = null;

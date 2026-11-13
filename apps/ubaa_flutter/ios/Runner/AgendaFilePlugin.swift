@@ -10,6 +10,8 @@ final class AgendaFilePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate 
   private var name = ""
   private var selection = 0
   private var binarySelection = false
+  private var batchFolder = false
+  private var writingFolder = false
 
   init(registrar: FlutterPluginRegistrar) { self.registrar = registrar }
 
@@ -22,34 +24,44 @@ final class AgendaFilePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any] ?? [:]
     switch call.method {
-    case "select":
+    case "selectFolder", "select":
       guard pending == nil, target == nil,
-        let name = args["name"] as? String, !name.contains("/"), !name.isEmpty,
         let presenter = registrar.viewController else {
         result(FlutterError(code: "unavailable", message: "无法打开保存面板", details: nil)); return
       }
-      self.name = name
-      binarySelection = args["kind"] as? String == "binary"
+      let folder = call.method == "selectFolder"
+      let fileName = args["name"] as? String ?? ""
+      guard folder || (!fileName.isEmpty && !fileName.contains("/")) else {
+        result(FlutterError(code: "invalid", message: "文件名无效", details: nil)); return
+      }
+      batchFolder = folder
+      self.name = fileName
+      binarySelection = folder || args["kind"] as? String == "binary"
       pending = result
       let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
       picker.delegate = self
       picker.allowsMultipleSelection = false
       picker.title = binarySelection ? "选择保存文件夹" : "选择日历保存文件夹"
       presenter.present(picker, animated: true)
-    case "write", "writeFile", "discard":
-      guard let directory = target, args["selection"] as? String == String(selection) else {
+    case "writeFolderFile", "writeFile", "write", "discardFolder", "discard":
+      let folderCall = call.method == "writeFolderFile" || call.method == "discardFolder"
+      guard let directory = target, !writingFolder, batchFolder == folderCall,
+        args["selection"] as? String == String(selection) else {
         result(FlutterError(code: "expired", message: "保存位置已失效", details: nil)); return
       }
-      target = nil
-      if call.method == "discard" { result(nil); return }
-      if call.method == "writeFile" {
-        guard let path = args["path"] as? String else {
-          result(FlutterError(code: "invalid", message: "缺少本机文件", details: nil)); return
+      if !batchFolder || call.method == "discardFolder" { target = nil }
+      if call.method == "discard" || call.method == "discardFolder" { result(nil); return }
+      if call.method == "writeFile" || call.method == "writeFolderFile" {
+        let fileName = folderCall ? (args["name"] as? String ?? "") : name
+        guard let path = args["path"] as? String, !fileName.isEmpty,
+          !fileName.contains("/"), fileName != ".", fileName != ".." else {
+          result(FlutterError(code: "invalid", message: "缺少本机文件或文件名无效", details: nil)); return
         }
-        let fileName = name
-        let scoped = directory.startAccessingSecurityScopedResource()
+        writingFolder = true
         DispatchQueue.global(qos: .userInitiated).async {
+          let scoped = directory.startAccessingSecurityScopedResource()
           defer { if scoped { directory.stopAccessingSecurityScopedResource() } }
+          let outcome: Any?
           do {
             var destination = directory.appendingPathComponent(fileName)
             var suffix = 1
@@ -64,9 +76,13 @@ final class AgendaFilePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate 
             defer { try? FileManager.default.removeItem(at: temporary) }
             try FileManager.default.copyItem(at: URL(fileURLWithPath: path), to: temporary)
             try FileManager.default.moveItem(at: temporary, to: destination)
-            DispatchQueue.main.async { result(nil) }
+            outcome = folderCall ? destination.lastPathComponent : nil
           } catch {
-            DispatchQueue.main.async { result(FlutterError(code: "write_failed", message: "文件未保存", details: nil)) }
+            outcome = FlutterError(code: "write_failed", message: "文件未保存", details: nil)
+          }
+          DispatchQueue.main.async {
+            self.writingFolder = false
+            result(outcome)
           }
         }
         return

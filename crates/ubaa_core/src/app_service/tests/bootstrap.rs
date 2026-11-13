@@ -195,8 +195,8 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
             request.url,
             "http://127.0.0.1:8787/v1/bootstrap?schema=1&platform=android&channel=github&version=1.9.0%2B9"
         );
-        assert!(request.headers.is_empty());
-        assert!(request.body.is_empty());
+        assert_eq!(request.headers.len(), 0);
+        assert_eq!(request.body.len(), 0);
     }
     let restarted = dir.open("github", "1.9.0+9", Surface::Gui, 1, &clock);
     assert!(active(&restarted.bootstrap_view().unwrap()));
@@ -233,7 +233,7 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
         upgraded_view.update.unwrap().status,
         AppUpdateStatus::Unknown
     );
-    assert!(upgraded_view.announcements.is_empty());
+    assert_eq!(upgraded_view.announcements.len(), 0);
 }
 
 #[tokio::test]
@@ -328,7 +328,7 @@ async fn 公告已读与忽略版本跨重启且公告在本机到期() {
     assert_eq!(view.announcements[0].id, "2026-11-10-002");
     assert!(view.update.unwrap().available_dismissed);
     *clock.lock().unwrap() += TimeDelta::seconds(1);
-    assert!(gui.bootstrap_view().unwrap().announcements.is_empty());
+    assert_eq!(gui.bootstrap_view().unwrap().announcements.len(), 0);
     all["update"]["latest_version"] = json!("2.1.0+16");
     let view = gui
         .refresh_bootstrap_with(&Mock::response(200, &all), true)

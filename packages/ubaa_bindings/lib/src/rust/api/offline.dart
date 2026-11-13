@@ -25,7 +25,7 @@ import 'write.dart';
 import 'write/readback.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cache_error`, `local_task`, `map_today`, `offline_read_error`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>>
 abstract class BridgeOfflineCache implements RustOpaqueInterface {

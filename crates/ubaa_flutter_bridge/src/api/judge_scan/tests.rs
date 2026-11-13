@@ -193,7 +193,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
     let index = bridge.next_judge_refresh(&task).await.unwrap();
     assert_eq!(index.batch.kind, BridgeJudgeScanKind::Assignments);
     assert!(!index.batch.finished);
-    assert!(index.summaries.is_empty());
+    assert_eq!(index.summaries.len(), 0);
     let detail = bridge.next_judge_refresh(&task).await.unwrap();
     assert!(detail.batch.finished && detail.batch.complete);
     assert_eq!(detail.summaries.len(), 1);

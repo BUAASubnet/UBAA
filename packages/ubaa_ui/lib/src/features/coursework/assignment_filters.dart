@@ -38,35 +38,42 @@ class AssignmentListFilters {
   }) {
     final query = search.trim().toLowerCase();
     final time = now ?? clock.now();
-    final result = source.where((detail) {
+    final result = <({FeatureDetail detail, String course, DateTime? date})>[];
+    for (final detail in source) {
       final p = _values(detail.presentation);
       // 渐进加载中尚无摘要的条目不冒充已确认的未完成作业。
-      if (p == null) return false;
-      if (p.isDetail) return true;
-      if (query.isNotEmpty &&
-          !detail.title.toLowerCase().contains(query) &&
-          !p.course.toLowerCase().contains(query))
-        return false;
-      if (onlyUnfinished &&
-          p.status != AssignmentSubmissionStatus.unsubmitted &&
-          (isSpoc || p.status != AssignmentSubmissionStatus.partial))
-        return false;
+      if (p == null) continue;
+      if (!p.isDetail) {
+        if (query.isNotEmpty &&
+            !detail.title.toLowerCase().contains(query) &&
+            !p.course.toLowerCase().contains(query))
+          continue;
+        if (onlyUnfinished &&
+            p.status != AssignmentSubmissionStatus.unsubmitted &&
+            (isSpoc || p.status != AssignmentSubmissionStatus.partial))
+          continue;
+      }
       final due = _date(p.due);
-      return showExpired || due == null || !due.isBefore(time);
-    }).toList();
+      if (!p.isDetail && !showExpired && due != null && due.isBefore(time))
+        continue;
+      // 日期只解析一次，排序比较复用结果。
+      result.add((
+        detail: detail,
+        course: p.course,
+        date: byStart ? _date(p.start) : due,
+      ));
+    }
     result.sort((left, right) {
-      final a = _values(left.presentation)!;
-      final b = _values(right.presentation)!;
-      final at = _date(byStart ? a.start : a.due);
-      final bt = _date(byStart ? b.start : b.due);
+      final at = left.date;
+      final bt = right.date;
       var order = at == null
           ? (bt == null ? 0 : 1)
           : (bt == null ? -1 : at.compareTo(bt));
-      if (order == 0) order = a.course.compareTo(b.course);
-      if (order == 0) order = left.title.compareTo(right.title);
+      if (order == 0) order = left.course.compareTo(right.course);
+      if (order == 0) order = left.detail.title.compareTo(right.detail.title);
       return ascending ? order : -order;
     });
-    return result;
+    return result.map((entry) => entry.detail).toList();
   }
 
   ({
@@ -94,13 +101,13 @@ class AssignmentListFilters {
     _ => null,
   };
 
+  static final _datePattern = RegExp(
+    r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$',
+  );
+
   static DateTime? _date(String? value) {
     final normalized = value?.trim().replaceAll(' ', 'T');
-    if (normalized == null ||
-        !RegExp(
-          r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$',
-        ).hasMatch(normalized))
-      return null;
+    if (normalized == null || !_datePattern.hasMatch(normalized)) return null;
     final date = DateTime.tryParse(normalized);
     // DateTime 会归一化不存在的日期；旧版将此类值视为未知。
     if (date == null ||

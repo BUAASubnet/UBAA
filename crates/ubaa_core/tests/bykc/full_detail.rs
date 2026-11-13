@@ -216,7 +216,7 @@ fn 完整详情已选双路线顺序补查且主配置优先记录按内层课�
                 request.headers.contains_key("auth_token")
                     && request.headers.contains_key("authtoken")
             );
-            assert!(!request.body.is_empty());
+            assert_ne!(request.body.len(), 0);
         }
     }
 }

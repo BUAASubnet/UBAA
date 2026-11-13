@@ -5,6 +5,7 @@ import '../shared/dialogs/confirmation.dart';
 import '../shared/layout/connection_status.dart' show UiConnectionStatusButton;
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
+import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
@@ -64,6 +65,11 @@ class UbaaMainShell extends StatefulWidget {
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
     this.bhpanService,
+    this.cloudPrintService,
+    this.onPickPrintFiles,
+    this.onPickPrintFolder,
+    this.onPreviewScanPdf,
+    this.onRenderScanPdf,
     this.onPickBhpanFile,
     this.onPickBhpanDownload,
     this.onPreviewBhpanFile,
@@ -182,6 +188,12 @@ class UbaaMainShell extends StatefulWidget {
 
   final CampusAccountService? campusAccountService;
   final BhpanService? bhpanService;
+  final CloudPrintService? cloudPrintService;
+  final Future<List<PrintSource>> Function()? onPickPrintFiles;
+  final Future<PrintDownloadFolder?> Function(bool Function())?
+  onPickPrintFolder;
+  final PrintPdfPreview? onPreviewScanPdf;
+  final PrintPdfRenderer? onRenderScanPdf;
   final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPickBhpanDownload;
@@ -296,6 +308,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureReadNavigation? _pendingHomeTarget;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
+
+  /// 各功能内部的页面层数，由其导航器上报；变化时只重建页面过渡。
+  final Map<FeatureId, int> _readDepths = {};
+  final _depthRevision = ValueNotifier<int>(0);
   final _appBarSlot = ValueNotifier<Map<FeatureId, Widget>>(const {});
   final _pageBusy = UiBusyRegistry();
   late final _places = <String, String>{...widget.placePreferences};
@@ -410,6 +426,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       unawaited(_loadReminderSettings());
       _visitedFeatures.clear();
       _readPageKeys.clear();
+      _readDepths.clear();
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
@@ -503,6 +520,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   void _openFeatureList(FeatureId feature) {
     final generation = _accountGeneration;
+    // 打开功能列表会回到第一层；先按第一层播放进入过渡，避免随后再反向播放一次。
+    _readDepths[feature] = 1;
     setState(() => _openedFeature = feature);
     _recordFeatureVisit(feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -520,6 +539,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     _bhpanModalScope.value++;
     _bhpanModalScope.dispose();
     _visiblePage.dispose();
+    _depthRevision.dispose();
     _appBarSlot.dispose();
     _pageBusy.dispose();
     _tabPager.dispose();
@@ -647,7 +667,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               child: Row(
                 children: <Widget>[
                   if (wide) _buildRail(context),
-
                   Expanded(
                     key: const ValueKey<String>('feature-pages'),
                     child: Column(
@@ -669,16 +688,31 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                             child: SafeArea(
                               top: false,
                               bottom: wide,
-                              child: UiPageTransition(
-                                pageKey: (_openedFeature, _utilityPage),
-                                deeper: !atRoot,
-                                onBack:
-                                    touchRefresh &&
-                                        !atRoot &&
-                                        widget.writeState.intent == null
-                                    ? _goBack
-                                    : null,
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _depthRevision,
                                 child: body,
+                                builder: (context, _, child) {
+                                  final depth = atRoot
+                                      ? 0
+                                      : _utilityPage != null
+                                      ? 1
+                                      : _readDepths[_openedFeature] ?? 1;
+                                  return UiPageTransition(
+                                    pageKey: (
+                                      _openedFeature,
+                                      _utilityPage,
+                                      depth,
+                                    ),
+                                    order: depth,
+                                    onBack:
+                                        touchRefresh &&
+                                            !atRoot &&
+                                            widget.writeState.intent == null
+                                        ? _goBack
+                                        : null,
+                                    child: child!,
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -718,15 +752,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               ),
       ),
     );
-    if (touchRefresh || refreshPage == null) return shell;
-    void refresh() => unawaited(refreshPage());
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
-        const SingleActivator(LogicalKeyboardKey.keyR, control: true): refresh,
-      },
-      child: Focus(autofocus: true, child: shell),
-    );
+    return touchRefresh ? shell : _withRefreshShortcuts(shell, refreshPage);
   }
 
   final _refreshes = <Object, Future<void>>{};
@@ -749,6 +775,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     cacheEpoch: widget.readCacheEpoch,
     businessCacheEpoch: _contentEpoch,
     onExit: () => setState(() => _openedFeature = null),
+    onDepthChanged: (depth) {
+      _readDepths[feature] = depth;
+      _depthRevision.value++;
+    },
     onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
         ? null
@@ -857,144 +887,4 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ),
     ),
   );
-
-  Widget _buildTabPager(BuildContext context) {
-    _tabPager = currentTabPager(_tabPager, _selectedIndex);
-    return TabPager(
-      controller: _tabPager,
-      selectedIndex: _selectedIndex,
-      enabled: widget.writeState.intent == null,
-      itemCount: UiDestination.settings.index,
-      onSelected: (index) => _selectTab(index, fromSwipe: true),
-      itemBuilder: _buildTabPage,
-    );
-  }
-
-  Widget _buildTabPage(BuildContext context, int index) => switch (index) {
-    0 => HomeView(
-      onVisibilityChanged: widget.onHomeVisibilityChanged,
-      key: _homeKey,
-      onPullRefresh: _pull,
-      homeClock: widget.homeClock,
-      recentFeatures: _recentFeatures,
-      state:
-          widget.homeState ??
-          HomeState(
-            now: (widget.homeClock ?? clock).now(),
-            sources: widget.snapshots,
-            projected: true,
-            schedule: HomeScheduleState(
-              date: homeDateKey(
-                homeCampusTime((widget.homeClock ?? clock).now()),
-              ),
-              snapshot: widget.snapshots[FeatureId.schedule]!,
-            ),
-          ),
-      visible:
-          _openedFeature == null &&
-          _utilityPage == null &&
-          _selectedIndex == 0 &&
-          widget.writeState.intent == null,
-      onTodoTap: _openHomeTodo,
-      onViewAllTodos: () {
-        setState(() => _agendaTodoRequest++);
-        _selectTab(UiDestination.agenda.index);
-      },
-      writeReadbackNotice:
-          widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
-          ? null
-          : WriteReadbackNotice(
-              key: ValueKey(
-                '${widget.cacheAccountId}:${widget.readCacheEpoch}',
-              ),
-              hints: widget.writeReadbacks,
-              error: widget.writeReadbackError,
-              onDismiss: widget.onDismissWriteReadback,
-              onRefresh: widget.onRefreshWriteReadbacks,
-              onOpenFeature: (feature) {
-                setState(() => _openedFeature = feature);
-                _recordFeatureVisit(feature);
-              },
-            ),
-      appNotices: widget.appNotices,
-      gradeScoreNotice: widget.gradeScoreNotice,
-      gradeCheckRoute: widget.gradeCheckRoute,
-      onOpenGradeNotice: _openGradeNotice,
-      onDismissGradeNotice: widget.onConsumeGradeNotice,
-      onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
-          ? _performHomeSignin
-          : null,
-      onObserveProgress: _observeHomeProgress,
-      onFeatureTap: _openFeatureList,
-      onRetryFeature: widget.onRetryHomeSource ?? widget.onRetryFeature,
-      onRefresh: () =>
-          _joinRefresh('home', widget.onRefreshHome ?? widget.onRefresh),
-    ),
-    2 => AgendaView(
-      service: widget.agenda.service,
-      prepareSync: widget.agenda.prepareSync,
-      syncScopeKey: widget.routePolicy,
-      failure: widget.agenda.failure,
-      scopeKey: (widget.cacheAccountId, widget.routePolicy),
-      projectionKey: (
-        widget.readCacheEpoch,
-        widget.businessCacheEpoch,
-        widget.agendaEpoch,
-      ),
-      route: agendaRoute(
-        widget.routePolicy,
-        widget.activeRoutes,
-        schoolRoute: widget.agendaSchoolRoute,
-      ),
-      term: widget.agenda.term,
-      todoRequest: _agendaTodoRequest,
-      visible:
-          _selectedIndex == UiDestination.agenda.index &&
-          _openedFeature == null,
-      now: widget.homeClock == null
-          ? null
-          : campusDate(widget.homeClock!.now()),
-      reminder: _reminderSettings,
-      onOpenSchool: _openHomeNavigation,
-      onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
-      onImportSchedule: _importAgendaSchedule,
-      onEnsureSchedule: widget.connecting ? null : widget.agenda.ensureSchedule,
-      onChanged: widget.agenda.onChanged,
-      onSaveFile: widget.agenda.saveFile,
-    ),
-    1 || 3 => FeatureGridView(
-      onOpenBhpan: index == UiDestination.campus.index
-          ? () => _openUtility('北航云盘')
-          : null,
-      onOpenIhome: index == UiDestination.campus.index
-          ? () => _openUtility('iHome')
-          : null,
-      onOpenFinance:
-          index == UiDestination.campus.index && widget.financeService != null
-          ? () => _openUtility('财务查询')
-          : null,
-      features: _tabs[index].features,
-      homeState: widget.homeState,
-      snapshots: widget.snapshots,
-      onFeatureTap: _openFeatureList,
-      onRetryFeature: widget.onRetryFeature,
-    ),
-    4 => PullToRefresh(
-      onRefresh: () => _pull(_refreshCampusAccount),
-      enabled:
-          widget.campusAccountService != null &&
-          widget.writeState.intent == null,
-      child: MeView(
-        onOpenBhpan: () => _openUtility('北航云盘'),
-        user: widget.user,
-        overview: _campusOverview,
-        showShortcuts: MediaQuery.sizeOf(context).width < 600,
-        onOpenProfile: () => _openUtility('我的资料'),
-        onOpenSettings: () => _openUtility(UiDestination.settings.label),
-        onOpenAbout: () => _openUtility('关于'),
-        onLogout: _logout,
-      ),
-    ),
-    _ => _buildProfile(),
-  };
 }

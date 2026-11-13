@@ -54,7 +54,7 @@ fn 博雅完整投影保留空值零考勤和完整点数且不传坐标() {
         Some("纯文本\n第二行")
     );
     assert_eq!(mapped.audience_colleges, ["合成学院"]);
-    assert!(mapped.audience_terms.is_empty());
+    assert_eq!(mapped.audience_terms.len(), 0);
     assert_eq!(mapped.audience_groups, ["合成人群"]);
     let sign = mapped.sign_config.unwrap();
     assert_eq!(sign.sign_point_count, 2);

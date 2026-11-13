@@ -185,7 +185,7 @@ fn 阳光记录按分类页码隔离且失败不抹旧记录或保存照片地�
     else {
         panic!("必须为记录")
     };
-    assert!(empty.content.is_empty());
+    assert_eq!(empty.content.len(), 0);
     let before = transport.calls.load(Ordering::SeqCst);
     assert!(
         runtime

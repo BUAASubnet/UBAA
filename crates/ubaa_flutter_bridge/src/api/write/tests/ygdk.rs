@@ -165,7 +165,7 @@ async fn 阳光打卡重复项目按unknown失败关闭且不保存意图() {
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
     assert!(!error.retryable);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct
         .assert_exhausted()
         .expect("拒绝应停在 fresh authority");
@@ -202,7 +202,7 @@ async fn 阳光打卡手工构造的错配typed目标不得签发意图() {
 
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
     assert!(!error.retryable);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct
         .assert_exhausted()
         .expect("拒绝应停在 fresh authority");
@@ -389,18 +389,8 @@ async fn 阳光打卡commit路线变化由core在任何http前拒绝并消费意
     assert_eq!(error.code, BridgeErrorCode::OperationConflict);
     assert!(error.retryable);
     assert_eq!(error.resolved_route, Some(BridgeConnectionMode::WebVpn));
-    assert!(
-        commit_direct
-            .requests()
-            .expect("读取 Direct 请求")
-            .is_empty()
-    );
-    assert!(
-        commit_webvpn
-            .requests()
-            .expect("读取 WebVPN 请求")
-            .is_empty()
-    );
+    assert_eq!(commit_direct.requests().expect("读取 Direct 请求").len(), 0);
+    assert_eq!(commit_webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     let reused = client
         .commit_write(intent.intent_id)
         .await
@@ -451,9 +441,9 @@ async fn 阳光打卡caller_pinned双读取不执行auto探测或跨路线回退
 
     assert_eq!(overview.pinned_route, BridgeConnectionMode::Direct);
     assert_eq!(records.pinned_route, BridgeConnectionMode::Direct);
-    assert!(records.data.content.is_empty());
+    assert_eq!(records.data.content.len(), 0);
     direct.assert_exhausted().expect("固定路线请求必须完整");
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }

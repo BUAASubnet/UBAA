@@ -14,7 +14,7 @@ void main() {
     final image = tester.widget<Image>(find.byType(Image));
     expect(
       (image.image as AssetImage).assetName,
-      'assets/libbook_maps/area_8.png',
+      'assets/libbook_maps/area_8.webp',
     );
     expect((image.image as AssetImage).package, 'ubaa_ui');
     expect(find.textContaining('颜色不代表座位可用状态'), findsOneWidget);

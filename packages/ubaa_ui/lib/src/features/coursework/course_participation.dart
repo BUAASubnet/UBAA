@@ -81,8 +81,11 @@ class _SigninListState extends State<_SigninList> {
   Timer? _tick;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tick?.cancel();
+    _tick = null;
+    if (!TickerMode.of(context)) return;
     // 签到窗口按分钟变化，定时刷新按钮与状态。
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
@@ -108,11 +111,12 @@ class _SigninListState extends State<_SigninList> {
       };
     }
 
-    final ordered = [for (final (i, d) in widget.details.indexed) (i, d)]
-      ..sort((a, b) {
-        final r = rank(a.$2).compareTo(rank(b.$2));
-        return r != 0 ? r : a.$1.compareTo(b.$1);
-      });
+    final ordered =
+        [for (final (i, d) in widget.details.indexed) (i, d, rank(d))]
+          ..sort((a, b) {
+            final r = a.$3.compareTo(b.$3);
+            return r != 0 ? r : a.$1.compareTo(b.$1);
+          });
     return ListView.separated(
       padding: UbaaTheme.pageInsets(context, top: 8),
       itemCount: ordered.length,

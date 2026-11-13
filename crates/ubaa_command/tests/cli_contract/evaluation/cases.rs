@@ -31,7 +31,7 @@ async fn 自动评教未确认时零读取零提交零回读() {
     assert_eq!(backend.read_calls, 0);
     assert_eq!(backend.submit_calls, 0);
     assert_eq!(backend.readback_calls, 0);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -48,7 +48,7 @@ async fn fresh_pending_为空时固定拒绝且零提交零回读() {
     assert_eq!(backend.read_calls, 1);
     assert_eq!(backend.submit_calls, 0);
     assert_eq!(backend.readback_calls, 0);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -98,7 +98,7 @@ async fn pending_含未知缺失目标或规范化重复时整批拒绝() {
         assert_eq!(backend.read_calls, 1);
         assert_eq!(backend.submit_calls, 0);
         assert_eq!(backend.readback_calls, 0);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -175,7 +175,7 @@ async fn 单路线后端同样使用_typed_目标并在原路线回读一次() {
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
     assert_eq!(backend.submitted.unwrap().targets[0].kcdm, "fixed-kcdm");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -233,7 +233,7 @@ async fn 单路线_commit_错误同样回读一次且保持主错误() {
     assert_eq!(value["error"]["code"], "authentication_required");
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -269,7 +269,7 @@ async fn outcome_unknown_使用带安全_batch_数据的失败信封并固定路
     assert_eq!(value["data"]["items"][1]["outcome"], "unattempted");
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_routes, vec![route]);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
     for forbidden in ["cookie", "token", "payload", "question", "answer"] {
         assert!(!value.to_string().to_ascii_lowercase().contains(forbidden));
     }
@@ -288,7 +288,7 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
         assert_eq!(value["data"]["items"][0]["outcome"], "success");
         assert_eq!(value["data"]["items"][1]["outcome"], "failure");
         assert_eq!(value["data"]["items"][2]["outcome"], "unattempted");
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 
     let courses: Vec<_> = ["first", "second", "third"]
@@ -363,7 +363,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
     ] {
         assert!(course.get(forbidden).is_none(), "泄漏内部字段 {forbidden}");
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[test]

@@ -434,8 +434,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<FeatureSnapshot?> internalPeekCachedQuery(
     FeatureId feature,
-    FeatureQuery query,
-  );
+    FeatureQuery query, {
+    bool waitForCache = false,
+  });
   @internal
   Future<void> internalRestoreCachedDefault(
     FeatureId feature,
@@ -486,6 +487,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   void internalSyncRecoveryRetries();
   @internal
   void internalWakeNetworkRecovery();
+  void internalHandleNetworkChange({required bool online});
+  void internalCancelNetworkChange();
+  Future<void> internalAwaitNetworkReady();
   @internal
   void internalClearBusinessRetries();
   @internal
@@ -526,6 +530,8 @@ abstract class ControllerOperations extends ChangeNotifier {
 
   @internal
   void internalReleaseLoginSecret();
+  @internal
+  bool internalNeedsManualLogin(int formRevision);
   @internal
   Future<void> internalInitializeController({UiError? previousLoginError});
 

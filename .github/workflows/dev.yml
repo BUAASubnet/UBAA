@@ -20,7 +20,7 @@ jobs:
       flutter: ${{ steps.paths.outputs.flutter }}
       worker: ${{ steps.paths.outputs.worker }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - id: paths
@@ -30,40 +30,19 @@ jobs:
   scripts:
     runs-on: ubuntu-latest
     steps:
-      - &a1
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - &a2
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: toolchain
         uses: ./.github/actions/toolchain
-      - &a3
-        id: versions
-        uses: ./.github/actions/versions
-      - &a4
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - &setup_node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ steps.versions.outputs.node }}
+          node-version: ${{ steps.toolchain.outputs.node }}
           cache: npm
           cache-dependency-path: |-
             package-lock.json
             services/app_service/package-lock.json
-      - name: 安装固定 ShellCheck
-        shell: bash
-        run: |
-          source scripts/tools/versions.env
-          shellcheck_version=$SHELLCHECK_VERSION
-          archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
-          bin_dir="$RUNNER_TEMP/shellcheck-bin"
-          curl --retry 4 --retry-delay 3 --retry-max-time 120 -fsSLo "$archive" \
-            "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
-          printf '%s  %s\n' \
-            "$SHELLCHECK_LINUX_SHA256" \
-            "$archive" | sha256sum -c -
-          mkdir -p "$bin_dir"
-          tar -xJf "$archive" -C "$RUNNER_TEMP"
-          install -m 0755 \
-            "$RUNNER_TEMP/shellcheck-v${shellcheck_version}/shellcheck" \
-            "$bin_dir/shellcheck"
-          test "$("$bin_dir/shellcheck" --version | awk '/^version:/ { print $2 }')" = "$shellcheck_version"
-          printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/shellcheck
       - name: 准备工具和冻结引用
         run: |-
           just refs-bootstrap
@@ -80,7 +59,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - *a1
+      - *checkout
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -95,26 +74,26 @@ jobs:
     if: needs.changes.outputs.flutter == 'true'
     runs-on: ubuntu-latest
     steps:
-      - *a1
+      - *checkout
       - uses: ./.github/actions/toolchain
         with:
           rust: false
       - name: 安装固定 Flutter
         uses: ./.github/actions/flutter
       - name: 检查 Dart 格式和静态分析
-        run: |-
-          just flutter-dependencies
-          just dart format --output=none --set-exit-if-changed apps/ubaa_flutter/lib apps/ubaa_flutter/test packages/ubaa_app/lib packages/ubaa_app/test packages/ubaa_domain/lib packages/ubaa_domain/test packages/ubaa_host/lib packages/ubaa_host/test packages/ubaa_platform/lib packages/ubaa_platform/test packages/ubaa_ui/lib packages/ubaa_ui/test packages/ubaa_bindings/lib packages/ubaa_test_support/lib
-          just flutter analyze --no-fatal-infos apps/ubaa_flutter packages/ubaa_app packages/ubaa_domain packages/ubaa_host packages/ubaa_platform packages/ubaa_ui packages/ubaa_bindings packages/ubaa_test_support
+        run: bash scripts/check/flutter-workspace.sh analyze
+
   worker:
     needs: changes
     if: needs.changes.outputs.worker == 'true'
     runs-on: ubuntu-latest
     steps:
-      - *a1
-      - *a2
-      - *a3
-      - *a4
+      - *checkout
+      - id: toolchain
+        uses: ./.github/actions/toolchain
+        with:
+          rust: false
+      - *setup_node
       - name: 检查 Worker 与发布内容
         run: |-
           just app-service-content-check

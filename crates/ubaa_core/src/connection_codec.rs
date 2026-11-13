@@ -1,7 +1,7 @@
 //! `WebVPN` 主机段的冻结 AES-CFB 编解码。
 
 use aes::Aes128;
-use cipher::{AsyncStreamCipher, KeyIvInit};
+use cipher::KeyIvInit;
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 

@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../../support/rust_library.dart';
 import 'agenda_probe.dart';
 import 'home_todo_probe.dart';
@@ -35,8 +37,51 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 62);
+      expect(client.contractVersion(), 65);
+      final offline = client.beginNetworkChange(
+        online: false,
+        timeoutMillis: 30000,
+      );
+      expect(await offline.inspect(), BridgeNetworkState.unknown);
+      client.cancelNetworkReads();
+      offline.cancel();
+      final online = client.beginNetworkChange(
+        online: true,
+        timeoutMillis: 30000,
+      );
+      offline.finish();
+      online.finish();
       await probeRecoveryControl(client);
+      for (final (policy, route) in [
+        (BridgeRoutePolicy.direct, BridgeConnectionMode.direct),
+        (BridgeRoutePolicy.webVpn, BridgeConnectionMode.webVpn),
+      ]) {
+        await client.setDefaultRoutePolicy(policy: policy);
+        await expectLater(
+          client.cloudPrintDocuments(scans: false),
+          throwsA(
+            isA<BridgeError>()
+                .having(
+                  (error) => error.code,
+                  '缺少会话',
+                  BridgeErrorCode.authenticationRequired,
+                )
+                .having((error) => error.resolvedRoute, '云打印所需路线穿过 FFI', route),
+          ),
+        );
+      }
+      await expectLater(
+        client.cloudPrintScanPdf(ids: const []),
+        throwsA(
+          isA<BridgeError>()
+              .having(
+                (error) => error.code,
+                '本地参数无效',
+                BridgeErrorCode.invalidInput,
+              )
+              .having((error) => error.resolvedRoute, '选路前错误没有路线', isNull),
+        ),
+      );
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       final cloud = await client.bhpanCapabilities();
       expect(cloud.directMetadata, BridgeBhpanCapability.available);
@@ -97,6 +142,8 @@ void main() {
       await expectLater(
         client.beginJudgeOnline(
           options: const BridgeJudgeOnlineOptions(
+            refreshIndices: false,
+            fullRefresh: false,
             includeExpired: false,
             expectedIdentity: 'synthetic',
           ),
@@ -465,6 +512,7 @@ void main() {
         client.beginJudgeRefresh(
           cache: first,
           options: const BridgeJudgeRefreshOptions(
+            refreshIndices: false,
             includeExpired: false,
             fullRefresh: true,
           ),

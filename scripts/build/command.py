@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
@@ -31,8 +32,14 @@ def compile_linux(output, environment, mode, *, standalone=False):
         metadata = (ROOT / 'apps/ubaa_flutter/pubspec.yaml').read_text(encoding='utf-8')
         if version := re.search(r'^version:\s*(\S+)', metadata, re.MULTILINE):
             defines.append(f'-DUBAA_COMMAND_APP_VERSION={version[1]}')
-    run(['just', 'dart', 'compile', 'exe', '--packages=.dart_tool/package_config.json',
-         *defines, 'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(output / 'ubaa-cli')], environment)
+    # Linux 命令的原生库由宿主组装，纯 Dart Kernel 不包含 GUI 的 Apple build hooks。
+    intermediate = ROOT / '.ubaa_local/command_build'
+    intermediate.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=intermediate) as folder:
+        kernel = Path(folder) / 'ubaa.dill'
+        run(['just', 'dart', 'compile', 'kernel', '--packages=.dart_tool/package_config.json',
+             *defines, 'apps/ubaa_flutter/bin/ubaa.dart', '-o', str(kernel)], environment)
+        run(['just', 'dart', 'compile', 'exe', str(kernel), '-o', str(output / 'ubaa-cli')], environment)
     print(f'命令入口：{output / "ubaa-cli"}')
 
 

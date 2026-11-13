@@ -97,7 +97,7 @@ fn incomplete_refresh_preserves_saved_school_items_and_verification_time() {
         .iter()
         .find(|source| source.feature == ReadonlyFeature::Judge)
         .unwrap();
-    assert!(source.missing_scopes.is_empty());
+    assert_eq!(source.missing_scopes.len(), 0);
     let observation = &source.observations[0];
     assert!(!observation.last_attempt_succeeded);
     assert_eq!(observation.completeness, CacheCompleteness::Complete);
@@ -212,7 +212,7 @@ fn school_query_does_not_borrow_another_academic_term() {
             .iter()
             .find(|s| s.feature == feature)
             .unwrap();
-        assert!(source.observations.is_empty());
+        assert_eq!(source.observations.len(), 0);
         assert_eq!(
             source.missing_scopes,
             vec![CacheScope {

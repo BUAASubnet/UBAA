@@ -100,7 +100,7 @@ fn assignments_keep_raw_count_when_every_numeric_anchor_is_filtered() {
 
     assert_eq!(parsed.raw_anchor_count, 3);
     assert_eq!(parsed.filtered_unique_count(), 0);
-    assert!(parsed.assignments.is_empty());
+    assert_eq!(parsed.assignments.len(), 0);
 }
 
 #[test]
@@ -292,4 +292,33 @@ fn historical_start_requires_a_valid_datetime_and_full_time_ordering() {
     assert!(!started_before_cutoff("2026-2-24 12:34:55", cutoff));
     assert!(!started_before_cutoff("2026-02-23 23:59:60", cutoff));
     assert!(!started_before_cutoff("2026-02-24T12:34:55", cutoff));
+}
+
+#[test]
+fn 索引详情必须具有唯一且匹配课程的选中标记() {
+    let course = Course {
+        course_id: "12".into(),
+        course_name: "示例课程".into(),
+    };
+    let content = include_str!("../../../../../fixtures/readonly/judge-detail.html");
+    let selected =
+        "<a class='list-group-item-primary' href='index.jsp?courseID=12&assignID=101'>示例作业</a>";
+    let html = format!("{selected}{content}");
+    let page = super::parser::parse_assignment_page(&html, &course);
+    let detail = page.detail.unwrap();
+    assert_eq!(
+        detail,
+        parse_detail(&html, "12", "示例课程", "101", "示例作业").unwrap()
+    );
+    for prefix in [
+        selected.replace("list-group-item-primary", "list-group-item-action"),
+        selected.replace("courseID=12", "courseID=13"),
+        format!("{selected}{selected}"),
+    ] {
+        assert!(
+            super::parser::parse_assignment_page(&format!("{prefix}{content}"), &course)
+                .detail
+                .is_none()
+        );
+    }
 }

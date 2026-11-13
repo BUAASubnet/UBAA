@@ -25,6 +25,7 @@ import '../features/libbook/reservation_flow.dart'
 import '../features/schedule/content.dart' show ScheduleContent;
 import '../features/schedule/flow.dart' show ScheduleFlow, ScheduleFlowState;
 import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
+import '../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../write/cgyy/draft.dart' show CgyyFormContext, CgyyFormDraft;
 import '../write/ygdk/draft.dart' show YgdkFormContext, YgdkFormDraft;
@@ -811,13 +812,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
 
   Widget _empty(BuildContext context) =>
       widget.feature == FeatureId.schedule &&
+          uiIsWeeklyScheduleQuery(widget.query) &&
           (widget.snapshot.status == FeatureLoadStatus.empty ||
+              widget.snapshot.status == FeatureLoadStatus.success ||
+              widget.snapshot.status == FeatureLoadStatus.stale ||
               (widget.snapshot.status == FeatureLoadStatus.loading &&
-                  widget.snapshot.updatedAt != null)) &&
-          (widget.query?.view == FeatureQueryView.scheduleWeek ||
-              (widget.query?.view == FeatureQueryView.summary &&
-                  widget.query?.term != null &&
-                  widget.query?.week != null))
+                  (widget.snapshot.updatedAt != null ||
+                      uiReadableCachedContent(widget.snapshot))))
       ? ScheduleContent(details: const [], timeline: _scheduleTimeline)
       : RefreshViewport(
           child: UiStatePanel(

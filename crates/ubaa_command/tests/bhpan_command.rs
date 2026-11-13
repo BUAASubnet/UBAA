@@ -307,7 +307,7 @@ async fn 云盘同名歧义与未支持路线在写入或恢复业务网络前�
             .await
             .is_err()
     );
-    assert!(unsupported.transport.calls.lock().unwrap().is_empty());
+    assert_eq!(unsupported.transport.calls.lock().unwrap().len(), 0);
     unsupported.finish();
 }
 #[tokio::test]
@@ -370,7 +370,7 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
         .await
         .into_result();
     assert_eq!(result.render(&control, &mut vec![], &mut vec![]), 2);
-    assert!(fixture.transport.calls.lock().unwrap().is_empty());
+    assert_eq!(fixture.transport.calls.lock().unwrap().len(), 0);
     fixture.finish();
 }
 
@@ -511,7 +511,7 @@ async fn 公开聚合执行入口同样拒绝未确认云盘写入() {
         ubaa_command::run_with_routed_backend(cli, &mut fixture.client, &mut vec![], &mut vec![])
             .await;
     assert_eq!(code, 2);
-    assert!(fixture.transport.calls.lock().unwrap().is_empty());
+    assert_eq!(fixture.transport.calls.lock().unwrap().len(), 0);
     fixture.finish();
 }
 

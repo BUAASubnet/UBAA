@@ -6,8 +6,12 @@ umask 077
 test_name='^宣传图 (iphone|ipad|desktop)$'
 if [[ $# -eq 1 && $1 == --all-sizes ]]; then
   test_name='^宣传图 '
+elif [[ $# -eq 1 && $1 == --appgallery ]]; then
+  test_name='^宣传图 android$'
+elif [[ $# -eq 1 && $1 == --appgallery-tablet ]]; then
+  test_name='^宣传图 android_tablet$'
 elif [[ $# -ne 0 ]]; then
-  printf '%s\n' '用法：bash scripts/release/store-screenshots.sh [--all-sizes]' >&2
+  printf '%s\n' '用法：bash scripts/release/store-screenshots.sh [--all-sizes|--appgallery|--appgallery-tablet]' >&2
   exit 2
 fi
 
@@ -48,7 +52,8 @@ for image in "${images[@]}"; do
     desktop) group=desktop ;;
     iphone_large) group=phone/1320x2868 ;;
     iphone_medium) group=phone/1206x2622 ;;
-    android) group=phone/1080x1920 ;;
+    android) group=appgallery ;;
+    android_tablet) group=appgallery/tablet ;;
     *) printf '未知截图规格：%s\n' "${relative%/*}" >&2; exit 1 ;;
   esac
   mkdir -p "$ready_dir/$group"

@@ -53,7 +53,7 @@ async fn 课堂签到今日与写结果都符合_schema_v10() {
     assert_eq!(today["data"][3]["signStatus"], 2);
     assert_eq!(today["data"][3]["signinEligibility"], "unknown");
     assert_eq!(backend.signin_today_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let mut old = today.clone();
     old["schemaVersion"] = 9.into();
@@ -108,7 +108,7 @@ async fn 课堂签到确定成功与业务_false_保持内外层语义() {
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["code"], expected_code);
         assert_eq!(backend.signin_perform_calls, 1);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -143,7 +143,7 @@ async fn 课堂签到发送前超时与发送后未知保持不同错误分类�
         assert_eq!(value["ok"], false);
         assert_eq!(value["error"]["code"], expected_error);
         assert_eq!(backend.signin_perform_calls, 1);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -180,7 +180,7 @@ async fn 课堂签到未确认或空目标在后端调用前拒绝() {
         assert_cli_schema(&value);
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.signin_perform_calls, 0);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -214,7 +214,7 @@ async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
     assert_cli_schema(&value);
     assert_eq!(value["error"]["code"], "invalid_input");
     assert_eq!(backend.signin_perform_calls, 0);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -257,7 +257,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
     assert_eq!(value["data"][3]["reserveEligibility"], "unknown");
     assert!(value["data"][3]["reserveTarget"].is_null());
     assert_eq!(backend.libbook_seats_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../docs/contracts/cli-json.schema.json"
@@ -300,7 +300,7 @@ async fn 图书馆预约确定成功与业务_false_保持内外层语义并符�
         assert_eq!(value["meta"]["feature"], "libbook");
         assert_eq!(value["meta"]["resolvedRoute"], "direct");
         assert_eq!(backend.libbook_reserve_calls, 1);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
 
         let request = backend
             .libbook_last_request
@@ -346,7 +346,7 @@ async fn 图书馆预约发送前超时与发送后未知保持不同错误分�
         assert_eq!(value["ok"], false);
         assert_eq!(value["error"]["code"], expected_error);
         assert_eq!(backend.libbook_reserve_calls, 1);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -373,7 +373,7 @@ async fn 图书馆预约未确认或任一空目标均在后端调用前拒绝()
         assert_cli_schema(&value);
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.libbook_reserve_calls, 0);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -400,7 +400,7 @@ async fn 固定路线图书馆预约空目标同样在后端调用前拒绝() {
     assert_cli_schema(&value);
     assert_eq!(value["error"]["code"], "invalid_input");
     assert_eq!(backend.libbook_reserve_calls, 0);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -420,7 +420,7 @@ async fn 场馆取消默认拒绝且不调用后端() {
     assert_eq!(value["meta"]["feature"], "cgyy");
     assert!(value["meta"].get("resolvedRoute").is_none());
     assert_eq!(backend.cgyy_cancel_calls, 0);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -450,7 +450,7 @@ async fn 场馆取消显式确认后才调用后端() {
     assert_eq!(value["meta"]["feature"], "cgyy");
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(backend.cgyy_cancel_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -511,7 +511,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["message"], expected_message);
         assert_eq!(value["meta"]["feature"], "bykc");
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -528,7 +528,7 @@ async fn 场馆预约默认拒绝且不读取标准输入() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["error"]["code"], "invalid_input");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -586,7 +586,7 @@ async fn 其他写命令未确认时统一拒绝() {
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
         assert_eq!(value["error"]["code"], "invalid_input");
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -603,5 +603,5 @@ async fn 自动评教提交未确认时拒绝且不查询课程() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["error"]["code"], "invalid_input");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }

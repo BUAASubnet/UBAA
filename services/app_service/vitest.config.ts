@@ -1,5 +1,5 @@
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
-import { fileURLToPath } from "node:url";
+import { URL, fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import worker from "./wrangler.json" with { type: "json" };
 

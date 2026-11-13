@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
+
 import '../support/platform/native_materials.dart';
 
 void main() {
@@ -131,10 +133,7 @@ void main() {
           final args = Map<String, Object?>.from(call.arguments as Map);
           final key = args['key']! as String;
           final options = Map<String, Object?>.from(args['options']! as Map);
-          expect(
-            options['sharedPreferencesName'],
-            startsWith('ubaa.synthetic.'),
-          );
+          expect(options['storageNamespace'], startsWith('ubaa.synthetic.'));
           expect(options['resetOnError'], 'true');
           expect(options['migrateOnAlgorithmChange'], 'true');
           switch (call.method) {

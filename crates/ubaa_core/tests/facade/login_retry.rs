@@ -167,7 +167,10 @@ async fn webvpn两次凭据拒绝后停止并返回第二次错误() {
     assert_eq!(error.code, ErrorCode::InvalidCredentials);
     assert_eq!(error.message, "第二次合成拒绝");
     assert_eq!(fixture.posts().len(), 2);
-    assert!(fixture.client.active_routes().is_empty());
+    assert_eq!(
+        fixture.client.active_routes(),
+        [] as [ubaa_core::facade::ConnectionMode; 0]
+    );
 }
 
 #[tokio::test]

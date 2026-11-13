@@ -30,7 +30,7 @@ class SelectionTest(unittest.TestCase):
             self.assertTrue(paths)
             found.extend((group['package'], path) for path in paths)
             if group['group'] == 'golden':
-                self.assertEqual(group['os'], 'macos-15')
+                self.assertEqual(group['os'], 'macos-26')
         expected = [(package, str(path.relative_to(ROOT / directory)))
                     for package, directory in plan.PACKAGES.items()
                     for path in (ROOT / directory / 'test').rglob('*_test.dart')]
@@ -58,12 +58,33 @@ class SelectionTest(unittest.TestCase):
                                           (base + ['lib/x86_64/libextra.so'], 'arm64-v8a', 1),
                                           (base, 'unknown', 2), (base, '', 1)]:
                 with self.subTest(abi=abi, files=files):
-                    with zipfile.ZipFile(artifact, 'w') as archive:
+                    with zipfile.ZipFile(artifact, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
                         for name in files:
                             archive.writestr(name, 'fixture')
                     result = subprocess.run(['bash', str(ROOT / 'scripts/release/verify-flutter-artifact.sh'),
                                              'android-apk', str(artifact), abi], capture_output=True, text=True)
                     self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+
+    def test_Android产物检查拒绝任意未压缩原生库(self):
+        private = ROOT / '.ubaa_local'
+        private.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=private) as folder:
+            artifact = Path(folder) / 'app.apk'
+            for abi in ('', 'arm64-v8a'):
+                for stored in (False, True):
+                    with self.subTest(abi=abi, stored=stored):
+                        with zipfile.ZipFile(artifact, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+                            archive.writestr('classes.dex', 'fixture')
+                            archive.writestr('assets/flutter_assets/AssetManifest.bin', 'fixture')
+                            abis = (abi,) if abi else ('arm64-v8a', 'armeabi-v7a', 'x86_64')
+                            for target in abis:
+                                for name in ('libubaa_flutter_bridge.so', 'libflutter.so'):
+                                    archive.writestr(f'lib/{target}/{name}', 'fixture')
+                            archive.writestr('lib/arm64-v8a/libextra.so', 'fixture',
+                                             compress_type=zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
+                        result = subprocess.run(['bash', str(ROOT / 'scripts/release/verify-flutter-artifact.sh'),
+                                                 'android-apk', str(artifact), abi], capture_output=True, text=True)
+                        self.assertEqual(result.returncode, 1 if stored else 0, result.stdout + result.stderr)
 
 if __name__ == '__main__':
     unittest.main()

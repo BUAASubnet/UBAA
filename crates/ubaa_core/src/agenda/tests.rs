@@ -196,11 +196,9 @@ fn single_edit_moves_into_query_single_delete_excludes_and_all_delete_tombstones
             t("2026-02-06T00:00:00+08:00"),
         )
         .unwrap();
-    assert!(
-        store
-            .query(d("2026-01-15"), d("2026-01-16"))
-            .unwrap()
-            .is_empty()
+    assert_eq!(
+        store.query(d("2026-01-15"), d("2026-01-16")).unwrap().len(),
+        0
     );
     store
         .delete(
@@ -211,11 +209,9 @@ fn single_edit_moves_into_query_single_delete_excludes_and_all_delete_tombstones
         )
         .unwrap();
     assert!(store.get(id).unwrap().unwrap().deleted_at.is_some());
-    assert!(
-        store
-            .query(d("2026-01-01"), d("2026-03-01"))
-            .unwrap()
-            .is_empty()
+    assert_eq!(
+        store.query(d("2026-01-01"), d("2026-03-01")).unwrap().len(),
+        0
     );
 }
 #[test]
@@ -434,10 +430,11 @@ fn all_day_exclusive_end_and_modern_dst_dates() {
             .len(),
         1
     );
-    assert!(
+    assert_eq!(
         expand_agenda(&item, d("2026-03-09"), d("2026-03-10"))
             .unwrap()
-            .is_empty()
+            .len(),
+        0
     );
     let rows = expand_agenda(&item, d("2026-03-01"), d("2026-03-31")).unwrap();
     assert_eq!(rows.len(), 3);

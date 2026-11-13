@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 62;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 65;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -262,6 +262,7 @@ pub struct BridgeRoutedUserProfile {
 
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
+    pub(crate) network_control: ubaa_core::facade::ClientNetworkControl,
     pub(super) close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
@@ -296,8 +297,9 @@ impl BridgeClient {
         Ok(Self::from_core(client))
     }
 
-    fn from_core(client: ubaa_core::facade::UbaaClient) -> Self {
+    pub(crate) fn from_core(client: ubaa_core::facade::UbaaClient) -> Self {
         Self {
+            network_control: client.network_control(),
             close_control: client.close_control(),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
@@ -472,27 +474,23 @@ impl BridgeClient {
         .await
     }
 
-    /// 保存新的全局策略、清除 feature override 并重开 Core client。
+    /// 等待在途操作收尾后保存全局策略、清除 feature override 并重开 Core client。
     ///
     /// # Errors
     ///
-    /// 另一个 bridge 操作占用客户端、客户端已销毁、配置保存失败或重开失败时返回安全错误。
-    #[allow(clippy::unused_async)]
+    /// 客户端已销毁、配置保存失败或重开失败时返回安全错误。
     pub async fn set_default_route_policy(
         &self,
         policy: BridgeRoutePolicy,
     ) -> Result<BridgeRouteSettings, BridgeError> {
+        self.cancel_network_reads();
         self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
-            let mut guard = self.inner.try_lock().map_err(|_| {
-                BridgeError::local(
-                    BridgeErrorCode::OperationConflict,
-                    BridgeErrorKind::Internal,
-                    true,
-                    "another bridge operation is in progress",
-                )
-            })?;
+            let mut guard = self.inner.lock().await;
+            if self.is_disposed.load(Ordering::SeqCst) {
+                return Err(disposed_error());
+            }
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             client
                 .set_default_route_policy(policy.into())

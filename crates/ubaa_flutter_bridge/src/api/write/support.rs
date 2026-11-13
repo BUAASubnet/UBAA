@@ -604,7 +604,7 @@ pub(super) fn digest(value: &str) -> String {
 fn digest_bytes(value: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(value);
-    format!("{:x}", hasher.finalize())
+    hex::encode(hasher.finalize())
 }
 pub(super) fn now_seconds() -> i64 {
     SystemTime::now()

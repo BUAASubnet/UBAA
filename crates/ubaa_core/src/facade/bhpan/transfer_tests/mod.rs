@@ -138,7 +138,7 @@ impl HttpTransport for Transport {
             .pop_front()
             .expect("未安排对象下载");
         if step.length == Some(0) {
-            assert!(request.headers.is_empty());
+            assert_eq!(request.headers.len(), 0);
         } else {
             assert_eq!(request.headers.len(), 1);
             assert_eq!(request.headers["authorization"], "object-only");
@@ -244,7 +244,7 @@ impl Fixture {
     }
     fn finish(self) {
         self.transport.script.done();
-        assert!(self.transport.objects.lock().unwrap().is_empty());
+        assert_eq!(self.transport.objects.lock().unwrap().len(), 0);
         let root = self.root.clone();
         drop(self);
         std::fs::remove_dir_all(root).unwrap();

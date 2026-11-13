@@ -10,6 +10,8 @@ import com.it_nomads.fluttersecurestorage.SecurePreferencesCallback
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class SecureStorageTest {
@@ -29,20 +31,58 @@ class SecureStorageTest {
     }
 
     private class Storage(context: Context) : FlutterSecureStorage(context) {
-        fun open(legacy: Boolean = false): Exception? {
+        private fun <T> call(action: (SecurePreferencesCallback<T>) -> Unit): T? {
+            val completion = CountDownLatch(1)
+            var value: T? = null
             var failure: Exception? = null
-            var completed = false
-            initialize(FlutterSecureStorageConfig(mapOf(
-                "resetOnError" to "true", "migrateOnAlgorithmChange" to "true",
-                "keyCipherAlgorithm" to if (legacy) "RSA_ECB_PKCS1Padding" else "RSA_ECB_OAEPwithSHA_256andMGF1Padding",
-                "storageCipherAlgorithm" to if (legacy) "AES_CBC_PKCS7Padding" else "AES_GCM_NoPadding",
-            )), object : SecurePreferencesCallback<Void> {
-                override fun onSuccess(result: Void?) { completed = true }
-                override fun onError(error: Exception) { failure = error; completed = true }
+            action(object : SecurePreferencesCallback<T> {
+                override fun onSuccess(result: T?) { value = result; completion.countDown() }
+                override fun onError(error: Exception) { failure = error; completion.countDown() }
             })
-            check(completed)
-            return failure
+            check(completion.await(10, TimeUnit.SECONDS)) { "安全存储原生调用超时" }
+            failure?.let { throw it }
+            return value
         }
+
+        fun open(recover: Boolean = true): Exception? = try {
+            call<Void> { callback ->
+                initialize(FlutterSecureStorageConfig(mapOf(
+                    "resetOnError" to recover.toString(), "migrateOnAlgorithmChange" to recover.toString(),
+                    "keyCipherAlgorithm" to "RSA_ECB_OAEPwithSHA_256andMGF1Padding",
+                    "storageCipherAlgorithm" to "AES_GCM_NoPadding",
+                )), callback)
+            }
+            null
+        } catch (error: Exception) { error }
+
+        fun read(key: String): String? = call<String> { callback -> super.read(key, callback) }
+        fun write(key: String, value: String) { call<Void> { callback -> super.write(key, value, callback) } }
+    }
+
+    @Test
+    fun 全新安装无需旧算法迁移或错误重置() {
+        val storage = Storage(isolated())
+        assertNull(storage.open(recover = false))
+        val key = storage.addPrefixToKey("synthetic-fresh")
+        storage.write(key, "synthetic-value")
+        assertEquals("synthetic-value", storage.read(key))
+        storage.delete(key)
+        assertNull(storage.read(key))
+    }
+
+    @Test
+    fun 跨版本升级保留当前算法材料() {
+        check(base.packageName == "cn.edu.ubaa.synthetic.materials")
+        val arguments = InstrumentationRegistry.getArguments()
+        val stage = arguments.getString("storageUpgradeStage")
+        org.junit.Assume.assumeNotNull(stage)
+        check(stage == "seed" || stage == "verify")
+        val storage = Storage(base)
+        assertNull(storage.open())
+        val key = storage.addPrefixToKey("ubaa.synthetic.upgrade")
+        if (stage == "seed") storage.write(key, "synthetic-v10-preserved")
+        assertEquals("synthetic-v10-preserved", storage.read(key))
+        if (stage == "verify") storage.delete(key)
     }
 
     @Test
@@ -62,21 +102,6 @@ class SecureStorageTest {
     }
 
     @Test
-    fun 已有旧算法材料迁移后可以重开读取() {
-        val context = isolated()
-        val old = Storage(context)
-        assertNull(old.open(legacy = true))
-        val key = old.addPrefixToKey("synthetic-legacy")
-        old.write(key, "synthetic-preserved")
-        val migrated = Storage(context)
-        assertNull(migrated.open())
-        assertEquals("synthetic-preserved", migrated.read(key))
-        val reopened = Storage(context)
-        assertNull(reopened.open())
-        assertEquals("synthetic-preserved", reopened.read(key))
-    }
-
-    @Test
     fun 损坏密文清除后可以重新写入且其他材料保留() {
         val context = isolated()
         val first = Storage(context)
@@ -92,24 +117,6 @@ class SecureStorageTest {
         assertFalse(context.getSharedPreferences(names[0], 0).contains(key))
         assertEquals("preserved", reopened.read(healthy))
         reopened.write(key, "recovered")
-        assertEquals("recovered", reopened.read(key))
-    }
-
-    @Test
-    fun 旧算法迁移失败可以清空并重新初始化() {
-        val context = isolated()
-        val old = Storage(context)
-        assertNull(old.open(legacy = true))
-        val key = old.addPrefixToKey("synthetic-unreadable")
-        old.write(key, "synthetic-value")
-        context.getSharedPreferences(names[0], 0).edit().putString(key, "invalid-ciphertext").commit()
-        val recovered = Storage(context)
-        assertNull(recovered.open())
-        assertNull(recovered.read(key))
-        recovered.write(key, "recovered")
-        assertEquals("recovered", recovered.read(key))
-        val reopened = Storage(context)
-        assertNull(reopened.open())
         assertEquals("recovered", reopened.read(key))
     }
 }

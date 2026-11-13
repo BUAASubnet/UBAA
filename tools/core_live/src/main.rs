@@ -1,9 +1,10 @@
 //! Core-live 真实只读验证入口。
 //!
-//! 该二进制在一个 `RouteClient` 生命周期内完成一条路线的登录和逐操作读取，
+//! 该二进制在一个 固定路线的 `UbaaClient` 生命周期内完成一条路线的登录和逐操作读取，
 //! 只向 stdout 输出安全摘要；凭据仅从 stdin 读取并只在内存中使用。
 
 mod args;
+mod authentication;
 mod evidence;
 mod steps;
 

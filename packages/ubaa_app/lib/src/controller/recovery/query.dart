@@ -10,18 +10,21 @@ mixin ControllerOfflineQuery on ControllerState {
   @internal
   Future<FeatureSnapshot?> internalPeekCachedQuery(
     FeatureId feature,
-    FeatureQuery query,
-  ) async {
+    FeatureQuery query, {
+    bool waitForCache = false,
+  }) async {
     final backend = internalBackend;
     final account = internalLocalAccount;
     final policy = internalLoginForm.routePolicy;
     if (backend is! OfflineQueryBackend || account == null) return null;
     try {
-      // 本机读取通常在几十毫秒内完成；超时则按无缓存处理，不拖慢在线读取。
+      // 缓存优先的浏览等待本机结果；在线刷新预读限时，避免拖慢网络读取。
       final waited = Completer<OfflineQueryRead?>();
-      final limit = Timer(const Duration(milliseconds: 300), () {
-        if (!waited.isCompleted) waited.complete(null);
-      });
+      final limit = waitForCache
+          ? null
+          : Timer(const Duration(milliseconds: 300), () {
+              if (!waited.isCompleted) waited.complete(null);
+            });
       unawaited(
         internalOfflineOpenFuture
             .then(
@@ -41,7 +44,7 @@ mixin ControllerOfflineQuery on ControllerState {
             ),
       );
       final read = await waited.future;
-      limit.cancel();
+      limit?.cancel();
       final projection = read?.projection;
       if (projection == null ||
           !identical(internalBackend, backend) ||

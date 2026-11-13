@@ -208,7 +208,10 @@ fn 评教持久快照剥离资格且部分失败不清空旧课程() {
     else {
         panic!("必须为评教")
     };
-    assert!(saved.courses.is_empty());
+    assert_eq!(
+        saved.courses,
+        [] as [ubaa_core::facade::CachedEvaluationCourse; 0]
+    );
     transport.mode.store(8, Ordering::SeqCst);
     assert!(
         runtime

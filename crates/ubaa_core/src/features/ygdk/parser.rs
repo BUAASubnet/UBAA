@@ -95,10 +95,7 @@ pub fn parse_overview(
     term: &str,
 ) -> Result<YgdkOverview> {
     let classify = parse_envelope(classify)?;
-    let classifies = classify
-        .as_object()
-        .map(|v| list(v, "list"))
-        .unwrap_or_default();
+    let classifies = classify.as_object().map_or_default(|v| list(v, "list"));
     let selected = classifies
         .iter()
         .filter_map(Value::as_object)
@@ -127,8 +124,7 @@ pub fn parse_overview(
     let item_result = parse_envelope(items)?;
     let item_rows = item_result
         .as_object()
-        .map(|value| list(value, "list"))
-        .unwrap_or_default();
+        .map_or_default(|value| list(value, "list"));
     let items_are_canonical = item_rows.iter().all(|entry| {
         entry.as_object().is_some_and(|entry| {
             canonical_positive_integer(entry, "item_id").is_some()
@@ -220,10 +216,7 @@ pub(super) fn classifies_fallback(value: &Value) -> Option<Map<String, Value>> {
 
 pub fn parse_items(body: &str) -> Result<Vec<YgdkItem>> {
     let result = parse_envelope(body)?;
-    let rows = result
-        .as_object()
-        .map(|v| list(v, "list"))
-        .unwrap_or_default();
+    let rows = result.as_object().map_or_default(|v| list(v, "list"));
     Ok(parse_item_rows(&rows))
 }
 

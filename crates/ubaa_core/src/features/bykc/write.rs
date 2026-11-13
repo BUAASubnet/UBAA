@@ -4,8 +4,8 @@
 use std::f64::consts::PI;
 
 use chrono::Local;
-use rand::Rng;
-use rand::seq::SliceRandom;
+use rand::RngExt;
+use rand::seq::IndexedRandom;
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -238,12 +238,12 @@ pub(super) fn resolve_sign_location(
     fallback_lat: Option<f64>,
     fallback_lng: Option<f64>,
 ) -> Result<(f64, f64)> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     if let Some(point) = config.sign_points.choose(&mut rng)
         && is_usable_sign_point(point)
     {
-        let distance = point.radius * rng.r#gen::<f64>().sqrt();
-        let angle = rng.r#gen::<f64>() * 2.0 * PI;
+        let distance = point.radius * rng.random::<f64>().sqrt();
+        let angle = rng.random::<f64>() * 2.0 * PI;
         return Ok(destination_point(point.lat, point.lng, distance, angle));
     }
     fallback_lat

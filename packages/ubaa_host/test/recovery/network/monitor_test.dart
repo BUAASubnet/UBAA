@@ -4,10 +4,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
-  test('系统事件去重，离线不唤醒，恢复唤醒且没有周期轮询', () {
+  test('同类型网络变化与断网都通知恢复流程', () {
     fakeAsync((time) {
       final events = StreamController<Set<String>>.broadcast();
-      var reads = 0, hints = 0;
+      final monitor = LocalNetworkMonitor(
+        readState: () async => {'wifi'},
+        events: events.stream,
+      );
+      var hints = 0;
+      final subscription = monitor.changes.listen((_) => hints++);
+      time.flushMicrotasks();
+      for (final state in [
+        <String>{'wifi'},
+        <String>{},
+        <String>{'mobile'},
+      ]) {
+        events.add(state);
+        time.flushMicrotasks();
+      }
+      expect(hints, 3);
+      unawaited(subscription.cancel());
+      unawaited(events.close());
+      time.flushMicrotasks();
+    });
+  });
+  test('系统事件完整交付且没有周期轮询', () {
+    fakeAsync((time) {
+      final events = StreamController<Set<String>>.broadcast();
+      var reads = 0;
+      final hints = <bool>[];
       final monitor = LocalNetworkMonitor(
         readState: () async {
           reads++;
@@ -15,8 +40,9 @@ void main() {
         },
         events: events.stream,
       );
-      final subscription = monitor.changes.listen((_) => hints++);
+      final subscription = monitor.changes.listen(hints.add);
       time.flushMicrotasks();
+      expect(hints, [false]);
       for (final state in [
         <String>{'wifi'},
         {'wifi'},
@@ -26,7 +52,7 @@ void main() {
         events.add(state);
         time.flushMicrotasks();
       }
-      expect(hints, 2);
+      expect(hints, [false, true, true, false, true]);
       time.elapse(const Duration(minutes: 1));
       time.flushMicrotasks();
       expect(reads, 1);
@@ -57,7 +83,7 @@ void main() {
       time.flushMicrotasks();
       events.add({'mobile'});
       time.flushMicrotasks();
-      expect(hints, 1);
+      expect(hints, 2);
       unawaited(second.cancel());
       time.flushMicrotasks();
     });

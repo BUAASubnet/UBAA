@@ -13,7 +13,9 @@ impl UbaaClient {
     /// # Errors
     /// 缺少会话、认证或所有权失败保留实际需要的路线。
     pub async fn recover_connection_session(&mut self) -> RoutedResult<AuthStatus> {
-        self.probe.invalidate();
+        if !self.network.changing() {
+            self.probe.invalidate();
+        }
         self.invalidate_read_recovery_batch();
         let resolution = self.resolve_operation(super::types::Operation::ConnectionRecovery)?;
         self.recover_resolved_session(resolution).await
@@ -98,7 +100,9 @@ impl UbaaClient {
             resolution: None,
         })?;
         if matches!(target, super::types::Operation::ConnectionRecovery) {
-            self.probe.invalidate();
+            if !self.network.changing() {
+                self.probe.invalidate();
+            }
             self.invalidate_read_recovery_batch();
         }
         let resolved = self.resolve_recovery_operation(target);

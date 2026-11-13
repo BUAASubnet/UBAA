@@ -273,7 +273,7 @@ impl HttpTransport for LockDisplayTransport {
                     .collect::<Vec<_>>(),
                 vec!["nocache"]
             );
-            assert!(request.body.is_empty());
+            assert_eq!(request.body, [] as [u8; 0]);
             assert!(request.headers.contains_key("cgAuthorization"));
             if let Some(lease) = self.cancel.lock().unwrap().take() {
                 lease.cancel();

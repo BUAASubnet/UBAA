@@ -5,6 +5,15 @@ use std::{future::Future, sync::Arc};
 pub(crate) type OperationCheck = Arc<dyn Fn() -> Result<()> + Send + Sync>;
 tokio::task_local! {
     static OPERATION: OperationCheck;
+    static FAST_CONNECT: bool;
+}
+
+pub(crate) async fn with_fast_connect<T>(enabled: bool, work: impl Future<Output = T>) -> T {
+    FAST_CONNECT.scope(enabled, work).await
+}
+
+pub(crate) fn fast_connect() -> bool {
+    FAST_CONNECT.try_with(|enabled| *enabled).unwrap_or(false)
 }
 
 /// 在调用的发送边界检查宿主原有的期限与取消状态。

@@ -28,15 +28,14 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - id: versions
-        uses: ./.github/actions/versions
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: toolchain
+        uses: ./.github/actions/toolchain
         with:
-          tool: just@${{ steps.versions.outputs.just }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+          rust: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ steps.versions.outputs.node }}
+          node-version: ${{ steps.toolchain.outputs.node }}
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -55,18 +54,17 @@ jobs:
     runs-on: ubuntu-latest
     environment: app-service-production
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - id: versions
-        uses: ./.github/actions/versions
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+      - id: toolchain
+        uses: ./.github/actions/toolchain
         with:
-          tool: just@${{ steps.versions.outputs.just }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+          rust: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ steps.versions.outputs.node }}
+          node-version: ${{ steps.toolchain.outputs.node }}
           cache: npm
           cache-dependency-path: |
             package-lock.json

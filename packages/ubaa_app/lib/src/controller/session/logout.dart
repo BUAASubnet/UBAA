@@ -35,6 +35,7 @@ mixin ControllerLogout on ControllerState {
     internalInteractiveInPlace = false;
     internalCredentialRestoreAllowed = false;
     internalManualAuthenticationRequired = true;
+    internalCancelNetworkChange();
     internalCancelDeferredRecovery();
     final activity = internalBeginOperationTransition(
       ControllerActivityKind.signOut,

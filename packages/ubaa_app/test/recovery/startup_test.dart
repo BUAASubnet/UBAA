@@ -8,6 +8,134 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart';
 
 void main() {
+  for (final automatic in [false, true]) {
+    test('恢复首页与同账号重新认证保留登录选项 autoLogin=$automatic', () async {
+      final materials = syntheticMaterials(MemoryMaterials());
+      await materials.probe();
+      final accounts = SecureLocalAccountStore(materials);
+      final vault = PlatformCredentialVault(
+        store: MaterialCredentialStore(materials),
+      );
+      final saved = Credential(
+        username: 'fixture-user',
+        password: 'fixture-secret',
+        autoLogin: automatic,
+      );
+      await vault.write(saved);
+      await accounts.retain(saved.username, retainSession: true);
+      final controller = AppController(
+        backend: FakeRecoveryBackend(),
+        localAccountStore: accounts,
+        credentialVault: vault,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      expect(controller.phase, AppPhase.home);
+      expect(controller.loginForm.rememberPassword, isTrue);
+      expect(controller.loginForm.autoLogin, automatic);
+      expect(controller.loginForm.password, isEmpty);
+
+      controller.setPassword(saved.password);
+      await controller.submitLogin(preserveHome: true);
+      expect(controller.phase, AppPhase.home);
+      expect(await vault.read(), saved);
+      expect((await accounts.read())!.canRestore, isTrue);
+      controller.dispose();
+
+      final reopened = AppController(
+        backend: FakeRecoveryBackend(),
+        localAccountStore: accounts,
+        credentialVault: vault,
+      );
+      addTearDown(reopened.dispose);
+      await reopened.initialize();
+      expect(reopened.phase, AppPhase.home);
+      expect(reopened.loginForm.rememberPassword, isTrue);
+      expect(reopened.loginForm.autoLogin, automatic);
+    });
+  }
+
+  test('本机账号已确认时凭据读取失败仍保留首页与保存材料', () async {
+    final accounts = await savedAccounts();
+    final vault = _UnreadableCredentialVault();
+    final controller = AppController(
+      backend: FakeRecoveryBackend(),
+      localAccountStore: accounts,
+      credentialVault: vault,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.phase, AppPhase.home);
+    expect((await accounts.read())!.canRestore, isTrue);
+    expect(vault.clearCount, 0);
+  });
+
+  test('保存凭据属于另一账号时不恢复其登录选项', () async {
+    final controller = AppController(
+      backend: FakeRecoveryBackend(),
+      localAccountStore: await savedAccounts(),
+      credentialVault: MemoryCredentialVault(
+        initial: const Credential(
+          username: 'another-fixture',
+          password: 'fixture-secret',
+          autoLogin: true,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.loginForm.username, 'fixture-user');
+    expect(controller.loginForm.rememberPassword, isFalse);
+    expect(controller.loginForm.autoLogin, isFalse);
+    expect(controller.loginForm.password, isEmpty);
+  });
+
+  for (final action in ['改填账号', '销毁']) {
+    test('恢复首页的凭据读取迟到时保留$action结果', () async {
+      final started = Completer<void>();
+      final loaded = Completer<Credential?>();
+      final controller = AppController(
+        backend: FakeRecoveryBackend(),
+        localAccountStore: await savedAccounts(),
+        credentialVault: CallbackCredentialVault(
+          loader: () {
+            started.complete();
+            return loaded.future;
+          },
+          saver: (_) async {},
+          clearer: () async {},
+        ),
+      );
+      addTearDown(controller.dispose);
+      final initializing = controller.initialize();
+      await started.future;
+      if (action == '改填账号') {
+        controller.setUsername('another-fixture');
+        controller.setPassword('new-fixture-secret');
+      } else {
+        controller.dispose();
+      }
+      loaded.complete(
+        const Credential(
+          username: 'fixture-user',
+          password: 'fixture-secret',
+          autoLogin: true,
+        ),
+      );
+      await initializing;
+      expect(controller.loginForm.rememberPassword, isFalse);
+      expect(controller.loginForm.autoLogin, isFalse);
+      if (action == '改填账号') {
+        expect(controller.phase, AppPhase.login);
+        expect(controller.loginForm.username, 'another-fixture');
+        expect(controller.loginForm.password, 'new-fixture-secret');
+      } else {
+        expect(controller.loginForm.username, isEmpty);
+        expect(controller.loginForm.password, isEmpty);
+      }
+    });
+  }
+
   test('无本机账号且旧凭据读取失败时先登录，手动认证成功后才能进入首页', () async {
     final materials = syntheticMaterials(MemoryMaterials());
     await materials.probe();

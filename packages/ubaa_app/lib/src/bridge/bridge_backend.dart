@@ -6,6 +6,7 @@ import 'ihome/service.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
 import 'bhpan/service.dart';
+import 'cloud_print.dart';
 import 'write/pinned_readback.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -15,6 +16,7 @@ import 'package:ubaa_app/src/bridge/context.dart';
 import '../../runtime.dart'
     show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
 import 'auth/required_session.dart';
+import 'auth/network.dart';
 import 'auth/shared_logout.dart';
 import 'auth/session.dart'
     show
@@ -81,7 +83,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 62;
+const _supportedBridgeContractVersion = 65;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -98,6 +100,7 @@ class BridgeBackend
         FinanceBackend,
         CampusAccountBackend,
         BhpanProvider,
+        CloudPrintProvider,
         PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
         ManualCaptchaBackend,
@@ -118,6 +121,8 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
+        RoutePolicyBackend,
+        NetworkChangeBackend,
         ControlledRequiredTargetSessionBackend,
         HomeRecoveryBatchBackend,
         OfflineCacheBackend,
@@ -153,6 +158,26 @@ class BridgeBackend
       );
     }
   }
+
+  @override
+  NetworkChangeOperation beginNetworkChange({
+    required bool online,
+    required Duration budget,
+  }) {
+    try {
+      return BridgeNetworkOperation(
+        client.beginNetworkChange(
+          online: online,
+          timeoutMillis: budget.inMilliseconds,
+        ),
+      );
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
+  }
+
+  @override
+  void cancelNetworkReads() => client.cancelNetworkReads();
 
   @override
   Future<CgyyLockDisplaySession> openLockDisplay() async {
@@ -379,6 +404,9 @@ class BridgeBackend
   late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override
   late final BhpanService bhpan = BridgeBhpanService(_context);
+
+  @override
+  late final CloudPrintService cloudPrint = BridgeCloudPrintService(_context);
   @override
   late final CampusAccountService campusAccount = BridgeCampusAccountService(
     _context,

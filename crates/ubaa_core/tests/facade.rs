@@ -22,6 +22,8 @@ mod campus;
 mod cgyy;
 #[path = "facade/cgyy_cache.rs"]
 mod cgyy_cache;
+#[path = "facade/cloud_print/mod.rs"]
+mod cloud_print;
 #[path = "facade/domain_routes.rs"]
 mod domain_routes;
 #[path = "facade/cache/grade_baseline.rs"]
@@ -48,7 +50,10 @@ fn aggregate_facade_opens_without_config_or_session() {
 
     let client = UbaaClient::open(&root).unwrap();
 
-    assert!(client.active_routes().is_empty());
+    assert_eq!(
+        client.active_routes(),
+        [] as [ubaa_core::facade::ConnectionMode; 0]
+    );
     let _ = std::fs::remove_dir_all(root);
 }
 

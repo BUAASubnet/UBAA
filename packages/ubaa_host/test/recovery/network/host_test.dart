@@ -8,7 +8,7 @@ import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
   testWidgets('宿主网络提示唤醒失败恢复，后台停订阅，销毁后不再回调', (tester) async {
-    final events = StreamController<void>.broadcast();
+    final events = StreamController<bool>.broadcast();
     final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(UbaaErrorCode.networkError);
@@ -27,7 +27,7 @@ void main() {
     await tester.pump();
     expect(events.hasListener, isFalse);
     backend.authError = null;
-    events.add(null);
+    events.add(true);
     await tester.pump(const Duration(minutes: 1));
     expect(backend.authCalls, 1);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -42,8 +42,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.authCalls, 3);
     backend.authError = null;
-    events.add(null);
-    events.add(null);
+    events.add(true);
+    events.add(true);
     await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 4);
@@ -51,7 +51,7 @@ void main() {
     expect(backend.readCalls, greaterThan(0));
     await tester.pumpWidget(const SizedBox());
     expect(events.hasListener, isFalse);
-    events.add(null);
+    events.add(true);
     await tester.pump(const Duration(minutes: 10));
     expect(backend.authCalls, 4);
     await events.close();

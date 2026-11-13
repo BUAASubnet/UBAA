@@ -6,6 +6,8 @@ pub mod initialization;
 pub mod interactive_auth;
 pub mod judge_refresh;
 pub mod judge_scan;
+#[path = "client/network.rs"]
+pub mod network;
 pub mod offline;
 pub mod offline_academic;
 pub mod offline_bykc;
@@ -36,6 +38,7 @@ pub mod finance;
 
 pub mod agenda;
 pub mod bhpan;
+pub mod cloud_print;
 
 pub mod shared_account;
 

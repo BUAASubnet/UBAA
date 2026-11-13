@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+
 import '../../../test/support/platform/native_materials.dart';
 import '../../support/rust_library.dart';
 

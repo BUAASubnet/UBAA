@@ -11,23 +11,24 @@ dependencies:
   flutter:
     sdk: flutter
   file_selector: 1.1.0
-  mime: 2.0.0
+  mime: 2.1.0
   ffi: 2.2.0
-  win32: 5.15.0
-  crypto: ^3.0.7
+  win32: 6.4.0
+  crypto: ^3.0.8
   image_picker: 1.2.4
   path_provider: 2.1.6
   path: ^1.9.1
   shared_preferences: 2.5.6
-  shared_preferences_platform_interface: ^2.4.0
-  connectivity_plus: 6.1.5
-  flutter_secure_storage: 10.0.0
+  shared_preferences_platform_interface: ^2.4.2
+  connectivity_plus: 7.3.2
+  connectivity_plus_platform_interface: 2.1.0
+  flutter_secure_storage: 11.2.0
   flutter_secure_storage_platform_interface: 2.1.1
   meta: ^1.16.0
-  package_info_plus: ^8.3.1
+  package_info_plus: 10.2.2
   ubaa_domain:
     path: ../ubaa_domain
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   url_launcher_platform_interface: ^2.3.2

@@ -148,12 +148,10 @@ void main() {
         Theme.of(tester.element(find.byType(UbaaMainShell))).brightness,
         brightness,
       );
-      final records =
-          (binding.reportData ??= <String, dynamic>{}).putIfAbsent(
-                'uiEvidence',
-                () => <Object?>[],
-              )
-              as List;
+      final records = (binding.reportData ??= <String, dynamic>{}).putIfAbsent(
+        'uiEvidence',
+        () => <Object?>[],
+      ) as List;
       records.add(<String, Object?>{
         'name': name,
         'scene': 'schedule-selected-week-native-rotation',

@@ -5,6 +5,16 @@ import { test } from "node:test";
 import { parse } from "yaml";
 
 const workflow = (name) => parse(readFileSync(`.github/workflows/${name}.yml`, "utf8"));
+test("Release 由手动构建生成草稿，发布草稿不会再次触发构建", () => {
+  const release = workflow("release");
+  assert.deepEqual(Object.keys(release.on), ["workflow_dispatch"]);
+  for (const platform of ["android", "linux", "windows", "macos", "ios", "ohos"]) {
+    assert.ok(release.jobs.distribute.needs.includes(platform));
+  }
+  // 留空 Tag 与显式 Tag 解析为同一版本，分组不能随输入形式变化，否则两次运行会并行写入同一草稿和 R2 路径。
+  assert.equal(release.concurrency.group, "release");
+  assert.equal(release.concurrency["cancel-in-progress"], false);
+});
 test("开发提交不会触发完整验收和原生矩阵", () => {
   const full = workflow("ci");
   assert.deepEqual(full.on.pull_request.branches, ["main"]);

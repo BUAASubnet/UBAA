@@ -585,8 +585,10 @@ final class _SharedLogin {
       return recovered;
     } on BackendException catch (error) {
       await check();
-      if (error.captchaRequired) {
-        // 人工验证码交接只暂停本次材料的自动尝试，保存的密码与自动登录许可保留。
+      if (error.captchaRequired ||
+          (error.code == UbaaErrorCode.upstreamChanged &&
+              !error.accountMismatch)) {
+        // 验证码和上游解析异常只暂停本次自动尝试，保存的密码与恢复许可保留。
         owner._blockCredentials(
           members
               .expand((job) => job.consumers)
@@ -596,7 +598,6 @@ final class _SharedLogin {
       }
       if (error.accountMismatch ||
           error.code == UbaaErrorCode.invalidCredentials ||
-          error.code == UbaaErrorCode.upstreamChanged ||
           error.code == UbaaErrorCode.passwordRiskConfirmationFailed) {
         // 先排空已开始的核对，再由失败所属快照条件撤销持久许可。
         for (final job in members.toList()) {

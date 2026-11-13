@@ -94,7 +94,7 @@ async fn user_info_without_local_session_makes_zero_requests() {
     let error = client.get_user_info().await.unwrap_err();
 
     assert_eq!(error.code, ErrorCode::AuthenticationRequired);
-    assert!(observer.requests().unwrap().is_empty());
+    assert_eq!(observer.requests().unwrap().len(), 0);
 }
 
 #[tokio::test]

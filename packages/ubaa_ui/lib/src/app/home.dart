@@ -412,6 +412,7 @@ class FeatureGridView extends StatelessWidget {
     this.onOpenIhome,
     this.onOpenBhpan,
     this.onOpenFinance,
+    this.onOpenCloudPrint,
   });
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
@@ -423,6 +424,7 @@ class FeatureGridView extends StatelessWidget {
   final VoidCallback? onOpenIhome;
   final VoidCallback? onOpenBhpan;
   final VoidCallback? onOpenFinance;
+  final VoidCallback? onOpenCloudPrint;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -470,6 +472,13 @@ class FeatureGridView extends StatelessWidget {
           icon: Icons.cloud_outlined,
           subtitle: '文档库、文件管理、分享与回收站',
           onTap: onOpenBhpan!,
+        ),
+      if (onOpenCloudPrint != null)
+        UiEntryCard(
+          title: '图书馆云打印',
+          icon: Icons.print_outlined,
+          subtitle: '上传待打印文件、下载已扫描文档',
+          onTap: onOpenCloudPrint!,
         ),
       if (onOpenFinance != null)
         UiEntryCard(

@@ -41,11 +41,7 @@ impl HttpTransport for Script {
             .expect("不得额外发送请求或自动重试");
         assert_eq!(request.method, step.method);
         if step.path == "/api/efast/v1/entry-item" {
-            let cookie = request
-                .headers
-                .get("Cookie")
-                .map(String::as_str)
-                .unwrap_or_default();
+            let cookie = request.headers.get("Cookie").map_or_default(String::as_str);
             assert!(cookie.contains("link_token:synthetic-share=share-fixture"));
             assert!(!cookie.contains("personal-cookie"));
         } else {
@@ -118,7 +114,7 @@ impl Script {
             .status = status;
     }
     pub(super) fn done(&self) {
-        assert!(self.steps.lock().unwrap().is_empty());
+        assert_eq!(self.steps.lock().unwrap().len(), 0);
     }
 }
 fn executor() -> tokio::runtime::Runtime {

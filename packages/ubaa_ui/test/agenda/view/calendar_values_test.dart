@@ -4,6 +4,68 @@ import 'package:ubaa_ui/src/features/agenda/calendar_values.dart';
 import 'view_modes_test.dart' show at, course;
 
 void main() {
+  test('日期分组保留跨日、全天结束边界、截止、无日期与范围外事项的归属', () {
+    final entries = [
+      for (final timing in [
+        AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(4, 23),
+          end: at(6, 0),
+        ),
+        AgendaTiming(
+          kind: AgendaTimingKind.allDay,
+          from: '2026-11-04',
+          to: '2026-11-07',
+        ),
+        AgendaTiming(kind: AgendaTimingKind.deadline, due: at(5, 12)),
+        AgendaTiming(kind: AgendaTimingKind.undated),
+        AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(7, 12),
+          end: at(7, 11),
+        ),
+        AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(8, 12),
+          end: at(8, 12),
+        ),
+        AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(1, 10),
+          end: at(2, 11),
+        ),
+        AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(20, 10),
+          end: at(21, 11),
+        ),
+      ])
+        AgendaEntry(
+          timing: timing,
+          soon: false,
+          completed: false,
+          hidden: false,
+        ),
+    ];
+    final first = DateTime.utc(2026, 11, 5);
+    final grouped = agendaEntriesByDay(entries, first, 7);
+    for (var i = 0; i < 7; i++) {
+      final day = first.add(Duration(days: i));
+      expect(
+        grouped[day] ?? [],
+        entries.where((entry) => agendaOnDay(entry, day)).toList(),
+      );
+    }
+    expect(
+      grouped.keys.every(
+        (day) =>
+            !day.isBefore(first) &&
+            day.isBefore(first.add(const Duration(days: 7))),
+      ),
+      isTrue,
+    );
+  });
+
   final cached = course();
   final entry = AgendaEntry(
     school: cached,

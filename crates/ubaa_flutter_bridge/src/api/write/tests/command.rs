@@ -104,7 +104,7 @@ default = "direct"
         receipt.resolution.mode,
         ubaa_core::facade::ConnectionMode::Direct
     );
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().unwrap();
     client.dispose().await.unwrap();
     let _ = std::fs::remove_dir_all(root);
@@ -131,7 +131,7 @@ impl HttpTransport for PausedCommandWrite {
     }
 }
 #[tokio::test]
-async fn 命令发送后取消保留结果未知与原路线核对提示() {
+async fn 命令发送后换网与取消保留结果未知与原路线核对提示() {
     let root = command_root("cancel-after-send");
     let store = seed_sessions(&root, true, false);
     let url = "https://bykc.buaa.edu.cn/sscv/choseCourse";
@@ -190,11 +190,22 @@ default="direct"
         command: Some(&command),
         hints: Vec::new(),
     };
+    let network = client
+        .inner
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .network_control();
     tokio::join!(
         ubaa_command::execute_attempt(&prepared, &mut backend, &command.control),
         async {
             sent.notified().await;
+            let change = network
+                .begin_change(false, std::time::Duration::from_secs(30))
+                .unwrap();
             command.cancel();
+            change.finish();
         }
     );
     let failure = command.failure(crate::api::command::BridgeCommandFailure::Cancelled);

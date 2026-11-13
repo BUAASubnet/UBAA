@@ -107,7 +107,7 @@ async fn ygdk_prepare_rejects_invalid_local_input_before_storing_intent() {
         assert_eq!(error.code, BridgeErrorCode::InvalidInput);
         assert!(error.resolved_route.is_none());
     }
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     client.dispose().await.expect("dispose client");
     let _ = std::fs::remove_dir_all(path);
 }
@@ -138,7 +138,7 @@ async fn cgyy_prepare_rejects_incomplete_request_before_route_resolution() {
         .await
         .expect_err("invalid Cgyy input must be rejected during prepare");
     assert_eq!(error.code, BridgeErrorCode::InvalidInput);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
 
     let invalid_group = client
         .prepare_cgyy_submit_reservation(BridgeCgyySubmitReservationRequest {
@@ -161,7 +161,7 @@ async fn cgyy_prepare_rejects_incomplete_request_before_route_resolution() {
         .await
         .expect_err("非正数空间组必须在路线解析前拒绝");
     assert_eq!(invalid_group.code, BridgeErrorCode::InvalidInput);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     client.dispose().await.expect("dispose client");
     let _ = std::fs::remove_dir_all(path);
 }

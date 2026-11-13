@@ -8,11 +8,13 @@
 
 | 组件 | 版本/提交 | 配置入口 | 核对方式 |
 |---|---|---|---|
-| 官方 Flutter | 3.41.9 / `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` | `$UBAA_FLUTTER_HOME` | `flutter --version` |
-| Dart | 3.11.5 | 随上述两个 SDK | 两个 SDK 的 `flutter --version` |
+| 官方 Flutter | 3.50.0 / `ab2912035e160d9cad6306df307576da6128ebdb` | `$UBAA_FLUTTER_HOME` | `flutter --version` |
+| Dart | 官方 3.14.0；OHOS 3.11.5 | 分别随各自 SDK | 两个 SDK 的 `flutter --version` |
 | OHOS Flutter fork | tag `3.41.10-ohos-1.0.1` / `adaf911c35c9136a7d18fc424d714c9ec7724e60` | `$UBAA_OHOS_FLUTTER_HOME` | fork release note 与 Git 提交 |
 | FRB | 2.13.0 | Cargo/pub 锁文件 | Dart/Rust/codegen/macros 必须完全一致 |
-| Rust | 1.95.0 | `rust-toolchain.toml` | `rustc --version` |
+| Android SDK / NDK | API 37.2 / Build Tools 37.0.0 / NDK 30.0.16248370 / CMake 4.1.2 | `scripts/tools/versions.env`，宿主与插件共用 | Android Debug 构建 |
+| Android 构建插件 | AGP 9.5.1 / Kotlin 2.4.21 / Gradle 9.9.1 | Android Gradle 配置与 wrapper | Gradle 原生构建 |
+| Rust | 1.100.0 | `rust-toolchain.toml` | `rustc --version` |
 | DevEco/CLI | 26.0.0.821 / Hvigor 6.26.4 / ohpm 26.0.0.630 | `$UBAA_DEVECO_HOME` | `check-toolchain.sh` 双布局预检 |
 | OpenHarmony SDK | API 26 / platform 26.0.0 | 上述 DevEco/CLI 的 `sdk` | `check-toolchain.sh` 与 `sdk-pkg.json` |
 

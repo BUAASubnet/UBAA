@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/agenda/week_content.dart';
+import 'package:ubaa_ui/src/shared/layout/seven_day_grid.dart';
 import '../flow_test.dart' show app, opened;
 import 'view_modes_test.dart' show at, course, reveal;
 import '../support.dart';
@@ -114,17 +115,57 @@ void main() {
     expect(find.text('第一项'), findsOneWidget);
   });
 
-  testWidgets('周网格只显示本周最早开始到最晚结束的时段', (tester) async {
-    final backend = MemoryAgenda()..school.add(course());
-    final service = await opened(backend);
+  for (final withCourse in [false, true]) {
+    testWidgets('周网格在${withCourse ? "单项日程" : "空周"}时保留08:00至23:00', (
+      tester,
+    ) async {
+      final backend = MemoryAgenda();
+      if (withCourse) backend.school.add(course());
+      final service = await opened(backend);
+      await tester.pumpWidget(app(service));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('周'));
+      await tester.pumpAndSettle();
+      expect(find.text('08:00'), findsOneWidget);
+      expect(find.text('22:00'), findsOneWidget);
+      final grid = tester.widget<SevenDayTimeGrid>(
+        find.byType(SevenDayTimeGrid),
+      );
+      expect(grid.rows, 15);
+      expect(
+        tester.getSize(find.byType(SevenDayTimeGrid)).height,
+        grid.rowHeight * 15,
+      );
+    });
+  }
+
+  testWidgets('超出默认时间的日程向前后扩展网格', (tester) async {
+    final service = await opened(MemoryAgenda());
+    for (final (start, end) in [(6, 7), (23, 24)]) {
+      await service.create(
+        AgendaDraft(
+          content: AgendaContent(
+            kind: AgendaKind.event,
+            title: '边界日程$start',
+            allDay: false,
+            start: at(5, start),
+            end: at(end == 24 ? 6 : 5, end % 24),
+          ),
+          exdates: [],
+        ),
+        at(1, 9),
+      );
+    }
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await tester.tap(find.text('周'));
     await tester.pumpAndSettle();
-    expect(find.text('10:00'), findsOneWidget);
-    expect(find.text('09:00'), findsNothing);
-    expect(find.text('00:00'), findsNothing);
-    expect(find.text('11:00'), findsNothing);
+    expect(find.text('06:00'), findsOneWidget);
+    expect(find.text('23:00'), findsOneWidget);
+    expect(
+      tester.widget<SevenDayTimeGrid>(find.byType(SevenDayTimeGrid)).rows,
+      18,
+    );
   });
 
   testWidgets('重叠时段并排可分别打开，跨午夜沿同一发生身份分列，截止项位于顶部', (tester) async {

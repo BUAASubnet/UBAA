@@ -133,10 +133,18 @@ impl ClientRuntime {
     /// Cookie，以免并发上游选择状态相互耦合。
     pub(crate) fn fork_for_readonly_with_cookie_filter(
         &mut self,
-        mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
+        retain: impl FnMut(&crate::session::StoredCookie) -> bool,
     ) -> Self {
         // 网关可能共享服务端当前课程；派生工作开始前撤销父客户端的记忆。
         self.judge_selected_course = None;
+        self.fork_with_cookie_filter(retain)
+    }
+
+    /// 派生独立 Cookie 容器，共享会话修订和关闭控制。
+    pub(crate) fn fork_with_cookie_filter(
+        &self,
+        mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
+    ) -> Self {
         let mut jar = CookieJar::default();
         jar.replace(
             self.jar
@@ -323,50 +331,11 @@ impl ClientRuntime {
         F: FnOnce(&Self) -> Result<()>,
     {
         let now = self.now();
-        let cookie = self.jar.cookie_header(&request.url, now)?;
-        if !cookie.is_empty() {
-            request.headers.insert("Cookie".into(), cookie);
-        }
+        self.prepare_request_cookie(&mut request, now)?;
         pre_send_check(self)?;
-        self.check_authentication_scope()?;
-        if self.readonly_generation.is_some() {
-            self.ensure_session_revision()?;
-        }
-        let permit = self
-            .shared_account
-            .as_ref()
-            .map(crate::facade::SharedAccountGuard::acquire)
-            .transpose()?;
-        self.check_school_requests()?;
         let request_url = request.url.clone();
-        let pending = self.transport.execute(request);
-        drop(permit);
-        let result = pending.await;
-        let domain = crate::connection::from_webvpn_url(&request_url)
-            .ok()
-            .and_then(|url| url::Url::parse(&url).ok())
-            .and_then(|url| url.host_str().map(str::to_owned));
-        match (&result, domain) {
-            (Err(error), Some(domain))
-                if matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout) =>
-            {
-                self.network_failure_domain = Some(domain);
-            }
-            (Ok(_), Some(domain)) => {
-                self.reached_domains.insert(domain);
-            }
-            _ => {}
-        }
-        let response = result?;
-        if let Some(scope) = &self.shared_account {
-            scope.check()?;
-        }
-        if self.readonly_generation.is_some() {
-            self.ensure_session_revision()?;
-        }
-        self.check_authentication_scope()?;
-        self.jar.store_response(&response, &request_url, now)?;
-        Ok(response)
+        let result = self.send_prepared_request(request)?.await;
+        self.finish_request_response(result, &request_url, now)
     }
 
     /// 执行不可自动重放的非幂等请求，并明确区分发送边界。
@@ -983,3 +952,5 @@ mod object;
 
 #[path = "runtime/school_gate.rs"]
 mod school_gate;
+
+mod request_batch;

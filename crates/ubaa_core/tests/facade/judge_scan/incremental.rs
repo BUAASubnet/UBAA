@@ -5,7 +5,13 @@ use ubaa_core::facade::{
 
 async fn refresh(client: &mut UbaaClient, cache: &OfflineCache) -> i64 {
     let mut plan = client
-        .begin_judge_refresh(cache, JudgeRefreshOptions::default())
+        .begin_judge_refresh(
+            cache,
+            JudgeRefreshOptions {
+                refresh_indices: true,
+                ..Default::default()
+            },
+        )
         .await
         .unwrap();
     loop {

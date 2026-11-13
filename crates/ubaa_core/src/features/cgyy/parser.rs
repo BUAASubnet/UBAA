@@ -271,8 +271,7 @@ fn parse_time_slots(root: &Map<String, Value>) -> Vec<ParsedTimeSlot> {
     let raw_slots = root
         .get("spaceTimeInfo")
         .and_then(Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or_default();
+        .map_or_default(Vec::as_slice);
     let mut time_id_counts = HashMap::new();
     for raw in raw_slots {
         if let Some(time_id) = raw

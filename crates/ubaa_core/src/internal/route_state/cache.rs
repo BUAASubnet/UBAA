@@ -9,6 +9,7 @@ use crate::domain::{Assignment, Course, JudgeAssignmentDetail};
 pub(super) struct TimedEntry<T> {
     pub(super) value: T,
     pub(super) cached_at: Instant,
+    pub(super) fetched_at: i64,
 }
 
 pub(super) fn is_fresh(cached_at: Instant, now: Instant, ttl: Duration) -> bool {
@@ -38,6 +39,7 @@ pub(super) fn insert_bounded<K, V>(
         TimedEntry {
             value,
             cached_at: now,
+            fetched_at: chrono::Utc::now().timestamp(),
         },
     );
 }
@@ -111,6 +113,7 @@ impl JudgeState {
         cache.courses = (!courses.is_empty()).then_some(TimedEntry {
             value: courses,
             cached_at: now,
+            fetched_at: chrono::Utc::now().timestamp(),
         });
         true
     }
@@ -201,6 +204,22 @@ impl JudgeState {
             JUDGE_DETAIL_CACHE_LIMIT,
         );
         true
+    }
+
+    pub(crate) fn source_time(
+        &self,
+        course: Option<&str>,
+        assignment: Option<&str>,
+    ) -> Option<i64> {
+        let cache = self.cache();
+        match (course, assignment) {
+            (Some(course), Some(assignment)) => cache
+                .details
+                .get(&(course.into(), assignment.into()))
+                .map(|entry| entry.fetched_at),
+            (Some(course), None) => cache.assignments.get(course).map(|entry| entry.fetched_at),
+            (None, _) => cache.courses.as_ref().map(|entry| entry.fetched_at),
+        }
     }
 
     pub(crate) fn clear(&self) {

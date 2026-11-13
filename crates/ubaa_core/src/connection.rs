@@ -6,7 +6,10 @@
 )]
 
 use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
-use std::sync::Mutex;
+use std::sync::{
+    Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -20,7 +23,8 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 const WEBVPN_HOST: &str = "d.buaa.edu.cn";
 const GATEWAY_HOST: &str = "gw.buaa.edu.cn";
 const GATEWAY_PORT: u16 = 80;
-const DEFAULT_GATEWAY_CACHE_TTL: Duration = Duration::from_secs(60);
+pub(crate) mod control;
+const DEFAULT_GATEWAY_CACHE_TTL: Duration = Duration::from_secs(3);
 
 /// 探测北航校园网关得到的三态结果。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -126,37 +130,38 @@ fn is_campus_gateway_address(address: &SocketAddr) -> bool {
     matches!(address.ip(), IpAddr::V4(ip) if ip.octets()[0] == 10)
 }
 
-/// 进程内网关结果缓存，生产 TTL 为 60 秒。
+/// 进程内网关结果缓存，生产 TTL 为 3 秒。
 pub struct CachingGatewayProbe<P> {
     inner: P,
     ttl: Duration,
-    cached: Mutex<Option<(Instant, NetworkState)>>,
+    cached: Mutex<Option<(Instant, NetworkState, u64)>>,
+    revision: AtomicU64,
 }
 
 impl<P> CachingGatewayProbe<P> {
-    /// 使用调用方指定的 TTL 构造缓存；生产环境使用 60 秒。
+    /// 使用调用方指定的 TTL 构造缓存；生产环境使用 3 秒。
     #[must_use]
     pub fn new(inner: P, ttl: Duration) -> Self {
         Self {
             inner,
             ttl,
             cached: Mutex::new(None),
+            revision: AtomicU64::new(0),
         }
     }
 
     pub(crate) fn invalidate(&self) {
-        if let Ok(mut cached) = self.cached.lock() {
-            *cached = None;
-        }
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
 
     /// 只读取仍可供下一次路线解析复用的观察，不等待正在进行的探测。
     pub(crate) fn cached_network(&self) -> Option<NetworkState> {
-        let (at, state) = (*self.cached.try_lock().ok()?)?;
-        (at.elapsed() < self.ttl).then_some(state)
+        let (at, state, revision) = (*self.cached.try_lock().ok()?)?;
+        (at.elapsed() < self.ttl && revision == self.revision.load(Ordering::SeqCst))
+            .then_some(state)
     }
 
-    /// 使用合同规定的 60 秒 TTL 构造缓存。
+    /// 使用合同规定的 3 秒 TTL 构造缓存。
     #[must_use]
     pub fn with_default_ttl(inner: P) -> Self {
         Self::new(inner, DEFAULT_GATEWAY_CACHE_TTL)
@@ -169,14 +174,20 @@ impl<P: GatewayProbe> GatewayProbe for CachingGatewayProbe<P> {
         let Ok(mut cached) = self.cached.lock() else {
             return NetworkState::Unknown;
         };
-        if let Some((at, state)) = *cached
+        let revision = self.revision.load(Ordering::SeqCst);
+        if let Some((at, state, cached_revision)) = *cached
+            && revision == cached_revision
             && now.saturating_duration_since(at) < self.ttl
         {
             return state;
         }
         let state = self.inner.probe(budget);
-        *cached = Some((Instant::now(), state));
-        state
+        if revision == self.revision.load(Ordering::SeqCst) {
+            *cached = Some((Instant::now(), state, revision));
+            state
+        } else {
+            NetworkState::Unknown
+        }
     }
 }
 
@@ -589,8 +600,7 @@ pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Res
 pub(crate) fn is_sso_url(candidate: &str) -> bool {
     let direct = from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
     Url::parse(&direct)
-        .ok()
-        .is_some_and(|url| is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[]))
+        .is_ok_and(|url| is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[]))
 }
 
 /// 解析响应的相对 Location，并判断目标是否指向 SSO。
@@ -775,7 +785,7 @@ mod gateway_probe_tests {
     }
 
     #[test]
-    fn production_gateway_cache_ttl_is_sixty_seconds() {
-        assert_eq!(DEFAULT_GATEWAY_CACHE_TTL, Duration::from_secs(60));
+    fn 生产网关缓存采用三秒有效期() {
+        assert_eq!(DEFAULT_GATEWAY_CACHE_TTL, Duration::from_secs(3));
     }
 }

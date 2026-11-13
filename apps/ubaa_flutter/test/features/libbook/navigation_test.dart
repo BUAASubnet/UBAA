@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
 import '../../support/libbook/backend.dart';
 
 void main() {
@@ -28,17 +29,13 @@ void main() {
       expect(backend.commitCalls, 0);
     });
   }
-  testWidgets(
-    '图书馆隐藏后首页刷新不能触发后台自动分区链',
-    (tester) async {
-      final backend = await _open(tester, width: 1280);
-      await tapVisibleWithScroll(tester, find.byIcon(Icons.home_outlined));
-      final before = backend.libraryReads.length;
-      await tapVisibleWithScroll(tester, find.byTooltip('刷新'));
-      expect(backend.libraryReads, hasLength(before));
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-  );
+  testWidgets('图书馆隐藏后首页刷新不能触发后台自动分区链', (tester) async {
+    final backend = await _open(tester, width: 1280);
+    await tapVisibleWithScroll(tester, find.byIcon(Icons.home_outlined));
+    final before = backend.libraryReads.length;
+    await tapVisibleWithScroll(tester, find.byTooltip('刷新'));
+    expect(backend.libraryReads, hasLength(before));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
   testWidgets('明确空座位后重新加载不复活原选择', (tester) async {
     final backend = await _open(tester);
     await tapVisibleWithScroll(tester, find.widgetWithText(Card, 'A1'));

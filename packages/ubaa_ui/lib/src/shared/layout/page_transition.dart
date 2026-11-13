@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 
-/// 外壳内页面切换的轻量过渡与左缘侧滑返回。
+/// 页面与分页内容切换的轻量过渡，以及左缘侧滑返回。
 ///
-/// 页面由外壳状态切换而不是路由，子树始终是同一个；[pageKey] 变化时整体淡入并
-/// 横向滑入一小段：进入下一级从右侧，返回从左侧。[onBack] 不为空时，从左缘向右
-/// 拖动内容跟手移动，超过三分之一宽度或快速甩动即返回。
+/// 内容由状态切换而不是路由，子树始终是同一个；[pageKey] 变化时整体淡入并横向
+/// 滑入一小段。方向由 [order] 决定：变大（进入下一级、翻到后一周）从右侧，变小
+/// （返回、翻到前一周）从左侧；[order] 不变或 [lane] 变化时只淡入。[onBack]
+/// 不为空时，从左缘向右拖动内容跟手移动，超过三分之一宽度或快速甩动即返回。
 class UiPageTransition extends StatefulWidget {
   const UiPageTransition({
     super.key,
     required this.pageKey,
-    required this.deeper,
+    required this.order,
     required this.child,
+    this.lane,
     this.onBack,
   });
 
   /// 当前页面的标识；同级切换（底栏分类）传相同的值，不播放过渡。
   final Object? pageKey;
 
-  /// 当前是否位于下一级页面。
-  final bool deeper;
+  /// 当前页面在前后顺序中的位置：页面层级的深度，或周次、日期的序号。
+  final int order;
+
+  /// [order] 所属的序列（如视图类型、学期）；换了序列的两个位置不比较前后。
+  final Object? lane;
   final VoidCallback? onBack;
   final Widget child;
 
@@ -40,7 +45,7 @@ class _UiPageTransitionState extends State<UiPageTransition>
     vsync: this,
     duration: const Duration(milliseconds: 180),
   );
-  double _from = 1;
+  int _from = 1;
   double _drag = 0;
   double _settleFrom = 0;
 
@@ -62,8 +67,9 @@ class _UiPageTransitionState extends State<UiPageTransition>
         _enter.value = 1;
         return;
       }
-      // 进入下一级从右侧滑入；回到上一级从左侧滑入。
-      _from = widget.deeper ? 1 : -1;
+      _from = oldWidget.lane != widget.lane
+          ? 0
+          : widget.order.compareTo(oldWidget.order).sign;
       _enter.forward(from: 0);
     }
   }
@@ -107,7 +113,8 @@ class _UiPageTransitionState extends State<UiPageTransition>
           ),
         );
       },
-      child: widget.child,
+      // 过渡只改变位置和透明度，正文的绘制结果可以跨动画帧复用。
+      child: RepaintBoundary(child: widget.child),
     );
     // 内容始终处在同一层级：侧滑区域的有无不能让页面子树重建而丢失状态。
     final swipe = widget.onBack != null && !rtl;

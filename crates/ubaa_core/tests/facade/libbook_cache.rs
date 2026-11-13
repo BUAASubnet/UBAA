@@ -229,7 +229,10 @@ fn check_bookings(
     else {
         panic!("载荷类型错误")
     };
-    assert!(saved.bookings.is_empty());
+    assert_eq!(
+        saved.bookings,
+        [] as [ubaa_core::facade::CachedLibBookBooking; 0]
+    );
     let calls = transport.calls.load(Ordering::SeqCst);
     assert!(
         runtime

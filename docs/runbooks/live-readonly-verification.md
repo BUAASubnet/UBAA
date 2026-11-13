@@ -17,9 +17,10 @@
 
 运行时的分工：
 
-- `verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发。
-- `scripts/live/core-live.sh` 只负责启动已构建的二进制。
-- Core-live 默认在一个固定路线的 `RouteClient` 内登录一次，串行执行只读 facade。stdout 每行都是安全摘要，不含 DTO、URL、Cookie、Token、验证码或个人资料。
+- `verify-live` 校验参数白名单，安全读取凭据，经 stdin 转发给 Core-live 启动器。
+- `scripts/live/core-live.sh` 管理隔离会话目录，运行 `cargo build --locked --bin core-live` 并启动二进制。
+- Core-live 在一个固定 Direct 或 WebVPN 策略的 `UbaaClient` 内登录一次，串行执行客户端共用的只读 facade。stdout 每行都是安全摘要，不含 DTO、URL、Cookie、Token、验证码或个人资料。
+- 显式指定 `config-dir` 时使用专用验证目录。登录准备会重建该目录内的会话和固定路线配置，不能复用日常 App 的材料目录。
 - Core-live 是脚本化只读验证的联网程序；真实 App 的验收另行记录。
 
 ## 步骤
@@ -50,8 +51,8 @@ just verify-live feature=cgyy route=webvpn
 
 `feature=finance` 使用固定为 Direct 或 WebVPN 的 `UbaaClient`：
 
-- 通过 `login_required_route` 复用 App 已支持的图片验证码认证，随后调用 `finance_incomes`。
-- 输出 `auth/login` 和 `finance/incomes` 的安全摘要；认证失败时把收入查询标记为 `BLOCKED`。
+- 与其他功能共用客户端登录按钮的 `prepare_quiet_login_for → submit_quiet_login → continue_interactive_login`，随后调用 `finance_incomes`。
+- 输出 `auth/prepare`、`auth/login`、`auth/status` 和 `finance/incomes` 的安全摘要；认证失败时把依赖读取标记为 `BLOCKED`。
 - 财务账号需要查询系统权限。使用其他获授权账号时，通过本机密钥管理工具只向这次验证进程注入对应账号和密码；进程环境优先于 `.env`。
 
 ### Cgyy 窄范围日志
@@ -79,9 +80,11 @@ route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|
 
 - 依赖数据缺失输出 `NOT_APPLICABLE`，依赖请求失败输出 `BLOCKED`，独立操作继续执行。
 - 任何 `FAIL` 或 `BLOCKED` 都使该路线以非零退出。
-- 每条路线只创建并复用一个 `RouteClient`；登录前的 `auth/prepare` 必须与 `auth/login` 成对出现。
+- 每条路线只创建并复用一个固定策略的 `UbaaClient`；登录前的 `auth/prepare` 必须与 `auth/login` 成对出现。
 - 认证失败时，当前功能所需的全部操作都输出 `BLOCKED(reason=authentication_failed)`，使矩阵完整、可审计。
-- 登录页要求交互式验证时，Core 返回 `upstream_changed`，这是该路线的硬失败。验证器不提示、不下载图片、不重试，也不能用交互方式绕过。
+- 图片验证码复用客户端 Core 的本地识别和最多三轮自动处理。耗尽时输出 `auth/login FAIL error=captcha_required`，依赖读取标记为 `BLOCKED`，进程非零退出。工具不等待人工输入，也不输出或保存验证码。
+- 未支持的验证类型仍按 Core 错误失败，服务异常不在验证器中额外重试。固定路线不进行 Auto 探测，也不登录另一条路线。
+- 希冀等功能的聚合只读接口用于协议验收；Flutter 的渐进调度、缓存保存及首屏耗时需要在应用端另行验证。
 
 ### 记录结果
 

@@ -61,8 +61,13 @@ pub fn parse_courses(html: &str) -> Vec<Course> {
     courses
 }
 
+#[cfg(test)]
 pub(super) fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
     let document = Html::parse_document(html);
+    assignment_list(&document, course)
+}
+
+fn assignment_list(document: &Html, course: &Course) -> AssignmentList {
     let mut assignments = Vec::new();
     let mut raw_anchor_count = 0;
     for anchor in document.select(&ANCHORS) {
@@ -112,6 +117,22 @@ pub fn parse_detail(
     title: &str,
 ) -> crate::error::Result<JudgeAssignmentDetail> {
     let document = Html::parse_document(html);
+    Ok(detail_from_document(
+        &document,
+        course_id,
+        course_name,
+        assignment_id,
+        title,
+    ))
+}
+
+fn detail_from_document(
+    document: &Html,
+    course_id: &str,
+    course_name: &str,
+    assignment_id: &str,
+    title: &str,
+) -> JudgeAssignmentDetail {
     let root = document
         .select(&BODY)
         .next()
@@ -122,7 +143,7 @@ pub fn parse_detail(
         .and_then(|value| value.parse().ok())
         .unwrap_or(0);
     let (start_time, due_time) = capture_window(&plain);
-    let parsed_problems = parse_problems(&document);
+    let parsed_problems = parse_problems(document);
     let earned_scores = parsed_problems
         .iter()
         .filter_map(|problem| problem.earned_score)
@@ -153,7 +174,7 @@ pub fn parse_detail(
     let status = resolve_status(total_problems, submitted_count);
     let normalized_max_score = normalize_score(max_score.as_deref());
     let normalized_my_score = normalize_score(my_score.as_deref());
-    Ok(JudgeAssignmentDetail {
+    JudgeAssignmentDetail {
         course_id: course_id.into(),
         course_name: course_name.into(),
         assignment_id: assignment_id.into(),
@@ -174,7 +195,7 @@ pub fn parse_detail(
         ),
         problems,
         content_plain_text: (!plain.is_empty()).then_some(plain),
-    })
+    }
 }
 
 /// 将一项详情转换为稳定列表摘要。
@@ -471,4 +492,59 @@ fn normalize_text(value: &str) -> String {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// 只复用唯一明确选中的索引正文，不从列表顺序推断当前作业。
+pub(super) fn parse_assignment_page(html: &str, course: &Course) -> super::service::AssignmentPage {
+    let document = Html::parse_document(html);
+    let list = assignment_list(&document, course);
+    let mut selected = document.select(&ANCHORS).filter(|a| {
+        a.value().has_class(
+            "list-group-item-primary",
+            scraper::CaseSensitivity::CaseSensitive,
+        )
+    });
+    let detail = selected
+        .next()
+        .filter(|_| selected.next().is_none())
+        .and_then(|anchor| {
+            let href = anchor.attr("href")?;
+            let url = url::Url::parse("https://judge.buaa.edu.cn/assignment/")
+                .ok()?
+                .join(href)
+                .ok()?;
+            if url.path() != "/assignment/index.jsp" {
+                return None;
+            }
+            let query = url
+                .query_pairs()
+                .collect::<std::collections::HashMap<_, _>>();
+            if query
+                .get("courseID")
+                .is_some_and(|id| id.as_ref() != course.course_id)
+            {
+                return None;
+            }
+            let id = query.get("assignID")?;
+            let assignment = list
+                .assignments
+                .iter()
+                .find(|a| a.assignment_id == id.as_ref())?;
+            let detail = detail_from_document(
+                &document,
+                &course.course_id,
+                &course.course_name,
+                &assignment.assignment_id,
+                &assignment.title,
+            );
+            (detail.start_time.is_some()
+                || !detail.problems.is_empty()
+                || detail.max_score.is_some())
+            .then_some(detail)
+        });
+    super::service::AssignmentPage {
+        list,
+        detail,
+        source_at: chrono::Utc::now().timestamp(),
+    }
 }

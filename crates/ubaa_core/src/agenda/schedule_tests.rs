@@ -131,7 +131,7 @@ fn unknown_weekday_conflicting_weeks_and_invalid_dates_cannot_claim_empty_day() 
                 }
             }
         }
-        assert!(project_school_agenda(&records, &ctx).unwrap().is_empty());
+        assert_eq!(project_school_agenda(&records, &ctx).unwrap().len(), 0);
     }
 }
 #[test]

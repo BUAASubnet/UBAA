@@ -171,9 +171,9 @@ async fn 图书馆取消本地非法输入在任何网络前拒绝且不保存�
             .expect_err("非法目标或分页不得进入 Core");
         assert_eq!(error.code, BridgeErrorCode::InvalidInput);
     }
-    assert!(client.write_intents.lock().await.is_empty());
-    assert!(direct.requests().expect("读取 Direct 请求").is_empty());
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
+    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 0);
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -267,7 +267,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
         .await
         .expect_err("prepare 原始上游文案必须安全归约");
     assert_safe_cancel_authority_error(&error);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     assert_eq!(cancel_request_count(&direct), 0);
     direct
         .assert_exhausted()

@@ -212,7 +212,7 @@ async fn 场馆取消未确认或非正目标均在路由后端前拒绝() {
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.cgyy_cancel_calls, 0);
         assert!(backend.cgyy_last_cancel_request.is_none());
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -246,7 +246,7 @@ async fn 场馆取消路由后端只调用一次并固定安全成功结果() {
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token"] {
         assert!(!serialized.contains(forbidden));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -276,7 +276,7 @@ async fn 场馆取消outcome_unknown退出5且只调用一次并隐藏原始正�
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token", "Set-Cookie"] {
         assert!(!serialized.contains(forbidden));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -301,7 +301,7 @@ async fn 场馆取消发送前结构变化使用固定安全错误且只调用�
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token"] {
         assert!(!serialized.contains(forbidden));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -347,7 +347,7 @@ async fn 固定路线场馆取消同样校验typed请求且只调用一次() {
             .order_id,
         42
     );
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -393,6 +393,6 @@ async fn 固定路线场馆取消错误也固定脱敏且只调用一次() {
         for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token", "Set-Cookie"] {
             assert!(!serialized.contains(forbidden));
         }
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }

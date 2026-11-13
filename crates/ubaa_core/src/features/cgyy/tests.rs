@@ -211,7 +211,7 @@ fn 验证码位移凭据使用冻结_aes_ecb_pkcs7_向量() {
     let (point, verification) =
         build_captcha_solution("0123456789abcdef", "token", 12).expect("应生成验证码凭据");
     assert_eq!(point, "//vojImUw+QfCP7LYCytFg==");
-    assert!(!verification.is_empty());
+    assert_ne!(verification.len(), 0);
 }
 
 #[test]
@@ -474,7 +474,7 @@ mod contract {
     #[test]
     fn 成功订单空数据按冻结实现映射为空页和空详情() {
         let page = parse_orders_at(r#"{"code":200,"data":null}"#, fixed_now()).unwrap();
-        assert!(page.content.is_empty());
+        assert_eq!(page.content.len(), 0);
         assert_eq!(page.total_elements, 0);
         assert_eq!(page.size, 20);
         assert_eq!(page.number, 0);
@@ -490,7 +490,7 @@ mod contract {
             fixed_now(),
         )
         .unwrap();
-        assert!(page.content.is_empty());
+        assert_eq!(page.content.len(), 0);
         assert_eq!(page.total_elements, 0);
 
         let detail = parse_order_detail_at(r#"{"code":200,"message":"OK"}"#, fixed_now()).unwrap();

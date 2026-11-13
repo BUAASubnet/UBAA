@@ -59,6 +59,8 @@ mixin ControllerActions on ControllerState, ControllerAppService {
     FeatureId feature = FeatureId.schedule,
     bool refreshHomeAfter = true,
   }) {
+    if (internalNetworkFailure != null && internalNetworkOnline)
+      internalCancelNetworkChange();
     final epoch = internalLifecycleEpoch;
     final before = internalFeatureRecoveryErrors[feature];
     final pending = internalRecoverSession(
@@ -102,7 +104,8 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   }
 
   /// 本地网络变化只是唤醒提示，成功与否仍由原会话检查判断。
-  void onNetworkChanged() => internalWakeNetworkRecovery();
+  void onNetworkChanged({bool online = true}) =>
+      internalHandleNetworkChange(online: online);
 
   /// 返回前台复用当前实例；旧宿主已认证首页也转入同一恢复协调路径。
   Future<void> resumeSession() {
@@ -113,6 +116,10 @@ mixin ControllerActions on ControllerState, ControllerAppService {
     if (!internalUsesLocalRecovery) {
       internalUsesLocalRecovery = true;
       internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
+    }
+    if (internalBackend is NetworkChangeBackend) {
+      internalHandleNetworkChange(online: internalNetworkOnline);
+      return internalNetworkReady?.future ?? Future<void>.value();
     }
     return internalAutomaticSchoolAction(internalRecoverSession);
   }
@@ -828,6 +835,7 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   @override
   void dispose() {
     if (internalDisposed) return;
+    internalCancelNetworkChange();
     internalDisposeHome();
     internalDisposeAppService();
     internalDisposeUpdatePrompts();

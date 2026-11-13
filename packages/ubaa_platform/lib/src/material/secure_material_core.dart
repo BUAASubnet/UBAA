@@ -30,8 +30,12 @@ class SecureMaterialStore {
   SecureMaterialStore({
     required SecureMaterialTransport transport,
     required this.coordinator,
-  }) : _transport = transport;
+    bool probeRequiresTransaction = true,
+  }) : _transport = transport,
+       _probeRequiresTransaction = probeRequiresTransaction;
   final MaterialCoordinator coordinator;
+  // 整文件后端的探测可能影响业务材料；只有已知的单键后端可省略事务标记。
+  final bool _probeRequiresTransaction;
 
   /// 账号多步骤操作借用同一保护；回调仅可进行短本机操作。
   Future<T> coordinate<T>(Future<T> Function() action) async {
@@ -64,7 +68,7 @@ class SecureMaterialStore {
       await coordinate(() async {
         // 读取失败时没有发出写入，不应留下未完成的事务标记。
         await _transport.read(capabilityKey);
-        await coordinator.beforeMutation();
+        if (_probeRequiresTransaction) await coordinator.beforeMutation();
         try {
           await _transport.write(capabilityKey, _capabilityValue);
           if (await _transport.read(capabilityKey) != _capabilityValue) {
@@ -80,7 +84,7 @@ class SecureMaterialStore {
           try {
             await _transport.delete(capabilityKey);
           } on Object {
-            // 保留未完成标记，不用清理回执推断原写入已停止。
+            // 只清理自身随机键。整文件后端仍保留未完成事务标记。
           }
           rethrow;
         }

@@ -85,6 +85,7 @@ mixin ControllerRequiredRecovery on ControllerState {
         account?.username ?? internalUser?.schoolId ?? internalUser?.username;
     if (expected == null) return null;
     final routeGeneration = internalRoutePolicyGeneration;
+    final networkRevision = internalNetworkRevision;
     final credentials = internalLoginCredentialRevision;
     final service = internalRequiredRecoveryServices.putIfAbsent(
       session.backend,
@@ -116,6 +117,8 @@ mixin ControllerRequiredRecovery on ControllerState {
     );
     bool current() =>
         session.isCurrent &&
+        networkRevision == internalNetworkRevision &&
+        internalNetworkFailure == null &&
         internalRecoveryIsCurrent(epoch) &&
         internalLocalAccount?.id == account?.id &&
         routeGeneration == internalRoutePolicyGeneration &&
@@ -160,7 +163,10 @@ mixin ControllerRequiredRecovery on ControllerState {
     final result = await service.ensureTargetSession(
       target: target,
       scope: scope,
-      deadline: DateTime.now().add(const Duration(minutes: 2)),
+      deadline:
+          internalActiveRecovery?.deadline ??
+          internalNetworkDeadline ??
+          DateTime.now().add(const Duration(minutes: 2)),
     );
     await scope.validatePersistent();
     if (!scope.isCurrent) return null;

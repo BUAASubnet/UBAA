@@ -1,6 +1,7 @@
 //! 持久索引和详情的渐进刷新；复用数据保留原时间，部分失败保护旧摘要。
 mod details;
 mod history;
+mod parallel;
 pub use details::{JudgeDetailsRead, JudgeDetailsReadBatch};
 pub(super) mod policy;
 mod progress;
@@ -17,6 +18,8 @@ use std::collections::{BTreeMap, HashSet};
 pub struct JudgeRefreshOptions {
     pub include_expired: bool,
     pub full_refresh: bool,
+    /// 手动重新发现作业，仍允许复用有效详情。
+    pub refresh_indices: bool,
     pub preferred_course: Option<String>,
     pub current_assignment: Option<JudgeAssignmentKey>,
 }
@@ -32,6 +35,7 @@ pub struct JudgeRefresh {
     oldest_source_at: i64,
     save_error: Option<CacheError>,
     history: Option<history::CourseProgress>,
+    parallel: parallel::DetailReads,
 }
 impl JudgeRefresh {
     #[must_use]
@@ -85,12 +89,22 @@ impl UbaaClient {
                     .as_ref()
                     .map(|key| key.course_id.as_str())
                     .or(options.preferred_course.as_deref()),
-                true,
+                options.full_refresh || options.refresh_indices,
                 ticket,
             )
             .await?;
         let now = chrono::Utc::now().timestamp();
         let mut save_error = None;
+        if scan.course_ticket.is_none() {
+            scan.course_ticket = Some(
+                cache
+                    .begin(CacheScope {
+                        route: scan.resolution.mode,
+                        query: CacheQuery::JudgeCourses,
+                    })
+                    .map_err(OfflineReadError::Cache)?,
+            );
+        }
         if let Some(ticket) = scan.course_ticket.take() {
             remember_save(
                 &mut save_error,
@@ -99,7 +113,7 @@ impl UbaaClient {
                         &ticket,
                         &scan.ticket,
                         CachePayload::JudgeCourses(scan.courses().to_vec()),
-                        now,
+                        scan.course_source_at,
                         CacheCompleteness::Complete,
                     )
                 }),
@@ -120,6 +134,7 @@ impl UbaaClient {
                 Vec::new()
             }
         };
+        policy::prioritize_courses(&mut scan, &options, &original, now);
         let summaries: BTreeMap<_, _> = original
             .iter()
             .cloned()
@@ -136,6 +151,7 @@ impl UbaaClient {
             source_times,
             cached_keys,
             history: None,
+            parallel: parallel::DetailReads::default(),
             scan,
             options,
             summaries,
@@ -170,7 +186,7 @@ impl UbaaClient {
             .repository(|repository| repository.renew_read(&mut refresh.scan.ticket))
             .map_err(OfflineReadError::Cache)?;
         history::renew(refresh)?;
-        let step = match self.read_judge_refresh_batch(refresh).await {
+        let mut step = match self.read_judge_refresh_batch(refresh).await {
             Ok(step) => step,
             Err(error) => {
                 history::fail(refresh);
@@ -178,7 +194,22 @@ impl UbaaClient {
                 return Err(error);
             }
         };
-        self.validate_judge_scan(&refresh.scan)?;
+        for index in 0..16 {
+            self.validate_judge_scan(&refresh.scan)?;
+            progress::apply(refresh, &step, chrono::Utc::now().timestamp())?;
+            // 索引立即展示；只合并已经保存的连续详情，不追加网络等待。
+            if index == 15
+                || !step.reused
+                || step.batch.kind != JudgeScanKind::Detail
+                || refresh.options.current_assignment.is_some()
+            {
+                break;
+            }
+            let Some(next) = read::next_reused_detail(refresh)? else {
+                break;
+            };
+            step = next;
+        }
         progress::finish(refresh, step, chrono::Utc::now().timestamp())
     }
 }

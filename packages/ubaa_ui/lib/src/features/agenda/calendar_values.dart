@@ -44,6 +44,35 @@ bool agendaOnDay(AgendaEntry entry, DateTime day) {
   return point != null && agendaDay(point) == date;
 }
 
+/// 在可见日期范围内一次分组，跨日事项同时进入覆盖到的日期，结束时刻不包含在内。
+Map<DateTime, List<AgendaEntry>> agendaEntriesByDay(
+  Iterable<AgendaEntry> entries,
+  DateTime first,
+  int days,
+) {
+  final from = agendaDay(first);
+  final until = from.add(Duration(days: days));
+  final groups = <DateTime, List<AgendaEntry>>{};
+  for (final entry in entries) {
+    final start = agendaStart(entry), end = agendaEnd(entry);
+    if (start != null && end != null && end.isAfter(start)) {
+      var day = agendaDay(start);
+      if (day.isBefore(from)) day = from;
+      while (day.isBefore(until) && day.isBefore(end)) {
+        (groups[day] ??= []).add(entry);
+        day = day.add(const Duration(days: 1));
+      }
+    } else {
+      final point = start ?? agendaValue(entry.timing.due) ?? end;
+      if (point == null) continue;
+      final day = agendaDay(point);
+      if (!day.isBefore(from) && day.isBefore(until))
+        (groups[day] ??= []).add(entry);
+    }
+  }
+  return groups;
+}
+
 List<AgendaEntry> agendaContentConflicts(
   AgendaContent content,
   Iterable<AgendaEntry> entries,

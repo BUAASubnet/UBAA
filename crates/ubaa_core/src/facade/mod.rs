@@ -9,6 +9,7 @@ mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
 mod agenda_sync;
 pub mod bhpan;
+pub mod cloud_print;
 pub use crate::agenda::sync::AgendaSyncError;
 #[path = "client/app_service.rs"]
 pub mod app_service;
@@ -117,6 +118,7 @@ pub use crate::domain::{
 pub use crate::error::{ErrorCode, ErrorKind, InitializationFailure, Result, UbaaError};
 
 // 这些类型是宿主可见的安全路线诊断投影；其余 connection 实现仍属于 Core 内部。
+pub use crate::connection::control::{ClientNetworkChange, ClientNetworkControl};
 pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 
 // 独立本地仓库不获取 UbaaClient 网络锁；载荷白名单不包含学校写入资格。

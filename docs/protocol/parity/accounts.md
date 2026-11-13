@@ -4,11 +4,32 @@
 
 ## 当前规则
 
+### 登录选项恢复与上游异常后的保留
+
+2026-11-13 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/AuthViewModel.kt`、`shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`api/auth/AuthApi.kt`、`model/dto/Auth.kt` 及 `AuthViewModelInitializeAppTest.kt`。固定 buaa-api 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，对应 `src/api/sso/auth.rs`、`src/context.rs`、`src/request.rs`、`src/store/{cred,cookies}.rs` 和 `src/error.rs`。
+
+| 操作与来源 | CAS/引导 URL 与 service | 重定向与最终 URL | Cookie/Session/Token 作用域 | HTTP 方法与参数 | 请求头与编码 | 加密与签名 | DTO 与解析 | 缓存、并发与重试 | 错误、退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 旧版恢复登录选项 | 本地操作，不适用 | 不适用 | Settings 凭据独立于业务会话 | 本地读取，无 HTTP | 不适用 | 不适用 | 用户名、密码为字符串，两个选项为布尔值 | 初始化读取保存值，登录成功后按表单保存 | 记住密码时恢复两个选项；自动登录关闭值保持关闭 |
+| buaa-api 恢复登录选项 | 本地操作，不适用 | 不适用 | JSON 凭据与 Cookie 分别保存 | 本地文件读取，无 HTTP | JSON | 不适用 | 可空用户名与密码，无同等 UI 选项 | `Context` 持有凭据与各服务期限 | 没有同等表单或本机恢复许可，不适用 |
+| 旧版处理验证码或解析失败 | 沿既有 SSO 登录对照，无新增地址 | 沿当前路线处理 | 保留已保存凭据 | 原认证方法与参数，失败处理无新增请求 | 原表单编码 | 无新增常量 | 需要验证码时保留挑战；其他失败更新界面错误 | 刷新与登录失败不改写记住密码选项 | `AuthViewModel` 只在成功登录时保存选项，失败不会调用凭据清除 |
+| buaa-api 处理验证码或解析失败 | 普通 SSO 见既有对照；验证码不适用 | 原 reqwest 行为 | `CredentialStore` 保留账号密码 | 原普通登录表单 | 原表单编码 | 无新增常量 | 返回 Server/Parse 等错误，无图像验证码协议 | 认证成功刷新有效期，错误向调用者传播 | 无当前的跨进程恢复许可，不能据此定义撤销行为 |
+
+当前本地首页仅恢复同账号的记住密码与自动登录选项，密码不写入首页表单。用户改填、提交、退出或销毁后，迟到读取不能覆盖新表单。凭据读取失败保留已确认的本机首页，并记录本地诊断。凭据和账号索引格式、Bridge 与学校请求均保持原合同。
+
+自动恢复遇到 `upstream_changed` 时保留已保存凭据与持久恢复许可，只暂停当前恢复服务中同一材料的自动提交。重新启动后，仍先核对会话，再按已有自动登录许可尝试恢复。明确退出、清除本机凭据、账号不匹配、凭据被拒和密码风险确认失败继续使用原撤销规则，不恢复已撤销的索引。
+
 ### Android 首次安全存储初始化
 
 冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt` 使用 Settings 保存凭据。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/store/cred.rs` 使用 JSON 文件。两源没有 Android Keystore 或 flutter_secure_storage 算法标记的等价初始化操作。此本机操作的 CAS/service、重定向与最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列均不适用；学校认证、读取和写入保持原协议。
 
-Android 使用锁定 `flutter_secure_storage 10.0.0` 的 `migrateOnAlgorithmChange=true` 和 `resetOnError=true`。首次空存储通过插件初始化当前 RSA-OAEP 与 AES-GCM 算法；已有材料优先迁移，正常重开保留材料。单项密文解密失败时插件删除该项，算法或密钥迁移失败时允许清空安全存储并重新初始化。清理可能要求重新登录和重新获取加密缓存，不退回明文。能力探测继续验证读取、写入和删除。iOS/macOS 的 Keychain、Windows 的 DPAPI、Linux 的 Secret Service 和 OHOS 的 HUKS 不使用这些 Android 标记，错误处理保持各平台原规则。
+Android 使用锁定 `flutter_secure_storage 11.2.0` 的 `migrateOnAlgorithmChange=true` 和 `resetOnError=true`。首次空存储直接初始化 RSA-OAEP 与 AES-GCM，不尝试旧算法迁移。UBAA 在 10.0.0 中已使用相同算法；升级保留默认存储名称、Keystore alias 和材料键。单项密文解密失败时允许清理受影响的材料，用户可能需要重新登录和重新获取加密缓存，不退回明文。能力探测继续验证读取、写入和删除。
+
+11.2.0 已删除 RSA PKCS#1、AES-CBC 和 EncryptedSharedPreferences 后端。UBAA 不使用这些旧算法；原生测试中的两项旧算法迁移用例由当前算法跨版本保留、首次初始化、密文损坏恢复用例承担受支持路径的覆盖。跨版本用例先由 10.0.0 在独立测试应用中写入合成材料，再由 11.2.0 覆盖安装后读取并删除，不访问生产应用数据。版本依据见[上游变更记录](https://github.com/juliansteenbakker/flutter_secure_storage/blob/flutter_secure_storage-v11.2.0/flutter_secure_storage/CHANGELOG.md)。
+
+Apple 插件同步升级为 0.4.x，macOS 直接使用公开的 `usesDataProtectionKeychain=false` 配置登录 Keychain，iOS 保留首次解锁后仅本机可用配置。Windows 依赖要求 win32 6.x，并将 package_info_plus 更新为兼容的 10.2.2，现有 DPAPI 文件适配随其 typed API 更新，文件格式、材料键和替换规则保持。Linux 的 Secret Service 与 OHOS 的 HUKS 继续使用原有适配；OHOS 通过固定的 2.1.1 平台接口调用。
+
+Android 启动探测在同一材料文件锁内读取、写入、读回和删除随机非敏感键。插件的单键写入和删除通过 SharedPreferences 编辑对应条目，探测不为该临时键写入业务事务标记。探测失败仍报告不可用，并尝试只清理自身随机键；系统恢复后，下次启动重新探测。清理失败留下的随机测试键不参与账号索引或凭据读取。业务写入和删除继续记录事务开始与完成，已有未完成标记仍阻止访问，不自动清除。Windows 整文件替换及未知注入后端继续为探测记录事务，防止替换中途失败后覆盖原材料。两份冻结来源均没有等价的探测或事务恢复流程，其九列上游协议不适用，此处只调整本机材料协调。
 
 ### H1-b3b：共享句柄关闭与持久身份撤销
 

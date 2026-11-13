@@ -29,54 +29,59 @@ class _ExamTimelineState extends State<ExamTimeline> {
         detail,
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (upcoming.isNotEmpty) ...[
-          _heading(context, '即将到来'),
-          ..._groups(upcoming),
-        ],
-        if (other.isNotEmpty) ...[
-          _heading(context, '未安排'),
-          for (final detail in other)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ExamCompactCard(detail: detail),
-            ),
-        ],
-        if (finished.isNotEmpty) ...[
-          if (upcoming.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ExamOutlinedCard(
-                child: ListTile(
-                  leading: const Icon(Icons.event_available_outlined),
-                  title: const Text('暂无即将进行的考试'),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12, top: 4),
+    final rows = <WidgetBuilder>[
+      if (upcoming.isNotEmpty) ...[
+        (context) => _heading(context, '即将到来'),
+        ..._groups(upcoming),
+      ],
+      if (other.isNotEmpty) ...[
+        (context) => _heading(context, '未安排'),
+        for (final detail in other)
+          (context) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ExamCompactCard(detail: detail),
+          ),
+      ],
+      if (finished.isNotEmpty) ...[
+        if (upcoming.isEmpty)
+          (context) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
             child: _ExamOutlinedCard(
               child: ListTile(
-                onTap: () => setState(() => _showFinished = !_showFinished),
-                leading: const Icon(Icons.history),
-                title: Text('已结束考试 (${finished.length})'),
-                trailing: Icon(
-                  _showFinished ? Icons.expand_less : Icons.expand_more,
-                ),
+                leading: const Icon(Icons.event_available_outlined),
+                title: const Text('暂无即将进行的考试'),
               ),
             ),
           ),
-          if (_showFinished) ..._groups(finished, finished: true),
-        ],
+        (context) => Padding(
+          padding: const EdgeInsets.only(bottom: 12, top: 4),
+          child: _ExamOutlinedCard(
+            child: ListTile(
+              onTap: () => setState(() => _showFinished = !_showFinished),
+              leading: const Icon(Icons.history),
+              title: Text('已结束考试 (${finished.length})'),
+              trailing: Icon(
+                _showFinished ? Icons.expand_less : Icons.expand_more,
+              ),
+            ),
+          ),
+        ),
+        if (_showFinished) ..._groups(finished, finished: true),
       ],
+    ];
+    return ListView.builder(
+      padding: UbaaTheme.pageInsets(context, top: 8),
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index](context),
     );
   }
 
   Widget _heading(BuildContext context, String text) => UiSectionTitle(text);
 
-  List<Widget> _groups(List<FeatureDetail> items, {bool finished = false}) {
+  List<WidgetBuilder> _groups(
+    List<FeatureDetail> items, {
+    bool finished = false,
+  }) {
     final groups = <DateTime?, List<FeatureDetail>>{};
     for (final item in items) {
       final date = (item.presentation! as ExamPresentation).calendarDate;
@@ -91,7 +96,7 @@ class _ExamTimelineState extends State<ExamTimeline> {
     return [
       for (final date in dates)
         for (final (index, detail) in groups[date]!.indexed)
-          _ExamTimelineRow(
+          (context) => _ExamTimelineRow(
             detail: detail,
             date: date,
             showDate: index == 0,

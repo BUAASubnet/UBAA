@@ -1,5 +1,7 @@
-use super::client::{BridgeClient, BridgeRoutePolicy};
+use super::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeRoutePolicy};
+use super::read_pool::ReadGroup;
 use super::shared_account::BridgeSharedAccount;
+use futures_util::FutureExt;
 use std::path::PathBuf;
 use ubaa_core::facade::testing::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
 
@@ -27,6 +29,73 @@ fn fixture() -> PathBuf {
         ))
         .unwrap();
     root
+}
+
+#[tokio::test]
+async fn 手动路线切换等待读取结束并阻止新读取插队() {
+    for policy in [BridgeRoutePolicy::Direct, BridgeRoutePolicy::WebVpn] {
+        let root = fixture();
+        let bridge = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
+        let reading = bridge.inner.read(Some(ReadGroup::Profile)).await.unwrap();
+        let switching = bridge.set_default_route_policy(policy);
+        tokio::pin!(switching);
+        assert!(
+            switching.as_mut().now_or_never().is_none(),
+            "后台读取期间应等待切换，不能立即报告状态冲突"
+        );
+        assert!(
+            bridge
+                .inner
+                .read(Some(ReadGroup::Academic))
+                .now_or_never()
+                .is_none(),
+            "路线切换排队后，新读取必须等待"
+        );
+        drop(reading);
+        let settings = switching.await.unwrap();
+        assert_eq!(settings.default_policy, policy);
+        assert_eq!(settings.active_routes, vec![BridgeConnectionMode::Direct]);
+        let reading = bridge.inner.read(Some(ReadGroup::Profile)).await.unwrap();
+        assert_eq!(
+            reading.as_ref().unwrap().default_route_policy(),
+            policy.into()
+        );
+        drop(reading);
+        bridge.dispose().await.unwrap();
+        let reopened = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
+        assert_eq!(
+            reopened.route_settings().await.unwrap().default_policy,
+            policy
+        );
+        reopened.dispose().await.unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn 等待路线切换时关闭客户端不再保存策略() {
+    let root = fixture();
+    let bridge = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
+    let reading = bridge.inner.read(Some(ReadGroup::Profile)).await.unwrap();
+    let switching = bridge.set_default_route_policy(BridgeRoutePolicy::WebVpn);
+    tokio::pin!(switching);
+    assert!(switching.as_mut().now_or_never().is_none());
+    let closing = bridge.dispose();
+    tokio::pin!(closing);
+    assert!(closing.as_mut().now_or_never().is_none());
+    drop(reading);
+    assert_eq!(
+        switching.await.unwrap_err().code,
+        BridgeErrorCode::ClientDisposed
+    );
+    closing.await.unwrap();
+    let reopened = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
+    assert_eq!(
+        reopened.route_settings().await.unwrap().default_policy,
+        BridgeRoutePolicy::Auto
+    );
+    reopened.dispose().await.unwrap();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[tokio::test]

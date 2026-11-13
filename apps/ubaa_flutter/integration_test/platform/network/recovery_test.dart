@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -17,7 +18,7 @@ void main() {
       includeLinkLocal: false,
     );
     expect(interfaces, isA<List<NetworkInterface>>());
-    final events = StreamController<void>.broadcast();
+    final events = StreamController<bool>.broadcast();
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(UbaaErrorCode.networkError);
     await tester.pumpWidget(
@@ -30,8 +31,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     backend.authError = null;
-    events.add(null);
-    events.add(null);
+    events.add(true);
+    events.add(true);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 2);
     expect(backend.loginCalls, 0);

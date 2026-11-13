@@ -10,6 +10,8 @@ use ubaa_core::facade as core;
 #[derive(Clone, Default)]
 pub struct BridgeJudgeOnlineOptions {
     pub include_expired: bool,
+    pub refresh_indices: bool,
+    pub full_refresh: bool,
     pub expected_identity: Option<String>,
     pub preferred_course: Option<String>,
     pub keys: Option<Vec<BridgeJudgeAssignmentKey>>,
@@ -50,6 +52,8 @@ impl BridgeClient {
             let plan = client
                 .begin_judge_online(core::JudgeOnlineOptions {
                     include_expired: options.include_expired,
+                    refresh_indices: options.refresh_indices,
+                    full_refresh: options.full_refresh,
                     expected_identity: options.expected_identity,
                     preferred_course: options.preferred_course,
                     keys: options.keys.map(|keys| {

@@ -19,8 +19,9 @@ if [[ ${1:-} == --keyring-session ]]; then
   fi
   printf '%s' 'ubaa-ci-synthetic' | gnome-keyring-daemon --unlock --components=secrets
   cd "$repo_root/apps/ubaa_flutter"
-  exec just --justfile "$repo_root/justfile" flutter test --no-pub -d linux \
-    integration_test/platform/credentials/linux_test.dart \
+  exec just --justfile "$repo_root/justfile" flutter drive --no-pub -d linux \
+    --driver=test_driver/native_materials.dart \
+    --target=integration_test/platform/credentials/linux_test.dart \
     --dart-define=UBAA_SECURE_STORAGE_AVAILABLE=true \
     --dart-define=UBAA_SYNTHETIC_SECRET_SERVICE=true
 fi
@@ -37,8 +38,9 @@ cd "$repo_root/apps/ubaa_flutter"
 
 # 真实插件连接不到 Secret Service 时必须安全失败。
 DBUS_SESSION_BUS_ADDRESS="unix:path=$storage_test_dir/absent-bus" xvfb-run -a \
-  just --justfile "$repo_root/justfile" flutter test --no-pub -d linux \
-  integration_test/platform/credentials/linux_test.dart \
+  just --justfile "$repo_root/justfile" flutter drive --no-pub -d linux \
+  --driver=test_driver/native_materials.dart \
+  --target=integration_test/platform/credentials/linux_test.dart \
   --dart-define=UBAA_SECURE_STORAGE_AVAILABLE=false \
   --dart-define=UBAA_SYNTHETIC_SECRET_SERVICE=true
 

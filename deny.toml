@@ -7,10 +7,7 @@ version = 2
 db-path = "~/.cargo/advisory-dbs"
 db-urls = ["https://github.com/RustSec/advisory-db"]
 yanked = "deny"
-ignore = [
-  { id = "RUSTSEC-2023-0071", reason = "rsa 0.9.10 是当前稳定版本且暂无安全修复；本项目只在本地解析固定来源的登录材料，不把私钥解密服务暴露为网络接口，升级条件由上游修复后重新评估。" },
-  { id = "RUSTSEC-2026-0319", reason = "仅接受 anymap2 0.13.0 的停止维护公告：liquid-core 0.26.11 的最新发布仍依赖它，tract 0.22.5 间接引入；上游切换 anymap3 后移除此项。该公告没有漏洞条目，其他 advisory 继续阻断。依据见 docs/migration/decision-log.md。" },
-]
+ignore = []
 
 [licenses]
 version = 2
@@ -46,19 +43,19 @@ deny = []
 # 这些重复来自不同目标平台、FRB/CLI 工具链或同一生态的无法合并版本；
 # 每项保留独立原因，升级上游依赖时应重新评估。
 skip = [
-  { crate = "cpufeatures", reason = "AES/SHA 依赖 cpufeatures 0.2，Bridge 的 chacha20 依赖 0.3，两条上游依赖约束不兼容" },
+  { crate = "block-buffer", version = "=0.10.4", reason = "FRB 2.13.0 的过程宏仍使用 md-5 0.10，运行时 RustCrypto 已升级，两套主版本约束不兼容" },
+  { crate = "crypto-common", version = "=0.1.7", reason = "FRB 2.13.0 的过程宏仍使用 md-5 0.10，运行时 RustCrypto 已升级，两套主版本约束不兼容" },
+  { crate = "digest", version = "=0.10.7", reason = "FRB 2.13.0 的过程宏仍使用 md-5 0.10，运行时 RustCrypto 已升级，两套主版本约束不兼容" },
+  { crate = "md-5", version = "=0.10.6", reason = "FRB 2.13.0 的过程宏仍使用 md-5 0.10，运行时 RustCrypto 已升级，两套主版本约束不兼容" },
+  { crate = "lock_api", version = "=0.4.14", reason = "tract-data 0.23.10 使用 parking_lot 0.13，FRB、referencing 与 string_cache 仍依赖 0.12 系列" },
+  { crate = "parking_lot", version = "=0.12.5", reason = "tract-data 0.23.10 使用 parking_lot 0.13，FRB、referencing 与 string_cache 仍依赖 0.12 系列" },
+  { crate = "parking_lot_core", version = "=0.9.12", reason = "tract-data 0.23.10 使用 parking_lot 0.13，FRB、referencing 与 string_cache 仍依赖 0.12 系列" },
+  { crate = "redox_syscall", version = "=0.5.18", reason = "tract-data 0.23.10 使用 parking_lot 0.13，FRB、referencing 与 string_cache 仍依赖 0.12 系列" },
   { crate = "core-foundation", reason = "macOS 原生依赖与跨平台 TLS 依赖的目标条件不同" },
-  { crate = "getrandom", reason = "不同平台随机源和 Rust 版本约束导致并存" },
   { crate = "hashbrown", reason = "jsonschema 与运行时依赖的版本约束暂不能合并" },
-  { crate = "itertools", version = "=0.10.5", reason = "tract-onnx 的 prost-derive 0.11 依赖 0.10，与 tract-data 的 0.12 及 liquid-core 的 0.14 约束不兼容" },
-  { crate = "itertools", version = "=0.12.1", reason = "tract-data 0.22.5 依赖 0.12，与 liquid-core 0.26.11 的 0.14 约束不兼容" },
   { crate = "miniz_oxide", reason = "image 与压缩链路的上游版本约束不同" },
-  { crate = "object", version = "=0.39.1", reason = "psm 的构建依赖 ar_archive_writer 0.5.3 要求 0.39，FRB 的 backtrace 0.3.77 要求 0.40" },
   { crate = "phf", reason = "时区数据与解析链路的上游版本约束不同" },
   { crate = "phf_shared", reason = "时区数据与解析链路的上游版本约束不同" },
-  { crate = "r-efi", version = "=5.3.0", reason = "getrandom 0.3 的 UEFI 后端要求 5.3，getrandom 0.4 要求 6.0；跟随两条随机源依赖并存" },
-  { crate = "rand", reason = "Core 的 RSA 依赖 rand 0.8；Flutter Bridge 保留 rand 0.10，两个版本系列的接口不兼容" },
-  { crate = "rand_core", reason = "rand 0.8 与 rand 0.10 的核心接口不兼容，分别由 Core/RSA 和 Bridge 使用" },
   { crate = "syn", reason = "过程宏依赖跨 Rust 版本并存，统一会改变生成链" },
 ]
 skip-tree = []

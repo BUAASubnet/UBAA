@@ -278,7 +278,7 @@ fn check_replacement(
     else {
         panic!("必须为订单")
     };
-    assert!(empty.content.is_empty());
+    assert_eq!(empty.content, [] as [ubaa_core::facade::CachedCgyyOrder; 0]);
     transport.mode.store(4, Ordering::SeqCst);
     let empty_detail = runtime
         .block_on(client.refresh_cached_cgyy(cache, CgyyCacheQuery::Detail { order_id: 9 }))
@@ -349,7 +349,7 @@ fn 订单缓存不接收错页和缺集合且非首页空页沿请求回退() {
         panic!("必须为订单页")
     };
     assert_eq!((page.number, page.size), (3, 10));
-    assert!(page.content.is_empty());
+    assert_eq!(page.content, [] as [ubaa_core::facade::CachedCgyyOrder; 0]);
     drop(cache);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();

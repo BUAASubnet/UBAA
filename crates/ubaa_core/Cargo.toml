@@ -30,9 +30,10 @@ image.workspace = true
 flate2.workspace = true
 tract-onnx.workspace = true
 icalendar.workspace = true
+lopdf.workspace = true
 md-5.workspace = true
-crc32fast = "=1.5.3"
-regex = "1.12.2"
+crc32fast = "=1.5.5"
+regex = "1.13.1"
 rand.workspace = true
 reqwest = { workspace = true, features = ["stream"] }
 rsa.workspace = true
@@ -51,7 +52,7 @@ sha2.workspace = true
 zeroize.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2.189"
+libc = "0.2.191"
 
 [target.'cfg(target_os = "android")'.dependencies]
 fs2.workspace = true

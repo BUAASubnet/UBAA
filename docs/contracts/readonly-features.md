@@ -91,6 +91,7 @@ Judge 诊断：
 - DTO 的 `totalProblems` 和 `submittedCount` 保持非负 `i32` 边界，诊断 `usize` 计数仅在 JSON 安全整数范围内接受。
 - 题目行只使用 `SUBMITTED` 或 `UNSUBMITTED`；四单元上游行的题目名称可以为空。
 - Core-live 直接以安全键值摘要输出这些字段，不解析或保存原始 JSON；实时验证器不依赖 jq、摘要盐或进程参数中的敏感值。
+- Core-live 全部功能使用固定路线的 `UbaaClient` 和客户端静默登录入口；图片验证码自动处理耗尽时输出 `captcha_required` 并非零退出。
 - `auth/prepare` 必须先于 `auth/login`，并记录 `mapping=embedded_login_state`；登录失败时所有依赖认证的操作都必须逐项输出 `BLOCKED(reason=authentication_failed)`，不能用汇总成功掩盖失败。
 
 Cgyy 目的类型诊断返回 `items` 与 `source`：

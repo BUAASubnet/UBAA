@@ -67,6 +67,7 @@ fn read_at(
         .unwrap();
     let transport = ReqwestTransport {
         object_client: client.clone(),
+        fast_connect_client: client.clone(),
         client,
     };
     let mut request = HttpRequest::get(format!("http://{host}:{}{path}", address.port()));

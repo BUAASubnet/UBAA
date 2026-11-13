@@ -145,8 +145,8 @@ async fn 场馆取消非法订单编号在网络前拒绝且不保存意图() {
             .expect_err("非正订单编号不得进入 Core");
         assert_eq!(error.code, BridgeErrorCode::InvalidInput);
     }
-    assert!(client.write_intents.lock().await.is_empty());
-    assert!(direct.requests().is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
+    assert_eq!(direct.requests().len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -199,7 +199,7 @@ async fn 场馆取消准备对denied与unknown失败关闭且隐藏上游正文(
         for forbidden in ["RAW-UPSTREAM", "phone", "token"] {
             assert!(!error.message.contains(forbidden), "case={label}");
         }
-        assert!(client.write_intents.lock().await.is_empty());
+        assert_eq!(client.write_intents.lock().await.len(), 0);
         assert_eq!(direct.detail_count(), 1);
         assert_eq!(direct.cancel_count(), 0);
         client.dispose().await.expect("销毁 bridge");
@@ -371,18 +371,8 @@ async fn 场馆取消commit路线变化由core在任何http前拒绝并返回实
     assert_eq!(error.code, BridgeErrorCode::OperationConflict);
     assert!(error.retryable);
     assert_eq!(error.resolved_route, Some(BridgeConnectionMode::WebVpn));
-    assert!(
-        commit_direct
-            .requests()
-            .expect("读取 Direct 请求")
-            .is_empty()
-    );
-    assert!(
-        commit_webvpn
-            .requests()
-            .expect("读取 WebVPN 请求")
-            .is_empty()
-    );
+    assert_eq!(commit_direct.requests().expect("读取 Direct 请求").len(), 0);
+    assert_eq!(commit_webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     assert_eq!(direct.cancel_count(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
@@ -682,7 +672,7 @@ impl HttpTransport for CgyyCancelTransport {
             )),
             path if path == format!("/venue-zhjs-server/api/orders/new/cancel/{ORDER_ID}") => {
                 assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Post);
-                assert!(request.body.is_empty());
+                assert_eq!(request.body.len(), 0);
                 let (status, body) = state
                     .cancel_responses
                     .pop_front()

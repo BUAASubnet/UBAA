@@ -269,7 +269,7 @@ async fn 阳光打卡概览投影再次关闭重复错配与非allowed目标() {
     assert_eq!(value["data"]["items"][4]["submitEligibility"], "unknown");
     assert!(value["data"]["items"][4]["submitTarget"].is_null());
     assert_eq!(backend.ygdk_overview_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -294,7 +294,7 @@ async fn 阳光打卡空父分类名称不能保留任何allowed目标() {
         assert!(item["submitTarget"].is_null());
     }
     assert_eq!(backend.ygdk_overview_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -330,7 +330,7 @@ async fn 阳光打卡概览投影关闭其余三类矛盾资格() {
         assert_eq!(value["data"]["items"][0]["submitEligibility"], "unknown");
         assert!(value["data"]["items"][0]["submitTarget"].is_null());
         assert_eq!(backend.ygdk_overview_calls, 1);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -377,7 +377,7 @@ async fn 阳光打卡记录仅公开图片数量且不泄露图片地址() {
     assert!(!serialized.contains(sentinel));
     assert!(!serialized.contains("SENTINEL"));
     assert_eq!(backend.ygdk_records_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 
     let validator = definition_validator("ygdkRecord");
     assert!(validator.is_valid(&value["data"]["content"][0]));
@@ -473,7 +473,7 @@ async fn 阳光打卡提交构造typed请求且仅输出固定安全收据() {
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "token", "summary", "fileName"] {
         assert!(!serialized.contains(forbidden));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -503,7 +503,7 @@ async fn 阳光打卡成功收据丢弃非正record_id而不泄露原始结果()
     assert_eq!(backend.ygdk_submit_calls, 1);
     assert_eq!(backend.ygdk_readback_overview_calls, 1);
     assert_eq!(backend.ygdk_readback_records_calls, 1);
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -541,7 +541,7 @@ async fn 阳光打卡不可信false与上游变化均固定安全失败且不重
         for forbidden in ["RAW-UPSTREAM", "PRIVATE", "photo", "token"] {
             assert!(!serialized.contains(forbidden));
         }
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -589,7 +589,7 @@ async fn 阳光打卡outcome_unknown退出5且提示双刷新并只调用一次(
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "Set-Cookie", "photo", "token"] {
         assert!(!serialized.contains(forbidden));
     }
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -643,7 +643,7 @@ async fn 阳光打卡双回读彼此独立且失败不覆盖原提交结论() {
         } else {
             assert_eq!(value["data"]["message"], "阳光打卡已提交");
         }
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -686,7 +686,7 @@ async fn 固定路线成功后也只在原route执行双回读() {
         backend.ygdk_readback_records_requests,
         vec![(ConnectionMode::Direct, 1, 20)]
     );
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -731,7 +731,7 @@ async fn 固定路线outcome_unknown也只在原route执行双回读() {
         backend.ygdk_readback_records_requests,
         vec![(ConnectionMode::Direct, 1, 20)]
     );
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -773,7 +773,7 @@ async fn 阳光打卡非正目标与非canonical时间在路由前拒绝() {
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.ygdk_submit_calls, 0);
         assert!(backend.ygdk_last_submit_request.is_none());
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -822,7 +822,7 @@ async fn 阳光打卡危险照片与扩展token在路由前失败关闭() {
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.ygdk_submit_calls, 0);
         assert!(backend.ygdk_last_submit_request.is_none());
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }
 
@@ -856,7 +856,7 @@ async fn 固定路线同样在后端前拒绝危险照片扩展token() {
     assert_eq!(value["error"]["code"], "invalid_input");
     assert_eq!(backend.ygdk_submit_calls, 0);
     assert!(backend.ygdk_last_submit_request.is_none());
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[test]

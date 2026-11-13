@@ -31,7 +31,7 @@ fn unknown_directory_creation_is_reconciled_without_publishing_the_file() {
         );
         assert!(store.restore_sync_attempt().unwrap().is_none());
         assert_eq!(server.lock().unwrap().directory_creates, 1);
-        assert!(server.lock().unwrap().published.is_empty());
+        assert_eq!(server.lock().unwrap().published.len(), 0);
         assert_eq!(
             reopened
                 .run(AgendaSyncAction::CreateConfirmed, now())
@@ -320,7 +320,7 @@ fn compact_deletion_summary_prevents_old_device_resurrection_after_purge() {
         driver.run(AgendaSyncAction::Pull, later).await.unwrap();
         assert!(store.get(id).unwrap().is_none());
         let document = store.sync_snapshot().unwrap().document().clone();
-        assert!(document.items.is_empty());
+        assert_eq!(document.items.len(), 0);
         assert_eq!(document.item_deletions[0].id, id);
         assert_eq!(server.lock().unwrap().published.len(), 1);
     });

@@ -82,7 +82,7 @@ impl HttpTransport for Transport {
             format!("https://gsmis.buaa.edu.cn/gsapp/sys/{app}/*default/index.do")
         );
         let body = if url.path().ends_with("kfdxnxqcx.do") {
-            assert!(request.body.is_empty());
+            assert_eq!(request.body.len(), 0);
             assert!(!request.headers.contains_key("Content-Type"));
             r#"{"code":"0","datas":{"kfdxnxqcx":{"totalSize":2,"rows":[{"XNXQDM":"20262","XNXQDM_DISPLAY":"下一学期"},{"XNXQDM":"20261","XNXQDM_DISPLAY":"当前学期"}]}}}"#.to_owned()
         } else if url.path().ends_with("getXnxqList.do") {
@@ -90,7 +90,7 @@ impl HttpTransport for Transport {
                 request.headers["Content-Type"],
                 "application/x-www-form-urlencoded"
             );
-            assert!(request.body.is_empty());
+            assert_eq!(request.body.len(), 0);
             self.current_terms.clone()
         } else {
             assert!(url.path().ends_with("loadXskbData.do"));
@@ -225,7 +225,7 @@ fn gsmis认证失败不伪造空学期或成功来源且无会话零请求() {
     let (mut client, requests, root) =
         self::client("empty", false, false, ConnectionMode::WebVpn, CURRENT_TERMS);
     assert!(runtime.block_on(get_terms(&mut client)).is_err());
-    assert!(requests.lock().unwrap().is_empty());
+    assert_eq!(requests.lock().unwrap().len(), 0);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -334,11 +334,12 @@ fn gsmis显式学期不依赖当前标志且当前空课表不回退() {
         .replace("temporary", "20261");
     let (mut client, requests, root) =
         self::client("current-empty", true, false, ConnectionMode::Direct, &terms);
-    assert!(
+    assert_eq!(
         runtime
             .block_on(get_today_for_date(&mut client, "2026-09-14"))
             .unwrap()
-            .is_empty()
+            .len(),
+        0
     );
     assert!(
         requests

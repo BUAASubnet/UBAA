@@ -6,6 +6,7 @@ import 'features/ihome/service.dart';
 import 'features/finance/service.dart';
 import 'features/campus/service.dart';
 import 'features/bhpan/service.dart';
+import 'features/cloud_print.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
@@ -39,6 +40,7 @@ import 'recovery/services.dart' show ControllerServiceRecovery;
 import 'recovery/resume.dart' show ControllerDeferredRecovery;
 import 'recovery/retry.dart' show ControllerRecoveryRetry;
 import 'recovery/startup.dart' show ControllerOfflineStartup;
+import 'recovery/network.dart' show ControllerNetworkRecovery;
 import 'session/completion.dart' show ControllerAuthenticationCompletion;
 import 'session/authentication.dart' show ControllerAuthentication;
 import 'session/interactive.dart' show ControllerInteractiveAuthentication;
@@ -87,6 +89,7 @@ class AppController extends ControllerState
         ControllerDeferredRecovery,
         ControllerBackendRecovery,
         ControllerRecoveryRetry,
+        ControllerNetworkRecovery,
         ControllerBusinessRetry,
         ControllerRequiredRecovery,
         ControllerServiceRecovery,
@@ -197,6 +200,32 @@ class AppController extends ControllerState
   }
 
   CampusAccountService? _campusService;
+  ScopedCloudPrintService? _cloudPrintService;
+  UbaaBackend? _cloudPrintBackend;
+  int? _cloudPrintEpoch;
+
+  CloudPrintService? get cloudPrintService {
+    final backend = internalBackend;
+    if (backend is! CloudPrintProvider) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _cloudPrintBackend) || epoch != _cloudPrintEpoch) {
+      _cloudPrintBackend = backend;
+      _cloudPrintEpoch = epoch;
+      _cloudPrintService = ScopedCloudPrintService(
+        (backend as CloudPrintProvider).cloudPrint,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+        internalWriteCoordinator,
+      );
+    }
+    return _cloudPrintService;
+  }
+
   BhpanService? _bhpanService;
   UbaaBackend? _bhpanBackend;
   int? _bhpanEpoch;
@@ -272,6 +301,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        read: internalReadService,
         onRejected: internalReportUserSchoolRejection,
       );
     }

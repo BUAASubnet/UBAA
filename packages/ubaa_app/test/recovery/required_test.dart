@@ -321,34 +321,56 @@ void main() {
     expect(backend.loginCalls, 0);
     expect(controller.recoveredRoute, ConnectionMode.webvpn);
   });
-  test('登录遇未支持交互后其他目标不自动重复提交同一密码', () async {
-    final backend = _Backend()
-      ..requiredError = const BackendException(
-        UbaaErrorCode.authenticationRequired,
-        resolvedRoute: ConnectionMode.webvpn,
-      )
-      ..loginFailure = const BackendException(UbaaErrorCode.upstreamChanged);
-    final controller = AppController(
-      backend: backend,
-      localAccountStore: await support.savedAccounts(),
-      credentialVault: MemoryCredentialVault(
-        initial: const Credential(
-          username: 'fixture-user',
-          password: 'synthetic',
-          autoLogin: true,
-        ),
-      ),
-    );
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.recoverSession();
-    await controller.recoverSession(
-      feature: FeatureId.signin,
-      refreshHomeAfter: false,
-    );
-    expect(backend.loginRoutes, [ConnectionMode.webvpn]);
-    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.needsLogin);
-  });
+  for (final route in ConnectionMode.values) {
+    test('登录遇上游异常后暂停本次自动提交，重启保留恢复许可 $route', () async {
+      final backend = _Backend()
+        ..requiredError = BackendException(
+          UbaaErrorCode.authenticationRequired,
+          resolvedRoute: route,
+        )
+        ..loginFailure = const BackendException(UbaaErrorCode.upstreamChanged);
+      final accounts = await support.savedAccounts();
+      const saved = Credential(
+        username: 'fixture-user',
+        password: 'synthetic',
+        autoLogin: true,
+      );
+      final vault = MemoryCredentialVault(initial: saved);
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: accounts,
+        credentialVault: vault,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.recoverSession();
+      await controller.recoverSession(
+        feature: FeatureId.signin,
+        refreshHomeAfter: false,
+      );
+      expect(backend.loginRoutes, [route]);
+      expect(
+        controller.sessionRecoveryStatus,
+        SessionRecoveryStatus.needsLogin,
+      );
+      expect((await accounts.read())!.canRestore, isTrue);
+      expect(await vault.read(), saved);
+      controller.dispose();
+
+      final nextBackend = _Backend()..requiredError = backend.requiredError;
+      final reopened = AppController(
+        backend: nextBackend,
+        localAccountStore: accounts,
+        credentialVault: vault,
+      );
+      addTearDown(reopened.dispose);
+      await reopened.initialize();
+      expect(reopened.phase, AppPhase.home);
+      await reopened.recoverSession(refreshHomeAfter: false);
+      expect(nextBackend.loginRoutes, [route]);
+      expect(reopened.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+    });
+  }
   for (final saveFails in [false, true]) {
     test('手动更新材料保存失败=$saveFails 时不误解除旧材料的自动使用限制', () async {
       final backend = _Backend()

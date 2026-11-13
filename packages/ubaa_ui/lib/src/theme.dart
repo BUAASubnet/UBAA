@@ -37,6 +37,27 @@ class UbaaTheme {
       ? const Color(0xFFFFBD75)
       : const Color(0xFF9A4D00);
 
+  /// 保持色相与饱和度，把颜色调到指定的相对亮度；不同色相由此看起来一样亮。
+  static Color atLuminance(Color color, double luminance) {
+    final hsl = HSLColor.fromColor(color);
+    var low = 0.0, high = 1.0;
+    for (var i = 0; i < 16; i++) {
+      final mid = (low + high) / 2;
+      if (hsl.withLightness(mid).toColor().computeLuminance() < luminance) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return hsl.withLightness((low + high) / 2).toColor();
+  }
+
+  /// 固定的类别色（文件类型、日程来源）：深色主题下过暗的提亮到能看清。
+  static Color category(Color color, ColorScheme colors) =>
+      colors.brightness == Brightness.dark && color.computeLuminance() < .25
+      ? atLuminance(color, .25)
+      : color;
+
   /// 面板、对话框内的分组底色：半透明叠色，在页面、底部面板和对话框上都看得出边界。
   static Color insetFill(ColorScheme colors) =>
       colors.onSurface.withValues(alpha: .05);
@@ -79,35 +100,38 @@ class UbaaTheme {
           onPrimary: dark ? const Color(0xFF082F49) : Colors.white,
           primaryContainer: accentContainer,
           onPrimaryContainer: onAccentContainer,
-          secondary: dark ? const Color(0xFFC2C2C2) : const Color(0xFF596B7E),
-          onSecondary: dark ? const Color(0xFF242424) : Colors.white,
+          secondary: dark ? const Color(0xFFBEC5CD) : const Color(0xFF596B7E),
+          onSecondary: dark ? const Color(0xFF24282D) : Colors.white,
           secondaryContainer: accentContainer,
           onSecondaryContainer: onAccentContainer,
-          surface: dark ? const Color(0xFF111C29) : const Color(0xFFFCFDFF),
-          surfaceContainerLowest: dark ? const Color(0xFF0D1621) : Colors.white,
-          surfaceContainerLow: dark ? const Color(0xFF1C2B3D) : Colors.white,
+          // 深色表面是略带冷调的中性灰，由低到高逐级变亮；蓝色只留给强调。
+          surface: dark ? const Color(0xFF0E1114) : const Color(0xFFFCFDFF),
+          surfaceDim: dark ? const Color(0xFF0E1114) : null,
+          surfaceBright: dark ? const Color(0xFF3F444A) : null,
+          surfaceContainerLowest: dark ? const Color(0xFF07080B) : Colors.white,
+          surfaceContainerLow: dark ? const Color(0xFF1F2226) : Colors.white,
           surfaceContainer: dark
-              ? const Color(0xFF14283D)
+              ? const Color(0xFF24282D)
               : const Color(0xFFEAF3FC),
           surfaceContainerHigh: dark
-              ? const Color(0xFF27374A)
+              ? const Color(0xFF2D3136)
               : const Color(0xFFF1F4F7),
           surfaceContainerHighest: dark
-              ? const Color(0xFF34465B)
+              ? const Color(0xFF363B41)
               : const Color(0xFFE5EBF2),
-          onSurface: dark ? const Color(0xFFEAF3FC) : const Color(0xFF242424),
+          onSurface: dark ? const Color(0xFFE7EAED) : const Color(0xFF242424),
           onSurfaceVariant: dark
-              ? const Color(0xFFB8C7D9)
+              ? const Color(0xFFB7BEC8)
               : const Color(0xFF596B7E),
-          outline: dark ? const Color(0xFF8A8A8A) : const Color(0xFF757575),
+          outline: dark ? const Color(0xFF858D97) : const Color(0xFF757575),
           outlineVariant: dark
-              ? const Color(0xFF364B62)
+              ? const Color(0xFF3F444B)
               : const Color(0xFFDBE5EF),
           inverseSurface: dark
-              ? const Color(0xFFEAF3FC)
+              ? const Color(0xFFE7EAED)
               : const Color(0xFF303030),
           onInverseSurface: dark
-              ? const Color(0xFF242424)
+              ? const Color(0xFF24282D)
               : const Color(0xFFF5F5F5),
           inversePrimary: dark ? seedColor : const Color(0xFF83BEF7),
           surfaceTint: dark ? const Color(0xFF83BEF7) : seedColor,

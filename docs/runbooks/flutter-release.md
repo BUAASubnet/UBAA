@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、自动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)。
+本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、构建与手动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)。
 
 ## 何时使用
 
@@ -100,15 +100,18 @@ bash scripts/release/store-screenshots.sh
 | `tablet/` | 2732 × 2048 | 平板代表图、13 英寸 iPad 横图 |
 | `desktop/` | 2880 × 1800 | 桌面版宣传 |
 
-需要为 iPhone 大屏档单独提供截图，或生成其他手机商店尺寸时，运行 `bash scripts/release/store-screenshots.sh --all-sizes`。同一批次会生成三套额外的手机竖图：
+运行 `bash scripts/release/store-screenshots.sh --all-sizes` 可在同一批次额外生成以下商店素材：
 
 - `ready/phone/1320x2868/`：iPhone 大屏档。
 - `ready/phone/1206x2622/`：iPhone 中屏档的另一种尺寸。
-- `ready/phone/1080x1920/`：AppGallery 手机图。
+- `ready/appgallery/`：六张 1080 × 1920 的 AppGallery 手机竖图。
+- `ready/appgallery/tablet/`：六张 1920 × 1280（3:2）的 AppGallery 平板横图。
 
-脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)，保持文件名和子目录不变。Git 追踪三组代表图、源数据和渲染代码，额外尺寸留在本地批次中。图片换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+单独生成 AppGallery 手机图时使用 `bash scripts/release/store-screenshots.sh --appgallery`，生成平板图时使用 `bash scripts/release/store-screenshots.sh --appgallery-tablet`。两组各展示首页、课表、日程、成绩、SPOC 作业和考试。[华为开发者中心素材规范](https://developer.huawei.com/consumer/cn/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)按设备分别列出要求：HarmonyOS 手机和平板的应用介绍截图各可上传 3 至 10 张，PNG 单张不超过 5 MB。
 
-上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与 [AppGallery 视觉素材规范](https://developer.huawei.com/consumer/en/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)复核目标规格。宣传图生成与网站构建不执行商店上传。
+脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)。AppGallery 手机图复制到 [AppGallery 素材目录](../site/public/press/appgallery/)，平板图复制到其 [`tablet/` 子目录](../site/public/press/appgallery/tablet/)。Git 追踪这些成品、源数据和渲染代码；额外的 iPhone 尺寸留在本地。网站代表图换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+
+上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与华为开发者中心的素材规范复核目标规格。宣传图生成与网站构建不执行商店上传。
 
 ### 4. 设备与签名
 
@@ -119,15 +122,15 @@ bash scripts/release/store-screenshots.sh
 - 正式签名、公证和上传只在相应授权和环境满足后进行。签名材料由平台安全存储和隔离 runner 管理，不进入源码、argv、普通日志或 artifact。
 - 发布前核对候选 SHA、校验摘要、许可材料、安装/升级/卸载和平台权限。
 
-### 5. 自动发布
+### 5. 构建与手动发布
 
-[Release 工作流](../../.github/workflows/release.yml) 接收两种触发：在 main 手动运行，或发布与 main 提交关联的 GitHub Release。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。手动运行可以省略 Tag，由工作流生成当前版本的名称。
+[Release 工作流](../../.github/workflows/release.yml) 在 main 手动运行。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。可以省略 Tag，由工作流生成当前版本的名称。各平台构建成功后，工作流上传附件并保留 GitHub Release 草稿，由维护者手动发布。发布草稿不会再次触发构建。
 
 工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
 
 完整 CI 的 main-required 成功后保存 merge-acceptance 记录，包含实际检出提交、Git tree、PR、运行编号和运行次数。Release 核对 GitHub 运行成功状态、记录来源和完整源码树。PR 临时合并提交与 main 的 SHA 可以不同，但必须属于实际合入该候选的 PR，且完整源码树一致；工作流、工具清单、锁文件和测试也包含在树中。没有匹配记录或记录已过期时重新执行完整验收，失败、取消和不明来源不会被复用。正式构建、签名、公证、上传与产物检查每次执行。
 
-iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode 26.3，使用 iOS 26 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。不依赖托管镜像的默认 Xcode。
+iOS 合并验收、正式归档和上传使用 GitHub 的 `xcode-27` 镜像，并显式选择 `versions.env` 中的 Xcode 27.2，使用 iOS 27.2 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。`xcode-27` 当前为 GitHub 公开预览镜像，Xcode 27.2 为正式版本；工作流按固定路径选择工具链。
 
 | 平台 | 正式产物与渠道 |
 |---|---|
@@ -138,11 +141,17 @@ iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode
 | iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
 | HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
 
-公开产物与许可证材料分发到 GitHub Release 和 `https://r2.ubaa.top/releases/<tag>/`。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+公开产物与许可证材料上传到 GitHub Release 草稿和 `https://r2.ubaa.top/releases/<tag>/<构建号>/`。R2 上传后即可通过下载地址访问，不等待 GitHub 草稿发布。R2 产物带一年的 immutable 缓存，同一路径只写一次：相同内容重跑时跳过上传，内容不同则在覆盖前拒绝。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
 
-`release-production` Environment 仅允许 main 和 v 开头的 Tag。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
+维护者按以下顺序发布 GitHub Release：
 
-构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
+1. 在 Actions 中选择 **Release 构建与草稿**，选择 main 并点击 **Run workflow**。
+2. 等待整次工作流成功，包括各平台构建、R2 分发和商店处理。仅看到草稿时，商店上传可能仍在运行。
+3. 在 Releases 中打开对应版本的草稿，核对附件、版本说明和候选提交，再点击 **Publish release**。
+
+`release-production` Environment 仅允许 main。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
+
+构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。未发布的草稿可以接收新候选：分发前把草稿目标改到当前候选提交，再覆盖附件。已经发布的 Release 会在分发写入前被拒绝，后续发布使用新版本。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
 
 ## 验证
 
@@ -170,4 +179,4 @@ SDK 未配置或提交不符时，该依赖保留为缺口，严格模式以状�
 2. 判定旧版本能否读取新格式，再回退产物。不删除用户 Session 或密钥来掩盖不兼容；数据不可逆或旧版不支持的情形，标明不能安全自动回退。
 3. 回退后重新验证原平台的启动、离线内容、安全材料和只读恢复，不重放写入。
 
-构建或上传失败的处理见“自动发布”末段。OHOS 正式首发使用统一构建号 `2003`；已经安装构建号 `1000000` 或 `1000001` 开发包的设备不能直接覆盖安装，需要单独保留和迁移测试数据。
+构建或上传失败的处理见“构建与手动发布”末段。OHOS 正式首发使用统一构建号 `2003`；已经安装构建号 `1000000` 或 `1000001` 开发包的设备不能直接覆盖安装，需要单独保留和迁移测试数据。

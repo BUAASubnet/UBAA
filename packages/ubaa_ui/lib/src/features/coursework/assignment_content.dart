@@ -73,34 +73,40 @@ class AssignmentContent extends StatelessWidget {
         // 批量详情保持调用者顺序，不按课程重新排列。
         groups[''] = details;
       }
-      return ListView(
+      final rows = <Object>[
+        for (final entry in groups.entries) ...[
+          if (summary) entry.key,
+          ...entry.value,
+        ],
+      ];
+      return ListView.builder(
         // 顶部与其他页面一致，紧贴页面标题。
         padding: UbaaTheme.pageInsets(context, top: 8),
-        children: [
-          for (final (i, entry) in groups.entries.indexed) ...[
-            if (summary)
-              Padding(
-                // 组间多留一段，课程标题归属下方卡片而不是上一组。
-                padding: EdgeInsets.only(top: i == 0 ? 0 : 12, bottom: 8),
-                child: Text(
-                  uiNonBlank(entry.key) ?? '课程名称未提供',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+        itemCount: rows.length,
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row is String) {
+            return Padding(
+              // 组间多留一段，课程标题归属下方卡片而不是上一组。
+              padding: EdgeInsets.only(top: index == 0 ? 0 : 12, bottom: 8),
+              child: Text(
+                uiNonBlank(row) ?? '课程名称未提供',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-            for (final detail in entry.value)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AssignmentCard(
-                  detail: detail,
-                  wide: constraints.maxWidth >= 740,
-                  onNavigate: onNavigate,
-                ),
-              ),
-          ],
-        ],
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AssignmentCard(
+              detail: row as FeatureDetail,
+              wide: constraints.maxWidth >= 740,
+              onNavigate: onNavigate,
+            ),
+          );
+        },
       );
     },
   );

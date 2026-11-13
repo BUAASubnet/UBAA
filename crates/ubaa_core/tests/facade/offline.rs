@@ -550,7 +550,10 @@ fn 学业失败保留原完整内容且完整空周才可替换() {
     let CachePayload::Week(value) = &empty.data else {
         panic!("必须是周课表");
     };
-    assert!(value.arranged_list.is_empty());
+    assert_eq!(
+        value.arranged_list,
+        [] as [ubaa_core::facade::CourseClass; 0]
+    );
     assert_eq!(value.code, "response-code");
     assert_eq!(
         cache
@@ -606,7 +609,7 @@ fn 学业非法范围在认证前拒绝且错账号不读取业务() {
             Err(OfflineReadError::Cache(CacheError::InvalidInput))
         ));
     }
-    assert!(requests.lock().unwrap().is_empty());
+    assert_eq!(requests.lock().unwrap().len(), 0);
     assert!(matches!(
         runtime.block_on(client.refresh_cached_academic(&cache, AcademicQuery::Terms)),
         Err(OfflineReadError::IdentityMismatch { .. })
@@ -650,7 +653,7 @@ fn 学业缓存容量不足仍返回在线内容但不能宣称已保存() {
     let CachePayload::Terms(terms) = result.data else {
         panic!("必须为学期列表");
     };
-    assert!(!terms.is_empty());
+    assert_ne!(terms, [] as [ubaa_core::facade::Term; 0]);
     assert!(
         cache
             .read(&result.scope, result.fetched_at)

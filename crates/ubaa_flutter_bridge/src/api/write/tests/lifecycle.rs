@@ -23,7 +23,7 @@ async fn 准备后路线变化在无新增请求下消费意图() {
         .expect("准备 Direct 写入");
     assert_eq!(intent.resolved_route, BridgeConnectionMode::Direct);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     install_core(
         &client,
@@ -40,7 +40,7 @@ async fn 准备后路线变化在无新增请求下消费意图() {
     assert_eq!(conflict.code, BridgeErrorCode::OperationConflict);
     assert!(conflict.retryable);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let reused = client
         .commit_write(intent.intent_id)
@@ -48,7 +48,7 @@ async fn 准备后路线变化在无新增请求下消费意图() {
         .expect_err("冲突后的 intent 已消费");
     assert_eq!(reused.code, BridgeErrorCode::IntentExpired);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -75,7 +75,7 @@ async fn 准备后会话修订过期在无新增请求下归约为操作冲突()
         .await
         .expect("准备写入");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     store
         .save_dual(&DualSessionSnapshot::new(Some(ready_slot(2_002)), None))
@@ -87,7 +87,7 @@ async fn 准备后会话修订过期在无新增请求下归约为操作冲突()
     assert_eq!(conflict.code, BridgeErrorCode::OperationConflict);
     assert!(conflict.retryable);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
 
     let reused = client
         .commit_write(intent.intent_id)
@@ -95,7 +95,7 @@ async fn 准备后会话修订过期在无新增请求下归约为操作冲突()
         .expect_err("冲突后的 intent 已消费");
     assert_eq!(reused.code, BridgeErrorCode::IntentExpired);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -181,7 +181,7 @@ async fn 重新登录在提交等待_core_锁时仍能失效旧意图() {
     let error = commit.await.expect_err("被并发失效的旧意图不得继续提交");
     assert_eq!(error.code, BridgeErrorCode::IntentExpired);
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 2);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -298,7 +298,7 @@ async fn 外部共享代次撤销后旧意图不发送且原路线回读不恢�
         BridgeErrorCode::AuthenticationRequired
     );
     assert_eq!(direct.requests().unwrap().len(), count);
-    assert!(webvpn.requests().unwrap().is_empty());
+    assert_eq!(webvpn.requests().unwrap().len(), 0);
     client.dispose().await.unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }

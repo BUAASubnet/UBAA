@@ -142,6 +142,10 @@ impl HttpResponse {
 pub trait HttpTransport: Send + Sync {
     /// 恰好执行一次请求并返回原始响应。
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
+    /// 校外首次直连读取使用较短连接预算，响应正文仍保留普通请求预算。
+    async fn execute_with_fast_connect(&self, request: HttpRequest) -> Result<HttpResponse> {
+        self.execute(request).await
+    }
     /// 独立对象授权请求，只发送一次并以有界缓冲读取文件区间。
     async fn upload(
         &self,

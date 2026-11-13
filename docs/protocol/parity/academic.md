@@ -55,6 +55,17 @@ Referer、每客户端一次且路线隔离的同步、尽力失败后的重试�
 
 ## 专项记录
 
+### 缓存周次浏览与日期表头（2026-11-13）
+
+已重新核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `ScheduleRepository.kt`、`SavedScheduleWeek.kt`、`ScheduleViewModel.kt`、`LocalScheduleApi.kt`、`model/dto/Schedule.kt` 和仓库测试，以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/{core,opt,data}.rs`。旧版普通读取先联网，离线入口直接选择已保存的周次和日期；本次按产品要求将切周浏览改为优先使用完整本地结果。buaa-api 没有对应的本地学期库或日期表头，不适用。
+
+| 操作 | CAS/service、重定向与最终 URL、会话作用域 | 方法与精确参数、头与编码、加密签名 | DTO 与解析 | 缓存、并发、错误与退出 |
+| --- | --- | --- | --- | --- |
+| 切换已缓存周次 | 本地读取，无认证、跳转或 Cookie 操作 | 无 HTTP；缓存缺失后的在线请求沿用下节逐周协议，两来源差异保持原裁决 | 复用精确学期、周次的完整课表投影，空周也是完整结果 | 完整缓存直接显示，不进入在线刷新；本地读取完成后核对账号、生命周期和查询修订，迟到结果不覆盖新选择；不完整或缺失时沿用在线读取 |
+| 读取日期表头与周次选项 | 本地读取无需网络会话 | 无 HTTP；主动刷新与缓存缺失仍使用原教学周 GET 和 `termCode`，无新增头、编码、常量 | 沿旧版 `Week.startDate/endDate`，复用现有日期归一化与七天标签 | 优先读取完整教学周缓存；同账号缓存按学期与周次匹配，数据原始路线保留，缓存来源路线不同不隐藏日期；账号或缓存代次变化清理元数据 |
+
+单周明确刷新及整学期刷新仍联网。网络会话的 Direct/WebVPN 隔离不变。本次不改变学校协议、缓存格式、Bridge 或 CLI 合同，不新增学校写入。
+
 ### 日程默认同步整学期（2026-11-12）
 
 重新核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `ScheduleApiBackend.importSemester`、`LocalScheduleApiBackend.importSemester` 和 `ScheduleRepository.update`，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/opt.rs`。旧版逐周读取后完整保存，失败保留旧学期；示例的 `type=term` 与当前逐周导入不同，继续沿用下节的既有实现。

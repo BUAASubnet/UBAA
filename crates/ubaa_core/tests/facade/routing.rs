@@ -41,7 +41,7 @@ fn cgyy_webvpn_only_session_does_not_require_direct_session() {
     assert_eq!(routed.data.len(), 1);
     assert_eq!(direct_calls.load(Ordering::SeqCst), 0);
     let requests = webvpn_requests.lock().unwrap();
-    assert!(!requests.is_empty());
+    assert_ne!(requests.len(), 0);
     assert!(requests.iter().all(|request| {
         url::Url::parse(&request.url)
             .ok()
