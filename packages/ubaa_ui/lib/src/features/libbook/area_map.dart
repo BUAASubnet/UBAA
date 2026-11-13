@@ -182,7 +182,7 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
                       width: constraints.maxWidth,
                       height: constraints.maxHeight,
                       child: Image.asset(
-                        'assets/libbook_maps/area_${widget.areaId}.png',
+                        'assets/libbook_maps/area_${widget.areaId}.webp',
                         package: 'ubaa_ui',
                         fit: BoxFit.contain,
                         semanticLabel: '静态座位分布图',
