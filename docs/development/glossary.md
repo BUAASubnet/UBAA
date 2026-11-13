@@ -10,7 +10,7 @@
 
 ### facade
 
-Core 对外的唯一入口 `ubaa_core::facade`。日常使用聚合客户端 `UbaaClient`，它在内部处理 Direct/WebVPN 两条[路线](#路线directwebvpnauto)；`RouteClient` 固定一条路线，只用于诊断、[Core-live](#core-live) 和测试。facade 只返回稳定 DTO 和结构化错误，不暴露上游原始响应、Cookie 或业务 Token。
+Core 对外的唯一入口 `ubaa_core::facade`。日常使用聚合客户端 `UbaaClient`，它在内部处理 Direct/WebVPN 两条[路线](#路线directwebvpnauto)；`RouteClient` 固定一条路线，只用于诊断和测试。facade 只返回稳定 DTO 和结构化错误，不暴露上游原始响应、Cookie 或业务 Token。
 
 ### Bridge / FRB
 

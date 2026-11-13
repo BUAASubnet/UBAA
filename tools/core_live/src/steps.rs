@@ -3,7 +3,7 @@
 use std::io::{self, Read as _};
 
 use clap::Parser;
-use ubaa_core::facade::RouteClient;
+use ubaa_core::facade::UbaaClient;
 use ubaa_core::facade::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
 use ubaa_core::facade::{ErrorCode, Result};
 
@@ -46,55 +46,26 @@ async fn run(args: Args) -> Result<Evidence> {
         std::process::exit(2);
     }
     let (username, password) = read_credentials()?;
-    if args.feature == "finance" {
-        return run_finance_only(
-            &args,
-            mode,
-            LoginInput {
-                username,
-                password: SecretValue::new(password),
-            },
-        )
-        .await;
-    }
-    let mut client = RouteClient::new(mode, &args.config_dir)?;
+    let mut client = UbaaClient::open(&args.config_dir)?;
     let mut evidence = Evidence::new(route_name);
-    match client.prepare_login().await {
-        Ok(()) => evidence.pass_with_fields(
-            "auth",
-            "prepare",
-            None,
-            &[("mapping", "embedded_login_state".to_string())],
-        ),
-        Err(error) => {
-            evidence.fail("auth", "prepare", error.code);
-            evidence.blocked("auth", "login", "prepare_failed");
-            block_after_auth_failure(&mut evidence, &args.feature);
-            return Ok(evidence);
-        }
-    }
-    match client
-        .login(LoginInput {
+    if !crate::authentication::login(
+        &mut client,
+        mode,
+        LoginInput {
             username,
             password: SecretValue::new(password),
-        })
-        .await
+        },
+        &mut evidence,
+    )
+    .await
     {
-        Ok(_) => evidence.pass("auth", "login", None),
-        Err(error) => {
-            evidence.fail("auth", "login", error.code);
-            block_after_auth_failure(&mut evidence, &args.feature);
-            return Ok(evidence);
-        }
+        block_after_auth_failure(&mut evidence, &args.feature);
+        return Ok(evidence);
     }
     run_reads(args, client, evidence).await
 }
 
-async fn run_reads(
-    args: Args,
-    mut client: RouteClient,
-    mut evidence: Evidence,
-) -> Result<Evidence> {
+async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -> Result<Evidence> {
     run_auth_status(&mut client, &mut evidence).await;
     run_user(&mut client, &mut evidence, &args.feature).await;
     if args.feature == "auth" || args.feature == "user" {
@@ -119,7 +90,7 @@ async fn run_reads(
     if args.feature == "all" || args.feature == "signin" {
         match client.signin_today().await {
             Ok(result) => evidence.pass("signin", "today", Some(result.data.len())),
-            Err(error) => evidence.fail("signin", "today", error.code),
+            Err(error) => evidence.fail("signin", "today", error.error.code),
         }
     }
     if args.feature == "all" || args.feature == "finance" {
@@ -148,6 +119,14 @@ async fn run_reads(
 }
 
 fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
+    for (operation_feature, operation) in authentication_dependencies(feature) {
+        evidence.blocked(operation_feature, operation, "authentication_failed");
+    }
+}
+
+fn authentication_dependencies(
+    feature: &str,
+) -> impl Iterator<Item = (&'static str, &'static str)> + '_ {
     const ALL: &[(&str, &str)] = &[
         ("auth", "status"),
         ("user", "info"),
@@ -195,16 +174,21 @@ fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
         ("portal", "cloud_storage_remaining"),
         ("network", "usage"),
         ("finance", "incomes"),
+        ("ihome", "public"),
+        ("ihome", "mine"),
+        ("ihome", "followed"),
+        ("ihome", "appraised"),
+        ("ihome", "detail"),
+        ("ihome", "config"),
+        ("ihome", "notices"),
+        ("ihome", "notice"),
     ];
-    for &(operation_feature, operation) in ALL {
-        let selected = feature == "all"
-            || feature == operation_feature
-            || operation_feature == "auth"
-            || (matches!(feature, "exam" | "grades") && operation_feature == "schedule");
-        if selected && !(operation_feature == "auth" && operation == "login") {
-            evidence.blocked(operation_feature, operation, "authentication_failed");
-        }
-    }
+    ALL.iter().copied().filter(move |(operation_feature, _)| {
+        feature == "all"
+            || feature == *operation_feature
+            || *operation_feature == "auth"
+            || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
+    })
 }
 
 fn read_credentials() -> Result<(String, String)> {
@@ -231,31 +215,31 @@ fn read_credentials() -> Result<(String, String)> {
     Ok((username, password))
 }
 
-async fn run_auth_status(client: &mut RouteClient, evidence: &mut Evidence) {
-    match client.auth_status().await {
+async fn run_auth_status(client: &mut UbaaClient, evidence: &mut Evidence) {
+    match client.recover_user_session().await {
         Ok(_) => evidence.pass("auth", "status", None),
-        Err(error) => evidence.fail("auth", "status", error.code),
+        Err(error) => evidence.fail("auth", "status", error.error.code),
     }
 }
 
-async fn run_user(client: &mut RouteClient, evidence: &mut Evidence, feature: &str) {
+async fn run_user(client: &mut UbaaClient, evidence: &mut Evidence, feature: &str) {
     if feature != "all" && feature != "user" {
         return;
     }
     match client.get_user_info().await {
         Ok(_) => evidence.pass("user", "info", None),
-        Err(error) => evidence.fail("user", "info", error.code),
+        Err(error) => evidence.fail("user", "info", error.error.code),
     }
 }
 
-async fn run_schedule(client: &mut RouteClient, evidence: &mut Evidence, feature: &str) {
+async fn run_schedule(client: &mut UbaaClient, evidence: &mut Evidence, feature: &str) {
     let terms = match client.schedule_terms().await {
         Ok(result) => {
             evidence.pass("schedule", "terms", Some(result.data.len()));
             result.data
         }
         Err(error) => {
-            evidence.fail("schedule", "terms", error.code);
+            evidence.fail("schedule", "terms", error.error.code);
             evidence.blocked("schedule", "weeks", "terms_failed");
             evidence.blocked("schedule", "current", "terms_failed");
             evidence.blocked("schedule", "today", "terms_failed");
@@ -291,7 +275,7 @@ async fn run_schedule(client: &mut RouteClient, evidence: &mut Evidence, feature
             result.data
         }
         Err(error) => {
-            evidence.fail("schedule", "weeks", error.code);
+            evidence.fail("schedule", "weeks", error.error.code);
             evidence.blocked("schedule", "current", "weeks_failed");
             evidence.blocked("schedule", "today", "weeks_failed");
             if feature == "all" || feature == "exam" {
@@ -306,25 +290,25 @@ async fn run_schedule(client: &mut RouteClient, evidence: &mut Evidence, feature
     if let Some(week) = select_valid_week(&weeks) {
         match client.schedule_week(&term, week).await {
             Ok(_) => evidence.pass("schedule", "current", None),
-            Err(error) => evidence.fail("schedule", "current", error.code),
+            Err(error) => evidence.fail("schedule", "current", error.error.code),
         }
     } else {
         evidence.not_applicable("schedule", "current", "no_valid_week_id");
     }
     match client.schedule_today().await {
         Ok(result) => evidence.pass("schedule", "today", Some(result.data.len())),
-        Err(error) => evidence.fail("schedule", "today", error.code),
+        Err(error) => evidence.fail("schedule", "today", error.error.code),
     }
     if feature == "all" || feature == "exam" {
         match client.exam_arrangement(&term).await {
             Ok(_) => evidence.pass("exam", "arrangement", None),
-            Err(error) => evidence.fail("exam", "arrangement", error.code),
+            Err(error) => evidence.fail("exam", "arrangement", error.error.code),
         }
     }
     if feature == "all" || feature == "grades" {
         match client.grades(&term).await {
             Ok(_) => evidence.pass("grades", "query", None),
-            Err(error) => evidence.fail("grades", "query", error.code),
+            Err(error) => evidence.fail("grades", "query", error.error.code),
         }
     }
 }
@@ -338,7 +322,7 @@ fn select_valid_week(weeks: &[Week]) -> Option<i32> {
 }
 
 async fn run_classroom(
-    client: &mut RouteClient,
+    client: &mut UbaaClient,
     evidence: &mut Evidence,
     campus_id: i32,
     date: &str,
@@ -349,11 +333,11 @@ async fn run_classroom(
             "search",
             Some(result.data.floors.values().map(Vec::len).sum()),
         ),
-        Err(error) => evidence.fail("classroom", "search", error.code),
+        Err(error) => evidence.fail("classroom", "search", error.error.code),
     }
 }
 
-async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_spoc(client: &mut UbaaClient, evidence: &mut Evidence) {
     let result = match client.spoc_assignments_diagnostics().await {
         Ok(result) => {
             evidence.pass_with_fields(
@@ -374,8 +358,8 @@ async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
             result.data
         }
         Err(error) => {
-            evidence.fail("spoc", "assignments", error.code);
-            evidence.fail("spoc", "diagnostics", error.code);
+            evidence.fail("spoc", "assignments", error.error.code);
+            evidence.fail("spoc", "diagnostics", error.error.code);
             evidence.blocked("spoc", "detail", "assignments_failed");
             return;
         }
@@ -383,14 +367,14 @@ async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
     if let Some(assignment) = result.result.assignments.first() {
         match client.spoc_assignment(&assignment.assignment_id).await {
             Ok(_) => evidence.pass("spoc", "detail", None),
-            Err(error) => evidence.fail("spoc", "detail", error.code),
+            Err(error) => evidence.fail("spoc", "detail", error.error.code),
         }
     } else {
         evidence.not_applicable("spoc", "detail", "no_assignment_id");
     }
 }
 
-async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_judge(client: &mut UbaaClient, evidence: &mut Evidence) {
     match client.judge_assignments_diagnostics(true).await {
         Ok(result) => {
             evidence.pass_with_fields(
@@ -415,8 +399,8 @@ async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
             result.data
         }
         Err(error) => {
-            evidence.fail("judge", "include_expired", error.code);
-            evidence.fail("judge", "diagnostics", error.code);
+            evidence.fail("judge", "include_expired", error.error.code);
+            evidence.fail("judge", "diagnostics", error.error.code);
             evidence.blocked("judge", "current", "include_expired_failed");
             evidence.blocked("judge", "detail", "include_expired_failed");
             evidence.blocked("judge", "details_batch", "include_expired_failed");
@@ -429,7 +413,7 @@ async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
             result.data
         }
         Err(error) => {
-            evidence.fail("judge", "current", error.code);
+            evidence.fail("judge", "current", error.error.code);
             evidence.blocked("judge", "detail", "current_failed");
             evidence.blocked("judge", "details_batch", "current_failed");
             return;
@@ -452,27 +436,27 @@ async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
             .await
         {
             Ok(_) => evidence.pass("judge", "detail", None),
-            Err(error) => evidence.fail("judge", "detail", error.code),
+            Err(error) => evidence.fail("judge", "detail", error.error.code),
         }
         match client.judge_assignment_details(&keys).await {
             Ok(result) => evidence.pass("judge", "details_batch", Some(result.data.len())),
-            Err(error) => evidence.fail("judge", "details_batch", error.code),
+            Err(error) => evidence.fail("judge", "details_batch", error.error.code),
         }
     }
 }
 
-async fn run_ygdk(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_ygdk(client: &mut UbaaClient, evidence: &mut Evidence) {
     match client.ygdk_overview().await {
         Ok(result) => evidence.pass("ygdk", "overview", Some(result.data.items.len())),
-        Err(error) => evidence.fail("ygdk", "overview", error.code),
+        Err(error) => evidence.fail("ygdk", "overview", error.error.code),
     }
     match client.ygdk_records(1, 20).await {
         Ok(result) => evidence.pass("ygdk", "records", Some(result.data.content.len())),
-        Err(error) => evidence.fail("ygdk", "records", error.code),
+        Err(error) => evidence.fail("ygdk", "records", error.error.code),
     }
 }
 
-async fn run_libbook(client: &mut RouteClient, evidence: &mut Evidence, date: &str) {
+async fn run_libbook(client: &mut UbaaClient, evidence: &mut Evidence, date: &str) {
     let mut libraries_failed = false;
     let libraries = match client.libbook_libraries(date).await {
         Ok(result) => {
@@ -480,7 +464,7 @@ async fn run_libbook(client: &mut RouteClient, evidence: &mut Evidence, date: &s
             result.data
         }
         Err(error) => {
-            evidence.fail("libbook", "libraries", error.code);
+            evidence.fail("libbook", "libraries", error.error.code);
             evidence.blocked("libbook", "areas", "libraries_failed");
             evidence.blocked("libbook", "area_detail", "libraries_failed");
             evidence.blocked("libbook", "seats", "libraries_failed");
@@ -503,13 +487,13 @@ async fn run_libbook(client: &mut RouteClient, evidence: &mut Evidence, date: &s
                                 "area_detail",
                                 Some(detail.data.time_slots.len()),
                             ),
-                            Err(error) => evidence.fail("libbook", "area_detail", error.code),
+                            Err(error) => evidence.fail("libbook", "area_detail", error.error.code),
                         }
                         match client.libbook_seats(&area.id, date, "00:00", "23:59").await {
                             Ok(result) => {
                                 evidence.pass("libbook", "seats", Some(result.data.len()));
                             }
-                            Err(error) => evidence.fail("libbook", "seats", error.code),
+                            Err(error) => evidence.fail("libbook", "seats", error.error.code),
                         }
                     } else {
                         evidence.not_applicable("libbook", "area_detail", "no_area_id");
@@ -517,7 +501,7 @@ async fn run_libbook(client: &mut RouteClient, evidence: &mut Evidence, date: &s
                     }
                 }
                 Err(error) => {
-                    evidence.fail("libbook", "areas", error.code);
+                    evidence.fail("libbook", "areas", error.error.code);
                     evidence.blocked("libbook", "area_detail", "areas_failed");
                     evidence.blocked("libbook", "seats", "areas_failed");
                 }
@@ -534,14 +518,14 @@ async fn run_libbook(client: &mut RouteClient, evidence: &mut Evidence, date: &s
     }
     match client.libbook_bookings(1, 20).await {
         Ok(result) => evidence.pass("libbook", "bookings", Some(result.data.bookings.len())),
-        Err(error) => evidence.fail("libbook", "bookings", error.code),
+        Err(error) => evidence.fail("libbook", "bookings", error.error.code),
     }
 }
 
-async fn run_bykc(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_bykc(client: &mut UbaaClient, evidence: &mut Evidence) {
     match client.bykc_profile().await {
         Ok(_) => evidence.pass("bykc", "profile", None),
-        Err(error) => evidence.fail("bykc", "profile", error.code),
+        Err(error) => evidence.fail("bykc", "profile", error.error.code),
     }
     let mut courses_failed = false;
     let courses = match client.bykc_courses(1, 20, true).await {
@@ -550,7 +534,7 @@ async fn run_bykc(client: &mut RouteClient, evidence: &mut Evidence) {
             result.data
         }
         Err(error) => {
-            evidence.fail("bykc", "courses", error.code);
+            evidence.fail("bykc", "courses", error.error.code);
             evidence.blocked("bykc", "course_detail", "courses_failed");
             courses_failed = true;
             ubaa_core::facade::BykcCoursePage::default()
@@ -559,22 +543,22 @@ async fn run_bykc(client: &mut RouteClient, evidence: &mut Evidence) {
     if let Some(course) = courses.content.first() {
         match client.bykc_course_detail(course.id).await {
             Ok(_) => evidence.pass("bykc", "course_detail", None),
-            Err(error) => evidence.fail("bykc", "course_detail", error.code),
+            Err(error) => evidence.fail("bykc", "course_detail", error.error.code),
         }
     } else if !courses_failed {
         evidence.not_applicable("bykc", "course_detail", "no_course_id");
     }
     match client.bykc_chosen_courses().await {
         Ok(result) => evidence.pass("bykc", "chosen", Some(result.data.len())),
-        Err(error) => evidence.fail("bykc", "chosen", error.code),
+        Err(error) => evidence.fail("bykc", "chosen", error.error.code),
     }
     match client.bykc_statistics().await {
         Ok(_) => evidence.pass("bykc", "statistics", None),
-        Err(error) => evidence.fail("bykc", "statistics", error.code),
+        Err(error) => evidence.fail("bykc", "statistics", error.error.code),
     }
 }
 
-async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str) {
+async fn run_cgyy(client: &mut UbaaClient, evidence: &mut Evidence, date: &str) {
     let mut sites_failed = false;
     let sites = match client.cgyy_sites().await {
         Ok(result) => {
@@ -582,7 +566,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             result.data
         }
         Err(error) => {
-            evidence.fail("cgyy", "sites", error.code);
+            evidence.fail("cgyy", "sites", error.error.code);
             sites_failed = true;
             Vec::new()
         }
@@ -597,12 +581,12 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
                 purpose_source_name(result.data.source).to_string(),
             )],
         ),
-        Err(error) => evidence.fail("cgyy", "purposes", error.code),
+        Err(error) => evidence.fail("cgyy", "purposes", error.error.code),
     }
     if let Some(site) = sites.first() {
         match client.cgyy_day_info(site.id, date).await {
             Ok(_) => evidence.pass("cgyy", "day", None),
-            Err(error) => evidence.fail("cgyy", "day", error.code),
+            Err(error) => evidence.fail("cgyy", "day", error.error.code),
         }
     } else if sites_failed {
         evidence.blocked("cgyy", "day", "sites_failed");
@@ -616,7 +600,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             result.data
         }
         Err(error) => {
-            evidence.fail("cgyy", "orders", error.code);
+            evidence.fail("cgyy", "orders", error.error.code);
             orders_failed = true;
             ubaa_core::facade::CgyyOrdersPage::default()
         }
@@ -624,7 +608,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
     if let Some(order) = orders.content.first() {
         match client.cgyy_order_detail(order.id).await {
             Ok(_) => evidence.pass("cgyy", "order_detail", None),
-            Err(error) => evidence.fail("cgyy", "order_detail", error.code),
+            Err(error) => evidence.fail("cgyy", "order_detail", error.error.code),
         }
     } else if orders_failed {
         evidence.blocked("cgyy", "order_detail", "orders_failed");
@@ -637,7 +621,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             "lock_code",
             Some(usize::from(result.data.available)),
         ),
-        Err(error) => evidence.fail("cgyy", "lock_code", error.code),
+        Err(error) => evidence.fail("cgyy", "lock_code", error.error.code),
     }
 }
 
@@ -648,7 +632,7 @@ fn purpose_source_name(source: ubaa_core::facade::CgyyPurposeSource) -> &'static
     }
 }
 
-async fn run_evaluation(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_evaluation(client: &mut UbaaClient, evidence: &mut Evidence) {
     match client.evaluation_all().await {
         Ok(result) => {
             let pending = result
@@ -661,13 +645,13 @@ async fn run_evaluation(client: &mut RouteClient, evidence: &mut Evidence) {
             evidence.pass("evaluation", "pending", Some(pending));
         }
         Err(error) => {
-            evidence.fail("evaluation", "all", error.code);
+            evidence.fail("evaluation", "all", error.error.code);
             evidence.blocked("evaluation", "pending", "all_failed");
         }
     }
 }
 
-async fn run_ihome(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_ihome(client: &mut UbaaClient, evidence: &mut Evidence) {
     use ubaa_core::facade::{IhomeQuery, IhomeScope};
     for (scope, label) in [
         (IhomeScope::Public, "public"),
@@ -690,16 +674,16 @@ async fn run_ihome(client: &mut RouteClient, evidence: &mut Evidence) {
                         .await
                     {
                         Ok(_) => evidence.pass("ihome", "detail", Some(1)),
-                        Err(e) => evidence.fail("ihome", "detail", e.code),
+                        Err(e) => evidence.fail("ihome", "detail", e.error.code),
                     }
                 }
             }
-            Err(e) => evidence.fail("ihome", label, e.code),
+            Err(e) => evidence.fail("ihome", label, e.error.code),
         }
     }
     match client.ihome_config().await {
         Ok(v) => evidence.pass("ihome", "config", Some(v.data.categories.len())),
-        Err(e) => evidence.fail("ihome", "config", e.code),
+        Err(e) => evidence.fail("ihome", "config", e.error.code),
     }
     match client.ihome_notices().await {
         Ok(v) => {
@@ -707,19 +691,19 @@ async fn run_ihome(client: &mut RouteClient, evidence: &mut Evidence) {
             if let Some(n) = v.data.first() {
                 match client.ihome_notice(n.id).await {
                     Ok(_) => evidence.pass("ihome", "notice", Some(1)),
-                    Err(e) => evidence.fail("ihome", "notice", e.code),
+                    Err(e) => evidence.fail("ihome", "notice", e.error.code),
                 }
             }
         }
-        Err(e) => evidence.fail("ihome", "notices", e.code),
+        Err(e) => evidence.fail("ihome", "notices", e.error.code),
     }
 }
 
-async fn run_campus(client: &mut RouteClient, evidence: &mut Evidence, feature: &str) {
+async fn run_campus(client: &mut UbaaClient, evidence: &mut Evidence, feature: &str) {
     if matches!(feature, "all" | "portal") {
         match client.portal_profile().await {
             Ok(_) => evidence.pass("portal", "profile", None),
-            Err(error) => evidence.fail("portal", "profile", error.code),
+            Err(error) => evidence.fail("portal", "profile", error.error.code),
         }
         match client.campus_metrics().await {
             Ok(result) => {
@@ -741,7 +725,7 @@ async fn run_campus(client: &mut RouteClient, evidence: &mut Evidence, feature: 
                     "borrowed_books",
                     "cloud_storage_remaining",
                 ] {
-                    evidence.fail("portal", operation, error.code);
+                    evidence.fail("portal", operation, error.error.code);
                 }
             }
         }
@@ -749,7 +733,7 @@ async fn run_campus(client: &mut RouteClient, evidence: &mut Evidence, feature: 
     if matches!(feature, "all" | "network") {
         match client.network_usage().await {
             Ok(result) => evidence.pass("network", "usage", Some(result.data.products.len())),
-            Err(error) => evidence.fail("network", "usage", error.code),
+            Err(error) => evidence.fail("network", "usage", error.error.code),
         }
     }
 }
@@ -767,43 +751,28 @@ fn campus_metric<T>(
     }
 }
 
-async fn run_finance_only(
-    args: &Args,
-    mode: ConnectionMode,
-    input: LoginInput,
-) -> Result<Evidence> {
-    let mut client = ubaa_core::facade::UbaaClient::open(&args.config_dir)?;
-    client.set_default_route_policy(match mode {
-        ConnectionMode::Direct => ubaa_core::facade::RoutePolicy::Direct,
-        ConnectionMode::WebVpn => ubaa_core::facade::RoutePolicy::WebVpn,
-    })?;
-    let mut evidence = Evidence::new(if mode == ConnectionMode::Direct {
-        "direct"
-    } else {
-        "webvpn"
-    });
-    if let Err(error) = client.login_required_route(mode, input).await {
-        evidence.fail("auth", "login", error.code);
-        evidence.blocked("finance", "incomes", "authentication_failed");
-        return Ok(evidence);
-    }
-    evidence.pass("auth", "login", None);
-    match client.finance_incomes().await {
-        Ok(value) => evidence.pass("finance", "incomes", Some(value.data.entries.len())),
-        Err(error) => evidence.fail("finance", "incomes", error.error.code),
-    }
-    Ok(evidence)
-}
-
-async fn run_finance(client: &mut RouteClient, evidence: &mut Evidence) {
+async fn run_finance(client: &mut UbaaClient, evidence: &mut Evidence) {
     match client.finance_incomes().await {
         Ok(v) => evidence.pass("finance", "incomes", Some(v.data.entries.len())),
-        Err(e) => evidence.fail("finance", "incomes", e.code),
+        Err(e) => evidence.fail("finance", "incomes", e.error.code),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn 每个受支持功能在认证失败后都有阻塞操作() {
+        for feature in crate::args::FEATURES
+            .iter()
+            .filter(|feature| **feature != "all")
+        {
+            assert!(
+                super::authentication_dependencies(feature).any(|(scope, _)| scope == *feature),
+                "{feature} 缺少认证失败后的阻塞操作"
+            );
+        }
+    }
+
     use super::select_valid_week;
     use ubaa_core::facade::Week;
 

@@ -481,3 +481,18 @@ await 后匹配 backend、认证代次、凭据修订和最新请求；原准备
 | 只读请求取消和继续 | 原业务认证入口 | 原重定向校验 | 保持路线、账号和凭据许可隔离 | 原查询参数，网络恢复后重建同查询；已发送写入不重放 | 不变 | 不变 | 不变 | 取消传到 Rust Future 并释放读取占用；校外初始 Direct 连接预算 2 秒，正常响应预算保留；一次读取最多跨路线回退一次 | 旧网络结果不交付；恢复总期限覆盖排队、认证及重读，网络失败不退出账号 |
 
 网络错误后重新探测可以推翻旧的校内判断。返回校园网的新请求优先 Direct，正常在途 WebVPN 读取可完成。每次换网按共同恢复服务合并目标路线登录；验证码、凭据拒绝与缺少许可继续交给现有人工入口。
+
+
+### Live 验证与客户端认证入口统一（2026-11-13）
+
+冻结来源为 ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版核对 `LocalConnectionAuth.kt` 的预加载、验证码图片、表单和用户中心校验，以及 `AuthApi.kt`、`Auth.kt`、`LocalAuthServiceBackendTest.kt`；另一来源核对 `api/sso/auth.rs`、`request.rs`、`store/cred.rs`、`store/cookies.rs`、`error.rs`。沿用本页验证码逐操作依据，不修改学校协议。
+
+| 操作 | CAS/bootstrap 与 service | 重定向与最终 URL | Cookie、Session、Token | 方法与参数 | 请求头和编码 | 加密与签名 | DTO 与解析 | 缓存、并发、重试 | 错误与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| Live 登录准备 | 旧版 SSO login；示例 Direct 相同、VPN service 不等价；采用客户端 Core 既有入口 | 旧版跳转后激活 UC；示例按最终地址判断；沿用 Core 校验 | 旧版按路线 jar；示例共享 Context；沿用 Core 双槽隔离，验证固定单路线 | 原 GET 登录页，提取 execution 和验证码配置 | 原请求头、无正文 | 无新增 | 旧版 LoginPreloadResponse；示例仅 execution；采用现有交互状态 | 使用 prepare_quiet_login_for，仅准备指定路线 | 现有普通诊断 API 保留原合同，live 使用客户端交互流程 |
+| 自动图片验证码登录 | 旧版同 SSO login/captcha；示例无验证码流程，不适用 | 沿用 Core 的路线内跳转、UC 身份验证 | 挑战和答案只留内存，绑定当前账号与路线 | 旧版 captchaId 取图，POST username/password/captcha/captchaResponse/execution/_eventId/submit/type；全部由现有 Core 构造 | 原表单编码，图片沿既有解码 | 旧版无自动识别；使用客户端已有本地模型，无新协议常量 | 原图像挑战及用户资料，不输出个人数据或验证码 | 复用 submit_quiet_login 的最多三轮自动处理；不在工具额外重试 | 自动耗尽输出 captcha_required，依赖读取 BLOCKED；批处理工具不等待人工输入 |
+| 认证后只读调用 | 两源按各功能既有协议；沿用对应协议页 | 采用 UbaaClient 的固定 Direct/WebVPN 路线，禁止 Auto 或跨路线回退 | 同一客户端、同一登录会话 | 原只读方法与参数不变 | 原业务头和正文不变 | 原业务规则不变 | 原 typed 数据只投影安全计数 | 各功能串行执行，内部缓存与并发由现有 facade 决定 | 财务与其余功能使用统一认证；失败保留稳定分类、非零退出和逐项阻塞 |
+
+公共 CLI 的显式单路线登录已调用 login_required_route，支持自动验证码。旧聚合 UbaaClient.login、RouteClient.login 及 prepare_login 的普通登录合同有独立覆盖，本次保持。客户端的渐进作业读取与 live 聚合协议验证仍有调度差异，应用性能需要通过实际渐进入口单独测量。
+
+验证入口的请求级测试覆盖 Direct/WebVPN 普通登录、图片验证码成功、第三次成功、三次耗尽、服务异常、未知挑战和账号不匹配，以及登录后的同路线用户读取。认证失败的依赖矩阵覆盖全部受支持功能，包括 iHome 的列表、详情、配置和公告。原源码门禁的 RouteClient 构造及普通准备顺序断言更新为 UbaaClient 和独立认证模块；只读禁写、facade 分层、stdin 脱敏与二进制退出码覆盖保留。

@@ -230,7 +230,7 @@ just verify-live mode=webvpn
 - 授权或网络条件不足时，如实登记未运行或失败以及重跑条件。双路线要求保持，不静默豁免。
 - 以上入口只读，不能验证写入成功；真实写入须逐次具体授权。
 
-`verify-live` 按真实验证白名单取得非空学校凭据，经 stdin 交给 [Core-live](glossary.md#core-live)；Cloudflare API Token 不进入真实验证进程。每条路线使用一个固定 RouteClient 串行执行，只输出安全摘要。Core-live 只是脚本化只读验证的联网程序，真实 App 另行按授权验收。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
+`verify-live` 按真实验证白名单取得非空学校凭据，经 stdin 交给 [Core-live](glossary.md#core-live)；Cloudflare API Token 不进入真实验证进程。每条路线使用一个固定策略的 `UbaaClient`，复用客户端的静默认证后串行执行只读操作，只输出安全摘要。图片验证码由 Core 自动识别，耗尽后以 `captcha_required` 失败退出，不等待人工输入。Core-live 只是脚本化只读验证的联网程序，真实 App 另行按授权验收。具体操作和失败记录见[只读手册](../runbooks/live-readonly-verification.md)。
 
 ## 网络与写入边界
 

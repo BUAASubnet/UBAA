@@ -48,6 +48,10 @@ impl Evidence {
     }
 
     pub(crate) fn fail(&mut self, feature: &str, operation: &str, code: ErrorCode) {
+        self.fail_code(feature, operation, error_code(code));
+    }
+
+    pub(crate) fn fail_code(&mut self, feature: &str, operation: &str, code: &str) {
         self.failed = true;
         emit(
             self.route,
@@ -98,7 +102,7 @@ fn emit(
     feature: &str,
     operation: &str,
     status: &str,
-    code: Option<ErrorCode>,
+    code: Option<&str>,
     count: Option<usize>,
     reason: Option<&str>,
     elapsed_ms: u128,
@@ -113,7 +117,7 @@ fn emit(
         format!("elapsed_ms={elapsed_ms}"),
     ];
     if let Some(code) = code {
-        fields.push(format!("error={}", error_code(code)));
+        fields.push(format!("error={code}"));
     }
     if let Some(count) = count {
         fields.push(format!("count={count}"));

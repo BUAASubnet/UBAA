@@ -14,6 +14,11 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
 ubaa-core = { path = "../../crates/ubaa_core" }
 
+[dev-dependencies]
+async-trait.workspace = true
+url.workspace = true
+ubaa-test-support = { path = "../../crates/ubaa_test_support" }
+
 [[bin]]
 name = "core-live"
 path = "src/main.rs"
