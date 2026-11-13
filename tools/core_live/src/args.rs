@@ -13,7 +13,7 @@ pub(crate) struct Args {
     /// 要验证的功能，或 all。
     #[arg(long, default_value = "all")]
     pub(crate) feature: String,
-    /// 临时会话目录。
+    /// 专用验证目录；登录会重建目录内的会话和固定路线配置。
     #[arg(long)]
     pub(crate) config_dir: PathBuf,
     /// 从 stdin 读取用户名第一行。

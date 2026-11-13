@@ -48,6 +48,7 @@ void main() {
         );
         expect(client.tasks.length, previousPlans + 1);
         expect(client.options.last.fullRefresh, isFalse);
+        expect(client.options.last.refreshIndices, isTrue);
         expect(client.options.last.currentAssignment, isNull);
         expect(completed, isFalse);
 

@@ -21289,13 +21289,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeJudgeOnlineOptions dco_decode_bridge_judge_online_options(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeJudgeOnlineOptions(
       includeExpired: dco_decode_bool(arr[0]),
-      expectedIdentity: dco_decode_opt_String(arr[1]),
-      preferredCourse: dco_decode_opt_String(arr[2]),
-      keys: dco_decode_opt_list_bridge_judge_assignment_key(arr[3]),
+      refreshIndices: dco_decode_bool(arr[1]),
+      fullRefresh: dco_decode_bool(arr[2]),
+      expectedIdentity: dco_decode_opt_String(arr[3]),
+      preferredCourse: dco_decode_opt_String(arr[4]),
+      keys: dco_decode_opt_list_bridge_judge_assignment_key(arr[5]),
     );
   }
 
@@ -21366,14 +21368,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return BridgeJudgeRefreshOptions(
       includeExpired: dco_decode_bool(arr[0]),
       fullRefresh: dco_decode_bool(arr[1]),
-      preferredCourse: dco_decode_opt_String(arr[2]),
+      refreshIndices: dco_decode_bool(arr[2]),
+      preferredCourse: dco_decode_opt_String(arr[3]),
       currentAssignment: dco_decode_opt_box_autoadd_bridge_judge_assignment_key(
-        arr[3],
+        arr[4],
       ),
     );
   }
@@ -31456,6 +31459,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_includeExpired = sse_decode_bool(deserializer);
+    var var_refreshIndices = sse_decode_bool(deserializer);
+    var var_fullRefresh = sse_decode_bool(deserializer);
     var var_expectedIdentity = sse_decode_opt_String(deserializer);
     var var_preferredCourse = sse_decode_opt_String(deserializer);
     var var_keys = sse_decode_opt_list_bridge_judge_assignment_key(
@@ -31463,6 +31468,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
     return BridgeJudgeOnlineOptions(
       includeExpired: var_includeExpired,
+      refreshIndices: var_refreshIndices,
+      fullRefresh: var_fullRefresh,
       expectedIdentity: var_expectedIdentity,
       preferredCourse: var_preferredCourse,
       keys: var_keys,
@@ -31558,12 +31565,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_includeExpired = sse_decode_bool(deserializer);
     var var_fullRefresh = sse_decode_bool(deserializer);
+    var var_refreshIndices = sse_decode_bool(deserializer);
     var var_preferredCourse = sse_decode_opt_String(deserializer);
     var var_currentAssignment =
         sse_decode_opt_box_autoadd_bridge_judge_assignment_key(deserializer);
     return BridgeJudgeRefreshOptions(
       includeExpired: var_includeExpired,
       fullRefresh: var_fullRefresh,
+      refreshIndices: var_refreshIndices,
       preferredCourse: var_preferredCourse,
       currentAssignment: var_currentAssignment,
     );
@@ -41778,6 +41787,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.includeExpired, serializer);
+    sse_encode_bool(self.refreshIndices, serializer);
+    sse_encode_bool(self.fullRefresh, serializer);
     sse_encode_opt_String(self.expectedIdentity, serializer);
     sse_encode_opt_String(self.preferredCourse, serializer);
     sse_encode_opt_list_bridge_judge_assignment_key(self.keys, serializer);
@@ -41842,6 +41853,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.includeExpired, serializer);
     sse_encode_bool(self.fullRefresh, serializer);
+    sse_encode_bool(self.refreshIndices, serializer);
     sse_encode_opt_String(self.preferredCourse, serializer);
     sse_encode_opt_box_autoadd_bridge_judge_assignment_key(
       self.currentAssignment,

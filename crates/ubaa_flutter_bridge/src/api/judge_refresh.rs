@@ -10,6 +10,7 @@ use ubaa_core::facade as core;
 pub struct BridgeJudgeRefreshOptions {
     pub include_expired: bool,
     pub full_refresh: bool,
+    pub refresh_indices: bool,
     pub preferred_course: Option<String>,
     pub current_assignment: Option<BridgeJudgeAssignmentKey>,
 }
@@ -61,6 +62,7 @@ impl BridgeClient {
                     core::JudgeRefreshOptions {
                         include_expired: options.include_expired,
                         full_refresh: options.full_refresh,
+                        refresh_indices: options.refresh_indices,
                         preferred_course: options.preferred_course,
                         current_assignment: options.current_assignment.map(|key| {
                             core::JudgeAssignmentKey {

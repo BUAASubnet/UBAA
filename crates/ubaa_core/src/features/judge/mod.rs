@@ -7,6 +7,7 @@
 
 mod batch;
 mod calendar;
+pub(crate) mod parallel;
 mod parser;
 pub(crate) mod scan;
 mod service;

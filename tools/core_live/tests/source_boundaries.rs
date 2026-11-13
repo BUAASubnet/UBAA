@@ -37,7 +37,13 @@ fn core_live_source_bundle() -> String {
         .collect();
     assert_eq!(
         relative_files,
-        ["args.rs", "evidence.rs", "main.rs", "steps.rs"]
+        [
+            "args.rs",
+            "authentication.rs",
+            "evidence.rs",
+            "main.rs",
+            "steps.rs"
+        ]
     );
 
     let manifest = include_str!("../Cargo.toml");
@@ -82,7 +88,7 @@ fn core_live_source_bundle() -> String {
     for dependency in [
         "crate::args",
         "crate::evidence",
-        "ubaa_core::facade::RouteClient",
+        "ubaa_core::facade::UbaaClient",
     ] {
         assert!(
             steps.contains(dependency),
@@ -342,7 +348,7 @@ fn core_does_not_own_cli_output_or_exit_policy() {
 #[test]
 fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
     let core_live = core_live_source_bundle();
-    assert_eq!(core_live.matches("RouteClient::new").count(), 1);
+    assert_eq!(core_live.matches("UbaaClient::open").count(), 1);
     for forbidden in [
         "cgyy_cancel_order",
         "cgyy_submit_reservation",
@@ -367,7 +373,7 @@ fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
         .collect();
     assert!(
         !compact_core_live
-            .replace(".prepare_login(", "")
+            .replace(".prepare_quiet_login_for(", "")
             .contains(".prepare_"),
         "Core-live contains a generic write preparation call"
     );
@@ -428,8 +434,7 @@ fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
     assert_ordered_fragments(
         runner,
         &[
-            "prepare_login",
-            ".login(",
+            "crate::authentication::login(",
             "run_auth_status",
             "run_user",
             "run_schedule",

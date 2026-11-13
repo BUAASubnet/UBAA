@@ -20,12 +20,16 @@ abstract class BridgeJudgeOnlineTask implements RustOpaqueInterface {
 
 class BridgeJudgeOnlineOptions {
   final bool includeExpired;
+  final bool refreshIndices;
+  final bool fullRefresh;
   final String? expectedIdentity;
   final String? preferredCourse;
   final List<BridgeJudgeAssignmentKey>? keys;
 
   const BridgeJudgeOnlineOptions({
     required this.includeExpired,
+    required this.refreshIndices,
+    required this.fullRefresh,
     this.expectedIdentity,
     this.preferredCourse,
     this.keys,
@@ -37,6 +41,8 @@ class BridgeJudgeOnlineOptions {
   @override
   int get hashCode =>
       includeExpired.hashCode ^
+      refreshIndices.hashCode ^
+      fullRefresh.hashCode ^
       expectedIdentity.hashCode ^
       preferredCourse.hashCode ^
       keys.hashCode;
@@ -47,6 +53,8 @@ class BridgeJudgeOnlineOptions {
       other is BridgeJudgeOnlineOptions &&
           runtimeType == other.runtimeType &&
           includeExpired == other.includeExpired &&
+          refreshIndices == other.refreshIndices &&
+          fullRefresh == other.fullRefresh &&
           expectedIdentity == other.expectedIdentity &&
           preferredCourse == other.preferredCourse &&
           keys == other.keys;

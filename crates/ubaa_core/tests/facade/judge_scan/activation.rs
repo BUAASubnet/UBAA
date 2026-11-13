@@ -94,7 +94,10 @@ fn segmented_online_scan_reuses_activation_only_within_its_own_plan() {
         .block_on(async {
             for expected in 1..=2 {
                 let mut plan = client
-                    .begin_judge_online(JudgeOnlineOptions::default())
+                    .begin_judge_online(JudgeOnlineOptions {
+                        full_refresh: true,
+                        ..Default::default()
+                    })
                     .await
                     .unwrap();
                 loop {

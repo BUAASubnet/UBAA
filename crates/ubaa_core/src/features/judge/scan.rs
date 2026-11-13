@@ -9,7 +9,7 @@ pub(crate) struct ScanRead<T> {
     pub(crate) result: Result<T>,
     pub(crate) fatal: bool,
 }
-async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T> {
+pub(super) async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T> {
     let fatal = result.as_ref().is_err_and(|error| {
         matches!(
             error.code,

@@ -4267,10 +4267,13 @@ dependencies = [
 name = "ubaa-core-live"
 version = "2.0.0"
 dependencies = [
+ "async-trait",
  "clap",
  "tokio",
  "tracing-subscriber",
  "ubaa-core",
+ "ubaa-test-support",
+ "url",
 ]
 
 [[package]]

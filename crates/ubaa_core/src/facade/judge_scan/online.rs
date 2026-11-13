@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, HashSet};
 #[derive(Clone, Default)]
 pub struct JudgeOnlineOptions {
     pub include_expired: bool,
+    pub refresh_indices: bool,
+    pub full_refresh: bool,
     /// 本机账号仍存在而密钥不可用时也必须核对身份；不发送给学校。
     pub expected_identity: Option<String>,
     pub preferred_course: Option<String>,
@@ -36,7 +38,7 @@ pub struct JudgeOnlineProgress {
     pub resolution: RouteResolution,
     pub batch: JudgeScanBatch,
     pub summaries: Vec<JudgeAssignmentSummary>,
-    /// 全部步骤强制在线读取；这是当前投影最早取得时间，不是持久保存证明。
+    /// 当前投影最早取得时间；内存复用保留原时间，不表示持久保存成功。
     pub fetched_at: i64,
 }
 impl JudgeOnlineScan {
@@ -128,9 +130,13 @@ impl UbaaClient {
         let mut activated = false;
         let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
             activated = false;
-            scan::courses(self.runtime_for(resolution.mode), &mut activated, true)
-                .await
-                .result
+            scan::courses(
+                self.runtime_for(resolution.mode),
+                &mut activated,
+                options.full_refresh || options.refresh_indices || options.keys.is_some(),
+            )
+            .await
+            .result
         });
         let courses = self
             .finish_routed(resolution, read)
@@ -138,6 +144,10 @@ impl UbaaClient {
             .data;
         let courses = select_courses(courses, &options, resolution)?;
         let owner = self.runtime_for(resolution.mode).feature_state();
+        let fetched_at = owner
+            .judge
+            .source_time(None, None)
+            .unwrap_or_else(|| chrono::Utc::now().timestamp());
         Ok(JudgeOnlineScan {
             resolution,
             activated,
@@ -148,7 +158,7 @@ impl UbaaClient {
             options,
             cursor: JudgeScanCursor::new(courses),
             summaries: BTreeMap::new(),
-            fetched_at: chrono::Utc::now().timestamp(),
+            fetched_at,
         })
     }
     fn validate_judge_online(&mut self, plan: &JudgeOnlineScan) -> Result<(), OfflineReadError> {
@@ -192,7 +202,10 @@ impl UbaaClient {
                 &course,
                 plan.cursor.current_assignment(),
                 plan.activated,
-                true,
+                plan.options.full_refresh
+                    || plan.options.keys.is_some()
+                    || (plan.options.refresh_indices && plan.cursor.current_assignment().is_none()),
+                None,
             )
             .await;
         if resolution.mode != plan.resolution.mode {
@@ -214,7 +227,17 @@ impl UbaaClient {
         self.validate_judge_online(plan)?;
         match read {
             Ok(_) => {
-                plan.fetched_at = plan.fetched_at.min(chrono::Utc::now().timestamp());
+                let assignment = plan
+                    .cursor
+                    .current_assignment()
+                    .map(|item| item.assignment_id.as_str());
+                let source_at = self
+                    .runtime_for(plan.resolution.mode)
+                    .feature_state()
+                    .judge
+                    .source_time(Some(&course.course_id), assignment)
+                    .unwrap_or_else(|| chrono::Utc::now().timestamp());
+                plan.fetched_at = plan.fetched_at.min(source_at);
                 apply_batch(plan, &mut batch)?;
             }
             Err(error) => {

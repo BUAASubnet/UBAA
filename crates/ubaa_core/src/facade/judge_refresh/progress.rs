@@ -3,15 +3,21 @@ use super::{
     CacheCompleteness, CachePayload, JudgeRefresh, JudgeRefreshBatch, JudgeScanKind,
     OfflineReadError, history, policy, read, remember_save, save_child,
 };
+pub(super) fn apply(
+    refresh: &mut JudgeRefresh,
+    step: &read::Step,
+    now: i64,
+) -> Result<(), OfflineReadError> {
+    refresh.oldest_source_at = refresh.oldest_source_at.min(step.source_at);
+    apply_content(refresh, step, now)?;
+    history::apply(refresh, step, now)
+}
 pub(super) fn finish(
     refresh: &mut JudgeRefresh,
     step: read::Step,
     now: i64,
 ) -> Result<JudgeRefreshBatch, OfflineReadError> {
     let batch = &step.batch;
-    refresh.oldest_source_at = refresh.oldest_source_at.min(step.source_at);
-    apply_content(refresh, &step, now)?;
-    history::apply(refresh, &step, now)?;
     if batch.finished && batch.complete {
         refresh.summaries.retain(|(course, _), _| {
             refresh
