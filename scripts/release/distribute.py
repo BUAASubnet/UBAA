@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""将同一候选的公开产物分发到 GitHub Release 和 R2，验证公开下载入口。"""
+"""准备同一候选的 GitHub Release 草稿，并分发和验证 R2 下载产物。"""
 import json
 import mimetypes
 import os
@@ -20,6 +20,12 @@ def main():
     files = [folder / name for name in names]
     if any(not path.is_file() or path.stat().st_size == 0 for path in files):
         raise ValueError('发布产物不完整')
+    existing = subprocess.run(['gh', 'release', 'view', tag, '--json', 'isDraft'], capture_output=True, text=True)
+    if existing.returncode == 0 and not json.loads(existing.stdout)['isDraft']:
+        raise ValueError('GitHub Release 已发布，不能覆盖正式产物；请使用新版本')
+    if existing.returncode:
+        subprocess.run(['gh', 'release', 'create', tag, '--draft', '--target', sha,
+                        '--title', 'UBAA ' + version, '--notes', ''], check=True)
     endpoint = f"https://{os.environ['CLOUDFLARE_ACCOUNT_ID']}.r2.cloudflarestorage.com"
     bucket, public = os.environ['R2_BUCKET'], os.environ['R2_PUBLIC_URL'].rstrip('/')
     assets = []
@@ -46,12 +52,9 @@ def main():
     subprocess.run(['aws', 's3', 'cp', str(manifest), f's3://{bucket}/releases/{tag}/release.json', '--endpoint-url', endpoint, '--region', 'auto', '--only-show-errors', '--content-type', 'application/json'], check=True)
     notes = folder.parent / 'release_notes.md'
     notes.write_text(f'UBAA {version}\n\n版本说明：https://www.ubaa.top/guide/ubaa2\n\n下载：\n\n' + '\n'.join(f'- [{asset["name"]}]({asset["url"]})' for asset in assets) + '\n')
-    existing = subprocess.run(['gh', 'release', 'view', tag, '--json', 'isDraft'], capture_output=True, text=True)
-    if existing.returncode:
-        subprocess.run(['gh', 'release', 'create', tag, '--draft', '--target', sha, '--title', 'UBAA ' + version, '--notes-file', str(notes)], check=True)
     subprocess.run(['gh', 'release', 'upload', tag, *[str(path) for path in folder.iterdir() if path.is_file()], '--clobber'], check=True)
-    subprocess.run(['gh', 'release', 'edit', tag, '--draft=false', '--notes-file', str(notes)], check=True)
-    print('GitHub Release 与 R2 分发完成')
+    subprocess.run(['gh', 'release', 'edit', tag, '--notes-file', str(notes)], check=True)
+    print('GitHub Release 草稿与 R2 产物已准备完成；请在工作流全部成功后手动发布草稿')
 
 
 if __name__ == '__main__':

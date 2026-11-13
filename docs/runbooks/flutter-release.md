@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、自动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)。
+本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、构建与手动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)。
 
 ## 何时使用
 
@@ -122,9 +122,9 @@ bash scripts/release/store-screenshots.sh
 - 正式签名、公证和上传只在相应授权和环境满足后进行。签名材料由平台安全存储和隔离 runner 管理，不进入源码、argv、普通日志或 artifact。
 - 发布前核对候选 SHA、校验摘要、许可材料、安装/升级/卸载和平台权限。
 
-### 5. 自动发布
+### 5. 构建与手动发布
 
-[Release 工作流](../../.github/workflows/release.yml) 接收两种触发：在 main 手动运行，或发布与 main 提交关联的 GitHub Release。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。手动运行可以省略 Tag，由工作流生成当前版本的名称。
+[Release 工作流](../../.github/workflows/release.yml) 在 main 手动运行。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。可以省略 Tag，由工作流生成当前版本的名称。各平台构建成功后，工作流上传附件并保留 GitHub Release 草稿，由维护者手动发布。发布草稿不会再次触发构建。
 
 工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
 
@@ -141,11 +141,17 @@ iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode
 | iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
 | HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
 
-公开产物与许可证材料分发到 GitHub Release 和 `https://r2.ubaa.top/releases/<tag>/`。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+公开产物与许可证材料上传到 GitHub Release 草稿和 `https://r2.ubaa.top/releases/<tag>/`。R2 上传后即可通过下载地址访问，不等待 GitHub 草稿发布。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+
+维护者按以下顺序发布 GitHub Release：
+
+1. 在 Actions 中选择 **Release 构建与草稿**，选择 main 并点击 **Run workflow**。
+2. 等待整次工作流成功，包括各平台构建、R2 分发和商店处理。仅看到草稿时，商店上传可能仍在运行。
+3. 在 Releases 中打开对应版本的草稿，核对附件、版本说明和候选提交，再点击 **Publish release**。
 
 `release-production` Environment 仅允许 main 和 v 开头的 Tag。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
 
-构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
+构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。草稿允许继续上传同一候选的产物；已经发布的 Release 会在分发写入前被拒绝，后续发布使用新版本。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
 
 ## 验证
 
@@ -173,4 +179,4 @@ SDK 未配置或提交不符时，该依赖保留为缺口，严格模式以状�
 2. 判定旧版本能否读取新格式，再回退产物。不删除用户 Session 或密钥来掩盖不兼容；数据不可逆或旧版不支持的情形，标明不能安全自动回退。
 3. 回退后重新验证原平台的启动、离线内容、安全材料和只读恢复，不重放写入。
 
-构建或上传失败的处理见“自动发布”末段。OHOS 正式首发使用统一构建号 `2003`；已经安装构建号 `1000000` 或 `1000001` 开发包的设备不能直接覆盖安装，需要单独保留和迁移测试数据。
+构建或上传失败的处理见“构建与手动发布”末段。OHOS 正式首发使用统一构建号 `2003`；已经安装构建号 `1000000` 或 `1000001` 开发包的设备不能直接覆盖安装，需要单独保留和迁移测试数据。

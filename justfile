@@ -238,6 +238,7 @@ script-test:
     python3 scripts/tests/release/ci_selection_test.py
     python3 scripts/tests/release/acceptance_test.py
     python3 scripts/tests/release/metadata_test.py
+    python3 scripts/tests/release/distribute_test.py
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/app_service/enums_test.py
     bash scripts/tools/python.sh scripts/tests/app_service/privacy_policy_test.py

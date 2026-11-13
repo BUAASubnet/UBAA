@@ -1,22 +1,19 @@
-name: Release 构建与分发
+name: Release 构建与草稿
 on:
-  release:
-    types:
-      - published
   workflow_dispatch:
     inputs:
       tag:
-        description: 发布 Tag，须与 version.toml 一致；留空使用当前版本
+        description: 草稿 Tag，须与 version.toml 一致；留空使用当前版本
         type: string
         required: false
 permissions:
   contents: read
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 jobs:
   metadata:
-    if: github.repository == 'BUAASubnet/UBAA' && (github.event_name == 'release' || github.ref == 'refs/heads/main')
+    if: github.repository == 'BUAASubnet/UBAA' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.version }}
@@ -31,7 +28,7 @@ jobs:
           persist-credentials: false
       - id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: python3 scripts/release/metadata.py
   verify:
     needs:
@@ -399,7 +396,7 @@ jobs:
           pattern: public-*
           merge-multiple: true
           path: .ubaa_local/release/public
-      - name: 分发 GitHub Release 和 R2
+      - name: 准备 GitHub Release 草稿并分发 R2
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

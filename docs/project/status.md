@@ -67,6 +67,8 @@ Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材�
 
 文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，应用服务从 `main` 部署到 `app.ubaa.top`。两个 Worker 使用 Route + CNAME，部署只更新代码与资源绑定。`main` 保留 `main-required` 完整验收和分支保护。
 
+Release 工作流由维护者在 main 手动启动，各平台构建后准备 GitHub Release 草稿、R2 产物和商店构建。维护者在整次工作流成功后手动发布草稿，发布动作不触发重复构建。
+
 ## 发布 v2.0.0 前还差什么
 
 按[发布流程](../runbooks/flutter-release.md)完成：
