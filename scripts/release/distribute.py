@@ -40,14 +40,18 @@ def r2_digest(bucket, key, endpoint):
     raise RuntimeError(f'无法确认 R2 对象 {key} 的状态：' + head.stderr.strip())
 
 
+# 直接下载的安装包；文档站下载页按同一组文件校验清单。
+PUBLIC_SUFFIXES = (
+    'android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
+    'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
+    'macos-arm64.dmg', 'macos-x86_64.dmg',
+)
+
+
 def main():
     folder = Path('.ubaa_local/release/public')
     version, tag, sha, build = (os.environ[key] for key in ('RELEASE_VERSION', 'RELEASE_TAG', 'RELEASE_SHA', 'RELEASE_BUILD'))
-    names = [f'UBAA-{version}-{suffix}' for suffix in (
-        'android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
-        'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
-        'macos-arm64.dmg', 'macos-x86_64.dmg',
-    )]
+    names = [f'UBAA-{version}-{suffix}' for suffix in PUBLIC_SUFFIXES]
     files = [folder / name for name in names]
     if any(not path.is_file() or path.stat().st_size == 0 for path in files):
         raise ValueError('发布产物不完整')
@@ -81,7 +85,7 @@ def main():
         with path.open('rb') as source:
             if downloaded != source.read(4096):
                 raise ValueError(f'{path.name} 的公开下载内容不符')
-        assets.append({'name': path.name, 'size': path.stat().st_size, 'url': url})
+        assets.append({'name': path.name, 'size': path.stat().st_size, 'url': url, 'sha256': digest})
         print('R2 下载验证通过：' + path.name, flush=True)
     manifest = folder / 'release.json'
     manifest.write_text(json.dumps({'version': version, 'build': build, 'commit': sha, 'assets': assets}, ensure_ascii=False, indent=2) + '\n')

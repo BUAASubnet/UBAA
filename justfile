@@ -177,6 +177,11 @@ privacy-policy-generate:
 docs-link-check:
     python3 scripts/check/docs_links.py
 
+# 显式联网读取 R2 上指定构建的公开清单，校验后写入文档站下载页数据。
+[positional-arguments]
+docs-download-sync *args:
+    @python3 scripts/lib/recipe.py docs-download-sync "$@"
+
 tool-version-check:
     python3 scripts/check/tool_versions.py
 
@@ -240,6 +245,7 @@ script-test:
     python3 scripts/tests/release/acceptance_test.py
     python3 scripts/tests/release/metadata_test.py
     python3 scripts/tests/release/distribute_test.py
+    python3 scripts/tests/release/download_manifest_test.py
     python3 scripts/tests/release/ios_privacy_test.py
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/app_service/enums_test.py

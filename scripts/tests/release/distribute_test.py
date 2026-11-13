@@ -1,5 +1,6 @@
 """分发产物后保留 Release 草稿，已发布版本和已分发的构建号不得覆盖。"""
 from contextlib import chdir
+import hashlib
 import importlib.util
 import io
 import json
@@ -95,6 +96,15 @@ class DistributionTest(unittest.TestCase):
                 manifest = json.loads((self.folder / 'release.json').read_text())
                 self.assertEqual(manifest['commit'], 'candidate')
                 self.assertEqual(len(manifest['assets']), 9)
+
+    def test_公开清单记录每个文件的SHA256供下载页校验(self):
+        distribute.main()
+        manifest = json.loads((self.folder / 'release.json').read_text())
+        for asset in manifest['assets']:
+            with self.subTest(asset=asset['name']):
+                expected = hashlib.sha256((self.folder / asset['name']).read_bytes()).hexdigest()
+                self.assertEqual(asset['sha256'], expected)
+                self.assertEqual(self.r2[f"releases/v2.0.0/2003/{asset['name']}"]['sha256'], expected)
 
     def test_旧产物中的HarmonyOS商店包不进入公开分发(self):
         store = self.folder / 'UBAA-2.0.0-harmonyos-arm64.app'

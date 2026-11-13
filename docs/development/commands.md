@@ -239,6 +239,7 @@ just verify-live mode=webvpn
 - 普通检查不访问学校服务。Cargo/Rustup/Flutter 可能补齐工具或依赖缓存，flutter-check 会执行锁定 pub get；依赖源访问与学校请求分别管理。质量 Python 工具缺失时明确失败，安装只经显式 bootstrap。
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Workers、D1 与 KV，不访问或写入 Cloudflare 资源。
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
+- `just docs-download-sync <tag> <构建号>` 只读访问 `https://r2.ubaa.top` 上该构建的公开 `release.json`，校验通过后改写 `docs/site/download.json`；校验失败时不写入。普通检查和 CI 不调用。
 - `just app-service-publish` 和 `just app-service-deploy` 是显式远端写入命令。前者只写入变化的 KV 内容，后者先迁移 D1 再部署 Worker。普通检查不调用这两个入口，也不接收生产凭据。通过全部检查后，应用服务 CD 作业在受保护的 GitHub Environment 中取得 Cloudflare Token，执行部署和内容发布。
 - `just app-service-e2e` 在 `.ubaa_local/app_service/` 创建私有隔离配置、本地 D1 和 KV，临时监听回环地址。脚本只用合成数据，不访问学校或 Cloudflare 资源；`CI` 非空或遥测硬关闭时直接失败。
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存；FRB 生成检查的写入副作用见上表，并非所有 check 都只读。

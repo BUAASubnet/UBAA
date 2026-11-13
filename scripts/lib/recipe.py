@@ -18,6 +18,7 @@ SPECS = {
     'flutter-build': [('platform', 'host'), ('mode', 'debug')],
     'flutter-artifact-check': [('platform', None), ('artifact', None)],
     'ohos-check': [('mode', 'release')],
+    'docs-download-sync': [('tag', None), ('build', None)],
 }
 
 
@@ -55,6 +56,7 @@ def main():
         'flutter-build': ['bash', 'scripts/build/flutter.sh', *args],
         'flutter-artifact-check': ['bash', 'scripts/release/verify-flutter-artifact.sh', *args],
         'ohos-check': ['bash', 'scripts/build/ohos.sh', *args],
+        'docs-download-sync': [sys.executable, 'scripts/release/download_manifest.py', *args],
     }
     if name in {'check-plan', 'check-changed'}:
         commands[name] = [sys.executable, 'scripts/check/changed_checks.py', '--base', args[0], '--mode', args[1]]
