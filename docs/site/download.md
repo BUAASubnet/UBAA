@@ -64,7 +64,7 @@ HarmonyOS 通过 AppGallery 安装。商店下载链接将在上架后提供。
 
 ## 升级与其他下载
 
-- 从旧版 v1.x 切换前，请阅读[升级说明](/guide/start#从旧版切换)，保留所需数据并准备重新登录。
+- 从旧版 v1.x 升级前，请阅读[从 v1.x 升级](/guide/ubaa2#upgrade)，保留所需数据并准备重新登录。
 - [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 提供已发布版本和历史记录。
 - [第三方软件许可证](https://r2.ubaa.top/releases/v2.0.0/2004/licenses.zip)随当前安装包一同提供。
 - 安装或登录遇到问题，可查看[常见问题](/tech/troubleshooting)。

@@ -1,6 +1,10 @@
+---
+description: 按 UBAA 应用里的导航列出全部功能：首页、日程、学习、校园、我的和桌面命令模式。
+---
+
 # 功能总览
 
-本页按应用里的导航列出全部功能，点名称查看详细用法。可以先看[应用截图](/features/screenshots)，了解手机、平板和桌面上的界面。
+本页按应用里的导航列出全部功能，点名称查看详细用法。可以先看[应用截图](/features/screenshots)，了解手机、平板和桌面上的界面。第一次使用请先看[安装与首次登录](/guide/start)。
 
 手机底部导航有“首页”“学习”“日程”“校园”“我的”五项，可以左右滑动切换；平板和电脑使用左侧侧栏，“设置”和“关于”在侧栏底部。
 
@@ -8,31 +12,29 @@
 
 首页显示“今日课表”（晚上为“明日课表”）、最近使用的功能快捷入口和“待办”。需要处理的签到、作业截止等会出现在待办中，点“查看全部”进入日程。
 
-- [登录与连接方式](/features/auth-and-connection)
-
 ## 日程
 
 - [日程与待办](/features/agenda)：学校安排与自建事项、重复规则、日历导出和云盘同步
 
 ## 学习
 
-- [课表与考试](/features/schedule-and-exam)：课表查询、考试查询
-- [课堂签到](/features/signin)
-- [SPOC 作业](/features/spoc)
-- [希冀作业](/features/judge)
+- [课表与考试](/features/schedule-and-exam)：按周查看课表，查看考试时间、考场和座位
+- [课堂签到](/features/signin)：查看今日课程的签到状态并签到
+- [SPOC 作业](/features/spoc)：作业截止时间与提交状态
+- [希冀作业](/features/judge)：作业完成情况、题目明细和得分
 - [博雅课程](/features/bykc)：选课、退选、签到签退、达标统计
-- [成绩查询](/features/grades)
-- [教学评教](/features/evaluation)
+- [成绩查询](/features/grades)：按学期查看成绩、学分和平均分
+- [教学评教](/features/evaluation)：查看待评课程并批量提交
 
 ## 校园
 
 - [iHome](/features/ihome)：校园诉求、回复与公告
 - [北航云盘](/features/bhpan)：文件管理、分享与回收站
 - [财务查询](/features/finance)：酬金、助学金等收入发放记录
-- [空教室查询](/features/classroom)
-- [图书馆座位](/features/libbook)
-- [研讨室预约](/features/cgyy)
-- [阳光打卡](/features/ygdk)
+- [空教室查询](/features/classroom)：按日期、校区和教学楼查找空闲教室
+- [图书馆座位](/features/libbook)：预约座位，查看和取消预约
+- [研讨室预约](/features/cgyy)：预约研讨室、查看门锁密码
+- [阳光打卡](/features/ygdk)：查看进度、提交打卡和查看记录
 
 ## 我的
 
@@ -40,7 +42,7 @@
 
 ## 桌面
 
-- [桌面命令模式](/features/command)：在终端里查询和管理日程
+- [桌面命令模式](/features/command)：在终端里查询校园信息、操作云盘和管理日程
 
 ## 使用提醒
 

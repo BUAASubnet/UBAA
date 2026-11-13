@@ -18,7 +18,7 @@
 ![Dart](https://img.shields.io/badge/Dart-3.11.5-0175C2.svg?style=flat&logo=dart)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS%20%7C%20Desktop-2fb67c.svg?style=flat)
 
-[**下载安装**](https://github.com/BUAASubnet/UBAA/releases) · [**使用指南**](https://www.ubaa.top) · [功能一览](#功能一览) · [常见问题](https://www.ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
+[**下载安装**](https://www.ubaa.top/download) · [**使用指南**](https://www.ubaa.top) · [功能一览](#功能一览) · [常见问题](https://www.ubaa.top/tech/troubleshooting) · [问题反馈](https://github.com/BUAASubnet/UBAA/issues)
 
 </div>
 
