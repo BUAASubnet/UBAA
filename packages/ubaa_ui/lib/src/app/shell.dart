@@ -729,15 +729,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               ),
       ),
     );
-    if (touchRefresh || refreshPage == null) return shell;
-    void refresh() => unawaited(refreshPage());
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
-        const SingleActivator(LogicalKeyboardKey.keyR, control: true): refresh,
-      },
-      child: Focus(autofocus: true, child: shell),
-    );
+    return touchRefresh ? shell : _withRefreshShortcuts(shell, refreshPage);
   }
 
   final _refreshes = <Object, Future<void>>{};

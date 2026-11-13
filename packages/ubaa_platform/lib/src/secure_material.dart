@@ -21,6 +21,11 @@ final class SecureMaterialStore extends core.SecureMaterialStore {
     MaterialCoordinator? coordinator,
   }) : super(
          transport: transport ?? const PlatformSecureMaterialTransport(),
+         probeRequiresTransaction: transport == null
+             ? !Platform.isAndroid
+             : transport is! PlatformSecureMaterialTransport ||
+                   (transport.operatingSystem ?? Platform.operatingSystem) !=
+                       'android',
          coordinator:
              coordinator ??
              MaterialCoordinator.resolving(

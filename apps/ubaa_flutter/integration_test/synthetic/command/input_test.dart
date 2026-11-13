@@ -1,7 +1,9 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/command.dart';
+
 import '../../support/rust_library.dart';
 
 final class _Input implements CommandIO {

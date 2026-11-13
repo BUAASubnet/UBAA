@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
+
 import '../support/platform/native_materials.dart';
 
 void main() {

@@ -102,10 +102,8 @@ jobs:
       - name: 安装固定 Flutter
         uses: ./.github/actions/flutter
       - name: 检查 Dart 格式和静态分析
-        run: |-
-          just flutter-dependencies
-          just dart format --output=none --set-exit-if-changed apps/ubaa_flutter/lib apps/ubaa_flutter/test packages/ubaa_app/lib packages/ubaa_app/test packages/ubaa_domain/lib packages/ubaa_domain/test packages/ubaa_host/lib packages/ubaa_host/test packages/ubaa_platform/lib packages/ubaa_platform/test packages/ubaa_ui/lib packages/ubaa_ui/test packages/ubaa_bindings/lib packages/ubaa_test_support/lib
-          just flutter analyze --no-fatal-infos apps/ubaa_flutter packages/ubaa_app packages/ubaa_domain packages/ubaa_host packages/ubaa_platform packages/ubaa_ui packages/ubaa_bindings packages/ubaa_test_support
+        run: bash scripts/check/flutter-workspace.sh analyze
+
   worker:
     needs: changes
     if: needs.changes.outputs.worker == 'true'

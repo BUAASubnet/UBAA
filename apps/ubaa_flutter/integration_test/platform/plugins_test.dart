@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -48,9 +49,8 @@ void main() {
     expect((await reminders().read('fixture')).enabled, isFalse);
     expect((await reminders().read('fixture')).weekDoneKey, 'fixture-week');
     expect(
-      (await PreferencesBykcCourseFilterStore(
-        scope: scope,
-      ).read('fixture'))!.categories,
+      (await PreferencesBykcCourseFilterStore(scope: scope).read('fixture'))!
+          .categories,
       {'美育'},
     );
     expect((await reminders().read('other-fixture')).enabled, isTrue);

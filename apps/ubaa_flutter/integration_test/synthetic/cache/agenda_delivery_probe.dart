@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -9,6 +10,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:ubaa_ui/src/features/agenda/format.dart'
     show agendaTime, campusDate;
+
 import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart'
     show openAccounts;
 

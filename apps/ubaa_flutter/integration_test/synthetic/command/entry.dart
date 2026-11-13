@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/command.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
+
 import '../../../lib/command_main.dart';
 import '../../../../../packages/ubaa_platform/test/support/shared_account_worker.dart'
     show syntheticWindowsMaterials;

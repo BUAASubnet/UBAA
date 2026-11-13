@@ -1,10 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart'
     as fixtures;
 import '../../support/rust_library.dart';

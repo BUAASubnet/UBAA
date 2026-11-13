@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -123,6 +124,17 @@ class _ScrollGuttersState extends State<ScrollGutters> {
       if (widget is Offstage && widget.offstage ||
           widget is Visibility && !widget.visible ||
           widget is TickerMode && !widget.enabled) {
+        return;
+      }
+      if (element is MultiChildRenderObjectElement &&
+          element.renderObject is RenderIndexedStack) {
+        final index = (element.renderObject as RenderIndexedStack).index;
+        if (index != null) {
+          var childIndex = 0;
+          element.visitChildren((child) {
+            if (childIndex++ == index) visit(child);
+          });
+        }
         return;
       }
       if (element is StatefulElement && element.state is ScrollableState) {

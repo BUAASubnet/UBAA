@@ -5,7 +5,8 @@ resolution: workspace
 version: 2.0.0+2003
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
 
 dependencies:
   flutter_rust_bridge: 2.13.0

@@ -1,5 +1,5 @@
-name: 准备固定 Flutter 与依赖缓存
-description: SDK 按精确提交隔离，Pub 下载按锁文件隔离
+name: 准备固定 Flutter、Dart 与依赖缓存
+description: Flutter 与随附 Dart 按 versions.env 的精确提交安装，Pub 下载按锁文件隔离
 runs:
   using: composite
   steps:
@@ -18,5 +18,6 @@ runs:
         path: ${{ runner.temp }}/pub-cache
         key: pub-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: pub-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}-
-    - shell: bash
+    - name: 安装并核对锁定的 Flutter 与 Dart
+      shell: bash
       run: bash scripts/bootstrap/flutter.sh

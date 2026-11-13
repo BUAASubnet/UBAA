@@ -97,9 +97,10 @@ Future<void> probeAgenda(String directory) async {
       key: List.filled(32, 9),
     );
     expect(
-      (await agenda.query(
-        query(ConnectionMode.webvpn),
-      )).entries.single.completed,
+      (await agenda.query(query(ConnectionMode.webvpn)))
+          .entries
+          .single
+          .completed,
       isTrue,
     );
     await agenda.close();

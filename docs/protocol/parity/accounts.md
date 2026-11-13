@@ -14,6 +14,8 @@ Android 使用锁定 `flutter_secure_storage 11.2.0` 的 `migrateOnAlgorithmChan
 
 Apple 插件同步升级为 0.4.x，macOS 直接使用公开的 `usesDataProtectionKeychain=false` 配置登录 Keychain，iOS 保留首次解锁后仅本机可用配置。Windows 依赖要求 win32 6.x，并将 package_info_plus 更新为兼容的 10.2.2，现有 DPAPI 文件适配随其 typed API 更新，文件格式、材料键和替换规则保持。Linux 的 Secret Service 与 OHOS 的 HUKS 继续使用原有适配；OHOS 通过固定的 2.1.1 平台接口调用。
 
+Android 启动探测在同一材料文件锁内读取、写入、读回和删除随机非敏感键。插件的单键写入和删除通过 SharedPreferences 编辑对应条目，探测不为该临时键写入业务事务标记。探测失败仍报告不可用，并尝试只清理自身随机键；系统恢复后，下次启动重新探测。清理失败留下的随机测试键不参与账号索引或凭据读取。业务写入和删除继续记录事务开始与完成，已有未完成标记仍阻止访问，不自动清除。Windows 整文件替换及未知注入后端继续为探测记录事务，防止替换中途失败后覆盖原材料。两份冻结来源均没有等价的探测或事务恢复流程，其九列上游协议不适用，此处只调整本机材料协调。
+
 ### H1-b3b：共享句柄关闭与持久身份撤销
 
 改生产代码前核对冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`GradeScoreCacheStore.kt` 及其测试，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。普通句柄释放、跨进程缓存/日程事务和交付、持久写资格撤销均为本机操作，两源没有同等协议。因此这些操作的 CAS/service、重定向和最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列不适用。已有学校认证、读取和写入继续沿用本索引各领域的逐操作对照，URL、参数、路线与错误语义保持。
