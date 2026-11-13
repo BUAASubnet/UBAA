@@ -9,6 +9,7 @@ mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
 mod agenda_sync;
 pub mod bhpan;
+pub mod cloud_print;
 pub use crate::agenda::sync::AgendaSyncError;
 #[path = "client/app_service.rs"]
 pub mod app_service;

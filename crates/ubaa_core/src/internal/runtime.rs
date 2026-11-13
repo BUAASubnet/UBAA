@@ -133,10 +133,18 @@ impl ClientRuntime {
     /// Cookie，以免并发上游选择状态相互耦合。
     pub(crate) fn fork_for_readonly_with_cookie_filter(
         &mut self,
-        mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
+        retain: impl FnMut(&crate::session::StoredCookie) -> bool,
     ) -> Self {
         // 网关可能共享服务端当前课程；派生工作开始前撤销父客户端的记忆。
         self.judge_selected_course = None;
+        self.fork_with_cookie_filter(retain)
+    }
+
+    /// 派生独立 Cookie 容器，共享会话修订和关闭控制。
+    pub(crate) fn fork_with_cookie_filter(
+        &self,
+        mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
+    ) -> Self {
         let mut jar = CookieJar::default();
         jar.replace(
             self.jar

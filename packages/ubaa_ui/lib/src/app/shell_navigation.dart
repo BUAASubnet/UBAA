@@ -87,7 +87,21 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
   Widget _buildTab(BuildContext context) => _utilityPage != null
-      ? _utilityPage == '北航云盘'
+      ? _utilityPage == '图书馆云打印'
+            ? CloudPrintView(
+                key: ValueKey((
+                  _pageContentScope,
+                  widget.cloudPrintService,
+                  widget.connecting,
+                )),
+                service: widget.connecting ? null : widget.cloudPrintService,
+                connecting: widget.connecting,
+                pickFiles: widget.onPickPrintFiles,
+                pickFolder: widget.onPickPrintFolder,
+                previewPdf: widget.onPreviewScanPdf,
+                renderPdf: widget.onRenderScanPdf,
+              )
+            : _utilityPage == '北航云盘'
             ? BhpanView(
                 key: ValueKey(_pageContentScope),
                 scopeKey: _pageContentScope,
@@ -126,6 +140,152 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       : MediaQuery.sizeOf(context).width >= 600
       ? _buildTabPage(context, _selectedIndex)
       : _buildTabPager(context);
+
+  Widget _buildTabPager(BuildContext context) {
+    _tabPager = currentTabPager(_tabPager, _selectedIndex);
+    return TabPager(
+      controller: _tabPager,
+      selectedIndex: _selectedIndex,
+      enabled: widget.writeState.intent == null,
+      itemCount: UiDestination.settings.index,
+      onSelected: (index) => _selectTab(index, fromSwipe: true),
+      itemBuilder: _buildTabPage,
+    );
+  }
+
+  Widget _buildTabPage(BuildContext context, int index) => switch (index) {
+    0 => HomeView(
+      onVisibilityChanged: widget.onHomeVisibilityChanged,
+      key: _homeKey,
+      onPullRefresh: _pull,
+      homeClock: widget.homeClock,
+      recentFeatures: _recentFeatures,
+      state:
+          widget.homeState ??
+          HomeState(
+            now: (widget.homeClock ?? clock).now(),
+            sources: widget.snapshots,
+            projected: true,
+            schedule: HomeScheduleState(
+              date: homeDateKey(
+                homeCampusTime((widget.homeClock ?? clock).now()),
+              ),
+              snapshot: widget.snapshots[FeatureId.schedule]!,
+            ),
+          ),
+      visible:
+          _openedFeature == null &&
+          _utilityPage == null &&
+          _selectedIndex == 0 &&
+          widget.writeState.intent == null,
+      onTodoTap: _openHomeTodo,
+      onViewAllTodos: () {
+        _changeNavigation(() => _agendaTodoRequest++);
+        _selectTab(UiDestination.agenda.index);
+      },
+      writeReadbackNotice:
+          widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
+          ? null
+          : WriteReadbackNotice(
+              key: ValueKey(
+                '${widget.cacheAccountId}:${widget.readCacheEpoch}',
+              ),
+              hints: widget.writeReadbacks,
+              error: widget.writeReadbackError,
+              onDismiss: widget.onDismissWriteReadback,
+              onRefresh: widget.onRefreshWriteReadbacks,
+              onOpenFeature: (feature) {
+                _changeNavigation(() => _openedFeature = feature);
+                _recordFeatureVisit(feature);
+              },
+            ),
+      appNotices: widget.appNotices,
+      gradeScoreNotice: widget.gradeScoreNotice,
+      gradeCheckRoute: widget.gradeCheckRoute,
+      onOpenGradeNotice: _openGradeNotice,
+      onDismissGradeNotice: widget.onConsumeGradeNotice,
+      onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
+          ? _performHomeSignin
+          : null,
+      onObserveProgress: _observeHomeProgress,
+      onFeatureTap: _openFeatureList,
+      onRetryFeature: widget.onRetryHomeSource ?? widget.onRetryFeature,
+      onRefresh: () =>
+          _joinRefresh('home', widget.onRefreshHome ?? widget.onRefresh),
+    ),
+    2 => AgendaView(
+      signedIn: widget.user != null || widget.cacheAccountId != null,
+      service: widget.agenda.service,
+      prepareSync: widget.agenda.prepareSync,
+      syncScopeKey: widget.routePolicy,
+      failure: widget.agenda.failure,
+      scopeKey: (widget.cacheAccountId, widget.routePolicy),
+      projectionKey: (
+        widget.readCacheEpoch,
+        widget.businessCacheEpoch,
+        widget.agendaEpoch,
+      ),
+      route: agendaRoute(
+        widget.routePolicy,
+        widget.activeRoutes,
+        schoolRoute: widget.agendaSchoolRoute,
+      ),
+      term: widget.agenda.term,
+      todoRequest: _agendaTodoRequest,
+      visible:
+          _selectedIndex == UiDestination.agenda.index &&
+          _openedFeature == null,
+      now: widget.homeClock == null
+          ? null
+          : campusDate(widget.homeClock!.now()),
+      reminder: _reminderSettings,
+      onOpenSchool: _openHomeNavigation,
+      onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
+      onImportSchedule: _importAgendaSchedule,
+      onEnsureSchedule: widget.connecting ? null : widget.agenda.ensureSchedule,
+      onChanged: widget.agenda.onChanged,
+      onSaveFile: widget.agenda.saveFile,
+    ),
+    1 || 3 => FeatureGridView(
+      onOpenCloudPrint:
+          index == UiDestination.campus.index &&
+              widget.cloudPrintService != null
+          ? () => _openUtility('图书馆云打印')
+          : null,
+      onOpenBhpan: index == UiDestination.campus.index
+          ? () => _openUtility('北航云盘')
+          : null,
+      onOpenIhome: index == UiDestination.campus.index
+          ? () => _openUtility('iHome')
+          : null,
+      onOpenFinance:
+          index == UiDestination.campus.index && widget.financeService != null
+          ? () => _openUtility('财务查询')
+          : null,
+      features: _UbaaMainShellState._tabs[index].features,
+      homeState: widget.homeState,
+      snapshots: widget.snapshots,
+      onFeatureTap: _openFeatureList,
+      onRetryFeature: widget.onRetryFeature,
+    ),
+    4 => PullToRefresh(
+      onRefresh: () => _pull(_refreshCampusAccount),
+      enabled:
+          widget.campusAccountService != null &&
+          widget.writeState.intent == null,
+      child: MeView(
+        onOpenBhpan: () => _openUtility('北航云盘'),
+        user: widget.user,
+        overview: _campusOverview,
+        showShortcuts: MediaQuery.sizeOf(context).width < 600,
+        onOpenProfile: () => _openUtility('我的资料'),
+        onOpenSettings: () => _openUtility(UiDestination.settings.label),
+        onOpenAbout: () => _openUtility('关于'),
+        onLogout: _logout,
+      ),
+    ),
+    _ => _buildProfile(),
+  };
 
   Widget _buildProfile() => ProfileView(
     cacheAccountId: widget.cacheAccountId,

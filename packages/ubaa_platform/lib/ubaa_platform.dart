@@ -1,6 +1,8 @@
 /// UBAA Flutter 客户端的平台能力边界。
 library;
 
+export 'src/infrastructure/cloud_print_file.dart';
+
 export 'package:ubaa_domain/ubaa_domain.dart' show UiError, UbaaErrorCode;
 export 'src/credentials.dart';
 export 'src/defaults.dart';

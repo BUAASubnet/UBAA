@@ -103,6 +103,7 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
             | "i.buaa.edu.cn"
             | "ygdk.buaa.edu.cn"
             | "booking.lib.buaa.edu.cn"
+            | crate::features::cloud_print::HOST
             | "bykc.buaa.edu.cn"
             | "cgyy.buaa.edu.cn"
             | "it.buaa.edu.cn"
@@ -113,6 +114,7 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
 fn domains(operation: Operation) -> &'static [&'static str] {
     match operation {
         Operation::User => &["uc.buaa.edu.cn"],
+        Operation::CloudPrint => &[crate::features::cloud_print::HOST],
         Operation::Bhpan | Operation::Authentication | Operation::ConnectionRecovery => &[],
         Operation::Feature(feature) => match feature {
             ReadonlyFeature::Schedule | ReadonlyFeature::Exam | ReadonlyFeature::Grades => {

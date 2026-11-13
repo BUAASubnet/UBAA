@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'sheets.dart';
 import '../../shared/dialogs/confirmation.dart';
+import '../../shared/file_list/selection_bar.dart';
 import 'write_flow.dart';
 
 /// 多选底栏：数量、全选切换和当前位置可用的批量操作。
@@ -23,103 +24,23 @@ class BhpanSelectionBar extends StatelessWidget {
   final VoidCallback onClear, onToggleAll;
   final ValueChanged<BhpanAction> onAction;
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Material(
-      color: colors.surfaceContainer,
-      elevation: 2,
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: '取消选择',
-                    onPressed: onClear,
-                    icon: const Icon(Icons.close),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '已选 $count 项',
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: onToggleAll,
-                    child: Text(allSelected ? '取消全选' : '全选'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-              child: Row(
-                children: [
-                  for (final a in actions)
-                    Expanded(
-                      child: _BarAction(
-                        action: a,
-                        enabled: enabled(a),
-                        onTap: () => onAction(a),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) => UiSelectionBar(
+    count: count,
+    allSelected: allSelected,
+    onClear: onClear,
+    onToggleAll: onToggleAll,
+    actions: [
+      for (final action in actions)
+        UiSelectionAction(
+          label: action.label,
+          shortLabel: action == BhpanAction.copy ? '复制' : null,
+          icon: action.icon,
+          danger: action.danger,
+          key: ValueKey('bhpan-batch-${action.name}'),
+          onPressed: enabled(action) ? () => onAction(action) : null,
         ),
-      ),
-    );
-  }
-}
-
-class _BarAction extends StatelessWidget {
-  const _BarAction({
-    required this.action,
-    required this.enabled,
-    required this.onTap,
-  });
-  final BhpanAction action;
-  final bool enabled;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final color = !enabled
-        ? colors.onSurface.withValues(alpha: .38)
-        : action.danger
-        ? colors.error
-        : colors.onSurface;
-    return Semantics(
-      button: true,
-      label: action.label,
-      child: InkWell(
-        key: ValueKey('bhpan-batch-${action.name}'),
-        borderRadius: BorderRadius.circular(12),
-        onTap: enabled ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(action.icon, color: color),
-              const SizedBox(height: 2),
-              Text(
-                action == BhpanAction.copy ? '复制' : action.label,
-                style: theme.textTheme.labelSmall?.copyWith(color: color),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    ],
+  );
 }
 
 enum BhpanBatchStatus {

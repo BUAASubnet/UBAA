@@ -30,6 +30,7 @@ pub struct UbaaClient {
     pub(super) sessions: DualSessionCoordinator,
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
     pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
+    pub(super) cloud_print: Option<Box<ClientRuntime>>,
 }
 
 impl UbaaClient {
@@ -56,6 +57,7 @@ impl UbaaClient {
         };
         if !same {
             self.invalidate_read_recovery_batch();
+            self.cloud_print = None;
         }
         self.direct_runtime.shared_account.clone_from(&guard);
         self.webvpn_runtime.shared_account = guard;
@@ -253,6 +255,7 @@ impl UbaaClient {
             sessions,
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
+            cloud_print: None,
         })
     }
 
@@ -296,6 +299,7 @@ impl UbaaClient {
         replacement.save(config_dir)?;
         self.route_generation = generation;
         *self.bhpan = super::bhpan::state::BhpanState::default();
+        self.cloud_print = None;
         self.config = replacement;
         self.clear_interactive_context();
         Ok(())

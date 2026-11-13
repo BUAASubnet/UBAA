@@ -28,6 +28,7 @@
 | 课堂签到 | [signin.md](parity/signin.md) | 今日查询、签到端口与时间戳、2026-09-17 修复 |
 | 阳光打卡 | [ygdk.md](parity/ygdk.md) | OAuth 与 SSO 中间跳转、概览与记录、旧版界面依据 |
 | 图书馆座位 | [libbook.md](parity/libbook.md) | 座位查询、日期与时段、自动加载 |
+| 图书馆云打印 | [cloud-print.md](parity/cloud-print.md) | 登录、上传、待打印队列、扫描文档、打印点与使用记录 |
 | 研讨室预约 | [cgyy.md](parity/cgyy.md) | 场馆查询、订单详情身份、收据与写入边界 |
 | 直接写操作与评教 | [write-actions.md](parity/write-actions.md) | 各写入九列、typed 操作资格、评教提交信封及多业务 DTO 原语补充 |
 | 门户、账户指标与财务 | [campus.md](parity/campus.md) | 门户资料、账户指标、网费流量、财务收入 |

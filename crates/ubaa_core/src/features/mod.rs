@@ -3,6 +3,7 @@
 pub(crate) mod academic;
 pub(crate) mod bhpan;
 pub(crate) mod campus;
+pub(crate) mod cloud_print;
 pub(crate) mod finance;
 mod http;
 
@@ -38,5 +39,7 @@ pub(crate) fn feature_result<T>(
     }
 }
 
+#[cfg(test)]
+mod cloud_print_contract_tests;
 #[cfg(test)]
 mod ihome_tests;

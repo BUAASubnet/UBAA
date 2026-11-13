@@ -164,6 +164,7 @@ impl UbaaClient {
     pub async fn logout(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
+        self.cloud_print = None;
         self.clear_interactive_context();
         self.direct_auth
             .remote_logout(&mut self.direct_runtime)
