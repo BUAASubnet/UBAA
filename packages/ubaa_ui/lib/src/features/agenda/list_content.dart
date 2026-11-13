@@ -5,6 +5,7 @@ import 'calendar_values.dart';
 import 'format.dart';
 import '../../common/state_panel.dart';
 import '../../common/tag.dart';
+import '../../theme.dart';
 
 /// 列表分组标题：今天/明天/昨天优先，其余显示「11月5日 周四」。
 String agendaDayLabel(DateTime day, DateTime now) {
@@ -257,7 +258,7 @@ Color agendaSourceColor(AgendaEntry entry, ColorScheme colors) =>
       ),
       AgendaFeature.spoc || AgendaFeature.judge => const Color(0xFFE8833A),
       AgendaFeature.exam => colors.error,
-      AgendaFeature.bykc => const Color(0xFF8E5CD9),
+      AgendaFeature.bykc => UbaaTheme.category(const Color(0xFF8E5CD9), colors),
       AgendaFeature.cgyy => const Color(0xFF2E9E8F),
       _ => colors.tertiary,
     };

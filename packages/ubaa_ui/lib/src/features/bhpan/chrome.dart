@@ -3,9 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'format.dart';
+import '../../theme.dart';
 
 /// 文件类型图标与配色，仅按扩展名推断展示，不参与任何协议判断。
 (IconData, Color) bhpanTypeVisual(BhpanItem item, ColorScheme colors) {
+  final (icon, color) = _bhpanTypeVisual(item, colors);
+  return (icon, UbaaTheme.category(color, colors));
+}
+
+(IconData, Color) _bhpanTypeVisual(BhpanItem item, ColorScheme colors) {
   if (item.isFolder) return (Icons.folder_rounded, const Color(0xFFF2B53A));
   final name = item.name.toLowerCase();
   final dot = name.lastIndexOf('.');
