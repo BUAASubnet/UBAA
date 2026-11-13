@@ -377,7 +377,7 @@ fn a_scan_cannot_be_used_by_another_client() {
             let before = transport.requests.lock().unwrap().len();
             assert!(client.next_judge_scan(&mut scan).await.is_ok());
             assert!(other.next_judge_scan(&mut scan).await.is_err());
-            assert!(other_transport.requests.lock().unwrap().is_empty());
+            assert_eq!(other_transport.requests.lock().unwrap().len(), 0);
             assert!(transport.requests.lock().unwrap().len() > before);
         });
     drop((cache, other_cache));

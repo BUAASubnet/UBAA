@@ -262,7 +262,7 @@ mod tests {
         );
 
         assert_eq!(exit, 5);
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
         serde_json::from_slice(&stdout).expect("解析场馆写入错误 JSON")
     }
 

@@ -4,7 +4,7 @@ use crate::error::ErrorCode;
 #[test]
 fn classroom_parser_preserves_empty_results() {
     let classroom = parse_response(r#"{"e":0,"m":"ok","d":{"list":{}}}"#).unwrap();
-    assert!(classroom.floors.is_empty());
+    assert_eq!(classroom.floors.len(), 0);
 }
 
 #[test]

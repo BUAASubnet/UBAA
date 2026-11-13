@@ -165,7 +165,10 @@ fn aggregate_facade_exposes_safe_judge_diagnostics_with_route_resolution() {
     assert_eq!(routed.data.course_count, 0);
     assert_eq!(routed.data.raw_anchor_count, 0);
     assert_eq!(routed.data.filtered_unique_count, 0);
-    assert!(routed.data.summaries.is_empty());
+    assert_eq!(
+        routed.data.summaries,
+        [] as [ubaa_core::facade::JudgeAssignmentSummary; 0]
+    );
     assert_eq!(routed.resolution.policy, RoutePolicy::Direct);
     assert_eq!(routed.resolution.mode, ConnectionMode::Direct);
     assert_eq!(requests.load(Ordering::SeqCst), 3);

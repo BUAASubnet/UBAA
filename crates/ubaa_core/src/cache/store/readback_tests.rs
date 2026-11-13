@@ -76,7 +76,7 @@ fn 进程中断后只恢复加密核对线索且白名单不含意图和目标()
     contaminated["intentId"] = serde_json::json!("synthetic-forbidden");
     assert!(serde_json::from_value::<WriteReadbackHint>(contaminated).is_err());
     reopened.dismiss_write_readback(&hint.id).unwrap();
-    assert!(reopened.write_readback_hints().unwrap().is_empty());
+    assert_eq!(reopened.write_readback_hints().unwrap().len(), 0);
     drop((reopened,));
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -135,7 +135,7 @@ fn 清理撤销提示和旧收尾且另一句柄不能复活() {
     let ticket = begin(&mut repo);
     let mut old = open(&root);
     repo.clear_for_reopen().unwrap();
-    assert!(repo.write_readback_hints().unwrap().is_empty());
+    assert_eq!(repo.write_readback_hints().unwrap().len(), 0);
     assert_eq!(
         repo.finish_write_readback(&ticket),
         Err(CacheError::Superseded)
@@ -163,7 +163,7 @@ fn 随机提示标识与账号作为认证加密绑定() {
         CacheLimits::default(),
     )
     .unwrap();
-    assert!(other.write_readback_hints().unwrap().is_empty());
+    assert_eq!(other.write_readback_hints().unwrap().len(), 0);
     assert_eq!(
         other.finish_write_readback(&ticket),
         Err(CacheError::Superseded)
@@ -246,7 +246,7 @@ fn 无效时间标识和硬容量错误不假称保存() {
         ),
         Err(CacheError::Capacity)
     ));
-    assert!(repo.write_readback_hints().unwrap().is_empty());
+    assert_eq!(repo.write_readback_hints().unwrap().len(), 0);
     drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }

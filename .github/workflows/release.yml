@@ -22,7 +22,7 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
     steps:
       - &checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -71,7 +71,7 @@ jobs:
             "ndk;$ANDROID_NDK" \
             "cmake;$ANDROID_CMAKE"
       - name: 缓存 Gradle Wrapper 发行包
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
@@ -107,7 +107,7 @@ jobs:
           ANDROID_TARGET: ${{ matrix.target }}
           ANDROID_ABI: ${{ matrix.abi }}
         run: bash scripts/release/platforms/android.sh
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-android-${{ matrix.abi }}
           path: .ubaa_local/release/public/*
@@ -151,7 +151,7 @@ jobs:
           bash scripts/release/verify-flutter-artifact.sh linux "apps/ubaa_flutter/build/linux/${{ matrix.arch }}/release/bundle"
           mkdir -p .ubaa_local/release/public
           tar -czf ".ubaa_local/release/public/UBAA-${RELEASE_VERSION}-linux-${{ matrix.arch }}.tar.gz" -C "apps/ubaa_flutter/build/linux/${{ matrix.arch }}/release" bundle
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-linux-${{ matrix.arch }}
           path: .ubaa_local/release/public/*
@@ -189,7 +189,7 @@ jobs:
         run: |-
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:RELEASE_VERSION" scripts/release/platforms/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-windows-x64
           path: .ubaa_local/release/public/*
@@ -225,14 +225,14 @@ jobs:
         run: bash scripts/release/platforms/macos.sh
       - name: 保存 macOS 公证状态
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: notarization-${{ matrix.arch }}
           path: .ubaa_local/release/macos/*.json
           if-no-files-found: ignore
           retention-days: 7
           include-hidden-files: true
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-macos-${{ matrix.arch }}
           path: .ubaa_local/release/public/*
@@ -246,16 +246,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-15
+          - os: macos-26
             arch: arm64
-          - os: macos-15-intel
+          - os: macos-26-intel
             arch: x86_64
     if: ${{ !cancelled() && needs.ready.result == 'success' }}
   ios:
     needs:
       - metadata
       - ready
-    runs-on: macos-15
+    runs-on: xcode-27
     environment: release-production
     timeout-minutes: 180
     env: *release_env
@@ -282,7 +282,7 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-version
       - name: 归档并导出 IPA
         run: bash scripts/release/platforms/ios.sh
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-ios
           path: .ubaa_local/release/store/*.ipa
@@ -308,7 +308,7 @@ jobs:
         id: versions
         uses: ./.github/actions/versions
       - &setup_node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.versions.outputs.node }}
       - name: 准备 HarmonyOS 托管环境
@@ -331,7 +331,7 @@ jobs:
           (cd .ubaa_local/release/licenses && zip -qr ../public/licenses.zip .)
       - name: 保存发布许可材料
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: license-materials
           path: .ubaa_local/release/licenses
@@ -353,14 +353,14 @@ jobs:
         run: |-
           bash scripts/release/platforms/ohos.sh
           cp .ubaa_local/release/store/*.app .ubaa_local/release/public/
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-harmonyos-arm64
           path: .ubaa_local/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-harmonyos
           path: .ubaa_local/release/store/*.app
@@ -391,7 +391,7 @@ jobs:
       RELEASE_SHA: ${{ needs.metadata.outputs.sha }}
     steps:
       - *checkout
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: public-*
           merge-multiple: true
@@ -412,7 +412,7 @@ jobs:
     needs:
       - metadata
       - distribute
-    runs-on: macos-15
+    runs-on: xcode-27
     environment: release-production
     timeout-minutes: 90
     env: *release_env
@@ -421,7 +421,7 @@ jobs:
       - *select_xcode
       - *versions
       - *setup_node
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: store-ios
           path: .ubaa_local/release/store
@@ -431,7 +431,7 @@ jobs:
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: node scripts/release/stores/apple.mjs upload ".ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-store-result
           path: .ubaa_local/appstore_result.json
@@ -452,7 +452,7 @@ jobs:
       - *checkout
       - *versions
       - *setup_node
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: store-harmonyos
           path: .ubaa_local/release/store
@@ -461,7 +461,7 @@ jobs:
           APPGALLERY_APP_ID: ${{ secrets.APPGALLERY_APP_ID }}
           APPGALLERY_SERVICE_ACCOUNT_JSON: ${{ secrets.APPGALLERY_SERVICE_ACCOUNT_JSON }}
         run: node scripts/release/stores/huawei.mjs upload ".ubaa_local/release/store/UBAA-${RELEASE_VERSION}-harmonyos-arm64.app"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: appgallery-result
           path: .ubaa_local/appgallery_result.json
@@ -471,13 +471,13 @@ jobs:
     if: ${{ !cancelled() && needs.distribute.result == 'success' }}
   store-access:
     needs: metadata
-    runs-on: macos-15
+    runs-on: macos-26
     environment: release-production
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: versions
         uses: ./.github/actions/versions
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.versions.outputs.node }}
       - name: 核对商店和公证权限
@@ -503,7 +503,7 @@ jobs:
     outputs:
       reused: ${{ steps.acceptance.outputs.reused }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: acceptance
         env:
           GH_TOKEN: ${{ github.token }}
@@ -517,7 +517,7 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: 核对发布验收来源
         env:
           NEEDS: ${{ toJSON(needs) }}

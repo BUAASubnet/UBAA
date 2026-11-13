@@ -16,7 +16,7 @@ jobs:
       codegen: ${{ steps.plan.outputs.codegen }}
       flutter: ${{ steps.plan.outputs.flutter }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - id: plan
@@ -27,7 +27,7 @@ jobs:
   scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/shellcheck
       - name: 准备冻结引用与脚本工具
@@ -45,10 +45,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2025]
+        os: [ubuntu-24.04, macos-26, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -68,10 +68,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2025]
+        os: [ubuntu-24.04, macos-26, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -84,10 +84,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2025]
+        os: [ubuntu-24.04, macos-26, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -102,13 +102,13 @@ jobs:
   dependency-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - id: tools
         run: |
           source scripts/tools/versions.env
           printf 'deny=%s\n' "$CARGO_DENY_VERSION" >> "$GITHUB_OUTPUT"
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cargo-deny@${{ steps.tools.outputs.deny }}
       - run: cargo fetch --locked
@@ -119,7 +119,7 @@ jobs:
     if: needs.plan.outputs.codegen == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -130,11 +130,11 @@ jobs:
         run: |
           source scripts/tools/versions.env
           printf 'expand=%s\nfrb=%s\nrust=%s\n' "$CARGO_EXPAND_VERSION" "$FRB_VERSION" "$RUST_VERSION" >> "$GITHUB_OUTPUT"
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cargo-expand@${{ steps.tools.outputs.expand }}
       - id: frb-cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ubaa_local/ci_tools/frb
           key: frb-${{ runner.os }}-${{ runner.arch }}-${{ steps.tools.outputs.rust }}-${{ steps.tools.outputs.frb }}
@@ -158,7 +158,7 @@ jobs:
   flutter-analysis:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
         with:
           rust: false
@@ -173,7 +173,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.flutter) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
         with:
           rust: false
@@ -183,7 +183,7 @@ jobs:
         run: python3 scripts/check/ci/plan.py test "${{ matrix.package }}" "${{ matrix.group }}"
       - name: 保存失败的脱敏视觉差异
         if: failure() && matrix.group == 'golden'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ubaa-flutter-golden-diffs-${{ github.run_id }}
           path: packages/ubaa_ui/test/**/failures/*.png
@@ -193,12 +193,12 @@ jobs:
   app-service-contracts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: toolchain
         uses: ./.github/actions/toolchain
         with:
           rust: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.toolchain.outputs.node }}
           cache: npm
@@ -225,7 +225,7 @@ jobs:
     needs: [plan, scripts, rust-checks, rust-builds, rust-tests, dependency-audit, codegen, flutter-analysis, flutter-tests, app-service-contracts, native]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: 确认全部验收成功
         env:
           NEEDS: ${{ toJSON(needs) }}
@@ -233,7 +233,7 @@ jobs:
         run: python3 scripts/check/ci/plan.py gate
       - name: 记录实际验收候选
         run: python3 scripts/release/acceptance.py record
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: merge-acceptance
           path: .ubaa_local/ci/acceptance.json

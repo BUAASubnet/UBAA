@@ -4,10 +4,11 @@ use super::parse;
 fn 缺少目录数组不能被解释成空目录() {
     assert!(parse::directory(br#"{"files":[]}"#).is_err());
     assert!(parse::directory(br#"{"dirs":[]}"#).is_err());
-    assert!(
+    assert_eq!(
         parse::directory(br#"{"dirs":[],"files":[]}"#)
             .unwrap()
-            .is_empty()
+            .len(),
+        0
     );
 }
 

@@ -50,7 +50,10 @@ fn aggregate_facade_opens_without_config_or_session() {
 
     let client = UbaaClient::open(&root).unwrap();
 
-    assert!(client.active_routes().is_empty());
+    assert_eq!(
+        client.active_routes(),
+        [] as [ubaa_core::facade::ConnectionMode; 0]
+    );
     let _ = std::fs::remove_dir_all(root);
 }
 

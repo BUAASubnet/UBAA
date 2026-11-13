@@ -496,3 +496,12 @@ await 后匹配 backend、认证代次、凭据修订和最新请求；原准备
 公共 CLI 的显式单路线登录已调用 login_required_route，支持自动验证码。旧聚合 UbaaClient.login、RouteClient.login 及 prepare_login 的普通登录合同有独立覆盖，本次保持。客户端的渐进作业读取与 live 聚合协议验证仍有调度差异，应用性能需要通过实际渐进入口单独测量。
 
 验证入口的请求级测试覆盖 Direct/WebVPN 普通登录、图片验证码成功、第三次成功、三次耗尽、服务异常、未知挑战和账号不匹配，以及登录后的同路线用户读取。认证失败的依赖矩阵覆盖全部受支持功能，包括 iHome 的列表、详情、配置和公告。原源码门禁的 RouteClient 构造及普通准备顺序断言更新为 UbaaClient 和独立认证模块；只读禁写、facade 分层、stdin 脱敏与二进制退出码覆盖保留。
+
+
+## 2026-11-13 依赖升级的协议兼容性
+
+RustCrypto、rand 和 tract 更新沿用各业务现有九列对照。冻结版本仍为 [冻结参考](../references.md) 指定的两个提交。`LocalBykcCrypto.kt`、`LocalLibBookCrypto.kt`、`LocalSpocSupport.kt`、`LocalCgyySigner.kt` 和 `LocalWebVpnSupport.kt` 的算法、常量与既有向量继续适用。`buaa-api/src/crypto/aes.rs` 及博雅模块只提供已有交叉证据，图书馆、SPOC、场馆的同协议实现仍不适用。
+
+博雅请求与响应使用 AES-128-ECB/PKCS#7、原公钥的 RSA PKCS#1 v1.5 和小写十六进制 SHA-1；场馆保留 AES-ECB 与 MD5 签名；图书馆保留日期派生密钥、固定 IV 与 CBC/PKCS#7；SPOC 保留固定密钥、IV 与零填充；WebVPN 保留 AES-CFB 主机转换。新版依赖的 trait、方法名和摘要编码接口按上述字节格式接入。各操作的 CAS/service、重定向、会话作用域、HTTP 方法和参数、请求头和正文、DTO、缓存与重试、错误语义均继续采用对应功能文件的逐操作矩阵。
+
+本地缓存继续采用系统随机源、AES-256-GCM、12 字节 nonce 和原 HMAC-SHA256 索引格式。验证码模型、输入尺寸与字符表保持原值。依赖升级复用既有密文向量、缓存读写与合成验证码回归，不触发学校请求。

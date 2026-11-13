@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(result.route, BridgeConnectionMode::Direct);
         assert_eq!(result.profile.username.as_deref(), Some("fixture-user"));
         assert_eq!(target.requests().unwrap().len(), 2);
-        assert!(sibling.requests().unwrap().is_empty());
+        assert_eq!(sibling.requests().unwrap().len(), 0);
         client.dispose().await.unwrap();
         let _ = std::fs::remove_dir_all(root);
     }

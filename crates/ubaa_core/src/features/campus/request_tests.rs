@@ -82,7 +82,7 @@ struct Transport(Arc<Mutex<Scenario>>);
 impl HttpTransport for Transport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         assert_eq!(request.method, HttpMethod::Get);
-        assert!(request.body.is_empty());
+        assert_eq!(request.body.len(), 0);
         let direct = crate::connection::from_webvpn_url(&request.url)?;
         let mut scenario = self.0.lock().unwrap();
         let step = scenario.steps.pop_front().expect("不应增加额外请求");
@@ -197,7 +197,7 @@ fn 五项读取动态id支持单项失败及校园卡回退() {
             let wire = serde_json::to_string(&result).unwrap();
             assert!(!wire.contains("不得公开"));
             assert!(!wire.contains("changed-net-id"));
-            assert!(scenario.lock().unwrap().steps.is_empty());
+            assert_eq!(scenario.lock().unwrap().steps.len(), 0);
             for request in &scenario.lock().unwrap().requests {
                 assert_eq!(
                     request.headers.get("X-Requested-With").map(String::as_str),
@@ -234,7 +234,7 @@ fn 业务登录只复用统一认证且凭据按作用域发送() {
             let result = super::super::get_usage(&mut client).await.unwrap();
             assert_eq!(result.products.len(), 2);
             let scenario = scenario.lock().unwrap();
-            assert!(scenario.steps.is_empty());
+            assert_eq!(scenario.steps.len(), 0);
             for request in &scenario.requests {
                 let url = crate::connection::from_webvpn_url(&request.url).unwrap();
                 let cookie = request.headers.get("Cookie").cloned().unwrap_or_default();
@@ -291,7 +291,7 @@ fn 门户引导成功后才能发布资料() {
         let (mut client, scenario, _) = runtime(ConnectionMode::Direct, steps);
         let profile = super::super::get_profile(&mut client).await.unwrap();
         assert_eq!(profile.department, "示例学院");
-        assert!(scenario.lock().unwrap().steps.is_empty());
+        assert_eq!(scenario.lock().unwrap().steps.len(), 0);
     });
 }
 
@@ -306,7 +306,7 @@ fn 会话修订变化在请求前拒绝且不发布部分数据() {
                 .unwrap_err()
                 .is_session_conflict()
         );
-        assert!(scenario.lock().unwrap().requests.is_empty());
+        assert_eq!(scenario.lock().unwrap().requests.len(), 0);
     });
 }
 
@@ -368,7 +368,7 @@ fn 外域跳转和统一认证登录页都停止业务引导() {
             steps.extend(tail);
             let (mut client, scenario, _) = runtime(ConnectionMode::Direct, steps);
             assert!(super::super::get_usage(&mut client).await.is_err());
-            assert!(scenario.lock().unwrap().steps.is_empty());
+            assert_eq!(scenario.lock().unwrap().steps.len(), 0);
             assert!(client.has_local_session());
         }
     });
@@ -410,6 +410,6 @@ fn 缺失及重复指标不会阻止其他指标读取() {
             metrics.borrowed_books,
             CampusMetric::Success { value: 3, .. }
         ));
-        assert!(scenario.lock().unwrap().steps.is_empty());
+        assert_eq!(scenario.lock().unwrap().steps.len(), 0);
     });
 }

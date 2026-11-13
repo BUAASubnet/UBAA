@@ -116,7 +116,7 @@ impl HttpTransport for Transport {
                 s.followed = !s.followed;
             } else {
                 assert_eq!(url.path(), "/api/appeal/appeal_praise/42");
-                assert!(request.body.is_empty());
+                assert_eq!(request.body.len(), 0);
                 assert!(!request.headers.contains_key("Content-Type"));
                 s.supported = !s.supported;
             }

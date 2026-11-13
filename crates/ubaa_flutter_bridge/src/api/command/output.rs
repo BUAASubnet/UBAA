@@ -14,7 +14,7 @@ impl BridgeCommandResult {
     /// # Panics
     /// 命令状态锁被其他线程的 panic 污染时终止。
     // FRB 需要在 Tokio worker 内启动输出任务。
-    #[allow(clippy::unused_async)]
+    #[allow(clippy::unused_async, clippy::unused_async_trait_impl)]
     pub async fn deliver(&self) -> BridgeCommandDelivery {
         let body = self.body.lock().unwrap().take();
         let known =

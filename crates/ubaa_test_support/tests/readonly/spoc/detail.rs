@@ -117,7 +117,7 @@ async fn spoc_course_authentication_exhaustion_still_reads_the_global_page() {
         .await
         .expect("course metadata stays optional after its own auth retry is exhausted");
 
-    assert!(result.data.assignments.is_empty());
+    assert_eq!(result.data.assignments.len(), 0);
     observed.assert_exhausted();
     assert!(
         observed

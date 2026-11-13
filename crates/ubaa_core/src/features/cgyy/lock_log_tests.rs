@@ -75,7 +75,7 @@ fn 登录订单与写入响应日志不派生敏感正文摘要() {
     ] {
         let body =
             br#"{"code":200,"data":{"access_token":"synthetic-secret","phone":"synthetic-phone"}}"#;
-        let digest = format!("{:x}", Sha1::digest(body));
+        let digest = hex::encode(Sha1::digest(body));
         let response = crate::ports::HttpResponse::new(
             200,
             "https://cgyy.buaa.edu.cn/venue-zhjs-server/api/login",

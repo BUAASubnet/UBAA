@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use rand::Rng;
+use rand::RngExt;
 use serde_json::{Map, Value};
 
 use crate::domain::{
@@ -139,7 +139,7 @@ async fn submit_one_course(
         Err(error) if must_propagate(&error) => return Err(error),
         Err(_) => return Ok(EvaluationCourseOutcome::Failure),
     };
-    let question_index = rand::thread_rng().r#gen::<usize>();
+    let question_index = rand::rng().random_range(0..=usize::MAX);
     let Ok(payload) = build_evaluation_payload(course, &topic, question_index) else {
         return Ok(EvaluationCourseOutcome::Failure);
     };

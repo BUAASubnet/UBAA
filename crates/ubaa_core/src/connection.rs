@@ -600,8 +600,7 @@ pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Res
 pub(crate) fn is_sso_url(candidate: &str) -> bool {
     let direct = from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
     Url::parse(&direct)
-        .ok()
-        .is_some_and(|url| is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[]))
+        .is_ok_and(|url| is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[]))
 }
 
 /// 解析响应的相对 Location，并判断目标是否指向 SSO。

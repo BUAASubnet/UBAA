@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 
-use rand::{Rng as _, distributions::Alphanumeric};
+use rand::{RngExt as _, distr::Alphanumeric};
 use tokio::io::AsyncReadExt as _;
 use url::Url;
 
@@ -52,7 +52,7 @@ pub(crate) async fn send_upload(
     } else {
         name
     };
-    let boundary = rand::thread_rng()
+    let boundary = rand::rng()
         .sample_iter(Alphanumeric)
         .take(48)
         .map(char::from)

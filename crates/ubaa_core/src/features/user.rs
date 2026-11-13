@@ -29,8 +29,7 @@ pub(crate) async fn get_user_info(
         .await?;
     if looks_unauthenticated(response.status, &response.final_url, &body_text(&response))
         || serde_json::from_slice::<serde_json::Value>(&response.body)
-            .ok()
-            .is_some_and(|body| body["code"].as_i64().is_some_and(|code| code != 0))
+            .is_ok_and(|body| body["code"].as_i64().is_some_and(|code| code != 0))
     {
         crate::auth::activate_user_center(runtime).await?;
         response = runtime

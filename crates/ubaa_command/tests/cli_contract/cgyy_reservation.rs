@@ -390,7 +390,7 @@ fn 场馆预约标准输入拒绝_core_内部验证码字段() {
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(value["error"]["code"], "invalid_input");
     assert_eq!(value["meta"]["feature"], "cgyy");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
     for forbidden in [
         "private-verification",
         "private-point-json",

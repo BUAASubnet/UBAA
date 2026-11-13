@@ -236,7 +236,7 @@ async fn judge_follows_business_redirects_before_parsing() {
         .await
         .expect("Judge business redirect must be followed");
 
-    assert!(result.data.is_empty());
+    assert_eq!(result.data.len(), 0);
 }
 
 #[tokio::test]
@@ -251,9 +251,9 @@ async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
 
     let empty = empty_client.judge_assignment_details(&[]).await.unwrap();
 
-    assert!(empty.data.is_empty());
+    assert_eq!(empty.data.len(), 0);
     transport.assert_exhausted().unwrap();
-    assert!(transport.requests().unwrap().is_empty());
+    assert_eq!(transport.requests().unwrap().len(), 0);
 
     let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
@@ -307,7 +307,7 @@ async fn judge_empty_batches_require_a_local_session_before_zero_network_short_c
         .await
         .expect_err("an unauthenticated all-blank batch must fail");
     assert_eq!(blank_error.code, ErrorCode::AuthenticationRequired);
-    assert!(transport.requests().unwrap().is_empty());
+    assert_eq!(transport.requests().unwrap().len(), 0);
 }
 
 #[tokio::test]
@@ -353,8 +353,8 @@ async fn judge_历史作业逐项过滤且仍可显式包含() {
     let skipped = client.judge_assignments(false).await.unwrap();
     let included = client.judge_assignments(true).await.unwrap();
 
-    assert!(first.data.is_empty());
-    assert!(skipped.data.is_empty());
+    assert_eq!(first.data.len(), 0);
+    assert_eq!(skipped.data.len(), 0);
     assert_eq!(included.data.len(), 1);
     assert_eq!(included.data[0].assignment_id, "101");
     transport.assert_exhausted().unwrap();

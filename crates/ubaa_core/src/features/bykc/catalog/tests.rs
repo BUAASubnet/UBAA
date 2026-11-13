@@ -161,11 +161,9 @@ fn 完整详情空值不虚构并独立拒绝响应课程身份不符() {
     assert!(detail.course_contact.is_none() && detail.course_contact_mobile.is_none());
     assert!(detail.organizer_college_name.is_none() && detail.description_plain_text.is_none());
     assert!(detail.sign_config.is_none() && detail.attendance.is_none());
-    assert!(
-        detail.audience_colleges.is_empty()
-            && detail.audience_terms.is_empty()
-            && detail.audience_groups.is_empty()
-    );
+    assert_eq!(detail.audience_colleges.len(), 0);
+    assert_eq!(detail.audience_terms.len(), 0);
+    assert_eq!(detail.audience_groups.len(), 0);
     assert!(
         parse_full_detail(&body, 99).is_err(),
         "新接口不得把其他课程作为完整成功返回"

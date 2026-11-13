@@ -115,7 +115,7 @@ async fn 场馆预约准备拒绝非_allowed_target_且不保存意图() {
 
     assert_eq!(error.code, BridgeErrorCode::OperationConflict);
     assert!(error.retryable);
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     assert_eq!(direct.write_phase_count(), 0);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);

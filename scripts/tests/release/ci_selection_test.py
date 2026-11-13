@@ -30,7 +30,7 @@ class SelectionTest(unittest.TestCase):
             self.assertTrue(paths)
             found.extend((group['package'], path) for path in paths)
             if group['group'] == 'golden':
-                self.assertEqual(group['os'], 'macos-15')
+                self.assertEqual(group['os'], 'macos-26')
         expected = [(package, str(path.relative_to(ROOT / directory)))
                     for package, directory in plan.PACKAGES.items()
                     for path in (ROOT / directory / 'test').rglob('*_test.dart')]

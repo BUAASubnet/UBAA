@@ -24,7 +24,7 @@ fn gsmis校历空周时间轴和今日保留冻结语义() {
     assert_eq!(weeks[0].start_date, "2026-09-07");
     assert!(weeks[0].cur_week);
     let empty = value.weekly(1).unwrap();
-    assert!(empty.arranged_list.is_empty());
+    assert_eq!(empty.arranged_list.len(), 0);
     assert_eq!(empty.section_times.len(), 3);
     let course = value.weekly(2).unwrap().arranged_list.remove(0);
     assert_eq!(course.begin_time.as_deref(), Some("08:00"));
@@ -32,7 +32,7 @@ fn gsmis校历空周时间轴和今日保留冻结语义() {
     assert_eq!(course.end_section, Some(2));
     assert_eq!(course.weeks_and_teachers.as_deref(), Some("示例教师"));
     assert_eq!(value.today("2026-09-14").unwrap().len(), 1);
-    assert!(value.today("2026-09-15").unwrap().is_empty());
+    assert_eq!(value.today("2026-09-15").unwrap().len(), 0);
     let serialized = serde_json::to_string(&empty).unwrap();
     assert_eq!(
         serde_json::from_str::<crate::domain::WeeklySchedule>(&serialized).unwrap(),
@@ -53,12 +53,13 @@ fn gsmis不猜日历学期节次或位图() {
     ] {
         assert!(parse(&invalid).is_err());
     }
-    assert!(
+    assert_eq!(
         parse(r#"{"code":1,"jgList":[],"rwList":[],"jcfaList":[]}"#)
             .unwrap()
             .weeks("2026-09-14")
             .unwrap()
-            .is_empty()
+            .len(),
+        0
     );
 }
 #[test]

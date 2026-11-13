@@ -296,7 +296,7 @@ fn 校园午夜后原会话再次登记同一用户和年级() {
             assert_eq!(day["users"][0]["cohort_year"], 2024);
         }
         // 派生标识不进入失败输出。
-        assert!(days[0]["users"][0]["key"] == days[1]["users"][0]["key"]);
+        assert_eq!(days[0]["users"][0]["key"], days[1]["users"][0]["key"]);
     }
     std::fs::remove_dir_all(root).unwrap();
 }

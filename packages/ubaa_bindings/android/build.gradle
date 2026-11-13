@@ -11,7 +11,7 @@ buildscript {
 
     dependencies {
         // The Android Gradle Plugin knows how to build native code with the NDK.
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:9.5.1'
     }
 }
 
@@ -24,6 +24,9 @@ rootProject.allprojects {
 
 apply plugin: 'com.android.library'
 
+def toolVersions = new Properties()
+rootProject.file("../../../scripts/tools/versions.env").withInputStream { toolVersions.load(it) }
+
 android {
     if (project.android.hasProperty("namespace")) {
         namespace 'com.flutter_rust_bridge.ubaa_bindings'
@@ -31,13 +34,13 @@ android {
 
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
     // to bump the version in their app.
-    compileSdkVersion 36
+    compileSdkVersion "android-${toolVersions.getProperty('ANDROID_API')}"
 
     // Use the NDK version
     // declared in /android/app/build.gradle file of the Flutter project.
     // Replace it with a version number if this plugin requires a specfic NDK version.
     // (e.g. ndkVersion "23.1.7779620")
-    ndkVersion android.ndkVersion
+    ndkVersion toolVersions.getProperty('ANDROID_NDK')
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

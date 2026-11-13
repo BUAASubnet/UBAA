@@ -11,56 +11,54 @@ resolver = "3"
 [workspace.package]
 edition = "2024"
 license = "MIT"
-publish = false
 repository = "https://github.com/BUAASubnet/UBAA"
-rust-version = "1.95"
+rust-version = "1.100"
 version = "2.0.0"
 
 [workspace.dependencies]
-async-trait = "0.1.89"
-aes = "0.8.4"
-aes-gcm = "0.10.3"
+async-trait = "0.1.92"
+aes = "0.9.4"
+aes-gcm = "0.11.1"
 base64 = "0.23.1"
-cbc = "0.1.2"
-cfb-mode = "0.8.2"
-chrono = { version = "0.4.42", default-features = false, features = ["clock", "serde"] }
+cbc = "0.2.1"
+cfb-mode = "0.9.1"
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde"] }
 chrono-tz = { version = "0.10.4", features = ["serde"] }
-cipher = { version = "0.4.4", features = ["block-padding"] }
-clap = { version = "4.5.60", features = ["derive"] }
+cipher = { version = "0.5.2", features = ["block-padding"] }
+clap = { version = "4.6.7", features = ["derive"] }
 cookie_store = { version = "0.22.1", default-features = false }
-directories = "6.0.0"
-ecb = { version = "0.1.2", features = ["alloc"] }
-flate2 = "1.1.9"
+ecb = { version = "0.2.1", features = ["alloc"] }
+flate2 = "1.1.11"
 fs2 = "=0.4.3"
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 hex = "0.4.3"
-hmac = "0.12.1"
-image = { version = "0.25.8", default-features = false, features = ["jpeg", "png"] }
+hmac = "0.13.0"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
 icalendar = { version = "=0.17.17", default-features = false }
 jni = "=0.22.4"
-jsonschema = { version = "0.49.9", default-features = false }
+jsonschema = { version = "0.61.2", default-features = false }
 lopdf = { version = "0.47.0", default-features = false }
-md-5 = "0.10.6"
-rand = "0.8.5"
+md-5 = "0.11.0"
+rand = "0.10.3"
 reqwest = { version = "0.13.5", features = ["gzip"] }
 rrule = "=0.14.0"
-rsa = "0.9.8"
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rsa = { version = "0.10.0", features = ["pkcs1v15"] }
+rusqlite = { version = "0.42.0", features = ["bundled"] }
 same-file = "=1.0.6"
-scraper = "0.27.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-sha1 = "0.10.6"
-sha2 = "0.10.9"
+scraper = "0.29.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha1 = "0.11.0"
+sha2 = "0.11.1"
 rustls-platform-verifier = "=0.7.1"
 tokio = { version = "1.54.1" }
-toml = "1.1.4"
+toml = "1.2.1"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
-tract-onnx = { version = "=0.22.5", default-features = false }
-url = "2.5.7"
-uuid = { version = "=1.29.0", features = ["v4", "serde"] }
-zeroize = "1.9.0"
+tract-onnx = { version = "=0.23.10", default-features = false }
+url = "2.5.8"
+uuid = { version = "=1.29.2", features = ["v4", "serde"] }
+zeroize = "1.9.1"
 flutter_rust_bridge = "=2.13.0"
 
 # 开发与测试构建只保留文件名和行号，崩溃堆栈仍可定位；需要查看变量时

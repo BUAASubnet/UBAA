@@ -130,7 +130,7 @@ bash scripts/release/store-screenshots.sh
 
 完整 CI 的 main-required 成功后保存 merge-acceptance 记录，包含实际检出提交、Git tree、PR、运行编号和运行次数。Release 核对 GitHub 运行成功状态、记录来源和完整源码树。PR 临时合并提交与 main 的 SHA 可以不同，但必须属于实际合入该候选的 PR，且完整源码树一致；工作流、工具清单、锁文件和测试也包含在树中。没有匹配记录或记录已过期时重新执行完整验收，失败、取消和不明来源不会被复用。正式构建、签名、公证、上传与产物检查每次执行。
 
-iOS 合并验收、正式归档和上传显式选择 `versions.env` 中的 Xcode 26.3，使用 iOS 26 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。不依赖托管镜像的默认 Xcode。
+iOS 合并验收、正式归档和上传使用 GitHub 的 `xcode-27` 镜像，并显式选择 `versions.env` 中的 Xcode 27.2，使用 iOS 27.2 SDK，满足 [Apple 自 2026 年 4 月 28 日起的上传要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。`xcode-27` 当前为 GitHub 公开预览镜像，Xcode 27.2 为正式版本；工作流按固定路径选择工具链。
 
 | 平台 | 正式产物与渠道 |
 |---|---|

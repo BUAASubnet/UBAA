@@ -2,7 +2,7 @@
 
 use aes::Aes128;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
+use cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
 
 use crate::domain::LibBookReserveRequest;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -55,6 +55,6 @@ pub(super) fn encrypt_reserve_request(request: &LibBookReserveRequest) -> Result
                 "图书馆 AES 密钥无效",
             )
         })?;
-    let encrypted = cipher.encrypt_padded_vec_mut::<Pkcs7>(&plain);
+    let encrypted = cipher.encrypt_padded_vec::<Pkcs7>(&plain);
     Ok(STANDARD.encode(encrypted))
 }

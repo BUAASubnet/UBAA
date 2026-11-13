@@ -69,7 +69,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     assert_ne!(value["data"]["phone"], "PHONE-FIXTURE-VALUE");
     assert_ne!(value["data"]["idCardNumber"], "TEST-ID-0001");
     assert!(!String::from_utf8_lossy(&stdout).contains("fixture-password"));
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -120,7 +120,7 @@ async fn hidden_judge_diagnostics_exposes_only_safe_counts_and_summaries() {
     assert_eq!(value["data"]["filteredUniqueCount"], 2);
     assert_eq!(value["data"]["summaries"], serde_json::json!([]));
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[tokio::test]
@@ -143,7 +143,7 @@ async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data()
     );
     assert!(value["data"].get("token").is_none());
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr.len(), 0);
 }
 
 #[test]
@@ -667,6 +667,6 @@ async fn 研究生概览和独立考试学期命令保留路线并满足schema()
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
         assert_eq!(value["meta"]["resolvedRoute"], "direct");
-        assert!(stderr.is_empty());
+        assert_eq!(stderr.len(), 0);
     }
 }

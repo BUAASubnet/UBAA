@@ -115,7 +115,7 @@ fn 博雅登录跳转拒绝网关大小写绕过用户信息和非默认端口()
 #[test]
 fn 冻结摘要与加密正文向量保持一致() {
     assert_eq!(
-        format!("{:x}", Sha1::digest(b"abc")),
+        hex::encode(Sha1::digest(b"abc")),
         "a9993e364706816aba3e25717850c26c9cd0d89d"
     );
     let request = encrypt_request_with_key(
@@ -859,5 +859,5 @@ fn 博雅统计拒绝缺失或损坏的必填数据() {
     }
     let zero = response::parse_statistics(r#"{"status":"0","data":{"validCount":0}}"#).unwrap();
     assert_eq!(zero.total_valid_count, Some(0));
-    assert!(zero.categories.is_empty());
+    assert_eq!(zero.categories.len(), 0);
 }

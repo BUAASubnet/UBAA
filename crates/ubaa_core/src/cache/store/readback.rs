@@ -4,7 +4,7 @@ use super::{
     load_current_control, require_active,
 };
 use crate::domain::ConnectionMode;
-use rand::RngCore as _;
+use rand::TryRng as _;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write as _;
 
@@ -79,7 +79,7 @@ impl OfflineRepository {
             return Err(CacheError::Capacity);
         }
         let mut random = [0u8; 16];
-        rand::rngs::OsRng
+        rand::rngs::SysRng
             .try_fill_bytes(&mut random)
             .map_err(|_| CacheError::Unavailable)?;
         let mut id = String::with_capacity(32);

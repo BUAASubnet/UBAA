@@ -34,7 +34,7 @@ async fn 校园与财务命令投影符合_json_合同() {
                 .await
             };
             assert_eq!(code, 0);
-            assert!(errors.is_empty());
+            assert_eq!(errors.len(), 0);
             let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
             assert_cli_schema(&value);
             assert_eq!(value["meta"]["feature"], group);

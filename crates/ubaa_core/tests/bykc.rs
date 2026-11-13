@@ -95,7 +95,7 @@ fn 博雅选课写链发送加密正文和双令牌头() {
     ] {
         let url = url::Url::parse(&request.url).unwrap();
         assert_eq!(url.path(), path);
-        assert!(!request.body.is_empty());
+        assert_ne!(request.body.len(), 0);
         assert_eq!(
             request.headers.get("auth_token").map(String::as_str),
             Some("token-safe")

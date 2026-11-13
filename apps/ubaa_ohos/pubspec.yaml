@@ -22,22 +22,22 @@ dependencies:
   path_provider_ohos:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
-      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      ref: bddb2c981fcf826eaf19ed97f55113708aa55727
       path: packages/path_provider/path_provider_ohos
   shared_preferences_ohos:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
-      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      ref: bddb2c981fcf826eaf19ed97f55113708aa55727
       path: packages/shared_preferences/shared_preferences_ohos
   image_picker_ohos:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
-      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      ref: bddb2c981fcf826eaf19ed97f55113708aa55727
       path: packages/image_picker/image_picker_ohos
   url_launcher_ohos:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
-      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      ref: bddb2c981fcf826eaf19ed97f55113708aa55727
       path: packages/url_launcher/url_launcher_ohos
   connectivity_plus_ohos:
     path: ../../packages/connectivity_plus_ohos

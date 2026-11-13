@@ -33,7 +33,7 @@ fn 图书馆日程映射保持逐日原始关联() {
     });
     assert_eq!(mapped.id, "area-safe");
     assert_eq!(mapped.days[0].day, "2026-09-04");
-    assert!(mapped.days[0].time_slots.is_empty());
+    assert_eq!(mapped.days[0].time_slots.len(), 0);
     assert_eq!(mapped.days[1].day, "2026-09-05");
     let slot = &mapped.days[1].time_slots[0];
     assert_eq!(

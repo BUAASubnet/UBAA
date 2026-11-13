@@ -327,7 +327,7 @@ async fn 评教prepare只读取fresh权威并只保存canonical_typed目标() {
     direct
         .assert_exhausted()
         .expect("prepare 只能消费 fresh authority 请求");
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 Bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -525,18 +525,8 @@ async fn 评教commit路线变化由core原子拒绝并返回实际路线() {
     assert_eq!(error.code, BridgeErrorCode::OperationConflict);
     assert!(error.retryable);
     assert_eq!(error.resolved_route, Some(BridgeConnectionMode::WebVpn));
-    assert!(
-        commit_direct
-            .requests()
-            .expect("读取 Direct 请求")
-            .is_empty()
-    );
-    assert!(
-        commit_webvpn
-            .requests()
-            .expect("读取 WebVPN 请求")
-            .is_empty()
-    );
+    assert_eq!(commit_direct.requests().expect("读取 Direct 请求").len(), 0);
+    assert_eq!(commit_webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 Bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -568,7 +558,7 @@ async fn 评教caller_pinned回读只走调用方指定路线() {
     assert_eq!(response.data.courses.len(), 1);
     assert_eq!(response.data.courses[0].id, "task-1_form-1_course-one_");
     direct.assert_exhausted().expect("只消费 Direct authority");
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     client.dispose().await.expect("销毁 Bridge");
     let _ = std::fs::remove_dir_all(root);
 }

@@ -74,7 +74,7 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
         .await
         .expect("one business authentication refresh must succeed");
 
-    assert!(result.data.assignments.is_empty());
+    assert_eq!(result.data.assignments.len(), 0);
     assert_eq!(result.data.term_code, "2025-20262");
 }
 
@@ -134,7 +134,7 @@ async fn spoc_business_sso_location_refreshes_only_the_failed_call() {
         .await
         .expect("a raw SSO Location must refresh the route credential once");
 
-    assert!(result.data.assignments.is_empty());
+    assert_eq!(result.data.assignments.len(), 0);
     observed.assert_exhausted();
     assert_eq!(
         observed
@@ -262,7 +262,7 @@ async fn spoc_page_auth_refresh_retries_only_the_failed_business_call() {
         .await
         .expect("the failed page should be retried after one credential refresh");
 
-    assert!(result.data.assignments.is_empty());
+    assert_eq!(result.data.assignments.len(), 0);
     observed.assert_exhausted();
     let requests = observed.requests();
     assert_eq!(

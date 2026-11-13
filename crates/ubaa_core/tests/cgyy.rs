@@ -330,7 +330,7 @@ fn 场馆取消写链发送签名路径和订单标识() {
     let cancel = &requests[3];
     let url = url::Url::parse(&cancel.url).unwrap();
     assert_eq!(url.path(), "/venue-zhjs-server/api/orders/new/cancel/77");
-    assert!(cancel.body.is_empty());
+    assert_eq!(cancel.body, [] as [u8; 0]);
     assert!(cancel.headers.contains_key("sign"));
     let _ = std::fs::remove_dir_all(root);
 }

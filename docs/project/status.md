@@ -9,6 +9,7 @@
 | 项目 | 当前值 | 定义位置 |
 |---|---|---|
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
+| 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
 | Rust 与 Dart 之间的接口 | Flutter bridge contract v65 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
@@ -73,6 +74,8 @@ Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材�
 文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，应用服务从 `main` 部署到 `app.ubaa.top`。两个 Worker 使用 Route + CNAME，部署只更新代码与资源绑定。`main` 保留 `main-required` 完整验收和分支保护。
 
 Release 工作流由维护者在 main 手动启动，各平台构建后准备 GitHub Release 草稿、R2 产物和商店构建。维护者在整次工作流成功后手动发布草稿，发布动作不触发重复构建。
+
+2026-11-13 工具链与依赖升级后的本机验收覆盖完整 Rust/CLI 测试、Flutter 八个包、macOS 原生集成、Android ARM64 Debug APK、iOS 模拟器和 OHOS 无签名 Debug HAP。远端 CI、Windows/Linux 原生构建及实体设备验收待执行。
 
 ## 发布 v2.0.0 前还差什么
 

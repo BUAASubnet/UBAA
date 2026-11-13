@@ -281,7 +281,7 @@ fn 展示字段残缺的同_id_时段也参与身份计数并阻止完整行授�
         .filter(|slot| slot.time_id == FIRST_TIME_ID)
         .collect::<Vec<_>>();
 
-    assert!(!matching.is_empty());
+    assert_ne!(matching, [] as [&ubaa_core::facade::CgyySlotStatus; 0]);
     assert!(matching.iter().all(|slot| {
         slot.reservation_eligibility == ActionEligibility::Unknown
             && slot.reservation_target.is_none()

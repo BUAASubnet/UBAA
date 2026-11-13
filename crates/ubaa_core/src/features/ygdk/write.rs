@@ -280,7 +280,7 @@ mod tests {
                 (sanitized.code, sanitized.kind, sanitized.retryable),
                 (code, kind, retryable)
             );
-            assert!(!sanitized.message.is_empty());
+            assert_ne!(sanitized.message.len(), 0);
             assert!(!sanitized.message.contains("secret"));
             assert!(!sanitized.message.contains("private"));
             assert!(!sanitized.message.contains('\n'));

@@ -100,7 +100,7 @@ fn assignments_keep_raw_count_when_every_numeric_anchor_is_filtered() {
 
     assert_eq!(parsed.raw_anchor_count, 3);
     assert_eq!(parsed.filtered_unique_count(), 0);
-    assert!(parsed.assignments.is_empty());
+    assert_eq!(parsed.assignments.len(), 0);
 }
 
 #[test]

@@ -238,7 +238,7 @@ pub(super) fn check_judge_response(
 ) -> crate::error::Result<()> {
     let direct_url = crate::connection::from_webvpn_url(&response.final_url)
         .unwrap_or_else(|_| response.final_url.clone());
-    let native_login = url::Url::parse(&direct_url).ok().is_some_and(|url| {
+    let native_login = url::Url::parse(&direct_url).is_ok_and(|url| {
         url.host_str() == Some("judge.buaa.edu.cn") && url.path() == "/indexcs/simple.jsp"
     });
     if native_login || crate::features::body(response).contains("cgstuloginbtn") {

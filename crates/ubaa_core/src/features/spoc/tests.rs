@@ -146,7 +146,7 @@ fn assignment_page_uses_the_complete_frozen_defaults() {
     assert_eq!(page.page_size, 15);
     assert_eq!(page.pages, 1);
     assert!(!page.has_next_page);
-    assert!(page.list.is_empty());
+    assert_eq!(page.list.len(), 0);
 }
 
 #[test]

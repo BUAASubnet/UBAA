@@ -217,7 +217,10 @@ fn check_replacement(
     else {
         panic!("必须为已选")
     };
-    assert!(empty.courses.is_empty());
+    assert_eq!(
+        empty.courses,
+        [] as [ubaa_core::facade::CachedBykcChosenCourse; 0]
+    );
     fail.store(3, Ordering::SeqCst);
     let mismatched = runtime
         .block_on(client.refresh_cached_bykc(cache, BykcCacheQuery::Detail { course_id: 42 }))

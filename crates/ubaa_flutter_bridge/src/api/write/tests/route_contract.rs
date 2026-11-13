@@ -167,7 +167,7 @@ async fn 十类写入提交只解析一次路线且不能跨探测窗口转路()
         {
             failures.push(format!("{operation:?}"));
         }
-        assert!(client.write_intents.lock().await.is_empty());
+        assert_eq!(client.write_intents.lock().await.len(), 0);
         client.dispose().await.unwrap();
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -200,9 +200,9 @@ async fn 十类写入确认路线与当前路线不符时零请求拒绝且消�
             .await
             .unwrap_err();
         assert_eq!(error.code, BridgeErrorCode::OperationConflict);
-        assert!(direct.requests().unwrap().is_empty());
-        assert!(webvpn.requests().unwrap().is_empty());
-        assert!(client.write_intents.lock().await.is_empty());
+        assert_eq!(direct.requests().unwrap().len(), 0);
+        assert_eq!(webvpn.requests().unwrap().len(), 0);
+        assert_eq!(client.write_intents.lock().await.len(), 0);
         client.dispose().await.unwrap();
         std::fs::remove_dir_all(root).unwrap();
     }

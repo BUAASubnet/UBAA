@@ -27,7 +27,7 @@ dev_dependencies:
   package_info_plus: 10.2.2
   ubaa_test_support:
     path: ../../packages/ubaa_test_support
-  connectivity_plus: 6.1.5
+  connectivity_plus: 7.3.2
   flutter_test:
     sdk: flutter
   integration_test:

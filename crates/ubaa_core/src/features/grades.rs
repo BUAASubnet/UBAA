@@ -118,8 +118,7 @@ pub(crate) async fn get_grades(
                     .terms
                     .iter()
                     .find(|t| t.term_code == term_code)
-                    .map(|t| t.statistics.clone())
-                    .unwrap_or_default(),
+                    .map_or_default(|t| t.statistics.clone()),
             ),
             term_code: term_code.into(),
             grades: overview

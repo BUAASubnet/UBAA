@@ -158,7 +158,7 @@ async fn signin_prepare_rejects_denied_unknown_and_missing_action_without_write(
             error.code,
             BridgeErrorCode::InvalidInput | BridgeErrorCode::UpstreamChanged
         ));
-        assert!(client.write_intents.lock().await.is_empty());
+        assert_eq!(client.write_intents.lock().await.len(), 0);
         direct.assert_exhausted().expect("不得访问时间戳或写端点");
         assert_eq!(direct.requests().expect("读取请求").len(), 3);
         client.dispose().await.expect("销毁 bridge");
@@ -301,9 +301,7 @@ fn signin_today_request_with_fields(
         "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action?id={USER_ID}&dateStr={}",
         shanghai_date(),
     );
-    let status = status
-        .map(|value| format!(r#","signStatus":{value}"#))
-        .unwrap_or_default();
+    let status = status.map_or_default(|value| format!(r#","signStatus":{value}"#));
     let body = format!(
         r#"{{"STATUS":"0","result":[{{"id":"{}","courseName":"{}","classBeginTime":"{}","classEndTime":"{}"{status}}}]}}"#,
         json_escape(schedule_id),

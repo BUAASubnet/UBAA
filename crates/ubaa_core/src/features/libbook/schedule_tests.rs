@@ -64,17 +64,19 @@ fn 分区日程保留空时段日期且不从旧顶层字段推测关联() {
     assert_eq!(schedule.days.len(), 2);
     assert!(schedule.days.iter().all(|day| day.time_slots.is_empty()));
     let legacy = r#"{"code":1,"data":{"availableDates":["2026-09-04"],"timeSlots":[{"id":"unowned","start":"08:00","end":"10:00"}]}}"#;
-    assert!(
+    assert_eq!(
         parse_area_schedule_for("area-safe", legacy)
             .unwrap()
             .days
-            .is_empty()
+            .len(),
+        0
     );
-    assert!(
+    assert_eq!(
         parse_area_schedule_for("area-safe", &response(&json!([])))
             .unwrap()
             .days
-            .is_empty()
+            .len(),
+        0
     );
 }
 

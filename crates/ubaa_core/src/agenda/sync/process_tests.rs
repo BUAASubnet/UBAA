@@ -153,7 +153,7 @@ fn delayed_process_publication_preserves_another_process_completed_deletion() {
     let replica = AgendaStore::open(&root(), ACCOUNT).unwrap();
     let scope = replica.sync_snapshot().unwrap();
     replica.merge_sync(&scope, document).unwrap();
-    assert!(replica.sync_snapshot().unwrap().document().items.is_empty());
+    assert_eq!(replica.sync_snapshot().unwrap().document().items.len(), 0);
     assert!(
         replica
             .sync_snapshot()

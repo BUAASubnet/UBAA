@@ -79,8 +79,7 @@ fn has_unsupported_login_controls(html: &str, image_captcha: bool) -> bool {
         let value = element.value();
         let name = value
             .attr("name")
-            .map(str::trim)
-            .unwrap_or_default()
+            .map_or_default(str::trim)
             .to_ascii_lowercase();
         let input_type = value
             .attr("type")

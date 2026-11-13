@@ -52,5 +52,5 @@ pub(crate) fn sign(path: &str, params: &BTreeMap<String, String>, timestamp: i64
     payload.push_str(&timestamp.to_string());
     payload.push(' ');
     payload.push_str(PREFIX);
-    format!("{:x}", Md5::digest(payload.as_bytes()))
+    hex::encode(Md5::digest(payload.as_bytes()))
 }

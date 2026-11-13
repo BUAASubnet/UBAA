@@ -188,13 +188,13 @@ fn response_body_limit(method: HttpMethod, request_url: &str) -> usize {
     if method == HttpMethod::Get {
         let direct_url = crate::connection::from_webvpn_url(request_url)
             .unwrap_or_else(|_| request_url.to_owned());
-        if url::Url::parse(&direct_url).ok().is_some_and(|url| {
+        if url::Url::parse(&direct_url).is_ok_and(|url| {
             url.host_str() == Some("print.lib.buaa.edu.cn")
                 && url.path() == "/api/client/Scan/Download"
         }) {
             return 32 * 1024 * 1024;
         }
-        if url::Url::parse(&direct_url).ok().is_some_and(|url| {
+        if url::Url::parse(&direct_url).is_ok_and(|url| {
             url.host_str() == Some("judge.buaa.edu.cn")
                 && url.path() == "/assignment/index.jsp"
                 && url.query_pairs().any(|(key, value)| {

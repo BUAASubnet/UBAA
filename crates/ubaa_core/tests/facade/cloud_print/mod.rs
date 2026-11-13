@@ -16,7 +16,7 @@ impl HttpTransport for PrintTransport {
         match self.0 {
             ConnectionMode::Direct => {
                 assert_eq!(actual, upstream);
-                assert!(cookie.is_empty());
+                assert_eq!(cookie, "");
             }
             ConnectionMode::WebVpn => {
                 assert_eq!(actual.host_str(), Some("d.buaa.edu.cn"));

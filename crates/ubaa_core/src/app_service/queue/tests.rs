@@ -259,7 +259,7 @@ fn app_service_daily_account_limit_survives_version_changes_and_confirmation() {
     let first = frozen(&tx, day(), install);
     for group in days(&first) {
         assert_eq!(group["users"].as_array().unwrap().len(), 1);
-        assert!(group["users"][0]["key"].as_str() == Some(person.key()));
+        assert_eq!(group["users"][0]["key"].as_str(), Some(person.key()));
     }
     assert!(finish(&tx, first.id(), BatchDisposition::Accepted).unwrap());
     for index in 0..4 {
@@ -302,7 +302,10 @@ fn app_service_daily_account_limit_survives_version_changes_and_confirmation() {
         .unwrap()
     );
     let next = frozen(&tx, tomorrow, install);
-    assert!(days(&next)[0]["users"][0]["key"].as_str() == Some(person.key()));
+    assert_eq!(
+        days(&next)[0]["users"][0]["key"].as_str(),
+        Some(person.key())
+    );
 }
 
 #[test]
@@ -350,7 +353,7 @@ fn app_service_clearing_pending_counts_preserves_daily_quota() {
     let groups = days(&batch);
     assert_eq!(counts(&groups), 2);
     assert_eq!(groups[0]["users"].as_array().unwrap().len(), 1);
-    assert!(groups[0]["users"][0]["key"].as_str() == Some(user(0).key()));
+    assert_eq!(groups[0]["users"][0]["key"].as_str(), Some(user(0).key()));
 }
 
 #[test]
@@ -401,7 +404,7 @@ fn app_service_clearing_unconfirmed_batch_preserves_daily_quota_but_allows_fresh
     let groups = days(&fresh);
     assert_eq!(counts(&groups), 2);
     assert_eq!(groups[0]["users"].as_array().unwrap().len(), 1);
-    assert!(groups[0]["users"][0]["key"].as_str() == Some(user(0).key()));
+    assert_eq!(groups[0]["users"][0]["key"].as_str(), Some(user(0).key()));
 
     reset(&tx).unwrap();
     assert!(
@@ -416,7 +419,10 @@ fn app_service_clearing_unconfirmed_batch_preserves_daily_quota_but_allows_fresh
         .unwrap()
     );
     let after_erase = frozen(&tx, day(), Uuid::new_v4());
-    assert!(days(&after_erase)[0]["users"][0]["key"].as_str() == Some(user(3).key()));
+    assert_eq!(
+        days(&after_erase)[0]["users"][0]["key"].as_str(),
+        Some(user(3).key())
+    );
 }
 
 #[test]

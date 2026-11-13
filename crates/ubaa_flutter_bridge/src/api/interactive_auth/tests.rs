@@ -107,7 +107,7 @@ async fn synchronous_cancel_does_not_wait_for_network_lock_or_start_queued_prepa
         pending.await.unwrap().unwrap_err().code,
         super::super::client::BridgeErrorCode::InvalidInput
     );
-    assert!(fixture.requests.lock().unwrap().is_empty());
+    assert_eq!(fixture.requests.lock().unwrap().len(), 0);
 }
 
 #[tokio::test]
@@ -235,7 +235,7 @@ async fn foreign_handles_and_cancelled_route_challenges_never_send_answers() {
             .await
             .is_err()
     );
-    assert!(foreign.requests.lock().unwrap().is_empty());
+    assert_eq!(foreign.requests.lock().unwrap().len(), 0);
     let prepared = fixture
         .bridge
         .prepare_interactive_login(&login)

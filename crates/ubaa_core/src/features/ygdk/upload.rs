@@ -1,6 +1,6 @@
 //! 阳光打卡照片 multipart 正文构造。
 
-use rand::{Rng, distributions::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 
 use crate::domain::YgdkPhotoUpload;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -125,7 +125,7 @@ fn upload_request_error(error: UbaaError) -> UbaaError {
 
 fn generate_boundary(photo: &[u8]) -> String {
     loop {
-        let suffix = rand::thread_rng()
+        let suffix = rand::rng()
             .sample_iter(Alphanumeric)
             .take(48)
             .map(char::from)

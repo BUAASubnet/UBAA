@@ -420,7 +420,7 @@ fn 场馆取消提交经非幂等边界只发送一次空表单并返回固定�
     let requests = scenario.requests();
     let cancel = request_for_path(&requests, CANCEL_PATH);
     assert_eq!(cancel.method, HttpMethod::Post);
-    assert!(cancel.body.is_empty());
+    assert_eq!(cancel.body, [] as [u8; 0]);
     assert_eq!(
         cancel.headers.get("Content-Type").map(String::as_str),
         Some("application/x-www-form-urlencoded")
@@ -608,12 +608,12 @@ fn 场馆取消详情请求只把订单_id_放入路径并保留_get_nocache() {
     let requests = scenario.requests();
     let detail = request_for_path(&requests, DETAIL_PATH);
     assert_eq!(detail.method, HttpMethod::Get);
-    assert!(detail.body.is_empty());
+    assert_eq!(detail.body, [] as [u8; 0]);
     let url = url::Url::parse(&detail.url).expect("详情 URL 有效");
     let query = url.query_pairs().collect::<Vec<_>>();
     assert_eq!(query.len(), 1);
     assert_eq!(query[0].0, "nocache");
-    assert!(!query[0].1.is_empty());
+    assert_ne!(query[0].1.len(), 0);
     cleanup(root);
 }
 

@@ -131,7 +131,7 @@ fn assert_json_and_human_streams(case: ExitCase) {
     );
 
     assert_eq!(json_exit, case.exit);
-    assert!(json_stderr.is_empty());
+    assert_eq!(json_stderr.len(), 0);
     let json_text = std::str::from_utf8(&json_stdout).unwrap();
     assert_eq!(json_text.lines().count(), 1);
     let mut envelopes =
@@ -163,7 +163,7 @@ fn assert_json_and_human_streams(case: ExitCase) {
     );
 
     assert_eq!(human_exit, case.exit);
-    assert!(human_stdout.is_empty());
+    assert_eq!(human_stdout.len(), 0);
     assert_eq!(
         std::str::from_utf8(&human_stderr).unwrap(),
         "错误：fixture-safe-error\n"
@@ -183,7 +183,7 @@ fn assert_writer_failures_return_internal_exit() {
         ),
         7
     );
-    assert!(discarded_stderr.is_empty());
+    assert_eq!(discarded_stderr.len(), 0);
 
     let mut discarded_stdout = Vec::new();
     assert_eq!(
@@ -196,7 +196,7 @@ fn assert_writer_failures_return_internal_exit() {
         ),
         7
     );
-    assert!(discarded_stdout.is_empty());
+    assert_eq!(discarded_stdout.len(), 0);
 }
 
 #[test]

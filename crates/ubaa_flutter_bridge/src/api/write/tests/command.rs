@@ -104,7 +104,7 @@ default = "direct"
         receipt.resolution.mode,
         ubaa_core::facade::ConnectionMode::Direct
     );
-    assert!(client.write_intents.lock().await.is_empty());
+    assert_eq!(client.write_intents.lock().await.len(), 0);
     direct.assert_exhausted().unwrap();
     client.dispose().await.unwrap();
     let _ = std::fs::remove_dir_all(root);

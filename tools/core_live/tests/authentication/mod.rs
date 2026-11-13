@@ -146,7 +146,10 @@ async fn exercise(
         assert_eq!(user.resolution.mode, mode);
         assert_eq!(user.data.username.as_deref(), Some(USER));
     } else {
-        assert!(client.active_routes().is_empty());
+        assert_eq!(
+            client.active_routes(),
+            [] as [ubaa_test_support::ConnectionMode; 0]
+        );
     }
     let requests = requests.lock().unwrap();
     let posts: Vec<_> = requests

@@ -154,6 +154,9 @@ async fn 票据校验失败不能保存已认证会话() {
             .await
             .is_err()
     );
-    assert!(client.active_routes().is_empty());
+    assert_eq!(
+        client.active_routes(),
+        [] as [ubaa_core::facade::ConnectionMode; 0]
+    );
     let _ = std::fs::remove_dir_all(root);
 }

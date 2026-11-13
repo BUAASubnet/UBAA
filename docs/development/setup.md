@@ -8,18 +8,18 @@
 
 | 工具 | 版本或能力 | 用途 |
 |---|---|---|
-| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证位置参数透传 | 所有脚本入口；版本由 `just doctor` 核对 |
-| Rustup、Rust、rustfmt、Clippy | `rust-toolchain.toml`：Rust 1.95.0，含 rustfmt、Clippy | Rust 构建、测试和文档 |
-| Python | 3.11+，含 venv、pip | Python 门禁与质量工具环境 |
-| Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | YAML/JSON5 解析；显式 bootstrap 安装 |
+| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.59.0 已验证位置参数透传 | 所有脚本入口；版本由 `just doctor` 核对 |
+| Rustup、Rust、rustfmt、Clippy | `rust-toolchain.toml`：Rust 1.100.0，含 rustfmt、Clippy | Rust 构建、测试和文档 |
+| Python | 3.11+，本机使用 3.15.2；含 venv、pip | Python 门禁与质量工具环境 |
+| Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | YAML/JSON5 解析；显式 bootstrap 安装，缺少 wheel 时构建经摘要校验的源码包 |
 | ShellCheck | 精确 0.11.0 | `check-strict`；可通过 `UBAA_SHELLCHECK_BIN` 指定 |
 | cargo-deny | 精确 0.20.2 | `just dependency-audit`；版本来自 `scripts/tools/versions.env` |
 | 官方 Flutter / Dart | Flutter 3.50.0，commit `ab2912035e160d9cad6306df307576da6128ebdb`；Dart 3.14.0 | 根 Pub workspace 的七个正式包、测试辅助包和官方宿主 |
-| FRB codegen / cargo-expand | 精确 2.13.0 / 1.0.126 | FRB 生成检查；运行时与生成器须一致 |
+| FRB codegen / cargo-expand | 精确 2.13.0 / 1.0.127 | FRB 生成检查；运行时与生成器须一致 |
 | ripgrep | 提供 `rg --files` | `just source-files` |
 | zip、unzip、file、tar、curl | 平台可用版本；tar 支持 xz | 合同夹具、归档、产物检查和显式工具下载 |
 | SHA-256 工具 | `shasum -a 256` 或 `sha256sum` | 产物、源码和发布锁文件摘要共用同一回退逻辑 |
-| Node.js、npm | Node 22，至少 22.12.0；npm 支持 `npm ci` | 根 `package.json` 用于 VitePress 文档站；应用服务使用独立的 npm 项目 |
+| Node.js、npm | Node 26，至少 26.13.1；npm 支持 `npm ci` | 根 `package.json` 用于 VitePress 文档站；应用服务使用独立的 npm 项目 |
 | OHOS Flutter | tag `3.41.10-ohos-1.0.1`，commit `adaf911c35c9136a7d18fc424d714c9ec7724e60` | OHOS 独立 SDK，不能用官方 SDK 替代 |
 | DevEco / SDK | DevEco/CLI 26.0.0.821（Release）、API26；Hvigor 6.26.4、ohpm 26.0.0.630 | OHOS 检查与构建；支持 Studio `tools/` 和 CLI `tool/` 布局 |
 | JDK | 17+ | OHOS 预检；Android 使用对应 Gradle/Flutter 支持的 JDK |

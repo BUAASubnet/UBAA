@@ -141,8 +141,7 @@ pub(super) fn config(settings: &Value, types: &Value) -> Result<IhomeConfig> {
         values
             .iter()
             .find(|v| text(v, "key") == key)
-            .map(|v| text(v, "value"))
-            .unwrap_or_default()
+            .map_or_default(|v| text(v, "value"))
     };
     let label = find("fabulous_show");
     Ok(IhomeConfig {

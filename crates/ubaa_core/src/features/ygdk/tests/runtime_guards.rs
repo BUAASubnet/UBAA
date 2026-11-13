@@ -98,7 +98,7 @@ fn 记录读取在项目响应期间代次变化后重新完整读取权威() {
         .block_on(get_records(&mut runtime, 1, 20))
         .expect("只读链可从新代次完整重取后继续");
 
-    assert!(page.content.is_empty());
+    assert_eq!(page.content.len(), 0);
     let requests = requests.lock().unwrap();
     assert_eq!(
         requests

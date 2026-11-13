@@ -42,7 +42,10 @@ fn 无缓存扫描按批让位_旧项后新增仍读取_下一轮不永久排除
                 .unwrap();
             let index = client.next_judge_online(&mut plan).await.unwrap();
             assert_eq!(index.batch.kind, JudgeScanKind::Assignments);
-            assert!(index.summaries.is_empty());
+            assert_eq!(
+                index.summaries,
+                [] as [ubaa_core::facade::JudgeAssignmentSummary; 0]
+            );
             let before = transport.requests.lock().unwrap().len();
             client.schedule_today().await.unwrap();
             assert!(transport.requests.lock().unwrap().len() > before);
@@ -162,7 +165,7 @@ fn 无缓存批量目标去重且课内保留输入顺序_空目标与索引缺�
             client.begin_judge_online(empty).await,
             Err(OfflineReadError::Read(_))
         ));
-        assert!(transport.requests.lock().unwrap().is_empty());
+        assert_eq!(transport.requests.lock().unwrap().len(), 0);
         let keys = [("12", "102"), ("12", "101"), ("12", "102"), ("13", "201")]
             .map(|(course, assignment)| JudgeAssignmentKey {
                 course_id: course.into(),

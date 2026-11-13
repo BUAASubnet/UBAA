@@ -73,10 +73,10 @@ impl HttpTransport for Transport {
                 let range = if page == 1 { 0..12 } else { 12..13 };
                 json!({"code":"0","datas":{"xscjcx":{"totalSize":13,"pageNumber":page,"rows":range.map(|i|json!({"WID":if self.duplicate {"same".to_owned()} else {format!("row-{i}")},"XNXQDM":if i<12 {"20251"} else {"20261"},"XNXQDM_DISPLAY":"示例学期","KCMC":"示例课程","XF":2,"CJXSZ":"90","CJFZDM":"0"})).collect::<Vec<_>>()}}})
             } else if url.path().ends_with("cjfzdjcx.do") {
-                assert!(request.body.is_empty());
+                assert_eq!(request.body.len(), 0);
                 json!({"code":"0","datas":{"cjfzdjcx":{"totalSize":0,"rows":[]}}})
             } else if url.path().ends_with("getXnxqList.do") {
-                assert!(request.body.is_empty());
+                assert_eq!(request.body.len(), 0);
                 json!({"datas":[{"DM":"20261","MC":"考试学期","SFDQXQ":"1"}]})
             } else {
                 assert!(url.path().ends_with("getWdksxx.do"));
@@ -142,12 +142,13 @@ async fn 双路线研究生身份只请求一次并读取完整历史成绩和�
                 .item_code,
             "20261"
         );
-        assert!(
+        assert_eq!(
             crate::features::schedule::get_exam(&mut runtime, "20261")
                 .await
                 .unwrap()
                 .arranged
-                .is_empty()
+                .len(),
+            0
         );
         assert_eq!(
             requests

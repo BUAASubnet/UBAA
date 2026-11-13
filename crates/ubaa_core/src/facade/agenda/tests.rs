@@ -86,24 +86,25 @@ fn 未知学期保留按日期的学校缓存且跨路线共享() {
             .iter()
             .any(|entry| entry.title() == "合成签到")
     );
-    assert!(
+    assert_eq!(
         result
             .sources
             .iter()
             .find(|s| s.feature == ReadonlyFeature::Signin)
             .unwrap()
             .observations
-            .len()
-            == 1
+            .len(),
+        1
     );
-    assert!(
+    assert_eq!(
         result
             .sources
             .iter()
             .find(|s| s.feature == ReadonlyFeature::Exam)
             .unwrap()
             .observations
-            .is_empty()
+            .len(),
+        0
     );
     q.route = ConnectionMode::WebVpn;
     let other = cache.query_agenda(&agenda, &q).unwrap();
@@ -121,7 +122,7 @@ fn no_school_cache_still_queries_known_account_local_agenda() {
     let mut q = query();
     q.term.clear();
     let result = agenda.query_local_agenda(&q).unwrap();
-    assert!(!result.entries.is_empty());
+    assert_ne!(result.entries.len(), 0);
     assert!(
         result
             .entries
@@ -532,11 +533,11 @@ fn imported_semester_projects_only_requested_dates_and_keeps_original_freshness(
         .find(|s| s.feature == ReadonlyFeature::Schedule)
         .unwrap();
     assert_eq!(state.semester_imported, Some(true));
-    assert!(state.missing_scopes.is_empty());
+    assert_eq!(state.missing_scopes.len(), 0);
     assert!(state.observations.iter().all(|s| s.fetched_at == 100));
     q.from = d("2026-03-30");
     q.to = d("2026-04-01");
-    assert!(cache.query_agenda(&agenda, &q).unwrap().entries.is_empty());
+    assert_eq!(cache.query_agenda(&agenda, &q).unwrap().entries.len(), 0);
 }
 #[test]
 fn ordinary_week_cache_uses_real_dates_and_reports_partial_import_coverage() {
@@ -571,7 +572,7 @@ fn ordinary_week_cache_uses_real_dates_and_reports_partial_import_coverage() {
         .find(|s| s.feature == ReadonlyFeature::Schedule)
         .unwrap();
     assert_eq!(source.semester_imported, Some(false));
-    assert!(source.missing_scopes.is_empty());
+    assert_eq!(source.missing_scopes.len(), 0);
     let mut invalid = schedule;
     invalid.arranged_list[0].day_of_week = None;
     publish(

@@ -34,7 +34,7 @@ async fn 图书馆日程通过_bridge_只读_facade_且不生成写意图() {
         .unwrap();
     assert_eq!(result.route.resolved_route, BridgeConnectionMode::Direct);
     assert_eq!(result.data.days.len(), 2);
-    assert!(result.data.days[0].time_slots.is_empty());
+    assert_eq!(result.data.days[0].time_slots.len(), 0);
     assert_eq!(result.data.days[1].day, "2026-09-05");
     assert_eq!(result.data.days[1].time_slots[0].id, "second-slot");
     direct.assert_exhausted().unwrap();
@@ -94,7 +94,7 @@ async fn 图书馆预约准备读取新鲜权威并生成安全目标摘要() {
         .expect("prepare 必须完成区域详情和座位的 fresh 复核");
     let requests = direct.requests().expect("读取 Direct 请求");
     assert_eq!(requests.len(), 4);
-    assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
+    assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     let area_body = request_body(&requests, "/v4/Space/map");
     assert!(area_body.contains(r#""id":"area-safe""#));
     let seats_body = request_body(&requests, "/v4/Space/seat");

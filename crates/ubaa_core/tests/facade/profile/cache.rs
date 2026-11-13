@@ -21,7 +21,7 @@ impl HttpTransport for ProfileTransport {
             return Ok(HttpResponse::new(200, request.url, Vec::new()));
         }
         assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Get);
-        assert!(request.body.is_empty());
+        assert_eq!(request.body, [] as [u8; 0]);
         assert!(url.path() == "/serviceValidate" || url.query().is_none());
         let mode = self.mode.load(Ordering::SeqCst);
         let info = url.path() == "/api/uc/userinfo";

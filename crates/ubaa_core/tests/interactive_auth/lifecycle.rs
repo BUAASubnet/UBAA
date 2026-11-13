@@ -138,7 +138,7 @@ fn cancellation_after_answer_send_cannot_persist_or_start_another_route() {
                     ],
                 )
                 .await;
-            assert!(fixture.client.active_routes().is_empty());
+            assert_eq!(fixture.client.active_routes().len(), 0);
             result.expect_err("取消后不发布迟到认证成功")
         });
         gate.started.notified().await;
@@ -478,7 +478,7 @@ fn new_manual_account_clears_old_cookie_preparation_and_persisted_slots() {
                 .unwrap();
             assert!(current.profile.is_none());
             assert_eq!(current.readiness, LoginReadiness::NoneReady);
-            assert!(fixture.client.active_routes().is_empty());
+            assert_eq!(fixture.client.active_routes().len(), 0);
             let requests = fixture.requests.lock().unwrap();
             assert!(!requests[before].headers.contains_key("Cookie"));
             assert!(!requests[before + 2].headers.contains_key("Cookie"));

@@ -209,7 +209,7 @@ async fn 硬关闭不上传且仍允许删除已上传数据() {
         gui.upload_with(&transport).await.unwrap(),
         UploadAttempt::default()
     );
-    assert!(transport.take_requests().is_empty());
+    assert_eq!(transport.take_requests().len(), 0);
 
     gui.begin_erase().unwrap().unwrap();
     assert_eq!(
@@ -289,7 +289,7 @@ async fn 上传重试测试子进程() {
             app.upload_with(&transport).await.unwrap(),
             UploadAttempt::default()
         );
-        assert!(transport.take_requests().is_empty());
+        assert_eq!(transport.take_requests().len(), 0);
     }
 }
 
@@ -321,7 +321,10 @@ async fn 基础模式删除结果未知后重启仅图形宿主重试() {
             .unwrap();
         assert_eq!(request.url, format!("{ORIGIN}/v1/telemetry/erase"));
         let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
-        assert!(body == serde_json::json!({"schema": 1, "install_id": old_install}));
+        assert_eq!(
+            body,
+            serde_json::json!({"schema": 1, "install_id": old_install})
+        );
         // 图形宿主已发送、尚未收到响应时启动独立命令进程。
         child(&root.0, "parallel-command");
         unblock.send(()).unwrap();
@@ -407,7 +410,7 @@ async fn 配置停用时不发删除或上传请求() {
     );
     assert_eq!(gui.upload_once().await.unwrap(), UploadAttempt::default());
     assert_eq!(gui.erase_once().await.unwrap(), EraseAttempt::NotAttempted);
-    assert!(transport.take_requests().is_empty());
+    assert_eq!(transport.take_requests().len(), 0);
     assert!(gui.snapshot().unwrap().erasing_install_id.is_some());
 }
 
@@ -496,7 +499,7 @@ async fn 手动删除不受间隔限制且推迟两个宿主的自动重试() {
             UploadAttempt::default()
         );
     }
-    assert!(transport.take_requests().is_empty());
+    assert_eq!(transport.take_requests().len(), 0);
 
     let gui = gui.with_runtime(|| "2026-11-11T01:00:00Z".parse().unwrap(), false);
     assert_eq!(

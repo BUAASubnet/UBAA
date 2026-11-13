@@ -2,7 +2,7 @@
 
 use aes::{Aes128, Aes192, Aes256};
 use base64::Engine as _;
-use cipher::{BlockEncryptMut, KeyInit, block_padding::Pkcs7};
+use cipher::{BlockModeEncrypt, KeyInit, block_padding::Pkcs7};
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
@@ -25,7 +25,7 @@ fn encrypt_captcha_text(plain: &str, secret_key: &str) -> Result<String> {
         ($aes:ty) => {
             ecb::Encryptor::<$aes>::new_from_slice(key)
                 .map_err(|_| error("验证码密钥长度无效"))?
-                .encrypt_padded_vec_mut::<Pkcs7>(plain.as_bytes())
+                .encrypt_padded_vec::<Pkcs7>(plain.as_bytes())
         };
     }
     let bytes = match key.len() {
