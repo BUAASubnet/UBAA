@@ -235,6 +235,7 @@ source-files:
 
 # 不访问学校或设备的 Python 行为合同。
 script-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/command_build_test.py
     python3 scripts/tests/release/ci_selection_test.py
     python3 scripts/tests/release/acceptance_test.py
     python3 scripts/tests/release/metadata_test.py
