@@ -2,6 +2,7 @@
 # 使用 Flutter 准备原生工程，再由 Xcode 归档和导出 App Store IPA。
 set -euo pipefail
 repo_root=$(pwd)
+python3 scripts/release/platforms/ios_privacy.py apps/ubaa_flutter/ios/Runner/Info.plist
 signing="$repo_root/.ubaa_local/release/signing"
 output="$repo_root/.ubaa_local/release/ios"
 mkdir -p "$output" "$repo_root/.ubaa_local/release/store"
@@ -26,3 +27,4 @@ xcodebuild archive -workspace ios/Runner.xcworkspace -scheme Runner -configurati
 xcodebuild -exportArchive -archivePath "$output/UBAA.xcarchive" \
   -exportPath "$output/export" -exportOptionsPlist "$signing/ExportOptions.plist"
 cp "$output/export/"*.ipa "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+python3 "$repo_root/scripts/release/platforms/ios_privacy.py" "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
