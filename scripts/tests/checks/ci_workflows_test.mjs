@@ -60,3 +60,28 @@ test("Android 并行作业覆盖三个 ABI 且产物名称互不覆盖", () => {
   assert.equal(new Set(android.map((entry) => entry.artifact_id)).size, 3);
   assert.equal(job.strategy["fail-fast"], false);
 });
+
+const runnerFor = (job, local, os, event = "workflow_dispatch", ref = "refs/heads/main") => {
+  const evaluate = new Function("inputs", "matrix", "github", `return ${job["runs-on"].slice(3, -2)}`);
+  return evaluate({ local_macos: local }, { os }, { event_name: event, ref, workflow: "Release 构建与草稿" });
+};
+test("本机 Release 路由覆盖 Apple 构建与验收，普通 CI 保留托管 runner", () => {
+  const release = workflow("release");
+  assert.equal(release.on.workflow_dispatch.inputs.local_macos.default, false);
+  assert.equal(release.jobs.verify.with.local_macos, "${{ inputs.local_macos }}");
+  for (const [name, hosted] of [["macos", "macos-26-intel"], ["ios", "xcode-27"], ["app-store", "xcode-27"], ["store-access", "macos-26"]]) {
+    assert.equal(runnerFor(release.jobs[name], true, hosted), "ubaa-release-macos");
+    assert.equal(runnerFor(release.jobs[name], false, hosted), hosted);
+  }
+  const ci = workflow("ci");
+  const native = workflow("flutter-platforms");
+  assert.equal(ci.jobs.native.with.local_macos, "${{ inputs.local_macos || false }}");
+  for (const job of [ci.jobs["rust-checks"], ci.jobs["rust-builds"], ci.jobs["rust-tests"], ci.jobs["flutter-tests"], native.jobs["native-debug"]]) {
+    for (const os of ["macos-26", "xcode-27", "ubuntu-24.04", "windows-2025"]) {
+      const apple = os === "macos-26" || os === "xcode-27";
+      assert.equal(runnerFor(job, true, os), apple ? "ubaa-release-macos" : os);
+      assert.equal(runnerFor(job, false, os), os);
+      assert.equal(runnerFor(job, true, os, "pull_request", "refs/pull/1/merge"), os);
+    }
+  }
+});

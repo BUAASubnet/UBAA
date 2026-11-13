@@ -3,6 +3,11 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      local_macos:
+        description: Release 使用本机 Apple runner
+        type: boolean
+        default: false
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-26, windows-2025]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
@@ -69,7 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-26, windows-2025]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
@@ -85,7 +90,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-26, windows-2025]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
@@ -171,7 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.flutter) }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
@@ -218,6 +223,8 @@ jobs:
 
   native:
     uses: ./.github/workflows/flutter-platforms.yml
+    with:
+      local_macos: ${{ inputs.local_macos || false }}
 
   main-required:
     name: main-required
