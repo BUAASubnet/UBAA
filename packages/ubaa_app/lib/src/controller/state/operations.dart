@@ -527,6 +527,8 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalReleaseLoginSecret();
   @internal
+  bool internalNeedsManualLogin(int formRevision);
+  @internal
   Future<void> internalInitializeController({UiError? previousLoginError});
 
   @internal

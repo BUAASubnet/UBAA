@@ -20,6 +20,7 @@ mixin ControllerOfflineStartup on ControllerState {
   @internal
   Future<bool> internalInitializeLocalHome() async {
     final epoch = internalLifecycleEpoch;
+    final formRevision = internalLoginFormRevision;
     final store = internalLocalAccountStore!;
     internalSetPhase(AppPhase.checkingSession);
     try {
@@ -59,10 +60,34 @@ mixin ControllerOfflineStartup on ControllerState {
           await backend.bindSharedAccount(await store.bindSnapshot(shared));
         }
       }
+      Credential? saved;
+      if (internalCredentialRestoreAllowed &&
+          internalLoginFormRevision == 0 &&
+          internalCredentialVault.isAvailable) {
+        try {
+          saved = await internalCredentialVault.read();
+        } on Object catch (error, stackTrace) {
+          if (internalDisposed || epoch != internalLifecycleEpoch) return true;
+          internalRecordFailure(
+            error,
+            DiagnosticOperation.initialization,
+            stackTrace: stackTrace,
+          );
+        }
+      }
+      if (internalDisposed || epoch != internalLifecycleEpoch) return true;
+      if (internalNeedsManualLogin(formRevision)) return true;
+      final restoresOptions =
+          saved != null &&
+          saved.isUsable &&
+          saved.username.trim() == index.account!.username;
       internalLocalAccount = index.account;
       internalUser = UserSummary(username: index.account!.username);
       internalLoginForm = internalLoginForm.copyWith(
         username: index.account!.username,
+        // 首页只保留登录选项，重新认证不会因默认值而删除已保存凭据。
+        rememberPassword: restoresOptions ? true : null,
+        autoLogin: restoresOptions ? saved.autoLogin : null,
       );
       internalUsesLocalRecovery = true;
       internalSessionRecoveryStatus = SessionRecoveryStatus.idle;
