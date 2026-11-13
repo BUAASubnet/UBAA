@@ -8,7 +8,7 @@ description: 下载 UBAA，按设备选择 Android、Windows、macOS 和 Linux �
 
 [Android](#android) · [Windows](#windows) · [macOS](#macos) · [Linux](#linux) · [iOS](#ios) · [HarmonyOS](#ohos)
 
-安装后可按[安装与首次登录](/guide/start)开始使用。新版功能见 [v2.0 升级说明](/guide/ubaa2)。
+安装后可按[安装与首次登录](/guide/start)开始使用。新版功能见 [v2.0 新变化](/guide/ubaa2)。
 
 ## Android {#android}
 

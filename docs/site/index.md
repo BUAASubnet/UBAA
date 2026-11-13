@@ -18,7 +18,7 @@ hero:
       text: 应用截图
       link: /features/screenshots
     - theme: alt
-      text: 新版升级了什么
+      text: v2.0 新变化
       link: /guide/ubaa2
 features:
   - title: 学习与日程
@@ -39,7 +39,7 @@ features:
 
 - [下载 UBAA](/download)：按平台和架构选择安装包。
 - [安装与首次登录](/guide/start)：完成登录，设置连接方式。
-- [UBAA v2.0 的升级变化](/guide/ubaa2)：了解新版功能，以及从旧版切换时需要准备的内容。
+- [UBAA v2.0 新变化](/guide/ubaa2)：了解新版功能，以及从旧版切换时需要准备的内容。
 - [功能说明](/features/)：了解查询、选课、预约和提交的操作方式。
 - [常见问题](/tech/troubleshooting)：登录、连接和提交结果未确认时怎么办。
 - [数据与隐私说明](/tech/data-and-privacy)：了解设备上保存了什么，以及怎样清除。

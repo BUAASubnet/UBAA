@@ -10,6 +10,6 @@ import AnnouncementList from "./AnnouncementList.vue";
 
 校园业务规则、临时通知及系统维护信息以学校发布内容为准。
 
-当前有效的公告如下。往期与尚未生效的公告可在[公告历史](/announcements/history)查看。
+当前有效的公告如下。往期与尚未生效的公告可在[全部公告](/announcements/history)查看。
 
 <AnnouncementList />
