@@ -5,8 +5,9 @@ defineProps({ group: { type: String, required: true } })
 
 const groups = {
   phone: {
-    width: 1179,
-    height: 2556,
+    name: '手机版',
+    width: 600,
+    height: 1301,
     shots: [
       ['01_home', '首页', '查看当天的课程、常用功能和待办。'],
       ['02_schedule', '课表', '按周查看课程时间和上课地点。'],
@@ -17,18 +18,26 @@ const groups = {
     ],
   },
   tablet: {
-    width: 2732,
-    height: 2048,
+    name: '平板版',
+    width: 900,
+    height: 675,
     shots: [
-      ['02_schedule', '平板课表', '侧栏和整周课表并排显示。'],
-      ['04_grades', '平板成绩', '同页查看学期统计和各门课程成绩。'],
+      ['01_home', '首页', '今日课表和待办左右并排。'],
+      ['02_schedule', '课表', '侧栏和整周课表并排显示。'],
+      ['03_agenda', '日程', '月历、事项筛选和周视图同屏显示。'],
+      ['04_grades', '成绩', '同页查看学期统计和各门课程成绩。'],
+      ['05_coursework', 'SPOC 作业', '按课程列出作业、截止时间和提交状态。'],
+      ['06_exams', '考试', '即将到来和尚未安排的考试分开列出。'],
     ],
   },
   desktop: {
-    width: 2880,
-    height: 1800,
+    name: '桌面版',
+    width: 900,
+    height: 563,
     shots: [
-      ['03_agenda', '桌面日程', '在周历中查看上课、组会和作业截止时间。'],
+      ['01_home', '首页', '在宽屏上同时查看今日课表和待办。'],
+      ['02_schedule', '课表', '整周课表一屏显示，标出当前时间。'],
+      ['03_agenda', '日程', '在周历中查看上课、组会和作业截止时间。'],
     ],
   },
 }
@@ -40,11 +49,11 @@ const groups = {
       <a
         class="preview"
         :href="withBase(`/screenshots/${group}/${file}.png`)"
-        :aria-label="`查看原图：${title}`"
+        :aria-label="`查看原图：${groups[group].name}${title}`"
       >
         <img
-          :src="withBase(`/screenshots/${group}/${file}.png`)"
-          :alt="`UBAA ${title}宣传图`"
+          :src="withBase(`/screenshots/${group}/${file}.webp`)"
+          :alt="`UBAA ${groups[group].name}${title}截图`"
           :width="groups[group].width"
           :height="groups[group].height"
           loading="lazy"
@@ -69,7 +78,7 @@ const groups = {
 
 .gallery.tablet,
 .gallery.desktop {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
 figure {

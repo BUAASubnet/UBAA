@@ -1,13 +1,38 @@
 import { defineConfig } from 'vitepress'
 
 const base = `${(process.env.DOCS_BASE || '/').replace(/\/$/, '')}/`
+const siteUrl = 'https://www.ubaa.top'
+const siteDescription = 'UBAA 使用指南：北航学生的一站式校园助手'
 
 export default defineConfig({
   title: 'UBAA',
-  description: 'UBAA 使用指南：北航学生的一站式校园助手',
+  description: siteDescription,
   lang: 'zh-CN',
   base,
-  head: [['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }]],
+  head: [
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }],
+    ['meta', { name: 'theme-color', content: '#1976d2' }],
+    ['meta', { property: 'og:site_name', content: 'UBAA' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:locale', content: 'zh_CN' }],
+    ['meta', { property: 'og:image', content: `${siteUrl}/og.jpg` }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+  ],
+  // 每页补上规范地址和分享卡片的标题、描述；页面描述来自 frontmatter 的 description。
+  transformHead({ pageData, title }) {
+    const path = pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '')
+    const url = `${siteUrl}/${path}`
+    const description = pageData.frontmatter.description || siteDescription
+    return [
+      ['link', { rel: 'canonical', href: url }],
+      ['meta', { property: 'og:url', content: url }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+    ]
+  },
+  sitemap: { hostname: siteUrl },
   lastUpdated: true,
   cleanUrls: true,
   srcExclude: ['announcements/[0-9]*.md'],
@@ -119,6 +144,8 @@ export default defineConfig({
     search: {
       provider: 'local',
       options: {
+        // 中文按词切分后，“秒传”会拆成“秒”“传”；要求同时命中，避免只含“传”的页面混进结果。
+        miniSearch: { searchOptions: { combineWith: 'AND' } },
         locales: { root: { translations: {
           button: { buttonText: '搜索文档', buttonAriaLabel: '搜索文档' },
           modal: { displayDetails: '显示详细列表', resetButtonTitle: '清除搜索',

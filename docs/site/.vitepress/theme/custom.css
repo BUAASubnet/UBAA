@@ -1,0 +1,35 @@
+/* 品牌色取自应用图标的蓝色；浅色模式的链接色加深，保证正文对比度。 */
+:root {
+  --vp-c-brand-1: #1565c0;
+  --vp-c-brand-2: #1976d2;
+  --vp-c-brand-3: #1976d2;
+  --vp-c-brand-soft: rgba(25, 118, 210, 0.12);
+}
+
+.dark {
+  --vp-c-brand-1: #90caf9;
+  --vp-c-brand-2: #1e88e5;
+  --vp-c-brand-3: #1976d2;
+  --vp-c-brand-soft: rgba(66, 165, 245, 0.16);
+}
+
+/* 首页标题区居中，展示图紧接在下方。 */
+.VPHero:not(.has-image) .main {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.VPHero:not(.has-image) .text,
+.VPHero:not(.has-image) .tagline {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.VPHero:not(.has-image) .actions {
+  justify-content: center;
+}
+
+.VPHero:not(.has-image) .name {
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -13,7 +13,9 @@
 - Node.js 与 npm：主版本与 CI 一致，见 `scripts/tools/versions.env`。依赖由根目录 `package-lock.json` 锁定。
 - 网站内容的分工：
   - `docs/site/` 保存面向用户的使用说明，首页、安装指南和新版变化页是主要入口。
-  - `docs/site/.vitepress/config.mts` 维护导航、侧栏、中文主题、搜索与基础路径。
+  - `docs/site/.vitepress/config.mts` 维护导航、全站共用的侧栏、中文主题、搜索、站点地图、规范地址与分享卡片；`docs/site/.vitepress/theme/` 维护品牌色和首页展示图。
+  - 截图页显示 `public/screenshots/` 中的 WebP，点击打开同名 PNG 原图；首页展示图和分享图在 `public/images/` 与 `public/og.jpg`。这些网站用图由 `bash scripts/release/site-images.sh` 生成，见[发布手册](flutter-release.md#生成商店宣传图)。`docs/site/store_assets/` 保存 AppGallery 截图和横版宣传图等商店素材，不在 `public/` 下，不随网站部署。
+  - 每页在 frontmatter 写一句 `description`，用于搜索结果和链接分享。
   - [下载页](../site/download.md)的版本、链接、大小和 SHA-256 来自 [`docs/site/download.json`](../site/download.json)，构建时由 `download.data.js` 校验；清单缺文件或缺摘要时构建失败。发布后用 `just docs-download-sync <tag> <构建号>` 更新，步骤见[发布手册](flutter-release.md#5-构建与手动发布)。
   - `docs/` 的其他目录是工程文档，不参与网站构建。
 - 内容的放置：README 介绍项目和主要功能，使用步骤放在网站功能页，发布操作放在运行手册。[新版变化页](../site/guide/ubaa2.md)对照 `ubaa1` 说明已经实现的改进，[更新日志](../site/changelog/index.md)按发布版本记录变化。版本开放下载前在更新日志中标注“待发布”；开放下载后写明日期和可下载的平台，并同步[下载页](../site/download.md)与[升级说明](../site/guide/ubaa2.md#upgrade)。

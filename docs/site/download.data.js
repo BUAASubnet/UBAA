@@ -7,7 +7,7 @@ const PLATFORMS = {
     ["android-armeabi-v7a.apk", "ARMv7（armeabi-v7a）", "只支持 32 位应用的旧设备", "APK"],
     ["android-x86_64.apk", "x86_64", "x86 架构的设备或模拟器", "APK"],
   ],
-  windows: [["windows-x64.exe", "x64（Intel / AMD）", "64 位 Windows 10 或 11", "EXE"]],
+  windows: [["windows-x64.exe", "x64（Intel / AMD）", "大多数 Windows 电脑", "EXE"]],
   macos: [
     ["macos-arm64.dmg", "Apple Silicon", "“关于本机”显示 M 系列芯片", "DMG"],
     ["macos-x86_64.dmg", "Intel", "“关于本机”显示 Intel 处理器", "DMG"],

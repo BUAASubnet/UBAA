@@ -1,3 +1,7 @@
+---
+description: 在 UBAA 中浏览 iHome 接诉即办平台的诉求、回复和公告。
+---
+
 # iHome
 
 本页介绍怎样在 UBAA 中浏览学校接诉即办平台（iHome）的诉求、回复和公告。
