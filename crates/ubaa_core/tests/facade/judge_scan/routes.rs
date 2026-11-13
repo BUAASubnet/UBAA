@@ -91,6 +91,12 @@ async fn 网络未知时分段详情断网仍在独立路线重建选课上下�
 }
 
 fn setup_routes() -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
+    setup_routes_policy("auto")
+}
+
+fn setup_routes_policy(
+    policy: &str,
+) -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
     struct UnknownProbe;
     impl GatewayProbe for UnknownProbe {
         fn probe(&self, _: Duration) -> NetworkState {
@@ -114,7 +120,7 @@ fn setup_routes() -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTranspor
         RouteTransport(direct),
         RouteTransport(vpn.clone()),
         store,
-        RouteConfig::default(),
+        RouteConfig::parse(&format!("[route]\ndefault = \"{policy}\"\n")).unwrap(),
         UnknownProbe,
     )
     .unwrap();
@@ -127,4 +133,26 @@ fn setup_routes() -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTranspor
     )
     .unwrap();
     (root, client, cache, vpn)
+}
+
+#[tokio::test]
+async fn webvpn渐进刷新保持课程状态串行() {
+    let (root, mut client, cache, vpn) = setup_routes_policy("webvpn");
+    vpn.detail_delay_ms.store(10, Ordering::SeqCst);
+    let mut plan = client
+        .begin_judge_refresh(&cache, ubaa_core::facade::JudgeRefreshOptions::default())
+        .await
+        .unwrap();
+    loop {
+        let result = client.next_judge_refresh(&mut plan).await.unwrap();
+        assert_eq!(result.resolution.mode, ConnectionMode::WebVpn);
+        if result.batch.finished {
+            assert!(result.batch.complete);
+            assert_eq!(result.summaries.len(), 3);
+            break;
+        }
+    }
+    assert_eq!(vpn.max_active_details.load(Ordering::SeqCst), 1);
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
 }

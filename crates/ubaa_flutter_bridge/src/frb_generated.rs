@@ -26441,12 +26441,16 @@ impl SseDecode for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_includeExpired = <bool>::sse_decode(deserializer);
+        let mut var_refreshIndices = <bool>::sse_decode(deserializer);
+        let mut var_fullRefresh = <bool>::sse_decode(deserializer);
         let mut var_expectedIdentity = <Option<String>>::sse_decode(deserializer);
         let mut var_preferredCourse = <Option<String>>::sse_decode(deserializer);
         let mut var_keys =
             <Option<Vec<crate::api::read::BridgeJudgeAssignmentKey>>>::sse_decode(deserializer);
         return crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
             include_expired: var_includeExpired,
+            refresh_indices: var_refreshIndices,
+            full_refresh: var_fullRefresh,
             expected_identity: var_expectedIdentity,
             preferred_course: var_preferredCourse,
             keys: var_keys,
@@ -26537,12 +26541,14 @@ impl SseDecode for crate::api::judge_refresh::BridgeJudgeRefreshOptions {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_includeExpired = <bool>::sse_decode(deserializer);
         let mut var_fullRefresh = <bool>::sse_decode(deserializer);
+        let mut var_refreshIndices = <bool>::sse_decode(deserializer);
         let mut var_preferredCourse = <Option<String>>::sse_decode(deserializer);
         let mut var_currentAssignment =
             <Option<crate::api::read::BridgeJudgeAssignmentKey>>::sse_decode(deserializer);
         return crate::api::judge_refresh::BridgeJudgeRefreshOptions {
             include_expired: var_includeExpired,
             full_refresh: var_fullRefresh,
+            refresh_indices: var_refreshIndices,
             preferred_course: var_preferredCourse,
             current_assignment: var_currentAssignment,
         };
@@ -40221,6 +40227,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::judge_scan::online::BridgeJud
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.include_expired.into_into_dart().into_dart(),
+            self.refresh_indices.into_into_dart().into_dart(),
+            self.full_refresh.into_into_dart().into_dart(),
             self.expected_identity.into_into_dart().into_dart(),
             self.preferred_course.into_into_dart().into_dart(),
             self.keys.into_into_dart().into_dart(),
@@ -40340,6 +40348,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::judge_refresh::BridgeJudgeRef
         [
             self.include_expired.into_into_dart().into_dart(),
             self.full_refresh.into_into_dart().into_dart(),
+            self.refresh_indices.into_into_dart().into_dart(),
             self.preferred_course.into_into_dart().into_dart(),
             self.current_assignment.into_into_dart().into_dart(),
         ]
@@ -47564,6 +47573,8 @@ impl SseEncode for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.include_expired, serializer);
+        <bool>::sse_encode(self.refresh_indices, serializer);
+        <bool>::sse_encode(self.full_refresh, serializer);
         <Option<String>>::sse_encode(self.expected_identity, serializer);
         <Option<String>>::sse_encode(self.preferred_course, serializer);
         <Option<Vec<crate::api::read::BridgeJudgeAssignmentKey>>>::sse_encode(
@@ -47626,6 +47637,7 @@ impl SseEncode for crate::api::judge_refresh::BridgeJudgeRefreshOptions {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.include_expired, serializer);
         <bool>::sse_encode(self.full_refresh, serializer);
+        <bool>::sse_encode(self.refresh_indices, serializer);
         <Option<String>>::sse_encode(self.preferred_course, serializer);
         <Option<crate::api::read::BridgeJudgeAssignmentKey>>::sse_encode(
             self.current_assignment,

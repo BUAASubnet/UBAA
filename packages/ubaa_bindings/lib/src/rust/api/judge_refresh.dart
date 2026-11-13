@@ -64,12 +64,14 @@ class BridgeJudgeProgress {
 class BridgeJudgeRefreshOptions {
   final bool includeExpired;
   final bool fullRefresh;
+  final bool refreshIndices;
   final String? preferredCourse;
   final BridgeJudgeAssignmentKey? currentAssignment;
 
   const BridgeJudgeRefreshOptions({
     required this.includeExpired,
     required this.fullRefresh,
+    required this.refreshIndices,
     this.preferredCourse,
     this.currentAssignment,
   });
@@ -81,6 +83,7 @@ class BridgeJudgeRefreshOptions {
   int get hashCode =>
       includeExpired.hashCode ^
       fullRefresh.hashCode ^
+      refreshIndices.hashCode ^
       preferredCourse.hashCode ^
       currentAssignment.hashCode;
 
@@ -91,6 +94,7 @@ class BridgeJudgeRefreshOptions {
           runtimeType == other.runtimeType &&
           includeExpired == other.includeExpired &&
           fullRefresh == other.fullRefresh &&
+          refreshIndices == other.refreshIndices &&
           preferredCourse == other.preferredCourse &&
           currentAssignment == other.currentAssignment;
 }

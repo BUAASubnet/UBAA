@@ -51,7 +51,8 @@ pub struct JudgeScan {
     pub(super) ticket: CacheReadTicket,
     pub(super) cursor: JudgeScanCursor,
     pub(super) cancellation: JudgeScanCancellation,
-    force_fresh: bool,
+    pub(super) force_fresh: bool,
+    pub(super) course_source_at: i64,
     // 仅复用本计划的业务激活；选课仍在每个网络批次内重新执行。
     activated: bool,
     pub(super) course_ticket: Option<CacheReadTicket>,
@@ -183,9 +184,14 @@ impl UbaaClient {
             courses.insert(0, course);
         }
         let owner = self.runtime_for(resolution.mode).feature_state();
+        let course_source_at = owner
+            .judge
+            .source_time(None, None)
+            .unwrap_or_else(|| chrono::Utc::now().timestamp());
         Ok(JudgeScan {
             resolution,
             force_fresh,
+            course_source_at,
             activated,
             course_ticket,
             generation: owner.judge.generation(),
@@ -226,6 +232,13 @@ impl UbaaClient {
         &mut self,
         plan: &mut JudgeScan,
     ) -> Result<Routed<JudgeScanBatch>, OfflineReadError> {
+        self.next_judge_scan_prepared(plan, None).await
+    }
+    pub(super) async fn next_judge_scan_prepared(
+        &mut self,
+        plan: &mut JudgeScan,
+        prepared: Option<crate::features::judge::parallel::PreparedDetail>,
+    ) -> Result<Routed<JudgeScanBatch>, OfflineReadError> {
         self.validate_judge_scan(plan)?;
         let mut batch = JudgeScanBatch {
             kind: JudgeScanKind::Finished,
@@ -246,6 +259,7 @@ impl UbaaClient {
                     plan.cursor.current_assignment(),
                     plan.activated,
                     plan.force_fresh,
+                    prepared,
                 )
                 .await;
             if resolution.mode != plan.resolution.mode {
@@ -338,6 +352,7 @@ mod tests {
         let owner = client.direct_runtime.feature_state();
         let plan = JudgeScan {
             force_fresh: false,
+            course_source_at: 0,
             activated: false,
             course_ticket: None,
             resolution: resolve_route(

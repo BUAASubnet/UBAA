@@ -38,6 +38,7 @@ Future<FeatureReadTask?> bridgeBeginJudgeRead(
         options: BridgeJudgeRefreshOptions(
           includeExpired: selected.includeExpired,
           fullRefresh: selected.fullRefresh,
+          refreshIndices: selected.refreshIndices,
           currentAssignment: detail
               ? BridgeJudgeAssignmentKey(
                   courseId: bridgeRequiredQueryValue(selected.courseId, '课程编号'),

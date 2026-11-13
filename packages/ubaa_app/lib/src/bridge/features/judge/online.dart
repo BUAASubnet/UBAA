@@ -21,6 +21,8 @@ Future<FeatureReadTask> _beginOnlineJudgeRead(
     final task = await backend.client.beginJudgeOnline(
       options: BridgeJudgeOnlineOptions(
         includeExpired: query.includeExpired,
+        refreshIndices: query.refreshIndices,
+        fullRefresh: query.fullRefresh,
         expectedIdentity: account?.username,
         preferredCourse: query.courseId,
         keys: keys,

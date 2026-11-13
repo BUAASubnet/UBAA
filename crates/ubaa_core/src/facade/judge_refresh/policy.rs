@@ -84,6 +84,44 @@ pub(super) fn reusable(
     )
 }
 
+pub(super) fn prioritize_courses(
+    scan: &mut super::JudgeScan,
+    options: &JudgeRefreshOptions,
+    original: &[crate::domain::JudgeAssignmentSummary],
+    now: i64,
+) {
+    let preferred = options
+        .current_assignment
+        .as_ref()
+        .map(|key| key.course_id.as_str())
+        .or(options.preferred_course.as_deref());
+    scan.cursor.prioritize_courses(|course| {
+        if preferred == Some(course.course_id.as_str()) {
+            return (0, String::new());
+        }
+        let items: Vec<_> = original
+            .iter()
+            .filter(|item| item.course_id == course.course_id)
+            .collect();
+        let active_due = items
+            .iter()
+            .filter(|item| {
+                item.submission_status != crate::domain::JudgeSubmissionStatus::Submitted
+            })
+            .map(|item| item.due_time.clone().unwrap_or_else(|| "9999".into()))
+            .min();
+        if let Some(due) = active_due {
+            (1, due)
+        } else if items.is_empty() {
+            (2, String::new())
+        } else if items.iter().all(|item| historical_summary(item, now)) {
+            (4, String::new())
+        } else {
+            (3, String::new())
+        }
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

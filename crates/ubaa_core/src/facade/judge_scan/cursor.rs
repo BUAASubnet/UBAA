@@ -27,6 +27,10 @@ impl JudgeScanCursor {
         &self.courses
     }
 
+    pub(in crate::facade) fn prioritize_courses<K: Ord>(&mut self, rank: impl FnMut(&Course) -> K) {
+        self.courses.sort_by_cached_key(rank);
+    }
+
     pub(in crate::facade) fn current_course(&self) -> Option<&Course> {
         self.courses.get(self.course_index)
     }
@@ -43,6 +47,13 @@ impl JudgeScanCursor {
             self.advance_course();
         } else {
             self.stage = CourseStage::Details { items, next: 0 };
+        }
+    }
+
+    pub(in crate::facade) fn pending_assignments(&self) -> &[Assignment] {
+        match &self.stage {
+            CourseStage::Details { items, next } => &items[*next..],
+            CourseStage::Assignments => &[],
         }
     }
 

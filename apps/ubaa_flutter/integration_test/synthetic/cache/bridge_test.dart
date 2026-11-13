@@ -37,7 +37,7 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 64);
+      expect(client.contractVersion(), 65);
       final offline = client.beginNetworkChange(
         online: false,
         timeoutMillis: 30000,
@@ -142,6 +142,8 @@ void main() {
       await expectLater(
         client.beginJudgeOnline(
           options: const BridgeJudgeOnlineOptions(
+            refreshIndices: false,
+            fullRefresh: false,
             includeExpired: false,
             expectedIdentity: 'synthetic',
           ),
@@ -510,6 +512,7 @@ void main() {
         client.beginJudgeRefresh(
           cache: first,
           options: const BridgeJudgeRefreshOptions(
+            refreshIndices: false,
             includeExpired: false,
             fullRefresh: true,
           ),

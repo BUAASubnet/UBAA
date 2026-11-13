@@ -15,6 +15,10 @@ struct ScanTransport {
     expire_primary: Arc<std::sync::atomic::AtomicBool>,
     historical_details: Arc<std::sync::atomic::AtomicBool>,
     add_assignment: Arc<std::sync::atomic::AtomicBool>,
+    detail_delay_ms: Arc<std::sync::atomic::AtomicU64>,
+    assignment_count: Arc<AtomicUsize>,
+    active_details: Arc<AtomicUsize>,
+    max_active_details: Arc<AtomicUsize>,
     rename_assignment: Arc<std::sync::atomic::AtomicBool>,
 }
 #[async_trait]
@@ -65,6 +69,13 @@ impl HttpTransport for ScanTransport {
                 .find(|(key, _)| key.eq_ignore_ascii_case("cookie"))
                 .map_or("", |(_, value)| value.as_str());
             if let Some(id) = query.get("assignID") {
+                let active = self.active_details.fetch_add(1, Ordering::SeqCst) + 1;
+                self.max_active_details.fetch_max(active, Ordering::SeqCst);
+                tokio::time::sleep(std::time::Duration::from_millis(
+                    self.detail_delay_ms.load(Ordering::SeqCst),
+                ))
+                .await;
+                self.active_details.fetch_sub(1, Ordering::SeqCst);
                 self.prepare_detail()?;
                 if self.fail_detail.load(Ordering::SeqCst) && id.as_ref() == "101" {
                     return Err(ubaa_core::facade::UbaaError::new(
@@ -89,20 +100,7 @@ impl HttpTransport for ScanTransport {
                     include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec(),
                 )
             } else {
-                let body = if self.add_assignment.load(Ordering::SeqCst)
-                    && cookie.contains("selected=12")
-                {
-                    "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a><a href='assignment/index.jsp?assignID=103'>New task</a>"
-                } else if cookie.contains("selected=13") {
-                    "<a href='assignment/index.jsp?assignID=201'>Task B</a>"
-                } else {
-                    "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a>"
-                };
-                let body = if self.rename_assignment.load(Ordering::SeqCst) {
-                    body.replace("Task A1", "Task A1 updated")
-                } else {
-                    body.to_owned()
-                };
+                let body = self.assignment_body(cookie);
                 sso_fixture_response(200, request.url.clone(), body.as_bytes().to_vec())
             }
         } else if request.url.contains("currentUser.do") {
@@ -120,6 +118,37 @@ impl HttpTransport for ScanTransport {
     }
 }
 impl ScanTransport {
+    fn assignment_body(&self, cookie: &str) -> String {
+        let body = if self.add_assignment.load(Ordering::SeqCst) && cookie.contains("selected=12") {
+            "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a><a href='assignment/index.jsp?assignID=103'>New task</a>"
+        } else if cookie.contains("selected=13") {
+            "<a href='assignment/index.jsp?assignID=201'>Task B</a>"
+        } else {
+            "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a>"
+        };
+        let generated = (cookie.contains("selected=12")
+            && self.assignment_count.load(Ordering::SeqCst) > 0)
+            .then(|| {
+                use std::fmt::Write as _;
+                let mut body = String::new();
+                for n in 1..=self.assignment_count.load(Ordering::SeqCst) {
+                    write!(
+                        &mut body,
+                        "<a href='assignment/index.jsp?assignID={}' >Task A{n}</a>",
+                        100 + n
+                    )
+                    .unwrap();
+                }
+                body
+            });
+        let body = generated.as_deref().unwrap_or(body);
+        if self.rename_assignment.load(Ordering::SeqCst) {
+            body.replace("Task A1", "Task A1 updated")
+        } else {
+            body.to_owned()
+        }
+    }
+
     fn prepare_detail(&self) -> Result<()> {
         if let Some(cache) = self.clear_on_detail.lock().unwrap().take() {
             cache.clear().unwrap();
@@ -469,7 +498,7 @@ fn persistent_refresh_reuses_details_after_restart_and_full_refresh_bypasses_mem
                     break;
                 }
             }
-            assert_eq!(reused, 3);
+            assert_eq!(reused, 2, "两门课程分别合并连续缓存详情");
             assert_eq!(detail_request_count(&transport), 3);
             let mut refresh = client
                 .begin_judge_refresh(
@@ -607,7 +636,13 @@ fn current_detail_is_first_and_changed_title_is_not_hidden_by_a_fresh_detail_cac
         .unwrap()
         .block_on(async {
             let mut warm = client
-                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        refresh_indices: true,
+                        ..Default::default()
+                    },
+                )
                 .await
                 .unwrap();
             loop {
@@ -640,7 +675,13 @@ fn current_detail_is_first_and_changed_title_is_not_hidden_by_a_fresh_detail_cac
             assert!(!detail.reused, "当前详情必须提升并做真实校验");
             transport.rename_assignment.store(true, Ordering::SeqCst);
             let mut changed = client
-                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        refresh_indices: true,
+                        ..Default::default()
+                    },
+                )
                 .await
                 .unwrap();
             client.next_judge_refresh(&mut changed).await.unwrap();
@@ -912,3 +953,6 @@ mod routes;
 
 #[path = "judge_scan/concurrent.rs"]
 mod concurrent;
+
+#[path = "judge_scan/performance.rs"]
+mod performance;

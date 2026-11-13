@@ -99,6 +99,8 @@ pub(super) async fn get_detail_cached(
             Instant::now(),
             DETAIL_TTL,
         )
+        && detail.title == assignment.title
+        && detail.course_name == assignment.course_name
     {
         return Ok(detail);
     }

@@ -30,19 +30,27 @@ impl UbaaClient {
         assignment: Option<&Assignment>,
         was_activated: bool,
         force_fresh: bool,
+        mut prepared: Option<crate::features::judge::parallel::PreparedDetail>,
     ) -> (RouteResolution, scan::ScanRead<BatchData>, bool) {
         let initial_route = resolution.mode;
         let mut fatal = false;
         let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
             let mut activated = resolution.mode == initial_route && was_activated;
             let read = if let Some(assignment) = assignment {
-                let read = scan::detail(
-                    self.runtime_for(resolution.mode),
-                    assignment,
-                    &mut activated,
-                    force_fresh,
-                )
-                .await;
+                let read = if let Some(prepared) = prepared
+                    .take()
+                    .filter(|_| resolution.mode == crate::domain::ConnectionMode::Direct)
+                {
+                    prepared.finish(self.runtime_for(resolution.mode)).await
+                } else {
+                    scan::detail(
+                        self.runtime_for(resolution.mode),
+                        assignment,
+                        &mut activated,
+                        force_fresh,
+                    )
+                    .await
+                };
                 scan::ScanRead {
                     result: read
                         .result

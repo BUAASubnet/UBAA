@@ -196,6 +196,10 @@ mixin ControllerProgressive on ControllerState {
         ordinary,
         writeReadback: true,
       );
+    final requestQuery =
+        feature == FeatureId.judge && internalSchoolPrompt != null
+        ? (query ?? const FeatureQuery()).copyWith(refreshIndices: true)
+        : query;
     var authenticationRetried = false;
     while (scope.valid) {
       scope.restartRequested = false;
@@ -213,10 +217,10 @@ mixin ControllerProgressive on ControllerState {
                   backend is AccountScopedProgressiveReadBackend &&
                       account != null
                   ? await (backend as AccountScopedProgressiveReadBackend)
-                        .beginAccountFeatureRead(feature, query, account)
+                        .beginAccountFeatureRead(feature, requestQuery, account)
                   : await (backend as ProgressiveReadBackend).beginFeatureRead(
                       feature,
-                      query,
+                      requestQuery,
                     );
               if (scope.restartRequested) {
                 prepared?.cancel();

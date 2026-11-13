@@ -34,7 +34,10 @@ fn 无缓存扫描按批让位_旧项后新增仍读取_下一轮不永久排除
     rt.block_on(async {
         for _ in 0..2 {
             let mut plan = client
-                .begin_judge_online(JudgeOnlineOptions::default())
+                .begin_judge_online(JudgeOnlineOptions {
+                    full_refresh: true,
+                    ..Default::default()
+                })
                 .await
                 .unwrap();
             let index = client.next_judge_online(&mut plan).await.unwrap();
