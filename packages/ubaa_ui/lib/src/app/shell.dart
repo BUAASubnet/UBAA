@@ -296,6 +296,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureReadNavigation? _pendingHomeTarget;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
+
+  /// 各功能内部的页面层数，由其导航器上报；变化时只重建页面过渡。
+  final Map<FeatureId, int> _readDepths = {};
+  final _depthRevision = ValueNotifier<int>(0);
   final _appBarSlot = ValueNotifier<Map<FeatureId, Widget>>(const {});
   final _pageBusy = UiBusyRegistry();
   late final _places = <String, String>{...widget.placePreferences};
@@ -410,6 +414,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       unawaited(_loadReminderSettings());
       _visitedFeatures.clear();
       _readPageKeys.clear();
+      _readDepths.clear();
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
@@ -503,6 +508,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   void _openFeatureList(FeatureId feature) {
     final generation = _accountGeneration;
+    // 打开功能列表会回到第一层；先按第一层播放进入过渡，避免随后再反向播放一次。
+    _readDepths[feature] = 1;
     setState(() => _openedFeature = feature);
     _recordFeatureVisit(feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -520,6 +527,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     _bhpanModalScope.value++;
     _bhpanModalScope.dispose();
     _visiblePage.dispose();
+    _depthRevision.dispose();
     _appBarSlot.dispose();
     _pageBusy.dispose();
     _tabPager.dispose();
@@ -668,16 +676,31 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                             child: SafeArea(
                               top: false,
                               bottom: wide,
-                              child: UiPageTransition(
-                                pageKey: (_openedFeature, _utilityPage),
-                                deeper: !atRoot,
-                                onBack:
-                                    touchRefresh &&
-                                        !atRoot &&
-                                        widget.writeState.intent == null
-                                    ? _goBack
-                                    : null,
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _depthRevision,
                                 child: body,
+                                builder: (context, _, child) {
+                                  final depth = atRoot
+                                      ? 0
+                                      : _utilityPage != null
+                                      ? 1
+                                      : _readDepths[_openedFeature] ?? 1;
+                                  return UiPageTransition(
+                                    pageKey: (
+                                      _openedFeature,
+                                      _utilityPage,
+                                      depth,
+                                    ),
+                                    order: depth,
+                                    onBack:
+                                        touchRefresh &&
+                                            !atRoot &&
+                                            widget.writeState.intent == null
+                                        ? _goBack
+                                        : null,
+                                    child: child!,
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -740,6 +763,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     cacheEpoch: widget.readCacheEpoch,
     businessCacheEpoch: _contentEpoch,
     onExit: () => setState(() => _openedFeature = null),
+    onDepthChanged: (depth) {
+      _readDepths[feature] = depth;
+      _depthRevision.value++;
+    },
     onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
         ? null

@@ -18,6 +18,7 @@ class FeatureReadNavigator extends StatefulWidget {
     required this.pageBuilder,
     required this.onVisibleSnapshot,
     this.onQuery,
+    this.onDepthChanged,
     this.initialHomeTarget,
     super.key,
   });
@@ -31,6 +32,9 @@ class FeatureReadNavigator extends StatefulWidget {
   final VoidCallback onExit;
   final Future<void> Function() onRetry;
   final Future<void> Function(FeatureQuery)? onQuery;
+
+  /// 页面层数变化（进入下一层或返回）时同步通知，外壳据此播放页面过渡。
+  final ValueChanged<int>? onDepthChanged;
   final Widget Function(_ReadPage) pageBuilder;
   @override
   State<FeatureReadNavigator> createState() => FeatureReadNavigatorState();
@@ -39,6 +43,17 @@ class FeatureReadNavigator extends StatefulWidget {
 class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   final List<_ReadFrame> _frames = [];
   int _nextId = 0;
+  int _reportedDepth = 1;
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    if (_frames.length != _reportedDepth) {
+      _reportedDepth = _frames.length;
+      widget.onDepthChanged?.call(_reportedDepth);
+    }
+  }
+
   int? _externalAfterRevision;
   bool _reloadScheduled = false;
 

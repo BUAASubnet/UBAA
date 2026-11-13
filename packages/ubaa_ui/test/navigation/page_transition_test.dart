@@ -11,7 +11,7 @@ void main() {
           child: Scaffold(
             body: UiPageTransition(
               pageKey: page,
-              deeper: page > 0,
+              order: page,
               onBack: back ? () {} : null,
               child: const TextField(),
             ),
@@ -30,6 +30,35 @@ void main() {
     expect(tester.binding.hasScheduledFrame, isFalse);
   });
 
+  testWidgets('顺序变大从右侧滑入、变小从左侧滑入，换序列只淡入', (tester) async {
+    Future<void> mount(int order, String lane) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UiPageTransition(
+            pageKey: (lane, order),
+            order: order,
+            lane: lane,
+            child: const Center(child: Text('正文')),
+          ),
+        ),
+      ),
+    );
+    await mount(3, '周');
+    final rest = tester.getCenter(find.text('正文')).dx;
+    Future<double> entering(int order, String lane) async {
+      await mount(order, lane);
+      await tester.pump(const Duration(milliseconds: 40));
+      final dx = tester.getCenter(find.text('正文')).dx - rest;
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(find.text('正文')).dx, rest);
+      return dx;
+    }
+
+    expect(await entering(4, '周'), greaterThan(0));
+    expect(await entering(2, '周'), lessThan(0));
+    expect(await entering(9, '月'), 0);
+  });
+
   testWidgets('左缘短拖回弹、超过阈值返回，正文水平拖动不触发返回', (tester) async {
     var backs = 0;
     await tester.pumpWidget(
@@ -37,7 +66,7 @@ void main() {
         home: Scaffold(
           body: UiPageTransition(
             pageKey: 1,
-            deeper: true,
+            order: 1,
             onBack: () => backs++,
             child: const Center(child: Text('详情正文')),
           ),

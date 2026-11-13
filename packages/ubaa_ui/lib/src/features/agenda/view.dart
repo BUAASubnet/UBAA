@@ -25,6 +25,7 @@ import 'detail_content.dart';
 import '../../shared/create_button.dart';
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
+import '../../shared/layout/page_transition.dart' show UiPageTransition;
 import '../../shared/sync_status.dart' show UiSyncStatus;
 import '../../common/state_panel.dart';
 import '../../theme.dart';
@@ -753,75 +754,83 @@ class AgendaViewState extends State<AgendaView> {
           onSelected: goDate,
           onOpen: open,
         );
-        final content = PullToRefresh(
-          onRefresh: () async {
-            setState(() => pulling = true);
-            try {
-              await load();
-            } finally {
-              if (mounted) setState(() => pulling = false);
-            }
-          },
-          child: CustomScrollView(
-            key: const ValueKey('agenda-main-scroll'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              if (result != null && monthGrid)
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  sliver: fillsWeek
-                      ? SliverFillRemaining(child: grid)
-                      : SliverToBoxAdapter(
-                          child: SizedBox(height: 560, child: grid),
-                        ),
-                )
-              else if (result != null && mode == AgendaViewMode.week)
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  // 周网格撑满到底栏；矮窗口保留最小高度，整页可滚动。
-                  sliver: fillsWeek
-                      ? SliverFillRemaining(child: week)
-                      : SliverToBoxAdapter(
-                          child: SizedBox(height: 440, child: week),
-                        ),
-                )
-              else if (result != null) ...[
-                if (mode == AgendaViewMode.month && !wide)
+        // 翻周、翻月和选日按日期先后滑入；切换列表、周、月视图只淡入。
+        final content = UiPageTransition(
+          pageKey: (mode, from),
+          order: from.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay,
+          lane: mode,
+          child: PullToRefresh(
+            onRefresh: () async {
+              setState(() => pulling = true);
+              try {
+                await load();
+              } finally {
+                if (mounted) setState(() => pulling = false);
+              }
+            },
+            child: CustomScrollView(
+              key: const ValueKey('agenda-main-scroll'),
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                if (result != null && monthGrid)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    sliver: fillsWeek
+                        ? SliverFillRemaining(child: grid)
+                        : SliverToBoxAdapter(
+                            child: SizedBox(height: 560, child: grid),
+                          ),
+                  )
+                else if (result != null && mode == AgendaViewMode.week)
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverToBoxAdapter(
-                      child: AgendaMonthCalendar(
-                        date: focusDate,
-                        entries: filtered,
-                        onSelected: goDate,
-                        today: agendaDay(now),
-                        colorOf: (e) =>
-                            agendaSourceColor(e, Theme.of(context).colorScheme),
+                    // 周网格撑满到底栏；矮窗口保留最小高度，整页可滚动。
+                    sliver: fillsWeek
+                        ? SliverFillRemaining(child: week)
+                        : SliverToBoxAdapter(
+                            child: SizedBox(height: 440, child: week),
+                          ),
+                  )
+                else if (result != null) ...[
+                  if (mode == AgendaViewMode.month && !wide)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: AgendaMonthCalendar(
+                          date: focusDate,
+                          entries: filtered,
+                          onSelected: goDate,
+                          today: agendaDay(now),
+                          colorOf: (e) => agendaSourceColor(
+                            e,
+                            Theme.of(context).colorScheme,
+                          ),
+                        ),
                       ),
                     ),
+                  ...agendaListSlivers(
+                    context: context,
+                    entries: list,
+                    allEntries: all,
+                    now: now,
+                    busy: busy,
+                    onOpen: open,
+                    onComplete: (e, v) => unawaited(complete(e, v)),
+                    onCreate: available && !busy ? () => edit() : null,
+                    compactEmpty: mode == AgendaViewMode.month
+                        ? '${agendaMonthDay(focusDate)} 没有安排'
+                        : null,
+                    search: search,
+                    onClearSearch: () {
+                      searchField.clear();
+                      setState(() => search = '');
+                    },
                   ),
-                ...agendaListSlivers(
-                  context: context,
-                  entries: list,
-                  allEntries: all,
-                  now: now,
-                  busy: busy,
-                  onOpen: open,
-                  onComplete: (e, v) => unawaited(complete(e, v)),
-                  onCreate: available && !busy ? () => edit() : null,
-                  compactEmpty: mode == AgendaViewMode.month
-                      ? '${agendaMonthDay(focusDate)} 没有安排'
-                      : null,
-                  search: search,
-                  onClearSearch: () {
-                    searchField.clear();
-                    setState(() => search = '');
-                  },
-                ),
+                ],
+                if (!(fillsWeek && (mode == AgendaViewMode.week || monthGrid)))
+                  const SliverToBoxAdapter(child: SizedBox(height: 88)),
               ],
-              if (!(fillsWeek && (mode == AgendaViewMode.week || monthGrid)))
-                const SliverToBoxAdapter(child: SizedBox(height: 88)),
-            ],
+            ),
           ),
         );
         return Column(

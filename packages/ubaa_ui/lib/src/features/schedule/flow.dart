@@ -12,6 +12,7 @@ import 'week_picker.dart' show AcademicWeekDialog;
 import '../../shared/dialogs/sheet.dart' show showUiSheet;
 import '../academic/terms.dart' show AcademicTermDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
+import '../../shared/layout/page_transition.dart' show UiPageTransition;
 
 enum _ScheduleAutoStage { terms, weeks, week }
 
@@ -57,6 +58,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   FeatureResult? _weeks;
   final _downloadAttempts = <String>{};
   final _courseColors = <String, ScheduleCourseColors>{};
+
+  /// 正文当前画出的周；目标周的数据到达后才更新，过渡与内容一起出现。
+  (String?, int?) _shownWeek = (null, null);
   @override
   void initState() {
     super.initState();
@@ -552,7 +556,18 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         ),
       );
     } else {
-      content = widget.child;
+      final shown = widget.snapshot.readContext?.query;
+      if (uiIsWeeklyScheduleQuery(shown) &&
+          (widget.snapshot.status != FeatureLoadStatus.loading ||
+              widget.snapshot.details.isNotEmpty)) {
+        _shownWeek = (shown!.term, shown.week);
+      }
+      content = UiPageTransition(
+        pageKey: _shownWeek,
+        order: _shownWeek.$2 ?? 0,
+        lane: _shownWeek.$1,
+        child: widget.child,
+      );
     }
 
     return ScheduleWeekScope(
