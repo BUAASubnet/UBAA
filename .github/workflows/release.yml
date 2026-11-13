@@ -362,13 +362,11 @@ jobs:
           OHOS_KEY_ALIAS: ${{ secrets.OHOS_KEY_ALIAS }}
           OHOS_KEY_PASSWORD: ${{ secrets.OHOS_KEY_PASSWORD }}
           UBAA_DISTRIBUTION_CHANNEL: app_gallery
-        run: |-
-          bash scripts/release/platforms/ohos.sh
-          cp .ubaa_local/release/store/*.app .ubaa_local/release/public/
+        run: bash scripts/release/platforms/ohos.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: public-harmonyos-arm64
-          path: .ubaa_local/release/public/*
+          name: public-licenses
+          path: .ubaa_local/release/public/licenses.zip
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -382,6 +380,9 @@ jobs:
       - *cleanup_signing
     if: ${{ !cancelled() && needs.ready.result == 'success' }}
   distribute:
+    concurrency:
+      group: release-distribution
+      cancel-in-progress: false
     needs:
       - metadata
       - android

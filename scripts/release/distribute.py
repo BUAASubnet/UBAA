@@ -6,6 +6,8 @@ import mimetypes
 import os
 from pathlib import Path
 import subprocess
+import sys
+import tomllib
 import urllib.parse
 import urllib.request
 
@@ -44,7 +46,7 @@ def main():
     names = [f'UBAA-{version}-{suffix}' for suffix in (
         'android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
         'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
-        'macos-arm64.dmg', 'macos-x86_64.dmg', 'harmonyos-arm64.app',
+        'macos-arm64.dmg', 'macos-x86_64.dmg',
     )]
     files = [folder / name for name in names]
     if any(not path.is_file() or path.stat().st_size == 0 for path in files):
@@ -55,7 +57,8 @@ def main():
     # 产物带一年 immutable 缓存，同一路径只能写入一次；路径含构建号，新候选递增构建号后写入新路径。
     prefix = f'releases/{tag}/{build}'
     assets = []
-    for path in [*files, folder / 'licenses.zip']:
+    public_files = [*files, folder / 'licenses.zip']
+    for path in public_files:
         key = f'{prefix}/{path.name}'
         with path.open('rb') as source:
             digest = hashlib.file_digest(source, 'sha256').hexdigest()
@@ -85,10 +88,37 @@ def main():
     subprocess.run(['aws', 's3', 'cp', str(manifest), f's3://{bucket}/{prefix}/release.json', '--endpoint-url', endpoint, '--region', 'auto', '--only-show-errors', '--content-type', 'application/json'], check=True)
     notes = folder.parent / 'release_notes.md'
     notes.write_text(f'UBAA {version}\n\n版本说明：https://www.ubaa.top/guide/ubaa2\n\n下载：\n\n' + '\n'.join(f'- [{asset["name"]}]({asset["url"]})' for asset in assets) + '\n')
-    subprocess.run(['gh', 'release', 'upload', tag, *[str(path) for path in folder.iterdir() if path.is_file()], '--clobber'], check=True)
+    subprocess.run(['gh', 'release', 'upload', tag, *[str(path) for path in [*public_files, manifest]], '--clobber'], check=True)
     subprocess.run(['gh', 'release', 'edit', tag, '--notes-file', str(notes)], check=True)
     print('GitHub Release 草稿与 R2 产物已准备完成；请在工作流全部成功后手动发布草稿')
 
 
+def source_metadata(run_id):
+    """从已通过发布验收的原始运行读取版本，重分发仍保留原产物提交。"""
+    if not run_id.isdecimal():
+        raise ValueError('需要有效的 Release 运行编号')
+    endpoint = f'repos/{os.environ["GH_REPO"]}/actions/runs/{run_id}'
+    run = json.loads(subprocess.check_output(['gh', 'api', endpoint], text=True))
+    if (run['path'] != '.github/workflows/release.yml' or run['head_branch'] != 'main'
+            or run['event'] != 'workflow_dispatch'):
+        raise ValueError('只能重分发 main 手动 Release 的产物')
+    pages = json.loads(subprocess.check_output(
+        ['gh', 'api', '--paginate', '--slurp', endpoint + '/jobs?per_page=100'], text=True))
+    if not any(job['name'] == 'ready' and job['conclusion'] == 'success'
+               for page in pages for job in page['jobs']):
+        raise ValueError('原 Release 尚未通过发布验收')
+    sha = run['head_sha']
+    subprocess.run(['git', 'merge-base', '--is-ancestor', sha, 'origin/main'], check=True)
+    version = tomllib.loads(subprocess.check_output(['git', 'show', f'{sha}:version.toml'], text=True))
+    return {'version': version['version'], 'build': version['build_number'],
+            'tag': 'v' + version['version'], 'sha': sha}
+
+
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 3 and sys.argv[1] == '--source-run':
+        values = source_metadata(sys.argv[2])
+        with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+            for key, value in values.items():
+                output.write(f'{key}={value}\n')
+    else:
+        main()
