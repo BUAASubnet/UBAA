@@ -284,7 +284,7 @@ fn required_session_auto_preserves_core_feature_route_without_guessing() {
         .build()
         .unwrap();
     let recovered = runtime
-        .block_on(client.recover_required_session(ReadonlyFeature::Signin))
+        .block_on(client.recover_required_session(ReadonlyFeature::Schedule))
         .unwrap();
     assert_eq!(recovered.resolution.policy, RoutePolicy::Auto);
     assert_eq!(recovered.resolution.mode, ConnectionMode::Direct);

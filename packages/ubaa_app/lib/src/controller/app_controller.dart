@@ -39,6 +39,7 @@ import 'recovery/services.dart' show ControllerServiceRecovery;
 import 'recovery/resume.dart' show ControllerDeferredRecovery;
 import 'recovery/retry.dart' show ControllerRecoveryRetry;
 import 'recovery/startup.dart' show ControllerOfflineStartup;
+import 'recovery/network.dart' show ControllerNetworkRecovery;
 import 'session/completion.dart' show ControllerAuthenticationCompletion;
 import 'session/authentication.dart' show ControllerAuthentication;
 import 'session/interactive.dart' show ControllerInteractiveAuthentication;
@@ -87,6 +88,7 @@ class AppController extends ControllerState
         ControllerDeferredRecovery,
         ControllerBackendRecovery,
         ControllerRecoveryRetry,
+        ControllerNetworkRecovery,
         ControllerBusinessRetry,
         ControllerRequiredRecovery,
         ControllerServiceRecovery,

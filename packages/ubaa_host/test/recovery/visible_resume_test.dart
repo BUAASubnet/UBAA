@@ -48,7 +48,7 @@ void main() {
 
   testWidgets('后端打开期间进入后台，迟到实例等待窗口可见才订阅和恢复', (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    final events = StreamController<void>.broadcast();
+    final events = StreamController<bool>.broadcast();
     final opened = Completer<UbaaBackend>();
     final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend();
@@ -105,7 +105,7 @@ void main() {
   for (final hidden in [AppLifecycleState.hidden, AppLifecycleState.paused]) {
     testWidgets('$hidden 后窗口可见但未获焦点，恢复订阅与读取且获焦点不重复恢复', (tester) async {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      final events = StreamController<void>.broadcast();
+      final events = StreamController<bool>.broadcast();
       final accounts = await fixtures.widgetAccounts(tester);
       final backend = fixtures.FakeRecoveryBackend();
       await tester.pumpWidget(

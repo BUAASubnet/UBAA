@@ -11,7 +11,7 @@
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v62 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v63 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -38,6 +38,10 @@
 | 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 分钟计数的 Worker 迁移和客户端发布、生产定时任务；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
+
+换网恢复已接入独立网络探测、3 秒观察缓存、Rust 只读取消和 30 秒统一期限，保留页面及原查询。校外名单外的初始 Direct 连接预算为 2 秒，正常响应预算不变；手动切换不再额外读取两条登录页。合成回归覆盖连续换网、原查询重读、迟到结果拒绝、写入不重放和超时后的手动重试。macOS 原生插件、FFI 和合成恢复的 6 个入口、13 项测试已通过，真实校园网到移动网络切换仍待验证。
+
+Auto 校外按[域名名单](../contracts/route-policy.md#校外域名配置)直接为用户中心、希冀、课堂签到、iHome 和财务选择 WebVPN，名单外业务继续直连优先。2026-11-13 已在非校园网环境检查公开入口与 DNS，并通过 Core 路线合成回归；财务按用户确认采用 WebVPN，PR #124 已有真实 WebVPN 查询证据。本次没有执行账号登录、完整业务读取或设备换网验收。
 
 应用操作占用和会话恢复结果已集中管理，专用服务恢复继续阻塞并发操作。日程同步的未决发布状态、希冀扫描的网络读取与缓存复用也由专用类型管理，公开接口与本机存储格式保持兼容，见[内部状态所有权](../adr/0008-internal-state-ownership.md)。
 

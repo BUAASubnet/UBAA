@@ -125,7 +125,7 @@ impl UbaaClient {
         options: JudgeOnlineOptions,
         resolution: RouteResolution,
     ) -> Result<JudgeOnlineScan, OfflineReadError> {
-        let mut activated;
+        let mut activated = false;
         let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
             activated = false;
             scan::courses(self.runtime_for(resolution.mode), &mut activated, true)

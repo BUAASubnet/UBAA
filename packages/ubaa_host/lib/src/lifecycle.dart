@@ -157,13 +157,13 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   (String?, Object)? _scheduleWidgetStamp;
-  Stream<void>? _networkChanges;
-  StreamSubscription<void>? _networkSubscription;
+  Stream<bool>? _networkChanges;
+  StreamSubscription<bool>? _networkSubscription;
 
   void _listenNetworkChanges() {
     if (_wasBackgrounded) return;
     _networkSubscription ??= _networkChanges?.listen(
-      (_) => _controller.onNetworkChanged(),
+      (online) => _controller.onNetworkChanged(online: online),
       onError: (Object _) {},
     );
   }

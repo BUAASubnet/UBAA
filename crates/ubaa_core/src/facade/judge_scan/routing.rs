@@ -32,7 +32,7 @@ impl UbaaClient {
         force_fresh: bool,
     ) -> (RouteResolution, scan::ScanRead<BatchData>, bool) {
         let initial_route = resolution.mode;
-        let mut fatal;
+        let mut fatal = false;
         let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
             let mut activated = resolution.mode == initial_route && was_activated;
             let read = if let Some(assignment) = assignment {

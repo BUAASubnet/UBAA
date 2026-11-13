@@ -67,6 +67,7 @@ final class ProgressiveScope {
   final bool Function() current;
   FeatureReadTask? task;
   bool preparing = false;
+  bool writeReadback = false;
   ConnectionMode? route;
   bool restartRequested = false;
   final completion = Completer<void>();
@@ -184,6 +185,8 @@ final class RecoveryRequest {
     : interactive = !refreshHomeAfter;
   final FeatureId feature;
   int epoch;
+  int networkRevision = 0;
+  DateTime? deadline;
   bool refreshHomeAfter;
   bool interactive;
 

@@ -26,6 +26,7 @@ impl HttpTransferObserver for Progress {
 }
 fn transport() -> ReqwestTransport {
     ReqwestTransport {
+        fast_connect_client: reqwest::Client::builder().no_proxy().build().unwrap(),
         client: reqwest::Client::builder().no_proxy().build().unwrap(),
         object_client: reqwest::Client::builder()
             .no_proxy()

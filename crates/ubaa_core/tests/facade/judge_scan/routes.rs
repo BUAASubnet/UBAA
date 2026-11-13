@@ -14,7 +14,7 @@ impl HttpTransport for RouteTransport {
     }
 }
 #[tokio::test]
-async fn 分段详情中途断网时在独立路线重建选课上下文() {
+async fn 网络未知时分段详情断网仍在独立路线重建选课上下文() {
     for path in ["online", "refresh", "details"] {
         let (root, mut client, cache, vpn) = setup_routes();
         let (resolution, kind) = if path == "refresh" {
@@ -91,6 +91,12 @@ async fn 分段详情中途断网时在独立路线重建选课上下文() {
 }
 
 fn setup_routes() -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
+    struct UnknownProbe;
+    impl GatewayProbe for UnknownProbe {
+        fn probe(&self, _: Duration) -> NetworkState {
+            NetworkState::Unknown
+        }
+    }
     let root = test_root("judge-scan-domain");
     let store = FileSessionStore::new(&root).unwrap();
     let slot = RouteSessionSnapshot {
@@ -109,7 +115,7 @@ fn setup_routes() -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTranspor
         RouteTransport(vpn.clone()),
         store,
         RouteConfig::default(),
-        CountingProbe(Arc::default()),
+        UnknownProbe,
     )
     .unwrap();
     let cache = OfflineCache::open(

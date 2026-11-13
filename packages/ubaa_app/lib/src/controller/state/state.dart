@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../services/session_recovery.dart';
 import '../../contracts/session_recovery.dart';
+import '../../contracts/routing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -198,15 +199,22 @@ abstract class ControllerState extends ControllerOperations {
 
   @internal
   bool internalAppForeground = true;
+  bool internalNetworkOnline = true;
+  bool internalNetworkChecking = false;
+  int internalNetworkRevision = 0;
+  DateTime? internalNetworkDeadline;
+  BackendException? internalNetworkFailure;
+  NetworkChangeOperation? internalNetworkOperation;
+  Completer<void>? internalNetworkReady;
+  Timer? internalNetworkDeadlineTimer;
+  final internalServiceReads = <Completer<void>>{};
+  bool get networkOnline => internalNetworkOnline;
 
   @internal
   final internalRecoveryRetries = <FeatureId, RecoveryRetry>{};
 
   @internal
   final internalBusinessRetries = <(FeatureId, bool), BusinessRetry>{};
-
-  @internal
-  Timer? internalNetworkWakeCooldown;
 
   @internal
   final internalQueuedRecoveries = <FeatureId, RecoveryRequest>{};
@@ -494,6 +502,8 @@ abstract class ControllerState extends ControllerOperations {
   /// 一个主动操作可能并行读取多个来源；只发送一次提示。
   @internal
   Future<T> internalUserSchoolAction<T>(Future<T> Function() action) {
+    if (internalNetworkFailure != null && internalNetworkOnline)
+      internalCancelNetworkChange();
     Future<T> run() async {
       try {
         final value = await action();

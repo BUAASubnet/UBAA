@@ -31,6 +31,7 @@ const MAX_JUDGE_DETAIL_BODY_BYTES: usize = 16 * 1024 * 1024;
 #[derive(Clone, Debug)]
 pub struct ReqwestTransport {
     client: reqwest::Client,
+    fast_connect_client: reqwest::Client,
     object_client: reqwest::Client,
 }
 
@@ -41,11 +42,12 @@ impl ReqwestTransport {
     ///
     /// 无法构造执行 TLS 校验的客户端时返回内部错误。
     pub fn new() -> Result<Self> {
-        let client = reqwest::Client::builder()
+        let ordinary = |connect_seconds| {
+            reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             // 只协商响应压缩；正文上限继续由流式解压后的累计字节数检查。
             .gzip(true)
-            .connect_timeout(std::time::Duration::from_secs(10))
+            .connect_timeout(std::time::Duration::from_secs(connect_seconds))
             .timeout(std::time::Duration::from_secs(30))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0")
             .build()
@@ -56,7 +58,10 @@ impl ReqwestTransport {
                     false,
                     "无法构造 HTTP 客户端",
                 )
-            })?;
+            })
+        };
+        let client = ordinary(10)?;
+        let fast_connect_client = ordinary(2)?;
         let object_client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .gzip(false)
@@ -73,6 +78,7 @@ impl ReqwestTransport {
             })?;
         Ok(Self {
             client,
+            fast_connect_client,
             object_client,
         })
     }
@@ -80,6 +86,10 @@ impl ReqwestTransport {
 
 #[async_trait]
 impl HttpTransport for ReqwestTransport {
+    async fn execute_with_fast_connect(&self, request: HttpRequest) -> Result<HttpResponse> {
+        let body_limit = response_body_limit(request.method, &request.url);
+        execute_with_client(&self.fast_connect_client, request, body_limit).await
+    }
     async fn upload(
         &self,
         request: HttpRequest,
@@ -364,6 +374,7 @@ mod tests {
 
     fn direct_test_transport() -> ReqwestTransport {
         ReqwestTransport {
+            fast_connect_client: reqwest::Client::builder().no_proxy().build().unwrap(),
             object_client: reqwest::Client::builder()
                 .no_proxy()
                 .redirect(reqwest::redirect::Policy::none())

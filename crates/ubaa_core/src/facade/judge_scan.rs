@@ -148,7 +148,7 @@ impl UbaaClient {
         } else {
             None
         };
-        let mut activated;
+        let mut activated = false;
         let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
             activated = false;
             scan::courses(

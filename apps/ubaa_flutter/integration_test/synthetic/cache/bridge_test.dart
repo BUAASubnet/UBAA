@@ -37,7 +37,20 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 62);
+      expect(client.contractVersion(), 63);
+      final offline = client.beginNetworkChange(
+        online: false,
+        timeoutMillis: 30000,
+      );
+      expect(await offline.inspect(), BridgeNetworkState.unknown);
+      client.cancelNetworkReads();
+      offline.cancel();
+      final online = client.beginNetworkChange(
+        online: true,
+        timeoutMillis: 30000,
+      );
+      offline.finish();
+      online.finish();
       await probeRecoveryControl(client);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       final cloud = await client.bhpanCapabilities();

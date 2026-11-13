@@ -18,7 +18,7 @@ void main() {
       includeLinkLocal: false,
     );
     expect(interfaces, isA<List<NetworkInterface>>());
-    final events = StreamController<void>.broadcast();
+    final events = StreamController<bool>.broadcast();
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(UbaaErrorCode.networkError);
     await tester.pumpWidget(
@@ -31,8 +31,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     backend.authError = null;
-    events.add(null);
-    events.add(null);
+    events.add(true);
+    events.add(true);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 2);
     expect(backend.loginCalls, 0);

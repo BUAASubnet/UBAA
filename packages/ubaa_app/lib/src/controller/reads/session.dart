@@ -119,6 +119,10 @@ mixin ControllerScheduledSession on ControllerState {
         discard: discard,
         continuation: true,
       );
+    if (internalNetworkChecking ||
+        internalNetworkFailure != null ||
+        !internalNetworkOnline)
+      await internalAwaitNetworkReady();
     if (internalHomeRecoveryBatch case final batch?) await batch;
     if (!current()) throw const ReadCancelled();
     final recovered = internalReadTargetNeedsRecovery(feature);

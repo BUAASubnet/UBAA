@@ -339,7 +339,11 @@ impl ClientRuntime {
             .transpose()?;
         self.check_school_requests()?;
         let request_url = request.url.clone();
-        let pending = self.transport.execute(request);
+        let pending = if crate::facade::operation_control::fast_connect() {
+            self.transport.execute_with_fast_connect(request)
+        } else {
+            self.transport.execute(request)
+        };
         drop(permit);
         let result = pending.await;
         let domain = crate::connection::from_webvpn_url(&request_url)

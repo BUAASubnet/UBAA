@@ -486,6 +486,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   void internalSyncRecoveryRetries();
   @internal
   void internalWakeNetworkRecovery();
+  void internalHandleNetworkChange({required bool online});
+  void internalCancelNetworkChange();
+  Future<void> internalAwaitNetworkReady();
   @internal
   void internalClearBusinessRetries();
   @internal

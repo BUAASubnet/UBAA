@@ -1,5 +1,8 @@
 use crate::api::client::BridgeClient;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use tokio::sync::Notify;
 use ubaa_core::facade::{ConnectionMode, NetworkState, UbaaClient};
 use ubaa_test_support::{
@@ -18,6 +21,14 @@ impl GatewayProbe for NoProbe {
 struct Transport {
     exam_started: Arc<Notify>,
     finish_exam: Arc<Notify>,
+    exam_dropped: Arc<AtomicBool>,
+}
+
+struct PendingExam(Arc<AtomicBool>);
+impl Drop for PendingExam {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
 }
 
 #[async_trait::async_trait]
@@ -28,6 +39,7 @@ impl HttpTransport for Transport {
         } else if request.url.contains("currentUser.do") {
             r#"{"code":"0","datas":{"userId":"fixture-user"}}"#
         } else if request.url.contains("exams.do") {
+            let _pending = PendingExam(self.exam_dropped.clone());
             self.exam_started.notify_one();
             self.finish_exam.notified().await;
             r#"{"code":"0","datas":[]}"#
@@ -49,6 +61,71 @@ impl HttpTransport for Transport {
             request.url,
             body.as_bytes().to_vec(),
         ))
+    }
+}
+
+#[tokio::test]
+async fn 换网与手动切换丢弃在途网络读取并立即释放客户端锁() {
+    use crate::api::client::{BridgeErrorCode, BridgeRoutePolicy};
+    use std::time::Duration;
+    for manual in [false, true] {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.ubaa_local/auto_route_review/tests")
+            .join(format!("read-cancel-{}-{manual}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("config.toml"), "[route]\ndefault = \"direct\"\n").unwrap();
+        FileSessionStore::new(&root)
+            .unwrap()
+            .save(&SessionSnapshot {
+                mode: ConnectionMode::Direct,
+                cookies: vec![],
+                authenticated_at: 1000,
+                last_activity: 1001,
+            })
+            .unwrap();
+        let transport = Transport::default();
+        let core = ubaa_core::facade::testing::with_routing_in_config_directory(
+            transport.clone(),
+            transport.clone(),
+            &root,
+            NoProbe,
+        )
+        .unwrap();
+        let bridge = BridgeClient::from_core(core);
+        let exam = bridge.exam_arrangement("synthetic-term".into());
+        tokio::pin!(exam);
+        tokio::select! {
+            () = transport.exam_started.notified() => {},
+            result = &mut exam => panic!("考试必须已发送且等待响应：{:?}", result.err()),
+        }
+        if manual {
+            let switching = bridge.set_default_route_policy(BridgeRoutePolicy::WebVpn);
+            let (read, switched) = tokio::time::timeout(Duration::from_secs(1), async {
+                tokio::join!(exam, switching)
+            })
+            .await
+            .expect("切换不应等待原请求超时");
+            assert_eq!(read.unwrap_err().code, BridgeErrorCode::NetworkError);
+            assert_eq!(switched.unwrap().default_policy, BridgeRoutePolicy::WebVpn);
+        } else {
+            let change = bridge.begin_network_change(true, 30_000).unwrap();
+            assert_eq!(
+                tokio::time::timeout(Duration::from_secs(1), exam)
+                    .await
+                    .unwrap()
+                    .unwrap_err()
+                    .code,
+                BridgeErrorCode::NetworkError
+            );
+            tokio::time::timeout(Duration::from_secs(1), bridge.route_settings())
+                .await
+                .unwrap()
+                .unwrap();
+            change.finish();
+        }
+        assert!(transport.exam_dropped.load(Ordering::SeqCst));
+        bridge.dispose().await.unwrap();
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
 

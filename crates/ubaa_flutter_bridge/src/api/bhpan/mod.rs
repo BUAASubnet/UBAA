@@ -157,9 +157,10 @@ impl BridgeClient {
         self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            g.as_mut()
-                .ok_or_else(disposed_error)?
-                .bhpan_login()
+            let client = g.as_mut().ok_or_else(disposed_error)?;
+            client
+                .network_control()
+                .run_read(c::ConnectionMode::Direct, false, client.bhpan_login())
                 .await
                 .map_err(error)
         })
@@ -172,36 +173,47 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             let client = g.as_mut().ok_or_else(disposed_error)?;
-            let required = |v: Option<String>| {
-                v.filter(|s| !s.is_empty())
-                    .ok_or_else(|| error(c::UbaaError::invalid_input("云盘读取输入缺失")))
-            };
-            let p = match query.view {
-                BridgeBhpanReadView::PersonalRoot => client.bhpan_personal_root().await,
-                BridgeBhpanReadView::Roots => {
-                    client
-                        .bhpan_roots(
-                            query
-                                .root
-                                .ok_or_else(|| {
-                                    error(c::UbaaError::invalid_input("文档库分类缺失"))
-                                })?
-                                .into(),
-                        )
-                        .await
-                }
-                BridgeBhpanReadView::List => client.bhpan_list(&required(query.target)?).await,
-                BridgeBhpanReadView::Recycle => client.bhpan_recycle().await,
-                BridgeBhpanReadView::OpenShare => {
-                    client
-                        .bhpan_open_share(
-                            &required(query.link)?,
-                            query.password.map(c::SecretValue::new),
-                        )
-                        .await
-                }
-            }
-            .map_err(error)?;
+            let network = client.network_control();
+            let p = network
+                .run_read(
+                    c::ConnectionMode::Direct,
+                    false,
+                    Box::pin(async {
+                        let required = |v: Option<String>| {
+                            v.filter(|s| !s.is_empty())
+                                .ok_or_else(|| c::UbaaError::invalid_input("云盘读取输入缺失"))
+                        };
+                        match query.view {
+                            BridgeBhpanReadView::PersonalRoot => client.bhpan_personal_root().await,
+                            BridgeBhpanReadView::Roots => {
+                                client
+                                    .bhpan_roots(
+                                        query
+                                            .root
+                                            .ok_or_else(|| {
+                                                c::UbaaError::invalid_input("文档库分类缺失")
+                                            })?
+                                            .into(),
+                                    )
+                                    .await
+                            }
+                            BridgeBhpanReadView::List => {
+                                client.bhpan_list(&required(query.target)?).await
+                            }
+                            BridgeBhpanReadView::Recycle => client.bhpan_recycle().await,
+                            BridgeBhpanReadView::OpenShare => {
+                                client
+                                    .bhpan_open_share(
+                                        &required(query.link)?,
+                                        query.password.map(c::SecretValue::new),
+                                    )
+                                    .await
+                            }
+                        }
+                    }),
+                )
+                .await
+                .map_err(error)?;
             Ok(p.into())
         })
         .await
@@ -209,10 +221,14 @@ impl BridgeClient {
     pub async fn bhpan_size(&self, item: String) -> Result<BridgeBhpanSize, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let s = g
-                .as_mut()
-                .ok_or_else(disposed_error)?
-                .bhpan_size(&item)
+            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let s = client
+                .network_control()
+                .run_read(
+                    c::ConnectionMode::Direct,
+                    false,
+                    Box::pin(client.bhpan_size(&item)),
+                )
                 .await
                 .map_err(error)?;
             Ok(BridgeBhpanSize {
@@ -230,9 +246,14 @@ impl BridgeClient {
     ) -> Result<String, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            g.as_mut()
-                .ok_or_else(disposed_error)?
-                .bhpan_suggest_name(&parent, &name)
+            let client = g.as_mut().ok_or_else(disposed_error)?;
+            client
+                .network_control()
+                .run_read(
+                    c::ConnectionMode::Direct,
+                    false,
+                    Box::pin(client.bhpan_suggest_name(&parent, &name)),
+                )
                 .await
                 .map_err(error)
         })
@@ -245,11 +266,20 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             let c = g.as_mut().ok_or_else(disposed_error)?;
-            let s = match item {
-                Some(item) => c.bhpan_share_records(&item).await,
-                None => c.bhpan_share_history().await,
-            }
-            .map_err(error)?;
+            let network = c.network_control();
+            let s = network
+                .run_read(
+                    c::ConnectionMode::Direct,
+                    false,
+                    Box::pin(async {
+                        match item {
+                            Some(item) => c.bhpan_share_records(&item).await,
+                            None => c.bhpan_share_history().await,
+                        }
+                    }),
+                )
+                .await
+                .map_err(error)?;
             Ok(s.into_iter().map(Into::into).collect())
         })
         .await
@@ -257,9 +287,14 @@ impl BridgeClient {
     pub async fn bhpan_share_link(&self, share: String) -> Result<String, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            g.as_mut()
-                .ok_or_else(disposed_error)?
-                .bhpan_share_link(&share)
+            let client = g.as_mut().ok_or_else(disposed_error)?;
+            client
+                .network_control()
+                .run_read(
+                    c::ConnectionMode::Direct,
+                    false,
+                    client.bhpan_share_link(&share),
+                )
                 .await
                 .map_err(error)
         })

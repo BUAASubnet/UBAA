@@ -15,6 +15,7 @@ import 'package:ubaa_app/src/bridge/context.dart';
 import '../../runtime.dart'
     show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
 import 'auth/required_session.dart';
+import 'auth/network.dart';
 import 'auth/shared_logout.dart';
 import 'auth/session.dart'
     show
@@ -81,7 +82,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 62;
+const _supportedBridgeContractVersion = 63;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -118,6 +119,8 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
+        RoutePolicyBackend,
+        NetworkChangeBackend,
         ControlledRequiredTargetSessionBackend,
         HomeRecoveryBatchBackend,
         OfflineCacheBackend,
@@ -153,6 +156,26 @@ class BridgeBackend
       );
     }
   }
+
+  @override
+  NetworkChangeOperation beginNetworkChange({
+    required bool online,
+    required Duration budget,
+  }) {
+    try {
+      return BridgeNetworkOperation(
+        client.beginNetworkChange(
+          online: online,
+          timeoutMillis: budget.inMilliseconds,
+        ),
+      );
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
+  }
+
+  @override
+  void cancelNetworkReads() => client.cancelNetworkReads();
 
   @override
   Future<CgyyLockDisplaySession> openLockDisplay() async {

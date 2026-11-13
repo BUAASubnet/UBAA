@@ -15,6 +15,7 @@ use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
+    pub(super) network: super::ClientNetworkControl,
     pub(super) read_recovery_batch: super::required_recovery::ReadRecoveryBatch,
     pub(super) domain_routes: Arc<std::sync::Mutex<super::routing::domains::DomainRoutes>>,
     pub(super) config_dir: Option<PathBuf>,
@@ -33,6 +34,11 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// 网络检测和只读取消不占用业务客户端锁。
+    #[must_use]
+    pub fn network_control(&self) -> super::ClientNetworkControl {
+        self.network.clone()
+    }
     /// 本客户端及其派生任务的本进程关闭控制，不注销共享账号。
     #[must_use]
     pub fn close_control(&self) -> super::ClientCloseControl {
@@ -75,6 +81,8 @@ impl UbaaClient {
             )
         })?;
         let mut reopened = Self::open(directory)?;
+        reopened.probe = self.probe.clone();
+        reopened.network = self.network.clone();
         reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
         reopened.webvpn_runtime.consumer_closed = self.webvpn_runtime.consumer_closed.clone();
         reopened.bind_shared_account(self.shared_account_guard());
@@ -229,7 +237,9 @@ impl UbaaClient {
         let sessions = DualSessionCoordinator::new(store)?;
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
+        let probe = Arc::new(probe);
         Ok(Self {
+            network: super::ClientNetworkControl::new(probe.clone()),
             read_recovery_batch: super::required_recovery::ReadRecoveryBatch::default(),
             domain_routes: Arc::default(),
             config_dir: None,
@@ -237,7 +247,7 @@ impl UbaaClient {
             verified_login_generations: None,
             route_generation: 0,
             config,
-            probe: Arc::new(probe),
+            probe,
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
                 direct_transport,

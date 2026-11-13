@@ -76,6 +76,7 @@ pub struct UbaaError {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ErrorCause {
+    NetworkChanged,
     SessionConflict,
     SharedAccountConflict,
     ClientClosed,
@@ -111,6 +112,23 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    pub(crate) fn network_changed() -> Self {
+        Self {
+            cause: Some(ErrorCause::NetworkChanged),
+            ..Self::new(
+                ErrorCode::NetworkError,
+                ErrorKind::Network,
+                false,
+                "网络已变化，读取已取消",
+            )
+        }
+    }
+
+    /// 本机换网取消，与学校认证失败区分。
+    #[must_use]
+    pub const fn is_network_changed(&self) -> bool {
+        matches!(self.cause, Some(ErrorCause::NetworkChanged))
+    }
     /// 构造不可重试的输入错误。
     pub fn invalid_input(message: impl Into<String>) -> Self {
         Self::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)

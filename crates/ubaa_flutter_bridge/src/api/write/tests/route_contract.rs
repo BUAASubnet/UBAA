@@ -180,7 +180,7 @@ async fn 十类写入确认路线与当前路线不符时零请求拒绝且消�
         let root = test_root("changed-route-matrix");
         let direct = MockTransport::new([]);
         let webvpn = MockTransport::new([]);
-        let probe = SequenceProbe::new([NetworkState::OffCampus]);
+        let probe = SequenceProbe::new([NetworkState::Campus]);
         let client = Box::pin(client_with_probe(
             &root,
             direct.clone(),

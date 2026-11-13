@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `62`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `63`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -27,14 +27,14 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=62` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=63` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
 绑定主客户端的账号、路线与会话代次。只读实例不竞争持久会话 CAS，也不能提交登录凭据、注销或执行学校写入。
 认证恢复、路线切换、学校写入和其余尚未分组的操作独占同一读写锁；等待的写方阻止新读取插队，
 已经发送的批次正常收尾后才能执行写入。Dart 调度器对声明并发能力的后端执行相同分组和上限。
-读操作可以在 Dart 侧取消等待，但已经进入 Core 的调用不会被透明重放。
+网络观察和普通读取取消不等待业务锁。取消会丢弃 Rust 网络 Future，释放读取占用；App 在恢复目标会话后重新发起原查询，Core 内部只保留每次读取至多一次跨路线回退。
 dispose 等待在途批次结束并释放全部读取实例，之后所有方法返回 `client_disposed`。isolate 重建必须重新
 `open`，不得复用旧 handle 或 intent。应用仍处于认证/路线初始化读取阶段时，宿主重建请求
 必须安全拒绝，避免旧初始化结果写入新 handle；初始化结束后的下一次生命周期恢复再重建。
@@ -67,7 +67,7 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 - `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新 backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有 `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
 - 生产入口通过 `BridgeBackend` 连接本合同 API，并保留显式 `UnavailableBackend` 安全失败；生产入口不默认构造测试支持包中的脱敏后端。
 - 读取结果中的 `RouteDecision.resolvedRoute` 沿 `FeatureResult`、`FeatureSnapshot` 和 `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不把 `defaultPolicy` 冒充为本次请求路线。刷新失败的 `stale` 数据保留上次实际路线。
-- 应用层通过受限的 `RouteSettingsBackend` 读取 `defaultPolicy` 与 `activeRoutes`；切换固定路线后若目标槽位未认证，清除用户与功能快照并回到登录页，避免继续展示旧路线数据。原子保存、重开和 intent 失效由 Core 完成，Dart 不读取 Session 内容。
+- 应用层通过受限的 `RouteSettingsBackend` 读取 `defaultPolicy` 与 `activeRoutes`。生产后端通过 `RoutePolicyBackend` 保存策略，切换后保留页面与查询，并按已有自动登录许可准备目标路线。原子保存、重开和 intent 失效由 Core 完成，Dart 不读取 Session 内容。
 - 应用启动时先读取同一投影恢复 Core 已保存的 `defaultPolicy`，再检查认证状态，避免把 `auto` 默认值误显示为持久化的固定路线。
 
 ## 3. 错误合同
@@ -110,7 +110,11 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 | `userInfo` | 无 | `Routed<UserProfile>` | 只返回白名单字段 |
 | `logout` | 无 | `void` | 远端尽力、Core Session 清理并使旧 intent 失效；不删除平台 CredentialVault |
 | `routeSettings` | 无 | `RouteSettings` | 返回配置策略与当前有效路线槽位，不读取 Session 内容 |
-| `setDefaultRoutePolicy` | `RoutePolicy` | `RouteSettings` | 有进行中的 Core 请求时拒绝；原子保存、清空 feature override、重开 client、保留路线 Session，并使旧 intent 失效 |
+| `setDefaultRoutePolicy` | `RoutePolicy` | `RouteSettings` | 先取消普通读取，再等待独占锁；原子保存、清空 feature override、重开 client、保留路线 Session，并使旧 intent 失效 |
+| `beginNetworkChange` | `online: bool, timeoutMillis: u32` | `BridgeNetworkChange` | sync，不获取业务锁；立即失效探测缓存并撤销旧读取。期限最多 120 秒，App 使用 30 秒 |
+| `cancelNetworkReads` | 无 | `void` | sync，只取消两条路线的普通读取，不重放或取消已发送业务写入 |
+| `BridgeNetworkChange.inspect` | 无 | `BridgeNetworkState` | 独立线程探测，返回 campus、offCampus 或 unknown；离线直接返回 unknown |
+| `BridgeNetworkChange.finish / cancel` | 无 | `void` | sync；前者结束本次期限，后者同时取消本次读取；过时句柄不能影响后续网络观察 |
 
 认证 DTO：
 
@@ -524,8 +528,9 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v62）
+### 近期版本摘要（v55–v63）
 
+- v63 增加独立于业务锁的 `beginNetworkChange`、`cancelNetworkReads` 和 `BridgeNetworkChange.inspect/finish/cancel`。句柄绑定网络修订与统一期限，仅取消普通读取，已发送写入与固定路线核对保持原合同。
 - v62 为博雅缓存课程增加可选完整详情补充，包含展示字段、签到时间窗与点数，不包含坐标或操作资格。
 - v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
 - v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。

@@ -23,6 +23,9 @@ mixin ControllerWriteLifecycle on ControllerState {
             internalSessionRecoveryStatus != SessionRecoveryStatus.needsLogin &&
             internalPhase == AppPhase.home &&
             internalUser != null &&
+            internalNetworkOnline &&
+            !internalNetworkChecking &&
+            internalNetworkFailure == null &&
             !internalActivities.hasActive &&
             (!internalUsesLocalRecovery ||
                 internalSessionRecoveryStatus == SessionRecoveryStatus.ready),
@@ -50,6 +53,10 @@ mixin ControllerWriteLifecycle on ControllerState {
   ControllerActivity internalBeginOperationTransition(
     ControllerActivityKind kind,
   ) {
+    if (kind == ControllerActivityKind.authentication ||
+        kind == ControllerActivityKind.routeChange) {
+      internalCancelNetworkChange();
+    }
     internalLockDisplay?.cancel();
     // 必须先禁止入口，再发出 invalidate 通知，覆盖监听器同步重入。
     final activity = internalActivities.begin(kind);

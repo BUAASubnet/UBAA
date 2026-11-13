@@ -7,6 +7,22 @@ use crate::domain::ReadonlyFeature;
 
 const TTL: i64 = 24 * 60 * 60;
 
+/// 校外直接选择 `WebVPN` 的业务域名，实测与来源见 docs/contracts/route-policy.md。
+const OFF_CAMPUS_WEBVPN_DOMAINS: &[&str] = &[
+    "uc.buaa.edu.cn",
+    "judge.buaa.edu.cn",
+    "iclass.buaa.edu.cn",
+    "i.buaa.edu.cn",
+    "icw.buaa.edu.cn",
+    "chaxun.icw.buaa.edu.cn",
+];
+
+pub(in crate::facade) fn off_campus_requires_webvpn(operation: Operation) -> bool {
+    domains(operation)
+        .iter()
+        .any(|domain| OFF_CAMPUS_WEBVPN_DOMAINS.contains(domain))
+}
+
 #[derive(Default)]
 pub(in crate::facade) struct DomainRoutes {
     path: Option<PathBuf>,
@@ -46,6 +62,23 @@ impl DomainRoutes {
             .any(|domain| self.recovery.contains(*domain))
     }
 
+    pub(in crate::facade) fn confirm_recovered(
+        &mut self,
+        reached: &BTreeSet<String>,
+        failed: Option<&str>,
+        now: i64,
+    ) {
+        let confirmed: Vec<_> = self
+            .recovery
+            .intersection(reached)
+            .filter(|domain| failed != Some(domain.as_str()))
+            .cloned()
+            .collect();
+        for domain in confirmed {
+            self.remember(domain, now);
+        }
+    }
+
     pub(in crate::facade) fn remember(&mut self, domain: String, now: i64) {
         self.expires
             .retain(|_, expires| *expires > now && *expires - now <= TTL);
@@ -58,6 +91,13 @@ impl DomainRoutes {
         self.recovery.clear();
         if !self.expires.is_empty() {
             self.expires.clear();
+            self.save();
+        }
+    }
+
+    pub(in crate::facade) fn forget(&mut self, domain: &str) {
+        self.recovery.remove(domain);
+        if self.expires.remove(domain).is_some() {
             self.save();
         }
     }

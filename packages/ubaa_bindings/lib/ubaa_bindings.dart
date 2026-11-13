@@ -7,6 +7,7 @@ export 'src/rust/api/app_service/models.dart';
 
 export 'src/rust/api/simple.dart';
 export 'src/rust/api/client.dart';
+export 'src/rust/api/network.dart';
 export 'src/rust/api/interactive_auth.dart';
 export 'src/rust/api/read.dart';
 export 'src/rust/api/write.dart';

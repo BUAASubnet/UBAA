@@ -51,6 +51,7 @@ fn bridge_client(directory: &Path, policy: core::RoutePolicy) -> BridgeClient {
     )
     .unwrap();
     BridgeClient {
+        network_control: client.network_control(),
         close_control: client.close_control(),
         auth_control: RwLock::new(client.interactive_login_cancellation()),
         is_disposed: AtomicBool::new(false),

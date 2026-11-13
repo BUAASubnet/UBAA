@@ -154,7 +154,7 @@ class UbaaAppHost extends StatefulWidget {
   final UbaaBackend? backend;
 
   /// 可注入的本地网络变化提示；显式脱敏backend默认不观察真实系统接口。
-  final Stream<void>? networkChanges;
+  final Stream<bool>? networkChanges;
 
   /// 仅在没有显式 [backend] 时使用；同一工厂也负责宿主恢复后的 backend
   /// 重建。为空时打开生产后端和应用服务。

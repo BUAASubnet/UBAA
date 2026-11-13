@@ -148,6 +148,7 @@ mixin ControllerOfflineStartup on ControllerState {
     final active = internalActiveRecovery;
     if (active != null &&
         active.feature == feature &&
+        active.networkRevision == internalNetworkRevision &&
         !forceConnectionCheck &&
         (active.refreshHomeAfter || !refreshHomeAfter)) {
       active.refreshHomeAfter |= refreshHomeAfter;
@@ -158,6 +159,8 @@ mixin ControllerOfflineStartup on ControllerState {
       feature,
       () => RecoveryRequest(feature, internalLifecycleEpoch, refreshHomeAfter),
     );
+    request.networkRevision = internalNetworkRevision;
+    request.deadline = internalNetworkDeadline;
     request.refreshHomeAfter |= refreshHomeAfter;
     request.interactive |= !refreshHomeAfter;
     internalStartNextRecovery();
@@ -177,6 +180,10 @@ mixin ControllerOfflineStartup on ControllerState {
     bool allowRebuild = true,
   }) async {
     final epoch = request.epoch;
+    bool current() =>
+        internalRecoveryIsCurrent(epoch) &&
+        request.networkRevision == internalNetworkRevision &&
+        !(request.deadline?.isBefore(DateTime.now()) ?? false);
     var usesSharedRecovery = false;
     ControllerRecoveryResult result;
     try {
@@ -184,11 +191,11 @@ mixin ControllerOfflineStartup on ControllerState {
           internalBackend is HomeRecoveryBatchBackend) {
         await (internalBackend as HomeRecoveryBatchBackend)
             .invalidateHomeRecoveryBatch();
-        if (!internalRecoveryIsCurrent(epoch)) return null;
+        if (!current()) return null;
       }
       if (internalBackend case final RouteSettingsBackend settings) {
         final settingsResult = await settings.routeSettings();
-        if (!internalRecoveryIsCurrent(epoch)) return null;
+        if (!current()) return null;
         internalApplyRouteSettings(settingsResult);
       }
       final backend = internalBackend;
@@ -202,7 +209,7 @@ mixin ControllerOfflineStartup on ControllerState {
               epoch,
             )
           : await internalRecoverLegacyProfile(epoch);
-      if (!internalRecoveryIsCurrent(epoch)) return null;
+      if (!current()) return null;
       if (profile == null) {
         result = const ControllerRecoveryStopped(
           SessionRecoveryStatus.needsLogin,
@@ -227,7 +234,7 @@ mixin ControllerOfflineStartup on ControllerState {
     } on Object catch (caughtError, caughtStackTrace) {
       Object error = caughtError;
       StackTrace stackTrace = caughtStackTrace;
-      if (!internalRecoveryIsCurrent(epoch)) return null;
+      if (!current()) return null;
       if (error is RecoveryInterrupted || error is LocalAccountConflict) {
         result = ControllerRecoveryStopped(
           internalAutomaticCredentialBlocked
@@ -247,7 +254,7 @@ mixin ControllerOfflineStartup on ControllerState {
             error = replacementError;
             stackTrace = replacementTrace;
           }
-          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+          if (!current()) return null;
         }
         if (error is BackendException && error.accountMismatch) {
           await internalRejectMismatchedAccount();
@@ -257,7 +264,7 @@ mixin ControllerOfflineStartup on ControllerState {
             error.captchaRequired &&
             error.resolvedRoute != null) {
           final input = await internalApprovedRecoveryInput(request.epoch);
-          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+          if (!current()) return null;
           internalAutomaticCredentialBlocked = true;
           if (input != null) {
             result = ControllerRecoveryVerification(
@@ -282,7 +289,7 @@ mixin ControllerOfflineStartup on ControllerState {
           } on Object {
             /* 原错误仍然保留。 */
           }
-          if (!internalRecoveryIsCurrent(request.epoch)) return null;
+          if (!current()) return null;
         }
         result = ControllerRecoveryStopped(
           error is CredentialVaultException ||
@@ -311,9 +318,13 @@ mixin ControllerOfflineStartup on ControllerState {
     ControllerRecoveryResult result,
   ) async {
     final epoch = request.epoch;
-    if (!internalRecoveryIsCurrent(epoch)) return;
+    bool current() =>
+        internalRecoveryIsCurrent(epoch) &&
+        request.networkRevision == internalNetworkRevision &&
+        !(request.deadline?.isBefore(DateTime.now()) ?? false);
+    if (!current()) return;
     void publishSession() {
-      if (!internalRecoveryIsCurrent(epoch))
+      if (!current())
         throw const RecoveryInterrupted(RecoveryStopReason.superseded);
       final session = result.forSession(targetOnly: request.targetOnly);
       internalSessionRecoveryStatus = session.status;
@@ -331,8 +342,7 @@ mixin ControllerOfflineStartup on ControllerState {
         // 最后一个 await 后仍须核对持久身份，并在同一交付边界发布。
         await deliveryScope.commitDelivery(publishSession);
       }
-      if (!internalRecoveryIsCurrent(epoch) ||
-          (deliveryScope != null && !deliveryScope.isCurrent))
+      if (!current() || (deliveryScope != null && !deliveryScope.isCurrent))
         return;
       if (internalBackend
           case final ConfirmedAppServiceAccountBackend service) {
@@ -343,7 +353,7 @@ mixin ControllerOfflineStartup on ControllerState {
       unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
       internalNotify();
       for (final entry in request.queriesAfterRebuild.entries) {
-        if (!internalRecoveryIsCurrent(epoch)) return;
+        if (!current()) return;
         if (internalSnapshots[entry.key]!.readContext?.hasSameQuery(
               entry.value,
             ) ==
@@ -365,7 +375,7 @@ mixin ControllerOfflineStartup on ControllerState {
         await internalResumeRequiredCaptcha(input, route);
       }
     }
-    if (!internalRecoveryIsCurrent(epoch)) return;
+    if (!current()) return;
     internalFeatureRecoveryStates[request.feature] = result.status;
     if (result.error case final error?) {
       internalFeatureRecoveryErrors[request.feature] = error;

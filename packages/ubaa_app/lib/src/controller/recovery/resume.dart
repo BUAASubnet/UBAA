@@ -59,7 +59,9 @@ mixin ControllerDeferredRecovery on ControllerState {
     }
     if (internalActiveRecovery != null || internalRecoveryMustWait) return;
     for (final request in internalQueuedRecoveries.values.toList()) {
-      if (request.epoch != internalLifecycleEpoch) {
+      if (request.epoch != internalLifecycleEpoch ||
+          request.networkRevision != internalNetworkRevision ||
+          (request.deadline?.isBefore(DateTime.now()) ?? false)) {
         internalQueuedRecoveries.remove(request.feature);
         request.completion.complete();
       }
@@ -81,7 +83,7 @@ mixin ControllerDeferredRecovery on ControllerState {
     internalQueuedRecoveries.remove(request.feature);
     internalActiveRecovery = request;
     internalSessionRecoveryFuture = request.completion.future;
-    request.targetOnly = internalTargetRecoveryOnly;
+    request.targetOnly = internalTargetRecoveryOnly && request.deadline == null;
     final activity = internalActivities.begin(ControllerActivityKind.recovery);
     internalError = null;
     // 单项目标恢复只标记该功能，全局状态保持已就绪，首页不进入“连接中”。

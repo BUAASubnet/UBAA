@@ -19,20 +19,38 @@ macro_rules! read_with_fallback {
         $client
             .runtime_for($resolution.mode)
             .reset_network_observation();
-        let result = $read;
-        match $client.prepare_read_fallback($resolution, &result).await {
-            Ok(Some(domain)) => {
+        let network = $client.network_control();
+        let fast_connect = $resolution.policy == crate::domain::RoutePolicy::Auto
+            && $resolution.mode == crate::domain::ConnectionMode::Direct
+            && $resolution.diagnostic.network == crate::connection::NetworkState::OffCampus;
+        let result = network
+            .run_read($resolution.mode, fast_connect, Box::pin(async { $read }))
+            .await;
+        if $resolution.mode == crate::domain::ConnectionMode::WebVpn {
+            $client.observe_webvpn_read(&result);
+        }
+        match network
+            .run_read(
+                $resolution.mode,
+                false,
+                Box::pin($client.prepare_read_fallback(&mut $resolution, &result)),
+            )
+            .await
+        {
+            Ok(Some(_)) => {
                 $resolution.mode = crate::domain::ConnectionMode::WebVpn;
                 $resolution.diagnostic.mode = $resolution.mode;
                 $resolution.diagnostic.used_fallback = true;
                 $client
                     .runtime_for($resolution.mode)
                     .reset_network_observation();
-                let fallback_result = $read;
+                let fallback_result = network
+                    .run_read($resolution.mode, false, Box::pin(async { $read }))
+                    .await;
+                $client.observe_webvpn_read(&fallback_result);
                 if fallback_result.is_err() && result.is_ok() {
                     (initial_resolution, result)
                 } else {
-                    $client.remember_read_fallback(&domain, &fallback_result);
                     ($resolution, fallback_result)
                 }
             }
@@ -106,16 +124,35 @@ impl<'a> RouteExecution<'a> {
 }
 
 impl UbaaClient {
+    pub(super) fn observe_webvpn_read<T>(&self, result: &Result<T>) {
+        let mut domains = self
+            .domain_routes
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if result.is_ok() {
+            domains.confirm_recovered(
+                &self.webvpn_runtime.reached_domains,
+                self.webvpn_runtime.network_failure_domain.as_deref(),
+                self.route_now(),
+            );
+        } else if result.as_ref().is_err_and(|error| {
+            error.retryable && matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
+        }) && let Some(domain) = &self.webvpn_runtime.network_failure_domain
+        {
+            domains.forget(domain);
+        }
+    }
     pub(super) async fn prepare_read_fallback<T>(
         &mut self,
-        resolution: RouteResolution,
+        resolution: &mut RouteResolution,
         result: &Result<T>,
     ) -> Result<Option<String>> {
         if resolution.policy != RoutePolicy::Auto
-            || resolution.diagnostic.network == crate::connection::NetworkState::Campus
             || resolution.mode != ConnectionMode::Direct
             || result.as_ref().is_err_and(|error| {
-                !matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
+                error.is_network_changed()
+                    || !error.retryable
+                    || !matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
             })
         {
             return Ok(None);
@@ -128,6 +165,22 @@ impl UbaaClient {
         else {
             return Ok(None);
         };
+        if resolution.diagnostic.network == crate::connection::NetworkState::Campus {
+            self.probe.invalidate();
+            let probe = self.probe.clone();
+            let current = tokio::task::spawn_blocking(move || {
+                crate::connection::GatewayProbe::probe(
+                    probe.as_ref(),
+                    std::time::Duration::from_millis(500),
+                )
+            })
+            .await
+            .unwrap_or(crate::connection::NetworkState::Unknown);
+            resolution.diagnostic.network = current;
+            if current == crate::connection::NetworkState::Campus {
+                return Ok(None);
+            }
+        }
         self.domain_routes
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -155,18 +208,6 @@ impl UbaaClient {
             ));
         }
         Ok(Some(domain))
-    }
-
-    pub(super) fn remember_read_fallback<T>(&mut self, domain: &str, result: &Result<T>) {
-        if result.is_ok()
-            && self.webvpn_runtime.reached_domains.contains(domain)
-            && self.webvpn_runtime.network_failure_domain.as_deref() != Some(domain)
-        {
-            self.domain_routes
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .remember(domain.to_owned(), self.route_now());
-        }
     }
 
     fn route_now(&self) -> i64 {
@@ -282,7 +323,18 @@ impl UbaaClient {
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
             if resolution.diagnostic.network == crate::connection::NetworkState::Campus {
                 domains.campus();
-            } else if domains.prefers_webvpn(operation, self.route_now()) {
+            } else if resolution.diagnostic.network == crate::connection::NetworkState::OffCampus
+                && domains::off_campus_requires_webvpn(operation)
+            {
+                resolution.mode = ConnectionMode::WebVpn;
+                resolution.diagnostic = crate::connection::RouteDiagnostic::new(
+                    resolution.diagnostic.network,
+                    ConnectionMode::WebVpn,
+                );
+            } else if domains.prefers_webvpn(operation, self.route_now())
+                || (resolution.diagnostic.network == crate::connection::NetworkState::OffCampus
+                    && domains.needs_webvpn(operation))
+            {
                 resolution.mode = ConnectionMode::WebVpn;
                 resolution.diagnostic.mode = ConnectionMode::WebVpn;
                 resolution.diagnostic.used_fallback = true;

@@ -19,6 +19,7 @@ import 'judge_refresh.dart';
 import 'judge_refresh/details.dart';
 import 'judge_scan.dart';
 import 'judge_scan/online.dart';
+import 'network.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
@@ -166,6 +167,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
     required bool includeExpired,
     String? preferredCourse,
+  });
+
+  /// 立即更新联网状态，取消旧读取并开始统一的恢复期限。
+  /// # Errors
+  /// 客户端已关闭或期限超过两分钟时拒绝。
+  BridgeNetworkChange beginNetworkChange({
+    required bool online,
+    required int timeoutMillis,
   });
 
   /// 开始一次首页只读刷新，身份校验仍按各功能实际路线隔离。
@@ -375,6 +384,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// 立即撤销当前交互，永不排队等待 Core 网络锁。
   void cancelInteractiveLogin();
+
+  /// 手动切换前同步取消普通读取，已发送写入仍按原结果收尾。
+  void cancelNetworkReads();
 
   /// 立即捕获当前作用域；客户端忙时拒绝，避免等待到另一个客户端。
   /// # Errors
@@ -1030,11 +1042,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedWeeks> scheduleWeeks({required String term});
 
-  /// 保存新的全局策略、清除 feature override 并重开 Core client。
+  /// 等待在途操作收尾后保存全局策略、清除 feature override 并重开 Core client。
   ///
   /// # Errors
   ///
-  /// 另一个 bridge 操作占用客户端、客户端已销毁、配置保存失败或重开失败时返回安全错误。
+  /// 客户端已销毁、配置保存失败或重开失败时返回安全错误。
   Future<BridgeRouteSettings> setDefaultRoutePolicy({
     required BridgeRoutePolicy policy,
   });
