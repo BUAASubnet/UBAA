@@ -160,158 +160,158 @@ class _GradesFlowState extends State<GradesFlow> {
               ].any((value) => value.toLowerCase().contains(filter)),
         )
         .toList();
-    return ListView(
-      key: const PageStorageKey('grades-old-list'),
-      padding: UbaaTheme.pageInsets(context, top: 8),
-      children: [
-        if (snapshot.status == FeatureLoadStatus.stale &&
-            snapshot.error != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(snapshot.error!.message),
-          ),
-        if (widget.loader != null || hasTerms) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    tooltip: '上一学期',
-                    onPressed: canPrev
-                        ? () => setState(
-                            () => _selectedTermCode = terms[termIndex - 1].code,
-                          )
-                        : null,
-                  ),
-                  // 只包住学期名，菜单贴着文字弹出，而不是对齐整条的一端。
-                  Expanded(
-                    child: Center(
-                      child: PopupMenuButton<String>(
-                        tooltip: '选择学期',
-                        enabled: hasTerms,
-                        initialValue: selectedCode,
-                        onSelected: (code) =>
-                            setState(() => _selectedTermCode = code),
-                        itemBuilder: (context) => [
-                          for (final term in terms)
-                            PopupMenuItem(
-                              value: term.code,
-                              child: Row(
-                                children: [
-                                  if (term.code == selectedCode)
-                                    Icon(
-                                      Icons.check,
-                                      size: 18,
+    final header = <Widget>[
+      if (snapshot.status == FeatureLoadStatus.stale && snapshot.error != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(snapshot.error!.message),
+        ),
+      if (widget.loader != null || hasTerms) ...[
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  tooltip: '上一学期',
+                  onPressed: canPrev
+                      ? () => setState(
+                          () => _selectedTermCode = terms[termIndex - 1].code,
+                        )
+                      : null,
+                ),
+                // 只包住学期名，菜单贴着文字弹出，而不是对齐整条的一端。
+                Expanded(
+                  child: Center(
+                    child: PopupMenuButton<String>(
+                      tooltip: '选择学期',
+                      enabled: hasTerms,
+                      initialValue: selectedCode,
+                      onSelected: (code) =>
+                          setState(() => _selectedTermCode = code),
+                      itemBuilder: (context) => [
+                        for (final term in terms)
+                          PopupMenuItem(
+                            value: term.code,
+                            child: Row(
+                              children: [
+                                if (term.code == selectedCode)
+                                  Icon(
+                                    Icons.check,
+                                    size: 18,
+                                    color: theme.colorScheme.primary,
+                                  )
+                                else
+                                  const SizedBox(width: 18),
+                                const SizedBox(width: 8),
+                                Text(term.name),
+                                if (term.code == current.termCode)
+                                  Text(
+                                    currentSuffix,
+                                    style: TextStyle(
                                       color: theme.colorScheme.primary,
-                                    )
-                                  else
-                                    const SizedBox(width: 18),
-                                  const SizedBox(width: 8),
-                                  Text(term.name),
-                                  if (term.code == current.termCode)
-                                    Text(
-                                      currentSuffix,
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                isCurrentTerm
+                                    ? '${activeTerm?.name ?? current.termCode}$currentSuffix'
+                                    : activeTerm.name,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                        ],
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  isCurrentTerm
-                                      ? '${activeTerm?.name ?? current.termCode}$currentSuffix'
-                                      : activeTerm.name,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_drop_down, size: 20),
-                            ],
-                          ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down, size: 20),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    tooltip: '下一学期',
-                    onPressed: canNext
-                        ? () => setState(
-                            () => _selectedTermCode = terms[termIndex + 1].code,
-                          )
-                        : null,
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  tooltip: '下一学期',
+                  onPressed: canNext
+                      ? () => setState(
+                          () => _selectedTermCode = terms[termIndex + 1].code,
+                        )
+                      : null,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-        ],
-        GradeSummaryCard(
-          title: isCurrentTerm
-              ? (activeOverview?.statistics == null ? '本学期' : '最近有成绩的学期')
-              : activeTerm.name,
-          statistics: activeOverview != null
-              ? (activeOverview.statistics == null
-                    ? GradeStatistics.calculate(activeOverview.grades)
-                    : GradeStatistics.fromGraduate(
-                        activeOverview.statistics!,
-                        activeOverview.grades,
-                      ))
-              : null,
-          showCourseAndCredits: true,
-          overallTitle: '全部学期',
-          overall: aggregate?.statistics,
-          overallLoading:
-              (_loading || widget.loader != null) && aggregate == null,
-          notice: aggregate != null
-              ? _gradesAggregateNotice(
-                  aggregate,
-                  _loading || snapshot.status == FeatureLoadStatus.loading,
-                )
-              : widget.loader == null
-              ? '全部学期统计暂不可用'
-              : null,
-          onRetry:
-              widget.loader != null &&
-                  !_loading &&
-                  aggregate != null &&
-                  !aggregate.isComplete
-              ? () => _load(force: false)
-              : null,
         ),
         const SizedBox(height: 12),
-        if (details.isEmpty)
-          UiStatePanel(
-            compact: true,
-            icon: filter.isNotEmpty ? Icons.search_off : Icons.inbox_outlined,
-            title: filter.isNotEmpty ? '没有匹配的成绩' : '暂无成绩',
-          )
-        else
-          for (final detail in details)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GradeCard(detail: detail),
-            ),
       ],
+      GradeSummaryCard(
+        title: isCurrentTerm
+            ? (activeOverview?.statistics == null ? '本学期' : '最近有成绩的学期')
+            : activeTerm.name,
+        statistics: activeOverview != null
+            ? (activeOverview.statistics == null
+                  ? GradeStatistics.calculate(activeOverview.grades)
+                  : GradeStatistics.fromGraduate(
+                      activeOverview.statistics!,
+                      activeOverview.grades,
+                    ))
+            : null,
+        showCourseAndCredits: true,
+        overallTitle: '全部学期',
+        overall: aggregate?.statistics,
+        overallLoading:
+            (_loading || widget.loader != null) && aggregate == null,
+        notice: aggregate != null
+            ? _gradesAggregateNotice(
+                aggregate,
+                _loading || snapshot.status == FeatureLoadStatus.loading,
+              )
+            : widget.loader == null
+            ? '全部学期统计暂不可用'
+            : null,
+        onRetry:
+            widget.loader != null &&
+                !_loading &&
+                aggregate != null &&
+                !aggregate.isComplete
+            ? () => _load(force: false)
+            : null,
+      ),
+      const SizedBox(height: 12),
+      if (details.isEmpty)
+        UiStatePanel(
+          compact: true,
+          icon: filter.isNotEmpty ? Icons.search_off : Icons.inbox_outlined,
+          title: filter.isNotEmpty ? '没有匹配的成绩' : '暂无成绩',
+        ),
+    ];
+    return ListView.builder(
+      key: const PageStorageKey('grades-old-list'),
+      padding: UbaaTheme.pageInsets(context, top: 8),
+      itemCount: header.length + details.length,
+      itemBuilder: (context, index) => index < header.length
+          ? header[index]
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GradeCard(detail: details[index - header.length]),
+            ),
     );
   }
 }

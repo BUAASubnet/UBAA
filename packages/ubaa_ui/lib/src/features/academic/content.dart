@@ -58,24 +58,16 @@ class AcademicResultContent extends StatelessWidget {
             (detail) => detail.presentation is ScheduleCoursePresentation,
           );
       if (weekly) return ScheduleContent(details: details, timeline: timeline);
-      return ListView(
+      if (feature == FeatureId.exam) return ExamTimeline(details: details);
+      return ListView.builder(
         padding: UbaaTheme.pageInsets(context, top: 8),
-        children: [
-          if (feature == FeatureId.exam)
-            ExamTimeline(details: details)
-          else if (feature == FeatureId.grades)
-            for (final detail in details)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GradeCard(detail: detail),
-              )
-          else
-            for (final detail in details)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AcademicCard(detail: detail, onNavigate: onNavigate),
-              ),
-        ],
+        itemCount: details.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: feature == FeatureId.grades
+              ? GradeCard(detail: details[index])
+              : AcademicCard(detail: details[index], onNavigate: onNavigate),
+        ),
       );
     },
   );

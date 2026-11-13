@@ -48,6 +48,7 @@ class AgendaMonthGrid extends StatelessWidget {
             6) ~/
         7;
     final line = BorderSide(color: colors.outlineVariant.withValues(alpha: .6));
+    final byDay = agendaEntriesByDay(entries, first, weeks * 7);
     final selectedDay = agendaDay(date), todayDay = agendaDay(today);
     return Column(
       key: const ValueKey('agenda-month-grid'),
@@ -90,6 +91,9 @@ class AgendaMonthGrid extends StatelessWidget {
                               line: line,
                               selected: selectedDay,
                               today: todayDay,
+                              entries:
+                                  byDay[first.add(Duration(days: w * 7 + d))] ??
+                                  const [],
                             ),
                           ),
                       ],
@@ -109,21 +113,19 @@ class AgendaMonthGrid extends StatelessWidget {
     required BorderSide line,
     required DateTime selected,
     required DateTime today,
+    required List<AgendaEntry> entries,
   }) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final inMonth = day.month == date.month;
     final isToday = day == today, isSelected = day == selected;
     // 与列表一致：连续小节合并为一门课，签到并入对应课程。
+    final ordered = [
+      for (final entry in entries) (entry, agendaEntryDate(entry) ?? day),
+    ]..sort((a, b) => a.$2.compareTo(b.$2));
     final items = [
       for (final (entry, _, _) in agendaAttachSignins(
-        agendaMergeCourses(
-          entries.where((e) => agendaOnDay(e, day)).toList()..sort(
-            (a, b) => (agendaEntryDate(a) ?? day).compareTo(
-              agendaEntryDate(b) ?? day,
-            ),
-          ),
-        ),
+        agendaMergeCourses(ordered.map((item) => item.$1).toList()),
       ))
         entry,
     ];

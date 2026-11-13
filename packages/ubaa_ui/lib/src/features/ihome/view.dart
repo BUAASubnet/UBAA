@@ -251,87 +251,89 @@ class _IhomeViewState extends State<IhomeView> {
         title: '此版本暂不支持 iHome',
       );
     final empty = _notices ? _announcements.isEmpty : _entries.isEmpty;
+    final headers = <Widget>[
+      Row(
+        children: [
+          Expanded(
+            child: UiChipStrip(
+              spacing: 8,
+              bleed: true,
+              children: [
+                for (final item in const [
+                  (IhomeScope.public, '诉求广场'),
+                  (IhomeScope.mine, '我的诉求'),
+                  (IhomeScope.followed, '我的关注'),
+                  (IhomeScope.appraised, '我的评价'),
+                ])
+                  ChoiceChip(
+                    label: Text(item.$2),
+                    selected: !_notices && _scope == item.$1,
+                    onSelected: _busy.isNotEmpty
+                        ? null
+                        : (_) => _selectScope(item.$1),
+                  ),
+                ChoiceChip(
+                  label: const Text('公告'),
+                  selected: _notices,
+                  onSelected: _busy.isNotEmpty
+                      ? null
+                      : (_) {
+                          setState(() => _notices = true);
+                          unawaited(_load(reset: true));
+                        },
+                ),
+              ],
+            ),
+          ),
+          if (Theme.of(context).platform
+              case TargetPlatform.macOS ||
+                  TargetPlatform.windows ||
+                  TargetPlatform.linux ||
+                  TargetPlatform.fuchsia)
+            IconButton(
+              tooltip: '刷新',
+              onPressed: _loading || _busy.isNotEmpty ? null : () => _load(),
+              icon: _loading && !empty
+                  ? const LoadingGlyph()
+                  : const Icon(Icons.refresh),
+            ),
+        ],
+      ),
+      if (!_notices) ..._filters() else const SizedBox(height: 12),
+      // 只有首次读取在页面内占位；刷新保留原内容。
+      if (_loading && empty) const LoadingPlaceholder(compact: true),
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: UiInlineRetry(message: _error!, onRetry: () => _load()),
+        ),
+      if (_configError != null && !_notices)
+        UiInlineRetry(message: _configError!, onRetry: _loadConfig),
+      if (!_loading && _error == null && empty)
+        const UiStatePanel(
+          compact: true,
+          icon: Icons.inbox_outlined,
+          title: '暂无内容',
+        ),
+    ];
+    final count = _notices ? _announcements.length : _entries.length;
+    final indices = <Key, int>{
+      for (var i = 0; i < count; i++)
+        ValueKey(
+          _notices ? '$_epoch:${_announcements[i].id}' : _entryKey(_entries[i]),
+        ): headers.length + i,
+    };
     return PullToRefresh(
       onRefresh: () => _load(),
-      child: ListView(
+      child: ListView.builder(
         padding: UbaaTheme.pageInsets(context, top: 8),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: UiChipStrip(
-                  spacing: 8,
-                  bleed: true,
-                  children: [
-                    for (final item in const [
-                      (IhomeScope.public, '诉求广场'),
-                      (IhomeScope.mine, '我的诉求'),
-                      (IhomeScope.followed, '我的关注'),
-                      (IhomeScope.appraised, '我的评价'),
-                    ])
-                      ChoiceChip(
-                        label: Text(item.$2),
-                        selected: !_notices && _scope == item.$1,
-                        onSelected: _busy.isNotEmpty
-                            ? null
-                            : (_) => _selectScope(item.$1),
-                      ),
-                    ChoiceChip(
-                      label: const Text('公告'),
-                      selected: _notices,
-                      onSelected: _busy.isNotEmpty
-                          ? null
-                          : (_) {
-                              setState(() => _notices = true);
-                              unawaited(_load(reset: true));
-                            },
-                    ),
-                  ],
-                ),
-              ),
-              if (Theme.of(context).platform
-                  case TargetPlatform.macOS ||
-                      TargetPlatform.windows ||
-                      TargetPlatform.linux ||
-                      TargetPlatform.fuchsia)
-                IconButton(
-                  tooltip: '刷新',
-                  onPressed: _loading || _busy.isNotEmpty
-                      ? null
-                      : () => _load(),
-                  icon: _loading && !empty
-                      ? const LoadingGlyph()
-                      : const Icon(Icons.refresh),
-                ),
-            ],
-          ),
-          if (!_notices) ..._filters() else const SizedBox(height: 12),
-          // 只有首次读取在页面内占位；刷新保留原内容。
-          if (_loading && empty) const LoadingPlaceholder(compact: true),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: UiInlineRetry(message: _error!, onRetry: () => _load()),
-            ),
-          if (_configError != null && !_notices)
-            UiInlineRetry(message: _configError!, onRetry: _loadConfig),
-          if (!_loading && _error == null && empty)
-            const UiStatePanel(
-              compact: true,
-              icon: Icons.inbox_outlined,
-              title: '暂无内容',
-            ),
-          if (_notices)
-            for (final notice in _announcements)
-              _IhomeNoticeCard(
-                key: ValueKey('${_epoch}:${notice.id}'),
-                service: widget.service!,
-                notice: notice,
-              ),
-          if (!_notices)
-            for (final entry in _entries) _appealCard(context, entry),
-          if (_hasMore)
-            Center(
+        itemCount: headers.length + count + (_hasMore ? 1 : 0),
+        findChildIndexCallback: (key) => indices[key],
+        itemBuilder: (context, index) {
+          if (index < headers.length) return headers[index];
+          final item = index - headers.length;
+          if (item == count)
+            return Center(
               child: OutlinedButton.icon(
                 onPressed: _loading ? null : () => _load(more: true),
                 icon: _loading
@@ -339,8 +341,17 @@ class _IhomeViewState extends State<IhomeView> {
                     : const Icon(Icons.expand_more),
                 label: const Text('加载更多'),
               ),
-            ),
-        ],
+            );
+          if (_notices) {
+            final notice = _announcements[item];
+            return _IhomeNoticeCard(
+              key: ValueKey('$_epoch:${notice.id}'),
+              service: widget.service!,
+              notice: notice,
+            );
+          }
+          return _appealCard(context, _entries[item]);
+        },
       ),
     );
   }

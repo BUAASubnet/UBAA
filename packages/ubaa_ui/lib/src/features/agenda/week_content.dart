@@ -192,14 +192,13 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   ) {
     final placements =
         <({int day, _Slot slot, int lane, int lanes, DateTime base})>[];
+    final byDay = agendaEntriesByDay(widget.entries, monday, 7);
     for (var i = 0; i < 7; i++) {
       final day = monday.add(Duration(days: i)),
           tomorrow = monday.add(Duration(days: i + 1));
       final slots = <_Slot>[];
-      for (final entry in widget.entries) {
-        if (entry.timing.kind != AgendaTimingKind.period ||
-            !agendaOnDay(entry, day))
-          continue;
+      for (final entry in byDay[day] ?? const <AgendaEntry>[]) {
+        if (entry.timing.kind != AgendaTimingKind.period) continue;
         final rawStart = agendaStart(entry), rawEnd = agendaEnd(entry);
         if (rawStart == null || rawEnd == null || !rawEnd.isAfter(rawStart))
           continue;
