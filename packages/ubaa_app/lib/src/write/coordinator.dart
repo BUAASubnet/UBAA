@@ -56,6 +56,27 @@ class WriteCoordinator extends ChangeNotifier {
 
   Future<WriteIntent?> prepare(WritePreparer prepare) => _prepare(prepare);
 
+  /// 独占一次已由用户确认的批次，保留每个文件的结果。
+  Future<T> runConfirmedBatch<T>(Future<T> Function() send) async {
+    if (!_mayStart || hasPendingOperation) {
+      throw const UiError(
+        code: UbaaErrorCode.operationConflict,
+        title: '暂时无法提交',
+        message: '请等待其他操作结束后再试',
+      );
+    }
+    final generation = _generation;
+    final activity = _begin(WritePhase.committing);
+    try {
+      if (!_isCurrent(activity, generation)) {
+        throw const BackendException(UbaaErrorCode.operationConflict);
+      }
+      return await send();
+    } finally {
+      _finish(activity);
+    }
+  }
+
   Future<WriteIntent?> prepareForUi(
     WritePreparer prepare, {
     required WriteOperation expectedOperation,

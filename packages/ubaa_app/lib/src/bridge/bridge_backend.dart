@@ -6,6 +6,7 @@ import 'ihome/service.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
 import 'bhpan/service.dart';
+import 'cloud_print.dart';
 import 'write/pinned_readback.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -82,7 +83,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 63;
+const _supportedBridgeContractVersion = 64;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -99,6 +100,7 @@ class BridgeBackend
         FinanceBackend,
         CampusAccountBackend,
         BhpanProvider,
+        CloudPrintProvider,
         PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
         ManualCaptchaBackend,
@@ -402,6 +404,9 @@ class BridgeBackend
   late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override
   late final BhpanService bhpan = BridgeBhpanService(_context);
+
+  @override
+  late final CloudPrintService cloudPrint = BridgeCloudPrintService(_context);
   @override
   late final CampusAccountService campusAccount = BridgeCampusAccountService(
     _context,

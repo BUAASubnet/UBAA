@@ -136,6 +136,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       financeService: _controller.financeService,
       campusAccountService: _controller.campusAccountService,
       bhpanService: _controller.bhpanService,
+      cloudPrintService: _controller.cloudPrintService,
+      onPickPrintFiles: const SystemCloudPrintFiles().pick,
+      onPickPrintFolder: const SystemCloudPrintFiles().pickFolder,
+      onRenderScanPdf: const SystemCloudPrintFiles().canRenderPdf
+          ? const SystemCloudPrintFiles().renderPdf
+          : null,
+      onPreviewScanPdf: const SystemCloudPrintFiles().canPreviewPdf
+          ? const SystemCloudPrintFiles().previewPdf
+          : null,
       onPickBhpanFile: widget.bhpanFilePicker.pick,
       onPickBhpanDownload: widget.bhpanFileSaver.select,
       onPreviewBhpanFile: widget.bhpanFilePreviewer.isAvailable

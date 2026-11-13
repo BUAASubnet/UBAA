@@ -2,6 +2,7 @@ library;
 
 export 'src/rust/api/bhpan/models.dart';
 export 'src/rust/api/bhpan.dart';
+export 'src/rust/api/cloud_print.dart';
 export 'src/rust/api/app_service.dart';
 export 'src/rust/api/app_service/models.dart';
 

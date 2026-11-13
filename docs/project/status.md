@@ -11,7 +11,7 @@
 | 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v63 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v64 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -34,6 +34,7 @@
 | 日程（列表、周/月视图、编辑、重复、导出 `.ics`） | ✅ 默认后台导入当前整学期课表，首页和日程入口共用任务 | 本地编辑不访问学校；课表读取沿上表 | 本地编辑不访问学校；课表读取沿上表 | 默认整学期同步的设备验证；iOS、Android 的系统保存面板 |
 | 日程跨设备同步（经北航云盘） | ✅ | ✅ 2026-11-05 | ⏳ 需人工完成验证码登录后补验 | GUI 文件面板与其他平台实机 |
 | 北航云盘 | ✅ GUI 初次浏览及重新登录按需恢复 Direct | ✅ 2026-11-05（合成测试目录） | ⏳ | WebVPN 完整链路；系统文件面板的设备实测 |
+| 图书馆云打印 | ✅ 原生上传、待打印队列与逐页预览、扫描文档、打印点和使用记录；复用全局连接策略 | ⏳ Windows 试用会话已验证生产 Core 登录、扫描列表、打印点和使用记录；已用生产 Core 下载真实扫描原件并在内存中合并双页 PDF | ⏳ 官网入口和扫描列表已实测；原生路线经合成请求验证，真实账号端到端待验证 | Windows 扫描 PDF 使用系统渲染，已通过合成双页原生验证；新版原生上传、各平台文件选择和保存面板待设备验证 |
 | 桌面命令模式 | ✅ | — | — | 签名 Release、安装升级，以及沿用旧版本机材料 |
 | 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 分钟计数的 Worker 迁移和客户端发布、生产定时任务；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 

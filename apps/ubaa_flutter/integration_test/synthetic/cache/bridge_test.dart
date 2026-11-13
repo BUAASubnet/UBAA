@@ -37,7 +37,7 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 63);
+      expect(client.contractVersion(), 64);
       final offline = client.beginNetworkChange(
         online: false,
         timeoutMillis: 30000,
@@ -53,6 +53,16 @@ void main() {
       online.finish();
       await probeRecoveryControl(client);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
+      await expectLater(
+        client.cloudPrintDocuments(scans: false),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '云打印接口在缺会话时拒绝学校请求',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
       final cloud = await client.bhpanCapabilities();
       expect(cloud.directMetadata, BridgeBhpanCapability.available);
       expect(cloud.objectTransfer, BridgeBhpanCapability.available);

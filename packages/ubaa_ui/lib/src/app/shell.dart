@@ -5,6 +5,7 @@ import '../shared/dialogs/confirmation.dart';
 import '../shared/layout/connection_status.dart' show UiConnectionStatusButton;
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
+import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
@@ -64,6 +65,11 @@ class UbaaMainShell extends StatefulWidget {
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
     this.bhpanService,
+    this.cloudPrintService,
+    this.onPickPrintFiles,
+    this.onPickPrintFolder,
+    this.onPreviewScanPdf,
+    this.onRenderScanPdf,
     this.onPickBhpanFile,
     this.onPickBhpanDownload,
     this.onPreviewBhpanFile,
@@ -182,6 +188,12 @@ class UbaaMainShell extends StatefulWidget {
 
   final CampusAccountService? campusAccountService;
   final BhpanService? bhpanService;
+  final CloudPrintService? cloudPrintService;
+  final Future<List<PrintSource>> Function()? onPickPrintFiles;
+  final Future<PrintDownloadFolder?> Function(bool Function())?
+  onPickPrintFolder;
+  final PrintPdfPreview? onPreviewScanPdf;
+  final PrintPdfRenderer? onRenderScanPdf;
   final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPickBhpanDownload;

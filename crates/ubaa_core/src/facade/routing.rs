@@ -309,6 +309,7 @@ impl UbaaClient {
             Operation::Authentication
             | Operation::ConnectionRecovery
             | Operation::User
+            | Operation::CloudPrint
             | Operation::Bhpan => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
             Operation::Feature(feature) => (
                 self.config.feature(feature),
@@ -485,6 +486,7 @@ impl UbaaClient {
 
     pub(super) fn clear_all_memory(&mut self) {
         *self.bhpan = super::bhpan::state::BhpanState::default();
+        self.cloud_print = None;
         self.clear_interactive_context();
         self.direct_runtime.clear_memory();
         self.webvpn_runtime.clear_memory();

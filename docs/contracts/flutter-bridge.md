@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `63`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `64`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -27,7 +27,7 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=63` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=64` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -528,9 +528,11 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v63）
+### 近期版本摘要（v55–v64）
 
-- v63 增加独立于业务锁的 `beginNetworkChange`、`cancelNetworkReads` 和 `BridgeNetworkChange.inspect/finish/cancel`。句柄绑定网络修订与统一期限，仅取消普通读取，已发送写入与固定路线核对保持原合同。
+- v64 增加独立于业务锁的 `beginNetworkChange`、`cancelNetworkReads` 和 `BridgeNetworkChange.inspect/finish/cancel`。句柄绑定网络修订与统一期限，仅取消普通读取，已发送写入与固定路线核对保持原合同。
+- v63 新增图书馆云打印的 typed 接口：`cloudPrintDocuments`、`cloudPrintPreview`、`cloudPrintScan`、`cloudPrintScanPdf`、`cloudPrintStations`、`cloudPrintRecords`、`cloudPrintUpload`、`cloudPrintDelete`。复用全局 Direct/WebVPN 策略和已有路线会话。读取与写入在主 Bridge client 上执行，会话材料留在 Core。上传输入为本机选择的文件路径、文件名与统一打印选项；同批最多四个请求并发，各项错误按输入顺序返回，未知结果不重放。单份扫描下载返回原文件字节；一组扫描 PDF 在 Core 内最多四路并发下载，按传入顺序合并，任何一份失败则整组报错。待打印预览返回单页 PNG 字节；目录选择、写入文件及原生预览由 Flutter 宿主处理。
+
 - v62 为博雅缓存课程增加可选完整详情补充，包含展示字段、签到时间窗与点数，不包含坐标或操作资格。
 - v61 增加启动配置刷新、公告已读、新版本忽略状态及不可重试的 `updateRequired`。v60 提供独立的 `BridgeAppService` 安装级句柄，详见[应用服务](#应用服务)。
 - v59 的 `BridgeCachedProfile.data` 使用已有 `BridgeUserProfile` 展示字段，在线和离线资料保持一致；旧遮罩缓存仍可读取。
