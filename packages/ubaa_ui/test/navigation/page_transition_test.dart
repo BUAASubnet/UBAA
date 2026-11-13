@@ -3,6 +3,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_ui/src/shared/layout/page_transition.dart';
 
 void main() {
+  testWidgets('进入和返回动画复用静态正文的绘制结果', (tester) async {
+    var paints = 0;
+    final content = CustomPaint(painter: _PaintCounter(() => paints++));
+    Future<void> mount(int page) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UiPageTransition(pageKey: page, order: page, child: content),
+        ),
+      ),
+    );
+    await mount(0);
+    for (final page in [1, 0]) {
+      await mount(page);
+      await tester.pump(const Duration(milliseconds: 16));
+      final before = paints;
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(paints, before, reason: '只有透明度和位置变化时，不重新绘制静态正文');
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('切页和切换侧滑能力保留输入状态，减少动态效果时直接显示内容', (tester) async {
     Future<void> mount(int page, bool back, bool reduced) => tester.pumpWidget(
       MaterialApp(
@@ -98,4 +121,18 @@ void main() {
     expect(backs, 1);
     expect(tester.getCenter(find.text('详情正文')), original);
   });
+}
+
+class _PaintCounter extends CustomPainter {
+  _PaintCounter(this.onPaint);
+  final VoidCallback onPaint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    onPaint();
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.blue);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PaintCounter oldDelegate) => false;
 }

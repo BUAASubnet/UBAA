@@ -113,7 +113,8 @@ class _UiPageTransitionState extends State<UiPageTransition>
           ),
         );
       },
-      child: widget.child,
+      // 过渡只改变位置和透明度，正文的绘制结果可以跨动画帧复用。
+      child: RepaintBoundary(child: widget.child),
     );
     // 内容始终处在同一层级：侧滑区域的有无不能让页面子树重建而丢失状态。
     final swipe = widget.onBack != null && !rtl;
