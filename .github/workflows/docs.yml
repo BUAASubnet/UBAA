@@ -41,12 +41,12 @@ jobs:
     name: 构建并检查文档
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
       - id: versions
         uses: ./.github/actions/versions
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ steps.versions.outputs.node }}
           cache: npm
@@ -57,7 +57,7 @@ jobs:
         run: npm run docs:build
       - name: 保存静态网站
         if: github.event_name != 'pull_request' && github.ref_name == 'dev'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: docs-site
           path: docs/site/.vitepress/dist
@@ -72,19 +72,19 @@ jobs:
       name: docs-production
       url: https://www.ubaa.top
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - id: versions
         uses: ./.github/actions/versions
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ steps.versions.outputs.node }}
           cache: npm
           cache-dependency-path: services/app_service/package-lock.json
       - run: npm --prefix services/app_service ci --no-audit --no-fund
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: docs-site
           path: docs/site/.vitepress/dist

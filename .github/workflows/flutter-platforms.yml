@@ -63,7 +63,7 @@ jobs:
             artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: ./.github/actions/toolchain
 
       - name: 选择 iOS 固定 Xcode
@@ -106,7 +106,7 @@ jobs:
 
       - name: 缓存 Gradle Wrapper 发行包
         if: matrix.platform == 'android-apk'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
@@ -169,7 +169,7 @@ jobs:
           --artifact "${{ matrix.artifact }}" --platform "${{ matrix.platform }}"
 
       - name: 保存构建输入与产物证据
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ubaa-${{ matrix.artifact_id || matrix.platform }}-build-record-${{ github.run_id }}
           path: ${{ runner.temp }}/ubaa-build-record
@@ -177,7 +177,7 @@ jobs:
           retention-days: 14
 
       - name: 保存可复核产物
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}
           path: ${{ matrix.artifact }}
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: ./.github/actions/toolchain
       - name: 准备 HarmonyOS 托管环境
         shell: bash
@@ -203,7 +203,7 @@ jobs:
         env:
           UBAA_OHOS_NO_CODESIGN: '1'
         run: just ohos-check mode=debug
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ubaa-ohos-debug-${{ github.run_id }}
           path: apps/ubaa_ohos/build/ohos/hap/*.hap

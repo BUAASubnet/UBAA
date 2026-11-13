@@ -9,11 +9,11 @@ runs:
         source scripts/tools/versions.env
         printf 'commit=%s\n' "$FLUTTER_COMMIT" >> "$GITHUB_OUTPUT"
         printf 'PUB_CACHE=%s/pub-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ${{ runner.temp }}/flutter
         key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}
-    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ${{ runner.temp }}/pub-cache
         key: pub-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}-${{ hashFiles('**/pubspec.lock') }}

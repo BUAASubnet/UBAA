@@ -173,7 +173,7 @@ APP_SERVICE_INPUTS = {
     'scripts/check/changed_checks.py', 'scripts/tests/checks/changed_checks_test.py',
     'crates/ubaa_core/src/error/mod.rs', 'packages/ubaa_domain/lib/src/feature/catalog.dart',
     '.github/workflows/ci.yml', '.github/actions/versions/action.yml',
-    'scripts/tools/versions.env', 'justfile',
+    '.github/actions/toolchain/action.yml', 'scripts/tools/versions.env', 'justfile',
 }
 PRIVACY_POLICY_INPUTS = {
     'docs/site/tech/privacy-policy.md',
