@@ -33,7 +33,7 @@ class DistributionTest(unittest.TestCase):
         self.folder.mkdir(parents=True)
         for suffix in ('android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
                        'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
-                       'macos-arm64.dmg', 'macos-x86_64.dmg', 'harmonyos-arm64.app'):
+                       'macos-arm64.dmg', 'macos-x86_64.dmg'):
             (self.folder / f'UBAA-2.0.0-{suffix}').write_bytes(b'synthetic artifact')
         (self.folder / 'licenses.zip').write_bytes(b'synthetic licenses')
         self.enterContext(patch.dict(os.environ, {
@@ -94,7 +94,16 @@ class DistributionTest(unittest.TestCase):
                 self.assertCountEqual(self.uploaded, [path.name for path in self.folder.iterdir()])
                 manifest = json.loads((self.folder / 'release.json').read_text())
                 self.assertEqual(manifest['commit'], 'candidate')
-                self.assertEqual(len(manifest['assets']), 10)
+                self.assertEqual(len(manifest['assets']), 9)
+
+    def test_旧产物中的HarmonyOS商店包不进入公开分发(self):
+        store = self.folder / 'UBAA-2.0.0-harmonyos-arm64.app'
+        store.write_bytes(b'synthetic store package')
+        distribute.main()
+        self.assertNotIn(store.name, self.uploaded)
+        manifest = json.loads((self.folder / 'release.json').read_text())
+        self.assertNotIn(store.name, [asset['name'] for asset in manifest['assets']])
+        self.assertFalse(any(key.endswith('.app') for key in self.r2))
 
     def test_草稿目标与候选不同时先改目标再写入产物(self):
         self.release = {'isDraft': True, 'targetCommitish': 'previous'}
@@ -154,6 +163,47 @@ class DistributionTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'R2'):
             distribute.main()
         self.assertEqual(self.commands('aws', 's3', 'cp'), [])
+
+
+class SourceMetadataTest(unittest.TestCase):
+    def setUp(self):
+        self.run = {'path': '.github/workflows/release.yml', 'head_branch': 'main',
+                    'event': 'workflow_dispatch', 'head_sha': 'original-candidate'}
+        self.jobs = [{'jobs': [{'name': 'ready', 'conclusion': 'success'}]}]
+        self.enterContext(patch.dict(os.environ, {'GH_REPO': 'synthetic/repository'}))
+        self.commands = self.enterContext(patch.object(distribute.subprocess, 'run'))
+        self.query = self.enterContext(patch.object(distribute.subprocess, 'check_output',
+                                                   side_effect=self.read))
+
+    def read(self, args, **kwargs):
+        if args[:2] == ['git', 'show']:
+            self.assertEqual(args[2], 'original-candidate:version.toml')
+            return 'version = "2.0.0"\nbuild_number = 2004\n'
+        return json.dumps(self.jobs if '--paginate' in args else self.run)
+
+    def test_重分发保留原始提交和版本(self):
+        self.assertEqual(distribute.source_metadata('123'),
+                         {'version': '2.0.0', 'build': 2004, 'tag': 'v2.0.0', 'sha': 'original-candidate'})
+        self.commands.assert_called_once_with(
+            ['git', 'merge-base', '--is-ancestor', 'original-candidate', 'origin/main'], check=True)
+
+    def test_拒绝其他工作流和分支的产物(self):
+        for key, value in [('path', '.github/workflows/ci.yml'), ('head_branch', 'dev'),
+                           ('event', 'pull_request')]:
+            with self.subTest(key=key), patch.dict(self.run, {key: value}):
+                with self.assertRaisesRegex(ValueError, 'main 手动 Release'):
+                    distribute.source_metadata('123')
+        self.commands.assert_not_called()
+
+    def test_发布验收失败或缺失时拒绝(self):
+        for result in ['failure', 'cancelled', 'skipped', None]:
+            self.jobs[0]['jobs'][0]['conclusion'] = result
+            with self.assertRaisesRegex(ValueError, '尚未通过发布验收'):
+                distribute.source_metadata('123')
+        self.jobs[0]['jobs'] = []
+        with self.assertRaisesRegex(ValueError, '尚未通过发布验收'):
+            distribute.source_metadata('123')
+        self.commands.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -132,7 +132,7 @@ bash scripts/release/store-screenshots.sh
 
 [Release 工作流](../../.github/workflows/release.yml) 在 main 手动运行。Tag 必须与 version.toml 的展示版本一致，例如 v2.0.0。可以省略 Tag，由工作流生成当前版本的名称。各平台构建成功后，工作流上传附件并保留 GitHub Release 草稿，由维护者手动发布。发布草稿不会再次触发构建。
 
-工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。全部构建、签名和商店上传均使用 GitHub 托管 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
+工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。默认使用 GitHub 托管 runner，启用 `local_macos` 时 Apple 作业使用本机 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
 
 iOS 和 HarmonyOS 各自在对应平台构建成功后立即上传商店，并等待商店处理完成。商店上传不等待其他平台构建或 GitHub Release／R2 分发。其他平台构建失败不会阻止已经满足条件的商店上传。取消整次工作流会停止尚未完成的上传作业。
 
@@ -149,7 +149,9 @@ iOS 合并验收、正式归档和上传使用 GitHub 的 `xcode-27` 镜像，�
 | iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
 | HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
 
-公开产物与许可证材料上传到 GitHub Release 草稿和 `https://r2.ubaa.top/releases/<tag>/<构建号>/`。R2 上传后即可通过下载地址访问，不等待 GitHub 草稿发布。R2 产物带一年的 immutable 缓存，同一路径只写一次：相同内容重跑时跳过上传，内容不同则在覆盖前拒绝。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 是商店提交包，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+公开产物与许可证材料上传到 GitHub Release 草稿和 `https://r2.ubaa.top/releases/<tag>/<构建号>/`。R2 上传后即可通过下载地址访问，不等待 GitHub 草稿发布。R2 产物带一年的 immutable 缓存，同一路径只写一次：相同内容重跑时跳过上传，内容不同则在覆盖前拒绝。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 只保存在 Actions 产物中并上传 AppGallery，不加入 GitHub Release 附件、R2 下载列表或公开分发清单，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+
+构建成功但公开分发失败时，可以单独运行 [重跑 Release 分发](../../.github/workflows/release-distribute.yml)，输入原 Release 的运行编号，或执行 `gh workflow run release-distribute.yml --ref main -f source_run=<运行编号>`。该入口核对原运行来自 main 且已通过发布验收，复用原有 Actions 产物、源码提交和版本信息，不重新编译或上传商店。分发脚本只上传明确列出的公开文件，旧运行中的 HarmonyOS APP 也会被跳过。原工作流的失败记录保留，补充分发结果以这次独立运行为准。
 
 维护者按以下顺序发布 GitHub Release：
 

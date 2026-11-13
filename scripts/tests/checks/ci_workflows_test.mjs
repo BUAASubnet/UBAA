@@ -85,3 +85,15 @@ test("本机 Release 路由覆盖 Apple 构建与验收，普通 CI 保留托管
     }
   }
 });
+
+test("HarmonyOS 商店产物与公开许可证分别上传", () => {
+  const uploads = workflow("release").jobs.ohos.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"));
+  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), [".ubaa_local/release/public/licenses.zip"]);
+  assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, ".ubaa_local/release/store/*.app");
+  const recovery = workflow("release-distribute");
+  assert.deepEqual(Object.keys(recovery.on), ["workflow_dispatch"]);
+  assert.equal(recovery.concurrency.group, workflow("release").jobs.distribute.concurrency.group);
+  const job = recovery.jobs.distribute;
+  assert.equal(job.environment, "release-production");
+  assert.equal(job.steps.find((step) => step.uses?.startsWith("actions/download-artifact@")).with["run-id"], "${{ inputs.source_run }}");
+});

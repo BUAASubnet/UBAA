@@ -1,0 +1,53 @@
+name: 重跑 Release 分发
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: 已完成构建的 Release 运行编号
+        type: string
+        required: true
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: release-distribution
+  cancel-in-progress: false
+jobs:
+  distribute:
+    if: github.repository == 'BUAASubnet/UBAA' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: release-production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 核对原始 Release 并读取产物版本
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: python3 scripts/release/distribute.py --source-run "$SOURCE_RUN"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run }}
+          pattern: public-*
+          merge-multiple: true
+          path: .ubaa_local/release/public
+      - name: 分发原始产物并更新草稿
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+          RELEASE_BUILD: ${{ steps.source.outputs.build }}
+          RELEASE_TAG: ${{ steps.source.outputs.tag }}
+          RELEASE_SHA: ${{ steps.source.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
+        run: python3 scripts/release/distribute.py
