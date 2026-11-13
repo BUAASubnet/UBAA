@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: release-${{ inputs.tag || github.ref }}
+  group: release
   cancel-in-progress: false
 jobs:
   metadata:

@@ -47,7 +47,7 @@
 
 `main` 是 UBAA v2.0 发布主线，`dev` 用于日常开发，`ubaa1` 保存旧版历史。功能分支从 `dev` 创建，PR 默认提交到 `dev`；准备发布时将已验收的候选合入 `main`。旧版修复单独指向 `ubaa1`，不将旧版提交历史合入新版。
 
-发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 Worker 从 `main` 部署（`app-service-production`），正式安装包从 `main` 或 `v` 开头的 Tag 发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
+发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 Worker 从 `main` 部署（`app-service-production`），正式安装包从 `main` 手动构建草稿并由维护者发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
 
 提交标题用中文说明意图，必要时在正文说明行为、风险和验证。每个提交保持单一可审查主题：
 
