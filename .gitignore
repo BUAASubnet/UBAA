@@ -88,5 +88,8 @@ session.json
 # 项目本地工作区：审计报告、监督记录等不提交的项目资料
 /.ubaa_local/
 
+# Playwright MCP 本地输出。
+/.playwright-mcp/
+
 # golden 比较失败时生成的运行截图。
 **/test/**/failures/
