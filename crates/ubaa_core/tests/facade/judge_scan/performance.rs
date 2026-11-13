@@ -507,6 +507,6 @@ async fn direct预取复用父会话而不重复激活选课() {
         1
     );
     drop(requests);
-    drop((client, cache));
+    drop((plan, client, cache));
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -171,7 +171,7 @@ async fn webvpn渐进刷新课内并发且返回前收尾() {
         }
     }
     assert_eq!(vpn.max_active_details.load(Ordering::SeqCst), 4);
-    drop((client, cache));
+    drop((plan, client, cache));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -243,7 +243,7 @@ async fn webvpn批次认证恢复在全部请求收尾后执行() {
             break;
         }
     }
-    drop((client, cache));
+    drop((plan, client, cache));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -267,6 +267,6 @@ async fn webvpn批次取消收尾但不发布迟到详情() {
             .unwrap()
             .is_none()
     );
-    drop((client, cache));
+    drop((plan, client, cache));
     std::fs::remove_dir_all(root).unwrap();
 }
