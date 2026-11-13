@@ -10,6 +10,7 @@ pub(crate) use upload::upload_result;
 use serde_json::Value;
 use url::Url;
 
+use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse, same_url};
 use crate::runtime::ClientRuntime;
@@ -29,7 +30,7 @@ pub(crate) fn authentication_required() -> UbaaError {
         ErrorCode::AuthenticationRequired,
         ErrorKind::Authentication,
         false,
-        "云打印需要有效的学校直连会话，请恢复登录后重试",
+        "云打印需要有效的学校登录，请恢复登录后重试",
     )
 }
 
@@ -68,8 +69,9 @@ fn timestamped(path: &str) -> Url {
 
 pub(crate) async fn request(
     runtime: &mut ClientRuntime,
-    request: HttpRequest,
+    mut request: HttpRequest,
 ) -> Result<HttpResponse> {
+    request.url = runtime.url(&request.url)?;
     let expected = request.url.clone();
     let response = runtime
         .request_with_pre_send_check(request, ClientRuntime::ensure_session_revision)
@@ -78,7 +80,37 @@ pub(crate) async fn request(
     if !same_url(&expected, &response.final_url) {
         return Err(invalid());
     }
+    if runtime.mode() == ConnectionMode::WebVpn
+        && matches!(response.status, 301 | 302 | 303 | 307 | 308)
+        && response.header_first("location").is_some_and(|location| {
+            Url::parse(&expected)
+                .and_then(|base| base.join(location))
+                .is_ok_and(|url| {
+                    crate::connection::is_valid_webvpn_gateway(&url)
+                        && url.path() == "/login"
+                        && url.query().is_none()
+                        && url.fragment().is_none()
+                })
+        })
+    {
+        return Err(authentication_required());
+    }
     Ok(response)
+}
+
+fn redirect_target(mode: ConnectionMode, base: &str, location: &str) -> Result<Url> {
+    if mode == ConnectionMode::WebVpn {
+        crate::connection::business_redirect_target(base, location).map_err(|_| invalid())
+    } else {
+        Url::parse(base)
+            .and_then(|url| url.join(location))
+            .map_err(|_| invalid())
+    }
+}
+
+fn auth_target(mode: ConnectionMode, raw: &str) -> Result<Url> {
+    Url::parse(raw).map_err(|_| invalid())?;
+    redirect_target(mode, PAGE, raw)
 }
 
 fn integer(value: &Value) -> Option<i64> {

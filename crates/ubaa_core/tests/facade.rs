@@ -22,6 +22,8 @@ mod campus;
 mod cgyy;
 #[path = "facade/cgyy_cache.rs"]
 mod cgyy_cache;
+#[path = "facade/cloud_print/mod.rs"]
+mod cloud_print;
 #[path = "facade/domain_routes.rs"]
 mod domain_routes;
 #[path = "facade/cache/grade_baseline.rs"]

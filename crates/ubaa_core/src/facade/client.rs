@@ -57,6 +57,7 @@ impl UbaaClient {
         };
         if !same {
             self.invalidate_read_recovery_batch();
+            self.cloud_print = None;
         }
         self.direct_runtime.shared_account.clone_from(&guard);
         self.webvpn_runtime.shared_account = guard;

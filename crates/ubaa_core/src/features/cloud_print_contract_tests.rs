@@ -1,4 +1,5 @@
 use super::cloud_print::{PAGE, QUEUE_PAGE, upload_result};
+use crate::domain::ConnectionMode;
 use crate::error::ErrorCode;
 use crate::ports::HttpResponse;
 
@@ -20,24 +21,59 @@ fn cloud_print_upload_requires_an_explicit_result_on_the_queue_origin() {
         Some("https://example.invalid/client/new/cprintPc/printDoc.html?code=0"),
         Some("/client/new/cprintPc/printDoc.html?code=0&code=1"),
     ] {
-        let error = upload_result(&upload_reply(location)).unwrap_err();
+        let error = upload_result(&upload_reply(location), ConnectionMode::Direct).unwrap_err();
         assert_eq!(error.code, ErrorCode::OutcomeUnknown);
         assert!(!error.retryable);
     }
-    upload_result(&upload_reply(Some(
-        "/client/new/cprintPc/printDoc.html?t=100&code=0&message=",
-    )))
+    upload_result(
+        &upload_reply(Some(
+            "/client/new/cprintPc/printDoc.html?t=100&code=0&message=",
+        )),
+        ConnectionMode::Direct,
+    )
     .unwrap();
 }
 
 #[test]
 fn cloud_print_upstream_refusal_does_not_expose_untrusted_detail() {
-    let error = upload_result(&upload_reply(Some(
-        "/client/new/cprintPc/printDoc.html?code=4&message=fixture-private-value",
-    )))
+    let error = upload_result(
+        &upload_reply(Some(
+            "/client/new/cprintPc/printDoc.html?code=4&message=fixture-private-value",
+        )),
+        ConnectionMode::Direct,
+    )
     .unwrap_err();
     assert_ne!(error.code, ErrorCode::OutcomeUnknown);
     assert!(!error.message.contains("fixture-private-value"));
+}
+
+#[test]
+fn cloud_print_webvpn_upload_requires_a_business_queue_redirect() {
+    let route = ConnectionMode::WebVpn;
+    let wrap = |url: &str| crate::connection::to_webvpn_url(url).unwrap();
+    let mut reply = upload_reply(None);
+    reply.final_url = wrap(super::cloud_print::endpoint("CloudPrint/Upload").as_str());
+    let success = wrap(&format!("{QUEUE_PAGE}?code=0"));
+    let unrelated = wrap("https://sso.buaa.edu.cn/client/new/cprintPc/printDoc.html?code=0");
+    for (location, valid) in [
+        (success.as_str(), true),
+        (url::Url::parse(&success).unwrap().path(), false),
+        ("/client/new/cprintPc/printDoc.html?code=0", true),
+        ("/login?code=0", false),
+        (unrelated.as_str(), false),
+    ] {
+        reply
+            .headers
+            .insert("Location".into(), vec![location.into()]);
+        if valid {
+            upload_result(&reply, route).unwrap();
+        } else {
+            assert_eq!(
+                upload_result(&reply, route).unwrap_err().code,
+                ErrorCode::OutcomeUnknown
+            );
+        }
+    }
 }
 
 #[test]
@@ -167,15 +203,22 @@ mod cas {
         response
     }
 
-    struct Transport(AtomicUsize);
+    struct Transport(AtomicUsize, ConnectionMode);
     #[async_trait::async_trait]
     impl HttpTransport for Transport {
+        #[allow(clippy::too_many_lines)]
         async fn execute(&self, request: HttpRequest) -> crate::error::Result<HttpResponse> {
             const TARGET: &str =
                 "https://print.lib.buaa.edu.cn/authcenter/doAuth/0123456789abcdef0123456789abcdef";
             const UNI_ENTRY: &str = "/api/client/Auth/UniEntry";
             let step = self.0.fetch_add(1, Ordering::SeqCst);
-            let url = url::Url::parse(&request.url).unwrap();
+            let webvpn = self.1 == ConnectionMode::WebVpn;
+            let wrap = |target: &str| crate::connection::to_webvpn_url(target).unwrap();
+            let direct_url = crate::connection::from_webvpn_url(&request.url).unwrap();
+            let url = url::Url::parse(&direct_url).unwrap();
+            if webvpn {
+                assert_eq!(request.url, wrap(&direct_url));
+            }
             let cookie = request.headers.get("Cookie").map_or("", String::as_str);
             if step == 4 {
                 assert_eq!(url.host_str(), Some("sso.buaa.edu.cn"));
@@ -200,7 +243,11 @@ mod cas {
                     return Ok(HttpResponse::new(411, &request.url, Vec::new()));
                 }
                 1 => ("/api/client/Auth/Check", json!({"code":4}), None, None),
-                2 => ("/api/client/Auth/SSoPage", bootstrap_json(), None, None),
+                2 => {
+                    let page = if webvpn { wrap(PAGE) } else { PAGE.into() };
+                    assert_eq!(url.query_pairs().next().unwrap().1, page);
+                    ("/api/client/Auth/SSoPage", bootstrap_json(), None, None)
+                }
                 3 => {
                     let mut sso = url::Url::parse("https://sso.buaa.edu.cn/login").unwrap();
                     sso.query_pairs_mut().append_pair("service", TARGET);
@@ -258,28 +305,60 @@ mod cas {
                 _ => panic!("额外的请求"),
             };
             assert_eq!(url.path(), path);
-            Ok(reply(&request.url, &body, location, new_cookie))
+            let location = location.map(|target| {
+                if webvpn && target.starts_with("https://") {
+                    wrap(&target)
+                } else {
+                    target
+                }
+            });
+            let cookie = if webvpn {
+                new_cookie.filter(|_| step != 4).map(|cookie| {
+                    let print = wrap("https://print.lib.buaa.edu.cn/");
+                    let path = url::Url::parse(&print).unwrap().path().to_owned();
+                    cookie.replace("Path=/;", &format!("Path={path};"))
+                })
+            } else {
+                new_cookie.map(str::to_owned)
+            };
+            Ok(reply(&request.url, &body, location, cookie.as_deref()))
         }
     }
 
     #[tokio::test]
     async fn cloud_print_cas_completes_unified_entry_without_mixing_cookies() {
         const SSO: &str = "https://sso.buaa.edu.cn/login";
+        for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            check_cas(mode, SSO).await;
+        }
+    }
+
+    async fn check_cas(mode: ConnectionMode, sso_url: &str) {
+        let webvpn = mode == ConnectionMode::WebVpn;
+        let (origin, cookie) = if webvpn {
+            let origin = crate::connection::to_webvpn_url(sso_url).unwrap();
+            let path = origin.strip_prefix("https://d.buaa.edu.cn").unwrap();
+            let prefix = path.strip_suffix("login").unwrap();
+            let cookie = format!("CASTGC=fixture-cas; Path={prefix}; Secure");
+            (origin, cookie)
+        } else {
+            (
+                sso_url.into(),
+                "CASTGC=fixture-cas; Domain=buaa.edu.cn; Path=/; Secure".into(),
+            )
+        };
         let mut jar = CookieJar::default();
-        let mut response = HttpResponse::new(200, SSO, Vec::new());
-        response.headers.insert(
-            "Set-Cookie".into(),
-            vec!["CASTGC=fixture-cas; Domain=buaa.edu.cn; Path=/; Secure".into()],
-        );
-        jar.store_response(&response, SSO, SystemTime::now())
+        let mut response = HttpResponse::new(200, &origin, Vec::new());
+        response.headers.insert("Set-Cookie".into(), vec![cookie]);
+        jar.store_response(&response, &origin, SystemTime::now())
             .unwrap();
         let parent = ClientRuntime::new(
-            ConnectionMode::Direct,
-            Transport(AtomicUsize::new(0)),
+            mode,
+            Transport(AtomicUsize::new(0), mode),
             Store(VersionedSession {
                 revision: 1,
                 snapshot: Some(SessionSnapshot {
-                    mode: ConnectionMode::Direct,
+                    mode,
                     authenticated_at: 1,
                     last_activity: 1,
                     cookies: jar.cookies().to_vec(),
@@ -287,9 +366,9 @@ mod cas {
             }),
         )
         .unwrap();
-        let mut print = parent.fork_with_cookie_filter(|_| false);
-        let mut sso = parent.fork_with_cookie_filter(|_| true);
-        super::super::cloud_print::auth::login(&mut print, &mut sso)
+        let mut print = parent.fork_with_cookie_filter(|_| webvpn);
+        let mut sso = (!webvpn).then(|| parent.fork_with_cookie_filter(|_| true));
+        super::super::cloud_print::auth::login(&mut print, sso.as_mut())
             .await
             .unwrap();
     }

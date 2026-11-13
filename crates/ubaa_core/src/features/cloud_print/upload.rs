@@ -5,12 +5,13 @@ use rand::{Rng as _, distributions::Alphanumeric};
 use tokio::io::AsyncReadExt as _;
 use url::Url;
 
+use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::facade::cloud_print::PrintOptions;
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 
-use super::{HOST, ORIGIN, PAGE, QUEUE_PAGE, endpoint, https_origin, refused, unknown};
+use super::{HOST, PAGE, QUEUE_PAGE, endpoint, https_origin, redirect_target, refused, unknown};
 
 const MAX_UPLOAD_BYTES: usize = 32 * 1024 * 1024;
 
@@ -82,7 +83,7 @@ pub(crate) async fn send_upload(
         ("dwFrom", from.to_string()),
         ("dwTo", to.to_string()),
         ("dwCopies", options.copies.to_string()),
-        ("BackURL", format!("{QUEUE_PAGE}?t={tick}")),
+        ("BackURL", runtime.url(&format!("{QUEUE_PAGE}?t={tick}"))?),
     ] {
         body.extend_from_slice(
             format!(
@@ -92,23 +93,28 @@ pub(crate) async fn send_upload(
         );
     }
     body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
-    let url = endpoint("CloudPrint/Upload");
+    let url = runtime.url(endpoint("CloudPrint/Upload").as_str())?;
+    let referer = runtime.url(PAGE)?;
+    let origin = Url::parse(&referer)
+        .map_err(|_| super::invalid())?
+        .origin()
+        .ascii_serialization();
     let reply = runtime
         .request_non_idempotent(
-            HttpRequest::post(url.as_str(), body)
+            HttpRequest::post(&url, body)
                 .with_header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={boundary}"),
                 )
-                .with_header("Origin", ORIGIN)
-                .with_header("Referer", PAGE),
+                .with_header("Origin", origin)
+                .with_header("Referer", referer),
         )
         .await?;
     runtime.ensure_session_revision().map_err(|_| unknown())?;
-    if !crate::ports::same_url(&reply.final_url, url.as_str()) {
+    if !crate::ports::same_url(&reply.final_url, &url) {
         return Err(unknown());
     }
-    upload_result(&reply)
+    upload_result(&reply, runtime.mode())
 }
 
 fn file_type(name: &str) -> Result<(&'static str, bool)> {
@@ -154,7 +160,7 @@ fn file_type(name: &str) -> Result<(&'static str, bool)> {
     }
 }
 
-pub(crate) fn upload_result(response: &HttpResponse) -> Result<()> {
+pub(crate) fn upload_result(response: &HttpResponse, mode: ConnectionMode) -> Result<()> {
     if response.status == 413 {
         return Err(UbaaError::new(
             ErrorCode::BusinessUnavailable,
@@ -170,10 +176,7 @@ pub(crate) fn upload_result(response: &HttpResponse) -> Result<()> {
     let [location] = locations else {
         return Err(unknown());
     };
-    let url = Url::parse(PAGE)
-        .expect("固定 URL")
-        .join(location)
-        .map_err(|_| unknown())?;
+    let url = redirect_target(mode, &response.final_url, location).map_err(|_| unknown())?;
     if !https_origin(&url, HOST) || url.path() != "/client/new/cprintPc/printDoc.html" {
         return Err(unknown());
     }

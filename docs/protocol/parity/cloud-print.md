@@ -17,7 +17,13 @@
 | 打印点 | 同登录检查 | 同源 API | 同一打印站会话 | `GET /api/client/Station/GetSrvList` 与 `GET /api/client/Station/GetList`（后者有 `timestamp`）；站点选择由前端分组，不发送站点序号 | JSON | 无 | 分组 `dwSN`、`szName`；设备 `dwDevSN`、`szName`、`dwStatus`、纸盒 `dwTrayPaper1–4`、能力位 `dwProperty`；设备分组 `floor(dwDevSN/1000)` | 仅按需读取 | 状态掩码按上线脚本的十进制值；设备状态是当前观察，不能用于远程放行打印 |
 | 使用记录 | 同登录检查 | 同源 API | 同一打印站会话 | `POST /api/client/Report/DetailPageEx`（`timestamp`），`dwBeginDate`、`dwEndDate`（`YYYYMMDD` 字符串）、`dwType`（打印 1、复印 2、扫描 4）、`dwPageNo`、`dwRowCount=5` | JSON | 无 | `result`、`dwTotalPage`、`dwDate`、`dwTime`、`dwPages`、`dwPaperID` 与费用分值 | 按页、按日期查询，不缓存 | 空结果与失败区分；查询不产生消费 |
 
-帮助页是静态操作说明。尚无 WebVPN 云打印链路证据；在取得对应授权并验证认证、读取、预览和下载前，不能将官网直连测试计作 WebVPN 或原生验收。真实写入只有侧边浏览器中使用合成文件的上传试验，未进行线下打印。
+帮助页是静态操作说明。真实写入只有侧边浏览器中使用合成文件的直连上传试验，未进行线下打印。
+
+## 2026-11-13：共用 WebVPN 路线
+
+再次对照两个冻结来源：对上表的登录检查、待打印列表、预览、扫描列表、下载、上传、删除、打印点和使用记录，各项仍无同协议实现；九列继续以官网证据为准。已登录的侧边浏览器通过标准 WebVPN 编码地址打开上传页和扫描列表，并显示扫描条目。官网公共脚本用当前页面地址作为 SSO 的 `backurl`，上传脚本以当前页面地址生成 `BackURL`；两者随浏览器路线变化。打印服务的业务字段、PDF 校验、并发上限及写入不重试语义继续沿用上表。
+
+原生实现使用同一全局路线策略和该路线已有的登录会话，派生的打印 Cookie 不写入共享会话。合成请求覆盖路线和协议边界。尚未验证原生 WebVPN 下完整 CAS 跳转、预览、实际下载或写入；浏览器点击下载未观察到下载完成，不能计作成功。
 
 同一试用会话中，官网 `PreviewPage` 对合成 JPG、PNG 的第 1 页返回 `code=1`（文件格式转换错误），对合成 PDF 返回 PNG。客户端对新选择的 JPG、JPEG、PNG 在发送前生成单页 PDF，沿用已验证的 PDF multipart 合同；旧图片任务不假定存在可下载的原件。扫描列表观察到 `前缀+时间_序号_设备编号.pdf`，前缀包括中文「扫描件」和英文字母，末段与 `dwDevSN` 一致。同一秒内按序号升序排列。一次真实只读下载返回 `application/octet-stream`，内容具有 PDF 文件头且字节数与列表一致。合并只改变客户端保存行为：同设备相邻项间隔不超过一分钟且序号递增时归组，一次查询当前账号的列表，再在独立 Cookie 容器中并发最多四个同合同的 `Scan/Download`；按组内页序拼接 PDF，任何一份失败都不保存该组。
 

@@ -268,6 +268,7 @@ impl UbaaClient {
             Operation::Authentication
             | Operation::ConnectionRecovery
             | Operation::User
+            | Operation::CloudPrint
             | Operation::Bhpan => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
             Operation::Feature(feature) => (
                 self.config.feature(feature),

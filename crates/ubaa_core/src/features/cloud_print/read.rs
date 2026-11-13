@@ -173,16 +173,17 @@ pub(crate) async fn delete(
             json!({ "dwJobId": job.id, "dwOldJobId": job.id }),
         )
     };
-    let url = endpoint(path);
+    let url = runtime.url(endpoint(path).as_str())?;
+    let referer = runtime.url(PAGE)?;
     let response = runtime
         .request_non_idempotent(
-            HttpRequest::post(url.as_str(), payload.to_string().into_bytes())
+            HttpRequest::post(&url, payload.to_string().into_bytes())
                 .with_header("Content-Type", "application/json")
-                .with_header("Referer", PAGE),
+                .with_header("Referer", referer),
         )
         .await?;
     runtime.ensure_session_revision().map_err(|_| unknown())?;
-    if !crate::ports::same_url(&response.final_url, url.as_str()) {
+    if !crate::ports::same_url(&response.final_url, &url) {
         return Err(unknown());
     }
     match envelope(&response) {
