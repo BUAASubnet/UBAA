@@ -27,7 +27,7 @@ UBAA v2.0.0 使用 Flutter 与 Rust 重建客户端，保留校园查询和办�
 
 研究生考试明细、通过 WebVPN 使用云盘以及各平台的安装范围见[当前限制](/guide/ubaa2#当前限制)。自建日程和云端快照采用明文保存。
 
-发布日期与安装包以 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 为准。本页的待发布条目不表示安装包已经公开分发。
+当前可下载的安装包与商店分发情况见[下载页](/download)。正式发布记录以 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 为准。
 
 ## 旧版 v1.x
 

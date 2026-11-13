@@ -2,7 +2,7 @@
 
 UBAA v2.0 保留了旧版常用的校园查询与办理功能，重点增加了日程、北航云盘、财务查询和桌面命令模式，并重新设计了连接恢复、离线查看与跨平台界面。
 
-本文对照归档的 [UBAA v1.x](https://github.com/BUAASubnet/UBAA/tree/ubaa1) 与 UBAA v2.0。安装包和平台分发情况见 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases)。
+本文对照归档的 [UBAA v1.x](https://github.com/BUAASubnet/UBAA/tree/ubaa1) 与 UBAA v2.0。安装包和平台分发情况见[下载页](/download)。
 
 ## 主要变化
 

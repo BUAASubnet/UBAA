@@ -21,6 +21,7 @@ export default defineConfig({
     notFound: { code: '404', title: '页面不存在', quote: '请从首页或搜索查找所需内容。', linkLabel: '返回首页', linkText: '返回首页' },
     nav: [
       { text: '首页', link: '/' },
+      { text: '下载', link: '/download' },
       { text: '开始使用', link: '/guide/start' },
       { text: '新版变化', link: '/guide/ubaa2' },
       { text: '功能说明', link: '/features/' },
@@ -30,6 +31,7 @@ export default defineConfig({
     ],
     sidebar: {
       '/guide/': [{ text: '开始使用', items: [
+        { text: '下载 UBAA', link: '/download' },
         { text: '安装与首次登录', link: '/guide/start' },
         { text: 'v2.0 的升级变化', link: '/guide/ubaa2' },
         { text: '常见问题', link: '/tech/troubleshooting' },
@@ -115,6 +117,7 @@ export default defineConfig({
           text: 'UBAA',
           items: [
             { text: '项目首页', link: '/' },
+            { text: '下载 UBAA', link: '/download' },
             { text: 'v2.0 的升级变化', link: '/guide/ubaa2' },
             { text: '功能总览', link: '/features/' },
             { text: '常见问题', link: '/tech/troubleshooting' },

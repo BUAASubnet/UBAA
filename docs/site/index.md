@@ -6,6 +6,9 @@ hero:
   tagline: 查看校园信息，管理学习日程与云盘文件。
   actions:
     - theme: brand
+      text: 下载 UBAA
+      link: /download
+    - theme: alt
       text: 开始使用
       link: /guide/start
     - theme: alt
@@ -34,7 +37,8 @@ features:
 
 ## 从这里开始
 
-- [安装与首次登录](/guide/start)：选择适合设备的安装包，设置连接方式。
+- [下载 UBAA](/download)：按平台和架构选择安装包。
+- [安装与首次登录](/guide/start)：完成登录，设置连接方式。
 - [UBAA v2.0 的升级变化](/guide/ubaa2)：了解新版功能，以及从旧版切换时需要准备的内容。
 - [功能说明](/features/)：了解查询、选课、预约和提交的操作方式。
 - [常见问题](/tech/troubleshooting)：登录、连接和提交结果未确认时怎么办。
@@ -42,7 +46,7 @@ features:
 - [参与开发](/tech/contributing)：源码、贡献指南和开发者文档入口。
 
 ::: info 版本说明
-UBAA v2.0.0 正在准备发布。可安装的平台与发布日期以 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 为准，下载前请核对版本和平台。
+UBAA v2.0.0 的 Android、Windows、macOS 和 Linux 安装包已提供直接下载。各平台入口及商店分发情况见[下载页](/download)。
 :::
 
 本软件由学生开发者制作，与北京航空航天大学官方无任何利益关系。课程、成绩和预约结果以学校系统为准，详见[免责声明](/tech/disclaimer)。

@@ -4,7 +4,7 @@
 
 ## 获取应用
 
-从 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases) 查看发布说明，选择 UBAA v2.0.0 或后续版本中适合设备的安装包。当前 2.0.0 正在准备发布，如果列表中没有对应版本或平台，请等待发布。
+前往[下载 UBAA](/download)，选择适合设备平台和架构的安装包。下载页列出当前版本、安装方式及商店入口。
 
 新版面向 Android、iOS、Windows、macOS、Linux 和 HarmonyOS。各平台的安装条件和分发方式以对应发布说明为准。UBAA v2.0 没有网页版。
 
