@@ -39,9 +39,13 @@ extension _HomeSources on HomeCoordinator {
       ])
         f: _snapshots[f] ?? FeatureSnapshot(feature: f),
     };
-    for (final (source, feature) in [
-      (HomeSupplement.bykcChosen, FeatureId.bykc),
-      (HomeSupplement.cgyyOrders, FeatureId.cgyy),
+    for (final (source, feature, view) in [
+      (
+        HomeSupplement.bykcChosen,
+        FeatureId.bykc,
+        FeatureQueryView.bykcChosenCourses,
+      ),
+      (HomeSupplement.cgyyOrders, FeatureId.cgyy, FeatureQueryView.cgyyOrders),
     ]) {
       final result = _supplements[source];
       if (result != null)
@@ -50,6 +54,10 @@ extension _HomeSources on HomeCoordinator {
           result,
           sources[feature],
           at: _supplementTimes[source],
+          readContext: FeatureReadContext(
+            query: FeatureQuery(view: view),
+            requestRevision: _epoch,
+          ),
         );
       if (_supplementTasks.containsKey(source)) {
         sources[feature] = sources[feature]!.copyWith(
@@ -239,6 +247,7 @@ FeatureSnapshot _snapshot(
   FeatureResult result,
   FeatureSnapshot? previous, {
   DateTime? at,
+  FeatureReadContext? readContext,
 }) {
   if (result.error != null &&
       result.evidence == null &&
@@ -253,6 +262,7 @@ FeatureSnapshot _snapshot(
   }
   return FeatureSnapshot(
     feature: feature,
+    readContext: readContext,
     status: result.error != null
         ? (result.evidence != null ||
                   result.details.isNotEmpty ||
