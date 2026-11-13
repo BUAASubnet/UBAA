@@ -59,8 +59,7 @@ impl UbaaClient {
             refresh.parallel.forget(&record.scope.query);
             return reuse(&mut refresh.scan, record);
         }
-        self.read_judge_network_batch(refresh, scope, assignment, course)
-            .await
+        Box::pin(self.read_judge_network_batch(refresh, scope, assignment, course)).await
     }
     async fn read_judge_network_batch(
         &mut self,
@@ -78,6 +77,7 @@ impl UbaaClient {
                 .transpose()
                 .map_err(OfflineReadError::Cache)?
         };
+        let prepared_route = refresh.scan.resolution.mode;
         let prefetched_at = prefetched.as_ref().map(|(_, detail)| detail.source_at);
         let force_fresh = refresh.scan.force_fresh;
         refresh.scan.force_fresh = true;
@@ -104,11 +104,28 @@ impl UbaaClient {
             }
         };
         if batch.kind == JudgeScanKind::CourseFailure
-            || refresh.scan.resolution.mode != crate::domain::ConnectionMode::Direct
+            || refresh.scan.resolution.mode != prepared_route
         {
             refresh
                 .parallel
                 .discard(&refresh.scan.cache, &refresh.scan.ticket);
+        }
+        if batch.kind == JudgeScanKind::Assignments {
+            for prepared in refresh.scan.cursor.drain_prepared() {
+                let scope = CacheScope {
+                    route: refresh.scan.resolution.mode,
+                    query: CacheQuery::JudgeDetail {
+                        course_id: prepared.key.0.clone(),
+                        assignment_id: prepared.key.1.clone(),
+                    },
+                };
+                let ticket = refresh
+                    .scan
+                    .cache
+                    .repository(|repo| repo.begin_read_guarded(scope, &refresh.scan.ticket))
+                    .map_err(OfflineReadError::Cache)?;
+                refresh.parallel.pending.push_back((ticket, prepared));
+            }
         }
         let index_revision = (batch.kind == JudgeScanKind::Assignments)
             .then(|| child.as_ref().map(CacheReadTicket::revision))
@@ -117,7 +134,7 @@ impl UbaaClient {
             child.set_source_route(refresh.scan.resolution.mode);
         }
         let source_at = prefetched_at
-            .filter(|_| refresh.scan.resolution.mode == crate::domain::ConnectionMode::Direct)
+            .filter(|_| refresh.scan.resolution.mode == prepared_route)
             .or_else(|| {
                 course.as_ref().and_then(|course| {
                     self.runtime_for(refresh.scan.resolution.mode)

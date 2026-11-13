@@ -240,6 +240,7 @@ impl UbaaClient {
         prepared: Option<crate::features::judge::parallel::PreparedDetail>,
     ) -> Result<Routed<JudgeScanBatch>, OfflineReadError> {
         self.validate_judge_scan(plan)?;
+        let prepared = prepared.or_else(|| plan.cursor.take_prepared());
         let mut batch = JudgeScanBatch {
             kind: JudgeScanKind::Finished,
             course_id: None,
@@ -263,6 +264,7 @@ impl UbaaClient {
                 )
                 .await;
             if resolution.mode != plan.resolution.mode {
+                plan.cursor.clear_prepared();
                 let owner = self.runtime_for(resolution.mode).feature_state();
                 plan.owner = Arc::downgrade(&owner);
                 plan.generation = owner.judge.generation();
@@ -274,7 +276,9 @@ impl UbaaClient {
             plan.resolution = resolution;
             plan.activated = activated;
             let fatal = read.fatal;
-            let result = read.result.map(|data| data.apply(&mut batch));
+            let result = read
+                .result
+                .map(|data| data.apply(&mut batch, &mut plan.cursor, resolution.mode));
             let result = self.finish_routed(plan.resolution, result);
             // 认证收尾本身会递增会话代次，必须保留其原始错误供宿主恢复。
             let result = match result {

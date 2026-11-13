@@ -196,6 +196,7 @@ impl UbaaClient {
             return Ok(plan.progress(batch));
         };
         batch.course_id = Some(course.course_id.clone());
+        let prepared = self.prepare_online_judge_details(plan).await?;
         let (resolution, read, activated) = self
             .read_judge_batch(
                 plan.resolution,
@@ -205,10 +206,11 @@ impl UbaaClient {
                 plan.options.full_refresh
                     || plan.options.keys.is_some()
                     || (plan.options.refresh_indices && plan.cursor.current_assignment().is_none()),
-                None,
+                prepared,
             )
             .await;
         if resolution.mode != plan.resolution.mode {
+            plan.cursor.clear_prepared();
             let owner = self.runtime_for(resolution.mode).feature_state();
             plan.owner = Arc::downgrade(&owner);
             plan.generation = owner.judge.generation();
@@ -216,7 +218,9 @@ impl UbaaClient {
         plan.resolution = resolution;
         plan.activated = activated;
         let fatal = read.fatal;
-        let read = read.result.map(|data| data.apply(&mut batch));
+        let read = read
+            .result
+            .map(|data| data.apply(&mut batch, &mut plan.cursor, resolution.mode));
         let read = match self.finish_routed(plan.resolution, read) {
             Err(error) if fatal || error.error.code == ErrorCode::InternalError => {
                 plan.cancellation.cancel();
@@ -388,3 +392,6 @@ mod tests {
         }
     }
 }
+
+#[path = "online_prefetch.rs"]
+mod prefetch;

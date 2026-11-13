@@ -5,15 +5,29 @@ use super::{
 };
 
 pub(super) enum BatchData {
-    Assignments(Vec<Assignment>),
+    Assignments(Box<crate::features::judge::scan::AssignmentPage>),
     Detail(Box<JudgeAssignmentDetail>),
 }
 impl BatchData {
-    pub(super) fn apply(self, batch: &mut JudgeScanBatch) {
+    pub(super) fn apply(
+        self,
+        batch: &mut JudgeScanBatch,
+        cursor: &mut super::JudgeScanCursor,
+        route: crate::domain::ConnectionMode,
+    ) {
         match self {
             Self::Assignments(value) => {
                 batch.kind = JudgeScanKind::Assignments;
-                batch.assignments = value;
+                batch.assignments = value.list.assignments;
+                if let Some(detail) = value.detail {
+                    cursor.push_prepared(
+                        crate::features::judge::parallel::PreparedDetail::from_index(
+                            detail,
+                            route,
+                            value.source_at,
+                        ),
+                    );
+                }
             }
             Self::Detail(value) => {
                 batch.kind = JudgeScanKind::Detail;
@@ -39,7 +53,7 @@ impl UbaaClient {
             let read = if let Some(assignment) = assignment {
                 let read = if let Some(prepared) = prepared
                     .take()
-                    .filter(|_| resolution.mode == crate::domain::ConnectionMode::Direct)
+                    .filter(|value| value.matches(resolution.mode, assignment))
                 {
                     prepared.finish(self.runtime_for(resolution.mode)).await
                 } else {
@@ -66,7 +80,9 @@ impl UbaaClient {
                 )
                 .await;
                 scan::ScanRead {
-                    result: read.result.map(BatchData::Assignments),
+                    result: read
+                        .result
+                        .map(|page| BatchData::Assignments(Box::new(page))),
                     fatal: read.fatal,
                 }
             };

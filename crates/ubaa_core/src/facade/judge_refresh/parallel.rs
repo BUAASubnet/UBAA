@@ -3,16 +3,12 @@ use super::{
     CachePayload, CacheQuery, CacheReadTicket, CacheScope, JudgeRefresh, OfflineReadError,
     UbaaClient, policy, remember_save,
 };
-use crate::{
-    domain::ConnectionMode,
-    features::judge::parallel::{DetailWorker, PreparedDetail},
-};
+use crate::features::judge::parallel::PreparedDetail;
 use std::collections::VecDeque;
 
 #[derive(Default)]
 pub(super) struct DetailReads {
-    workers: Vec<DetailWorker>,
-    pending: VecDeque<(CacheReadTicket, PreparedDetail)>,
+    pub(super) pending: VecDeque<(CacheReadTicket, PreparedDetail)>,
 }
 impl DetailReads {
     pub(super) fn forget(&mut self, query: &CacheQuery) {
@@ -25,7 +21,6 @@ impl DetailReads {
                 repo.record_failure_guarded(&ticket, parent, chrono::Utc::now().timestamp())
             });
         }
-        self.workers.clear();
     }
 }
 impl UbaaClient {
@@ -33,10 +28,7 @@ impl UbaaClient {
         &mut self,
         refresh: &mut JudgeRefresh,
     ) -> Result<Option<(CacheReadTicket, PreparedDetail)>, OfflineReadError> {
-        if refresh.scan.resolution.mode != ConnectionMode::Direct
-            || refresh.options.current_assignment.is_some()
-            || refresh.scan.cursor.current_assignment().is_none()
-        {
+        if refresh.scan.cursor.current_assignment().is_none() {
             return Ok(None);
         }
         let assignment = refresh
@@ -56,14 +48,11 @@ impl UbaaClient {
         {
             return Ok(refresh.parallel.pending.remove(index));
         }
-        // 新 worker 需要激活和选课；短课程沿原客户端读取，避免准备成本超过收益。
-        if refresh.parallel.workers.is_empty()
-            && refresh.scan.cursor.pending_assignments().len() < 8
-        {
+        if refresh.options.current_assignment.is_some() {
             return Ok(None);
         }
         let assignments = pending_requests(refresh)?;
-        if assignments.len() < 2 || (refresh.parallel.workers.is_empty() && assignments.len() < 4) {
+        if assignments.len() < 2 {
             return Ok(None);
         }
         let tickets = assignments
@@ -71,37 +60,26 @@ impl UbaaClient {
             .map(|(_, scope)| refresh.scan.cache.begin(scope.clone()))
             .collect::<Result<Vec<_>, _>>()
             .map_err(OfflineReadError::Cache)?;
-        while refresh.parallel.workers.len() < assignments.len() {
-            refresh
-                .parallel
-                .workers
-                .push(DetailWorker::new(self.runtime_for(ConnectionMode::Direct)));
-        }
-        let resolution = refresh.scan.resolution;
-        let network = self.network_control();
-        let fast_connect = resolution.policy == crate::domain::RoutePolicy::Auto
-            && resolution.diagnostic.network == crate::connection::NetworkState::OffCampus;
-        let results = network
+        let requested: Vec<_> = assignments.iter().map(|(a, _)| a.clone()).collect();
+        let route = refresh.scan.resolution.mode;
+        let results = self
+            .network_control()
             .run_read(
-                ConnectionMode::Direct,
-                fast_connect,
-                Box::pin(async {
-                    Ok(futures_util::future::join_all(
-                        refresh
-                            .parallel
-                            .workers
-                            .iter_mut()
-                            .zip(&assignments)
-                            .map(|(worker, (assignment, _))| worker.read(assignment)),
-                    )
-                    .await)
-                }),
+                route,
+                refresh.scan.resolution.mode == crate::domain::ConnectionMode::Direct
+                    && refresh.scan.resolution.policy == crate::domain::RoutePolicy::Auto
+                    && refresh.scan.resolution.diagnostic.network
+                        == crate::connection::NetworkState::OffCampus,
+                Box::pin(crate::features::judge::parallel::read_same_course_details(
+                    self.runtime_for(route),
+                    &requested,
+                )),
             )
             .await
             .map_err(|error| {
                 OfflineReadError::Read(crate::facade::RoutedError {
                     error,
-                    resolution: Some(resolution),
+                    resolution: Some(refresh.scan.resolution),
                 })
             })?;
         self.validate_judge_scan(&refresh.scan)?;
@@ -119,13 +97,24 @@ fn pending_requests(
     let now = chrono::Utc::now().timestamp();
     let mut assignments = Vec::new();
     for assignment in refresh.scan.cursor.pending_assignments().iter().take(4) {
+        if refresh.scan.cursor.has_prepared(assignment) {
+            break;
+        }
         let scope = CacheScope {
-            route: ConnectionMode::Direct,
+            route: refresh.scan.resolution.mode,
             query: CacheQuery::JudgeDetail {
                 course_id: assignment.course_id.clone(),
                 assignment_id: assignment.assignment_id.clone(),
             },
         };
+        if refresh
+            .parallel
+            .pending
+            .iter()
+            .any(|(ticket, _)| ticket.scope().query == scope.query)
+        {
+            break;
+        }
         // 首项已经过缓存判定，后续遇到可复用项便结束本组。
         if !assignments.is_empty() {
             match refresh.scan.cache.read(&scope, now) {

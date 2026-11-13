@@ -86,7 +86,7 @@ fn judge_requests(transport: &ScanTransport) -> usize {
 }
 
 #[test]
-fn 短课程沿原客户端读取且先展示课程索引() {
+fn 短课程复用父会话并发读取且先展示课程索引() {
     let (root, mut client, cache, transport) = setup("judge-direct-detail-wave");
     transport.detail_delay_ms.store(40, Ordering::SeqCst);
     tokio::runtime::Builder::new_current_thread()
@@ -109,7 +109,7 @@ fn 短课程沿原客户端读取且先展示课程索引() {
                     break;
                 }
             }
-            assert_eq!(transport.max_active_details.load(Ordering::SeqCst), 1);
+            assert_eq!(transport.max_active_details.load(Ordering::SeqCst), 2);
             assert_eq!(detail_request_count(&transport), 3);
             assert_eq!(
                 transport.active_details.load(Ordering::SeqCst),
@@ -417,6 +417,96 @@ fn 较新详情覆盖预取后其余作业仍按二元键交付() {
                 }
             }
         });
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn 本轮索引附带详情在强制刷新中不重复请求() {
+    for online in [false, true] {
+        let (root, mut client, cache, transport) = setup("judge-index-detail");
+        transport.embedded_detail.store(true, Ordering::SeqCst);
+        if online {
+            let mut plan = client
+                .begin_judge_online(JudgeOnlineOptions {
+                    full_refresh: true,
+                    ..Default::default()
+                })
+                .await
+                .unwrap();
+            loop {
+                let result = client.next_judge_online(&mut plan).await.unwrap();
+                if result.batch.finished {
+                    assert!(result.batch.complete);
+                    assert_eq!(result.summaries.len(), 3);
+                    break;
+                }
+            }
+        } else {
+            let mut plan = client
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        full_refresh: true,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap();
+            loop {
+                let result = client.next_judge_refresh(&mut plan).await.unwrap();
+                if result.batch.finished {
+                    assert!(result.batch.complete);
+                    assert_eq!(result.summaries.len(), 3);
+                    break;
+                }
+            }
+        }
+        assert_eq!(
+            detail_request_count(&transport),
+            1,
+            "两门课程各复用一份本轮详情"
+        );
+        drop((client, cache));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn direct预取复用父会话而不重复激活选课() {
+    let (root, mut client, cache, transport) = setup("judge-direct-parent-wave");
+    transport.assignment_count.store(8, Ordering::SeqCst);
+    transport.detail_delay_ms.store(10, Ordering::SeqCst);
+    let mut plan = client
+        .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+        .await
+        .unwrap();
+    loop {
+        let result = client.next_judge_refresh(&mut plan).await.unwrap();
+        assert_eq!(transport.active_details.load(Ordering::SeqCst), 0);
+        if result.batch.finished {
+            assert!(result.batch.complete);
+            assert_eq!(result.summaries.len(), 9);
+            break;
+        }
+    }
+    assert_eq!(transport.max_active_details.load(Ordering::SeqCst), 4);
+    let requests = transport.requests.lock().unwrap();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|r| r.url.ends_with("courselist.jsp?courseID=12"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|r| r.url.contains("/login?service=") && r.url.contains("judge.buaa.edu.cn"))
+            .count(),
+        1
+    );
+    drop(requests);
     drop((client, cache));
     std::fs::remove_dir_all(root).unwrap();
 }

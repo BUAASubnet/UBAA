@@ -19,6 +19,9 @@ struct ScanTransport {
     assignment_count: Arc<AtomicUsize>,
     active_details: Arc<AtomicUsize>,
     max_active_details: Arc<AtomicUsize>,
+    shared_course: Arc<AtomicUsize>,
+    reject_once: Arc<std::sync::atomic::AtomicBool>,
+    embedded_detail: Arc<std::sync::atomic::AtomicBool>,
     rename_assignment: Arc<std::sync::atomic::AtomicBool>,
 }
 #[async_trait]
@@ -69,14 +72,13 @@ impl HttpTransport for ScanTransport {
                 .find(|(key, _)| key.eq_ignore_ascii_case("cookie"))
                 .map_or("", |(_, value)| value.as_str());
             if let Some(id) = query.get("assignID") {
-                let active = self.active_details.fetch_add(1, Ordering::SeqCst) + 1;
-                self.max_active_details.fetch_max(active, Ordering::SeqCst);
-                tokio::time::sleep(std::time::Duration::from_millis(
-                    self.detail_delay_ms.load(Ordering::SeqCst),
-                ))
-                .await;
-                self.active_details.fetch_sub(1, Ordering::SeqCst);
-                self.prepare_detail()?;
+                if self.observe_detail(id).await? {
+                    return Ok(sso_fixture_response(
+                        200,
+                        request.url.clone(),
+                        b"<a id='cgstuloginbtn'>login</a>".to_vec(),
+                    ));
+                }
                 if self.fail_detail.load(Ordering::SeqCst) && id.as_ref() == "101" {
                     return Err(ubaa_core::facade::UbaaError::new(
                         ubaa_core::facade::ErrorCode::NetworkError,
@@ -100,7 +102,15 @@ impl HttpTransport for ScanTransport {
                     include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec(),
                 )
             } else {
-                let body = self.assignment_body(cookie);
+                let mut body = self.assignment_body(cookie);
+                if self.embedded_detail.load(Ordering::SeqCst) {
+                    body = body
+                        .replace("href='assignment/", "href='/assignment/")
+                        .replacen("<a ", "<a class=\"list-group-item-primary\" ", 1);
+                    body.push_str(include_str!(
+                        "../../../../fixtures/readonly/judge-detail.html"
+                    ));
+                }
                 sso_fixture_response(200, request.url.clone(), body.as_bytes().to_vec())
             }
         } else if request.url.contains("currentUser.do") {
@@ -118,6 +128,28 @@ impl HttpTransport for ScanTransport {
     }
 }
 impl ScanTransport {
+    async fn observe_detail(&self, id: &str) -> Result<bool> {
+        let active = self.active_details.fetch_add(1, Ordering::SeqCst) + 1;
+        self.max_active_details.fetch_max(active, Ordering::SeqCst);
+        tokio::time::sleep(std::time::Duration::from_millis(
+            self.detail_delay_ms.load(Ordering::SeqCst),
+        ))
+        .await;
+        self.active_details.fetch_sub(1, Ordering::SeqCst);
+        let shared_course = self.shared_course.load(Ordering::SeqCst);
+        if shared_course != 0 {
+            assert_eq!(
+                shared_course,
+                if id.starts_with('1') { 12 } else { 13 },
+                "请求在途时不能切换共享课程"
+            );
+        }
+        if self.reject_once.swap(false, Ordering::SeqCst) {
+            return Ok(true);
+        }
+        self.prepare_detail()?;
+        Ok(false)
+    }
     fn assignment_body(&self, cookie: &str) -> String {
         let body = if self.add_assignment.load(Ordering::SeqCst) && cookie.contains("selected=12") {
             "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a><a href='assignment/index.jsp?assignID=103'>New task</a>"
