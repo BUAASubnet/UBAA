@@ -411,7 +411,7 @@ jobs:
   app-store:
     needs:
       - metadata
-      - distribute
+      - ios
     runs-on: xcode-27
     environment: release-production
     timeout-minutes: 90
@@ -439,11 +439,11 @@ jobs:
           retention-days: 7
           include-hidden-files: true
       - *cleanup_signing
-    if: ${{ !cancelled() && needs.distribute.result == 'success' }}
+    if: ${{ !cancelled() && needs.ios.result == 'success' }}
   appgallery:
     needs:
       - metadata
-      - distribute
+      - ohos
     runs-on: ubuntu-latest
     environment: release-production
     timeout-minutes: 90
@@ -468,7 +468,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
-    if: ${{ !cancelled() && needs.distribute.result == 'success' }}
+    if: ${{ !cancelled() && needs.ohos.result == 'success' }}
   store-access:
     needs: metadata
     runs-on: macos-26

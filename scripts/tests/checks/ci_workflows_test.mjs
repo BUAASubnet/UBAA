@@ -24,6 +24,19 @@ test("开发提交不会触发完整验收和原生矩阵", () => {
   assert.equal(native.on.pull_request, undefined);
   assert.ok(Object.hasOwn(native.on, "workflow_call"));
 });
+test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
+  const release = workflow("release");
+  for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {
+    const job = release.jobs[store];
+    assert.deepEqual(new Set(job.needs), new Set(["metadata", platform]));
+    const condition = new Function("needs", "cancelled", `return ${job.if.slice(3, -2)}`);
+    for (const result of ["success", "failure", "cancelled", "skipped"]) {
+      const needs = { metadata: { result: "success" }, [platform]: { result } };
+      assert.equal(condition(needs, () => false), result === "success");
+      assert.equal(condition(needs, () => true), false);
+    }
+  }
+});
 test("main 必需检查拒绝失败、取消和被跳过的验收", () => {
   const full = workflow("ci");
   const required = full.jobs["main-required"];
