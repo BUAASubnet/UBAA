@@ -35,24 +35,39 @@ class TabPager extends StatelessWidget {
   );
 }
 
-/// 底栏顶部留白 8pt，底部由 NavigationBar 保留完整系统安全区。
+/// 底栏顶部留白 8pt，底部由 NavigationBar 保留系统安全区。
+///
+/// Android 的导航按钮占满安全区，必须完整避让；iOS 的 Home 指示条只占底部一小条，
+/// 安全区最多保留 20pt，底栏与系统标签栏差不多高。
 class CompactNavigationBar extends StatelessWidget {
   const CompactNavigationBar({super.key, required this.child});
 
   static const double _topGap = 8;
+  static const double _maxIosBottomInset = 20;
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    final trim =
+        theme.platform == TargetPlatform.iOS &&
+        media.padding.bottom > _maxIosBottomInset;
     return ColoredBox(
       color:
           theme.navigationBarTheme.backgroundColor ??
           theme.colorScheme.surfaceContainer,
       child: Padding(
         padding: const EdgeInsets.only(top: _topGap),
-        child: child,
+        child: trim
+            ? MediaQuery(
+                data: media.copyWith(
+                  padding: media.padding.copyWith(bottom: _maxIosBottomInset),
+                ),
+                child: child,
+              )
+            : child,
       ),
     );
   }

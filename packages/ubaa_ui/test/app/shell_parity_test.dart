@@ -26,6 +26,25 @@ void main() {
       expect(tester.getSize(bar).height, 56 + inset);
     });
   }
+  // Home 指示条只占屏幕底部约 13 像素，底栏不必让出整个 34 像素安全区。
+  testWidgets(
+    'iOS 底栏避开 Home 指示条但不让出整个安全区',
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    (tester) async {
+      tester.view.padding = const FakeViewPadding(bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await mount(tester);
+      for (final destination in find.byType(NavigationDestination).evaluate()) {
+        expect(
+          tester.getRect(find.byWidget(destination.widget)).bottom,
+          lessThanOrEqualTo(874 - 20),
+        );
+      }
+      expect(tester.getSize(find.byType(NavigationBar)).height, 56 + 20);
+    },
+  );
   testWidgets('已登录但日程服务未启用时提示存储条件并禁用新建', (tester) async {
     await mount(tester, tab: UiDestination.agenda);
     expect(find.text('日程暂不可用，请检查设备安全存储是否已启用'), findsOneWidget);
