@@ -84,7 +84,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     }
     final route = widget.snapshot.resolvedRoute;
     if (route != null &&
-        route != (_weeks?.resolvedRoute ?? old.snapshot.resolvedRoute)) {
+        route != (_weeks?.resolvedRoute ?? old.snapshot.resolvedRoute) &&
+        !_hasAccountWeeks) {
       _generation++;
       _weeks = null;
       _weeksTerm = null;
@@ -123,6 +124,13 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   bool get _hasSavedRead =>
       widget.snapshot.evidence?.origin == DataOrigin.persisted &&
       widget.snapshot.evidence?.complete == true;
+
+  // 同账号的教学周缓存按学期匹配；原始采集路线不影响日历日期。
+  bool get _hasAccountWeeks =>
+      _weeks?.evidence?.origin == DataOrigin.persisted &&
+      _weeks?.evidence?.complete == true &&
+      widget.snapshot.evidence?.complete == true &&
+      _weeks?.evidence?.accountId == widget.snapshot.evidence?.accountId;
 
   bool get _settled =>
       ({
@@ -304,7 +312,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         }.contains(widget.snapshot.status) ||
         !_sameQuery(widget.snapshot.readContext?.query, q) ||
         _weeks?.resolvedRoute == null ||
-        _weeks?.resolvedRoute != widget.snapshot.resolvedRoute)
+        (_weeks?.resolvedRoute != widget.snapshot.resolvedRoute &&
+            !_hasAccountWeeks))
       return null;
     final matching = _weekCandidates(q!.term!)
         .where((d) => (d.presentation! as WeekPresentation).number == q.week)
@@ -328,7 +337,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         q?.term == null ||
         q?.week == null ||
         _weeks?.resolvedRoute == null ||
-        (!awaitingRoute && _weeks?.resolvedRoute != route)) {
+        (!awaitingRoute &&
+            _weeks?.resolvedRoute != route &&
+            !_hasAccountWeeks)) {
       return null;
     }
     final matching = _weekCandidates(q!.term!)

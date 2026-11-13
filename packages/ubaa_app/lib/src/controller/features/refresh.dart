@@ -143,7 +143,13 @@ mixin ControllerRefresh on ControllerState {
         ? internalCachedGradeQuery(query)
         : null;
     final generation = internalNextFeatureGeneration(feature);
-    // 换查询时先限时读本机缓存：命中则带着缓存进入加载，不先清空成空白页。
+    final weeklySchedule =
+        feature == FeatureId.schedule &&
+        query.term != null &&
+        query.week != null &&
+        (query.view == FeatureQueryView.scheduleWeek ||
+            query.view == FeatureQueryView.summary);
+    // 切周先读取完整缓存；其他查询用限时预读保留刷新期间的内容。
     FeatureSnapshot? seed;
     if (!writeReadback &&
         cachedGrades == null &&
@@ -151,11 +157,28 @@ mixin ControllerRefresh on ControllerState {
         internalLocalAccount != null &&
         internalSnapshots[feature]!.readContext?.hasSameQuery(query) != true) {
       final lifecycle = internalLifecycleEpoch;
-      seed = await internalPeekCachedQuery(feature, query);
+      seed = await internalPeekCachedQuery(
+        feature,
+        query,
+        waitForCache: weeklySchedule,
+      );
       if (internalDisposed ||
           lifecycle != internalLifecycleEpoch ||
           generation != internalFeatureRefreshGenerations[feature])
         return;
+    }
+    if (weeklySchedule && seed?.evidence?.complete == true) {
+      internalSnapshots[feature] = seed!.copyWith(
+        status: seed.details.isEmpty
+            ? FeatureLoadStatus.empty
+            : FeatureLoadStatus.success,
+        readContext: FeatureReadContext(
+          query: query,
+          requestRevision: generation,
+        ),
+      );
+      internalNotify();
+      return;
     }
     internalBeginBusinessAttempt(feature, query, generation);
     final context = internalBeginFeatureRead(

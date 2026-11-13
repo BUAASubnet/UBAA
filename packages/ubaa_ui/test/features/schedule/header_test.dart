@@ -5,6 +5,26 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/schedule/flow.dart';
 
 void main() {
+  testWidgets('同账号缓存课表与教学周的来源路线不同仍显示日期', (tester) async {
+    final harness = _Harness()
+      ..evidence = _saved('account')
+      ..pending = Future.value(
+        FeatureResult.success(
+          details: [_week(1), _week(2)],
+          resolvedRoute: ConnectionMode.webvpn,
+          evidence: _saved('account'),
+        ),
+      );
+    await tester.pumpWidget(harness.build());
+    await tester.pumpAndSettle();
+    expect(harness.header?.headerDateLabels.first, '9-7');
+    harness.query = harness.query.copyWith(week: 2);
+    await tester.pumpWidget(harness.build());
+    await tester.pumpAndSettle();
+    expect(harness.header?.headerDateLabels.first, '9-14');
+    expect(harness.loads, 1);
+  });
+
   testWidgets('切换周次立即显示元数据日期，保留正文快照；跨学期和路线不混用', (tester) async {
     final harness = _Harness();
     await tester.pumpWidget(harness.build());
@@ -120,6 +140,7 @@ class _Harness {
   );
   FeatureLoadStatus status = FeatureLoadStatus.success;
   ConnectionMode? route = ConnectionMode.direct;
+  DataEvidence? evidence;
   int epoch = 0, loads = 0;
   List<FeatureDetail>? metadata;
   Future<FeatureResult>? pending;
@@ -137,6 +158,7 @@ class _Harness {
           feature: FeatureId.schedule,
           status: status,
           resolvedRoute: route,
+          evidence: evidence,
           readContext: FeatureReadContext(query: query, requestRevision: 1),
         ),
         loadWeeks: (_, _) async {
@@ -162,3 +184,11 @@ class _Harness {
     ),
   );
 }
+
+DataEvidence _saved(String account) => DataEvidence(
+  accountId: account,
+  origin: DataOrigin.persisted,
+  fetchedAt: DateTime.utc(2026, 11, 13),
+  complete: true,
+  savedForOffline: true,
+);

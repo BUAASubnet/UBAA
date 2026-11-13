@@ -434,8 +434,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<FeatureSnapshot?> internalPeekCachedQuery(
     FeatureId feature,
-    FeatureQuery query,
-  );
+    FeatureQuery query, {
+    bool waitForCache = false,
+  });
   @internal
   Future<void> internalRestoreCachedDefault(
     FeatureId feature,
