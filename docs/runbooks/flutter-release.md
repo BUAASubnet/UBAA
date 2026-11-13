@@ -115,7 +115,7 @@ bash scripts/release/store-screenshots.sh
 
 单独生成 AppGallery 手机图时使用 `bash scripts/release/store-screenshots.sh --appgallery`，生成平板图时使用 `bash scripts/release/store-screenshots.sh --appgallery-tablet`。两组各展示首页、课表、日程、成绩、SPOC 作业和考试。[华为开发者中心素材规范](https://developer.huawei.com/consumer/cn/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)按设备分别列出要求：HarmonyOS 手机和平板的应用介绍截图各可上传 3 至 10 张，PNG 单张不超过 5 MB。
 
-脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)。AppGallery 手机图复制到 [AppGallery 素材目录](../site/public/press/appgallery/)，平板图复制到其 [`tablet/` 子目录](../site/public/press/appgallery/tablet/)。Git 追踪这些成品、源数据和渲染代码；额外的 iPhone 尺寸留在本地。网站代表图换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)。AppGallery 手机图复制到 [AppGallery 素材目录](../site/store_assets/appgallery/)，平板图复制到其 [`tablet/` 子目录](../site/store_assets/appgallery/tablet/)；这些商店素材不随网站部署。Git 追踪这些成品、源数据和渲染代码；额外的 iPhone 尺寸留在本地。网站代表图换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
 
 上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与华为开发者中心的素材规范复核目标规格。宣传图生成与网站构建不执行商店上传。
 
