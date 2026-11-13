@@ -102,6 +102,8 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 
 ## 4. 认证、会话与路线
 
+云打印的 `BridgeError.resolvedRoute` 来自 Core 本次操作的最终路线。Auto 读取回退后的错误使用 WebVPN；上传、删除的整批错误及逐项错误使用发送前确定的路线。选路前的参数校验失败返回空路线，错误码与 `retryable` 保持原值。
+
 | 方法 | 输入 | 成功结果 | 约束 |
 |---|---|---|---|
 | `prepareLogin` | 无 | `LoginPreparation` | 固定 Direct、WebVPN 两项；不返回 execution 或挑战材料 |

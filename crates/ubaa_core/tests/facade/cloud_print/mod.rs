@@ -83,7 +83,16 @@ async fn cloud_print_uses_the_selected_route_and_its_existing_session() {
             NeverProbe,
         )
         .unwrap();
-        assert_eq!(client.cloud_print_scan("15").await.unwrap(), PDF);
+        let result = client.cloud_print_scan("15").await.unwrap();
+        assert_eq!(result.data, PDF);
+        assert_eq!(
+            result.resolution.mode,
+            if default == RoutePolicy::WebVpn {
+                ConnectionMode::WebVpn
+            } else {
+                ConnectionMode::Direct
+            }
+        );
     }
     let _ = std::fs::remove_dir_all(root);
 }

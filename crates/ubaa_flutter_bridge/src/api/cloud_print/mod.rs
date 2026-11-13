@@ -1,10 +1,11 @@
 //! 云打印的 typed 宿主投影。
 #![allow(clippy::missing_errors_doc)]
 
-use crate::api::client::{
-    BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error,
-};
+use crate::api::client::{BridgeClient, BridgeError, catch_panic, disposed_error};
 use ubaa_core::facade::{UbaaError, cloud_print as core};
+
+#[cfg(test)]
+mod tests;
 
 pub struct BridgePrintDocument {
     pub id: String,
@@ -72,10 +73,6 @@ pub struct BridgePrintOptions {
     pub to_page: Option<u32>,
 }
 
-fn error(value: UbaaError) -> BridgeError {
-    BridgeError::from_core(value, Some(BridgeConnectionMode::Direct))
-}
-
 impl BridgeClient {
     pub async fn cloud_print_documents(
         &self,
@@ -88,8 +85,9 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_documents(scans)
                 .await
-                .map_err(error)?;
+                .map_err(BridgeError::from_routed)?;
             Ok(rows
+                .data
                 .into_iter()
                 .map(|row| BridgePrintDocument {
                     id: row.id,
@@ -113,7 +111,8 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_preview(&id, page)
                 .await
-                .map_err(error)
+                .map(|routed| routed.data)
+                .map_err(BridgeError::from_routed)
         })
         .await
     }
@@ -125,7 +124,8 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_scan(&id)
                 .await
-                .map_err(error)
+                .map(|routed| routed.data)
+                .map_err(BridgeError::from_routed)
         })
         .await
     }
@@ -137,7 +137,8 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_scan_pdf(ids)
                 .await
-                .map_err(error)
+                .map(|routed| routed.data)
+                .map_err(BridgeError::from_routed)
         })
         .await
     }
@@ -154,8 +155,17 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_delete(scans, ids)
                 .await
-                .map_err(error)?;
-            Ok(results.into_iter().map(|r| r.err().map(error)).collect())
+                .map_err(BridgeError::from_routed)?;
+            let route = results.resolution.mode.into();
+            Ok(results
+                .data
+                .into_iter()
+                .map(|result| {
+                    result
+                        .err()
+                        .map(|error| BridgeError::from_core(error, Some(route)))
+                })
+                .collect())
         })
         .await
     }
@@ -169,7 +179,12 @@ impl BridgeClient {
             let pages = match (options.from_page, options.to_page) {
                 (None, None) => None,
                 (Some(from), Some(to)) => Some((from, to)),
-                _ => return Err(error(UbaaError::invalid_input("请填写完整的打印页码范围"))),
+                _ => {
+                    return Err(BridgeError::from_core(
+                        UbaaError::invalid_input("请填写完整的打印页码范围"),
+                        None,
+                    ));
+                }
             };
             let options = core::PrintOptions {
                 color: options.color,
@@ -199,8 +214,17 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_upload(files, options)
                 .await
-                .map_err(error)?;
-            Ok(results.into_iter().map(|r| r.err().map(error)).collect())
+                .map_err(BridgeError::from_routed)?;
+            let route = results.resolution.mode.into();
+            Ok(results
+                .data
+                .into_iter()
+                .map(|result| {
+                    result
+                        .err()
+                        .map(|error| BridgeError::from_core(error, Some(route)))
+                })
+                .collect())
         })
         .await
     }
@@ -213,8 +237,9 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_stations()
                 .await
-                .map_err(error)?;
+                .map_err(BridgeError::from_routed)?;
             Ok(rows
+                .data
                 .into_iter()
                 .map(|row| BridgePrintStation {
                     name: row.name,
@@ -247,10 +272,11 @@ impl BridgeClient {
                 .ok_or_else(disposed_error)?
                 .cloud_print_records(&begin, &end, kind, page)
                 .await
-                .map_err(error)?;
+                .map_err(BridgeError::from_routed)?;
             Ok(BridgePrintRecords {
-                total_pages: result.total_pages,
+                total_pages: result.data.total_pages,
                 items: result
+                    .data
                     .items
                     .into_iter()
                     .map(|row| BridgePrintRecord {

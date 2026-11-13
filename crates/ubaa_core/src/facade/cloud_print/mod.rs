@@ -5,18 +5,19 @@ use std::path::PathBuf;
 
 use futures_util::{StreamExt as _, stream};
 
+use crate::connection::RouteResolution;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, Result, UbaaError};
 use crate::features::cloud_print::{self, auth, read};
 use crate::runtime::ClientRuntime;
 
 use super::routing::read_with_fallback;
-use super::{UbaaClient, types::Operation};
+use super::{Routed, RoutedError, RoutedResult, UbaaClient, types::Operation};
 
 macro_rules! print_read {
     ($client:ident, |$runtime:ident| $read:expr) => {{
         let resolution = $client.print_route()?;
-        let (_, result) = read_with_fallback!($client, resolution, {
+        let (resolution, result) = read_with_fallback!($client, resolution, {
             match $client.print_runtime(resolution.mode).await {
                 Ok($runtime) => {
                     $runtime.reset_network_observation();
@@ -26,7 +27,7 @@ macro_rules! print_read {
                 Err(error) => Err(error),
             }
         });
-        result
+        routed(resolution, result)
     }};
 }
 
@@ -92,9 +93,8 @@ impl PrintOptions {
 }
 
 impl UbaaClient {
-    fn print_route(&mut self) -> Result<crate::connection::RouteResolution> {
+    fn print_route(&mut self) -> std::result::Result<RouteResolution, RoutedError> {
         self.resolve_operation(Operation::CloudPrint)
-            .map_err(|error| error.error)
     }
 
     async fn print_runtime(&mut self, mode: ConnectionMode) -> Result<&mut ClientRuntime> {
@@ -151,11 +151,11 @@ impl UbaaClient {
         result
     }
 
-    pub async fn cloud_print_documents(&mut self, scans: bool) -> Result<Vec<PrintDocument>> {
+    pub async fn cloud_print_documents(&mut self, scans: bool) -> RoutedResult<Vec<PrintDocument>> {
         print_read!(self, |runtime| read::documents(runtime, scans).await)
     }
 
-    pub async fn cloud_print_preview(&mut self, id: &str, page: u32) -> Result<Vec<u8>> {
+    pub async fn cloud_print_preview(&mut self, id: &str, page: u32) -> RoutedResult<Vec<u8>> {
         print_read!(self, |runtime| async {
             let jobs = read::documents(runtime, false).await?;
             read::preview(runtime, find(&jobs, id)?, page).await
@@ -163,7 +163,7 @@ impl UbaaClient {
         .await)
     }
 
-    pub async fn cloud_print_scan(&mut self, id: &str) -> Result<Vec<u8>> {
+    pub async fn cloud_print_scan(&mut self, id: &str) -> RoutedResult<Vec<u8>> {
         print_read!(self, |runtime| async {
             let jobs = read::documents(runtime, true).await?;
             read::scan_download(runtime, find(&jobs, id)?).await
@@ -172,9 +172,9 @@ impl UbaaClient {
     }
 
     /// 并发下载同账号的扫描原件，按传入顺序合并成一个 PDF。
-    pub async fn cloud_print_scan_pdf(&mut self, ids: Vec<String>) -> Result<Vec<u8>> {
+    pub async fn cloud_print_scan_pdf(&mut self, ids: Vec<String>) -> RoutedResult<Vec<u8>> {
         if ids.len() < 2 {
-            return Err(UbaaError::invalid_input("请至少选择两份扫描 PDF"));
+            return Err(unrouted(UbaaError::invalid_input("请至少选择两份扫描 PDF")));
         }
         print_read!(self, |runtime| merge_scan_batch(runtime, &ids).await)
     }
@@ -184,14 +184,18 @@ impl UbaaClient {
         &mut self,
         scans: bool,
         ids: Vec<String>,
-    ) -> Result<Vec<Result<()>>> {
-        valid_count(ids.len())?;
-        let mode = self.print_route()?.mode;
-        let runtime = self.print_runtime(mode).await?;
-        match read::documents(runtime, scans).await {
-            Ok(jobs) => Ok(delete_batch(runtime, &jobs, scans, &ids).await),
-            Err(error) => self.print_result(Err(error)),
+    ) -> RoutedResult<Vec<Result<()>>> {
+        valid_count(ids.len()).map_err(unrouted)?;
+        let resolution = self.print_route()?;
+        let result = async {
+            let runtime = self.print_runtime(resolution.mode).await?;
+            match read::documents(runtime, scans).await {
+                Ok(jobs) => Ok(delete_batch(runtime, &jobs, scans, &ids).await),
+                Err(error) => self.print_result(Err(error)),
+            }
         }
+        .await;
+        routed(resolution, result)
     }
 
     /// 单批最多四个文档同时上传；各请求单次发送且不复用响应 Cookie。
@@ -199,20 +203,27 @@ impl UbaaClient {
         &mut self,
         files: Vec<PrintFile>,
         options: PrintOptions,
-    ) -> Result<Vec<Result<()>>> {
-        valid_count(files.len())?;
-        options.validate()?;
-        let mode = self.print_route()?.mode;
-        let runtime = self.print_runtime(mode).await?;
-        Ok(run_four_ordered(files, |file| {
-            let mut lane = runtime.fork_with_cookie_filter(|_| true);
-            async move {
-                cloud_print::send_upload(&mut lane, &file.path, &file.name, options).await
-            }
-        }).await)
+    ) -> RoutedResult<Vec<Result<()>>> {
+        valid_count(files.len()).map_err(unrouted)?;
+        options.validate().map_err(unrouted)?;
+        let resolution = self.print_route()?;
+        let result = async {
+            let runtime = self.print_runtime(resolution.mode).await?;
+            let results =
+                run_four_ordered(files, |file| {
+                    let mut lane = runtime.fork_with_cookie_filter(|_| true);
+                    async move {
+                        cloud_print::send_upload(&mut lane, &file.path, &file.name, options).await
+                    }
+                })
+                .await;
+            Ok(results)
+        }
+        .await;
+        routed(resolution, result)
     }
 
-    pub async fn cloud_print_stations(&mut self) -> Result<Vec<PrintStation>> {
+    pub async fn cloud_print_stations(&mut self) -> RoutedResult<Vec<PrintStation>> {
         print_read!(self, |runtime| read::stations(runtime).await)
     }
 
@@ -222,11 +233,25 @@ impl UbaaClient {
         end: &str,
         kind: u8,
         page: u32,
-    ) -> Result<PrintRecords> {
+    ) -> RoutedResult<PrintRecords> {
         print_read!(self, |runtime| read::records(
             runtime, begin, end, kind, page
         )
         .await)
+    }
+}
+
+// 只补充本次路由元数据，打印站认证失败仍由原有独立会话收尾处理。
+fn routed<T>(resolution: RouteResolution, result: Result<T>) -> RoutedResult<T> {
+    result
+        .map(|data| Routed { data, resolution })
+        .map_err(|error| super::routing::routed_error(error, resolution))
+}
+
+fn unrouted(error: UbaaError) -> RoutedError {
+    RoutedError {
+        error,
+        resolution: None,
     }
 }
 

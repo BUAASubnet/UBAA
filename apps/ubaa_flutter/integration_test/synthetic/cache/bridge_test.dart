@@ -52,17 +52,37 @@ void main() {
       offline.finish();
       online.finish();
       await probeRecoveryControl(client);
-      await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
-      await expectLater(
-        client.cloudPrintDocuments(scans: false),
-        throwsA(
-          isA<BridgeError>().having(
-            (error) => error.code,
-            '云打印接口在缺会话时拒绝学校请求',
-            BridgeErrorCode.authenticationRequired,
+      for (final (policy, route) in [
+        (BridgeRoutePolicy.direct, BridgeConnectionMode.direct),
+        (BridgeRoutePolicy.webVpn, BridgeConnectionMode.webVpn),
+      ]) {
+        await client.setDefaultRoutePolicy(policy: policy);
+        await expectLater(
+          client.cloudPrintDocuments(scans: false),
+          throwsA(
+            isA<BridgeError>()
+                .having(
+                  (error) => error.code,
+                  '缺少会话',
+                  BridgeErrorCode.authenticationRequired,
+                )
+                .having((error) => error.resolvedRoute, '云打印所需路线穿过 FFI', route),
           ),
+        );
+      }
+      await expectLater(
+        client.cloudPrintScanPdf(ids: const []),
+        throwsA(
+          isA<BridgeError>()
+              .having(
+                (error) => error.code,
+                '本地参数无效',
+                BridgeErrorCode.invalidInput,
+              )
+              .having((error) => error.resolvedRoute, '选路前错误没有路线', isNull),
         ),
       );
+      await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       final cloud = await client.bhpanCapabilities();
       expect(cloud.directMetadata, BridgeBhpanCapability.available);
       expect(cloud.objectTransfer, BridgeBhpanCapability.available);
