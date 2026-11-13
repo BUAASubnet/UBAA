@@ -2,6 +2,10 @@ name: Release 构建与草稿
 on:
   workflow_dispatch:
     inputs:
+      local_macos:
+        description: 使用本机专用 runner 执行 Apple 作业及 macOS 验收
+        type: boolean
+        default: false
       tag:
         description: 草稿 Tag，须与 version.toml 一致；留空使用当前版本
         type: string
@@ -36,6 +40,8 @@ jobs:
       - store-access
       - acceptance
     uses: ./.github/workflows/ci.yml
+    with:
+      local_macos: ${{ inputs.local_macos }}
     if: needs.acceptance.outputs.reused != 'true'
   android:
     needs:
@@ -201,7 +207,7 @@ jobs:
     needs:
       - metadata
       - ready
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && 'ubaa-release-macos' || matrix.os }}
     environment: release-production
     timeout-minutes: 180
     env: *release_env
@@ -255,7 +261,7 @@ jobs:
     needs:
       - metadata
       - ready
-    runs-on: xcode-27
+    runs-on: ${{ inputs.local_macos && 'ubaa-release-macos' || 'xcode-27' }}
     environment: release-production
     timeout-minutes: 180
     env: *release_env
@@ -277,7 +283,13 @@ jobs:
         shell: bash
         run: |
           source scripts/tools/versions.env
-          sudo xcode-select --switch "/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          developer_dir="/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          if [[ ! -d "$developer_dir" ]]; then
+            developer_dir=$(xcode-select -p)
+          fi
+          export DEVELOPER_DIR="$developer_dir"
+          [[ "$(xcodebuild -version | head -n 1)" == "Xcode $XCODE_IOS_VERSION" ]] || exit 1
+          printf 'DEVELOPER_DIR=%s\n' "$DEVELOPER_DIR" >> "$GITHUB_ENV"
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
       - name: 归档并导出 IPA
@@ -412,7 +424,7 @@ jobs:
     needs:
       - metadata
       - ios
-    runs-on: xcode-27
+    runs-on: ${{ inputs.local_macos && 'ubaa-release-macos' || 'xcode-27' }}
     environment: release-production
     timeout-minutes: 90
     env: *release_env
@@ -471,7 +483,7 @@ jobs:
     if: ${{ !cancelled() && needs.ohos.result == 'success' }}
   store-access:
     needs: metadata
-    runs-on: macos-26
+    runs-on: ${{ inputs.local_macos && 'ubaa-release-macos' || 'macos-26' }}
     environment: release-production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

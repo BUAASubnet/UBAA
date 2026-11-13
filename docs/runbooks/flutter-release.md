@@ -39,6 +39,12 @@
 
 ## 步骤
 
+### 本机 Apple runner
+
+手动触发 Release 时，勾选 `local_macos`，或运行 `gh workflow run release.yml --ref main -f local_macos=true`，可将商店权限检查、iOS 构建与上传、macOS 两种架构发布及验收中的 Apple 作业交给带有 `ubaa-release-macos` 标签的本机 runner。Linux、Windows、Android 和 HarmonyOS 继续使用托管 runner。默认不勾选，普通 PR 和独立验收也继续使用托管 runner。
+
+本机需要保持在线，安装版本清单指定的 Xcode、CocoaPods 和项目工具，并在 runner 环境配置 `UBAA_FLUTTER_HOME`。本机作业复用已安装的 Flutter 和 Pub 缓存，仍核对锁定的 SDK 提交与 Dart 版本。一个 runner 串行执行作业，避免 Apple 临时 Keychain 相互覆盖。macOS arm64 和 x86_64 分别构建，Apple Silicon 主机通过交叉编译生成 Intel 产物。Xcode 通过作业的 `DEVELOPER_DIR` 选择，不改变系统全局设置。注册本机 runner 时仅分配专用标签，并配置作业启动钩子，只允许本仓库 `main` 上手动触发的 Release；签名仍从 `release-production` 环境取得并在作业结束时清理。
+
 ### 1. 固定候选并记录证据
 
 先完成并提交源码候选，再在同一候选上验证。每轮记录：源码候选 SHA、工作树状态、工具链、命令、平台/设备、路线、退出码、产物摘要和未执行原因。

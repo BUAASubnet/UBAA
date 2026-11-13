@@ -2,6 +2,11 @@ name: Flutter 原生平台构建
 
 on:
   workflow_call:
+    inputs:
+      local_macos:
+        description: Release 使用本机 Apple runner
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       ohos_only:
@@ -61,7 +66,7 @@ jobs:
             abi: x86_64
             artifact_id: android-apk-x86_64
             artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/toolchain
@@ -71,7 +76,13 @@ jobs:
         shell: bash
         run: |
           source scripts/tools/versions.env
-          sudo xcode-select --switch "/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          developer_dir="/Applications/Xcode_${XCODE_IOS_VERSION}.app/Contents/Developer"
+          if [[ ! -d "$developer_dir" ]]; then
+            developer_dir=$(xcode-select -p)
+          fi
+          export DEVELOPER_DIR="$developer_dir"
+          [[ "$(xcodebuild -version | head -n 1)" == "Xcode $XCODE_IOS_VERSION" ]] || exit 1
+          printf 'DEVELOPER_DIR=%s\n' "$DEVELOPER_DIR" >> "$GITHUB_ENV"
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 

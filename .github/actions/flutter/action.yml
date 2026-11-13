@@ -5,19 +5,30 @@ runs:
   steps:
     - id: versions
       shell: bash
+      env:
+        RUNNER_KIND: ${{ runner.environment }}
       run: |
         source scripts/tools/versions.env
         printf 'commit=%s\n' "$FLUTTER_COMMIT" >> "$GITHUB_OUTPUT"
-        printf 'PUB_CACHE=%s/pub-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+        if [[ "$RUNNER_KIND" != self-hosted ]]; then
+          printf 'PUB_CACHE=%s/pub-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+        fi
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: runner.environment != 'self-hosted'
       with:
         path: ${{ runner.temp }}/flutter
         key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: runner.environment != 'self-hosted'
       with:
         path: ${{ runner.temp }}/pub-cache
         key: pub-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: pub-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.commit }}-
+    - name: 核对本机固定 Flutter 与 Dart
+      if: runner.environment == 'self-hosted'
+      shell: bash
+      run: bash scripts/check/flutter-toolchains.sh official
     - name: 安装并核对锁定的 Flutter 与 Dart
+      if: runner.environment != 'self-hosted'
       shell: bash
       run: bash scripts/bootstrap/flutter.sh
