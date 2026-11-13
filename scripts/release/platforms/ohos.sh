@@ -13,9 +13,9 @@ encrypted_passwords=$(node scripts/release/platforms/ohos_signing.mjs)
 read -r OHOS_STORE_PASSWORD OHOS_KEY_PASSWORD <<< "$encrypted_passwords"
 export OHOS_STORE_PASSWORD OHOS_KEY_PASSWORD
 unset encrypted_passwords
-just ohos-check mode=release
+node scripts/release/platforms/ohos_profile.mjs just ohos-check mode=release
 cd apps/ubaa_ohos
-just flutter-ohos build app --release --target-platform ohos-arm64 \
+node ../../scripts/release/platforms/ohos_profile.mjs just flutter-ohos build app --release --target-platform ohos-arm64 \
   --dart-define="UBAA_APP_SERVICE_URL=$UBAA_APP_SERVICE_URL" \
   --dart-define=UBAA_DISTRIBUTION_CHANNEL=app_gallery
 cd "$repo_root"

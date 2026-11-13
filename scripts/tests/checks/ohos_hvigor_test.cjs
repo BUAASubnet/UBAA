@@ -105,3 +105,68 @@ test('Debug 缺配置时清空签名，Release 缺配置时失败', () => {
     assert.equal('signingConfig' in debug.app.products[0], false);
     assert.throws(() => applySigning(profile(), 'release', { debug: { name: 'x' } }), /缺少当前构建模式/);
 });
+
+for (const fails of [false, true]) {
+    test(`Flutter 构建期间可以读取实际签名，${fails ? '失败' : '成功'}后恢复配置`, async (t) => {
+        const { withSigningProfile } = await import('../../release/platforms/ohos_profile.mjs');
+        const parent = path.resolve('.ubaa_local/tests');
+        fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
+        const folder = fs.mkdtempSync(path.join(parent, 'ohos_profile_'));
+        t.after(() => fs.rmSync(folder, { recursive: true, force: true }));
+        const file = path.join(folder, 'build-profile.json5');
+        const original = '{"app":{"signingConfigs": [],"products":[{"name":"default","signingConfig":"default"}]}}\n';
+        fs.writeFileSync(file, original, { mode: 0o644 });
+        const signing = { name: 'fixture-release', type: 'HarmonyOS', material: {
+            storeFile: '/fixture/release.p12', storePassword: 'synthetic-$&-password',
+            keyAlias: 'release', keyPassword: 'synthetic-key', certpath: '/fixture/release.cer',
+            profile: '/fixture/release.p7b', signAlg: 'SHA256withECDSA' } };
+        const build = async () => {
+            const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+            assert.deepEqual(profile.app.signingConfigs, [signing]);
+            assert.equal(profile.app.products[0].signingConfig, signing.name);
+            if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+            if (fails) throw new Error('合成构建失败');
+            return 0;
+        };
+        if (fails) await assert.rejects(withSigningProfile(file, signing, build), /合成构建失败/);
+        else assert.equal(await withSigningProfile(file, signing, build), 0);
+        assert.equal(fs.readFileSync(file, 'utf8'), original);
+        if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o644);
+    });
+}
+
+test('发布入口保留构建退出码，并在终止信号后恢复签名配置', async (t) => {
+    const { spawnSync, spawn } = require('node:child_process');
+    const { once } = require('node:events');
+    const parent = path.resolve('.ubaa_local/tests');
+    fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
+    const root = fs.mkdtempSync(path.join(parent, 'ohos_command_'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    for (const relative of ['scripts/release/platforms/ohos_profile.mjs', 'scripts/tools/ohos_hvigor.cjs']) {
+        fs.mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });
+        fs.copyFileSync(path.resolve(relative), path.join(root, relative));
+    }
+    fs.mkdirSync(path.join(root, 'apps/ubaa_ohos/ohos'), { recursive: true });
+    const file = path.join(root, 'apps/ubaa_ohos/ohos/build-profile.json5');
+    const original = '{"app":{"signingConfigs": []}}\n';
+    fs.writeFileSync(file, original);
+    const env = { ...process.env, OHOS_STORE_FILE: '/fixture/release.p12',
+        OHOS_STORE_PASSWORD: 'synthetic-store', OHOS_KEY_ALIAS: 'release',
+        OHOS_KEY_PASSWORD: 'synthetic-key', OHOS_CERT_FILE: '/fixture/release.cer',
+        OHOS_PROFILE_FILE: '/fixture/release.p7b' };
+    const script = path.join(root, 'scripts/release/platforms/ohos_profile.mjs');
+    const result = spawnSync(process.execPath, [script, process.execPath, '-e', 'process.exit(7)'], { env });
+    assert.equal(result.status, 7);
+    assert.equal(fs.readFileSync(file, 'utf8'), original);
+    if (process.platform === 'win32') return;
+    const child = spawn(process.execPath, [script, process.execPath, '-e',
+        'setInterval(() => {}, 1000); console.log("ready");'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    t.after(() => { if (child.exitCode === null) child.kill('SIGTERM'); });
+    const closed = once(child, 'close');
+    await once(child.stdout, 'data');
+    assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).app.signingConfigs.length, 1);
+    child.kill('SIGTERM');
+    const [code] = await closed;
+    assert.equal(code, 143);
+    assert.equal(fs.readFileSync(file, 'utf8'), original);
+});
