@@ -263,9 +263,13 @@ final class HomeCoordinator {
     _refresh = complete.future;
     unawaited(() async {
       try {
+        _dayAttempts.clear();
+        _forceDayReads = true;
         final main = refreshMain();
+        final checkedDays = <(int, String)>{};
         await Future.wait([
           main,
+          _refreshVisibleDay(generation, checkedDays),
           for (final source in HomeSupplement.values)
             _report(_load(source, force: true)),
         ]);
@@ -273,9 +277,7 @@ final class HomeCoordinator {
           complete.complete();
           return;
         }
-        final schedule = _scheduleState();
-        if (schedule.remote)
-          await _report(_loadDay(schedule.date, force: true));
+        await _refreshVisibleDay(generation, checkedDays);
         await flushProjection();
         complete.complete();
       } on Object catch (error, stack) {

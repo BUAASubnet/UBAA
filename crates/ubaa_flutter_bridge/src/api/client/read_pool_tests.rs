@@ -2,7 +2,7 @@ use super::*;
 use futures_util::FutureExt;
 
 #[tokio::test]
-async fn 读取限制八组且同组互斥_写方等待并阻止新读取插队() {
+async fn 最多八项在途且同组互斥_写方等待并阻止新读取插队() {
     let root = std::env::temp_dir().join(format!("ubaa-read-pool-{}", std::process::id()));
     let pool = ClientPool::new(UbaaClient::open(&root).unwrap());
     let academic = pool.read(Some(ReadGroup::Academic)).await.unwrap();
@@ -19,6 +19,7 @@ async fn 读取限制八组且同组互斥_写方等待并阻止新读取插队(
     let cgyy = pool.read(Some(ReadGroup::Cgyy)).await.unwrap();
     let profile = pool.read(Some(ReadGroup::Profile)).await.unwrap();
     assert!(pool.permits.try_acquire().is_err());
+    assert!(pool.read(Some(ReadGroup::Exam)).now_or_never().is_none());
     let writer = pool.lock();
     tokio::pin!(writer);
     assert!(writer.as_mut().now_or_never().is_none());

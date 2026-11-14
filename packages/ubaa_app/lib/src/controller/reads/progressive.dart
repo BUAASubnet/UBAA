@@ -247,7 +247,7 @@ mixin ControllerProgressive on ControllerState {
         scope.task = activeTask;
         // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。
         // 预算耗尽或已发布首批后让位，不能让异常计划一直占用首页队列。
-        var homeBootstrapBatches = 3;
+        var homeBootstrapBatches = scope.firstResult.isCompleted ? 0 : 3;
         while (scope.valid) {
           final homeBootstrap = query == null && homeBootstrapBatches > 0;
           final batchPriority = query == null && !homeBootstrap

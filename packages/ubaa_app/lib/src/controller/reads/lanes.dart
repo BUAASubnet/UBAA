@@ -6,9 +6,9 @@ ReadLane? controllerReadLane(Object backend, FeatureId feature) {
   if (backend is! ConcurrentReadBackend) return null;
   return switch (feature) {
     FeatureId.schedule ||
-    FeatureId.exam ||
     FeatureId.grades ||
     FeatureId.classroom => ReadLane.academic,
+    FeatureId.exam => ReadLane.exam,
     FeatureId.signin => ReadLane.signin,
     FeatureId.spoc => ReadLane.spoc,
     FeatureId.judge => ReadLane.judge,

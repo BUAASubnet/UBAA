@@ -33,7 +33,7 @@ void main() {
       }
     });
     final started = <String>[];
-    final lanes = ReadLane.values;
+    final lanes = ReadLane.values.take(8).toList();
     final jobs = [
       for (var i = 0; i < lanes.length; i++)
         scheduler.run(ReadPriority.home, () => true, () async {
@@ -42,6 +42,14 @@ void main() {
         }, lane: lanes[i]),
     ];
     await until(() => started.length == 8);
+    final ninth = scheduler.run(
+      ReadPriority.home,
+      () => true,
+      () async => started.add('考试'),
+      lane: ReadLane.exam,
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(started, hasLength(8), reason: '新增考试组仍受全局八项上限约束');
     final same = scheduler.run(
       ReadPriority.home,
       () => true,
@@ -62,7 +70,7 @@ void main() {
     }
     await write;
     expect(started.indexOf('写回读'), 8);
-    await Future.wait([...jobs, same]);
+    await Future.wait([...jobs, same, ninth]);
     expect(started.indexOf('同组'), greaterThan(started.indexOf('写回读')));
   });
 }

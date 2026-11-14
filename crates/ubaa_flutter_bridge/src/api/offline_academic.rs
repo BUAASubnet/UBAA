@@ -21,10 +21,13 @@ impl BridgeClient {
         query: core::AcademicQuery,
     ) -> Result<core::OfflineRefresh<core::CachePayload>, BridgeError> {
         catch_panic(async {
-            let mut guard = self
-                .inner
-                .read(Some(crate::api::read_pool::ReadGroup::Academic))
-                .await?;
+            let group = match query {
+                core::AcademicQuery::ExamTerms | core::AcademicQuery::Exams { .. } => {
+                    crate::api::read_pool::ReadGroup::Exam
+                }
+                _ => crate::api::read_pool::ReadGroup::Academic,
+            };
+            let mut guard = self.inner.read(Some(group)).await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             client

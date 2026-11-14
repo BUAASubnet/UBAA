@@ -17,7 +17,7 @@ void main() {
     expect(controller.readCacheEpoch, epoch);
   });
 
-  test('课表在途时其他首页业务开始，教务考试等待同组课表', () async {
+  test('课表在途时考试和其他首页业务同时开始', () async {
     final backend = _Backend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
@@ -29,9 +29,10 @@ void main() {
         FeatureId.signin,
         FeatureId.spoc,
         FeatureId.judge,
+        FeatureId.exam,
       ]),
     );
-    expect(backend.started, isNot(contains(FeatureId.exam)));
+    expect(backend.started, contains(FeatureId.exam));
     expect(backend.maximumActive, greaterThan(1));
     backend.release();
     await until(() => backend.started.contains(FeatureId.exam));

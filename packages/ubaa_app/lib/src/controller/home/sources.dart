@@ -1,6 +1,31 @@
 part of 'coordinator.dart';
 
 extension _HomeSources on HomeCoordinator {
+  Future<void> _refreshVisibleDay(
+    int generation,
+    Set<(int, String)> checked,
+  ) async {
+    while (!_disposed && generation == _generation && _active) {
+      final schedule = _scheduleState();
+      if (!schedule.remote) return;
+      final date = schedule.date;
+      if (checked.contains((_epoch, date)) && _dayAttempts.contains(date))
+        return;
+      final epoch = _epoch;
+      final pending = _dayTasks[date];
+      final error = pending != null
+          ? await pending
+          : _dayAttempts.contains(date)
+          ? _days[date]?.error
+          : await _loadDay(date, force: true);
+      if (_disposed || generation != _generation || !_active) return;
+      // 旧刷新在途时，新代次仍需取得一次自己的日期结果。
+      if (epoch != _epoch || !_dayAttempts.contains(date)) continue;
+      checked.add((epoch, date));
+      await _report(Future.value(error));
+    }
+  }
+
   Future<void> _restoreVisibleDay() async {
     final read = readCachedDay;
     if (read == null || !_active || !_readDays || _blocked) return;

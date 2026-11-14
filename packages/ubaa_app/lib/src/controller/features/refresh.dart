@@ -332,6 +332,25 @@ mixin ControllerRefresh on ControllerState {
     );
     scope.firstResult = visible;
     internalReadScopes.add(scope);
+    final home = internalHomeDefaults[feature]!;
+    if (feature == FeatureId.judge &&
+        query == null &&
+        !writeReadback &&
+        home.evidence != null &&
+        (home.details.any(
+              (item) => item.presentation is JudgeAssignmentPresentation,
+            ) ||
+            (home.details.isEmpty && home.evidence!.complete))) {
+      // 已有内容先交付首页，在线计划仍负责核对列表及复查过期详情。
+      internalHomeDefaults[feature] = home.copyWith(refining: true);
+      if (internalSnapshots[feature]!.readContext?.query == null) {
+        internalSnapshots[feature] = internalSnapshots[feature]!.copyWith(
+          refining: true,
+        );
+      }
+      visible.complete();
+      internalNotify();
+    }
     if (query == null &&
         !writeReadback &&
         !controllerHomeDefaultFeatures.contains(feature)) {
