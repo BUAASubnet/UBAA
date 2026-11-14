@@ -3,15 +3,25 @@ description: 下载 UBAA：Android、Windows、macOS 和 Linux 安装包，以�
 ---
 
 <script setup>
+import { provide, ref } from 'vue'
 import { data as release } from './download.data.js'
 import DownloadSuggest from './components/DownloadSuggest.vue'
 import DownloadOptions from './components/DownloadOptions.vue'
 import PlatformGrid from './components/PlatformGrid.vue'
+
+const useBhpan = ref(true)
+provide('useBhpan', useBhpan)
 </script>
 
 # 下载 UBAA
 
 本页帮你选择适合设备的安装包并完成安装。当前版本 **v{{ release.version }}**（构建 {{ release.build }}）。
+
+<label class="download-source-toggle">
+  <input v-model="useBhpan" type="checkbox" role="switch" />
+  使用北航云盘下载
+</label>
+<p class="download-source-note">{{ useBhpan ? '当前使用北航云盘。下载遇到问题时，可关闭开关改用备用下载。' : '当前使用备用下载。开启开关可切换到北航云盘。' }}</p>
 
 <DownloadSuggest />
 
@@ -64,6 +74,16 @@ HarmonyOS 版将通过 AppGallery 提供，上架后在这里给出链接。
 
 ## 其他下载
 
-- <a :href="release.licenses.url">第三方软件许可证</a>（{{ release.licenses.size }}）随当前安装包一同提供。
+- <a :href="useBhpan ? release.licenses.url : release.licenses.mirrorUrl" data-no-router>第三方软件许可证</a>（{{ release.licenses.size }}）随当前安装包一同提供。
 - 旧版 v1.x 的安装包和历史记录保留在 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases)。
 - 安装或登录遇到问题，可查看[常见问题](/tech/troubleshooting)。
+
+<style scoped>
+.download-source-toggle { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; }
+.download-source-toggle input { appearance: none; position: relative; width: 2.5rem; height: 1.5rem; margin: 0; border: 1px solid var(--vp-c-divider); border-radius: 1rem; background: var(--vp-c-default-3); cursor: pointer; transition: background 0.2s; }
+.download-source-toggle input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 1rem; height: 1rem; border-radius: 50%; background: var(--vp-c-white); box-shadow: 0 1px 3px #0003; transition: transform 0.2s; }
+.download-source-toggle input:checked { background: var(--vp-c-brand-1); }
+.download-source-toggle input:checked::after { transform: translateX(1rem); }
+.download-source-toggle input:focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 3px; }
+.download-source-note { margin-top: 0.5rem; color: var(--vp-c-text-2); font-size: 0.875rem; }
+</style>

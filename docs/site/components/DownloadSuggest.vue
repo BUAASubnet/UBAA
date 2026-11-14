@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { inject, onMounted, ref } from "vue";
 import { data } from "../download.data.js";
 
 // 服务端渲染时不知道访问设备，挂载后按浏览器信息推荐；识别不了就不显示。
+const useBhpan = inject("useBhpan", true);
 const suggestion = ref(null);
 const { android, windows, macos, linux } = data.platforms;
 
@@ -55,7 +56,7 @@ onMounted(async () => {
     <template v-else>
       <p>看起来你在使用 {{ NAMES[suggestion.platform] }} 设备，推荐下载：</p>
       <div class="actions">
-        <a v-for="row in suggestion.rows" :key="row.name" class="primary" :href="row.url">
+        <a v-for="row in suggestion.rows" :key="row.name" class="primary" :href="useBhpan ? row.url : row.mirrorUrl" data-no-router>
           下载 {{ NAMES[suggestion.platform] }} 版
           <small>{{ row.label }} · {{ row.size }}</small>
         </a>

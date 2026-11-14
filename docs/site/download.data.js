@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import source from "./download-source.json" with { type: "json" };
 
 // 下载页展示的平台与架构；清单缺少其中任何文件、大小或地址时构建失败。
 const PLATFORMS = {
@@ -18,8 +19,11 @@ const PLATFORMS = {
   ],
 };
 
-export function describe(manifest) {
+export function describe(manifest, downloadSource = source) {
   const { version, build } = manifest;
+  if (downloadSource.version !== version || downloadSource.build !== build) {
+    throw new Error("download-source.json 的分享版本与下载清单不符");
+  }
   const prefix = `https://r2.ubaa.top/releases/v${version}/${build}/`;
   const assets = new Map(manifest.assets.map((asset) => [asset.name, asset]));
   const pick = (name) => {
@@ -34,7 +38,8 @@ export function describe(manifest) {
     }
     return {
       name,
-      url: asset.url,
+      url: `/downloads/v${version}/${build}/${name}`,
+      mirrorUrl: asset.url,
       size: `${(asset.size / 1e6).toFixed(1)} MB`,
     };
   };
@@ -53,8 +58,18 @@ export function describe(manifest) {
 }
 
 export default {
-  watch: ["./download.json"],
-  load([file]) {
-    return describe(JSON.parse(readFileSync(file, "utf8")));
+  watch: ["./download.json", "./download-source.json"],
+  load() {
+    return describe(
+      JSON.parse(
+        readFileSync(new URL("./download.json", import.meta.url), "utf8"),
+      ),
+      JSON.parse(
+        readFileSync(
+          new URL("./download-source.json", import.meta.url),
+          "utf8",
+        ),
+      ),
+    );
   },
 };

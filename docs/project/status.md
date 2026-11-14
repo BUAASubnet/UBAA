@@ -73,6 +73,8 @@ Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材�
 
 文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，应用服务从 `main` 部署到 `app.ubaa.top`。两个 Worker 使用 Route + CNAME，部署只更新代码与资源绑定。`main` 保留 `main-required` 完整验收和分支保护。
 
+下载页提供 v2.0.0（构建 2004）的 8 个安装包和许可证，默认从北航云盘公开分享获取即时下载地址。页面开关可统一切换到 R2 备用下载；设备推荐和各平台按钮跟随同一选择。Direct 下已核对全部文件名与大小，并验证匿名 Range 下载及本地 Worker 跳转。
+
 Release 工作流由维护者在 main 手动启动，各平台构建后准备 GitHub Release 草稿、R2 产物和商店构建。维护者在整次工作流成功后手动发布草稿，发布动作不触发重复构建。
 
 2026-11-13 工具链与依赖升级后的本机验收覆盖完整 Rust/CLI 测试、Flutter 八个包、macOS 原生集成、Android ARM64 Debug APK、iOS 模拟器和 OHOS 无签名 Debug HAP。远端 CI、Windows/Linux 原生构建及实体设备验收待执行。

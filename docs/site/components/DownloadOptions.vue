@@ -1,6 +1,8 @@
 <script setup>
+import { inject } from "vue";
 import { data } from "../download.data.js";
 
+const useBhpan = inject("useBhpan", true);
 const props = defineProps({ platform: { type: String, required: true } });
 const rows = data.platforms[props.platform];
 </script>
@@ -12,7 +14,7 @@ const rows = data.platforms[props.platform];
         <strong>{{ row.label }}</strong>
         <span>{{ row.hint }}</span>
       </div>
-      <a class="download-button" :href="row.url">
+      <a class="download-button" :href="useBhpan ? row.url : row.mirrorUrl" data-no-router>
         下载 {{ row.type }}
         <small>{{ row.size }}</small>
       </a>
