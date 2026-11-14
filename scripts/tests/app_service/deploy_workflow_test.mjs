@@ -30,3 +30,7 @@ test("服务器部署包必须实际上传，包含明确选择的隐藏目录�
   assert.equal(upload.with["include-hidden-files"], true);
   assert.deepEqual(upload.with.path.trim().split("\n"), [".ubaa_local/app_service.tar.gz", ".ubaa_local/bhpan-publish"]);
 });
+
+test("发布工具使用可在 Debian 13 运行的 glibc 基线构建", () => {
+  assert.equal(workflow.jobs.check["runs-on"], "ubuntu-24.04");
+});

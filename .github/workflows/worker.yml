@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       CARGO_BUILD_JOBS: 2
       CARGO_INCREMENTAL: 0
