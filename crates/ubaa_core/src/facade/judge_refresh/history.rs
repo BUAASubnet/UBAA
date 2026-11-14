@@ -208,3 +208,17 @@ pub(super) fn known_summaries(
         _ => &[],
     }
 }
+
+// 被学期筛选排除的项目仍属于课程完整索引，保留归属供下次刷新使用。
+pub(super) fn preserve_excluded(
+    refresh: &mut JudgeRefresh,
+    items: Vec<super::JudgeAssignmentSummary>,
+) {
+    if let Some(progress) = &mut refresh.history {
+        let now = chrono::Utc::now().timestamp();
+        for item in items {
+            progress.all_historical &= policy::historical_summary(&item, now);
+            progress.summaries.push(item);
+        }
+    }
+}

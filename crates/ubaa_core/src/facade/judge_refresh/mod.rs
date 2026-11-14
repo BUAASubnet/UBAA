@@ -7,6 +7,7 @@ pub(super) mod policy;
 mod progress;
 mod read;
 mod recovery;
+mod semester;
 use super::{
     CacheCompleteness, CacheError, CachePayload, CacheQuery, CacheReadTicket, CacheScope,
     JudgeAssignmentKey, JudgeAssignmentSummary, JudgeScan, JudgeScanBatch, JudgeScanCancellation,
@@ -27,7 +28,7 @@ pub struct JudgeRefreshOptions {
     pub full_refresh: bool,
     /// 手动重新发现作业，仍允许复用有效详情。
     pub refresh_indices: bool,
-    /// 主动核验非历史详情，保留有效历史缓存。
+    /// 主动核验当前范围；有校历时使用本学期，否则沿用非历史范围。
     pub detail_refresh: JudgeDetailRefresh,
     pub preferred_course: Option<String>,
     pub current_assignment: Option<JudgeAssignmentKey>,
@@ -36,6 +37,8 @@ pub struct JudgeRefreshOptions {
 pub struct JudgeRefresh {
     scan: JudgeScan,
     options: JudgeRefreshOptions,
+    semester: Option<semester::Semester>,
+    known_semester: Option<semester::Semester>,
     summaries: BTreeMap<(String, String), JudgeAssignmentSummary>,
     original: Vec<JudgeAssignmentSummary>,
     original_source_at: i64,
@@ -143,6 +146,18 @@ impl UbaaClient {
                 Vec::new()
             }
         };
+        let known_semester = if options.include_expired {
+            None
+        } else {
+            match semester::load(cache, scan.resolution.mode, now) {
+                Ok(value) => value,
+                Err(error) => {
+                    remember_save(&mut save_error, Err::<(), _>(error))?;
+                    None
+                }
+            }
+        };
+        let semester = known_semester.filter(|value| value.covers(now));
         policy::prioritize_courses(&mut scan, &options, &original, now);
         let summaries: BTreeMap<_, _> = original
             .iter()
@@ -157,6 +172,8 @@ impl UbaaClient {
         let cached_keys = summaries.keys().cloned().collect();
         Ok(JudgeRefresh {
             original_source_at,
+            semester,
+            known_semester,
             source_times,
             cached_keys,
             history: None,

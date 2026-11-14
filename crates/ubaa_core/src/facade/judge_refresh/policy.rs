@@ -6,7 +6,7 @@ use crate::{
 };
 use chrono::{DateTime, Months, NaiveDateTime, Utc};
 
-fn timestamp(value: Option<&str>) -> Option<i64> {
+pub(super) fn timestamp(value: Option<&str>) -> Option<i64> {
     let value = value?;
     let parsed = NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S").ok()?;
     if parsed.format("%Y-%m-%d %H:%M:%S").to_string() != value {
@@ -45,6 +45,7 @@ pub(super) fn reusable(
     record: &CacheRecord,
     assignment: &Assignment,
     options: &JudgeRefreshOptions,
+    semester_scoped: bool,
     now: i64,
 ) -> bool {
     let CachePayload::JudgeDetail(detail) = &record.payload else {
@@ -65,7 +66,7 @@ pub(super) fn reusable(
     );
     if options.full_refresh
         || (options.detail_refresh == super::JudgeDetailRefresh::RefreshActive
-            && !historical(detail, now))
+            && (semester_scoped || !historical(detail, now)))
         || options.current_assignment.as_ref().is_some_and(|key| {
             key.course_id == assignment.course_id && key.assignment_id == assignment.assignment_id
         })

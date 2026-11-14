@@ -120,7 +120,13 @@ fn pending_requests(
             match refresh.scan.cache.read(&scope, now) {
                 Ok(Some(record))
                     if matches!(&record.payload, CachePayload::JudgeDetail(_))
-                        && policy::reusable(&record, assignment, &refresh.options, now) =>
+                        && policy::reusable(
+                            &record,
+                            assignment,
+                            &refresh.options,
+                            refresh.semester.is_some(),
+                            now,
+                        ) =>
                 {
                     break;
                 }

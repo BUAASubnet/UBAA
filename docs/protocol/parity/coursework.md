@@ -4,6 +4,17 @@
 
 ## 当前规则
 
+### 本学期刷新范围
+
+2026-11-14 对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalJudgeApi.kt:79-159`、`LocalJudgeHistoricalCourseStore` 和 `LocalJudgeApiBackendTest.kt`。旧版遇到开始时间早于六个月的作业即中止该课程，并持久跳过整门课程；默认未完成和未截止筛选在读取后执行。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 无 Judge 模块，九列协议均不适用。当前用户明确确认往期课程不会新增作业，采用已确认往期课程不再自动复查的产品规则。
+
+| 操作 | CAS/service 与引导 | 重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与正文编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 默认课程索引刷新 | 沿用下文 Judge HTTPS 激活 | 原路线课程目录、选课和作业索引 URL | 原账号和路线隔离 | 原 GET，无学期参数 | 原浏览器头，无正文 | 无 | 课程和索引没有已证明的学期字段；使用完整课程复查摘要中的日期识别往期 | 校历当前学期有效时，完整非空课程摘要全部早于学期开始则跳过选课及索引，首页主动刷新同样跳过；空课程和日期未知课程保留读取 | 往期判断不依赖提交状态；显式包含历史、全量刷新、指定课程或作业仍可读取历史；未知学期不推断日期 |
+| 默认详情及摘要 | 同上 | 原 `assignment/index.jsp?assignID=<id>` | 同上 | 原 GET，不增字段 | 原 HTML 解析 | 无 | 开始/截止区间与本学期相交的作业保留；日期缺失或无效的作业保留待核实 | 使用同路线已保存校历，包括导入课表的校历投影；先用课程摘要筛选，再读详情缓存及发请求；保留往期摘要和详情的原时间 | 当前范围 Complete 只表示该范围完整；不刷新全历史缓存核验时间；缺少可用校历时沿用原有扫描，不永久排除未知课程 |
+
+校历使用学校选中学期的教学周起止日期，只有该范围覆盖当前日期时用于筛选本学期作业。校历跨期后仍沿已保存的学期起点跳过此前确认的往期整课，直到新校历到达后重新归类。校历获取协议、解析和错误处理沿用学业读取规则，本次不增加学校端点。往期课程不设定时复查；学期变化后按新校历重新判断。冷缓存可能需要首次读取详情建立归属，不能从作业标题猜测学期。课程中仅部分作业属于往期时只排除这些已知作业，保留整门课程的索引读取。
+
 ### 作业列表字段与详情复用
 
 2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `api/feature/{JudgeApi,SpocApi}.kt`、`api/local/{LocalJudgeApi,LocalSpocApi,LocalSpocSupport,LocalConnectionAuth}.kt`、`model/dto/{Judge,Spoc}.kt` 和 `LocalJudgeApiBackendTest`、`LocalSpocApiBackendTest`。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 对照 `src/api.rs`、`api/spoc/{core,opt,data}.rs`、`api/sso/auth.rs`、`request.rs`、`store/{cred,cookies}.rs`。当前实现对照 Core `features/judge/{parser,service,scan}.rs`、`facade/judge_refresh/`、`features/spoc/{list,parser,detail,scan}.rs` 与 `facade/home_cache/spoc_scan/`。

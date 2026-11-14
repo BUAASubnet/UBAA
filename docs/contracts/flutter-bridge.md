@@ -21,6 +21,8 @@
 - `RouteDecision` 固定字段为 `policy: RoutePolicy`、`resolvedRoute: ConnectionMode`、
   `network: NetworkState`、`initialRoute: ConnectionMode`、`usedFallback: bool`。
 
+默认希冀持久刷新按已保存校历选择本学期范围，已确认往期课程不再自动检查索引或详情。`RefreshActive` 核验选定范围，显式历史和全量选项保留，规则见[本学期刷新范围](../protocol/parity/coursework.md#本学期刷新范围)。该策略不改变 Bridge 字段和持久格式。
+
 ## 2. 生命周期与并发
 
 | 方法 | 输入 | 成功结果 | 稳定语义 |
