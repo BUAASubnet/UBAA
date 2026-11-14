@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { describe } from "../download.data.js";
 import { handleDownload } from "../download_worker.js";
+import { resolveBrowserDownload } from "../public/download_client.js";
 import source from "../download-source.json" with { type: "json" };
 
 const manifest = JSON.parse(
@@ -40,7 +41,8 @@ function upstream({ size = asset.size, password = false, status = 200 } = {}) {
         ],
       });
     assert.equal(init.headers.get("Authorization"), "Bearer synthetic-token");
-    assert.equal(init.redirect, "manual");
+    assert.equal(init.redirect, "error");
+    assert.equal(init.credentials, "omit");
     if (url.endsWith("/entry-item"))
       return Response.json([{ id: "gns://synthetic-root" }]);
     assert.equal(init.method, "POST");
@@ -68,27 +70,37 @@ function upstream({ size = asset.size, password = false, status = 200 } = {}) {
 const request = (method = "GET", pathname = path) =>
   new Request("https://www.ubaa.top" + pathname, { method });
 
-test("公开分享按协议解析并跳转到签名下载地址，每次请求重新获取", async () => {
+test("Worker 只申请分享授权，并把下载准备页交给浏览器", async () => {
   const mock = upstream();
-  for (const method of ["GET", "HEAD"]) {
-    const result = await handleDownload(request(method), {}, mock.send);
-    assert.equal(result.status, 302);
-    assert.equal(result.headers.get("Location"), address);
-    assert.equal(result.headers.get("Cache-Control"), "no-store");
-    assert.equal(result.headers.get("Set-Cookie"), null);
-    assert.equal(await result.text(), "");
-  }
-  assert.equal(mock.calls.length, 10);
+  const result = await handleDownload(request(), {}, mock.send);
+  assert.equal(result.status, 200);
+  assert.match(result.headers.get("Content-Type"), /text\/html/);
+  assert.equal(result.headers.get("Cache-Control"), "no-store");
+  assert.equal(result.headers.get("Set-Cookie"), null);
+  const html = await result.text();
+  const payload = JSON.parse(
+    html.match(
+      /<script id="download-session" type="application\/json">(.*?)<\/script>/s,
+    )[1],
+  );
+  assert.equal(payload.token, "synthetic-token");
+  assert.deepEqual(payload.asset, asset);
+  assert.equal(mock.calls.length, 2);
 });
 
-test("缺失文件、分享需密码和上游失败均不返回下载地址或授权数据", async () => {
-  for (const options of [{ size: 1 }, { password: true }, { status: 403 }]) {
+test("HEAD 不申请分享授权，分享需密码和上游失败时保留备用下载", async () => {
+  const head = await handleDownload(request("HEAD"), {}, () =>
+    assert.fail("HEAD 不请求云盘"),
+  );
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), "");
+  for (const options of [{ password: true }, { status: 403 }]) {
     const mock = upstream(options);
     const result = await handleDownload(request(), {}, mock.send);
     assert.equal(result.status, 502);
-    assert.equal(result.headers.get("Location"), null);
-    assert.ok(!(await result.text()).includes("synthetic-token"));
-    assert.ok(mock.calls.length < 5);
+    const html = await result.text();
+    assert.ok(html.includes(asset.url));
+    assert.ok(!html.includes("synthetic-token"));
   }
 });
 
@@ -124,4 +136,38 @@ test("分享版本与发布清单不同则阻止构建", () => {
     () => describe(manifest, { ...source, build: "other" }),
     /分享版本/,
   );
+});
+
+test("浏览器使用分享 Token 直接查询目录和申请下载地址", async () => {
+  const mock = upstream();
+  assert.equal(
+    await resolveBrowserDownload(asset, "synthetic-token", mock.send),
+    address,
+  );
+  assert.equal(mock.calls.length, 3);
+  assert.ok(
+    mock.calls.every((call) =>
+      call.url.startsWith("https://bhpan.buaa.edu.cn/api/efast/"),
+    ),
+  );
+});
+
+test("浏览器发现文件大小不符时不申请下载授权", async () => {
+  const mock = upstream({ size: 1 });
+  await assert.rejects(
+    resolveBrowserDownload(asset, "synthetic-token", mock.send),
+    /大小不符/,
+  );
+  assert.equal(mock.calls.length, 2);
+});
+
+test("浏览器网络失败时直接报告，不自动重试", async () => {
+  let calls = 0;
+  await assert.rejects(
+    resolveBrowserDownload(asset, "synthetic-token", () => {
+      calls += 1;
+      throw new TypeError("Failed to fetch");
+    }),
+  );
+  assert.equal(calls, 1);
 });

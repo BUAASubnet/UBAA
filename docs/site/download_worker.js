@@ -4,16 +4,11 @@ import source from "./download-source.json" with { type: "json" };
 const origin = "https://bhpan.buaa.edu.cn";
 const prefix = `/downloads/v${manifest.version}/${manifest.build}/`;
 
-// 分享 Token 和下载签名只在一次请求内使用，不记录或持久化。
-export async function resolveDownload(asset, send = fetch) {
-  async function request(path, token, body, navigation = false) {
-    const headers = new Headers();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    if (body) headers.set("Content-Type", "application/json");
+// 只取得公开发布分享的临时 Token，交给浏览器完成后续下载。
+export async function getShareToken(send = fetch) {
+  async function request(path, navigation = false) {
     const response = await send(`${origin}${path}`, {
-      method: body ? "POST" : "GET",
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+      method: "GET",
       redirect: "manual",
       signal: AbortSignal.timeout(15000),
     });
@@ -25,12 +20,7 @@ export async function resolveDownload(asset, send = fetch) {
     await request(`/api/shared-link/v1/links/${source.shareId}`)
   ).json();
   if (info.password_required !== false) throw new Error("发布分享需要密码");
-  const page = await request(
-    `/link/${source.shareId}`,
-    undefined,
-    undefined,
-    true,
-  );
+  const page = await request(`/link/${source.shareId}`, true);
   const cookie = page.headers
     .getSetCookie()
     .find((value) => value.startsWith(`link_token:${source.shareId}=`));
@@ -39,44 +29,16 @@ export async function resolveDownload(asset, send = fetch) {
     ?.split(";", 1)[0]
     .slice(`link_token:${source.shareId}=`.length);
   if (!token) throw new Error("分享授权缺失");
-  const entries = await (
-    await request("/api/efast/v1/entry-item", token)
-  ).json();
-  if (entries.length !== 1 || typeof entries[0].id !== "string")
-    throw new Error("分享根目录无效");
-  const listing = await (
-    await request("/api/efast/v1/dir/list", token, {
-      by: "name",
-      docid: entries[0].id,
-      sort: "asc",
-    })
-  ).json();
-  const matches = listing.files.filter((item) => item.name === asset.name);
-  const item = matches[0];
-  if (
-    matches.length !== 1 ||
-    item.size !== asset.size ||
-    typeof item.docid !== "string"
-  ) {
-    throw new Error("发布文件缺失或大小不符");
-  }
-  const download = await (
-    await request("/api/efast/v1/file/osdownload", token, {
-      docid: item.docid,
-      authtype: "QUERY_STRING",
-    })
-  ).json();
-  const [method, address] = download.authrequest;
-  const url = new URL(address);
-  if (method !== "GET" || url.protocol !== "https:")
-    throw new Error("下载地址无效");
-  return url.href;
+  return token;
 }
 
 export async function handleDownload(request, env, send = fetch) {
   const pathname = new URL(request.url).pathname;
   if (!pathname.startsWith("/downloads/")) return env.ASSETS.fetch(request);
-  const headers = { "Cache-Control": "no-store" };
+  const headers = {
+    "Cache-Control": "no-store",
+    "Content-Type": "text/html; charset=utf-8",
+  };
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(null, {
       status: 405,
@@ -85,6 +47,7 @@ export async function handleDownload(request, env, send = fetch) {
   }
   const asset = manifest.assets.find((item) => pathname === prefix + item.name);
   if (!asset) return new Response(null, { status: 404, headers });
+  if (request.method === "HEAD") return new Response(null, { headers });
   try {
     if (
       source.version !== manifest.version ||
@@ -92,22 +55,21 @@ export async function handleDownload(request, env, send = fetch) {
     ) {
       throw new Error("分享配置与发布版本不符");
     }
-    const location = await resolveDownload(asset, send);
-    return new Response(null, {
-      status: 302,
-      headers: { ...headers, Location: location },
-    });
+    const token = await getShareToken(send);
+    return new Response(downloadPage(asset, token), { headers });
   } catch {
-    return new Response(
-      request.method === "HEAD"
-        ? null
-        : "北航云盘下载暂时不可用，请返回下载页关闭“使用北航云盘下载”后重试。",
-      {
-        status: 502,
-        headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" },
-      },
-    );
+    return new Response(downloadPage(asset), { status: 502, headers });
   }
+}
+
+function downloadPage(asset, token) {
+  const payload = token
+    ? `<script id="download-session" type="application/json">${JSON.stringify({ token, asset }).replaceAll("<", "\\u003c")}</script><script type="module" src="/download_client.js"></script>`
+    : "";
+  return `<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>下载 UBAA</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:12vh auto;padding:0 24px;line-height:1.7;color:#243247;background:#f7f9fc}main{padding:28px;border:1px solid #dbe3ec;border-radius:16px;background:white}h1{font-size:24px;margin-top:0}p{overflow-wrap:anywhere}nav{display:flex;flex-wrap:wrap;gap:20px;margin-top:24px}a{color:#1976d2}#download-link{font-weight:600}</style></head>
+<body><main><h1>下载 UBAA</h1><p>${asset.name}</p><p id="download-status" role="status">${token ? "正在获取下载地址，请稍候…" : "北航云盘暂时不可用，请重试或使用备用下载。"}</p><a id="download-link" hidden>开始下载</a><nav><a href="">重新尝试</a><a href="${asset.url}">备用下载</a><a href="/download">返回下载页</a></nav><noscript><p>使用北航云盘下载需要启用 JavaScript，也可以选择备用下载。</p></noscript></main>${payload}</body></html>`;
 }
 
 export default { fetch: (request, env) => handleDownload(request, env) };

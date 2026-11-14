@@ -222,10 +222,14 @@ UI 在同账号服务重新绑定后，通过原文档库入口和目录列表�
 | 操作 | 两个冻结来源 | 当前采用的协议与语义 |
 |---|---|---|
 | 分享信息与导航 | 旧版不适用；O:299–367、D:164–217 | 无 CAS/service。GET L`/links/{id}` 读取布尔值 password_required；无密码时 GET B`/link/{id}`，从 Set-Cookie 获取该分享的 link_token。仅支持无密码公开发布分享。 |
-| 分享根目标 | 旧版不适用；O:339–366、D:164–217 | GET E`/entry-item`，Bearer 使用刚获取的分享 Token；响应为单元素数组，取字符串 id。Token 只用于当前请求，不保存到静态页面或日志。 |
+| 分享根目标 | 旧版不适用；O:339–366、D:164–217 | GET E`/entry-item`，Bearer 使用刚获取的分享 Token；响应为单元素数组，取字符串 id。Worker 将该公开分享 Token 放入禁止缓存的下载准备页，由浏览器用于本次下载；Token 不写入静态产物、持久存储或日志。 |
 | 目录列表 | 旧版 K:134–164、573–599；O:39–61、D 中 Dir/Item | POST E`/dir/list`，JSON 为 by=name、docid=根 id、sort=asc。Bearer 使用分享 Token，读取 files 中 name、docid、size。只匹配当前发布清单中的文件，忽略其他目录。 |
-| 单文件下载授权 | 旧版不适用；O:371–387 | POST E`/file/osdownload`，JSON 为 docid 和 authtype=QUERY_STRING，沿用分享 Bearer。authrequest 的方法为 GET、第二项为 HTTPS URL；上游生成签名，不自行生成。文档站返回 302，浏览器直接下载文件。 |
+| 单文件下载授权 | 旧版不适用；O:371–387 | POST E`/file/osdownload`，JSON 为 docid 和 authtype=QUERY_STRING，沿用分享 Bearer。authrequest 的方法为 GET、第二项为 HTTPS URL；上游生成签名，不自行生成。浏览器获取地址后发起下载。 |
 
-以上 JSON 请求使用 application/json，分享导航接受 200 或 302 并直接读取响应 Cookie，其余固定 API 不跟随重定向，非成功状态、分享密码、缺少 Token、文件缺失或大小不符均停止解析并返回 502。下载入口只接受 GET/HEAD，不自动重试、不缓存签名地址、不接收用户指定的分享或文件 ID。其他路径交给静态资源服务。此次公开分发使用 Direct，不依赖个人登录或 WebVPN；WebVPN 分享读取不在此入口的支持范围。
+以上 JSON 请求使用 application/json，分享导航接受 200 或 302 并直接读取响应 Cookie，其余固定 API 不跟随重定向，分享授权失败时 Worker 返回 502 和备用下载入口；浏览器请求失败、文件缺失或大小不符时停止解析并显示备用下载。下载入口只接受 GET/HEAD，不自动重试、不缓存签名地址、不接收用户指定的分享或文件 ID。Worker 仅请求分享信息和分享导航，GET 返回禁止缓存的下载准备页，HEAD 不申请授权。浏览器使用 credentials=omit 和分享 Bearer Token 依次读取根目录、文件列表和单文件授权。浏览器失败时保留备用下载与返回下载页入口。其他路径交给静态资源服务。此次公开分发使用 Direct，不依赖个人登录或 WebVPN；WebVPN 分享读取不在此入口的支持范围。
 
 2026-11-14 Direct 只读观察：公开分享无需密码，9 个发布文件的名称和大小与构建 2004 清单一致。单文件授权包含 QUERY_STRING 签名、Expires 和 Signature；下载地址的主机为 bhpan.buaa.edu.cn。全部 9 个文件使用无 Cookie/Bearer 的 Range 请求均返回 206，长度与清单一致。分享截止时间与单次下载地址截止时间不同，不能将某次签名地址固化在页面中。原始材料保存在忽略目录 `.ubaa_local/bhpan_release_upload/`。
+
+浏览器跨域验证：2026-11-14，目录读取与下载授权的 OPTIONS 返回 204，允许 Authorization、Content-Type 和通配符来源。真实浏览器使用服务端取得的分享 Token，在不携带 Cookie 的情况下完成 entry-item、dir/list、osdownload 三步并获取许可证直链。该混合流程仍使用表内两个冻结来源的同一路径、参数和 DTO；旧版分享授权与下载接口仍不适用。
+
+测试覆盖：服务端签名跳转的旧断言由“Worker 只申请分享授权”和“浏览器直接查询目录及申请下载地址”共同替代；文件大小不符的阻断覆盖移到浏览器解析测试。未知文件、HTTP 方法、备用下载和版本匹配覆盖继续保留。
