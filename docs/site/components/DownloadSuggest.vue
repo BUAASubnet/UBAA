@@ -56,7 +56,8 @@ onMounted(async () => {
       <p>看起来你在使用 {{ NAMES[suggestion.platform] }} 设备，推荐下载：</p>
       <div class="actions">
         <a v-for="row in suggestion.rows" :key="row.name" class="primary" :href="row.url">
-          {{ NAMES[suggestion.platform] }} · {{ row.label }}（{{ row.size }}）
+          下载 {{ NAMES[suggestion.platform] }} 版
+          <small>{{ row.label }} · {{ row.size }}</small>
         </a>
       </div>
       <p class="note">
@@ -88,13 +89,22 @@ onMounted(async () => {
 }
 
 .primary {
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
   padding: 0.5rem 1.25rem;
-  border-radius: 999px;
+  border-radius: 12px;
+  line-height: 1.4;
   background: var(--vp-button-brand-bg);
   color: var(--vp-button-brand-text);
   font-weight: 600;
   text-decoration: none;
+}
+
+.primary small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.85;
 }
 
 .primary:hover {

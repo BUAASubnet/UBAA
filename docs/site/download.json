@@ -6,56 +6,47 @@
     {
       "name": "UBAA-2.0.0-android-arm64-v8a.apk",
       "size": 41328131,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-arm64-v8a.apk",
-      "sha256": "d36b7b99eeb557cf09664eedcf83f7794203936d1b050d8b91efe04c3e72ea31"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-arm64-v8a.apk"
     },
     {
       "name": "UBAA-2.0.0-android-armeabi-v7a.apk",
       "size": 38627809,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-armeabi-v7a.apk",
-      "sha256": "9423996e7f4969836d02716822208013199e8151b23197603e2bf38e0b810a25"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-armeabi-v7a.apk"
     },
     {
       "name": "UBAA-2.0.0-android-x86_64.apk",
       "size": 43665112,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-x86_64.apk",
-      "sha256": "bef4e287a0aa92aee90b32d6cad450b59aa5d9641aafa0418828a611409a0724"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-x86_64.apk"
     },
     {
       "name": "UBAA-2.0.0-windows-x64.exe",
       "size": 37121195,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-windows-x64.exe",
-      "sha256": "b7d4d7d952ef2c7e7d50c038621ba5191c9d8635cd76571dade6fd84adc3cd72"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-windows-x64.exe"
     },
     {
       "name": "UBAA-2.0.0-linux-x64.tar.gz",
       "size": 50489045,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-x64.tar.gz",
-      "sha256": "1d301bb310d1935325b3649ab5977fbf20578800c35c4cd7c42e970f83ced724"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-x64.tar.gz"
     },
     {
       "name": "UBAA-2.0.0-linux-arm64.tar.gz",
       "size": 50831503,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-arm64.tar.gz",
-      "sha256": "36b0a470a32da0a9fd2121eadf2a804605ee232ea79f67ece055573bed8536b1"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-arm64.tar.gz"
     },
     {
       "name": "UBAA-2.0.0-macos-arm64.dmg",
       "size": 57161488,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-arm64.dmg",
-      "sha256": "c5a7bd41c9aceaa06dc7534dea46deb00e99b378c2b7a0c571b5f32b66b84370"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-arm64.dmg"
     },
     {
       "name": "UBAA-2.0.0-macos-x86_64.dmg",
       "size": 62787239,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-x86_64.dmg",
-      "sha256": "1b99a72828d61efa23442f603e091fface25128f60376f40330e0f09110de3b3"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-x86_64.dmg"
     },
     {
       "name": "licenses.zip",
       "size": 311175,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/licenses.zip",
-      "sha256": "6bd5d5574703e49649f2d9d231ef64f2e21510f34de893e4bdd8a7e03248bbde"
+      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/licenses.zip"
     }
   ]
 }

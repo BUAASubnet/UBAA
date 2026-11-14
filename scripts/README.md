@@ -36,7 +36,7 @@
 
 `release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `.ubaa_local/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。`release/site-images.sh` 从已审阅的网站宣传图和横版宣传图生成截图页 WebP、首页展示图与 1200×630 分享图，只写 `docs/site/public/`。
 
-`release/download_manifest.py` 是 `just docs-download-sync` 的入口：读取 R2 上指定构建的公开清单，按 `distribute.py` 的公开安装包列表校验文件、大小、地址和 SHA-256，再写入文档站下载页数据；`tests/release/download_manifest_test.py` 只用合成清单，不联网。
+`release/download_manifest.py` 是 `just docs-download-sync` 的入口：读取 R2 上指定构建的公开清单，按 `distribute.py` 的公开安装包列表校验文件、大小和地址，再原样写入文档站下载页数据；`tests/release/download_manifest_test.py` 只用合成清单，不联网。
 
 `release/app_service_dashboard.py` 生成维护者自托管 Grafana 的使用情况看板，只读本地 `.env` 中的账号与 D1 ID，不联网；`tests/release/app_service_dashboard_test.py` 在按 D1 迁移建立的内存 SQLite 上执行看板的每条查询，并核对功能枚举、布局与列顺序。
 

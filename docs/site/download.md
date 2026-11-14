@@ -1,12 +1,12 @@
 ---
-description: 下载 UBAA：Android、Windows、macOS 和 Linux 安装包，系统要求、安装步骤与 SHA-256 校验值。
+description: 下载 UBAA：Android、Windows、macOS 和 Linux 安装包，以及各平台的系统要求与安装步骤。
 ---
 
 <script setup>
 import { data as release } from './download.data.js'
 import DownloadSuggest from './components/DownloadSuggest.vue'
-import DownloadTable from './components/DownloadTable.vue'
-import ChecksumList from './components/ChecksumList.vue'
+import DownloadOptions from './components/DownloadOptions.vue'
+import PlatformGrid from './components/PlatformGrid.vue'
 </script>
 
 # 下载 UBAA
@@ -15,7 +15,7 @@ import ChecksumList from './components/ChecksumList.vue'
 
 <DownloadSuggest />
 
-[Android](#android) · [Windows](#windows) · [macOS](#macos) · [Linux](#linux) · [iOS](#ios) · [HarmonyOS](#ohos)
+<PlatformGrid />
 
 装好后按[安装与首次登录](/guide/start)开始使用。用过旧版 v1.x，请先看[从 v1.x 升级](/guide/ubaa2#upgrade)。
 
@@ -23,7 +23,7 @@ import ChecksumList from './components/ChecksumList.vue'
 
 需要 Android 7.0 或更高版本。一般手机和平板选择 **ARM64**。
 
-<DownloadTable platform="android" />
+<DownloadOptions platform="android" />
 
 下载后打开 APK，按系统提示允许浏览器或文件管理器安装应用。已经装有旧版 v1.x 时，新版会直接覆盖升级，首次打开需要重新登录。
 
@@ -31,7 +31,7 @@ import ChecksumList from './components/ChecksumList.vue'
 
 需要 64 位 Windows 10 或 11。
 
-<DownloadTable platform="windows" />
+<DownloadOptions platform="windows" />
 
 - 运行安装程序，按提示完成安装。程序装在当前用户目录下，不需要管理员权限；以后升级时运行新的安装程序即可。
 - 安装程序暂未进行代码签名，Windows 可能提示“Windows 已保护你的电脑”。确认文件是从本页下载的，点“更多信息”→“仍要运行”。
@@ -40,7 +40,7 @@ import ChecksumList from './components/ChecksumList.vue'
 
 需要 macOS 12 或更高版本。在苹果菜单的“关于本机”中查看：显示 M 系列芯片选择 **Apple Silicon**，显示 Intel 处理器选择 **Intel**。
 
-<DownloadTable platform="macos" />
+<DownloadOptions platform="macos" />
 
 打开 DMG，将 UBAA 拖入“应用程序”文件夹。应用已经过 Apple 签名和公证，首次打开时按系统提示确认即可。
 
@@ -48,7 +48,7 @@ import ChecksumList from './components/ChecksumList.vue'
 
 在终端运行 `uname -m` 查看架构。安装包在 Ubuntu 24.04 环境构建，需要 GTK 3；较旧的发行版可能无法运行。
 
-<DownloadTable platform="linux" />
+<DownloadOptions platform="linux" />
 
 - 解压后得到 `bundle` 目录，运行其中的 `UBAA` 打开应用，`ubaa-cli` 是命令行程序，用法见[桌面命令模式](/features/command)。
 - 保留整个目录，不要单独移动其中的可执行文件。
@@ -61,15 +61,6 @@ import ChecksumList from './components/ChecksumList.vue'
 ## HarmonyOS {#ohos}
 
 HarmonyOS 版将通过 AppGallery 提供，上架后在这里给出链接。
-
-## 校验文件 {#verify}
-
-下载完成后可以核对 SHA-256，确认文件完整、没有被改动：
-
-- macOS、Linux：在终端运行 `shasum -a 256 文件名`。
-- Windows：在 PowerShell 运行 `Get-FileHash 文件名`。
-
-<ChecksumList />
 
 ## 其他下载
 

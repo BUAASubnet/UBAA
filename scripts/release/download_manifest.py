@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""读取 R2 上指定构建的公开清单，校验后写入文档站下载页数据。"""
+"""读取 R2 上指定构建的公开清单，校验后原样写入文档站下载页数据。"""
 import importlib.util
 import json
 from pathlib import Path
-import re
 import sys
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_URL = 'https://r2.ubaa.top'
 OUTPUT = ROOT / 'docs/site/download.json'
-SHA256 = re.compile(r'[0-9a-f]{64}')
 
 _spec = importlib.util.spec_from_file_location('distribute', Path(__file__).with_name('distribute.py'))
 _distribute = importlib.util.module_from_spec(_spec)
@@ -22,7 +20,7 @@ def expected_names(version):
 
 
 def validate(manifest, tag, build):
-    """清单必须属于请求的版本与构建，并完整列出可下载文件的大小、地址和 SHA-256。"""
+    """清单必须属于请求的版本与构建，并完整列出可下载文件的大小和地址。"""
     version = tag.removeprefix('v')
     if not tag.startswith('v') or manifest.get('version') != version:
         raise ValueError(f'清单版本 {manifest.get("version")!r} 与 {tag} 不符')
@@ -41,8 +39,6 @@ def validate(manifest, tag, build):
             raise ValueError(f'{name} 缺少有效大小')
         if asset.get('url') != prefix + name:
             raise ValueError(f'{name} 的下载地址不在 {prefix}')
-        if not SHA256.fullmatch(str(asset.get('sha256', ''))):
-            raise ValueError(f'{name} 缺少 SHA-256；该构建的清单不能用于下载页')
     return manifest
 
 

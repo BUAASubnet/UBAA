@@ -1,4 +1,4 @@
-"""下载页数据只接受与请求版本、构建一致且带 SHA-256 的完整公开清单。"""
+"""下载页数据只接受与请求版本、构建一致的完整公开清单。"""
 import copy
 import importlib.util
 import json
@@ -16,7 +16,7 @@ def synthetic(tag='v9.9.9', build='9001'):
     version = tag.removeprefix('v')
     return {
         'version': version, 'build': build, 'commit': 'synthetic',
-        'assets': [{'name': name, 'size': 1024, 'sha256': 'a' * 64,
+        'assets': [{'name': name, 'size': 1024,
                     'url': f'https://r2.ubaa.top/releases/{tag}/{build}/{name}'}
                    for name in download_manifest.expected_names(version)],
     }
@@ -46,9 +46,6 @@ class DownloadManifestTest(unittest.TestCase):
         self.assertEqual(json.loads(self.output.read_text()), manifest)
 
     def test_不合格的清单不写入(self):
-        def without_sha(value):
-            del value['assets'][0]['sha256']
-
         def missing_asset(value):
             value['assets'].pop()
 
@@ -61,7 +58,7 @@ class DownloadManifestTest(unittest.TestCase):
         def empty_size(value):
             value['assets'][2]['size'] = 0
 
-        for mutate in (without_sha, missing_asset, other_build, foreign_url, empty_size):
+        for mutate in (missing_asset, other_build, foreign_url, empty_size):
             with self.subTest(case=mutate.__name__):
                 manifest = synthetic()
                 mutate(manifest)

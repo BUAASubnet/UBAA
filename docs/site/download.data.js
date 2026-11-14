@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-// 下载页展示的平台与架构；清单缺少其中任何文件、大小、地址或 SHA-256 时构建失败。
+// 下载页展示的平台与架构；清单缺少其中任何文件、大小或地址时构建失败。
 const PLATFORMS = {
   android: [
     ["android-arm64-v8a.apk", "ARM64（arm64-v8a）", "大多数手机和平板", "APK"],
@@ -18,8 +18,6 @@ const PLATFORMS = {
   ],
 };
 
-const SHA256 = /^[0-9a-f]{64}$/;
-
 export function describe(manifest) {
   const { version, build } = manifest;
   const prefix = `https://r2.ubaa.top/releases/v${version}/${build}/`;
@@ -30,15 +28,13 @@ export function describe(manifest) {
       !asset ||
       !Number.isInteger(asset.size) ||
       asset.size <= 0 ||
-      asset.url !== prefix + name ||
-      !SHA256.test(asset.sha256 ?? "")
+      asset.url !== prefix + name
     ) {
       throw new Error(`download.json 中的 ${name} 缺失或不完整`);
     }
     return {
       name,
       url: asset.url,
-      sha256: asset.sha256,
       size: `${(asset.size / 1e6).toFixed(1)} MB`,
     };
   };
