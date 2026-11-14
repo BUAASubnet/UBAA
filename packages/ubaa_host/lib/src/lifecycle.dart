@@ -218,7 +218,20 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? MemoryYgdkReminderStore()
             : PreferencesYgdkReminderStore(scope: defaultConfigDirectory()));
     final backendFactory = widget.backendFactory ?? _createBackend;
+    final diagnostics = LocalDiagnostics()
+      ..setEnvironment(platform: Platform.operatingSystem);
+    unawaited(() async {
+      try {
+        final version = await (widget.appInformation ?? SystemAppInformation())
+            .version()
+            .timeout(const Duration(seconds: 2));
+        diagnostics.setEnvironment(appVersion: version);
+      } on Object {
+        // 版本不可用不影响登录和错误记录。
+      }
+    }());
     _readyController = AppController(
+      diagnostics: diagnostics,
       backend: opened,
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,

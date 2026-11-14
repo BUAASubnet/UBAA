@@ -5,6 +5,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+/// 所有错误卡共用本次运行的安全诊断出口，包括弹窗中的错误卡。
+class UiDiagnosticsScope extends InheritedWidget {
+  const UiDiagnosticsScope({
+    required this.readRecord,
+    required super.child,
+    super.key,
+  });
+  final String? Function(String issueId) readRecord;
+
+  static UiDiagnosticsScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<UiDiagnosticsScope>();
+
+  @override
+  bool updateShouldNotify(UiDiagnosticsScope oldWidget) =>
+      readRecord != oldWidget.readRecord;
+}
+
 /// 统一错误卡片，避免将上游正文、URL 或堆栈直接展示给用户。
 class FriendlyErrorCard extends StatelessWidget {
   const FriendlyErrorCard({required this.error, this.onRetry, super.key});
@@ -76,13 +93,24 @@ class FriendlyErrorCard extends StatelessWidget {
   }
 
   Future<void> _copyError(BuildContext context) async {
+    String? report;
+    final scope = UiDiagnosticsScope.of(context);
+    if (scope != null && _safeIssueId != null) {
+      try {
+        report = scope.readRecord(_safeIssueId!);
+      } on Object {
+        // 记录已不可用时仍可复制安全摘要。
+      }
+    }
     final summary = <String>[
       '错误代码：${error.code.wireName}',
       '错误编号：$_safeIssueId',
       '错误类别：${error.kind.name}',
+      if (error.authStage != null) '失败阶段：${error.authStage!.wireName}',
+      if (error.authReason != null) '失败原因：${error.authReason!.wireName}',
       if (error.resolvedRoute != null) '实际路线：${error.resolvedRoute!.name}',
     ].join('\n');
-    await _copyDiagnosticText(context, summary);
+    await _copyDiagnosticText(context, report ?? summary);
   }
 }
 

@@ -146,7 +146,8 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   void cancelLoginVerification() => internalCancelLoginVerification();
 
   /// 只导出本次运行允许字段，不读取凭据、业务输入或磁盘会话。
-  String exportDiagnostics() => internalDiagnostics.exportText();
+  String exportDiagnostics({String? issueId}) =>
+      internalDiagnostics.exportText(issueId: issueId);
 
   Future<void> initialize() async {
     unawaited(refreshAppService().then((_) => internalRecordAppOpen()));

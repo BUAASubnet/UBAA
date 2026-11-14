@@ -29,7 +29,14 @@ mixin ControllerAuthenticationCompletion on ControllerState {
         // 身份拒绝独立于本机清理结果；先关闭 UI/写资格，再结束旧账号入口。
         _releaseCompletionLoading();
         internalError = internalRecordFailure(
-          const BackendException(UbaaErrorCode.authenticationRequired),
+          BackendException(
+            UbaaErrorCode.authenticationRequired,
+            resolvedRoute: resolvedRoute,
+            authStage: AuthFailureStage.identityValidation,
+            authReason: profile == null
+                ? AuthFailureReason.identityResponseInvalid
+                : AuthFailureReason.identityMismatch,
+          ),
           DiagnosticOperation.login,
         );
         internalEndAuthTelemetry(error: internalError, route: resolvedRoute);

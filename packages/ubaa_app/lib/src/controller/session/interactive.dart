@@ -142,6 +142,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     );
     internalError = null;
     internalSetInteractivePhase(AppPhase.loggingIn);
+    UiError? recordedFailure;
     try {
       if (beginning) {
         await internalLocalAccountStore?.signOut();
@@ -194,13 +195,48 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       if (result.readyRoutes.isEmpty &&
           !result.hasCaptcha &&
           !result.canSubmit) {
-        final failure = result.routes
+        final failures = result.routes
             .map((route) => route.error)
             .whereType<UiError>()
-            .firstOrNull;
-        throw failure == null
-            ? const BackendException(UbaaErrorCode.upstreamChanged)
-            : BackendException.fromUi(failure);
+            .toList();
+        final selectedRoute = preferred ?? result.requiredRoute;
+        final failure =
+            failures
+                .where((error) => error.resolvedRoute == selectedRoute)
+                .firstOrNull ??
+            failures
+                .where(
+                  (error) =>
+                      error.code == UbaaErrorCode.invalidCredentials ||
+                      error.authReason == AuthFailureReason.captchaExpired ||
+                      error.authReason ==
+                          AuthFailureReason.verificationIncomplete,
+                )
+                .firstOrNull ??
+            failures
+                .where((error) => error.resolvedRoute == ConnectionMode.direct)
+                .firstOrNull ??
+            failures.firstOrNull;
+        if (failure == null) {
+          throw const BackendException(UbaaErrorCode.upstreamChanged);
+        }
+        final failureStack = StackTrace.current;
+        recordedFailure = internalRecordFailure(
+          failure,
+          DiagnosticOperation.login,
+          stackTrace: failureStack,
+        );
+        for (final other in failures) {
+          if (!identical(other, failure)) {
+            internalRecordFailure(
+              other,
+              DiagnosticOperation.login,
+              relatedIssueId: recordedFailure.issueId,
+              stackTrace: failureStack,
+            );
+          }
+        }
+        throw BackendException.fromUi(recordedFailure);
       }
       internalSetInteractivePhase(AppPhase.login);
     } on Object catch (error, stackTrace) {
@@ -210,11 +246,13 @@ mixin ControllerInteractiveAuthentication on ControllerState {
         credentialRevision,
       ))
         return;
-      final failure = internalRecordFailure(
-        error,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
+      final failure =
+          recordedFailure ??
+          internalRecordFailure(
+            error,
+            DiagnosticOperation.login,
+            stackTrace: stackTrace,
+          );
       final hasRecoverableState =
           (internalLoginVerification?.hasCaptcha ?? false) ||
           (internalLoginVerification?.readyRoutes.isNotEmpty ?? false);

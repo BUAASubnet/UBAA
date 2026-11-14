@@ -352,6 +352,8 @@ fn routed_local_error(
     message: &str,
 ) -> BridgeError {
     BridgeError {
+        auth_stage: None,
+        auth_reason: None,
         cache_failure: None,
         code,
         kind,

@@ -25177,6 +25177,8 @@ impl SseDecode for crate::api::read::BridgeCourseClass {
 impl SseDecode for crate::api::client::BridgeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_authStage = <Option<String>>::sse_decode(deserializer);
+        let mut var_authReason = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <crate::api::client::BridgeErrorCode>::sse_decode(deserializer);
         let mut var_kind = <crate::api::client::BridgeErrorKind>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
@@ -25186,6 +25188,8 @@ impl SseDecode for crate::api::client::BridgeError {
         let mut var_cacheFailure =
             <Option<crate::api::offline::BridgeCacheFailure>>::sse_decode(deserializer);
         return crate::api::client::BridgeError {
+            auth_stage: var_authStage,
+            auth_reason: var_authReason,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -27843,11 +27847,15 @@ impl SseDecode for crate::api::read::BridgeRoutedYgdkRecords {
 impl SseDecode for crate::api::client::BridgeSafeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_authStage = <Option<String>>::sse_decode(deserializer);
+        let mut var_authReason = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <String>::sse_decode(deserializer);
         let mut var_kind = <String>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
         let mut var_message = <String>::sse_decode(deserializer);
         return crate::api::client::BridgeSafeError {
+            auth_stage: var_authStage,
+            auth_reason: var_authReason,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -38550,6 +38558,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCourseClass>
 impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.auth_stage.into_into_dart().into_dart(),
+            self.auth_reason.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -42326,6 +42336,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedYgdkRecords
 impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeSafeError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.auth_stage.into_into_dart().into_dart(),
+            self.auth_reason.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -46700,6 +46712,8 @@ impl SseEncode for crate::api::read::BridgeCourseClass {
 impl SseEncode for crate::api::client::BridgeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.auth_stage, serializer);
+        <Option<String>>::sse_encode(self.auth_reason, serializer);
         <crate::api::client::BridgeErrorCode>::sse_encode(self.code, serializer);
         <crate::api::client::BridgeErrorKind>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);
@@ -48567,6 +48581,8 @@ impl SseEncode for crate::api::read::BridgeRoutedYgdkRecords {
 impl SseEncode for crate::api::client::BridgeSafeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.auth_stage, serializer);
+        <Option<String>>::sse_encode(self.auth_reason, serializer);
         <String>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);

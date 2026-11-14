@@ -21,7 +21,7 @@ void main() {
       expect(error.technicalDetail, isNull);
     });
 
-    test('上游协议变化使用统一的稍后重试文案', () {
+    test('上游响应不匹配使用中性提示', () {
       final error = mapCoreError(
         code: 'upstream_changed',
         kind: 'upstream',
@@ -29,8 +29,8 @@ void main() {
         message: 'ignored upstream detail',
       );
 
-      expect(error.title, '学校系统已更新');
-      expect(error.message, '暂时无法读取，请等待应用更新');
+      expect(error.title, '暂时无法完成操作');
+      expect(error.message, '应用无法处理学校返回的信息，请复制诊断信息反馈');
       expect(error.actionLabel, isNull);
       expect(error.retryable, isFalse);
     });

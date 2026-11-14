@@ -12,7 +12,7 @@
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v65 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v66 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -41,6 +41,8 @@
 | 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 分钟计数的 Worker 迁移和客户端发布、生产定时任务；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
+
+登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线，并支持从错误卡复制关联记录、应用版本和平台。通用响应异常使用中性提示，遥测与 CLI JSON 协议保持原样。确定性回归覆盖原因传递、路线选择与安全复制，设备端待验收。
 
 云打印错误已保留 Core 实际路线，包括 Auto 回退后的 WebVPN 和上传、删除的逐项结果。选路前的本地参数错误不附带路线。Direct/WebVPN、回退及写入不重放已有合成回归，真实云打印路线验收范围仍见上表。
 

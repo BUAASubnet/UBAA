@@ -50,6 +50,16 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   Widget _buildApplication() => AnimatedBuilder(
     animation: Listenable.merge([_controller, _gradeWatch]),
     builder: (context, _) => MaterialApp(
+      builder: (context, child) => UiDiagnosticsScope(
+        readRecord: (issueId) =>
+            _controller.diagnostics.records.any(
+              (record) =>
+                  record.issueId == issueId || record.relatedIssueId == issueId,
+            )
+            ? _controller.exportDiagnostics(issueId: issueId)
+            : null,
+        child: child!,
+      ),
       title: 'UBAA',
       scaffoldMessengerKey: _messengerKey,
       navigatorKey: _navigatorKey,

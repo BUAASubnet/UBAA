@@ -25,6 +25,7 @@ mixin ControllerDiagnostics on ControllerState {
     StackTrace? stackTrace,
     FeatureId? feature,
     Duration? latency,
+    String? relatedIssueId,
   }) {
     final error = UbaaErrorMapper.fromObject(cause);
     if (internalDisposed) return error;
@@ -36,6 +37,7 @@ mixin ControllerDiagnostics on ControllerState {
         feature: feature,
         latency: latency,
         cause: cause,
+        relatedIssueId: relatedIssueId,
         stackTrace: stackTrace,
       );
       if (telemetrySource(stackTrace) case final source?

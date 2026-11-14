@@ -220,6 +220,7 @@ fn serialized_envelopes_match_the_cli_json_schema() {
                 route: ConnectionMode::WebVpn,
                 state: RouteLoginState::Failed,
                 error: Some(SafeError {
+                    diagnostic: None,
                     code: "upstream_unavailable".into(),
                     kind: "upstream".into(),
                     retryable: true,
@@ -474,6 +475,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
 #[test]
 fn aggregate_failure_constructor_keeps_ok_data_error_consistent() {
     let route_error = SafeError {
+        diagnostic: None,
         code: "authentication_required".into(),
         kind: "authentication".into(),
         retryable: false,
@@ -546,6 +548,7 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
         profile: None,
     };
     let impossible_error = SafeError {
+        diagnostic: None,
         code: "internal_error".into(),
         kind: "internal".into(),
         retryable: false,
@@ -573,6 +576,7 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
         profile: None,
     };
     let top_error = SafeError {
+        diagnostic: None,
         code: "internal_error".into(),
         kind: "internal".into(),
         retryable: false,
@@ -606,6 +610,7 @@ fn aggregate_auth_constructors_bind_profile_presence_to_route_readiness() {
     );
 
     let route_error = SafeError {
+        diagnostic: None,
         code: "authentication_required".into(),
         kind: "authentication".into(),
         retryable: false,

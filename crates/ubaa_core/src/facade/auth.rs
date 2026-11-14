@@ -243,7 +243,9 @@ impl UbaaClient {
 
     async fn prepare_route(&mut self, route: ConnectionMode) -> Result<()> {
         let (runtime, auth) = self.route_parts_for(route);
-        auth.prepare_login(runtime).await
+        auth.prepare_login(runtime)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage))
     }
 
     fn finish_route_login(
@@ -256,7 +258,9 @@ impl UbaaClient {
                 RouteLoginResult {
                     route,
                     state: RouteLoginState::Failed,
-                    error: Some(safe_error(&error)),
+                    error: Some(safe_error(
+                        &error.with_auth_stage(crate::error::AuthStage::Submission),
+                    )),
                 },
                 None,
             ),
@@ -330,6 +334,7 @@ pub(super) fn safe_error(error: &UbaaError) -> SafeError {
         .trim_matches('"')
         .to_owned();
     SafeError {
+        diagnostic: error.auth_diagnostic(),
         code,
         kind,
         retryable: error.retryable,

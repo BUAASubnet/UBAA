@@ -346,6 +346,7 @@ abstract class ControllerOperations extends ChangeNotifier {
     StackTrace? stackTrace,
     FeatureId? feature,
     Duration? latency,
+    String? relatedIssueId,
   });
   @internal
   Future<void> internalRecordAppOpen();

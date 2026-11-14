@@ -1178,6 +1178,9 @@ enum BridgeConnectionMode { direct, webVpn }
 
 /// Dart 可捕获的 typed 安全错误。
 class BridgeError implements FrbException {
+  /// 固定枚举名称，不接收上游正文。
+  final String? authStage;
+  final String? authReason;
   final BridgeErrorCode code;
   final BridgeErrorKind kind;
   final bool retryable;
@@ -1188,6 +1191,8 @@ class BridgeError implements FrbException {
   final BridgeCacheFailure? cacheFailure;
 
   const BridgeError({
+    this.authStage,
+    this.authReason,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1198,6 +1203,8 @@ class BridgeError implements FrbException {
 
   @override
   int get hashCode =>
+      authStage.hashCode ^
+      authReason.hashCode ^
       code.hashCode ^
       kind.hashCode ^
       retryable.hashCode ^
@@ -1210,6 +1217,8 @@ class BridgeError implements FrbException {
       identical(this, other) ||
       other is BridgeError &&
           runtimeType == other.runtimeType &&
+          authStage == other.authStage &&
+          authReason == other.authReason &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&
@@ -1411,12 +1420,17 @@ class BridgeRoutedUserProfile {
 
 /// 路线错误的安全投影。
 class BridgeSafeError {
+  /// 固定枚举名称，不接收上游正文。
+  final String? authStage;
+  final String? authReason;
   final String code;
   final String kind;
   final bool retryable;
   final String message;
 
   const BridgeSafeError({
+    this.authStage,
+    this.authReason,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1425,13 +1439,20 @@ class BridgeSafeError {
 
   @override
   int get hashCode =>
-      code.hashCode ^ kind.hashCode ^ retryable.hashCode ^ message.hashCode;
+      authStage.hashCode ^
+      authReason.hashCode ^
+      code.hashCode ^
+      kind.hashCode ^
+      retryable.hashCode ^
+      message.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeSafeError &&
           runtimeType == other.runtimeType &&
+          authStage == other.authStage &&
+          authReason == other.authReason &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&

@@ -50,6 +50,9 @@ final class DiagnosticRecord {
     this.feature,
     this.latency,
     this.initializationFailure,
+    this.authStage,
+    this.authReason,
+    this.relatedIssueId,
   }) : source = List.unmodifiable(source);
 
   final String issueId;
@@ -64,6 +67,9 @@ final class DiagnosticRecord {
   final FeatureId? feature;
   final Duration? latency;
   final InitializationFailure? initializationFailure;
+  final AuthFailureStage? authStage;
+  final AuthFailureReason? authReason;
+  final String? relatedIssueId;
 
   Map<String, Object?> toJson() => {
     'issue_id': issueId,
@@ -72,6 +78,9 @@ final class DiagnosticRecord {
     'kind': kind.name,
     'retryable': retryable,
     'cause': cause.name,
+    if (authStage != null) 'stage': authStage!.wireName,
+    if (authReason != null) 'reason': authReason!.wireName,
+    if (relatedIssueId != null) 'related_issue_id': relatedIssueId,
     'time': timestamp.toUtc().toIso8601String(),
     if (route != null) 'route': route!.name,
     if (feature != null) 'feature': feature!.wireName,
@@ -96,6 +105,28 @@ final class LocalDiagnostics {
       '${DateTime.now().toUtc().microsecondsSinceEpoch.toRadixString(36)}-${++_runSequence}';
   final Queue<DiagnosticRecord> _records = Queue();
   int _sequence = 0;
+  String? _appVersion;
+  String? _platform;
+
+  /// 宿主提供安装包版本和系统名称，不接受设备标识。
+  void setEnvironment({String? appVersion, String? platform}) {
+    if (appVersion != null &&
+        RegExp(
+          r'^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.+-]+)?$',
+        ).hasMatch(appVersion)) {
+      _appVersion = appVersion;
+    }
+    if (const [
+      'android',
+      'ios',
+      'macos',
+      'windows',
+      'linux',
+      'ohos',
+    ].contains(platform)) {
+      _platform = platform;
+    }
+  }
 
   List<DiagnosticRecord> get records => List.unmodifiable(_records);
 
@@ -106,6 +137,7 @@ final class LocalDiagnostics {
     Duration? latency,
     Object? cause,
     StackTrace? stackTrace,
+    String? relatedIssueId,
   }) {
     final issueId = 'UBAA-$_runId-${++_sequence}';
     _records.add(
@@ -119,6 +151,11 @@ final class LocalDiagnostics {
         feature: feature,
         latency: latency,
         initializationFailure: error.initializationFailure,
+        authStage: error.authStage,
+        authReason: error.authReason,
+        relatedIssueId: _records.any((r) => r.issueId == relatedIssueId)
+            ? relatedIssueId
+            : null,
         cause: _classify(cause),
         timestamp: DateTime.now().toUtc(),
         source: _safeSource(stackTrace),
@@ -130,10 +167,26 @@ final class LocalDiagnostics {
     return error.withIssueId(issueId);
   }
 
-  String exportText() => const JsonEncoder.withIndent('  ').convert({
-    'schema_version': 1,
-    'events': _records.map((event) => event.toJson()).toList(growable: false),
-  });
+  String exportText({String? issueId}) {
+    String? group = issueId;
+    for (final record in _records) {
+      if (record.issueId == issueId) group = record.relatedIssueId ?? issueId;
+    }
+    return const JsonEncoder.withIndent('  ').convert({
+      'schema_version': 2,
+      if (_appVersion != null) 'app_version': _appVersion,
+      if (_platform != null) 'platform': _platform,
+      'events': _records
+          .where(
+            (r) =>
+                issueId == null ||
+                r.issueId == group ||
+                r.relatedIssueId == group,
+          )
+          .map((event) => event.toJson())
+          .toList(growable: false),
+    });
+  }
 
   void clear() => _records.clear();
 }

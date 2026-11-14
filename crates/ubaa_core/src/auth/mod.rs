@@ -101,10 +101,13 @@ impl AuthWorkflow {
             return Err(status_error(response.status, "SSO 登录页不可用"));
         }
         let page = body_text(&response);
-        let execution = extract_execution(&page)
-            .ok_or_else(|| upstream_changed("SSO 登录页缺少 execution 令牌"))?;
+        let execution = extract_execution(&page).ok_or_else(|| {
+            upstream_changed("SSO 登录页缺少 execution 令牌")
+                .with_auth_reason(crate::error::AuthReason::LoginPageInvalid)
+        })?;
         if has_unsupported_login_step(&page) {
-            return Err(upstream_changed("SSO 登录页要求不支持的交互式验证步骤"));
+            return Err(upstream_changed("SSO 登录页要求不支持的交互式验证步骤")
+                .with_auth_reason(crate::error::AuthReason::LoginPageInvalid));
         }
         self.state.remember(page, execution);
         Ok(())
@@ -157,7 +160,9 @@ impl AuthWorkflow {
             return Ok(self.finish_successful_login(runtime, profile));
         }
         if self.state.page().is_none() {
-            self.prepare_login(runtime).await?;
+            self.prepare_login(runtime)
+                .await
+                .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage))?;
             if self.state.authenticated_ready() {
                 let profile = self.state.authenticated_profile.take().expect("已验证身份");
                 return Ok(self.finish_successful_login(runtime, profile));
@@ -166,12 +171,18 @@ impl AuthWorkflow {
         let page = self
             .state
             .page()
-            .ok_or_else(|| upstream_changed("SSO 登录页状态不可用"))?
+            .ok_or_else(|| {
+                upstream_changed("SSO 登录页状态不可用")
+                    .with_auth_reason(crate::error::AuthReason::LoginPageInvalid)
+            })?
             .to_string();
         let execution = self
             .state
             .execution()
-            .ok_or_else(|| upstream_changed("SSO execution 状态不可用"))?
+            .ok_or_else(|| {
+                upstream_changed("SSO execution 状态不可用")
+                    .with_auth_reason(crate::error::AuthReason::LoginPageInvalid)
+            })?
             .to_string();
         let form = build_login_form(&page, &input, &execution)?;
         let request = HttpRequest::post(runtime.url(SSO_LOGIN_URL)?, encode_form(&form))
@@ -217,9 +228,13 @@ impl AuthWorkflow {
     }
 
     async fn validate_status(&mut self, runtime: &mut ClientRuntime) -> Result<UserProfile> {
-        gateway::activate(runtime).await?;
+        gateway::activate(runtime)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Redirect))?;
         let mut clear_workflow = || self.state.clear();
-        let status = sso_identity::validate_status(runtime, &mut clear_workflow).await?;
+        let status = sso_identity::validate_status(runtime, &mut clear_workflow)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::IdentityValidation))?;
         runtime.clear_feature_state();
         Ok(status.user)
     }
@@ -234,11 +249,14 @@ async fn follow_login_response(
     loop {
         while is_redirect(response.status) {
             if redirects >= MAX_REDIRECTS {
-                return Err(upstream_changed("SSO 重定向次数超过上限"));
+                return Err(upstream_changed("SSO 重定向次数超过上限")
+                    .with_auth_reason(crate::error::AuthReason::RedirectInvalid));
             }
             redirects += 1;
-            let location = header_first(&response, "location")
-                .ok_or_else(|| upstream_changed("SSO 重定向缺少 Location"))?;
+            let location = header_first(&response, "location").ok_or_else(|| {
+                upstream_changed("SSO 重定向缺少 Location")
+                    .with_auth_reason(crate::error::AuthReason::RedirectInvalid)
+            })?;
             let next =
                 crate::connection::resolve_redirect(&response.final_url, location, runtime.mode())?;
             let direct = crate::connection::from_webvpn_url(&next)?;
@@ -258,8 +276,10 @@ async fn follow_login_response(
                 ));
             }
             risk_ignored = true;
-            let execution = extract_execution(&body)
-                .ok_or_else(|| upstream_changed("密码风险页面缺少 execution 令牌"))?;
+            let execution = extract_execution(&body).ok_or_else(|| {
+                upstream_changed("密码风险页面缺少 execution 令牌")
+                    .with_auth_reason(crate::error::AuthReason::LoginPageInvalid)
+            })?;
             let form = BTreeMap::from([
                 ("execution".to_string(), execution),
                 ("_eventId".to_string(), "ignoreAndContinue".to_string()),

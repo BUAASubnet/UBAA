@@ -3,6 +3,26 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('登录原因生成具体提示且不改变重试和凭据错误码', () {
+    final error = const UiErrorMapper().fromCore(
+      const CoreErrorPayload(
+        code: 'upstream_changed',
+        retryable: false,
+        authStage: AuthFailureStage.captcha,
+        authReason: AuthFailureReason.verificationIncomplete,
+      ),
+    );
+    expect(error.title, '登录验证未通过');
+    expect(error.code, UbaaErrorCode.upstreamChanged);
+    expect(error.retryable, isFalse);
+    expect(error.withIssueId('UBAA-test').authReason, error.authReason);
+    final restored = mapCoreErrorJson(uiErrorToJson(error));
+    expect(restored.authReason, error.authReason);
+    expect(restored.authStage, error.authStage);
+    expect(AuthFailureReason.parse('任意原始文字'), isNull);
+    expect(AuthFailureStage.parse('https://example.test'), isNull);
+  });
+
   test('CLI 失败 envelope 保留实际路线且可安全序列化往返', () {
     final payload = CoreErrorPayload.fromJson({
       'ok': false,

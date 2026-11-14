@@ -310,6 +310,8 @@ pub(super) fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
         core::OfflineReadError::Read(error) => BridgeError::from_routed(error),
         core::OfflineReadError::Cache(error) => cache_error(error),
         core::OfflineReadError::IdentityMismatch { resolution, .. } => BridgeError {
+            auth_stage: None,
+            auth_reason: None,
             cache_failure: None,
             code: BridgeErrorCode::CacheIdentityMismatch,
             kind: BridgeErrorKind::Authentication,

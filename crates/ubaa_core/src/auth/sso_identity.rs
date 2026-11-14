@@ -44,7 +44,8 @@ async fn identity(runtime: &mut ClientRuntime) -> Result<UserProfile> {
     let login = runtime.url(crate::features::schedule::AAS_LOGIN_URL)?;
     let response = runtime.request(HttpRequest::get(&login)).await?;
     if response.final_url != login {
-        return Err(super::upstream_changed("SSO 取票响应地址发生变化"));
+        return Err(super::upstream_changed("SSO 取票响应地址发生变化")
+            .with_auth_reason(crate::error::AuthReason::RedirectInvalid));
     }
     if response.status == 401
         || (response.status == 200
@@ -154,4 +155,5 @@ fn identifier(value: &Value) -> Result<&str> {
 
 fn invalid_response() -> UbaaError {
     super::upstream_changed("SSO 未返回已证明的身份信息")
+        .with_auth_reason(crate::error::AuthReason::IdentityResponseInvalid)
 }

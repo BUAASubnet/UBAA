@@ -646,6 +646,8 @@ pub(super) fn ensure_caller_pinned_route(
         return Ok(());
     }
     Err(BridgeError {
+        auth_stage: None,
+        auth_reason: None,
         cache_failure: None,
         code: crate::api::client::BridgeErrorCode::OperationConflict,
         kind: crate::api::client::BridgeErrorKind::Input,

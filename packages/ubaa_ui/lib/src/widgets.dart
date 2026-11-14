@@ -8,7 +8,7 @@ export 'app/login.dart' show UbaaLoginView;
 export 'app/login_verification.dart' show UbaaCaptchaDialog;
 export 'app/shell.dart' show UbaaMainShell;
 export 'app/splash.dart' show UbaaSplashView;
-export 'common/error_card.dart' show FriendlyErrorCard;
+export 'common/error_card.dart' show FriendlyErrorCard, UiDiagnosticsScope;
 export 'features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
 export 'write/confirmation.dart' show WriteConfirmationView;
 

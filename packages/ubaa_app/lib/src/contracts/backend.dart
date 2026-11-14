@@ -12,6 +12,8 @@ class BackendException implements Exception {
     this.retryable,
     this.resolvedRoute,
     this.issueId,
+    this.authStage,
+    this.authReason,
     this.accountMismatch = false,
     this.clientDisposed = false,
     this.captchaRequired = false,
@@ -25,6 +27,8 @@ class BackendException implements Exception {
     retryable: error.retryable,
     resolvedRoute: error.resolvedRoute,
     issueId: error.issueId,
+    authStage: error.authStage,
+    authReason: error.authReason,
   );
 
   final UbaaErrorCode code;
@@ -33,6 +37,8 @@ class BackendException implements Exception {
   final bool? retryable;
   final ConnectionMode? resolvedRoute;
   final String? issueId;
+  final AuthFailureStage? authStage;
+  final AuthFailureReason? authReason;
 
   /// 缓存身份不一致必须关闭账号投影，不能只作为局部查询错误。
   final bool accountMismatch;

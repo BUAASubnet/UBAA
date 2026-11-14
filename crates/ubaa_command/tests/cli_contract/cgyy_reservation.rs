@@ -100,6 +100,7 @@ fn cgyy_day_data() -> Value {
 
 fn safe_error(message: &str) -> SafeError {
     SafeError {
+        diagnostic: None,
         code: "authentication_required".into(),
         kind: "authentication".into(),
         retryable: false,

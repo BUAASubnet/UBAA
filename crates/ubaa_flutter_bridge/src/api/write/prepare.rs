@@ -598,6 +598,8 @@ impl BridgeClient {
                     });
             if !courses_match {
                 return Err((BridgeError {
+                    auth_stage: None,
+                    auth_reason: None,
                     cache_failure: None,
                     code: crate::api::client::BridgeErrorCode::UpstreamChanged,
                     kind: crate::api::client::BridgeErrorKind::Upstream,

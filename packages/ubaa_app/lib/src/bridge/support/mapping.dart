@@ -139,6 +139,8 @@ String? bridgeNonBlank(String? value) {
 
 BackendException bridgeMapError(BridgeError error) => BackendException(
   bridgeTypedErrorCode(error.code),
+  authStage: AuthFailureStage.parse(error.authStage),
+  authReason: AuthFailureReason.parse(error.authReason),
   cacheFailure: bridgeCacheMaintenanceFailure(error.cacheFailure),
   accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
   clientDisposed: error.code == BridgeErrorCode.clientDisposed,
