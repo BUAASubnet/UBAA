@@ -88,34 +88,40 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
     if (await root.exists()) await root.delete(recursive: true);
   });
-  test('移动端只把本机文件路径交给原生通道并在交付后清理正文', () async {
-    final calls = <MethodCall>[];
-    messenger.setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      if (call.method == 'select') return 'selection';
-      if (call.method == 'writeFile') {
-        final args = Map<Object?, Object?>.from(call.arguments as Map);
-        expect(args.containsKey('bytes'), false);
-        expect(
-          await File(args['path'] as String).readAsString(),
-          'synthetic body',
-        );
-      }
-      return null;
+  for (final os in ['android', 'ios']) {
+    test('$os 只把本机文件路径交给原生通道并在交付后清理正文', () async {
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        if (call.method == 'select') return 'selection';
+        if (call.method == 'writeFile') {
+          final args = Map<Object?, Object?>.from(call.arguments as Map);
+          expect(args.containsKey('bytes'), false);
+          expect(
+            await File(args['path'] as String).readAsString(),
+            'synthetic body',
+          );
+        }
+        return null;
+      });
+      final folder = await root.createTemp('body_');
+      final saver = SystemBhpanFileSaver(
+        operatingSystem: os,
+        stagingDirectory: () async => folder,
+      );
+      final destination = (await saver.select('report.txt', () => true))!;
+      // Android 禁止普通应用建立硬链接；私有暂存文件须允许 Core 用重命名交付。
+      expect(destination.overwrite, isTrue);
+      expect(File(destination.path).parent.path, folder.path);
+      expect(await File(destination.path).exists(), isFalse);
+      await File(destination.path).writeAsString('synthetic body');
+      await destination.deliver(() => true);
+      await destination.discard();
+      expect(calls.map((call) => call.method), ['select', 'writeFile']);
+      expect((calls.first.arguments as Map)['kind'], 'binary');
+      expect(await folder.exists(), false);
     });
-    final folder = await root.createTemp('body_');
-    final saver = SystemBhpanFileSaver(
-      operatingSystem: 'android',
-      stagingDirectory: () async => folder,
-    );
-    final destination = (await saver.select('report.txt', () => true))!;
-    await File(destination.path).writeAsString('synthetic body');
-    await destination.deliver(() => true);
-    await destination.discard();
-    expect(calls.map((call) => call.method), ['select', 'writeFile']);
-    expect((calls.first.arguments as Map)['kind'], 'binary');
-    expect(await folder.exists(), false);
-  });
+  }
   test('选择取消与选择期间换号均不创建正文目录', () async {
     var current = true, created = 0, round = 0;
     final calls = <String>[];
@@ -232,6 +238,7 @@ void main() {
         operatingSystem: 'ohos',
         stagingDirectory: () async => folder,
       ).select('报告.txt', () => current))!;
+      expect(destination.overwrite, isTrue);
       final body = List<int>.generate(128 * 1024 + 3, (index) => index % 251);
       await File(destination.path).writeAsBytes(body);
       try {

@@ -208,8 +208,10 @@ final class _NativeDestination implements BhpanDownloadDestination {
     message: '账号或网络已切换，文件未保存',
   );
   bool consumed = false;
+  // path 位于本次下载独占的临时目录。允许 Core 重命名交付，避免 Android
+  // 禁止的硬链接；用户所选目标仍由原生通道单独写入。
   @override
-  bool get overwrite => false;
+  bool get overwrite => true;
   @override
   Future<void> deliver(bool Function() current) async {
     if (!current()) throw _sessionChanged;
