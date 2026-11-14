@@ -346,11 +346,13 @@ def build(account_id, database_id):
 
 
     def minute_sql(cols, where):
+        # 先汇总为时间桶，阻止连接展开后为每个时间点重复扫描分钟明细。
         return (f"WITH RECURSIVE p(b) AS (SELECT {BUCKET}), "
                 f"k(t) AS (SELECT ((${{__from}}+{OFF})/{B})*{B}-{OFF} UNION ALL SELECT t+{B} FROM k "
                 f"WHERE t+{B} <= MIN(${{__to}}, unixepoch('now')*1000)), "
-                f"m AS (SELECT ((unixepoch(minute_at||':00+08:00')*1000+{OFF})/{B})*{B}-{OFF} AS t, event, feature, result, count "
-                f"FROM minute_counts WHERE minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT} AND {where}) "
+                f"m AS (SELECT ((unixepoch(minute_at||':00+08:00')*1000+{OFF})/{B})*{B}-{OFF} AS t, event, feature, result, SUM(count) AS count "
+                f"FROM minute_counts WHERE minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT} AND {where} "
+                f"GROUP BY t, event, feature, result) "
                 f"SELECT k.t AS time, {cols} FROM k LEFT JOIN m ON m.t=k.t GROUP BY k.t ORDER BY k.t")
 
 
