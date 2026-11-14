@@ -2,6 +2,27 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:flutter/material.dart';
 import '../../shared/feedback.dart';
 
+String? homeSyncNotice(HomeState? home) {
+  if (home == null) return null;
+  final snapshots = [...home.sources.values, home.schedule.snapshot];
+  if (home.week?.error != null ||
+      snapshots.any(
+        (s) => s.error != null || s.status == FeatureLoadStatus.failure,
+      )) {
+    return '部分更新失败';
+  }
+  final evidence = [
+    home.week?.evidence,
+    for (final snapshot in snapshots) snapshot.evidence,
+  ].nonNulls;
+  if (evidence.any((e) => !e.complete)) return '部分数据待补全';
+  if (evidence.any((e) => e.origin != DataOrigin.online) ||
+      snapshots.any((s) => s.status == FeatureLoadStatus.stale)) {
+    return '部分数据使用缓存';
+  }
+  return null;
+}
+
 Future<void> importAgendaSchedule(
   BuildContext context,
   String term,

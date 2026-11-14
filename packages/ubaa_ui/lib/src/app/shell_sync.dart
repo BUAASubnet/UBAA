@@ -63,7 +63,7 @@ extension UbaaShellSync on _UbaaMainShellState {
         'home',
         widget.homeState?.busy ?? false,
         widget.homeState?.updatedAt,
-        notice: _homeSyncNotice,
+        notice: homeSyncNotice(widget.homeState),
       );
     }
     if (_onMeTab && widget.campusAccountService != null) {
@@ -88,27 +88,5 @@ extension UbaaShellSync on _UbaaMainShellState {
       );
     }
     return status('other', false, null);
-  }
-
-  String? get _homeSyncNotice {
-    final home = widget.homeState;
-    if (home == null) return null;
-    final snapshots = [...home.sources.values, home.schedule.snapshot];
-    if (home.week?.error != null ||
-        snapshots.any(
-          (s) => s.error != null || s.status == FeatureLoadStatus.failure,
-        )) {
-      return '部分更新失败';
-    }
-    final evidence = [
-      home.week?.evidence,
-      for (final snapshot in snapshots) snapshot.evidence,
-    ].nonNulls;
-    if (evidence.any((e) => !e.complete)) return '部分数据待补全';
-    if (evidence.any((e) => e.origin != DataOrigin.online) ||
-        snapshots.any((s) => s.status == FeatureLoadStatus.stale)) {
-      return '部分数据使用缓存';
-    }
-    return null;
   }
 }
