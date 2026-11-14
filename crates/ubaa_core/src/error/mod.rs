@@ -118,6 +118,7 @@ impl fmt::Debug for UbaaError {
 
 impl UbaaError {
     /// 返回不含用户数据的本地登录诊断。
+    #[must_use]
     pub const fn auth_diagnostic(&self) -> Option<AuthDiagnostic> {
         self.auth_diagnostic
     }

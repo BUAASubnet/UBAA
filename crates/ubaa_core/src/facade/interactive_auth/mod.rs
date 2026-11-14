@@ -122,22 +122,8 @@ impl UbaaClient {
             };
             match context.routes[index].state {
                 InteractiveRouteState::Prepared => {
-                    let (runtime, auth) = self.route_parts_for(route);
-                    runtime.set_interactive_login_scope(Some(login.clone()));
-                    let result = auth.login(runtime, credentials).await.map_err(|error| {
-                        error.with_auth_stage(crate::error::AuthStage::Submission)
-                    });
-                    runtime.set_interactive_login_scope(None);
-                    self.ensure_interactive_active(login)?;
-                    match result {
-                        Ok(profile) => {
-                            self.record_interactive_profile(&mut context, index, profile)?;
-                        }
-                        Err(error) => {
-                            context.routes[index].state = InteractiveRouteState::Failed;
-                            context.routes[index].error = Some(safe_interactive_error(&error));
-                        }
-                    }
+                    self.submit_prepared_route(&mut context, login, index, credentials)
+                        .await?;
                 }
                 InteractiveRouteState::CaptchaRequired => {
                     let Some(answer) = supplied[index]
@@ -207,6 +193,31 @@ impl UbaaClient {
             }
         }
         self.finish_interactive(context, frames)
+    }
+
+    async fn submit_prepared_route(
+        &mut self,
+        context: &mut InteractiveContext,
+        login: &InteractiveLoginHandle,
+        index: usize,
+        credentials: LoginInput,
+    ) -> Result<()> {
+        let (runtime, auth) = self.route_parts_for(route_at(index));
+        runtime.set_interactive_login_scope(Some(login.clone()));
+        let result = auth
+            .login(runtime, credentials)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Submission));
+        runtime.set_interactive_login_scope(None);
+        self.ensure_interactive_active(login)?;
+        match result {
+            Ok(profile) => self.record_interactive_profile(context, index, profile)?,
+            Err(error) => {
+                context.routes[index].state = InteractiveRouteState::Failed;
+                context.routes[index].error = Some(safe_interactive_error(&error));
+            }
+        }
+        Ok(())
     }
 
     fn collect_interactive_answers(

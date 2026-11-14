@@ -17,6 +17,7 @@ pub enum AuthStage {
 
 impl AuthStage {
     /// 本地诊断使用的固定名称。
+    #[must_use]
     pub const fn wire_name(self) -> &'static str {
         match self {
             Self::LoginPage => "login_page",
@@ -47,6 +48,7 @@ pub enum AuthReason {
 
 impl AuthReason {
     /// 固定原因名称与所属阶段。
+    #[must_use]
     pub const fn diagnostic(self) -> AuthDiagnostic {
         let stage = match self {
             Self::LoginPageInvalid => AuthStage::LoginPage,
@@ -61,6 +63,7 @@ impl AuthReason {
     }
 
     /// 本地诊断使用的固定名称。
+    #[must_use]
     pub const fn wire_name(self) -> &'static str {
         match self {
             Self::LoginPageInvalid => "login_page_invalid",
