@@ -220,8 +220,11 @@ final class HomeCoordinator {
     final schedule = _scheduleState();
     final dates = [
       for (final s in sources.values)
-        if (s.updatedAt != null) s.updatedAt!,
-      if (schedule.snapshot.updatedAt != null) schedule.snapshot.updatedAt!,
+        if (s.status != FeatureLoadStatus.failure && s.updatedAt != null)
+          s.updatedAt!,
+      if (schedule.snapshot.status != FeatureLoadStatus.failure &&
+          schedule.snapshot.updatedAt != null)
+        schedule.snapshot.updatedAt!,
       if (_supplements[HomeSupplement.currentWeek]?.evidence?.fetchedAt
           case final at?)
         at,
@@ -242,7 +245,8 @@ final class HomeCoordinator {
           _supplementTasks.isNotEmpty ||
           _dayTasks.containsKey(schedule.date),
       refining: sources.values.any((s) => s.refining),
-      updatedAt: dates.firstOrNull,
+      // 首页展示最近取得数据的时间，旧缓存与失败由界面单独提示。
+      updatedAt: dates.lastOrNull,
     );
   }
 

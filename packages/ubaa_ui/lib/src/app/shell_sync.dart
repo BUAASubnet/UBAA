@@ -17,25 +17,29 @@ extension UbaaShellSync on _UbaaMainShellState {
 
   /// 标题栏右侧的统一刷新状态：功能页、首页和“我的”各自给出刷新中与更新时间。
   Widget _buildSyncStatus(Future<void> Function()? refresh) {
-    Widget status(Object key, bool busy, DateTime? updatedAt) =>
-        ListenableBuilder(
-          listenable: _pageBusy,
-          builder: (context, _) => UiSyncStatus(
-            key: ValueKey(key),
-            // 下拉刷新已有下拉指示器，期间标题栏不再重复转圈。
-            // 页面内的首次读取只登记忙碌（LoadingPlaceholder），也在这里显示。
-            busy:
-                (busy || widget.connecting || _pageBusy.busy) && _pulling == 0,
-            updatedAt: updatedAt,
-            onRefresh: refresh,
-            refreshTooltip:
-                _openedFeature == null ||
-                    (_openedFeature == FeatureId.schedule &&
-                        widget.onSaveScheduleSemester != null)
-                ? '刷新'
-                : '刷新当前查询',
-          ),
-        );
+    Widget status(
+      Object key,
+      bool busy,
+      DateTime? updatedAt, {
+      String? notice,
+    }) => ListenableBuilder(
+      listenable: _pageBusy,
+      builder: (context, _) => UiSyncStatus(
+        key: ValueKey(key),
+        // 下拉刷新已有下拉指示器，期间标题栏不再重复转圈。
+        // 页面内的首次读取只登记忙碌（LoadingPlaceholder），也在这里显示。
+        busy: (busy || widget.connecting || _pageBusy.busy) && _pulling == 0,
+        updatedAt: updatedAt,
+        notice: notice,
+        onRefresh: refresh,
+        refreshTooltip:
+            _openedFeature == null ||
+                (_openedFeature == FeatureId.schedule &&
+                    widget.onSaveScheduleSemester != null)
+            ? '刷新'
+            : '刷新当前查询',
+      ),
+    );
     if (_openedFeature case final feature?) {
       return ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,
@@ -59,6 +63,7 @@ extension UbaaShellSync on _UbaaMainShellState {
         'home',
         widget.homeState?.busy ?? false,
         widget.homeState?.updatedAt,
+        notice: _homeSyncNotice,
       );
     }
     if (_onMeTab && widget.campusAccountService != null) {
@@ -83,5 +88,27 @@ extension UbaaShellSync on _UbaaMainShellState {
       );
     }
     return status('other', false, null);
+  }
+
+  String? get _homeSyncNotice {
+    final home = widget.homeState;
+    if (home == null) return null;
+    final snapshots = [...home.sources.values, home.schedule.snapshot];
+    if (home.week?.error != null ||
+        snapshots.any(
+          (s) => s.error != null || s.status == FeatureLoadStatus.failure,
+        )) {
+      return '部分更新失败';
+    }
+    final evidence = [
+      home.week?.evidence,
+      for (final snapshot in snapshots) snapshot.evidence,
+    ].nonNulls;
+    if (evidence.any((e) => !e.complete)) return '部分数据待补全';
+    if (evidence.any((e) => e.origin != DataOrigin.online) ||
+        snapshots.any((s) => s.status == FeatureLoadStatus.stale)) {
+      return '部分数据使用缓存';
+    }
+    return null;
   }
 }
