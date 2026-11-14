@@ -65,6 +65,8 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-service
+          if-no-files-found: error
+          include-hidden-files: true
           path: |
             .ubaa_local/app_service.tar.gz
             .ubaa_local/bhpan-publish

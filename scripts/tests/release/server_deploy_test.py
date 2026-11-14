@@ -57,6 +57,17 @@ class DeployTest(unittest.TestCase):
         self.assertTrue(json.loads((self.destination / 'distribution.json').read_text())['complete'])
         self.assertIn('/opt/ubaa/bin/bhpan-publish', self.run.call_args.args)
 
+    def test_文档换版后保留缓存页面引用的旧静态资源(self):
+        (deploy.ROOT / 'docs').mkdir(parents=True)
+        for identifier in ['old', 'new']:
+            source = self.root / identifier
+            (source / 'assets').mkdir(parents=True)
+            (source / 'assets' / (identifier + '.js')).write_text(identifier)
+            deploy.docs(source, identifier)
+        self.assertEqual((deploy.ROOT / 'docs/assets/old.js').read_text(), 'old')
+        self.assertEqual((deploy.ROOT / 'docs/assets/new.js').read_text(), 'new')
+        self.assertEqual((deploy.ROOT / 'docs/current').resolve(), deploy.ROOT / 'docs/new')
+
 
 if __name__ == '__main__':
     unittest.main()

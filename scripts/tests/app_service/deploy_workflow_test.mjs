@@ -23,3 +23,10 @@ test("应用部署等待检查且只从主仓库 main 进入生产环境", () =>
     "UBAA_DEPLOY_KEY",
   ]);
 });
+
+test("服务器部署包必须实际上传，包含明确选择的隐藏目录下产物", () => {
+  const upload = workflow.jobs.check.steps.find(step => step.with?.name === "app-service");
+  assert.equal(upload.with["if-no-files-found"], "error");
+  assert.equal(upload.with["include-hidden-files"], true);
+  assert.deepEqual(upload.with.path.trim().split("\n"), [".ubaa_local/app_service.tar.gz", ".ubaa_local/bhpan-publish"]);
+});

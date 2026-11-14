@@ -120,6 +120,9 @@ def application(folder, identifier):
 def docs(folder, identifier):
     destination = ROOT / 'docs' / identifier
     shutil.move(str(folder), destination)
+    # 缓存中的旧 HTML 仍会引用旧摘要文件，静态资源跨版本保留。
+    shutil.copytree(destination / 'assets', ROOT / 'docs/assets', dirs_exist_ok=True)
+    run('chmod', '-R', 'a+rX', str(ROOT / 'docs/assets'))
     run('chmod', '-R', 'a+rX', str(destination))
     point(ROOT / 'docs/current', destination)
 

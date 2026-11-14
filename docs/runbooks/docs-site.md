@@ -37,7 +37,7 @@ npm run docs:preview
 
 ### 部署到服务器
 
-正式站点为 `https://www.ubaa.top`。Nginx 从 `/srv/ubaa/docs/current` 提供 VitePress 静态文件，Cloudflare CDN 通过 HTTPS 10443 回源，并严格校验证书。HTML 缓存 300 秒，带内容摘要的静态资源缓存一年。下载会话页和发布信息不缓存。
+正式站点为 `https://www.ubaa.top`。Nginx 从 `/srv/ubaa/docs/current` 提供 VitePress 静态文件，Cloudflare CDN 通过 HTTPS 10443 回源，并严格校验证书。HTML 缓存 300 秒，带内容摘要的静态资源缓存一年，并跨版本保留在服务器的共享 assets 目录，供缓存中的旧页面继续读取。下载会话页和发布信息不缓存。
 
 [文档工作流](../../.github/workflows/docs.yml)在 dev 的站点相关改动或 dev 手动触发时构建并部署，PR 只构建。`docs-production` 只允许 dev，保存专用部署密钥 `UBAA_DEPLOY_KEY` 和固定主机公钥 `UBAA_DEPLOY_HOST_KEYS`。
 
