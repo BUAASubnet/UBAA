@@ -44,10 +44,11 @@ jobs:
           RELEASE_SHA: ${{ steps.source.outputs.sha }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
         run: python3 scripts/release/distribute.py
+      - name: 通知服务器下载并上传北航云盘
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
+          UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: python3 scripts/server/notify.py release

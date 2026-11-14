@@ -200,7 +200,7 @@ def main():
         entry = ("import {runRelease} from './scripts/release/app_service/release.mjs'; "
                  'try { await runRelease(process.argv[1]); } '
                  'catch (error) { console.error(error.message); process.exitCode = 1; }')
-        hand_off(['node', '--input-type=module', '-e', entry, *arguments], load_environment(scope='deploy'))
+        hand_off(['node', '--input-type=module', '-e', entry, *arguments], load_environment())
         return
     if command == 'live':
         environment = load_environment(scope='live')

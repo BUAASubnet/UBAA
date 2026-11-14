@@ -1,111 +1,64 @@
-# 应用服务部署与维护
+# 应用服务部署
 
-本手册供维护应用服务的维护者使用，说明如何准备 Cloudflare 资源、配置 GitHub CD、部署 Worker 和发布公告与渠道内容，以及如何查询统计和回退。服务行为见[应用服务合同](../contracts/app-service.md)。
+应用服务运行在 `ssh ubaa` 对应的 Debian 服务器，通过 Nginx 提供 HTTPS。数据库使用 PostgreSQL 17，应用运行时使用 Node.js 26。客户端接口与请求 Schema 见[应用服务合同](../contracts/app-service.md)。
 
-## 何时使用
+## 入口与目录
 
-- 首次为测试或生产环境准备应用服务。
-- 部署新的 Worker 版本或迁移 D1。
-- 发布或修改公告、渠道配置（最新版本、最低支持版本、下载地址）。
-- 查询活跃统计，或处理部署失败与回退。
-
-应用服务由一个 Cloudflare Worker、一个 D1 数据库和一个 Workers KV 命名空间组成。维护者可以在本机部署 Worker 或单独发布内容；GitHub CD 在 main 的服务改动通过应用服务检查后，独立部署 Worker 并同步渠道和公告。main 的合并条件由完整验收负责。
-
-## 前提
-
-### 准备账号和目标
-
-1. 在目标 Cloudflare 账号准备 D1 和 KV，分别记下 D1 数据库 UUID 和 KV 命名空间 ID。Worker 使用 `DB` 和 `APP_CONFIG` 绑定这两个资源。测试与生产使用不同的 Worker、D1、KV 和域名。记录 D1 的实际数据位置或配置的管辖区，按 [ADR 0008](../adr/0008-app-service-worker.md) 核对数据出境说明。
-2. 在 Workers & Pages 创建目标 Worker。首次可以使用空白 Worker，关闭 `workers.dev` 和 Preview URLs。添加名为 `USER_KEY_SECRET`、类型为 **Secret** 的密码学随机值。部署只检查该 Secret 是否存在并保留它。除泄露外不更换；更换后记录统计去重连续性中断的日期。参见 [Worker Secret 配置](https://developers.cloudflare.com/workers/configuration/secrets/#secrets-on-deployed-workers)。
-3. 为 API 主机名配置独立规则：关闭 Browser Integrity Check，并让浏览器缓存遵循 Worker 的 Cache-Control，避免原生客户端被浏览器检查拦截或 300 秒缓存被 Zone 默认期限覆盖。
-4. 在同一账号下的目标 Zone 保留已配置的 CNAME，并将 `<主机名>/*` 的 [Worker Route](https://developers.cloudflare.com/workers/configuration/routing/routes/) 指向目标 Worker。应用服务使用 `app.ubaa.top/*`，文档站使用 `www.ubaa.top/*`。维护者负责 DNS 和路由配置，部署流程只读取路由并核对 Worker 名称。
-5. 本机在仓库根 `.env` 中填写下列值。CD 使用同名的 GitHub Environment 变量：
-
-| 键 | 值 |
+| 用途 | 地址或目录 |
 |---|---|
-| `UBAA_APP_SERVICE_ACCOUNT_ID` | Cloudflare 账号 ID |
-| `UBAA_APP_SERVICE_ZONE_ID` | 域名所属 Zone ID |
-| `UBAA_APP_SERVICE_WORKER_NAME` | 上述 Worker 的名称 |
-| `UBAA_APP_SERVICE_D1_ID` | 目标 D1 数据库 UUID |
-| `UBAA_APP_SERVICE_KV_NAMESPACE_ID` | 目标 KV 命名空间 ID |
-| `UBAA_APP_SERVICE_DOMAIN` | 已绑定的主机名，不含协议、端口、路径 |
+| 应用接口 | `https://app.ubaa.top:10443` |
+| 文档站 | `https://www.ubaa.top`，Cloudflare CDN 回源 10443 |
+| 安装包 | `https://download.ubaa.top:10443/releases/<tag>/<构建号>/` |
+| 使用情况看板 | `https://stats.ubaa.top:10443`，需要登录 |
+| 应用版本与当前指针 | `/srv/ubaa/app_service/`、`current` |
+| 文档版本与当前指针 | `/srv/ubaa/docs/`、`current` |
+| 分发文件 | `/srv/ubaa/downloads/releases/` |
+| 私有服务配置 | `/etc/ubaa/service.env`、`/etc/ubaa/bhpan.env` |
+| 已发布清单和运行状态 | `/var/lib/ubaa/` |
 
-`CLOUDFLARE_API_TOKEN` 本机可放在私有 `.env` 或由密钥管理工具注入。部署 Token 授予目标账号的 **Workers Scripts Write**、**D1 Write**、**Workers KV Storage Write**，以及目标 Zone 的 **Workers Routes Read**。单独发布内容只需 **Workers KV Storage Write**。域名和 DNS 的首次配置使用维护者权限，部署 Token 无需修改 Zone 路由或 DNS。参见 [Cloudflare API Token 权限](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)、[Workers 权限](https://developers.cloudflare.com/workers/authorization/workers/)和 [KV 批量读取 API](https://developers.cloudflare.com/api/resources/kv/subresources/namespaces/methods/bulk_get/)。
+只有 Nginx 监听公网 HTTPS 10443。Node.js 监听回环 10080，Grafana 监听回环 3000，PostgreSQL 使用回环连接。配置模板位于 [scripts/server](../../scripts/server/)。
 
-## 步骤
+## 部署应用
 
-### 配置 GitHub CD
+[部署工作流](../../.github/workflows/worker.yml)在 main 的相关改动或手动触发时执行服务测试、构建应用和云盘发布工具，然后保存同一次运行的 artifact。部署作业通过 SSH 传递运行编号、源码提交和短期下载地址，服务器直接从 GitHub 下载，不经过代理，不使用 Actions 上传大文件。
 
-1. 在仓库 **Settings → Environments** 创建 `app-service-production`。仅允许 main 分支部署。自动部署不配置人工审批。参见 [GitHub Environment 配置](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
-2. 在该 Environment 的 **Variables** 中设置上表的六个目标值，在 **Secrets** 中设置 `CLOUDFLARE_API_TOKEN`。Token 不放在仓库级 Secret。学校账号与 `USER_KEY_SECRET` 均不填入 GitHub。
-3. [Worker 工作流](../../.github/workflows/worker.yml) 监听 main 中的服务代码、配置、发布脚本和公告改动，也支持在 main 手动运行。
+部署前再次核对 main 的最新提交。`app-service-production` 环境保存 `UBAA_DEPLOY_KEY` 和 `UBAA_DEPLOY_HOST_KEYS`。专用 `ubaa-deploy` 用户只能运行固定部署入口，不能取得交互 Shell。学校凭据不进入 GitHub Actions。
 
-部署作业等待同一运行的应用服务检查成功。其他分支、PR、fork 和检查未通过的运行不进入部署。生产作业串行执行，写入前核对提交仍是 main 分支头。发布 Token 只注入实际部署步骤，检查作业不接收凭据。
+服务器按顺序解包、安装生产依赖、以应用账号应用 PostgreSQL Schema、切换 `current`、重启应用并检查 `/healthz`。健康检查失败时恢复原应用指针。数据库变更采用可被上一应用版本读取的方式；回退应用不会自动撤销数据库变更。
 
-### 校验、迁移和发布
+维护者可以运行 `just app-service-deploy` 或 `just app-service-publish`，两者均校验本地内容并触发 main 的完整部署工作流。正式公告和渠道来源分别为 `docs/site/announcements/` 和 `services/app_service/config/channels.json`。
 
-使用仓库锁定的 Node.js 版本，从仓库根目录运行本地检查。前两条命令分别安装站点和 Worker 的锁定依赖：
+## PostgreSQL 与定时汇总
 
-```bash
-just app-service-content-check
-just app-service-check
-npm run docs:build
-```
+数据库为 `ubaa`。应用角色 `ubaa` 管理应用表，`ubaa_grafana` 只有读取权限。数据库连接信息不提交。初始化脚本位于 `services/app_service/migrations/`，执行记录保存在 `schema_versions`。
 
-正式公告位于 `docs/site/announcements/YYYY-MM-DD-NNN.md`。网站和 App 使用同一组文件；`app: false` 只在网站展示。渠道配置位于 `services/app_service/config/channels.json`。商店新版本确认可下载后才更新渠道配置。字段见[应用服务合同](../contracts/app-service.md#10-公告与渠道配置的来源)。
+同一安装的上报与删除使用事务级 advisory lock 串行处理。批次去重、明细写入和拒收结果在同一事务中完成，失败时全部回滚。汇总保留期与客户端协议不变。
 
-维护者取得实际操作授权并核对目标后，可在本机显式执行以下命令。CD 按同一顺序执行：
+`ubaa-aggregate.timer` 每天北京时间 03:00 运行汇总，错过触发后补跑。检查命令：
 
 ```bash
-just app-service-deploy
-just app-service-publish
+ssh ubaa 'systemctl status ubaa-app ubaa-aggregate.timer'
+ssh ubaa 'journalctl -u ubaa-app -u ubaa-aggregate --since today'
 ```
 
-`just app-service-deploy` 的行为：
+日志不记录请求正文、学校凭据或遥测标识。`just app-service-check` 自动启动隔离 PostgreSQL 集群，验证 Schema、请求、事务、并发、清理和 Grafana SQL。显式的 `just app-service-e2e` 联调 Core、Dart FFI 和本地服务，使用合成数据。
 
-- 先校验内容，检查并构建 Worker。写入前通过 [Worker Routes API](https://developers.cloudflare.com/api/resources/workers/subresources/routes/methods/list/) 确认目标 Zone 中 `<主机名>/*` 唯一指向指定 Worker，并确认 `USER_KEY_SECRET` 存在。路由缺失、停用、归属不符或无法验证时停止。部署配置省略 `route` 和 `routes`，只发布代码与资源绑定，保留维护者配置的 CNAME 和路由。
-- 远端操作先按文件顺序应用 `services/app_service/migrations/` 中未应用的迁移，成功后才部署已构建的 Worker。使用指定的 D1/KV ID，关闭资源自动创建、Workers Logs 和 Logpush。Cron 使用 `0 19 * * *`（校园时间每日 03:00）。部署日志只报告步骤状态，不记录 Token、Secret 或请求正文。
-`just app-service-publish` 的行为：
+## 使用情况看板
 
-- 重新生成已校验的 `channels` 和 `announcements`，读取目标 KV 并比较，只写入有变化的键。没有 App 公告时，公告集合为空数组。每次发布都比较远端当前内容，因此失败后重跑会补上尚未同步的内容。客户端读到新内容需等待 KV 传播和最多 300 秒的 Worker 缓存过期。
-## 验证
+Grafana 使用内置 PostgreSQL 数据源 `ubaa-postgres`。匿名访问和自行注册关闭，管理员账号单独配置。看板由 `just app-service-dashboard` 生成，包含活跃、功能、错误、耗时、分钟曲线和汇总状态。
 
-在控制台确认域名证书、Cron、D1/KV 绑定和 Worker 版本。首次启用前，用授权的合成输入确认 bootstrap、上报、去重、删除和定时结果。验证通过后，在客户端构建的 `.env` 设置 `UBAA_APP_SERVICE_URL=https://<已验证主机名>` 和相应的 `UBAA_DISTRIBUTION_CHANNEL`；任一留空时停用应用服务。
+数据源配置在 `/etc/grafana/provisioning/datasources/ubaa.yaml`，看板在 `/var/lib/grafana/dashboards/ubaa.json`。修改生成器后运行应用服务检查，所有查询会在 PostgreSQL 上执行。
 
-### 查询汇总
+## 云盘分发
 
-在目标 D1 的 Cloudflare 控制台执行下列只读查询：
+`bhpan-publish` 通过 Core facade 使用 Direct 登录和云盘上传。服务器的 `bhpan.env` 只包含发布账号、密码和已核对的目标目录标识 `UBAA_BHPAN_TARGET`。目标对应公开发布分享 `AA61B7EDC6F2BC4AF5B040FAF0563AD160`，程序从个人授权文档库逐级定位目标，不以分享临时 Token 创建目录。
 
-```sql
-SELECT job, last_success_day FROM job_state;
-SELECT day, users, devices FROM active_daily
-  WHERE dimension = 'all' ORDER BY day DESC LIMIT 14;
-SELECT month, users, devices FROM active_monthly
-  WHERE dimension = 'all' ORDER BY month DESC LIMIT 13;
-```
+文件按 `v版本/构建号` 保存。旧版本保留，商店专用 IPA 和 HarmonyOS APP 不进入公开下载。上传前记录 pending，成功后记录 complete；未知结果先读取目录，不自动重复上传。再次分发已成功的文件时核对远端名称和长度并跳过。已有同名文件但缺少成功状态时停止，维护者核对后再恢复。
 
-`all` 行是全平台、渠道和版本的整体去重结果。按平台、渠道、版本或年级分析时查询相应维度；各分组计数可能重叠。`last_success_day` 是最近一次成功处理的校园日期。漏跑后任务会扩大重算范围。持续落后时，核对 Worker 版本、Cron 和 D1 状态；查询或诊断材料只保留必要的脱敏汇总。
+服务器文件下载与云盘上传均完成后才写入 `distribution.json`。手动公开 GitHub Release 后，[发布同步工作流](../../.github/workflows/release-published.yml)核对公开 `release.json` 与服务器完整分发记录，再更新下载页和 GitHub 渠道。App Store 与 AppGallery 渠道仍在商店实际可下载后更新。
 
-### 使用情况看板
+## 证书与网络
 
-维护者自托管的 Grafana 通过 [Infinity 数据源](https://grafana.com/grafana/plugins/yesoreyeram-infinity-datasource/)查询 D1 明细表，看板源码是 `scripts/release/app_service_dashboard.py`。
+acme.sh 使用 Cloudflare DNS 验证申请 `ubaa.top` 与 `*.ubaa.top` 的证书，证书安装到 `/etc/nginx/ssl/ubaa.top/`，续期后先检查 Nginx 配置再重载。DNS Token 只拥有 `ubaa.top` 的 DNS 写入权限，保存在服务器私有 acme.sh 配置中。
 
-1. 在 Cloudflare 创建只有目标 D1 读取权限的 API Token，只保存在 Grafana 主机上，例如 root 私有的环境文件，不进入仓库或 `.env`。
-2. 在 Grafana 中预置 UID 为 `ubaa-d1` 的 Infinity 数据源：认证方式选 Bearer Token，`allowedHosts` 只填 `https://api.cloudflare.com`。
-3. 在 `.env` 中设置 `UBAA_APP_SERVICE_ACCOUNT_ID` 和 `UBAA_APP_SERVICE_D1_ID`，运行 `just app-service-dashboard`。
-4. 把生成的 `.ubaa_local/app_service_dashboard/ubaa.json` 复制到 Grafana 看板预置目录，文件属主设为 grafana，权限 600。Grafana 会自动重新加载，替换前先备份旧文件。
-
-看板全部查询明细表，不依赖每天 03:00 的汇总任务，所以只能覆盖各表的保留期（第 11.2 节）。“使用时段”分区来自不含设备标识的 `minute_counts`，只能看次数，不能去重。新增表、列或功能时，先更新迁移和合同，再运行 `just script-test`；看板自测会在迁移后的表结构上执行每条查询。
-
-## 故障处理
-
-- D1 迁移失败时，停止部署和后续 CD 内容发布。
-- Worker 部署、Cron 更新或内容发布失败时，先在控制台核对已应用的迁移、Worker 版本、Cron 和 KV，再重跑对应操作。已应用的迁移不会随部署失败回滚。
-- 内容发布失败后可以直接重跑：每次发布都比较远端当前内容，会补上尚未同步的部分。
-
-### 回退
-
-- 内容错误：恢复上一个有效的渠道和公告源，使用原目标重新执行 `just app-service-publish`。如网站内容也有变化，按[网站维护手册](docs-site.md)重新构建发布。最低支持版本配置会触发客户端门控，恢复后核对实际 bootstrap 响应。
-- Worker 回归：在目标 Worker 的 Deployments 选择与当前 D1 Schema 兼容的已知可用版本，执行 [Worker 版本回退](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)。单独核对域名和 Cron。Worker 回退不会撤销 D1 迁移或恢复 KV 内容。
-- D1 迁移问题：保留当前库，优先用兼容的后续迁移修复。需要 [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/) 时单独评估时间点、恢复范围及对用户删除请求的影响，避免恢复已删除的明细；按数据库恢复授权操作。
-- 客户端需要停用服务时，从后续安装包构建配置移除 `UBAA_APP_SERVICE_URL`，安装该构建后进入 Noop。对已安装版本，移除服务路由会让请求失败，不能主动清除客户端已保存的最低版本要求。先发布能解除门控的有效渠道配置，并核对客户端成功刷新后，再退出服务。
+证书任务使用 `http://192.168.6.2:7890`，部署下载保持直连。代理配置仅作用于 acme.sh。文档域名开启 Cloudflare 代理，Origin Rule 将 HTTPS 回源端口设为 10443，并使用严格证书验证；应用、下载与看板域名使用 DNS 解析直连。

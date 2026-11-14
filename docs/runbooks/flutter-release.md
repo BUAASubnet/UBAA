@@ -4,7 +4,7 @@
 
 ## 何时使用
 
-- 准备一个正式版本（GitHub Release、R2、App Store、AppGallery）。
+- 准备一个正式版本（GitHub Release、服务器和北航云盘、App Store、AppGallery）。
 - 验收一个发布候选，或重新构建失败的发布作业。
 - 发布出现问题需要回退。
 
@@ -134,7 +134,7 @@ bash scripts/release/store-screenshots.sh
 
 工作流固定主线候选，关联已经成功的完整验收，再并行构建各平台产物。默认使用 GitHub 托管 runner，启用 `local_macos` 时 Apple 作业使用本机 runner。HarmonyOS 环境安装说明见[开发环境](../development/setup.md#harmonyos-的-github-托管构建)。
 
-iOS 和 HarmonyOS 各自在对应平台构建成功后立即上传商店，并等待商店处理完成。商店上传不等待其他平台构建或 GitHub Release／R2 分发。其他平台构建失败不会阻止已经满足条件的商店上传。取消整次工作流会停止尚未完成的上传作业。
+iOS 和 HarmonyOS 各自在对应平台构建成功后立即上传商店，并等待商店处理完成。商店上传不等待其他平台构建或 GitHub Release／服务器和北航云盘分发。其他平台构建失败不会阻止已经满足条件的商店上传。取消整次工作流会停止尚未完成的上传作业。
 
 完整 CI 的 main-required 成功后保存 merge-acceptance 记录，包含实际检出提交、Git tree、PR、运行编号和运行次数。Release 核对 GitHub 运行成功状态、记录来源和完整源码树。PR 临时合并提交与 main 的 SHA 可以不同，但必须属于实际合入该候选的 PR，且完整源码树一致；工作流、工具清单、锁文件和测试也包含在树中。没有匹配记录或记录已过期时重新执行完整验收，失败、取消和不明来源不会被复用。正式构建、签名、公证、上传与产物检查每次执行。
 
@@ -149,18 +149,20 @@ iOS 合并验收、正式归档和上传使用 GitHub 的 `xcode-27` 镜像，�
 | iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
 | HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
 
-公开产物与许可证材料上传到 GitHub Release 草稿和 `https://r2.ubaa.top/releases/<tag>/<构建号>/`。R2 上传后即可通过下载地址访问，不等待 GitHub 草稿发布。R2 产物带一年的 immutable 缓存，同一路径只写一次：相同内容重跑时跳过上传，内容不同则在覆盖前拒绝。`release.json` 列出版本、构建号、源码提交、文件大小和下载地址。HarmonyOS APP 只保存在 Actions 产物中并上传 AppGallery，不加入 GitHub Release 附件、R2 下载列表或公开分发清单，安装通过 AppGallery 进行。iOS IPA 保存在 Actions 产物中并上传商店。
+公开产物与许可证材料上传到 GitHub Release 草稿。服务器从同一次 Actions 运行直接下载并核对清单，再上传北航云盘的版本目录。服务器下载地址为 `https://download.ubaa.top:10443/releases/<tag>/<构建号>/`，带一年 immutable 缓存，同一路径不得替换成不同内容。`release.json` 记录版本、构建号、源码提交、文件长度、SHA-256 和下载地址，服务器实际读取摘要核对下载内容。云盘重跑只跳过已确认成功且长度一致的文件，结果未知时停止重复写入。
+
+HarmonyOS APP 与 iOS IPA 只用于对应商店，不进入公开安装包清单。网站在草稿公开且分发完整后才展示新版本。
 
 构建成功但公开分发失败时，可以单独运行 [重跑 Release 分发](../../.github/workflows/release-distribute.yml)，输入原 Release 的运行编号，或执行 `gh workflow run release-distribute.yml --ref main -f source_run=<运行编号>`。该入口核对原运行来自 main 且已通过发布验收，复用原有 Actions 产物、源码提交和版本信息，不重新编译或上传商店。分发脚本只上传明确列出的公开文件，旧运行中的 HarmonyOS APP 也会被跳过。原工作流的失败记录保留，补充分发结果以这次独立运行为准。
 
 维护者按以下顺序发布 GitHub Release：
 
 1. 在 Actions 中选择 **Release 构建与草稿**，选择 main 并点击 **Run workflow**。
-2. 等待整次工作流成功，包括各平台构建、R2 分发和商店处理。仅看到草稿时，商店上传可能仍在运行。
+2. 等待整次工作流成功，包括各平台构建、服务器和北航云盘分发和商店处理。仅看到草稿时，商店上传可能仍在运行。
 3. 在 Releases 中打开对应版本的草稿，核对附件、版本说明和候选提交，再点击 **Publish release**。
-4. 在 dev 分支运行 `just docs-download-sync <tag> <构建号>`，例如 `just docs-download-sync v2.0.0 2005`。命令读取该构建在 R2 上的 `release.json`，确认版本、构建号、文件、大小和地址完整后原样写入 [`docs/site/download.json`](../site/download.json)。核对差异后提交并推送，文档工作流随后更新[下载页](../site/download.md)。只分发了商店包、R2 上没有新清单的构建不需要这一步。
+4. 公开草稿后，发布同步工作流从 GitHub 公开的 `release.json` 核对完整分发记录，再更新下载页与 GitHub 渠道。需要补跑时手动运行“同步已发布版本”，传入公开标签。
 
-`release-production` Environment 仅允许 main。平台签名步骤读取对应平台 Secrets，分发步骤读取 R2 凭据，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
+`release-production` Environment 允许 main 分支以及正式发布同步使用的 `v*` 标签。构建和分发工作流仍只接受 main，标签事件只同步已经公开且分发完整的版本。平台签名步骤读取对应平台 Secrets，分发步骤读取专用 SSH 部署密钥，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
 
 构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。未发布的草稿可以接收新候选：分发前把草稿目标改到当前候选提交，再覆盖附件。已经发布的 Release 会在分发写入前被拒绝，后续发布使用新版本。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
 

@@ -19,10 +19,17 @@ export async function resolveBrowserDownload(asset, token, send = fetch) {
   const entries = await (await request("/api/efast/v1/entry-item")).json();
   if (entries.length !== 1 || typeof entries[0].id !== "string")
     throw new Error("分享根目录无效");
+  let parent = entries[0].id;
+  for (const name of asset.directory ?? []) {
+    const listing = await (await request("/api/efast/v1/dir/list", { by: "name", docid: parent, sort: "asc" })).json();
+    const matches = listing.dirs.filter(item => item.name === name);
+    if (matches.length !== 1 || typeof matches[0].docid !== "string") throw new Error("发布目录缺失");
+    parent = matches[0].docid;
+  }
   const listing = await (
     await request("/api/efast/v1/dir/list", {
       by: "name",
-      docid: entries[0].id,
+      docid: parent,
       sort: "asc",
     })
   ).json();

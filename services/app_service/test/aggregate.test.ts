@@ -1,8 +1,6 @@
-import {
-  createExecutionContext,
-  createScheduledController,
-} from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import type { Environment } from "../src/environment";
+import { createWaitContext, createScheduledController } from "./runtime";
+import { env } from "./runtime";
 import { beforeAll, beforeEach, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { reportTelemetry } from "../src/telemetry";
@@ -43,9 +41,9 @@ async function scheduled(instant: string) {
     scheduledTime: Date.parse(instant),
     cron: "0 19 * * *",
   });
-  const handler: ExportedHandler<Env> = worker;
+  const handler = worker;
   if (!handler.scheduled) throw new Error("Worker 未接线定时汇总");
-  await handler.scheduled(controller, env, createExecutionContext());
+  await handler.scheduled(controller, env);
 }
 
 function active(
@@ -57,7 +55,7 @@ function active(
   channel = "github",
 ) {
   return env.DB.prepare(
-    "INSERT INTO active_days VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)",
+    "INSERT INTO active_days VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1)",
   ).bind(
     day,
     install,
@@ -72,7 +70,7 @@ function active(
 
 function minute(minuteAt: string) {
   return env.DB.prepare(
-    "INSERT INTO minute_counts VALUES (?, 'feature_loaded', 'schedule', 'success', 'linux', 'github', 1)",
+    "INSERT INTO minute_counts VALUES ($1, 'feature_loaded', 'schedule', 'success', 'linux', 'github', 1)",
   ).bind(minuteAt);
 }
 
@@ -86,7 +84,7 @@ async function groups(period: string) {
   const [table, key] =
     period.length === 7 ? ["active_monthly", "month"] : ["active_daily", "day"];
   const { results } = await env.DB.prepare(
-    `SELECT dimension, value, users, devices FROM ${table} WHERE ${key} = ? ORDER BY dimension, value`,
+    `SELECT dimension, value, users, devices FROM ${table} WHERE ${key} = $1 ORDER BY dimension, value`,
   )
     .bind(period)
     .all<{
@@ -242,13 +240,13 @@ it("计数、错误和耗时按主键聚合；删除未定稿设备后旧分组�
 function insertCounters(day: string) {
   return [
     env.DB.prepare(
-      "INSERT INTO counter_days VALUES (?, 'test', '2.0.0', 'feature_loaded', 'schedule', 'direct', 'success', 'linux', 'github', 3)",
+      "INSERT INTO counter_days VALUES ($1, 'test', '2.0.0', 'feature_loaded', 'schedule', 'direct', 'success', 'linux', 'github', 3)",
     ).bind(day),
     env.DB.prepare(
-      "INSERT INTO error_days VALUES (?, 'test', '2.0.0', 'feature_failed', 'grades', 'webvpn', 'parse_error', 'upstream', 0, '', 'linux', 'github', 1)",
+      "INSERT INTO error_days VALUES ($1, 'test', '2.0.0', 'feature_failed', 'grades', 'webvpn', 'parse_error', 'upstream', 0, '', 'linux', 'github', 1)",
     ).bind(day),
     env.DB.prepare(
-      "INSERT INTO timing_days VALUES (?, 'test', '2.0.0', 'feature_load', 'schedule', 'direct', 'lt_1000', 'linux', 'github', 2)",
+      "INSERT INTO timing_days VALUES ($1, 'test', '2.0.0', 'feature_load', 'schedule', 'direct', 'lt_1000', 'linux', 'github', 2)",
     ).bind(day),
   ];
 }
@@ -339,8 +337,8 @@ it.each([
       minute("2025-01-01T00:00"),
       env.DB
         .prepare(`CREATE TRIGGER fail_aggregate BEFORE ${operation} ON ${table}
-      ${table === "active_monthly" ? "WHEN NEW.month = '2025-05'" : ""}
-      BEGIN SELECT RAISE(ABORT, '合成数据库故障'); END`),
+      FOR EACH ROW ${table === "active_monthly" ? "WHEN (NEW.month = '2025-05')" : ""}
+      EXECUTE FUNCTION synthetic_failure()`),
     ]);
     try {
       await expect(scheduled("2025-05-01T19:00:00Z")).rejects.toThrow(
@@ -370,7 +368,7 @@ it.each([
         "2025-01-01T00:00",
       ]);
     } finally {
-      await env.DB.prepare("DROP TRIGGER fail_aggregate").run();
+      await env.DB.prepare(`DROP TRIGGER fail_aggregate ON ${table}`).run();
     }
     await scheduled("2025-05-02T19:00:00Z");
     expect(await lastSuccess()).toBe("2025-05-03");

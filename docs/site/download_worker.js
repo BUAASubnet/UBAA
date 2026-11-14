@@ -1,11 +1,11 @@
-import manifest from "./download.json" with { type: "json" };
-import source from "./download-source.json" with { type: "json" };
+import defaultManifest from "./download.json" with { type: "json" };
+import defaultSource from "./download-source.json" with { type: "json" };
 
 const origin = "https://bhpan.buaa.edu.cn";
-const prefix = `/downloads/v${manifest.version}/${manifest.build}/`;
+
 
 // 只取得公开发布分享的临时 Token，交给浏览器完成后续下载。
-export async function getShareToken(send = fetch) {
+export async function getShareToken(send = fetch, shareId = defaultSource.shareId) {
   async function request(path, navigation = false) {
     const response = await send(`${origin}${path}`, {
       method: "GET",
@@ -17,22 +17,23 @@ export async function getShareToken(send = fetch) {
     return response;
   }
   const info = await (
-    await request(`/api/shared-link/v1/links/${source.shareId}`)
+    await request(`/api/shared-link/v1/links/${shareId}`)
   ).json();
   if (info.password_required !== false) throw new Error("发布分享需要密码");
-  const page = await request(`/link/${source.shareId}`, true);
+  const page = await request(`/link/${shareId}`, true);
   const cookie = page.headers
     .getSetCookie()
-    .find((value) => value.startsWith(`link_token:${source.shareId}=`));
+    .find((value) => value.startsWith(`link_token:${shareId}=`));
   await page.body?.cancel();
   const token = cookie
     ?.split(";", 1)[0]
-    .slice(`link_token:${source.shareId}=`.length);
+    .slice(`link_token:${shareId}=`.length);
   if (!token) throw new Error("分享授权缺失");
   return token;
 }
 
-export async function handleDownload(request, env, send = fetch) {
+export async function handleDownload(request, env, send = fetch, manifest = defaultManifest, source = defaultSource) {
+  const prefix = `/downloads/v${manifest.version}/${manifest.build}/`;
   const pathname = new URL(request.url).pathname;
   if (!pathname.startsWith("/downloads/")) return env.ASSETS.fetch(request);
   const headers = {
@@ -55,8 +56,8 @@ export async function handleDownload(request, env, send = fetch) {
     ) {
       throw new Error("分享配置与发布版本不符");
     }
-    const token = await getShareToken(send);
-    return new Response(downloadPage(asset, token), { headers });
+    const token = await getShareToken(send, source.shareId);
+    return new Response(downloadPage({ ...asset, directory: source.directory ?? [] }, token), { headers });
   } catch {
     return new Response(downloadPage(asset), { status: 502, headers });
   }

@@ -17,7 +17,7 @@ def synthetic(tag='v9.9.9', build='9001'):
     return {
         'version': version, 'build': build, 'commit': 'synthetic',
         'assets': [{'name': name, 'size': 1024,
-                    'url': f'https://r2.ubaa.top/releases/{tag}/{build}/{name}'}
+                    'url': f'https://download.ubaa.top:10443/releases/{tag}/{build}/{name}'}
                    for name in download_manifest.expected_names(version)],
     }
 

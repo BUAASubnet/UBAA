@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """生成应用服务使用情况看板的 Grafana JSON。
 
-看板经 Infinity 数据源以只读 Token 查询 Cloudflare D1 明细表，数据源 UID 固定为 ubaa-d1。
-账号与数据库 ID 不进入仓库，从参数或 UBAA_APP_SERVICE_ACCOUNT_ID、UBAA_APP_SERVICE_D1_ID 读取。
+看板使用内置 PostgreSQL 数据源和只读数据库账号，数据源 UID 固定为 ubaa-postgres。
 部署步骤见 docs/runbooks/app-service.md。
 """
 import argparse
@@ -12,15 +11,15 @@ from pathlib import Path
 import re
 import sys
 
-DS = {"type": "yesoreyeram-infinity-datasource", "uid": "ubaa-d1"}
+DS = {"type": "grafana-postgresql-datasource", "uid": "ubaa-postgres"}
 
 # 暗色分类色（固定顺序）与状态色
 C = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
 GOOD, WARN, SERIOUS, CRIT, MUTED = "#0ca30c", "#fab219", "#ec835a", "#d03b3b", "#6e6e6e"
 
-FROM = "date(${__from}/1000,'unixepoch','+8 hours')"
-TO = "date(${__to}/1000,'unixepoch','+8 hours')"
-TODAY = "date('now','+8 hours')"
+FROM = "to_char(to_timestamp(${__from}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
+TO = "to_char(to_timestamp(${__to}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
+TODAY = "to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
 RANGE = f"day BETWEEN {FROM} AND {TO}"
 
 
@@ -29,15 +28,15 @@ def filt(alias=""):
     def one(column, variable):
         value = "'${%s:csv}'" % variable
         return (f"({value}='' OR {value} LIKE '$%' "
-                f"OR instr(','||{value}||',', ','||{alias}{column}||',')>0)")
+                f"OR strpos(','||{value}||',', ','||{alias}{column}||',')>0)")
     return f"{one('platform', 'platform')} AND {one('channel', 'channel')}"
 
 
 FILT = filt()
 WHERE = f"{RANGE} AND {FILT}"
-DAYS = (f"WITH RECURSIVE d(day) AS (SELECT {FROM} UNION ALL SELECT date(day,'+1 day') "
-        f"FROM d WHERE day < MIN({TO},{TODAY}))")
-TS = "unixepoch(d.day||'T00:00:00+08:00')*1000 AS time"
+DAYS = (f"WITH RECURSIVE d(day) AS (SELECT {FROM} UNION ALL SELECT to_char(day::date + 1, 'YYYY-MM-DD') "
+        f"FROM d WHERE day < LEAST({TO},{TODAY}))")
+TS = "(extract(epoch FROM (d.day||'T00:00:00+08:00')::timestamptz)*1000)::bigint AS time"
 
 FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("bykc", "博雅课程"),
             ("classroom", "空教室"), ("spoc", "SPOC 作业"), ("judge", "希冀作业"),
@@ -61,17 +60,18 @@ BUCKETS = [("lt_250", "<0.25s"), ("lt_500", "0.25–0.5s"), ("lt_1000", "0.5–1
 BUCKET_ORDER = "CASE bucket " + " ".join(f"WHEN '{k}' THEN {i}" for i, (k, _) in enumerate(BUCKETS)) + " END"
 
 
-URL = None
-
-
 def target(sql, cols, fmt="table", ref="A"):
+    fields = []
+    for selector, label, kind in cols:
+        if selector == 'time':
+            fields.append('to_timestamp(q.time / 1000.0) AS time')
+        else:
+            fields.append(f'q."{selector}" AS "{label}"')
     return {
-        "refId": ref, "datasource": DS, "type": "json", "source": "url", "parser": "backend",
-        "url": URL,
-        "url_options": {"method": "POST", "body_type": "raw", "body_content_type": "application/json",
-                        "data": json.dumps({"sql": " ".join(sql.split())}, ensure_ascii=False)},
-        "root_selector": "result[0].results", "format": fmt,
-        "columns": [{"selector": s, "text": t, "type": ty} for s, t, ty in cols],
+        "refId": ref, "datasource": DS, "editorMode": "code",
+        "rawQuery": True, "rawSql": 'SELECT ' + ', '.join(fields) + ' FROM (' + sql + ') q',
+        "format": "time_series" if fmt == "timeseries" else "table",
+        "columns": [{"selector": key, "text": label, "type": kind} for key, label, kind in cols],
     }
 
 
@@ -151,14 +151,8 @@ HBAR = {"orientation": "horizontal", "stacking": "none", "barWidth": 0.45, "grou
         "showValue": "always", "xTickLabelRotation": 0, "fullHighlight": False,
         "legend": {"displayMode": "list", "placement": "bottom", "showLegend": False},
         "tooltip": {"mode": "single", "sort": "none"}}
-def build(account_id, database_id):
-    """返回看板字典；同一组 ID 多次调用结果相同。"""
-    global URL
-    for name, value in (('账号 ID', account_id), ('数据库 ID', database_id)):
-        if not re.fullmatch(r'[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', value or ''):
-            raise ValueError(f'{name}格式无效')
-    URL = (f"https://api.cloudflare.com/client/v4/accounts/{account_id}"
-           f"/d1/database/{database_id}/query")
+def build():
+    """返回使用 PostgreSQL 查询的完整看板。"""
     _id[0] = 0
     panels = []
     y = 0
@@ -178,7 +172,7 @@ def build(account_id, database_id):
              fmt="timeseries", spark=True),
         stat("昨日用户", (4, y, 4, 5),
              f"SELECT COUNT(DISTINCT NULLIF(user_key,'')) AS users FROM active_days "
-             f"WHERE day=date('now','+8 hours','-1 day') AND {FILT}",
+             f"WHERE day=to_char((now() AT TIME ZONE 'Asia/Shanghai')::date - 1, 'YYYY-MM-DD') AND {FILT}",
              [("users", "用户", "number")], C[0],
              "昨天（北京时间）登记了账号的去重用户数，不受所选时段影响。完整自然日的数据基本已到齐，比今日数字更能代表日活；7 天内的迟到上传仍可能小幅修订。"),
         stat("时段内用户", (8, y, 4, 5),
@@ -198,9 +192,9 @@ def build(account_id, database_id):
              unit="percentunit", decimals=1,
              thresholds=[{"color": CRIT, "value": None}, {"color": WARN, "value": 0.9}, {"color": GOOD, "value": 0.97}]),
         stat("最近上报", (20, y, 4, 5),
-             "SELECT unixepoch(MAX(received_at))*1000 AS t FROM batches",
+             "SELECT (extract(epoch FROM MAX(received_at)::timestamptz)*1000)::bigint AS t FROM batches",
              [("t", "最近上报", "number")], C[0],
-             "服务端最近收到遥测批次的时间，不受筛选影响。长时间没有更新时应检查客户端或 Worker。",
+             "服务端最近收到遥测批次的时间，不受筛选影响。长时间没有更新时应检查客户端或应用服务。",
              unit="dateTimeFromNow"),
     ]
     today = next(panel for panel in panels if panel.get("title") == "今日活跃")
@@ -341,16 +335,16 @@ def build(account_id, database_id):
               f"WHEN {SPAN}<=691200000 THEN 600000 WHEN {SPAN}<=2764800000 THEN 3600000 ELSE 86400000 END")
     B = "(SELECT b FROM p)"
     OFF = 28800000
-    MIN_FROM = "strftime('%Y-%m-%dT%H:%M',${__from}/1000,'unixepoch','+8 hours')"
-    MIN_TO = "strftime('%Y-%m-%dT%H:%M',${__to}/1000,'unixepoch','+8 hours')"
+    MIN_FROM = "to_char(to_timestamp(${__from}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
+    MIN_TO = "to_char(to_timestamp(${__to}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
 
 
     def minute_sql(cols, where):
         # 先汇总为时间桶，阻止连接展开后为每个时间点重复扫描分钟明细。
         return (f"WITH RECURSIVE p(b) AS (SELECT {BUCKET}), "
                 f"k(t) AS (SELECT ((${{__from}}+{OFF})/{B})*{B}-{OFF} UNION ALL SELECT t+{B} FROM k "
-                f"WHERE t+{B} <= MIN(${{__to}}, unixepoch('now')*1000)), "
-                f"m AS (SELECT ((unixepoch(minute_at||':00+08:00')*1000+{OFF})/{B})*{B}-{OFF} AS t, event, feature, result, SUM(count) AS count "
+                f"WHERE t+{B} <= LEAST(${{__to}}, (extract(epoch FROM now())*1000)::bigint)), "
+                f"m AS (SELECT (((extract(epoch FROM (minute_at||':00+08:00')::timestamptz)*1000)::bigint+{OFF})/{B})*{B}-{OFF} AS t, event, feature, result, SUM(count) AS count "
                 f"FROM minute_counts WHERE minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT} AND {where} "
                 f"GROUP BY t, event, feature, result) "
                 f"SELECT k.t AS time, {cols} FROM k LEFT JOIN m ON m.t=k.t GROUP BY k.t ORDER BY k.t")
@@ -384,7 +378,7 @@ def build(account_id, database_id):
     wk = "CASE w " + " ".join(f"WHEN {i} THEN '{n}'" for i, n in enumerate(WEEK)) + " END"
     panels.append(panel(
         "table", "一周使用热力（功能加载次数）", (0, y, 24, 9),
-        [target(f"WITH x AS (SELECT CAST(strftime('%w',minute_at) AS INTEGER) AS w, CAST(substr(minute_at,12,2) AS INTEGER) AS h, "
+        [target(f"WITH x AS (SELECT extract(dow FROM minute_at::timestamp)::int AS w, CAST(substr(minute_at,12,2) AS INTEGER) AS h, "
                 f"count AS n FROM minute_counts WHERE event='feature_loaded' AND minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT}), "
                 f"wd(w) AS (VALUES (1),(2),(3),(4),(5),(6),(0)) "
                 f"SELECT {wk} AS day, {hcols} FROM wd LEFT JOIN x USING(w) GROUP BY wd.w ORDER BY (wd.w+6)%7",
@@ -504,10 +498,10 @@ def build(account_id, database_id):
     py_ = y + 1
     pipe.append(panel(
         "stat", "接收与汇总状态", (0, py_, 12, 7),
-        [target("SELECT (SELECT COUNT(*) FROM batches WHERE date(received_at,'+8 hours')=" + TODAY + ") AS today, "
-                "(SELECT COUNT(*) FROM batches WHERE received_at >= datetime('now','-7 days')) AS week, "
+        [target("SELECT (SELECT COUNT(*) FROM batches WHERE to_char(received_at::timestamptz AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')=" + TODAY + ") AS today, "
+                "(SELECT COUNT(*) FROM batches WHERE received_at::timestamptz >= now() - INTERVAL '7 days') AS week, "
                 "(SELECT COALESCE((SELECT last_success_day FROM job_state WHERE job='aggregate'),'尚未运行')) AS job, "
-                "(SELECT COUNT(*) FROM erased_installs WHERE erased_at >= datetime('now','-30 days')) AS erased, "
+                "(SELECT COUNT(*) FROM erased_installs WHERE erased_at::timestamptz >= now() - INTERVAL '30 days') AS erased, "
                 "(SELECT COALESCE(MIN(day),'—') FROM active_days) AS first_day",
                 [("today", "今日接收批次", "number"), ("week", "近 7 天批次", "number"),
                  ("job", "汇总任务最后成功日", "string"), ("erased", "近 30 天删除数据", "number"),
@@ -555,14 +549,9 @@ def build(account_id, database_id):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--account-id', default=os.environ.get('UBAA_APP_SERVICE_ACCOUNT_ID'))
-    parser.add_argument('--database-id', default=os.environ.get('UBAA_APP_SERVICE_D1_ID'))
     parser.add_argument('--output', type=Path, help='写入的文件；省略时输出到 stdout')
     args = parser.parse_args()
-    try:
-        dash = build(args.account_id, args.database_id)
-    except ValueError as error:
-        raise SystemExit(f'error: {error}；请在 .env 或参数中提供 Cloudflare 账号与 D1 数据库 ID')
+    dash = build()
     text = json.dumps(dash, ensure_ascii=False, indent=2) + '\n'
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

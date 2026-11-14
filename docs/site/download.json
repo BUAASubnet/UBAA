@@ -6,47 +6,47 @@
     {
       "name": "UBAA-2.0.0-android-arm64-v8a.apk",
       "size": 41328131,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-arm64-v8a.apk"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-android-arm64-v8a.apk"
     },
     {
       "name": "UBAA-2.0.0-android-armeabi-v7a.apk",
       "size": 38627809,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-armeabi-v7a.apk"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-android-armeabi-v7a.apk"
     },
     {
       "name": "UBAA-2.0.0-android-x86_64.apk",
       "size": 43665112,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-android-x86_64.apk"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-android-x86_64.apk"
     },
     {
       "name": "UBAA-2.0.0-windows-x64.exe",
       "size": 37121195,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-windows-x64.exe"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-windows-x64.exe"
     },
     {
       "name": "UBAA-2.0.0-linux-x64.tar.gz",
       "size": 50489045,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-x64.tar.gz"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-linux-x64.tar.gz"
     },
     {
       "name": "UBAA-2.0.0-linux-arm64.tar.gz",
       "size": 50831503,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-linux-arm64.tar.gz"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-linux-arm64.tar.gz"
     },
     {
       "name": "UBAA-2.0.0-macos-arm64.dmg",
       "size": 57161488,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-arm64.dmg"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-macos-arm64.dmg"
     },
     {
       "name": "UBAA-2.0.0-macos-x86_64.dmg",
       "size": 62787239,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/UBAA-2.0.0-macos-x86_64.dmg"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/UBAA-2.0.0-macos-x86_64.dmg"
     },
     {
       "name": "licenses.zip",
       "size": 311175,
-      "url": "https://r2.ubaa.top/releases/v2.0.0/2004/licenses.zip"
+      "url": "https://download.ubaa.top:10443/releases/v2.0.0/2004/licenses.zip"
     }
   ]
 }

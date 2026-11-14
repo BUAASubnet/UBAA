@@ -1,10 +1,10 @@
 <script setup>
-import { inject } from "vue";
-import { data } from "../download.data.js";
+import { inject, computed } from "vue";
+const release = inject("release");
 
 const useBhpan = inject("useBhpan", true);
 const props = defineProps({ platform: { type: String, required: true } });
-const rows = data.platforms[props.platform];
+const rows = computed(() => release.value?.platforms[props.platform] ?? []);
 </script>
 
 <template>

@@ -1,35 +1,38 @@
+import type { Environment } from "./environment";
+import type { Database } from "./database";
+import type { Statement } from "./database";
 import { campusDay, shiftDay } from "./campus_time";
 import { invalidPayload, readJson } from "./request";
 import { validateTelemetryRequest, type TelemetryDay } from "./schema";
 
-const NO_TOMBSTONE =
-  "NOT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = ?)";
 const CHECK_TOMBSTONE =
-  "SELECT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = ?) AS erased";
-const ACCEPTED_BATCH = `${NO_TOMBSTONE}
-  AND EXISTS (SELECT 1 FROM batches WHERE batch_id = ? AND nonce = ?)`;
+  "SELECT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = $1) AS erased";
+function acceptedBatch(offset: number) {
+  return `NOT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = $${offset + 1})
+    AND EXISTS (SELECT 1 FROM batches WHERE batch_id = $${offset + 2} AND nonce = $${offset + 3})`;
+}
 
 function installErased(): Response {
   return Response.json("install_erased", { status: 410 });
 }
 
 function detailUpsert(
-  db: D1Database,
+  db: Database,
   table: string,
   key: string[],
   columns: string[],
   update: string,
-): D1PreparedStatement {
+): Statement {
   const names = [...key, ...columns];
   return db.prepare(`
     INSERT INTO ${table} (${names.join(", ")})
-    SELECT ${names.map(() => "?").join(", ")}
-    WHERE ${ACCEPTED_BATCH}
-    ON CONFLICT (${key.join(", ")}) DO UPDATE SET ${update}
+    SELECT ${names.map((_, index) => `$${index + 1}`).join(", ")}
+    WHERE ${acceptedBatch(names.length)}
+    ON CONFLICT (${key.join(", ")}) DO UPDATE SET ${update.replaceAll("= count", `= ${table}.count`).replaceAll("= surface_mask", `= ${table}.surface_mask`)}
   `);
 }
 
-function detailUpserts(db: D1Database) {
+function detailUpserts(db: Database) {
   const keyedByVersion = ["day", "install_id", "app_version"];
   const eventDimensions = ["event", "feature", "route"];
   const updateCount = "count = count + excluded.count";
@@ -73,13 +76,13 @@ function detailUpserts(db: D1Database) {
     // 每个日期版本组合只占一条语句，分钟数组作为一个 JSON 参数传入。
     minute: db.prepare(`
       INSERT INTO minute_counts (minute_at, event, feature, result, platform, channel, count)
-      SELECT printf('%sT%02d:%02d', ?, (value ->> '$.minute') / 60, (value ->> '$.minute') % 60),
-             value ->> '$.event', value ->> '$.feature', value ->> '$.result',
-             ?, ?, value ->> '$.count'
-      FROM json_each(?)
-      WHERE ${ACCEPTED_BATCH}
+      SELECT $1::text || 'T' || lpad(((value->>'minute')::int / 60)::text, 2, '0') || ':' || lpad(((value->>'minute')::int % 60)::text, 2, '0'),
+             value->>'event', value->>'feature', value->>'result',
+             $2, $3, (value->>'count')::int
+      FROM jsonb_array_elements($4::jsonb)
+      WHERE ${acceptedBatch(4)}
       ON CONFLICT (minute_at, event, feature, result, platform, channel)
-      DO UPDATE SET ${updateCount}
+      DO UPDATE SET count = minute_counts.count + excluded.count
     `),
   };
 }
@@ -112,7 +115,7 @@ async function userKeys(days: TelemetryDay[], secret: string) {
 
 export async function reportTelemetry(
   request: Request,
-  env: Pick<Env, "DB" | "TELEMETRY_LIMIT" | "USER_KEY_SECRET">,
+  env: Pick<Environment, "DB" | "TELEMETRY_LIMIT" | "USER_KEY_SECRET">,
 ): Promise<Response> {
   const now = new Date();
   const today = campusDay(now);
@@ -143,8 +146,9 @@ export async function reportTelemetry(
     db
       .prepare(
         `
-      INSERT OR IGNORE INTO batches (batch_id, nonce, received_at)
-      SELECT ?, ?, ? WHERE ${NO_TOMBSTONE}
+      INSERT INTO batches (batch_id, nonce, received_at)
+      SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM erased_installs WHERE install_id = $4)
+      ON CONFLICT (batch_id) DO NOTHING
     `,
       )
       .bind(batch_id, nonce, now.toISOString(), install_id),
@@ -273,7 +277,7 @@ export async function reportTelemetry(
 
   // 事务内读出拒收结果，覆盖预查后到达的删除。
   statements.push(tombstone);
-  const results = await db.batch<{ erased: number }>(statements);
+  const results = await db.batch<{ erased: boolean }>(statements, install_id);
   if (results.at(-1)?.results[0]?.erased) return installErased();
   return new Response(null, { status: 204 });
 }

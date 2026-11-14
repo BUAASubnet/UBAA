@@ -1,0 +1,31 @@
+name: 同步已发布版本
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已公开发布的标签
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: release-distribution
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'BUAASubnet/UBAA' && (github.event_name == 'release' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    environment: release-production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: 同步已公开版本到下载页和应用渠道
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
+          UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
+        run: python3 scripts/server/notify.py publish

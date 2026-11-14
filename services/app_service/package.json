@@ -6,15 +6,14 @@
     "node": ">=26.13.1"
   },
   "scripts": {
-    "format:check": "prettier --check package.json tsconfig.json wrangler.json vitest.config.ts config src test scripts",
-    "generate": "node scripts/compile-schema.mjs && wrangler types .generated/worker-configuration.d.ts --env-file test/.env.example",
+    "format:check": "prettier --check package.json tsconfig.json vitest.config.ts config src test scripts",
+    "generate": "node scripts/compile-schema.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "npm run generate && esbuild src/index.ts src/schema.ts --bundle --format=esm --platform=browser --target=es2022 --outdir=.generated/build",
-    "test": "vitest run",
+    "build": "npm run generate && esbuild src/server.ts src/schema.ts --bundle --packages=external --format=esm --platform=node --target=node26 --outdir=.generated/build",
+    "test": "node scripts/test.mjs",
     "check": "npm run format:check && npm run build && npm run typecheck && npm test"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.8.1",
     "@types/node": "26.6.6",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
@@ -22,6 +21,9 @@
     "prettier": "3.10.1",
     "typescript": "7.0.2",
     "vitest": "5.1.0",
-    "wrangler": "4.161.0"
+    "@types/pg": "8.15.6"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
   }
 }

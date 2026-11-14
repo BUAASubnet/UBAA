@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 4,
+  version: 5,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -131,18 +131,18 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
       level: 2,
-      text: '统计数据的境外处理',
+      text: '统计数据的处理与保存',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '统计数据通过 HTTPS 传输给 Cloudflare, Inc.，在其位于中国大陆境外的服务器上处理和存储。',
+      text: '统计数据通过 HTTPS 直接传输给 UBAA 维护者位于中国大陆的服务器，并在该服务器上处理和保存。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '设备在本地对学号加盐计算 SHA-256。接收统计的 Worker 用独立密钥对收到的派生标识再计算 HMAC-SHA256，数据库只保存第二次计算得到的标识。网络地址只临时用于限流，UBAA 的统计库和 Worker 请求日志不保存 IP 地址。',
+          '设备在本地对学号加盐计算 SHA-256。接收统计的服务 用独立密钥对收到的派生标识再计算 HMAC-SHA256，数据库只保存第二次计算得到的标识。网络地址只临时用于限流，UBAA 的统计库和 服务请求日志不保存 IP 地址。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -195,8 +195,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>[
-    '设置页仅保留产品改进统计开关，撤回或删除数据请求可联系维护者。',
-    '旧版基础模式用户可通过统计开关确认后重新启用。',
-  ],
+  changes: <String>['产品改进统计改由维护者位于中国大陆的服务器处理和保存。'],
 );

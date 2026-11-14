@@ -1,0 +1,7 @@
+[Unit]
+Description=每日北京时间 03:00 汇总 UBAA 遥测
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Shanghai
+Persistent=true
+[Install]
+WantedBy=timers.target

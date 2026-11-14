@@ -5,6 +5,11 @@ on:
       - main
     paths:
       - services/app_service/**
+      - scripts/server/**
+      - tools/bhpan_publish/**
+      - crates/ubaa_core/**
+      - Cargo.toml
+      - Cargo.lock
       - scripts/check/app_service/**
       - scripts/release/app_service/**
       - scripts/tests/app_service/**
@@ -18,15 +23,21 @@ on:
       - .github/actions/**
       - scripts/tools/versions.env
       - justfile
+  pull_request:
+    branches: [main]
   workflow_dispatch: {}
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: app-service-production
   cancel-in-progress: false
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: toolchain
@@ -42,10 +53,22 @@ jobs:
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
         run: just app-service-content-check
-      - name: 检查 Worker 部署触发条件与发布顺序
-        run: node --test scripts/tests/app_service/deploy_workflow_test.mjs
-      - name: 检查应用服务合同与本地 Worker
+      - name: 检查应用服务合同与 PostgreSQL
         run: just app-service-check
+      - name: 构建云盘发布工具
+        uses: ./.github/actions/toolchain
+      - run: cargo build --locked --release -p ubaa-bhpan-publish
+      - name: 打包服务器应用
+        run: |
+          node scripts/server/package.mjs
+          cp target/release/bhpan-publish .ubaa_local/bhpan-publish
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-service
+          path: |
+            .ubaa_local/app_service.tar.gz
+            .ubaa_local/bhpan-publish
+          retention-days: 3
   app-service-deploy:
     name: 部署应用服务并发布内容
     needs:
@@ -58,43 +81,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - id: toolchain
-        uses: ./.github/actions/toolchain
-        with:
-          rust: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ steps.toolchain.outputs.node }}
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            services/app_service/package-lock.json
-      - name: 安装锁定的发布工具依赖
-        run: |
-          npm ci --no-audit --no-fund
-          npm --prefix services/app_service ci --no-audit --no-fund
-      - name: 核对候选提交仍是部署分支的最新提交
-        id: candidate
-        shell: bash
-        run: |
-          branch_head=$(git ls-remote --exit-code --refs origin "$GITHUB_REF")
-          if [[ "${branch_head%%$'\t'*}" == "$GITHUB_SHA" ]]; then
-            printf 'deploy=true\n' >> "$GITHUB_OUTPUT"
-          else
-            printf 'deploy=false\n' >> "$GITHUB_OUTPUT"
-            printf '%s\n' '部署分支已有更新的提交，跳过本次部署。'
-          fi
-      - name: 迁移 D1、部署 Worker 并同步公告和渠道配置
-        if: steps.candidate.outputs.deploy == 'true'
-        shell: bash
+      - name: 通知服务器直连下载并部署
         env:
-          UBAA_APP_SERVICE_ZONE_ID: ${{ vars.UBAA_APP_SERVICE_ZONE_ID }}
-          UBAA_APP_SERVICE_ACCOUNT_ID: ${{ vars.UBAA_APP_SERVICE_ACCOUNT_ID }}
-          UBAA_APP_SERVICE_WORKER_NAME: ${{ vars.UBAA_APP_SERVICE_WORKER_NAME }}
-          UBAA_APP_SERVICE_D1_ID: ${{ vars.UBAA_APP_SERVICE_D1_ID }}
-          UBAA_APP_SERVICE_KV_NAMESPACE_ID: ${{ vars.UBAA_APP_SERVICE_KV_NAMESPACE_ID }}
-          UBAA_APP_SERVICE_DOMAIN: ${{ vars.UBAA_APP_SERVICE_DOMAIN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          just app-service-deploy
-          just app-service-publish
+          GH_TOKEN: ${{ github.token }}
+          UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
+          UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
+        run: python3 scripts/server/notify.py app

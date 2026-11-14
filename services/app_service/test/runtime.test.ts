@@ -1,4 +1,4 @@
-import { env, exports } from "cloudflare:workers";
+import { env, exports } from "./runtime";
 import { expect, it } from "vitest";
 
 it("Worker 对未知路径返回空的 404", async () => {

@@ -1,11 +1,11 @@
 <script setup>
-import { inject, onMounted, ref } from "vue";
-import { data } from "../download.data.js";
+import { inject, onMounted, ref, watch } from "vue";
+const release = inject("release");
 
 // 服务端渲染时不知道访问设备，挂载后按浏览器信息推荐；识别不了就不显示。
 const useBhpan = inject("useBhpan", true);
 const suggestion = ref(null);
-const { android, windows, macos, linux } = data.platforms;
+
 
 const NAMES = { android: "Android", windows: "Windows", macos: "macOS", linux: "Linux" };
 
@@ -19,6 +19,8 @@ async function architecture() {
 }
 
 async function detect() {
+  if (!release.value) return null;
+  const { android, windows, macos, linux } = release.value.platforms;
   const agent = navigator.userAgent;
   if (/OpenHarmony/i.test(agent)) return { store: "HarmonyOS", anchor: "#ohos" };
   if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) {
@@ -40,6 +42,7 @@ async function detect() {
   return null;
 }
 
+watch(release, async () => { suggestion.value = await detect(); });
 onMounted(async () => {
   suggestion.value = await detect();
 });

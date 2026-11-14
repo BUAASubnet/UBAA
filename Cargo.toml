@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "tools/core_live",
+  "tools/bhpan_publish",
   "crates/ubaa_core",
   "crates/ubaa_command",
   "crates/ubaa_flutter_bridge",

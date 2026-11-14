@@ -327,7 +327,7 @@ exit 73
                 self.assertEqual(json.loads(result.stdout),
                                  [None] * 6 + ['https://override.example.invalid', ''])
 
-    def test_部署配方只交给假Node部署目标和Token(self):
+    def test_部署配方不再传递Cloudflare或学校凭据(self):
         (self.root / '.env').write_text(
             'UBAA_APP_SERVICE_WORKER_NAME=synthetic-worker\n'
             'UBAA_TEST_' + 'PASSWORD=synthetic-password\n'
@@ -345,7 +345,7 @@ exit 73
                 result = self.run_entry(f'app-service-{operation}')
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(json.loads(result.stdout),
-                                 [operation, [None] * 4 + ['synthetic-token', 'synthetic-worker']])
+                                 [operation, [None] * 5 + ['synthetic-worker']])
 
     def test_配置缺失仍可列出配方且SDK命令明确报错(self):
         result = self.run_entry('--list')

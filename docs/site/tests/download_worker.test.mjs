@@ -84,7 +84,7 @@ test("Worker 只申请分享授权，并把下载准备页交给浏览器", asyn
     )[1],
   );
   assert.equal(payload.token, "synthetic-token");
-  assert.deepEqual(payload.asset, asset);
+  assert.deepEqual(payload.asset, { ...asset, directory: [] });
   assert.equal(mock.calls.length, 2);
 });
 
@@ -121,7 +121,7 @@ test("未知文件和写方法不触发上游请求，其他页面交给静态�
   assert.equal(await result.text(), "静态页面");
 });
 
-test("备用下载保留发布清单中的全部 R2 地址", () => {
+test("备用下载保留发布清单中的全部服务器地址", () => {
   const data = describe(manifest);
   for (const item of [...Object.values(data.platforms).flat(), data.licenses]) {
     assert.equal(

@@ -7,7 +7,7 @@ import sys
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_URL = 'https://r2.ubaa.top'
+PUBLIC_URL = 'https://download.ubaa.top:10443'
 OUTPUT = ROOT / 'docs/site/download.json'
 
 _spec = importlib.util.spec_from_file_location('distribute', Path(__file__).with_name('distribute.py'))

@@ -1,8 +1,4 @@
-import {
-  createExecutionContext,
-  env,
-  waitOnExecutionContext,
-} from "cloudflare:test";
+import { createWaitContext, env, waitOnWaitContext } from "./runtime";
 import { beforeEach, expect, it } from "vitest";
 import announcementVersions from "../../../fixtures/app_service/announcement_versions.json";
 import worker from "../src/index";
@@ -42,14 +38,14 @@ async function send(
   query = "schema=1&platform=android&channel=github&version=2.0.0%2B12",
   headers?: HeadersInit,
 ) {
-  const ctx = createExecutionContext();
+  const ctx = createWaitContext();
   const response = await worker.fetch(
     new Request(`${origin}/v1/bootstrap?${query}`, { headers }),
     env,
     ctx,
   );
   const payload: unknown = await response.json().catch(() => null);
-  await waitOnExecutionContext(ctx);
+  await waitOnWaitContext(ctx);
   return { response, payload };
 }
 

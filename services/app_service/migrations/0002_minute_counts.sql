@@ -7,4 +7,4 @@ CREATE TABLE minute_counts (
   channel TEXT NOT NULL,
   count INTEGER NOT NULL,
   PRIMARY KEY (minute_at, event, feature, result, platform, channel)
-) WITHOUT ROWID;
+);

@@ -395,6 +395,7 @@ jobs:
     environment: release-production
     permissions:
       contents: write
+      actions: read
     env:
       RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
       RELEASE_BUILD: ${{ needs.metadata.outputs.build }}
@@ -409,17 +410,17 @@ jobs:
           pattern: public-*
           merge-multiple: true
           path: .ubaa_local/release/public
-      - name: 准备 GitHub Release 草稿并分发 R2
+      - name: 准备 GitHub Release 草稿与服务器分发清单
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
         run: python3 scripts/release/distribute.py
+      - name: 通知服务器下载并上传北航云盘
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
+          UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
+        run: python3 scripts/server/notify.py release
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
   app-store:
     needs:

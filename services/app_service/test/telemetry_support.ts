@@ -1,18 +1,5 @@
-import { applyD1Migrations, type D1Migration } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
-
-declare global {
-  namespace Cloudflare {
-    interface Env {
-      TEST_MIGRATIONS: D1Migration[];
-    }
-  }
-}
-
-export function migrate() {
-  return applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
-}
-
+import { env, exports, migrate } from "./runtime";
+export { migrate };
 export function uploadRequest(payload: unknown) {
   return new Request("https://app-service.invalid/v1/telemetry", {
     method: "POST",

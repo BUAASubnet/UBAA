@@ -56,7 +56,7 @@ just setup
 ### 按需准备的其他环境
 
 - 文档站：执行 `npm ci` 和 `npm run docs:build`。
-- 应用服务：`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。
+- 应用服务：`just app-service-check` 按应用服务的独立锁文件安装依赖并运行检查。此检查需要 PostgreSQL 17 工具（macOS 可用 `brew install postgresql@17`），会自动启动和清理隔离测试数据库。
 - 原生构建：安装对应平台工具，再执行 `just flutter doctor -v`。
 - OHOS：安装上述 fork 与 DevEco/API26，配置下表中的路径，执行 `rustup target add aarch64-unknown-linux-ohos`，然后运行 `bash apps/ubaa_ohos/scripts/check-toolchain.sh` 预检。
 
@@ -120,10 +120,8 @@ python3 scripts/lib/toolchain.py migrate
 | `UBAA_RELEASE_REPORT_DIR` | 发布 preflight 的默认输出目录；须为空的绝对目录。未配置且无位置参数时使用临时目录，退出删除 |
 | `UBAA_UI_EVIDENCE_DIR` | UI 验收媒体目录，必须位于被忽略的 `.ubaa_local/` 任务子目录 |
 | `UBAA_APP_SERVICE_URL`、`UBAA_DISTRIBUTION_CHANNEL` | 客户端构建参数；任一为空即停用应用服务。正式包使用已验收的 HTTPS 地址，渠道为 `github`、`app_store` 或 `app_gallery` |
-| `UBAA_APP_SERVICE_ACCOUNT_ID`、`UBAA_APP_SERVICE_WORKER_NAME`、`UBAA_APP_SERVICE_D1_ID`、`UBAA_APP_SERVICE_KV_NAMESPACE_ID`、`UBAA_APP_SERVICE_DOMAIN` | 非机密部署目标，设置见[应用服务部署手册](../runbooks/app-service.md#准备账号和目标) |
 | `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD` | 学校账号和密码的主名称；只交给显式真实验证入口 |
 | `UBAA_USERNAME`、`UBAA_PASSWORD` | 兼容旧凭据名称，主名称为空时回退；新配置使用主名称 |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare 部署凭据，只交给应用服务部署和内容发布入口 |
 
 ### 构建签名参数
 

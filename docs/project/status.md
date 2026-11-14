@@ -38,7 +38,7 @@
 | 北航云盘 | ✅ GUI 初次浏览及重新登录按需恢复 Direct | ✅ 2026-11-05（合成测试目录） | ⏳ | WebVPN 完整链路；系统文件面板的设备实测 |
 | 图书馆云打印 | ✅ 原生上传、待打印队列与逐页预览、扫描文档、打印点和使用记录；复用全局连接策略 | ⏳ Windows 试用会话已验证生产 Core 登录、扫描列表、打印点和使用记录；已用生产 Core 下载真实扫描原件并在内存中合并双页 PDF | ⏳ 官网入口和扫描列表已实测；原生路线经合成请求验证，真实账号端到端待验证 | Windows 扫描 PDF 使用系统渲染，已通过合成双页原生验证；新版原生上传、各平台文件选择和保存面板待设备验证 |
 | 桌面命令模式 | ✅ | — | — | 签名 Release、安装升级，以及沿用旧版本机材料 |
-| 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 分钟计数的 Worker 迁移和客户端发布、生产定时任务；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
+| 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主默认启用统计，保留关闭选择，启动不自动弹出隐私选择；登录和功能加载的匿名分钟计数已实现 | — | — | 构建 2007 客户端发布、生产定时任务观察；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
 
@@ -77,11 +77,13 @@ Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材�
 
 表中的托管 Release 构建来自候选 `cb2a67ac` 的[运行记录](https://github.com/BUAASubnet/UBAA/actions/runs/43015152128)。macOS 两个架构已提交 Apple 公证。Release 当前暂停，等待公证服务恢复后再继续；尚未发布 v2.0.0 Tag、GitHub/R2 产物或商店构建。
 
-文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，应用服务从 `main` 部署到 `app.ubaa.top`。两个 Worker 使用 Route + CNAME，部署只更新代码与资源绑定。`main` 保留 `main-required` 完整验收和分支保护。
+文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，由自有服务器提供静态文件，Cloudflare CDN 通过 HTTPS 10443 严格校验证书并回源。应用服务使用 `https://app.ubaa.top:10443`，Node.js 26 与 PostgreSQL 17 已运行。Grafana 使用 `https://stats.ubaa.top:10443`，需要登录，数据源账号只读。公网 HTTPS、CDN 命中和 Grafana PostgreSQL 查询已核对。
 
-下载页提供 v2.0.0（构建 2004）的 8 个安装包和许可证，默认使用北航云盘公开分享。Worker 仅取得分享临时 Token，浏览器直接读取目录、申请直链并下载，不携带云盘 Cookie。页面开关可统一切换到 R2 备用下载；设备推荐和各平台按钮跟随同一选择。Direct 下已核对全部文件名与大小，真实浏览器跨域请求和混合方式 DMG 下载通过。
+下载页读取正式发布状态。服务器从指定 GitHub Actions 运行直接下载产物，核对发布清单后自动上传到既有北航云盘发布目录的版本子目录。程序使用 Core facade，发布账号保存在服务器。Direct 登录与目标目录定位已通过真实只读验证，正式产物上传随 Release 执行。
 
-Release 工作流由维护者在 main 手动启动，各平台构建后准备 GitHub Release 草稿、R2 产物和商店构建。维护者在整次工作流成功后手动发布草稿，发布动作不触发重复构建。
+Release 工作流仍由维护者在 main 手动启动，准备 GitHub Release 草稿、服务器与云盘产物和商店构建。手动公开草稿后，单独同步下载页和应用渠道，不重复构建。本次候选构建号为 2007，使用 GitHub 托管 runner。
+
+应用服务的 158 项测试已在隔离 PostgreSQL 上通过，覆盖请求、去重、事务回滚、并发删除、保留期和 27 个 Grafana 查询。Core HTTP 与真实 Dart FFI 联调通过。完整 Rust、Flutter 2,309 项测试（另有 1 项既有跳过）、13 项 macOS 原生集成、FRB 生成检查和文档构建通过。公网上传去重、删除、晚到拒收以及生产汇总任务已用合成数据验证。原 D1/R2 专用测试的事务和不可覆盖行为分别由 PostgreSQL 服务测试和 `server_deploy_test.py` 保留；看板时间桶、过滤和补零覆盖移至 PostgreSQL 测试。
 
 2026-11-13 工具链与依赖升级后的本机验收覆盖完整 Rust/CLI 测试、Flutter 八个包、macOS 原生集成、Android ARM64 Debug APK、iOS 模拟器和 OHOS 无签名 Debug HAP。远端 CI、Windows/Linux 原生构建及实体设备验收待执行。
 
@@ -89,11 +91,11 @@ Release 工作流由维护者在 main 手动启动，各平台构建后准备 Gi
 
 按[发布流程](../runbooks/flutter-release.md)完成：
 
-- [ ] 完成各平台发布产物，核对版本 `2.0.0+2003`
+- [ ] 完成各平台发布产物，核对版本 `2.0.0+2007`
 - [ ] 各平台设备安装，以及从 v1.x 覆盖升级
 - [x] 应用服务生产部署（[部署手册](../runbooks/app-service.md)）
 - [ ] 远端 CI 在发布提交上全部通过，再打 Tag
-- [ ] 分发 GitHub/R2 产物，并上传 App Store Connect 和 AppGallery，供维护者提交审核
+- [ ] 分发 GitHub、服务器与北航云盘产物，并上传 App Store Connect 和 AppGallery，供维护者提交审核
 
 ## 已知问题
 
