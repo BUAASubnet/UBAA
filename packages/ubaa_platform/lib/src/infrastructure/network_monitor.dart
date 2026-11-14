@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// 发布系统网络变化和联网状态提示，不代表校园服务可达或已认证。
 final class LocalNetworkMonitor {
@@ -10,15 +11,28 @@ final class LocalNetworkMonitor {
     Stream<Set<String>>? events,
   }) : _readState =
            readState ??
-           (() async => _types(await Connectivity().checkConnectivity())),
+           (_android
+               ? () async =>
+                     _identity(await _methods.invokeMethod<String>('current'))
+               : () async => _types(await Connectivity().checkConnectivity())),
        _events =
            events ??
-           ConnectivityPlatform.instance.onConnectivityChanged.map(_types) {
+           (_android
+               ? const EventChannel('cn.edu.ubaa/default_network/events')
+                     .receiveBroadcastStream()
+                     .map((value) => _identity(value as String?))
+               : ConnectivityPlatform.instance.onConnectivityChanged.map(
+                   _types,
+                 )) {
     _controller = StreamController<bool>.broadcast(
       onListen: _start,
       onCancel: _stop,
     );
   }
+  static bool get _android =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  static const _methods = MethodChannel('cn.edu.ubaa/default_network');
+  static Set<String> _identity(String? value) => value == null ? {} : {value};
   final Future<Set<String>> Function() _readState;
   final Stream<Set<String>> _events;
   late final StreamController<bool> _controller;
@@ -55,7 +69,8 @@ final class LocalNetworkMonitor {
     final previous = _previous;
     _previous = Set.of(state);
     if ((previous == null && state.isEmpty) ||
-        (previous != null && (event || !setEquals(previous, state))))
+        (previous != null &&
+            ((event && !_android) || !setEquals(previous, state))))
       _controller.add(state.isNotEmpty);
   }
 

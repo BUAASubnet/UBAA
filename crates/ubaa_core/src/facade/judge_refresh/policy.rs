@@ -64,6 +64,8 @@ pub(super) fn reusable(
         detail.title.as_str(),
     );
     if options.full_refresh
+        || (options.detail_refresh == super::JudgeDetailRefresh::RefreshActive
+            && !historical(detail, now))
         || options.current_assignment.as_ref().is_some_and(|key| {
             key.course_id == assignment.course_id && key.assignment_id == assignment.assignment_id
         })

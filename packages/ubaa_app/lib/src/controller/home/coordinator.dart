@@ -61,6 +61,7 @@ final class HomeCoordinator {
   late DateTime _now = clock();
   late HomeState _state = _compose();
   HomeState get state => _state;
+  bool _offline = false;
 
   void update({
     required Object owner,
@@ -73,8 +74,11 @@ final class HomeCoordinator {
     required bool blocked,
     required bool foreground,
     bool readDays = true,
+    bool offline = false,
   }) {
     if (_disposed) return;
+    final offlineChanged = offline != _offline;
+    _offline = offline;
     final newOwner = owner != _owner;
     final nextContentScope = contentScope ?? owner;
     final newContentScope = nextContentScope != _contentScope;
@@ -164,7 +168,8 @@ final class HomeCoordinator {
         resumed ||
         blockingChanged ||
         ready ||
-        daysReady) {
+        daysReady ||
+        offlineChanged) {
       _state = _compose();
       _schedule();
     }
@@ -232,6 +237,7 @@ final class HomeCoordinator {
     dates.sort();
     return HomeState(
       now: _now,
+      offline: _offline,
       sources: sources,
       schedule: schedule,
       week: _supplements[HomeSupplement.currentWeek],

@@ -34,7 +34,8 @@ mod judge_scan;
 #[path = "client/readonly.rs"]
 mod readonly_client;
 pub use judge_refresh::{
-    JudgeDetailsRead, JudgeDetailsReadBatch, JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions,
+    JudgeDetailRefresh, JudgeDetailsRead, JudgeDetailsReadBatch, JudgeRefresh, JudgeRefreshBatch,
+    JudgeRefreshOptions,
 };
 mod academic_cache;
 mod bykc_cache;

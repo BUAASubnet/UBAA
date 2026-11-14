@@ -30,7 +30,7 @@ void main() {
           .refreshHome(only: [FeatureId.judge])
           .then((_) => complete = true);
       await Future<void>.delayed(Duration.zero);
-      expect(visible, cached);
+      expect(visible, isFalse, reason: '主动刷新等待详情核验，缓存内容仍然可见');
       expect(complete, isFalse, reason: '学校日程等完整刷新仍须等待在线结果');
       expect(controller.homeSnapshots[FeatureId.judge]!.refining, cached);
       if (cached) {

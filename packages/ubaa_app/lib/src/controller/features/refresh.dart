@@ -330,6 +330,11 @@ mixin ControllerRefresh on ControllerState {
                 lifecycleEpoch,
               )),
     );
+    scope.refreshActiveDetails =
+        feature == FeatureId.judge &&
+        (internalSchoolPrompt != null ||
+            (query?.refreshActiveDetails ?? false) ||
+            (query?.fullRefresh ?? false));
     scope.firstResult = visible;
     internalReadScopes.add(scope);
     final home = internalHomeDefaults[feature]!;
@@ -572,6 +577,7 @@ mixin ControllerRefresh on ControllerState {
           outcome,
         );
       }
+      scope.completed = completed && scope.valid;
       scope.cancel();
       internalReadScopes.remove(scope);
       if (!scope.completion.isCompleted) scope.completion.complete();

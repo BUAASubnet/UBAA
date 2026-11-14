@@ -14,12 +14,21 @@ use super::{
 };
 use std::collections::{BTreeMap, HashSet};
 
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
+pub enum JudgeDetailRefresh {
+    #[default]
+    ReuseFresh,
+    RefreshActive,
+}
+
 #[derive(Clone, Default)]
 pub struct JudgeRefreshOptions {
     pub include_expired: bool,
     pub full_refresh: bool,
     /// 手动重新发现作业，仍允许复用有效详情。
     pub refresh_indices: bool,
+    /// 主动核验非历史详情，保留有效历史缓存。
+    pub detail_refresh: JudgeDetailRefresh,
     pub preferred_course: Option<String>,
     pub current_assignment: Option<JudgeAssignmentKey>,
 }

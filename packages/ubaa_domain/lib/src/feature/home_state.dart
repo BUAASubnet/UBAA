@@ -16,6 +16,7 @@ final class HomeState {
     this.projected = false,
     this.projectionFailure,
     this.busy = false,
+    this.offline = false,
     this.refining = false,
     this.updatedAt,
   }) : sources = Map.unmodifiable(sources);
@@ -24,7 +25,7 @@ final class HomeState {
   final HomeScheduleState schedule;
   final FeatureResult? week;
   final List<HomeTodo> todos;
-  final bool projected, busy, refining;
+  final bool projected, busy, refining, offline;
   final Object? projectionFailure;
   final DateTime? updatedAt;
 }

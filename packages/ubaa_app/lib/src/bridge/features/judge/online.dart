@@ -22,6 +22,9 @@ Future<FeatureReadTask> _beginOnlineJudgeRead(
       options: BridgeJudgeOnlineOptions(
         includeExpired: query.includeExpired,
         refreshIndices: query.refreshIndices,
+        detailRefresh: query.refreshActiveDetails
+            ? BridgeJudgeDetailRefresh.refreshActive
+            : BridgeJudgeDetailRefresh.reuseFresh,
         fullRefresh: query.fullRefresh,
         expectedIdentity: account?.username,
         preferredCourse: query.courseId,

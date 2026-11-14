@@ -6,11 +6,27 @@ use super::offline::{BridgeCacheFailure, BridgeOfflineCache, offline_read_error}
 use super::read::{BridgeJudgeAssignmentKey, BridgeJudgeAssignmentSummary, map_judge_summaries};
 use ubaa_core::facade as core;
 
+#[derive(Clone, Copy, Debug, Default)]
+pub enum BridgeJudgeDetailRefresh {
+    #[default]
+    ReuseFresh,
+    RefreshActive,
+}
+impl From<BridgeJudgeDetailRefresh> for core::JudgeDetailRefresh {
+    fn from(value: BridgeJudgeDetailRefresh) -> Self {
+        match value {
+            BridgeJudgeDetailRefresh::ReuseFresh => Self::ReuseFresh,
+            BridgeJudgeDetailRefresh::RefreshActive => Self::RefreshActive,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct BridgeJudgeRefreshOptions {
     pub include_expired: bool,
     pub full_refresh: bool,
     pub refresh_indices: bool,
+    pub detail_refresh: BridgeJudgeDetailRefresh,
     pub preferred_course: Option<String>,
     pub current_assignment: Option<BridgeJudgeAssignmentKey>,
 }
@@ -63,6 +79,7 @@ impl BridgeClient {
                         include_expired: options.include_expired,
                         full_refresh: options.full_refresh,
                         refresh_indices: options.refresh_indices,
+                        detail_refresh: options.detail_refresh.into(),
                         preferred_course: options.preferred_course,
                         current_assignment: options.current_assignment.map(|key| {
                             core::JudgeAssignmentKey {

@@ -2117,6 +2117,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeJudgeCourse dco_decode_bridge_judge_course(dynamic raw);
 
   @protected
+  BridgeJudgeDetailRefresh dco_decode_bridge_judge_detail_refresh(dynamic raw);
+
+  @protected
   BridgeJudgeOnlineOptions dco_decode_bridge_judge_online_options(dynamic raw);
 
   @protected
@@ -5789,6 +5792,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeJudgeCourse sse_decode_bridge_judge_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeDetailRefresh sse_decode_bridge_judge_detail_refresh(
     SseDeserializer deserializer,
   );
 
@@ -10325,6 +10333,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_judge_course(
     BridgeJudgeCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_detail_refresh(
+    BridgeJudgeDetailRefresh self,
     SseSerializer serializer,
   );
 

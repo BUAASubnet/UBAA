@@ -190,7 +190,10 @@ fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
             .get(item.assignment_id.as_str())
             .copied()
             .or_else(|| summaries.get(&(item.course_id.clone(), item.assignment_id.clone())));
-        if current {
+        let due = summary
+            .and_then(|value| value.due_time.clone())
+            .unwrap_or_else(|| "9999".into());
+        let rank = if current {
             0
         } else {
             match summary {
@@ -198,13 +201,20 @@ fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
                     if summary.title == item.title && summary.course_name == item.course_name =>
                 {
                     if policy::historical_summary(summary, now) {
-                        3
-                    } else {
+                        4
+                    } else if matches!(
+                        summary.submission_status,
+                        crate::domain::JudgeSubmissionStatus::Unsubmitted
+                            | crate::domain::JudgeSubmissionStatus::Partial
+                    ) {
                         2
+                    } else {
+                        3
                     }
                 }
                 _ => 1,
             }
-        }
+        };
+        (rank, if rank == 2 { due } else { String::new() })
     });
 }

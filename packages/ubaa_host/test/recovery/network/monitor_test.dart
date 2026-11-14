@@ -1,9 +1,49 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
+  test('Android 默认网络身份去重，同时识别同类型换网和断网恢复', () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    fakeAsync((time) {
+      final events = StreamController<Set<String>>.broadcast();
+      final monitor = LocalNetworkMonitor(
+        readState: () async => {'336'},
+        events: events.stream,
+      );
+      final hints = <bool>[];
+      final subscription = monitor.changes.listen(hints.add);
+      time.flushMicrotasks();
+      for (final state in [
+        <String>{'336'},
+        {'336'},
+        {'337'},
+        <String>{},
+        <String>{},
+        {'338'},
+      ]) {
+        events.add(state);
+        time.flushMicrotasks();
+      }
+      expect(hints, [true, false, true]);
+      unawaited(subscription.cancel());
+      time.flushMicrotasks();
+      final resumed = monitor.changes.listen(hints.add);
+      time.flushMicrotasks();
+      expect(hints, [true, false, true, true]);
+      events.add({'336'});
+      time.flushMicrotasks();
+      expect(hints, [true, false, true, true]);
+      unawaited(resumed.cancel());
+      unawaited(events.close());
+      time.flushMicrotasks();
+    });
+  });
   test('同类型网络变化与断网都通知恢复流程', () {
     fakeAsync((time) {
       final events = StreamController<Set<String>>.broadcast();

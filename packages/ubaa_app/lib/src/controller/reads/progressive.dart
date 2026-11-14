@@ -27,10 +27,29 @@ mixin ControllerProgressive on ControllerState {
             query: scope.query,
             requestRevision: 0,
           ).hasSameQuery(query)) {
+        final activeDetails =
+            feature == FeatureId.judge &&
+            (internalSchoolPrompt != null ||
+                (query?.refreshActiveDetails ?? false) ||
+                (query?.fullRefresh ?? false));
+        if (activeDetails && !scope.refreshActiveDetails) {
+          return scope.strongerRefresh ??= () async {
+            await scope.completion.future;
+            if (!scope.completed || !scope.current() || internalDisposed)
+              return;
+            if (query == null) {
+              await internalRefreshHome(only: [feature]);
+            } else {
+              await internalRefreshFeatureQuery(feature, query);
+            }
+          }();
+        }
         if (internalSchoolPrompt case final report?) {
           scope.joinedSchoolPrompts.add(report);
         }
-        return firstBatch ? scope.firstResult.future : scope.completion.future;
+        return firstBatch && !activeDetails
+            ? scope.firstResult.future
+            : scope.completion.future;
       }
     }
     return null;
@@ -198,7 +217,10 @@ mixin ControllerProgressive on ControllerState {
       );
     final requestQuery =
         feature == FeatureId.judge && internalSchoolPrompt != null
-        ? (query ?? const FeatureQuery()).copyWith(refreshIndices: true)
+        ? (query ?? const FeatureQuery()).copyWith(
+            refreshIndices: true,
+            refreshActiveDetails: true,
+          )
         : query;
     var authenticationRetried = false;
     while (scope.valid) {

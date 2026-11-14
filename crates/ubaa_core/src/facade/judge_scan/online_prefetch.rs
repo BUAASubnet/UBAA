@@ -12,7 +12,9 @@ impl UbaaClient {
             let network = self.network_control();
             let runtime = self.runtime_for(plan.resolution.mode);
             let state = runtime.feature_state();
-            let force = plan.options.full_refresh || plan.options.keys.is_some();
+            let force = plan.options.full_refresh
+                || plan.options.detail_refresh == crate::facade::JudgeDetailRefresh::RefreshActive
+                || plan.options.keys.is_some();
             let assignments: Vec<_> = plan
                 .cursor
                 .pending_assignments()
