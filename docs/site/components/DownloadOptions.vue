@@ -14,7 +14,7 @@ const rows = data.platforms[props.platform];
         <strong>{{ row.label }}</strong>
         <span>{{ row.hint }}</span>
       </div>
-      <a class="download-button" :href="useBhpan ? row.url : row.mirrorUrl" data-no-router>
+      <a class="download-button" :href="useBhpan ? row.url : row.mirrorUrl" target="_self">
         下载 {{ row.type }}
         <small>{{ row.size }}</small>
       </a>

@@ -74,7 +74,7 @@ HarmonyOS 版将通过 AppGallery 提供，上架后在这里给出链接。
 
 ## 其他下载
 
-- <a :href="useBhpan ? release.licenses.url : release.licenses.mirrorUrl" data-no-router>第三方软件许可证</a>（{{ release.licenses.size }}）随当前安装包一同提供。
+- <a :href="useBhpan ? release.licenses.url : release.licenses.mirrorUrl" target="_self">第三方软件许可证</a>（{{ release.licenses.size }}）随当前安装包一同提供。
 - 旧版 v1.x 的安装包和历史记录保留在 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases)。
 - 安装或登录遇到问题，可查看[常见问题](/tech/troubleshooting)。
 

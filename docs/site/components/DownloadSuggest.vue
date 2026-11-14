@@ -56,7 +56,7 @@ onMounted(async () => {
     <template v-else>
       <p>看起来你在使用 {{ NAMES[suggestion.platform] }} 设备，推荐下载：</p>
       <div class="actions">
-        <a v-for="row in suggestion.rows" :key="row.name" class="primary" :href="useBhpan ? row.url : row.mirrorUrl" data-no-router>
+        <a v-for="row in suggestion.rows" :key="row.name" class="primary" :href="useBhpan ? row.url : row.mirrorUrl" target="_self">
           下载 {{ NAMES[suggestion.platform] }} 版
           <small>{{ row.label }} · {{ row.size }}</small>
         </a>
