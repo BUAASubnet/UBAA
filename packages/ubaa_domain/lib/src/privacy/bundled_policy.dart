@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 4,
+  version: 5,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -19,7 +19,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '登录所需的账号、密码与验证码用于向学校认证系统验证身份。课表、成绩、作业和预约等请求由设备通过直连或学校 WebVPN 发起，不经旧版 UBAA 中转服务器。',
+          '登录所需的账号、密码与验证码用于向学校认证系统验证身份。课表、成绩、作业和预约等请求由设备通过直连或学校 WebVPN 发起，不经过 UBAA 的服务器中转。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -131,19 +131,18 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
       level: 2,
-      text: '统计数据的境外处理',
+      text: '统计数据的处理与保存',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text: '统计数据通过 HTTPS 直接传输给 UBAA 维护者位于中国大陆的服务器，并在该服务器上处理和保存。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '接收方为 Cloudflare, Inc.。统计数据通过 HTTPS 传输，在中国大陆境外的 Cloudflare Worker 和 D1 数据库中处理和存储。正式启用前，项目维护者会在本政策公布实际存储地点和接收方的联系方式。',
-    ),
-    PrivacyPolicyBlock(
-      kind: PrivacyPolicyBlockKind.paragraph,
-      level: 0,
-      text:
-          '设备在本地对学号加盐计算 SHA-256。接收统计的 Worker 用独立密钥对收到的派生标识再计算 HMAC-SHA256，数据库只保存第二次计算得到的标识。网络地址只临时用于限流，UBAA 的统计库和 Worker 请求日志不保存 IP 地址。',
+          '设备在本地对学号加盐计算 SHA-256。接收统计的服务 用独立密钥对收到的派生标识再计算 HMAC-SHA256，数据库只保存第二次计算得到的标识。网络地址只临时用于限流，UBAA 的统计库和 服务请求日志不保存 IP 地址。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -196,8 +195,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>[
-    '设置页仅保留产品改进统计开关，撤回或删除数据请求可联系维护者。',
-    '旧版基础模式用户可通过统计开关确认后重新启用。',
-  ],
+  changes: <String>['产品改进统计改由维护者位于中国大陆的服务器处理和保存。'],
 );

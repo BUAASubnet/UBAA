@@ -200,6 +200,8 @@ LoginVerificationState _acceptInteractiveOutcome(
             : const UiErrorMapper().fromCore(
                 CoreErrorPayload(
                   code: error.code,
+                  authStage: AuthFailureStage.parse(error.authStage),
+                  authReason: AuthFailureReason.parse(error.authReason),
                   kind: error.kind,
                   retryable: error.retryable,
                   resolvedRoute: route,

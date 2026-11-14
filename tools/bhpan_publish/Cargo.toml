@@ -1,0 +1,22 @@
+[package]
+name = "ubaa-bhpan-publish"
+autobins = false
+description = "服务器北航云盘发布工具"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+ubaa-core = { path = "../../crates/ubaa_core" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[[bin]]
+name = "bhpan-publish"
+path = "src/main.rs"
+
+[lints]
+workspace = true

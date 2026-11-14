@@ -60,7 +60,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1999597516;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1595244710;
 
 // Section: executor
 
@@ -20630,6 +20630,40 @@ fn wire__crate__api__simple__bridge_hello_impl(
         },
     )
 }
+fn wire__crate__api__judge_refresh__bridge_judge_detail_refresh_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "bridge_judge_detail_refresh_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(
+                        crate::api::judge_refresh::BridgeJudgeDetailRefresh::default(),
+                    )?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -25177,6 +25211,8 @@ impl SseDecode for crate::api::read::BridgeCourseClass {
 impl SseDecode for crate::api::client::BridgeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_authStage = <Option<String>>::sse_decode(deserializer);
+        let mut var_authReason = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <crate::api::client::BridgeErrorCode>::sse_decode(deserializer);
         let mut var_kind = <crate::api::client::BridgeErrorKind>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
@@ -25186,6 +25222,8 @@ impl SseDecode for crate::api::client::BridgeError {
         let mut var_cacheFailure =
             <Option<crate::api::offline::BridgeCacheFailure>>::sse_decode(deserializer);
         return crate::api::client::BridgeError {
+            auth_stage: var_authStage,
+            auth_reason: var_authReason,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -26437,11 +26475,25 @@ impl SseDecode for crate::api::judge_scan::BridgeJudgeCourse {
     }
 }
 
+impl SseDecode for crate::api::judge_refresh::BridgeJudgeDetailRefresh {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::judge_refresh::BridgeJudgeDetailRefresh::ReuseFresh,
+            1 => crate::api::judge_refresh::BridgeJudgeDetailRefresh::RefreshActive,
+            _ => unreachable!("Invalid variant for BridgeJudgeDetailRefresh: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_includeExpired = <bool>::sse_decode(deserializer);
         let mut var_refreshIndices = <bool>::sse_decode(deserializer);
+        let mut var_detailRefresh =
+            <crate::api::judge_refresh::BridgeJudgeDetailRefresh>::sse_decode(deserializer);
         let mut var_fullRefresh = <bool>::sse_decode(deserializer);
         let mut var_expectedIdentity = <Option<String>>::sse_decode(deserializer);
         let mut var_preferredCourse = <Option<String>>::sse_decode(deserializer);
@@ -26450,6 +26502,7 @@ impl SseDecode for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
         return crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
             include_expired: var_includeExpired,
             refresh_indices: var_refreshIndices,
+            detail_refresh: var_detailRefresh,
             full_refresh: var_fullRefresh,
             expected_identity: var_expectedIdentity,
             preferred_course: var_preferredCourse,
@@ -26542,6 +26595,8 @@ impl SseDecode for crate::api::judge_refresh::BridgeJudgeRefreshOptions {
         let mut var_includeExpired = <bool>::sse_decode(deserializer);
         let mut var_fullRefresh = <bool>::sse_decode(deserializer);
         let mut var_refreshIndices = <bool>::sse_decode(deserializer);
+        let mut var_detailRefresh =
+            <crate::api::judge_refresh::BridgeJudgeDetailRefresh>::sse_decode(deserializer);
         let mut var_preferredCourse = <Option<String>>::sse_decode(deserializer);
         let mut var_currentAssignment =
             <Option<crate::api::read::BridgeJudgeAssignmentKey>>::sse_decode(deserializer);
@@ -26549,6 +26604,7 @@ impl SseDecode for crate::api::judge_refresh::BridgeJudgeRefreshOptions {
             include_expired: var_includeExpired,
             full_refresh: var_fullRefresh,
             refresh_indices: var_refreshIndices,
+            detail_refresh: var_detailRefresh,
             preferred_course: var_preferredCourse,
             current_assignment: var_currentAssignment,
         };
@@ -27843,11 +27899,15 @@ impl SseDecode for crate::api::read::BridgeRoutedYgdkRecords {
 impl SseDecode for crate::api::client::BridgeSafeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_authStage = <Option<String>>::sse_decode(deserializer);
+        let mut var_authReason = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <String>::sse_decode(deserializer);
         let mut var_kind = <String>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
         let mut var_message = <String>::sse_decode(deserializer);
         return crate::api::client::BridgeSafeError {
+            auth_stage: var_authStage,
+            auth_reason: var_authReason,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -32928,19 +32988,25 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        329 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
+        329 => wire__crate__api__judge_refresh__bridge_judge_detail_refresh_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        330 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+        330 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        331 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        331 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        332 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -38550,6 +38616,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCourseClass>
 impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.auth_stage.into_into_dart().into_dart(),
+            self.auth_reason.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -40223,11 +40291,33 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::judge_scan::BridgeJudgeCourse
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::judge_refresh::BridgeJudgeDetailRefresh {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::ReuseFresh => 0.into_dart(),
+            Self::RefreshActive => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::judge_refresh::BridgeJudgeDetailRefresh
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::judge_refresh::BridgeJudgeDetailRefresh>
+    for crate::api::judge_refresh::BridgeJudgeDetailRefresh
+{
+    fn into_into_dart(self) -> crate::api::judge_refresh::BridgeJudgeDetailRefresh {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.include_expired.into_into_dart().into_dart(),
             self.refresh_indices.into_into_dart().into_dart(),
+            self.detail_refresh.into_into_dart().into_dart(),
             self.full_refresh.into_into_dart().into_dart(),
             self.expected_identity.into_into_dart().into_dart(),
             self.preferred_course.into_into_dart().into_dart(),
@@ -40349,6 +40439,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::judge_refresh::BridgeJudgeRef
             self.include_expired.into_into_dart().into_dart(),
             self.full_refresh.into_into_dart().into_dart(),
             self.refresh_indices.into_into_dart().into_dart(),
+            self.detail_refresh.into_into_dart().into_dart(),
             self.preferred_course.into_into_dart().into_dart(),
             self.current_assignment.into_into_dart().into_dart(),
         ]
@@ -42326,6 +42417,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedYgdkRecords
 impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeSafeError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.auth_stage.into_into_dart().into_dart(),
+            self.auth_reason.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -46700,6 +46793,8 @@ impl SseEncode for crate::api::read::BridgeCourseClass {
 impl SseEncode for crate::api::client::BridgeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.auth_stage, serializer);
+        <Option<String>>::sse_encode(self.auth_reason, serializer);
         <crate::api::client::BridgeErrorCode>::sse_encode(self.code, serializer);
         <crate::api::client::BridgeErrorKind>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);
@@ -47569,11 +47664,31 @@ impl SseEncode for crate::api::judge_scan::BridgeJudgeCourse {
     }
 }
 
+impl SseEncode for crate::api::judge_refresh::BridgeJudgeDetailRefresh {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::judge_refresh::BridgeJudgeDetailRefresh::ReuseFresh => 0,
+                crate::api::judge_refresh::BridgeJudgeDetailRefresh::RefreshActive => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::judge_scan::online::BridgeJudgeOnlineOptions {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.include_expired, serializer);
         <bool>::sse_encode(self.refresh_indices, serializer);
+        <crate::api::judge_refresh::BridgeJudgeDetailRefresh>::sse_encode(
+            self.detail_refresh,
+            serializer,
+        );
         <bool>::sse_encode(self.full_refresh, serializer);
         <Option<String>>::sse_encode(self.expected_identity, serializer);
         <Option<String>>::sse_encode(self.preferred_course, serializer);
@@ -47638,6 +47753,10 @@ impl SseEncode for crate::api::judge_refresh::BridgeJudgeRefreshOptions {
         <bool>::sse_encode(self.include_expired, serializer);
         <bool>::sse_encode(self.full_refresh, serializer);
         <bool>::sse_encode(self.refresh_indices, serializer);
+        <crate::api::judge_refresh::BridgeJudgeDetailRefresh>::sse_encode(
+            self.detail_refresh,
+            serializer,
+        );
         <Option<String>>::sse_encode(self.preferred_course, serializer);
         <Option<crate::api::read::BridgeJudgeAssignmentKey>>::sse_encode(
             self.current_assignment,
@@ -48567,6 +48686,8 @@ impl SseEncode for crate::api::read::BridgeRoutedYgdkRecords {
 impl SseEncode for crate::api::client::BridgeSafeError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.auth_stage, serializer);
+        <Option<String>>::sse_encode(self.auth_reason, serializer);
         <String>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);

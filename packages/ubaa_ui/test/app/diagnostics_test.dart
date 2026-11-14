@@ -7,6 +7,53 @@ import 'package:ubaa_ui/src/common/error_card.dart'
     show uiErrorMessageRestatesTitle;
 
 void main() {
+  testWidgets('错误卡复制对应诊断记录', (tester) async {
+    String? requested;
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UiDiagnosticsScope(
+          readRecord: (id) {
+            requested = id;
+            return '{"schema_version":2,"events":[{"stage":"identity_validation"}]}';
+          },
+          child: const Scaffold(
+            body: FriendlyErrorCard(
+              error: UiError(
+                code: UbaaErrorCode.upstreamChanged,
+                title: '登录失败',
+                message: '请反馈诊断',
+                issueId: 'UBAA-test',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('复制错误信息'));
+    await tester.pumpAndSettle();
+    expect(requested, 'UBAA-test');
+    expect(copied, contains('identity_validation'));
+    expect(copied, contains('schema_version'));
+  });
+
   testWidgets('错误卡按需展开诊断并只复制安全字段', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

@@ -61,6 +61,7 @@ final class HomeCoordinator {
   late DateTime _now = clock();
   late HomeState _state = _compose();
   HomeState get state => _state;
+  bool _offline = false;
 
   void update({
     required Object owner,
@@ -73,8 +74,11 @@ final class HomeCoordinator {
     required bool blocked,
     required bool foreground,
     bool readDays = true,
+    bool offline = false,
   }) {
     if (_disposed) return;
+    final offlineChanged = offline != _offline;
+    _offline = offline;
     final newOwner = owner != _owner;
     final nextContentScope = contentScope ?? owner;
     final newContentScope = nextContentScope != _contentScope;
@@ -164,7 +168,8 @@ final class HomeCoordinator {
         resumed ||
         blockingChanged ||
         ready ||
-        daysReady) {
+        daysReady ||
+        offlineChanged) {
       _state = _compose();
       _schedule();
     }
@@ -220,8 +225,11 @@ final class HomeCoordinator {
     final schedule = _scheduleState();
     final dates = [
       for (final s in sources.values)
-        if (s.updatedAt != null) s.updatedAt!,
-      if (schedule.snapshot.updatedAt != null) schedule.snapshot.updatedAt!,
+        if (s.status != FeatureLoadStatus.failure && s.updatedAt != null)
+          s.updatedAt!,
+      if (schedule.snapshot.status != FeatureLoadStatus.failure &&
+          schedule.snapshot.updatedAt != null)
+        schedule.snapshot.updatedAt!,
       if (_supplements[HomeSupplement.currentWeek]?.evidence?.fetchedAt
           case final at?)
         at,
@@ -229,6 +237,7 @@ final class HomeCoordinator {
     dates.sort();
     return HomeState(
       now: _now,
+      offline: _offline,
       sources: sources,
       schedule: schedule,
       week: _supplements[HomeSupplement.currentWeek],
@@ -242,7 +251,8 @@ final class HomeCoordinator {
           _supplementTasks.isNotEmpty ||
           _dayTasks.containsKey(schedule.date),
       refining: sources.values.any((s) => s.refining),
-      updatedAt: dates.firstOrNull,
+      // 首页展示最近取得数据的时间，旧缓存与失败由界面单独提示。
+      updatedAt: dates.lastOrNull,
     );
   }
 
@@ -259,9 +269,13 @@ final class HomeCoordinator {
     _refresh = complete.future;
     unawaited(() async {
       try {
+        _dayAttempts.clear();
+        _forceDayReads = true;
         final main = refreshMain();
+        final checkedDays = <(int, String)>{};
         await Future.wait([
           main,
+          _refreshVisibleDay(generation, checkedDays),
           for (final source in HomeSupplement.values)
             _report(_load(source, force: true)),
         ]);
@@ -269,9 +283,7 @@ final class HomeCoordinator {
           complete.complete();
           return;
         }
-        final schedule = _scheduleState();
-        if (schedule.remote)
-          await _report(_loadDay(schedule.date, force: true));
+        await _refreshVisibleDay(generation, checkedDays);
         await flushProjection();
         complete.complete();
       } on Object catch (error, stack) {

@@ -21,7 +21,7 @@
       ],
       "properties": {
         "schemaVersion": {
-          "const": 16
+          "const": 17
         },
         "ok": {
           "type": "boolean"
@@ -721,7 +721,7 @@
           }
         },
         "remainingExcludesPackages": {
-          "const": true
+          "type": "boolean"
         },
         "fetchedAt": {
           "type": "integer",
@@ -1838,7 +1838,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 16 },
+        "schemaVersion": { "const": 17 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -2059,7 +2059,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 16 },
+        "schemaVersion": { "const": 17 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -2216,7 +2216,7 @@
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
         "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
-        "schemaVersion": { "const": 16 },
+        "schemaVersion": { "const": 17 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -2292,7 +2292,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 16 },
+        "schemaVersion": { "const": 17 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
@@ -2552,7 +2552,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 16
+                "const": 17
               },
               "ok": {
                 "const": true
@@ -2688,7 +2688,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 16
+                "const": 17
               },
               "ok": {
                 "const": false

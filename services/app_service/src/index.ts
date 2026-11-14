@@ -1,3 +1,5 @@
+import type { WaitContext } from "./environment";
+import type { Environment } from "./environment";
 import { runAggregation } from "./aggregate";
 import { bootstrap } from "./bootstrap";
 import { eraseTelemetry } from "./erase";
@@ -6,8 +8,12 @@ import { reportTelemetry } from "./telemetry";
 export default {
   async fetch(
     request: Request,
-    env: Env,
-    ctx: ExecutionContext,
+    env: Environment,
+    ctx: WaitContext = {
+      waitUntil: (promise) => {
+        void promise;
+      },
+    },
   ): Promise<Response> {
     const { origin, pathname } = new URL(request.url);
     const requestOrigin = request.headers.get("Origin");
@@ -31,7 +37,10 @@ export default {
       return new Response(null, { status: 500 });
     }
   },
-  async scheduled(controller: ScheduledController, env: Env): Promise<void> {
+  async scheduled(
+    controller: { scheduledTime: number; noRetry(): void },
+    env: Environment,
+  ): Promise<void> {
     controller.noRetry();
     try {
       await runAggregation(env.DB, controller.scheduledTime);
@@ -39,4 +48,4 @@ export default {
       throw new Error("统计汇总任务失败");
     }
   },
-} satisfies ExportedHandler<Env>;
+};

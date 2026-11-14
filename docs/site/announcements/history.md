@@ -1,11 +1,13 @@
+---
+description: UBAA 项目发布过的全部公告，包括往期和尚未生效的公告。
+---
+
 <script setup>
 import AnnouncementList from "./AnnouncementList.vue";
 </script>
 
-# 公告与发布记录
+# 全部公告
 
-当前公告见[公告中心](/announcements/)，应用版本信息见[更新日志](/changelog/)和 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases)。
-
-网站按 UBAA v2.0 的当前功能维护，不另设旧版使用文档归档。
+本页按时间列出 UBAA 发布过的全部公告，包括已经结束和尚未生效的公告。当前有效的公告见[公告中心](/announcements/)。
 
 <AnnouncementList history />

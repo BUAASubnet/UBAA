@@ -5,6 +5,7 @@
 
 import '../../frb_generated.dart';
 import '../client.dart';
+import '../judge_refresh.dart';
 import '../judge_scan.dart';
 import '../offline.dart';
 import '../read.dart';
@@ -21,6 +22,7 @@ abstract class BridgeJudgeOnlineTask implements RustOpaqueInterface {
 class BridgeJudgeOnlineOptions {
   final bool includeExpired;
   final bool refreshIndices;
+  final BridgeJudgeDetailRefresh detailRefresh;
   final bool fullRefresh;
   final String? expectedIdentity;
   final String? preferredCourse;
@@ -29,6 +31,7 @@ class BridgeJudgeOnlineOptions {
   const BridgeJudgeOnlineOptions({
     required this.includeExpired,
     required this.refreshIndices,
+    required this.detailRefresh,
     required this.fullRefresh,
     this.expectedIdentity,
     this.preferredCourse,
@@ -42,6 +45,7 @@ class BridgeJudgeOnlineOptions {
   int get hashCode =>
       includeExpired.hashCode ^
       refreshIndices.hashCode ^
+      detailRefresh.hashCode ^
       fullRefresh.hashCode ^
       expectedIdentity.hashCode ^
       preferredCourse.hashCode ^
@@ -54,6 +58,7 @@ class BridgeJudgeOnlineOptions {
           runtimeType == other.runtimeType &&
           includeExpired == other.includeExpired &&
           refreshIndices == other.refreshIndices &&
+          detailRefresh == other.detailRefresh &&
           fullRefresh == other.fullRefresh &&
           expectedIdentity == other.expectedIdentity &&
           preferredCourse == other.preferredCourse &&

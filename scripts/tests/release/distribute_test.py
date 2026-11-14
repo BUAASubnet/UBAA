@@ -1,5 +1,6 @@
 """分发产物后保留 Release 草稿，已发布版本和已分发的构建号不得覆盖。"""
 from contextlib import chdir
+import hashlib
 import importlib.util
 import io
 import json
@@ -96,6 +97,15 @@ class DistributionTest(unittest.TestCase):
                 self.assertEqual(manifest['commit'], 'candidate')
                 self.assertEqual(len(manifest['assets']), 9)
 
+    def test_公开清单记录每个文件的SHA256供下载页校验(self):
+        distribute.main()
+        manifest = json.loads((self.folder / 'release.json').read_text())
+        for asset in manifest['assets']:
+            with self.subTest(asset=asset['name']):
+                expected = hashlib.sha256((self.folder / asset['name']).read_bytes()).hexdigest()
+                self.assertEqual(asset['sha256'], expected)
+                self.assertTrue(asset['url'].startswith('https://download.ubaa.top:10443/releases/v2.0.0/2003/'))
+
     def test_旧产物中的HarmonyOS商店包不进入公开分发(self):
         store = self.folder / 'UBAA-2.0.0-harmonyos-arm64.app'
         store.write_bytes(b'synthetic store package')
@@ -110,7 +120,7 @@ class DistributionTest(unittest.TestCase):
         distribute.main()
         self.assertEqual(self.release['targetCommitish'], 'candidate')
         order = [call.args[0][:3] for call in self.calls.call_args_list]
-        self.assertLess(order.index(['gh', 'release', 'edit']), order.index(['aws', 's3', 'cp']))
+        self.assertLess(order.index(['gh', 'release', 'edit']), order.index(['gh', 'release', 'upload']))
 
     def test_已发布版本在任何远端写入前拒绝(self):
         self.release = {'isDraft': False, 'targetCommitish': 'candidate'}
@@ -125,6 +135,12 @@ class DistributionTest(unittest.TestCase):
             distribute.main()
         self.calls.assert_not_called()
 
+    def test_许可证缺失时不生成草稿(self):
+        (self.folder / 'licenses.zip').unlink()
+        with self.assertRaisesRegex(ValueError, '产物不完整'):
+            distribute.main()
+        self.calls.assert_not_called()
+
     def test_查询失败时不创建草稿也不写入R2(self):
         def failed_view(args, **kwargs):
             if args[:3] == ['gh', 'release', 'view']:
@@ -135,34 +151,11 @@ class DistributionTest(unittest.TestCase):
             distribute.main()
         self.assertEqual([call.args[0][:3] for call in self.calls.call_args_list], [['gh', 'release', 'view']])
 
-    def test_R2按构建号隔离且相同内容重跑不重复上传(self):
+    def test_清单地址按构建号隔离(self):
         distribute.main()
         manifest = json.loads((self.folder / 'release.json').read_text())
         self.assertTrue(all('/releases/v2.0.0/2003/' in asset['url'] for asset in manifest['assets']))
-        self.assertIn('releases/v2.0.0/2003/release.json', self.r2)
-        self.calls.reset_mock()
-        distribute.main()
-        self.assertEqual([args[3] for args in self.commands('aws', 's3', 'cp')],
-                         ['.ubaa_local/release/public/release.json'])
-
-    def test_同一构建号已分发其他内容时拒绝覆盖R2(self):
-        distribute.main()
-        (self.folder / 'UBAA-2.0.0-windows-x64.exe').write_bytes(b'rebuilt artifact')
-        self.calls.reset_mock()
-        with self.assertRaisesRegex(ValueError, '构建号'):
-            distribute.main()
-        self.assertFalse(any(args[4].endswith('windows-x64.exe') for args in self.commands('aws', 's3', 'cp')))
-        self.assertEqual(self.commands('gh', 'release', 'upload'), [])
-
-    def test_R2状态查询失败时不上传(self):
-        def failed_head(args, **kwargs):
-            if args[:3] == ['aws', 's3api', 'head-object']:
-                return subprocess.CompletedProcess(args, 255, '', 'Could not connect to the endpoint URL\n')
-            return self.command(args, **kwargs)
-        self.calls.side_effect = failed_head
-        with self.assertRaisesRegex(RuntimeError, 'R2'):
-            distribute.main()
-        self.assertEqual(self.commands('aws', 's3', 'cp'), [])
+        self.assertEqual(self.commands('aws'), [])
 
 
 class SourceMetadataTest(unittest.TestCase):

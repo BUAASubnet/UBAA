@@ -44,8 +44,10 @@ impl AuthWorkflow {
         }
         let page = body_text(&response);
         let captcha = parse_image_captcha(&page)?;
-        let execution = extract_execution(&page)
-            .ok_or_else(|| upstream_changed("SSO 登录页缺少 execution 令牌"))?;
+        let execution = extract_execution(&page).ok_or_else(|| {
+            upstream_changed("SSO 登录页缺少 execution 令牌")
+                .with_auth_reason(crate::error::AuthReason::LoginPageInvalid)
+        })?;
         self.state.remember(page, execution);
         Ok(captcha.map_or(InteractivePreparation::Plain, InteractivePreparation::Image))
     }
@@ -65,9 +67,13 @@ impl AuthWorkflow {
             .map(parse_image_captcha)
             .transpose()?
             .flatten()
-            .ok_or_else(|| upstream_changed("验证状态已失效，请刷新后重试"))?;
+            .ok_or_else(|| {
+                upstream_changed("验证状态已失效，请刷新后重试")
+                    .with_auth_reason(crate::error::AuthReason::CaptchaExpired)
+            })?;
         if current.id != expected.id || current.execution != expected.execution {
-            return Err(upstream_changed("验证状态已变化，请刷新后重试"));
+            return Err(upstream_changed("验证状态已变化，请刷新后重试")
+                .with_auth_reason(crate::error::AuthReason::CaptchaExpired));
         }
         before_post()?;
         let form = BTreeMap::from([
@@ -101,6 +107,7 @@ impl AuthWorkflow {
                 if error.code == ErrorCode::InvalidCredentials {
                     // 冻结源未证实验证码失败与凭据失败可区分；不能因此删除保存密码。
                     upstream_changed("验证尚未完成，请刷新验证码后重试")
+                        .with_auth_reason(crate::error::AuthReason::VerificationIncomplete)
                 } else {
                     error
                 }

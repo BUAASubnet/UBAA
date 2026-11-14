@@ -22,12 +22,18 @@ class UiSyncStatus extends StatefulWidget {
     super.key,
     required this.busy,
     this.updatedAt,
+    this.notice,
+    this.onShowDetails,
     this.onRefresh,
     this.refreshTooltip = '刷新',
   });
 
   final bool busy;
   final DateTime? updatedAt;
+
+  /// 部分失败或缓存状态优先于时间显示，读取时间保留在提示中。
+  final String? notice;
+  final VoidCallback? onShowDetails;
 
   /// 为空时不显示刷新按钮（触屏端或当前页面不可刷新）。
   final Future<void> Function()? onRefresh;
@@ -138,6 +144,16 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
           const SizedBox(width: 6),
           Text('更新中', style: style),
         ],
+      );
+    } else if (widget.notice case final notice?) {
+      label = Tooltip(
+        message: updatedAt == null
+            ? notice
+            : '$notice\n最近取得数据：${_format(updatedAt)}',
+        child: GestureDetector(
+          onTap: widget.onShowDetails,
+          child: Text(notice, style: style),
+        ),
       );
     } else if (updatedAt != null &&
         clock.now().difference(updatedAt) >= _staleAfter) {

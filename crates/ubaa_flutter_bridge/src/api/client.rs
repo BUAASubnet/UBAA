@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 65;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 67;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -59,6 +59,9 @@ pub enum BridgeErrorKind {
 /// Dart 可捕获的 typed 安全错误。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeError {
+    /// 固定枚举名称，不接收上游正文。
+    pub auth_stage: Option<String>,
+    pub auth_reason: Option<String>,
     pub code: BridgeErrorCode,
     pub kind: BridgeErrorKind,
     pub retryable: bool,
@@ -90,6 +93,8 @@ impl BridgeError {
             message: message.into(),
             resolved_route: None,
             cache_failure: None,
+            auth_stage: None,
+            auth_reason: None,
         }
     }
 
@@ -109,6 +114,13 @@ impl BridgeError {
             },
             kind: error.kind.into(),
             retryable: error.retryable,
+            auth_stage: error
+                .auth_diagnostic()
+                .map(|value| value.stage.wire_name().into()),
+            auth_reason: error
+                .auth_diagnostic()
+                .and_then(|value| value.reason)
+                .map(|value| value.wire_name().into()),
             message: error.message,
             resolved_route,
             cache_failure: None,
@@ -192,6 +204,9 @@ pub struct BridgeRouteDecision {
 /// 路线错误的安全投影。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeSafeError {
+    /// 固定枚举名称，不接收上游正文。
+    pub auth_stage: Option<String>,
+    pub auth_reason: Option<String>,
     pub code: String,
     pub kind: String,
     pub retryable: bool,
@@ -580,6 +595,11 @@ fn map_route_login(result: RouteLoginResult) -> BridgeRouteLoginResult {
 
 pub(crate) fn map_safe_error(error: SafeError) -> BridgeSafeError {
     BridgeSafeError {
+        auth_stage: error.diagnostic.map(|value| value.stage.wire_name().into()),
+        auth_reason: error
+            .diagnostic
+            .and_then(|value| value.reason)
+            .map(|value| value.wire_name().into()),
         code: error.code,
         kind: error.kind,
         retryable: error.retryable,

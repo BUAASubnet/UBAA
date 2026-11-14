@@ -1,5 +1,8 @@
 //! 供宿主与绑定层使用的稳定、可序列化错误。
 
+mod auth_diagnostic;
+pub use auth_diagnostic::{AuthDiagnostic, AuthReason, AuthStage};
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -72,6 +75,8 @@ pub struct UbaaError {
     /// 仅本进程的可信控制流使用，不属于公开 wire 错误合同。
     #[serde(skip)]
     cause: Option<ErrorCause>,
+    #[serde(skip)]
+    auth_diagnostic: Option<AuthDiagnostic>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -112,6 +117,27 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    /// 返回不含用户数据的本地登录诊断。
+    #[must_use]
+    pub const fn auth_diagnostic(&self) -> Option<AuthDiagnostic> {
+        self.auth_diagnostic
+    }
+
+    pub(crate) fn with_auth_reason(mut self, reason: AuthReason) -> Self {
+        self.auth_diagnostic = Some(reason.diagnostic());
+        self
+    }
+
+    pub(crate) fn with_auth_stage(mut self, stage: AuthStage) -> Self {
+        if self.auth_diagnostic.is_none() {
+            self.auth_diagnostic = Some(AuthDiagnostic {
+                stage,
+                reason: None,
+            });
+        }
+        self
+    }
+
     pub(crate) fn network_changed() -> Self {
         Self {
             cause: Some(ErrorCause::NetworkChanged),
@@ -251,6 +277,7 @@ impl UbaaError {
             retryable,
             message: message.into(),
             cause: None,
+            auth_diagnostic: None,
         }
     }
 

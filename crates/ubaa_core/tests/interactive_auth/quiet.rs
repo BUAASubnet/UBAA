@@ -21,6 +21,104 @@ fn posts(fixture: &Fixture) -> usize {
 }
 
 #[tokio::test]
+async fn 身份核对失败保留安全原因() {
+    let mut fixture = Fixture::new(RoutePolicy::Direct);
+    {
+        let mut state = fixture.direct.state.lock().unwrap();
+        state.page = PLAIN_PAGE.into();
+        state.username = "synthetic-other-account".into();
+    }
+    let login = fixture
+        .client
+        .interactive_login_cancellation()
+        .begin(SYNTHETIC_USERNAME)
+        .unwrap();
+    fixture
+        .client
+        .prepare_quiet_login_for(&login)
+        .await
+        .unwrap();
+    let result = fixture
+        .client
+        .submit_quiet_login(&login, input())
+        .await
+        .unwrap();
+    let error = result
+        .routes
+        .iter()
+        .find(|r| r.route == ConnectionMode::Direct)
+        .unwrap()
+        .error
+        .as_ref()
+        .unwrap();
+    assert_eq!(error.message, "登录身份核对失败");
+    let diagnostic = error.diagnostic.unwrap();
+    assert_eq!(diagnostic.stage.wire_name(), "identity_validation");
+    assert_eq!(diagnostic.reason.unwrap().wire_name(), "identity_mismatch");
+    assert!(
+        serde_json::to_value(error)
+            .unwrap()
+            .get("diagnostic")
+            .is_none()
+    );
+    assert!(!error.message.contains("synthetic-other-account"));
+}
+
+#[tokio::test]
+async fn 学号大小写不同仍能登录并保留学校身份() {
+    for (policy, route) in [
+        (RoutePolicy::Direct, ConnectionMode::Direct),
+        (RoutePolicy::WebVpn, ConnectionMode::WebVpn),
+    ] {
+        let mut fixture = Fixture::new(policy);
+        for transport in [&fixture.direct, &fixture.webvpn] {
+            let mut state = transport.state.lock().unwrap();
+            state.page = PLAIN_PAGE.into();
+            state.username = SYNTHETIC_USERNAME.to_ascii_uppercase();
+        }
+        let login = fixture
+            .client
+            .interactive_login_cancellation()
+            .begin(SYNTHETIC_USERNAME)
+            .unwrap();
+        fixture
+            .client
+            .prepare_quiet_login_for(&login)
+            .await
+            .unwrap();
+        let result = fixture
+            .client
+            .submit_quiet_login(&login, input())
+            .await
+            .unwrap();
+        assert_eq!(
+            result
+                .routes
+                .iter()
+                .find(|r| r.route == route)
+                .unwrap()
+                .state,
+            InteractiveRouteState::Ready
+        );
+        let completed = fixture
+            .client
+            .continue_interactive_login(&login, route, false)
+            .unwrap();
+        assert_eq!(
+            completed.profile.unwrap().school_id.as_deref(),
+            Some(SYNTHETIC_USERNAME.to_ascii_uppercase().as_str())
+        );
+        let status = fixture.client.auth_status().await.unwrap();
+        assert!(
+            status
+                .routes
+                .iter()
+                .any(|r| r.route == route && r.state == ubaa_core::facade::RouteLoginState::Ready)
+        );
+    }
+}
+
+#[tokio::test]
 async fn 校园网仅认证直连而校外同时建立两套会话() {
     for (network, route) in [
         (NetworkState::Campus, ConnectionMode::Direct),

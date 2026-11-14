@@ -171,7 +171,9 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await until(() => backend.task.calls == 1);
-    final joinedHome = controller.refreshHome(only: [FeatureId.judge]);
+    final joinedHome = controller.internalAutomaticSchoolAction(
+      () => controller.internalRefreshHome(only: [FeatureId.judge]),
+    );
     final firstQuery = controller.refreshFeatureQuery(
       FeatureId.signin,
       const FeatureQuery(view: FeatureQueryView.signinPending),

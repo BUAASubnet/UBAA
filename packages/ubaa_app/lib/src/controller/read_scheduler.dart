@@ -4,7 +4,7 @@ import 'dart:async';
 enum ReadPriority { writeReadback, urgent, interactive, home, background }
 
 /// 共享业务状态的读取组；未指定分组的任务独占调度器。
-enum ReadLane { academic, signin, spoc, judge, ygdk, bykc, cgyy, profile }
+enum ReadLane { academic, signin, spoc, judge, ygdk, bykc, cgyy, profile, exam }
 
 enum ReadOperation { authentication, read }
 

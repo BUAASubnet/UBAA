@@ -2,12 +2,12 @@ CREATE TABLE batches (
   batch_id TEXT PRIMARY KEY,
   nonce TEXT NOT NULL,
   received_at TEXT NOT NULL
-) WITHOUT ROWID;
+);
 
 CREATE TABLE erased_installs (
   install_id TEXT PRIMARY KEY,
   erased_at TEXT NOT NULL
-) WITHOUT ROWID;
+);
 
 CREATE TABLE active_days (
   day TEXT NOT NULL,
@@ -17,10 +17,10 @@ CREATE TABLE active_days (
   platform TEXT NOT NULL,
   channel TEXT NOT NULL,
   cohort_type TEXT NOT NULL,
-  cohort_year INTEGER NOT NULL,
+  cohort_year TEXT NOT NULL,
   surface_mask INTEGER NOT NULL,
   PRIMARY KEY (day, install_id, user_key, app_version)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE counter_days (
   day TEXT NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE counter_days (
   channel TEXT NOT NULL,
   count INTEGER NOT NULL,
   PRIMARY KEY (day, install_id, app_version, event, feature, route, result)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE error_days (
   day TEXT NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE error_days (
   channel TEXT NOT NULL,
   count INTEGER NOT NULL,
   PRIMARY KEY (day, install_id, app_version, event, feature, route, error_code, error_kind, retryable, source)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE timing_days (
   day TEXT NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE timing_days (
   channel TEXT NOT NULL,
   count INTEGER NOT NULL,
   PRIMARY KEY (day, install_id, app_version, metric, feature, route, bucket)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE active_daily (
   day TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE active_daily (
   users INTEGER NOT NULL,
   devices INTEGER NOT NULL,
   PRIMARY KEY (day, dimension, value)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE active_monthly (
   month TEXT NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE active_monthly (
   users INTEGER NOT NULL,
   devices INTEGER NOT NULL,
   PRIMARY KEY (month, dimension, value)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE counter_daily (
   day TEXT NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE counter_daily (
   count INTEGER NOT NULL,
   devices INTEGER NOT NULL,
   PRIMARY KEY (day, app_version, event, feature, route, result)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE error_daily (
   day TEXT NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE error_daily (
   count INTEGER NOT NULL,
   devices INTEGER NOT NULL,
   PRIMARY KEY (day, app_version, event, feature, route, error_code, error_kind, retryable, source)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE timing_daily (
   day TEXT NOT NULL,
@@ -122,12 +122,12 @@ CREATE TABLE timing_daily (
   count INTEGER NOT NULL,
   devices INTEGER NOT NULL,
   PRIMARY KEY (day, app_version, metric, feature, route, bucket)
-) WITHOUT ROWID;
+);
 
 CREATE TABLE job_state (
   job TEXT PRIMARY KEY,
   last_success_day TEXT NOT NULL
-) WITHOUT ROWID;
+);
 
 -- 日期查询复用以 day 开头的主键；删除按安装 ID 定位明细。
 CREATE INDEX active_days_install ON active_days (install_id);

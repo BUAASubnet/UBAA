@@ -190,10 +190,11 @@ class AppController extends ControllerState
             !internalIsSigningOut &&
             !internalInteractiveEngaged &&
             internalPhase == AppPhase.home &&
-            !internalActivities.hasActive &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        canWrite: () => !internalActivities.hasActive,
         onRejected: internalReportUserSchoolRejection,
+        read: internalReadService,
       );
     }
     return _ihomeService;

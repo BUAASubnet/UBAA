@@ -14,6 +14,7 @@ struct ScanTransport {
     reject_detail: Arc<std::sync::atomic::AtomicBool>,
     expire_primary: Arc<std::sync::atomic::AtomicBool>,
     historical_details: Arc<std::sync::atomic::AtomicBool>,
+    semester_details: Arc<std::sync::atomic::AtomicBool>,
     add_assignment: Arc<std::sync::atomic::AtomicBool>,
     detail_delay_ms: Arc<std::sync::atomic::AtomicU64>,
     assignment_count: Arc<AtomicUsize>,
@@ -96,11 +97,7 @@ impl HttpTransport for ScanTransport {
                 if self.historical_details.load(Ordering::SeqCst) && id.as_ref() != "103" {
                     return Ok(sso_fixture_response(200, request.url.clone(), "<html><body>作业满分：1，共 1 道题，得分：1。作业时间：2000-01-01 00:00 至 2000-02-01 00:00</body></html>".as_bytes().to_vec()));
                 }
-                sso_fixture_response(
-                    200,
-                    request.url.clone(),
-                    include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec(),
-                )
+                sso_fixture_response(200, request.url.clone(), self.semester_detail_body())
             } else {
                 let mut body = self.assignment_body(cookie);
                 if self.embedded_detail.load(Ordering::SeqCst) {
@@ -988,3 +985,6 @@ mod concurrent;
 
 #[path = "judge_scan/performance.rs"]
 mod performance;
+
+#[path = "judge_scan/semester.rs"]
+mod semester;

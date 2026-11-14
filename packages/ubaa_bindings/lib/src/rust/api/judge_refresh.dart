@@ -10,12 +10,20 @@ import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeJudgeRefreshTask>>
 abstract class BridgeJudgeRefreshTask implements RustOpaqueInterface {
   /// 设置取消标记；不声明已中止正在进行的学校请求。
   void cancel();
+}
+
+enum BridgeJudgeDetailRefresh {
+  reuseFresh,
+  refreshActive;
+
+  static Future<BridgeJudgeDetailRefresh> default_() => RustLib.instance.api
+      .crateApiJudgeRefreshBridgeJudgeDetailRefreshDefault();
 }
 
 class BridgeJudgeProgress {
@@ -65,6 +73,7 @@ class BridgeJudgeRefreshOptions {
   final bool includeExpired;
   final bool fullRefresh;
   final bool refreshIndices;
+  final BridgeJudgeDetailRefresh detailRefresh;
   final String? preferredCourse;
   final BridgeJudgeAssignmentKey? currentAssignment;
 
@@ -72,6 +81,7 @@ class BridgeJudgeRefreshOptions {
     required this.includeExpired,
     required this.fullRefresh,
     required this.refreshIndices,
+    required this.detailRefresh,
     this.preferredCourse,
     this.currentAssignment,
   });
@@ -84,6 +94,7 @@ class BridgeJudgeRefreshOptions {
       includeExpired.hashCode ^
       fullRefresh.hashCode ^
       refreshIndices.hashCode ^
+      detailRefresh.hashCode ^
       preferredCourse.hashCode ^
       currentAssignment.hashCode;
 
@@ -95,6 +106,7 @@ class BridgeJudgeRefreshOptions {
           includeExpired == other.includeExpired &&
           fullRefresh == other.fullRefresh &&
           refreshIndices == other.refreshIndices &&
+          detailRefresh == other.detailRefresh &&
           preferredCourse == other.preferredCourse &&
           currentAssignment == other.currentAssignment;
 }

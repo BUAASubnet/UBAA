@@ -14,9 +14,11 @@ pub(super) fn apply(
 }
 pub(super) fn finish(
     refresh: &mut JudgeRefresh,
-    step: read::Step,
+    mut step: read::Step,
     now: i64,
 ) -> Result<JudgeRefreshBatch, OfflineReadError> {
+    step.batch.finished = refresh.scan.cursor.finished();
+    step.batch.complete = refresh.scan.cursor.complete();
     let batch = &step.batch;
     if batch.finished && batch.complete {
         refresh.summaries.retain(|(course, _), _| {
@@ -30,7 +32,12 @@ pub(super) fn finish(
     let mut summaries: Vec<_> = refresh
         .summaries
         .values()
-        .filter(|item| refresh.options.include_expired || !policy::historical_summary(item, now))
+        .filter(|item| {
+            refresh.semester.map_or_else(
+                || refresh.options.include_expired || !policy::historical_summary(item, now),
+                |semester| semester.contains(item),
+            )
+        })
         .cloned()
         .collect();
     summaries.sort_by(|a, b| {
@@ -80,6 +87,21 @@ pub(super) fn finish(
             }),
         )?;
     }
+    if let Some(semester) = refresh.semester
+        && refresh.options.current_assignment.is_none()
+        && refresh.options.preferred_course.is_none()
+    {
+        step.batch.assignments.retain(|item| {
+            refresh
+                .summaries
+                .get(&(item.course_id.clone(), item.assignment_id.clone()))
+                .is_none_or(|summary| {
+                    summary.title != item.title
+                        || summary.course_name != item.course_name
+                        || semester.contains(summary)
+                })
+        });
+    }
     Ok(JudgeRefreshBatch {
         resolution: refresh.scan.resolution,
         batch: step.batch,
@@ -100,6 +122,9 @@ fn apply_content(
     let batch = &step.batch;
     match batch.kind {
         JudgeScanKind::Assignments => {
+            if !batch.assignments.is_empty() {
+                super::semester::select_assignments(refresh);
+            }
             prioritize(refresh, now);
             if let Some(course_id) = &batch.course_id {
                 refresh.summaries.retain(|(course, assignment), _| {
@@ -190,7 +215,10 @@ fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
             .get(item.assignment_id.as_str())
             .copied()
             .or_else(|| summaries.get(&(item.course_id.clone(), item.assignment_id.clone())));
-        if current {
+        let due = summary
+            .and_then(|value| value.due_time.clone())
+            .unwrap_or_else(|| "9999".into());
+        let rank = if current {
             0
         } else {
             match summary {
@@ -198,13 +226,20 @@ fn prioritize(refresh: &mut JudgeRefresh, now: i64) {
                     if summary.title == item.title && summary.course_name == item.course_name =>
                 {
                     if policy::historical_summary(summary, now) {
-                        3
-                    } else {
+                        4
+                    } else if matches!(
+                        summary.submission_status,
+                        crate::domain::JudgeSubmissionStatus::Unsubmitted
+                            | crate::domain::JudgeSubmissionStatus::Partial
+                    ) {
                         2
+                    } else {
+                        3
                     }
                 }
                 _ => 1,
             }
-        }
+        };
+        (rank, if rank == 2 { due } else { String::new() })
     });
 }

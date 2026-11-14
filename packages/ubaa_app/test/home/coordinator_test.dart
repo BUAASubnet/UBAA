@@ -307,6 +307,165 @@ void main() {
     expect(model.state.schedule.snapshot.status, FeatureLoadStatus.failure);
   });
 
+  for (final fails in [false, true]) {
+    test('明日课表先完成后，慢补充来源收尾不再次读取：失败=$fails', () async {
+      var dayReads = 0;
+      final supplement = Completer<FeatureResult>();
+      late HomeCoordinator model;
+      const sources = {
+        FeatureId.schedule: FeatureSnapshot(
+          feature: FeatureId.schedule,
+          status: FeatureLoadStatus.empty,
+        ),
+      };
+      model = HomeCoordinator(
+        loadSupplement: (_, _) => supplement.future,
+        loadDay: (date, force) async {
+          dayReads++;
+          return fails
+              ? const FeatureResult.failure(
+                  UiError(
+                    code: UbaaErrorCode.networkError,
+                    title: '合成失败',
+                    message: '合成失败',
+                  ),
+                )
+              : FeatureResult.empty(
+                  overview: HomeScheduleOverview(
+                    date: date,
+                    week: const WeekPresentation(
+                      requestTerm: 'term',
+                      responseTerm: 'term',
+                      number: 9,
+                      current: true,
+                      startDate: '2026-11-02',
+                      endDate: '2026-11-08',
+                    ),
+                  ),
+                );
+        },
+        project: (_) async => HomeTodoProjection([]),
+        refreshMain: () async => update(
+          model,
+          online: true,
+          readDays: true,
+          epoch: 1,
+          sources: sources,
+        ),
+        retryMain: (_) async {},
+        changed: () {},
+        now: () => now,
+      );
+      addTearDown(model.dispose);
+      addTearDown(() {
+        if (!supplement.isCompleted)
+          supplement.complete(const FeatureResult.empty());
+      });
+      update(model, readDays: true, sources: sources);
+      final refresh = model.refresh();
+      await Future<void>.delayed(Duration.zero);
+      expect(dayReads, 1);
+      supplement.complete(const FeatureResult.empty());
+      await refresh;
+      expect(dayReads, 1, reason: '本轮已尝试的日期在刷新收尾时直接复用');
+    });
+  }
+
+  test('新一轮刷新不接受旧代次在途日期结果，下一轮仍会重新读取', () async {
+    final oldDay = Completer<FeatureResult>();
+    var reads = 0;
+    var epoch = 0;
+    late HomeCoordinator model;
+    const sources = {
+      FeatureId.schedule: FeatureSnapshot(
+        feature: FeatureId.schedule,
+        status: FeatureLoadStatus.empty,
+      ),
+    };
+    const failure = FeatureResult.failure(
+      UiError(code: UbaaErrorCode.networkError, title: '合成失败', message: '合成失败'),
+    );
+    model = HomeCoordinator(
+      loadSupplement: (_, _) async => const FeatureResult.empty(),
+      loadDay: (_, _) async => ++reads == 1 ? oldDay.future : failure,
+      project: (_) async => HomeTodoProjection([]),
+      refreshMain: () async => update(
+        model,
+        online: true,
+        readDays: true,
+        epoch: ++epoch,
+        sources: sources,
+      ),
+      retryMain: (_) async {},
+      changed: () {},
+      now: () => now,
+    );
+    addTearDown(model.dispose);
+    addTearDown(() {
+      if (!oldDay.isCompleted) oldDay.complete(failure);
+    });
+    update(model, online: true, readDays: true, sources: sources);
+    await Future<void>.delayed(Duration.zero);
+    expect(reads, 1);
+    final refresh = model.refresh();
+    oldDay.complete(failure);
+    await refresh;
+    expect(reads, 2);
+    await model.refresh();
+    expect(reads, 3);
+  });
+
+  test('补充来源等待期间另一轮读取推进代次，收尾仍等待新日期任务', () async {
+    final supplement = Completer<FeatureResult>();
+    final nextDay = Completer<FeatureResult>();
+    var reads = 0;
+    late HomeCoordinator model;
+    const sources = {
+      FeatureId.schedule: FeatureSnapshot(
+        feature: FeatureId.schedule,
+        status: FeatureLoadStatus.empty,
+      ),
+    };
+    const failure = FeatureResult.failure(
+      UiError(code: UbaaErrorCode.networkError, title: '合成失败', message: '合成失败'),
+    );
+    model = HomeCoordinator(
+      loadSupplement: (_, _) => supplement.future,
+      loadDay: (_, _) async => ++reads == 1 ? failure : nextDay.future,
+      project: (_) async => HomeTodoProjection([]),
+      refreshMain: () async => update(
+        model,
+        online: true,
+        readDays: true,
+        epoch: 1,
+        sources: sources,
+      ),
+      retryMain: (_) async {},
+      changed: () {},
+      now: () => now,
+    );
+    addTearDown(model.dispose);
+    addTearDown(() {
+      if (!supplement.isCompleted)
+        supplement.complete(const FeatureResult.empty());
+      if (!nextDay.isCompleted) nextDay.complete(failure);
+    });
+    update(model, readDays: true, sources: sources);
+    var finished = false;
+    final refresh = model.refresh().then((_) => finished = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(reads, 1);
+    update(model, online: true, readDays: true, epoch: 2, sources: sources);
+    await Future<void>.delayed(Duration.zero);
+    expect(reads, 2);
+    supplement.complete(const FeatureResult.empty());
+    await Future<void>.delayed(Duration.zero);
+    expect(finished, isFalse);
+    nextDay.complete(failure);
+    await refresh;
+    expect(reads, 2);
+  });
+
   test('换账号时迟到投影不能恢复旧待办', () async {
     final old = Completer<HomeTodoProjection>();
     var reads = 0;

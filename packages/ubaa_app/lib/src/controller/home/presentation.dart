@@ -76,6 +76,7 @@ mixin ControllerHomePresentation on ControllerState {
           (!internalUsesLocalRecovery ||
               internalSessionRecoveryStatus == SessionRecoveryStatus.ready),
       blocked: homeTodoProjectionBlocked,
+      offline: !internalNetworkOnline,
       foreground: internalAppForeground,
       readDays: _homeVisible,
     );

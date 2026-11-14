@@ -1,6 +1,7 @@
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../support/mapping.dart' show bridgeToConnectionMode;
+import '../../controller/error_mapper.dart';
+import '../support/mapping.dart' show bridgeMapError, bridgeToConnectionMode;
 
 /// 桥接错误统一投影为可展示的安全领域错误。
 class BridgeIhomeService implements IhomeService {
@@ -10,16 +11,7 @@ class BridgeIhomeService implements IhomeService {
     try {
       return await call();
     } on BridgeError catch (e) {
-      throw UiError(
-        title: "iHome 请求失败",
-        message: e.code == "outcome_unknown"
-            ? "操作结果未确认，请刷新详情后核对"
-            : "读取失败，请稍后重试",
-        code: UbaaErrorCode.values.firstWhere(
-          (v) => v.name == e.code.name,
-          orElse: () => UbaaErrorCode.upstreamUnavailable,
-        ),
-      );
+      throw UbaaErrorMapper.fromException(bridgeMapError(e));
     }
   }
 

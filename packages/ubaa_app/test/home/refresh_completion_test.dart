@@ -25,7 +25,9 @@ void main() {
     });
     await controller.initialize();
     await backend.started.future;
-    await controller.refreshHomePage();
+    await controller.internalAutomaticSchoolAction(
+      () => controller.internalRefreshHome(firstBatch: true),
+    );
     expect(controller.homeSnapshots[FeatureId.judge]!.refining, isTrue);
     expect(backend.ends, 0);
     expect(backend.begins, 1);

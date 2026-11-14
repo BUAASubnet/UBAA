@@ -1,3 +1,5 @@
+import type { Database } from "./database";
+import type { Statement } from "./database";
 import { campusDay, campusMinute, shiftDay } from "./campus_time";
 
 const JOB = "aggregate";
@@ -9,9 +11,9 @@ const LAST_SUCCESS = `(SELECT last_success_day FROM job_state WHERE job = '${JOB
 // 首次运行从 D−8 开始；同日重跑保留已定稿结果；更旧的触发不执行写入。
 const BOUNDS = `
   WITH bounds AS (
-    SELECT MAX(?3, COALESCE(DATE(${LAST_SUCCESS}, '-7 days'), ?2)) AS first_day,
-           ?4 AS last_day
-    WHERE COALESCE(${LAST_SUCCESS}, ?1) <= ?1
+    SELECT GREATEST($3::text, COALESCE(to_char(${LAST_SUCCESS}::date - 7, 'YYYY-MM-DD'), $2::text)) AS first_day,
+           $4::text AS last_day
+    WHERE COALESCE(${LAST_SUCCESS}, $1) <= $1
   )
 `;
 const DAILY_RANGE =
@@ -19,8 +21,8 @@ const DAILY_RANGE =
 const MONTHLY_RANGE =
   "month BETWEEN (SELECT SUBSTR(first_day, 1, 7) FROM bounds) AND (SELECT SUBSTR(last_day, 1, 7) FROM bounds)";
 const MONTHLY_DETAIL_RANGE = `
-  day >= (SELECT DATE(first_day, 'start of month') FROM bounds)
-  AND day < (SELECT DATE(last_day, 'start of month', '+1 month') FROM bounds)
+  day >= (SELECT SUBSTR(first_day, 1, 7) || '-01' FROM bounds)
+  AND day < (SELECT to_char((SUBSTR(last_day, 1, 7) || '-01')::date + INTERVAL '1 month', 'YYYY-MM-DD') FROM bounds)
 `;
 
 const COUNT_KEYS = {
@@ -30,7 +32,7 @@ const COUNT_KEYS = {
   timing: "day, app_version, metric, feature, route, bucket",
 };
 
-type Prepare = (sql: string) => D1PreparedStatement;
+type Prepare = (sql: string) => Statement;
 
 function activeStatements(prepare: Prepare, monthly: boolean) {
   const period = monthly ? "month" : "day";
@@ -100,7 +102,7 @@ function activeRetentionStart(day: string): string {
 }
 
 export async function runAggregation(
-  db: D1Database,
+  db: Database,
   scheduledTime: number,
 ): Promise<void> {
   const day = campusDay(new Date(scheduledTime));
@@ -109,7 +111,7 @@ export async function runAggregation(
   const activeCutoff = activeRetentionStart(day);
   const countCutoff = shiftDay(day, -90);
   const lastSuccess = await db
-    .prepare("SELECT last_success_day FROM job_state WHERE job = ?")
+    .prepare("SELECT last_success_day FROM job_state WHERE job = $1")
     .bind(JOB)
     .first<string>("last_success_day");
   if (lastSuccess !== null && lastSuccess > day) return;
@@ -127,21 +129,17 @@ export async function runAggregation(
   const timestampCutoff = (days: number) =>
     new Date(scheduledTime - days * DAY_MS);
   const thirtyDayCutoff = timestampCutoff(30);
-  const cleanup = (
-    table: string,
-    column: string,
-    cutoff: string,
-  ): D1PreparedStatement =>
+  const cleanup = (table: string, column: string, cutoff: string): Statement =>
     db
       .prepare(
         `
-        DELETE FROM ${table} WHERE ${column} < ?
-          AND COALESCE(${LAST_SUCCESS}, ?) <= ?
+        DELETE FROM ${table} WHERE ${column} < $1
+          AND COALESCE(${LAST_SUCCESS}, $2) <= $3
       `,
       )
       .bind(cutoff, day, day);
 
-  // 每批只覆盖一张表的有限日期范围，避免漏跑时整个汇总超过 D1 批次时限。
+  // 每批只覆盖一张表的有限日期范围，避免漏跑时整个汇总占用数据库事务过久。
   for (const [start, end] of dailyWindows(activeFirst, lastDay)) {
     await db.batch(activeStatements(prepare(start, end), false));
   }
@@ -171,7 +169,7 @@ export async function runAggregation(
     db
       .prepare(
         `
-        INSERT INTO job_state (job, last_success_day) VALUES (?, ?)
+        INSERT INTO job_state (job, last_success_day) VALUES ($1, $2)
         ON CONFLICT (job) DO UPDATE SET last_success_day = excluded.last_success_day
         WHERE job_state.last_success_day < excluded.last_success_day
       `,

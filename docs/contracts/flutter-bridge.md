@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `65`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `67`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -21,13 +21,15 @@
 - `RouteDecision` 固定字段为 `policy: RoutePolicy`、`resolvedRoute: ConnectionMode`、
   `network: NetworkState`、`initialRoute: ConnectionMode`、`usedFallback: bool`。
 
+默认希冀持久刷新按已保存校历选择本学期范围，已确认往期课程不再自动检查索引或详情。`RefreshActive` 核验选定范围，显式历史和全量选项保留，规则见[本学期刷新范围](../protocol/parity/coursework.md#本学期刷新范围)。该策略不改变 Bridge 字段和持久格式。
+
 ## 2. 生命周期与并发
 
 | 方法 | 输入 | 成功结果 | 稳定语义 |
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=65` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=67` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -530,8 +532,10 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v65）
+### 近期版本摘要（v55–v67）
 
+- v67 在 `BridgeJudgeRefreshOptions` 与 `BridgeJudgeOnlineOptions` 增加 `detailRefresh`（`ReuseFresh` / `RefreshActive`）。主动刷新核验非历史详情，持久缓存保留有效历史详情；无持久缓存时重新读取详情。`refreshIndices` 和 `fullRefresh` 原语义保持。
+- v66 在 `BridgeError` 与 `BridgeSafeError` 增加可选 `authStage`、`authReason`，仅传递 Core 已确认的固定枚举名称。Dart 拒绝未知值，按原因生成登录提示，并写入本地诊断。CLI JSON 和遥测协议保持不变。 本地诊断导出为 schema_version 2，附带可用的安装包版本和平台；事件可包含阶段、原因及关联错误编号。错误卡复制当前事件及同次失败的路线记录，不复制异常正文。
 - v65 的希冀渐进计划区分自动复用、手动索引刷新和全量刷新。`BridgeJudgeRefreshOptions.refreshIndices` 与 `BridgeJudgeOnlineOptions.refreshIndices/fullRefresh` 只控制本地刷新策略，不添加学校请求参数；当前详情和明确批量目标仍强制重新读取。内存复用保留取得时间。
 
 - v64 增加独立于业务锁的 `beginNetworkChange`、`cancelNetworkReads` 和 `BridgeNetworkChange.inspect/finish/cancel`。句柄绑定网络修订与统一期限，仅取消普通读取，已发送写入与固定路线核对保持原合同。
@@ -733,7 +737,7 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 
 ### v43：门户资料、校园账户与网费流量
 
-新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/parity/campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
+新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/parity/campus.md)。金额与容量使用十进制字符串和单位；在线网络免费剩余包含套餐可用量，以 `remainingExcludesPackages=false` 标记，换算规则见[只读功能合同](readonly-features.md#门户账户与网络流量)。计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
 
 ### v44：独立本机日程通道
 

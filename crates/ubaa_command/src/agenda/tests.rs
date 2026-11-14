@@ -289,7 +289,7 @@ fn 本机取消与期限均保留_v13_storage退出码() {
         assert_eq!(result.render(true, &control, &mut out, &mut err), 7);
         let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
         assert_eq!(value["error"]["code"], "storage");
-        assert_eq!(value["schemaVersion"], 16);
+        assert_eq!(value["schemaVersion"], 17);
     }
     fixture.finish();
 }

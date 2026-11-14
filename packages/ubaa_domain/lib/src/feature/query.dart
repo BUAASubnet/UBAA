@@ -90,6 +90,7 @@ class FeatureQuery {
     this.includeExpired = false,
     this.fullRefresh = false,
     this.refreshIndices = false,
+    this.refreshActiveDetails = false,
   });
 
   final String? term;
@@ -131,6 +132,9 @@ class FeatureQuery {
   /// 重新发现希冀作业，保留仍有效的详情缓存。
   final bool refreshIndices;
 
+  /// 主动核验非历史希冀详情，保留有效的历史详情缓存。
+  final bool refreshActiveDetails;
+
   /// 比较完整读取参数；不序列化文本，也不忽略批量键的顺序。
   bool hasSameParameters(FeatureQuery other) {
     if (term != other.term ||
@@ -155,6 +159,7 @@ class FeatureQuery {
         includeExpired != other.includeExpired ||
         fullRefresh != other.fullRefresh ||
         refreshIndices != other.refreshIndices ||
+        refreshActiveDetails != other.refreshActiveDetails ||
         date?.isUtc != other.date?.isUtc ||
         judgeKeys.length != other.judgeKeys.length) {
       return false;
@@ -189,6 +194,7 @@ class FeatureQuery {
     bool? includeExpired,
     bool? fullRefresh,
     bool? refreshIndices,
+    bool? refreshActiveDetails,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
@@ -213,5 +219,6 @@ class FeatureQuery {
     includeExpired: includeExpired ?? this.includeExpired,
     fullRefresh: fullRefresh ?? this.fullRefresh,
     refreshIndices: refreshIndices ?? this.refreshIndices,
+    refreshActiveDetails: refreshActiveDetails ?? this.refreshActiveDetails,
   );
 }

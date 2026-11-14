@@ -27,10 +27,29 @@ mixin ControllerProgressive on ControllerState {
             query: scope.query,
             requestRevision: 0,
           ).hasSameQuery(query)) {
+        final activeDetails =
+            feature == FeatureId.judge &&
+            (internalSchoolPrompt != null ||
+                (query?.refreshActiveDetails ?? false) ||
+                (query?.fullRefresh ?? false));
+        if (activeDetails && !scope.refreshActiveDetails) {
+          return scope.strongerRefresh ??= () async {
+            await scope.completion.future;
+            if (!scope.completed || !scope.current() || internalDisposed)
+              return;
+            if (query == null) {
+              await internalRefreshHome(only: [feature]);
+            } else {
+              await internalRefreshFeatureQuery(feature, query);
+            }
+          }();
+        }
         if (internalSchoolPrompt case final report?) {
           scope.joinedSchoolPrompts.add(report);
         }
-        return firstBatch ? scope.firstResult.future : scope.completion.future;
+        return firstBatch && !activeDetails
+            ? scope.firstResult.future
+            : scope.completion.future;
       }
     }
     return null;
@@ -198,7 +217,10 @@ mixin ControllerProgressive on ControllerState {
       );
     final requestQuery =
         feature == FeatureId.judge && internalSchoolPrompt != null
-        ? (query ?? const FeatureQuery()).copyWith(refreshIndices: true)
+        ? (query ?? const FeatureQuery()).copyWith(
+            refreshIndices: true,
+            refreshActiveDetails: true,
+          )
         : query;
     var authenticationRetried = false;
     while (scope.valid) {
@@ -247,7 +269,7 @@ mixin ControllerProgressive on ControllerState {
         scope.task = activeTask;
         // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。
         // 预算耗尽或已发布首批后让位，不能让异常计划一直占用首页队列。
-        var homeBootstrapBatches = 3;
+        var homeBootstrapBatches = scope.firstResult.isCompleted ? 0 : 3;
         while (scope.valid) {
           final homeBootstrap = query == null && homeBootstrapBatches > 0;
           final batchPriority = query == null && !homeBootstrap

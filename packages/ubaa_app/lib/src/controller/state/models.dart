@@ -67,6 +67,9 @@ final class ProgressiveScope {
   final bool Function() current;
   FeatureReadTask? task;
   bool preparing = false;
+  bool refreshActiveDetails = false;
+  bool completed = false;
+  Future<void>? strongerRefresh;
   bool writeReadback = false;
   ConnectionMode? route;
   bool restartRequested = false;

@@ -1,4 +1,5 @@
-import { env } from "cloudflare:workers";
+import type { Statement } from "../src/database";
+import { env } from "./runtime";
 import { beforeAll, expect, it, vi } from "vitest";
 import { campusDay } from "../src/campus_time";
 import { reportTelemetry } from "../src/telemetry";
@@ -24,7 +25,7 @@ async function detailCounts(installId: string) {
   return Promise.all(
     detailTables.map((table) =>
       env.DB.prepare(
-        `SELECT COUNT(*) AS rows FROM ${table} WHERE install_id = ?`,
+        `SELECT COUNT(*) AS rows FROM ${table} WHERE install_id = $1`,
       )
         .bind(installId)
         .first<number>("rows"),
@@ -43,7 +44,7 @@ function minuteCount(minute: number, count = 2) {
 }
 
 function storedMinute(minuteAt: string) {
-  return env.DB.prepare("SELECT * FROM minute_counts WHERE minute_at = ?")
+  return env.DB.prepare("SELECT * FROM minute_counts WHERE minute_at = $1")
     .bind(minuteAt)
     .first();
 }
@@ -66,16 +67,18 @@ it.each(["顺序", "并发"])("%s重发同一批次只累加一次", async (orde
     detailTables
       .slice(1)
       .map((table) =>
-        env.DB.prepare(`SELECT count FROM ${table} WHERE install_id = ?`)
+        env.DB.prepare(`SELECT count FROM ${table} WHERE install_id = $1`)
           .bind(payload.install_id)
           .first<number>("count"),
       ),
   );
   expect(counts).toEqual([3, 1, 2]);
   expect(
-    await env.DB.prepare("SELECT LENGTH(nonce) FROM batches WHERE batch_id = ?")
+    await env.DB.prepare(
+      "SELECT LENGTH(nonce) AS length FROM batches WHERE batch_id = $1",
+    )
       .bind(payload.batch_id)
-      .first<number>("LENGTH(nonce)"),
+      .first<number>("length"),
   ).toBe(36);
 });
 
@@ -178,7 +181,7 @@ it("多个日期版本组合各含 512 个分钟键时仍可在一个批次落�
   for (const date of [day.day, secondDay]) {
     expect(
       await env.DB.prepare(
-        "SELECT COUNT(*) AS rows FROM minute_counts WHERE minute_at BETWEEN ? AND ?",
+        "SELECT COUNT(*) AS rows FROM minute_counts WHERE minute_at BETWEEN $1 AND $2",
       )
         .bind(`${date}T00:00`, `${date}T08:31`)
         .first<number>("rows"),
@@ -198,7 +201,7 @@ it("仅接受校园日期窗口中的条目，窗口两端均包含", async () =
   }));
   expect((await postTelemetry({ ...payload, days })).status).toBe(204);
   const rows = await env.DB.prepare(
-    "SELECT day FROM active_days WHERE install_id = ? ORDER BY day",
+    "SELECT day FROM active_days WHERE install_id = $1 ORDER BY day",
   )
     .bind(payload.install_id)
     .all<{ day: string }>();
@@ -278,7 +281,7 @@ it("只落库 HMAC 用户标识，旧版本批次晚到仍保留两个版本并�
     ["verify"],
   );
   const rows = await env.DB.prepare(
-    "SELECT app_version, user_key, cohort_type, cohort_year, surface_mask FROM active_days WHERE install_id = ? ORDER BY app_version",
+    "SELECT app_version, user_key, cohort_type, cohort_year, surface_mask FROM active_days WHERE install_id = $1 ORDER BY app_version",
   )
     .bind(payload.install_id)
     .all<{
@@ -303,13 +306,13 @@ it("只落库 HMAC 用户标识，旧版本批次晚到仍保留两个版本并�
     {
       app_version: "2.0.0",
       cohort_type: "undergrad",
-      cohort_year: 2024,
+      cohort_year: "2024",
       surface_mask: 3,
     },
     {
       app_version: "2.1.0",
       cohort_type: "undergrad",
-      cohort_year: 2024,
+      cohort_year: "2024",
       surface_mask: 2,
     },
   ]);
@@ -348,14 +351,14 @@ it.each([
     await env.DB.prepare(
       `CREATE TRIGGER abort_telemetry
       BEFORE INSERT ON ${table}
-      BEGIN SELECT RAISE(ABORT, 'synthetic D1 failure'); END`,
+      FOR EACH ROW EXECUTE FUNCTION synthetic_failure()`,
     ).run();
     try {
       const failed = await postTelemetry(payload);
       expect(failed.status).toBe(500);
       expect(await failed.text()).toBe("");
       const recorded = await env.DB.prepare(
-        "SELECT 1 FROM batches WHERE batch_id = ?",
+        "SELECT 1 FROM batches WHERE batch_id = $1",
       )
         .bind(payload.batch_id)
         .first();
@@ -363,7 +366,7 @@ it.each([
       expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
       expect(await storedMinute(minuteAt)).toBeNull();
     } finally {
-      await env.DB.prepare("DROP TRIGGER abort_telemetry").run();
+      await env.DB.prepare(`DROP TRIGGER abort_telemetry ON ${table}`).run();
     }
     expect((await postTelemetry(payload)).status).toBe(204);
     expect(await detailCounts(payload.install_id)).toEqual([1, 1, 1, 1]);
@@ -379,7 +382,7 @@ it("预查未命中后删除先提交，迟到的上报返回 410 且不写入",
   const db = new Proxy(env.DB, {
     get(target, key, receiver) {
       if (key === "batch") {
-        return async (statements: D1PreparedStatement[]) => {
+        return async (statements: Statement[]) => {
           expect((await erase(payload.install_id)).status).toBe(204);
           erasedBeforeBatch = true;
           return target.batch(statements);
@@ -400,7 +403,7 @@ it("预查未命中后删除先提交，迟到的上报返回 410 且不写入",
   expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
   expect(await storedMinute(`${day.day}T15:00`)).toBeNull();
   const recorded = await env.DB.prepare(
-    "SELECT 1 FROM batches WHERE batch_id = ?",
+    "SELECT 1 FROM batches WHERE batch_id = $1",
   )
     .bind(payload.batch_id)
     .first();
@@ -413,19 +416,21 @@ it("删除中途失败时保留原明细且不写入墓碑", async () => {
   await env.DB.prepare(
     `CREATE TRIGGER step_three_abort_timing
     BEFORE DELETE ON timing_days
-    BEGIN SELECT RAISE(ABORT, 'synthetic D1 failure'); END`,
+    FOR EACH ROW EXECUTE FUNCTION synthetic_failure()`,
   ).run();
   try {
     expect((await erase(payload.install_id)).status).toBe(500);
     expect(await detailCounts(payload.install_id)).toEqual([1, 1, 1, 1]);
     const tombstone = await env.DB.prepare(
-      "SELECT 1 FROM erased_installs WHERE install_id = ?",
+      "SELECT 1 FROM erased_installs WHERE install_id = $1",
     )
       .bind(payload.install_id)
       .first();
     expect(tombstone).toBeNull();
   } finally {
-    await env.DB.prepare("DROP TRIGGER step_three_abort_timing").run();
+    await env.DB.prepare(
+      "DROP TRIGGER step_three_abort_timing ON timing_days",
+    ).run();
   }
   expect((await erase(payload.install_id)).status).toBe(204);
   expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
@@ -435,7 +440,7 @@ it("没有绑定账号时保留设备活跃，缺失维度写入空字符串", a
   const payload = createBatch();
   expect((await postTelemetry(payload)).status).toBe(204);
   const device = await env.DB.prepare(
-    "SELECT user_key, cohort_type, cohort_year, surface_mask FROM active_days WHERE install_id = ?",
+    "SELECT user_key, cohort_type, cohort_year, surface_mask FROM active_days WHERE install_id = $1",
   )
     .bind(payload.install_id)
     .first();
@@ -446,7 +451,7 @@ it("没有绑定账号时保留设备活跃，缺失维度写入空字符串", a
     surface_mask: 1,
   });
   const failure = await env.DB.prepare(
-    "SELECT source, retryable FROM error_days WHERE install_id = ?",
+    "SELECT source, retryable FROM error_days WHERE install_id = $1",
   )
     .bind(payload.install_id)
     .first();
@@ -456,4 +461,18 @@ it("没有绑定账号时保留设备活跃，缺失维度写入空字符串", a
 it("校园日期在北京时间午夜切换", () => {
   expect(campusDay(new Date("2026-12-31T15:59:59Z"))).toBe("2026-12-31");
   expect(campusDay(new Date("2026-12-31T16:00:00Z"))).toBe("2027-01-01");
+});
+
+it("并发删除与上报完成后不留下安装明细", async () => {
+  const payload = createBatch();
+  const results = await Promise.all([
+    postTelemetry(payload),
+    erase(payload.install_id),
+  ]);
+  expect([204, 410]).toContain(results[0].status);
+  expect(results[1].status).toBe(204);
+  expect(await detailCounts(payload.install_id)).toEqual([0, 0, 0, 0]);
+  expect(
+    (await postTelemetry({ ...payload, batch_id: crypto.randomUUID() })).status,
+  ).toBe(410);
 });

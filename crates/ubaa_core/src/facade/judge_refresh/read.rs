@@ -17,6 +17,7 @@ impl UbaaClient {
         &mut self,
         refresh: &mut JudgeRefresh,
     ) -> Result<Step, OfflineReadError> {
+        super::semester::skip_past_courses(refresh)?;
         let now = chrono::Utc::now().timestamp();
         let assignment = refresh.scan.cursor.current_assignment().cloned();
         let course = refresh.scan.cursor.current_course().cloned();
@@ -38,7 +39,13 @@ impl UbaaClient {
         let cached = if let (Some(assignment), Some(scope)) = (&assignment, &scope) {
             match refresh.scan.cache.read(scope, now) {
                 Ok(Some(record))
-                    if policy::reusable(&record, assignment, &refresh.options, now) =>
+                    if policy::reusable(
+                        &record,
+                        assignment,
+                        &refresh.options,
+                        refresh.semester.is_some(),
+                        now,
+                    ) =>
                 {
                     Some(record)
                 }
@@ -213,7 +220,15 @@ pub(super) fn next_reused_detail(
         },
     };
     match refresh.scan.cache.read(&scope, now) {
-        Ok(Some(record)) if policy::reusable(&record, assignment, &refresh.options, now) => {
+        Ok(Some(record))
+            if policy::reusable(
+                &record,
+                assignment,
+                &refresh.options,
+                refresh.semester.is_some(),
+                now,
+            ) =>
+        {
             refresh.parallel.forget(&scope.query);
             reuse(&mut refresh.scan, record).map(Some)
         }

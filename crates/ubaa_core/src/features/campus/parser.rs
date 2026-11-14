@@ -93,7 +93,7 @@ pub(super) fn count(data: &Value) -> Result<u64> {
     value.parse().map_err(|_| invalid())
 }
 
-fn text(element: scraper::ElementRef<'_>) -> String {
+pub(super) fn text(element: scraper::ElementRef<'_>) -> String {
     element
         .text()
         .collect::<String>()
@@ -103,7 +103,7 @@ fn text(element: scraper::ElementRef<'_>) -> String {
         .replace('）', ")")
 }
 
-fn traffic_amount(value: &str) -> Result<CampusAmount> {
+pub(super) fn traffic_amount(value: &str) -> Result<CampusAmount> {
     let captures = TRAFFIC.captures(value).ok_or_else(invalid)?;
     Ok(CampusAmount {
         value: decimal(&Value::String(captures[1].into()))?,
@@ -111,11 +111,25 @@ fn traffic_amount(value: &str) -> Result<CampusAmount> {
     })
 }
 
+pub(super) fn belongs_to_table(
+    element: scraper::ElementRef<'_>,
+    table: scraper::ElementRef<'_>,
+) -> bool {
+    element
+        .ancestors()
+        .filter_map(scraper::ElementRef::wrap)
+        .find(|ancestor| ancestor.value().name() == "table")
+        == Some(table)
+}
+
 pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
     let document = Html::parse_document(page);
     let mut tables = Vec::new();
     for table in document.select(&TABLE) {
-        let headers: Vec<_> = table.select(&HEAD).collect();
+        let headers: Vec<_> = table
+            .select(&HEAD)
+            .filter(|cell| belongs_to_table(*cell, table))
+            .collect();
         if !headers.iter().any(|cell| text(*cell) == LABELS[1]) {
             continue;
         }
@@ -140,8 +154,11 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
             return Err(invalid());
         }
         let mut products = Vec::new();
-        for row in table.select(&ROW) {
-            // 套餐展开行不带列标识；不把嵌套表格当作产品行。
+        for row in table
+            .select(&ROW)
+            .filter(|row| belongs_to_table(*row, table))
+        {
+            // 套餐子表有独立的列编号，只处理当前流量表的产品行。
             let mut cells = BTreeMap::new();
             for cell in row.select(&CELL).filter(|cell| cell.parent() == Some(*row)) {
                 let seq = cell.value().attr("data-col-seq").ok_or_else(invalid)?;
@@ -165,7 +182,10 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
             products.push(NetworkProductUsage {
                 product_name: name.into(),
                 used: traffic_amount(get(LABELS[1])?)?,
-                free_remaining: traffic_amount(get(LABELS[2])?)?,
+                free_remaining: super::packages::free_remaining(
+                    row,
+                    traffic_amount(get(LABELS[2])?)?,
+                )?,
                 billable_remaining: traffic_amount(get(LABELS[3])?)?,
             });
         }
@@ -179,7 +199,7 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
     }
     Ok(NetworkUsage {
         products: tables.remove(0),
-        remaining_excludes_packages: true,
+        remaining_excludes_packages: false,
         fetched_at,
     })
 }

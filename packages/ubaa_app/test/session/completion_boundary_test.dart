@@ -6,6 +6,42 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  for (final interactive in [false, true]) {
+    for (final useSchoolId in [false, true]) {
+      test('大小写不同的学号完成登录并保存学校身份：$interactive/$useSchoolId', () async {
+        final backend = interactive
+            ? InteractiveProbeBackend()
+            : ProbeBackend();
+        backend.profile = UserSummary(
+          username: useSchoolId ? 'synthetic-alias' : 'SY-FIXTURE-001',
+          schoolId: 'SY-FIXTURE-001',
+        );
+        final accounts = ProbeAccounts();
+        final vault = MemoryCredentialVault();
+        final c = AppController(
+          backend: backend,
+          localAccountStore: accounts,
+          credentialVault: vault,
+        );
+        addTearDown(c.dispose);
+        await c.initialize();
+        c.setUsername('sy-fixture-001');
+        c.setPassword('synthetic-password');
+        c.setRememberPassword(true);
+        c.setAutoLogin(true);
+        await c.submitLogin();
+        expect(c.phase, AppPhase.home);
+        expect(c.error, isNull);
+        expect(c.user?.schoolId, 'SY-FIXTURE-001');
+        expect(accounts.retainedUsername, 'SY-FIXTURE-001');
+        final credential = await vault.load();
+        expect(credential?.username, 'SY-FIXTURE-001');
+        expect(credential?.password, 'synthetic-password');
+        expect(credential?.autoLogin, isTrue);
+      });
+    }
+  }
+
   for (final finishing in ['拒绝身份', '保存账号']) {
     test('$finishing的迟到错误不能覆盖退出后的新表单', () async {
       final gate = Completer<void>(), started = Completer<void>();
@@ -204,6 +240,7 @@ class ProbeAccounts implements LocalAccountStore {
   final bool initial, failSignOut;
   Completer<void>? firstSignOut, retainGate, storageStarted;
   int signOutCalls = 0;
+  String? retainedUsername;
   @override
   Future<LocalAccountState?> read() async => initial
       ? const LocalAccountState(
@@ -220,6 +257,7 @@ class ProbeAccounts implements LocalAccountStore {
     String username, {
     required bool retainSession,
   }) async {
+    retainedUsername = username;
     if (retainGate != null) {
       storageStarted!.complete();
       await retainGate!.future;

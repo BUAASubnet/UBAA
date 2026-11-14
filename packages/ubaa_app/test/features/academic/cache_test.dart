@@ -313,7 +313,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 65;
+  int contractVersion() => 67;
   @override
   Future<BridgeRoutedGradeOverview> gradesOverview() async =>
       const BridgeRoutedGradeOverview(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""显式联调 Core 与 Wrangler 本地 Worker、D1 和 KV，不进入 CI。"""
+"""显式联调 Core 与 本地 Node 服务、PostgreSQL 和 JSON 配置，不进入 CI。"""
 
 from contextlib import contextmanager
 import hashlib
@@ -27,7 +27,7 @@ from repo import ROOT
 
 
 SERVICE = ROOT / "services/app_service"
-WRANGLER = SERVICE / "node_modules/.bin/wrangler"
+SERVER = SERVICE / ".generated/build/server.js"
 LOOPBACK = "127.0.0.1"
 UPLOAD = "/v1/telemetry"
 ERASE = "/v1/telemetry/erase"
@@ -38,7 +38,7 @@ SELECT (SELECT count(*) FROM batches) AS batches,
        (SELECT count(*) FROM active_days) AS active,
        (SELECT user_key FROM active_days WHERE platform = 'macos' AND channel = 'github'
          AND app_version = '2.1.0-rc.1+15' AND cohort_type = 'TQ'
-         AND cohort_year = 2024 AND surface_mask = 1) AS user_key,
+         AND cohort_year = '2024' AND surface_mask = 1) AS user_key,
        (SELECT coalesce(sum(count), 0) FROM counter_days) AS counters,
        (SELECT coalesce(sum(count), 0) FROM error_days) AS errors,
        (SELECT coalesce(sum(count), 0) FROM timing_days) AS timings,
@@ -64,8 +64,7 @@ def run(command, *, cwd, env=None, capture=False, timeout=240):
 def worker(env_file, env, directory):
     log = directory / "worker.log"
     with log.open("wb") as output, subprocess.Popen(
-        [str(WRANGLER), "dev", "--local", "--ip", LOOPBACK, "--port", "0",
-         "--inspector-port", "0", "--persist-to", str(directory / "d1"), *env_file],
+        ["node", str(SERVER)],
         cwd=SERVICE, env=env, stdin=subprocess.DEVNULL, stdout=output,
         stderr=subprocess.STDOUT,
     ) as process:
@@ -79,7 +78,7 @@ def worker(env_file, env, directory):
                 time.sleep(0.05)
             # 此时还没有发送任何联调载荷。
             print(log.read_text(), file=sys.stderr)
-            raise ValueError("本地 Wrangler 没有启动")
+            raise ValueError("本地应用服务 没有启动")
         finally:
             if process.poll() is None:
                 process.terminate()
@@ -138,7 +137,7 @@ def untrusted_tls_listener(directory):
             server.shutdown()
             thread.join()
     require(len(handshake) == 1 and handshake[0] in {
-        "TLSV1_ALERT_UNKNOWN_CA", "SSLV3_ALERT_CERTIFICATE_UNKNOWN",
+        "TLSV1_ALERT_UNKNOWN_CA", "SSLV3_ALERT_CERTIFICATE_UNKNOWN", "TLS_ALERT_CERTIFICATE_UNKNOWN",
     },
             f"本地 TLS 未观察到唯一一次不受信任证书拒绝：{handshake}")
     print("本地 TLS 握手拒绝不受信任证书，未发送 HTTP 载荷")
@@ -224,7 +223,7 @@ def relay(port, query, secret):
                 if self.path == UPLOAD and attempt == 3:
                     require(status == 410 and json.loads(response) == "install_erased",
                             "Worker 没有按合同拒收晚到批次")
-                    require(query() == ERASED_WITH_MINUTES, "晚到批次改变了删除后的 D1 数据")
+                    require(query() == ERASED_WITH_MINUTES, "晚到批次改变了删除后的 PostgreSQL 数据")
                 else:
                     require(status == 204 and not response,
                             f"本地 Worker 返回了 {status}，预期为空的 204")
@@ -235,10 +234,10 @@ def relay(port, query, secret):
                     row = query()
                     stored = row.pop("user_key")
                     require(isinstance(stored, str) and hmac.compare_digest(stored, expected.hexdigest()),
-                            "D1 没有保存经过 HMAC 转换的 Rust 用户标识")
+                            "PostgreSQL 没有保存经过 HMAC 转换的 Rust 用户标识")
                     require(row == dict(batches=1, tombstones=0, active=1,
                                         counters=2, errors=1, timings=1, minutes=2),
-                            "D1 明细或分钟计数与 Rust 批次不符，或重复累加")
+                            "PostgreSQL 明细或分钟计数与 Rust 批次不符，或重复累加")
                 if self.path == ERASE and attempt == 1:
                     require(query() == ERASED_WITH_MINUTES, "删除未清除明细或改变了匿名分钟计数")
                     erased.set()
@@ -251,7 +250,7 @@ def relay(port, query, secret):
                 errors.append(str(error))
                 self.reply(500)
             except Exception:
-                errors.append("联调中继或本地 D1 查询失败")
+                errors.append("联调中继或本地 PostgreSQL 查询失败")
                 self.reply(500)
 
     return ThreadingHTTPServer((LOOPBACK, 0), Handler), sent, errors
@@ -276,12 +275,7 @@ def seed_bootstrap(directory, env_file, env):
             "channels": ["github"],
         }],
     }
-    for key, value in values.items():
-        path = directory / f"{key}.json"
-        path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
-        run([str(WRANGLER), "kv", "key", "put", key, "--path", str(path),
-             "--binding", "APP_CONFIG", "--local", "--persist-to", str(directory / "d1"),
-             *env_file], cwd=SERVICE, env=env)
+    (directory / 'content.json').write_text(json.dumps(values, ensure_ascii=False))
 
 
 def prepare():
@@ -290,7 +284,7 @@ def prepare():
     locked = read_values(ROOT / "scripts/tools/versions.env")["NODE_VERSION"]
     node = run(["node", "--version"], cwd=ROOT, capture=True).stdout.strip()
     require(node.startswith(f"v{locked}."), f"请切换到仓库锁定的 Node {locked}")
-    require(WRANGLER.is_file(), "缺少本地 Wrangler，请先运行 just app-service-check")
+    require(SERVER.is_file(), "缺少本地服务构建，请先运行 just app-service-check")
     run(["node", "scripts/compile-schema.mjs"], cwd=SERVICE)
 
 
@@ -301,29 +295,30 @@ def local_worker(name):
     with tempfile.TemporaryDirectory(prefix=f"{name}_e2e_", dir=parent) as temporary:
         directory = Path(temporary)
         secret = secrets.token_hex(32)
-        vars_file = directory / ".env"
-        vars_file.write_text(f"USER_KEY_SECRET={secret}\n")
-        env = {key: value for key, value in os.environ.items()
-               if not key.startswith(("CLOUDFLARE_", "CF_", "WRANGLER_"))
-               and key != "USER_KEY_SECRET"}
-        env.update(WRANGLER_LOG_PATH=str(directory / "wrangler_logs"),
-                   WRANGLER_HIDE_BANNER="true", WRANGLER_SEND_METRICS="false",
-                   WRANGLER_SEND_ERROR_REPORTS="false", CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV="true")
-        # 开发服务和查询只使用隔离目录中的本地 KV、D1 和合成配置。
-        env_file = ["--config", str(SERVICE / "wrangler.json"), "--env-file", str(vars_file)]
-        database = ["DB", "--local", "--persist-to", str(directory / "d1")]
-        run([str(WRANGLER), "d1", "migrations", "apply", *database, *env_file], cwd=SERVICE, env=env)
-        seed_bootstrap(directory, env_file, env)
-
-        def query():
-            result = run([str(WRANGLER), "d1", "execute", *database, "--json", "--command", QUERY,
-                          *env_file],
-                         cwd=SERVICE, env=env, capture=True)
-            return json.loads(result.stdout)[0]["results"][0]
-
-        require(query() == EMPTY, "联调开始前隔离 D1 已有数据")
-        with worker(env_file, env, directory) as port:
-            yield directory, port, query, secret
+        candidates = [Path('/opt/homebrew/opt/postgresql@17/bin'), Path('/usr/lib/postgresql/17/bin'), Path('/usr/lib/postgresql/16/bin')]
+        binary = next((path for path in candidates if (path / 'initdb').is_file()), None)
+        require(binary is not None, '缺少 PostgreSQL 测试工具')
+        import socket
+        with socket.socket() as probe:
+            probe.bind((LOOPBACK, 0))
+            port = probe.getsockname()[1]
+        database = directory / 'postgres'
+        run([str(binary / 'initdb'), '-D', str(database), '-A', 'trust', '-U', 'postgres', '--no-locale', '-E', 'UTF8'], cwd=SERVICE, capture=True)
+        run([str(binary / 'pg_ctl'), '-D', str(database), '-l', str(directory / 'postgres.log'), '-o', f'-h {LOOPBACK} -p {port} -k {directory}', '-w', 'start'], cwd=SERVICE, capture=True)
+        try:
+            env = {key: value for key, value in os.environ.items() if key not in ('UBAA_TEST_USERNAME', 'UBAA_TEST_PASSWORD', 'CLOUDFLARE_API_TOKEN')}
+            env.update(DATABASE_URL=f'postgresql://postgres@{LOOPBACK}:{port}/postgres', USER_KEY_SECRET=secret,
+                       APP_CONFIG_PATH=str(directory / 'content.json'), PORT='0')
+            run(['node', str(SERVER), '--migrate'], cwd=SERVICE, env=env)
+            seed_bootstrap(directory, [], env)
+            def query():
+                result = run([str(binary / 'psql'), env['DATABASE_URL'], '-tAc', 'SELECT row_to_json(t) FROM (' + QUERY + ') t'], cwd=SERVICE, capture=True)
+                return json.loads(result.stdout)
+            require(query() == EMPTY, '联调开始前隔离数据库已有数据')
+            with worker([], env, directory) as http_port:
+                yield directory, http_port, query, secret
+        finally:
+            run([str(binary / 'pg_ctl'), '-D', str(database), '-m', 'fast', '-w', 'stop'], cwd=SERVICE, capture=True)
 
 
 def main():
@@ -342,7 +337,7 @@ def main():
                            UBAA_APP_SERVICE_TEST_STATE=str(core))
                 run([*command, "bootstrap_and_gate_over_http"], cwd=ROOT, env=env, timeout=1200)
                 require(sent == {UPLOAD: 0, ERASE: 0, BOOTSTRAP: 1} and query() == EMPTY,
-                        "更新门控或公告已读期间发生了额外请求或 D1 写入")
+                        "更新门控或公告已读期间发生了额外请求或 PostgreSQL 写入")
                 run([*command, "upload_retry_and_erase_over_http"], cwd=ROOT, env=env)
             finally:
                 server.shutdown()
@@ -354,8 +349,8 @@ def main():
                     "实际 HTTP 请求数与重试、GUI 刷新及命令模式约定不符")
             require(query() == ERASED_WITH_MINUTES,
                     "删除后明细、匿名分钟计数或去重记录不符")
-    print("本地 HTTP 与 D1 联调通过：重发未重复计数，删除保留匿名分钟计数，晚到批次返回 410")
-    print("本地 HTTP 与 KV 联调通过：启动配置仅发送四个参数，命令模式共享门控且未请求启动配置")
+    print("本地 HTTP 与 PostgreSQL 联调通过：重发未重复计数，删除保留匿名分钟计数，晚到批次返回 410")
+    print("本地 HTTP 与 JSON 配置 联调通过：启动配置仅发送四个参数，命令模式共享门控且未请求启动配置")
 
 
 if __name__ == "__main__":

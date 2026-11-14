@@ -47,7 +47,7 @@
 
 `main` 是 UBAA v2.0 发布主线，`dev` 用于日常开发，`ubaa1` 保存旧版历史。功能分支从 `dev` 创建，PR 默认提交到 `dev`；准备发布时将已验收的候选合入 `main`。旧版修复单独指向 `ubaa1`，不将旧版提交历史合入新版。
 
-发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 Worker 从 `main` 部署（`app-service-production`），正式安装包从 `main` 手动构建草稿并由维护者发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
+发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 从 `main` 部署（`app-service-production`），正式安装包从 `main` 手动构建草稿并由维护者发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
 
 提交标题用中文说明意图，必要时在正文说明行为、风险和验证。每个提交保持单一可审查主题：
 
@@ -119,7 +119,7 @@ FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库�
 
 - 本机家目录、设备 UUID、截图/录屏、会话和真实响应按[证据规则](../design/evidence/README.md)处理；共享文字使用明确的逻辑占位。
 - 调试材料和运行媒体保存在被忽略的 `.ubaa_local/` 任务子目录。
-- 检查类 CI 不接收真实凭据，普通测试使用合成数据。生产部署 Token 只配置在[应用服务部署环境](../runbooks/app-service.md#配置-github-cd)，所有 GitHub 作业都不接收学校账号。
+- 检查类 CI 不接收真实凭据，普通测试使用合成数据。生产部署 SSH 密钥 只配置在[应用服务部署环境](../runbooks/app-service.md#部署应用)，所有 GitHub 作业都不接收学校账号。
 - 禁止全局 trace，不以关闭 TLS、扩大日志或保存原始正文换取调试便利。
 
 ## ADR 模板

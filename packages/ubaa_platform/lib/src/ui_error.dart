@@ -18,6 +18,8 @@ class CoreErrorPayload {
     this.message,
     this.issueId,
     this.resolvedRoute,
+    this.authStage,
+    this.authReason,
   });
 
   final String code;
@@ -26,6 +28,8 @@ class CoreErrorPayload {
   final String? message;
   final String? issueId;
   final ConnectionMode? resolvedRoute;
+  final AuthFailureStage? authStage;
+  final AuthFailureReason? authReason;
 
   /// 从 Core 错误对象或当前 CLI schema-v10（兼容历史版本）envelope 中解析。
   factory CoreErrorPayload.fromJson(Object? value) {
@@ -43,8 +47,12 @@ class CoreErrorPayload {
     final rawRetryable = map['retryable'];
     final rawMessage = map['message'];
     final rawIssueId = map['issueId'] ?? map['issue_id'];
+    final stage = map['authStage'];
+    final reason = map['authReason'];
     return CoreErrorPayload(
       code: rawCode.trim(),
+      authStage: AuthFailureStage.parse(stage is String ? stage : null),
+      authReason: AuthFailureReason.parse(reason is String ? reason : null),
       kind: rawKind is String ? rawKind.trim() : null,
       retryable: rawRetryable is bool ? rawRetryable : null,
       message: rawMessage is String ? rawMessage : null,
@@ -56,6 +64,8 @@ class CoreErrorPayload {
   Map<Object?, Object?> toJson({bool includeMessage = false}) =>
       <Object?, Object?>{
         'code': code,
+        if (authStage != null) 'authStage': authStage!.wireName,
+        if (authReason != null) 'authReason': authReason!.wireName,
         if (kind != null) 'kind': kind,
         if (retryable != null) 'retryable': retryable,
         if (includeMessage && message != null) 'message': message,
@@ -90,7 +100,7 @@ class UiErrorMapper {
     bool includeTechnicalDetail = false,
   }) {
     final code = _parseCode(payload.code);
-    final template = _templateFor(code);
+    final template = _authTemplate(payload.authReason) ?? _templateFor(code);
     final retryable =
         code == UbaaErrorCode.outcomeUnknown ||
             code == UbaaErrorCode.updateRequired
@@ -112,6 +122,8 @@ class UiErrorMapper {
       issueId: issueId,
       kind: kindOf(payload),
       resolvedRoute: payload.resolvedRoute,
+      authStage: payload.authStage,
+      authReason: payload.authReason,
     );
   }
 
@@ -225,6 +237,8 @@ UiError mapExceptionToUiError(Object error, {String? feature}) =>
 /// 把现有领域 [UiError] 投影为安全的 wire 字段。
 Map<String, Object?> uiErrorToJson(UiError error) => <String, Object?>{
   'code': error.code.wireName,
+  if (error.authStage != null) 'authStage': error.authStage!.wireName,
+  if (error.authReason != null) 'authReason': error.authReason!.wireName,
   'retryable': error.retryable,
   'message': error.message,
   if (error.issueId != null) 'issueId': error.issueId,
@@ -337,8 +351,8 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     actionLabel: '重试',
   ),
   UbaaErrorCode.upstreamChanged => (
-    title: '学校系统已更新',
-    message: '暂时无法读取，请等待应用更新',
+    title: '暂时无法完成操作',
+    message: '应用无法处理学校返回的信息，请复制诊断信息反馈',
     actionLabel: null,
   ),
   UbaaErrorCode.parseError => (
@@ -439,4 +453,40 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   'direct' => ConnectionMode.direct,
   'webvpn' => ConnectionMode.webvpn,
   _ => null,
+};
+
+({String title, String message, String? actionLabel})? _authTemplate(
+  AuthFailureReason? reason,
+) => switch (reason) {
+  AuthFailureReason.identityMismatch => (
+    title: '登录身份核对失败',
+    message: '学校返回的身份与本次登录账号不匹配，请重新登录；若仍失败，请复制诊断信息反馈',
+    actionLabel: null,
+  ),
+  AuthFailureReason.captchaExpired => (
+    title: '登录验证已失效',
+    message: '请刷新验证码后重新验证；验证窗口已关闭时，请重新登录',
+    actionLabel: null,
+  ),
+  AuthFailureReason.verificationIncomplete => (
+    title: '登录验证未通过',
+    message: '请检查登录信息并重新验证，当前无法确定是密码还是验证码有误',
+    actionLabel: null,
+  ),
+  AuthFailureReason.loginPageInvalid => (
+    title: '无法识别登录页面',
+    message: '应用无法处理当前登录页面，请复制诊断信息反馈',
+    actionLabel: null,
+  ),
+  AuthFailureReason.redirectInvalid => (
+    title: '登录跳转异常',
+    message: '登录跳转未能完成，请复制诊断信息反馈',
+    actionLabel: null,
+  ),
+  AuthFailureReason.identityResponseInvalid => (
+    title: '无法确认登录身份',
+    message: '学校返回的身份信息无法核验，请复制诊断信息反馈',
+    actionLabel: null,
+  ),
+  null => null,
 };

@@ -5,6 +5,43 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('复制单次失败包含关联路线与版本并保留安全原因', () {
+    final diagnostics = LocalDiagnostics()
+      ..setEnvironment(appVersion: '2.0.0+2004', platform: 'android');
+    final first = diagnostics.record(
+      operation: DiagnosticOperation.login,
+      error: const UiErrorMapper().fromCore(
+        const CoreErrorPayload(
+          code: 'upstream_changed',
+          resolvedRoute: ConnectionMode.webvpn,
+          authStage: AuthFailureStage.identityValidation,
+          authReason: AuthFailureReason.identityMismatch,
+          message: '不得进入报告的原始身份',
+        ),
+      ),
+    );
+    diagnostics.record(
+      operation: DiagnosticOperation.login,
+      error: mapCoreError(
+        code: 'network_error',
+        resolvedRoute: ConnectionMode.direct,
+      ),
+      relatedIssueId: first.issueId,
+    );
+    diagnostics.record(
+      operation: DiagnosticOperation.read,
+      error: mapCoreError(code: 'parse_error'),
+    );
+    final report =
+        jsonDecode(diagnostics.exportText(issueId: first.issueId)) as Map;
+    expect(report['events'], hasLength(2));
+    expect(report['app_version'], '2.0.0+2004');
+    expect(report['platform'], 'android');
+    expect(report['events'][0]['stage'], 'identity_validation');
+    expect(report['events'][0]['reason'], 'identity_mismatch');
+    expect(report.toString(), isNot(contains('原始身份')));
+  });
+
   test('诊断有界保存且编号唯一并提供不可修改快照', () {
     final diagnostics = LocalDiagnostics(capacity: 2);
     final ids = <String>{};

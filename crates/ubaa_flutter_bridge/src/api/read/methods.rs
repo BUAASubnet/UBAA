@@ -86,7 +86,7 @@ impl BridgeClient {
     pub async fn exam_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
         let (data, route) = self
             .execute_read(
-                Some(ReadGroup::Academic),
+                Some(ReadGroup::Exam),
                 |client| Box::pin(async move { client.exam_terms().await }),
                 map_terms,
             )
@@ -153,7 +153,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedExamArrangement, BridgeError> {
         let (data, route) = self
             .execute_read(
-                Some(ReadGroup::Academic),
+                Some(ReadGroup::Exam),
                 move |client| Box::pin(async move { client.exam_arrangement(&term).await }),
                 map_exam_arrangement,
             )
@@ -646,6 +646,8 @@ pub(super) fn ensure_caller_pinned_route(
         return Ok(());
     }
     Err(BridgeError {
+        auth_stage: None,
+        auth_reason: None,
         cache_failure: None,
         code: crate::api::client::BridgeErrorCode::OperationConflict,
         kind: crate::api::client::BridgeErrorKind::Input,

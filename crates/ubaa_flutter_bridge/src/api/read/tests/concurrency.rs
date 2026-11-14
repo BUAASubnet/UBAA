@@ -43,6 +43,8 @@ impl HttpTransport for Transport {
             self.exam_started.notify_one();
             self.finish_exam.notified().await;
             r#"{"code":"0","datas":[]}"#
+        } else if request.url.contains("teachingSchedule/detail.do") {
+            r#"{"code":"0","datas":[]}"#
         } else if request.url.contains("get_stu_course_sched.action") {
             r#"{"STATUS":"0","result":[]}"#
         } else if request.url.contains("/app/user/login.action") {
@@ -130,8 +132,10 @@ async fn 换网与手动切换丢弃在途网络读取并立即释放客户端�
 }
 
 #[tokio::test]
-async fn 慢考试在途时签到仍可完成() {
-    let root = std::env::temp_dir().join(format!("ubaa-read-parallel-{}", std::process::id()));
+async fn 慢考试在途时签到和课表仍可完成() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/home_refresh_optimization")
+        .join(format!("read-parallel-{}", std::process::id()));
     let bridge = BridgeClient::open(root.to_string_lossy().into()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
@@ -161,9 +165,12 @@ async fn 慢考试在途时签到仍可完成() {
     }
     let signin =
         tokio::time::timeout(std::time::Duration::from_secs(1), bridge.signin_today()).await;
+    let schedule =
+        tokio::time::timeout(std::time::Duration::from_secs(1), bridge.schedule_today()).await;
     transport.finish_exam.notify_one();
     exam.await.unwrap();
     bridge.dispose().await.unwrap();
     std::fs::remove_dir_all(root).unwrap();
     assert!(signin.expect("签到不应等待慢考试").is_ok());
+    assert!(schedule.expect("课表不应等待慢考试").is_ok());
 }

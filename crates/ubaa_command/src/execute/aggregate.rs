@@ -261,6 +261,7 @@ fn aggregate_error(outcome: &ubaa_core::facade::LoginOutcome) -> Option<SafeErro
                 .iter()
                 .find_map(|route| route.error.clone())
                 .unwrap_or_else(|| SafeError {
+                    diagnostic: None,
                     code: "internal_error".into(),
                     kind: "internal".into(),
                     retryable: false,

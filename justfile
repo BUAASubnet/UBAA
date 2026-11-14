@@ -136,13 +136,13 @@ layout-check:
 contract-version-check:
     bash ./scripts/check/contract-versions.sh
 
-# 用锁定依赖构建 Worker，并在本地 Workers 运行时验证接口合同。
+# 用锁定依赖构建应用服务，并在隔离 PostgreSQL 中验证接口合同。
 app-service-check:
     python3 scripts/check/app_service/enums.py
     npm --prefix services/app_service ci --no-audit --no-fund
     npm --prefix services/app_service run check
 
-# 显式启动回环 Worker，联调 Core、Bridge 和宿主；不进入 CI。
+# 显式启动回环 Node.js 服务，联调 Core、Bridge 和宿主；不进入 CI。
 app-service-e2e:
     python3 scripts/tests/app_service/e2e.py
 
@@ -152,12 +152,12 @@ app-service-content-check:
     node scripts/check/app_service/content.mjs
     node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
 
-# 显式写入目标 KV；普通检查不调用。
+# 校验内容并触发 main 部署；普通检查不调用。
 [script]
 app-service-publish:
     python3 scripts/lib/toolchain.py release publish
 
-# 显式迁移目标 D1 并部署 Worker；普通检查不调用。
+# 显式触发 main 的服务器部署；普通检查不调用。
 [script]
 app-service-deploy:
     python3 scripts/lib/toolchain.py release deploy
@@ -176,6 +176,11 @@ privacy-policy-generate:
 
 docs-link-check:
     python3 scripts/check/docs_links.py
+
+# 显式联网读取服务器上指定构建的公开清单，校验后写入文档站下载页数据。
+[positional-arguments]
+docs-download-sync *args:
+    @python3 scripts/lib/recipe.py docs-download-sync "$@"
 
 tool-version-check:
     python3 scripts/check/tool_versions.py
@@ -240,6 +245,8 @@ script-test:
     python3 scripts/tests/release/acceptance_test.py
     python3 scripts/tests/release/metadata_test.py
     python3 scripts/tests/release/distribute_test.py
+    python3 scripts/tests/release/server_deploy_test.py
+    python3 scripts/tests/release/download_manifest_test.py
     python3 scripts/tests/release/ios_privacy_test.py
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/app_service/enums_test.py

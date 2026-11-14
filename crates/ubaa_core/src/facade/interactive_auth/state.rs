@@ -119,6 +119,12 @@ pub(super) const fn route_index(route: ConnectionMode) -> usize {
 pub(super) fn safe_interactive_error(error: &UbaaError) -> SafeError {
     let mut safe = super::super::auth::safe_error(error);
     // 不保留上游认证错误文本，防止其中回显答案、execution 或完整 HTML。
-    safe.message = "登录验证未完成，请重试。".into();
+    safe.message = match safe.diagnostic.and_then(|value| value.reason) {
+        Some(crate::error::AuthReason::IdentityMismatch) => "登录身份核对失败",
+        Some(crate::error::AuthReason::CaptchaExpired) => "登录验证已失效，请重新验证",
+        Some(crate::error::AuthReason::VerificationIncomplete) => "登录验证未通过，请重新验证",
+        _ => "登录验证未完成，请重试。",
+    }
+    .into();
     safe
 }

@@ -1,3 +1,5 @@
+import type { WaitContext } from "./environment";
+import type { Environment } from "./environment";
 import {
   ANNOUNCEMENTS_KEY,
   type BootstrapQuery,
@@ -10,10 +12,10 @@ import { APP_SERVICE_SCHEMA_VERSION, validateBootstrapRequest } from "./schema";
 
 export async function bootstrap(
   request: Request,
-  env: Env,
-  ctx: ExecutionContext,
+  env: Environment,
+  ctx: WaitContext,
 ): Promise<Response> {
-  const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const key = request.headers.get("X-Real-IP") ?? "unknown";
   if (!(await env.BOOTSTRAP_LIMIT.limit({ key })).success) {
     return new Response(null, { status: 429 });
   }
@@ -38,7 +40,7 @@ export async function bootstrap(
     version: parsed.version,
   }).toString();
   const cacheKey = new Request(url.toString());
-  const cache = caches.default;
+  const cache = env.CACHE;
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 

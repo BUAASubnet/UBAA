@@ -172,6 +172,11 @@ async fn dedicated_frames_and_debug_do_not_expand_ordinary_login_contract() {
             .iter()
             .all(|route| route.error.as_ref().unwrap().code == "upstream_changed")
     );
+    for route in &ordinary.routes {
+        let error = route.error.as_ref().unwrap();
+        assert_eq!(error.auth_stage.as_deref(), Some("login_page"));
+        assert_eq!(error.auth_reason.as_deref(), Some("login_page_invalid"));
+    }
     let failed = fixture
         .bridge
         .login(
@@ -217,7 +222,7 @@ async fn dedicated_frames_and_debug_do_not_expand_ordinary_login_contract() {
     ] {
         assert!(!debug.contains(value));
     }
-    assert_eq!(fixture.bridge.contract_version(), 65);
+    assert_eq!(fixture.bridge.contract_version(), 67);
 }
 
 #[tokio::test]

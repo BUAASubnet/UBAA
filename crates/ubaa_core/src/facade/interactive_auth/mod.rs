@@ -122,20 +122,8 @@ impl UbaaClient {
             };
             match context.routes[index].state {
                 InteractiveRouteState::Prepared => {
-                    let (runtime, auth) = self.route_parts_for(route);
-                    runtime.set_interactive_login_scope(Some(login.clone()));
-                    let result = auth.login(runtime, credentials).await;
-                    runtime.set_interactive_login_scope(None);
-                    self.ensure_interactive_active(login)?;
-                    match result {
-                        Ok(profile) => {
-                            self.record_interactive_profile(&mut context, index, profile)?;
-                        }
-                        Err(error) => {
-                            context.routes[index].state = InteractiveRouteState::Failed;
-                            context.routes[index].error = Some(safe_interactive_error(&error));
-                        }
-                    }
+                    self.submit_prepared_route(&mut context, login, index, credentials)
+                        .await?;
                 }
                 InteractiveRouteState::CaptchaRequired => {
                     let Some(answer) = supplied[index]
@@ -154,7 +142,9 @@ impl UbaaClient {
                             .ensure(login, route, (self.interactive.clock)())
                     {
                         pending.handle.consume();
-                        context.routes[index].error = Some(safe_interactive_error(&error));
+                        context.routes[index].error = Some(safe_interactive_error(
+                            &error.with_auth_reason(crate::error::AuthReason::CaptchaExpired),
+                        ));
                         continue;
                     }
                     pending.handle.consume();
@@ -169,7 +159,8 @@ impl UbaaClient {
                             answer.answer.expose_secret(),
                             || pending.handle.ensure_scope(login, route, clock()),
                         )
-                        .await;
+                        .await
+                        .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Captcha));
                     runtime.set_interactive_login_scope(None);
                     self.ensure_interactive_active(login)?;
                     match result {
@@ -186,7 +177,10 @@ impl UbaaClient {
                                 .await?;
                             if context.routes[index].error.is_none() {
                                 context.routes[index].error = Some(safe_interactive_error(
-                                    &UbaaError::authentication_required("登录验证未通过"),
+                                    &UbaaError::authentication_required("登录验证未通过")
+                                        .with_auth_reason(
+                                            crate::error::AuthReason::VerificationIncomplete,
+                                        ),
                                 ));
                             }
                         }
@@ -199,6 +193,31 @@ impl UbaaClient {
             }
         }
         self.finish_interactive(context, frames)
+    }
+
+    async fn submit_prepared_route(
+        &mut self,
+        context: &mut InteractiveContext,
+        login: &InteractiveLoginHandle,
+        index: usize,
+        credentials: LoginInput,
+    ) -> Result<()> {
+        let (runtime, auth) = self.route_parts_for(route_at(index));
+        runtime.set_interactive_login_scope(Some(login.clone()));
+        let result = auth
+            .login(runtime, credentials)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Submission));
+        runtime.set_interactive_login_scope(None);
+        self.ensure_interactive_active(login)?;
+        match result {
+            Ok(profile) => self.record_interactive_profile(context, index, profile)?,
+            Err(error) => {
+                context.routes[index].state = InteractiveRouteState::Failed;
+                context.routes[index].error = Some(safe_interactive_error(&error));
+            }
+        }
+        Ok(())
     }
 
     fn collect_interactive_answers(
@@ -354,7 +373,10 @@ impl UbaaClient {
     ) -> Result<Option<CaptchaFrame>> {
         let (runtime, auth) = self.route_parts_for(route_at(index));
         runtime.set_interactive_login_scope(Some(context.login.clone()));
-        let result = auth.prepare_interactive(runtime).await;
+        let result = auth
+            .prepare_interactive(runtime)
+            .await
+            .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage));
         runtime.set_interactive_login_scope(None);
         self.ensure_interactive_active(&context.login)?;
         match result {
@@ -399,7 +421,9 @@ impl UbaaClient {
                 );
                 let runtime = self.runtime_for(route_at(index));
                 runtime.set_interactive_login_scope(Some(context.login.clone()));
-                let result = image::fetch_captcha_frame(runtime, &page.id).await;
+                let result = image::fetch_captcha_frame(runtime, &page.id)
+                    .await
+                    .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Captcha));
                 runtime.set_interactive_login_scope(None);
                 self.ensure_interactive_active(&context.login)?;
                 match result {
@@ -410,7 +434,9 @@ impl UbaaClient {
                             (self.interactive.clock)(),
                         ) {
                             handle.consume();
-                            context.routes[index].error = Some(safe_interactive_error(&error));
+                            context.routes[index].error = Some(safe_interactive_error(
+                                &error.with_auth_reason(crate::error::AuthReason::CaptchaExpired),
+                            ));
                             return Ok(None);
                         }
                         context.routes[index].pending = Some(PendingCaptcha { handle, page });
@@ -433,18 +459,23 @@ impl UbaaClient {
         profile: UserProfile,
     ) -> Result<()> {
         let username = context.login.username();
-        if profile.username.as_deref() != Some(username)
-            && profile.school_id.as_deref() != Some(username)
+        if ![profile.username.as_deref(), profile.school_id.as_deref()]
+            .into_iter()
+            .flatten()
+            .any(|value| value.eq_ignore_ascii_case(username))
         {
             let (runtime, auth) = self.route_parts_for(route_at(index));
             runtime.clear_with(|| auth.clear())?;
             context.routes[index].state = InteractiveRouteState::Failed;
-            context.routes[index].error = Some(safe_interactive_error(&UbaaError::new(
-                ErrorCode::UpstreamChanged,
-                ErrorKind::Upstream,
-                false,
-                "认证资料与当前账号不一致",
-            )));
+            context.routes[index].error = Some(safe_interactive_error(
+                &UbaaError::new(
+                    ErrorCode::UpstreamChanged,
+                    ErrorKind::Upstream,
+                    false,
+                    "认证资料与当前账号不一致",
+                )
+                .with_auth_reason(crate::error::AuthReason::IdentityMismatch),
+            ));
             return Ok(());
         }
         context.routes[index].state = InteractiveRouteState::Ready;
@@ -473,7 +504,10 @@ impl UbaaClient {
                     pending.handle.consume();
                 }
                 frames[index] = None;
-                stored.error = Some(safe_interactive_error(&invalid_interaction()));
+                stored.error = Some(safe_interactive_error(
+                    &invalid_interaction()
+                        .with_auth_reason(crate::error::AuthReason::CaptchaExpired),
+                ));
             }
         }
         let outcome = context.outcome(frames, now);

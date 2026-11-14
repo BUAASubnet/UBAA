@@ -113,7 +113,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1999597516;
+  int get rustContentHash => 1595244710;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -1964,6 +1964,9 @@ abstract class RustLibApi extends BaseApi {
   });
 
   String crateApiSimpleBridgeHello();
+
+  Future<BridgeJudgeDetailRefresh>
+  crateApiJudgeRefreshBridgeJudgeDetailRefreshDefault();
 
   Future<BridgeJudgeOnlineOptions>
   crateApiJudgeScanOnlineBridgeJudgeOnlineOptionsDefault();
@@ -15455,6 +15458,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "bridge_hello", argNames: []);
 
   @override
+  Future<BridgeJudgeDetailRefresh>
+  crateApiJudgeRefreshBridgeJudgeDetailRefreshDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 329,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_judge_detail_refresh,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiJudgeRefreshBridgeJudgeDetailRefreshDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiJudgeRefreshBridgeJudgeDetailRefreshDefaultConstMeta =>
+      const TaskConstMeta(
+        debugName: "bridge_judge_detail_refresh_default",
+        argNames: [],
+      );
+
+  @override
   Future<BridgeJudgeOnlineOptions>
   crateApiJudgeScanOnlineBridgeJudgeOnlineOptionsDefault() {
     return handler.executeNormal(
@@ -15464,7 +15500,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 329,
+            funcId: 330,
             port: port_,
           );
         },
@@ -15497,7 +15533,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 330,
+            funcId: 331,
             port: port_,
           );
         },
@@ -15529,7 +15565,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 331,
+            funcId: 332,
             port: port_,
           );
         },
@@ -20288,15 +20324,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeError dco_decode_bridge_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return BridgeError(
-      code: dco_decode_bridge_error_code(arr[0]),
-      kind: dco_decode_bridge_error_kind(arr[1]),
-      retryable: dco_decode_bool(arr[2]),
-      message: dco_decode_String(arr[3]),
-      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
-      cacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[5]),
+      authStage: dco_decode_opt_String(arr[0]),
+      authReason: dco_decode_opt_String(arr[1]),
+      code: dco_decode_bridge_error_code(arr[2]),
+      kind: dco_decode_bridge_error_kind(arr[3]),
+      retryable: dco_decode_bool(arr[4]),
+      message: dco_decode_String(arr[5]),
+      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[6]),
+      cacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[7]),
     );
   }
 
@@ -21286,18 +21324,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeJudgeDetailRefresh dco_decode_bridge_judge_detail_refresh(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeJudgeDetailRefresh.values[raw as int];
+  }
+
+  @protected
   BridgeJudgeOnlineOptions dco_decode_bridge_judge_online_options(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BridgeJudgeOnlineOptions(
       includeExpired: dco_decode_bool(arr[0]),
       refreshIndices: dco_decode_bool(arr[1]),
-      fullRefresh: dco_decode_bool(arr[2]),
-      expectedIdentity: dco_decode_opt_String(arr[3]),
-      preferredCourse: dco_decode_opt_String(arr[4]),
-      keys: dco_decode_opt_list_bridge_judge_assignment_key(arr[5]),
+      detailRefresh: dco_decode_bridge_judge_detail_refresh(arr[2]),
+      fullRefresh: dco_decode_bool(arr[3]),
+      expectedIdentity: dco_decode_opt_String(arr[4]),
+      preferredCourse: dco_decode_opt_String(arr[5]),
+      keys: dco_decode_opt_list_bridge_judge_assignment_key(arr[6]),
     );
   }
 
@@ -21368,15 +21413,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeJudgeRefreshOptions(
       includeExpired: dco_decode_bool(arr[0]),
       fullRefresh: dco_decode_bool(arr[1]),
       refreshIndices: dco_decode_bool(arr[2]),
-      preferredCourse: dco_decode_opt_String(arr[3]),
+      detailRefresh: dco_decode_bridge_judge_detail_refresh(arr[3]),
+      preferredCourse: dco_decode_opt_String(arr[4]),
       currentAssignment: dco_decode_opt_box_autoadd_bridge_judge_assignment_key(
-        arr[4],
+        arr[5],
       ),
     );
   }
@@ -22535,13 +22581,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeSafeError dco_decode_bridge_safe_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeSafeError(
-      code: dco_decode_String(arr[0]),
-      kind: dco_decode_String(arr[1]),
-      retryable: dco_decode_bool(arr[2]),
-      message: dco_decode_String(arr[3]),
+      authStage: dco_decode_opt_String(arr[0]),
+      authReason: dco_decode_opt_String(arr[1]),
+      code: dco_decode_String(arr[2]),
+      kind: dco_decode_String(arr[3]),
+      retryable: dco_decode_bool(arr[4]),
+      message: dco_decode_String(arr[5]),
     );
   }
 
@@ -30292,6 +30340,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   BridgeError sse_decode_bridge_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_authStage = sse_decode_opt_String(deserializer);
+    var var_authReason = sse_decode_opt_String(deserializer);
     var var_code = sse_decode_bridge_error_code(deserializer);
     var var_kind = sse_decode_bridge_error_kind(deserializer);
     var var_retryable = sse_decode_bool(deserializer);
@@ -30303,6 +30353,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     return BridgeError(
+      authStage: var_authStage,
+      authReason: var_authReason,
       code: var_code,
       kind: var_kind,
       retryable: var_retryable,
@@ -31454,12 +31506,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeJudgeDetailRefresh sse_decode_bridge_judge_detail_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeJudgeDetailRefresh.values[inner];
+  }
+
+  @protected
   BridgeJudgeOnlineOptions sse_decode_bridge_judge_online_options(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_includeExpired = sse_decode_bool(deserializer);
     var var_refreshIndices = sse_decode_bool(deserializer);
+    var var_detailRefresh = sse_decode_bridge_judge_detail_refresh(
+      deserializer,
+    );
     var var_fullRefresh = sse_decode_bool(deserializer);
     var var_expectedIdentity = sse_decode_opt_String(deserializer);
     var var_preferredCourse = sse_decode_opt_String(deserializer);
@@ -31469,6 +31533,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BridgeJudgeOnlineOptions(
       includeExpired: var_includeExpired,
       refreshIndices: var_refreshIndices,
+      detailRefresh: var_detailRefresh,
       fullRefresh: var_fullRefresh,
       expectedIdentity: var_expectedIdentity,
       preferredCourse: var_preferredCourse,
@@ -31566,6 +31631,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_includeExpired = sse_decode_bool(deserializer);
     var var_fullRefresh = sse_decode_bool(deserializer);
     var var_refreshIndices = sse_decode_bool(deserializer);
+    var var_detailRefresh = sse_decode_bridge_judge_detail_refresh(
+      deserializer,
+    );
     var var_preferredCourse = sse_decode_opt_String(deserializer);
     var var_currentAssignment =
         sse_decode_opt_box_autoadd_bridge_judge_assignment_key(deserializer);
@@ -31573,6 +31641,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       includeExpired: var_includeExpired,
       fullRefresh: var_fullRefresh,
       refreshIndices: var_refreshIndices,
+      detailRefresh: var_detailRefresh,
       preferredCourse: var_preferredCourse,
       currentAssignment: var_currentAssignment,
     );
@@ -32737,11 +32806,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   BridgeSafeError sse_decode_bridge_safe_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_authStage = sse_decode_opt_String(deserializer);
+    var var_authReason = sse_decode_opt_String(deserializer);
     var var_code = sse_decode_String(deserializer);
     var var_kind = sse_decode_String(deserializer);
     var var_retryable = sse_decode_bool(deserializer);
     var var_message = sse_decode_String(deserializer);
     return BridgeSafeError(
+      authStage: var_authStage,
+      authReason: var_authReason,
       code: var_code,
       kind: var_kind,
       retryable: var_retryable,
@@ -40902,6 +40975,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_bridge_error(BridgeError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.authStage, serializer);
+    sse_encode_opt_String(self.authReason, serializer);
     sse_encode_bridge_error_code(self.code, serializer);
     sse_encode_bridge_error_kind(self.kind, serializer);
     sse_encode_bool(self.retryable, serializer);
@@ -41781,6 +41856,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_judge_detail_refresh(
+    BridgeJudgeDetailRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_judge_online_options(
     BridgeJudgeOnlineOptions self,
     SseSerializer serializer,
@@ -41788,6 +41872,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.includeExpired, serializer);
     sse_encode_bool(self.refreshIndices, serializer);
+    sse_encode_bridge_judge_detail_refresh(self.detailRefresh, serializer);
     sse_encode_bool(self.fullRefresh, serializer);
     sse_encode_opt_String(self.expectedIdentity, serializer);
     sse_encode_opt_String(self.preferredCourse, serializer);
@@ -41854,6 +41939,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.includeExpired, serializer);
     sse_encode_bool(self.fullRefresh, serializer);
     sse_encode_bool(self.refreshIndices, serializer);
+    sse_encode_bridge_judge_detail_refresh(self.detailRefresh, serializer);
     sse_encode_opt_String(self.preferredCourse, serializer);
     sse_encode_opt_box_autoadd_bridge_judge_assignment_key(
       self.currentAssignment,
@@ -42825,6 +42911,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.authStage, serializer);
+    sse_encode_opt_String(self.authReason, serializer);
     sse_encode_String(self.code, serializer);
     sse_encode_String(self.kind, serializer);
     sse_encode_bool(self.retryable, serializer);

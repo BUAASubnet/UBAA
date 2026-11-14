@@ -1,8 +1,9 @@
 //! 严格限制主机和路径的业务 CAS 认证。
 use super::parser::invalid;
 use crate::connection::from_webvpn_url;
+use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use crate::ports::HttpRequest;
+use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 
 pub(super) fn check_generation(runtime: &ClientRuntime, generation: u64) -> Result<()> {
@@ -19,6 +20,29 @@ fn auth_error() -> UbaaError {
         false,
         "无法复用 iHome 登录，请重新登录后重试",
     )
+}
+pub(super) fn check_gateway_session(
+    runtime: &ClientRuntime,
+    response: &HttpResponse,
+    expected: &str,
+) -> Result<()> {
+    if runtime.mode() == ConnectionMode::WebVpn
+        && response.final_url == expected
+        && response.status == 302
+        && response.header_first("location").is_some_and(|location| {
+            url::Url::parse(expected)
+                .and_then(|base| base.join(location))
+                .is_ok_and(|url| {
+                    crate::connection::is_valid_webvpn_gateway(&url)
+                        && url.path() == "/login"
+                        && url.query().is_none()
+                        && url.fragment().is_none()
+                })
+        })
+    {
+        return Err(UbaaError::authentication_required("WebVPN 会话需要恢复"));
+    }
+    Ok(())
 }
 pub(super) fn callback(raw: &str) -> Result<(url::Url, Option<String>)> {
     let mut url = url::Url::parse(&from_webvpn_url(raw)?).map_err(|_| invalid())?;
@@ -78,7 +102,20 @@ pub(super) async fn ensure_token(runtime: &mut ClientRuntime) -> Result<String> 
             })
             .await?;
         check_generation(runtime, generation)?;
-        if response.final_url != request_url || !(300..400).contains(&response.status) {
+        if response.final_url != request_url {
+            return Err(auth_error());
+        }
+        check_gateway_session(runtime, &response, &request_url)?;
+        if url.host_str() == Some("sso.buaa.edu.cn")
+            && url.path() == "/login"
+            && (response.status == 401
+                || (response.status == 200
+                    && crate::upstream::extract_execution(&crate::features::body(&response))
+                        .is_some()))
+        {
+            return Err(UbaaError::authentication_required("SSO 会话需要恢复"));
+        }
+        if !(300..400).contains(&response.status) {
             return Err(auth_error());
         }
         let location = response.header_first("location").ok_or_else(auth_error)?;

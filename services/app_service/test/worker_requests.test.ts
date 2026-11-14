@@ -1,8 +1,5 @@
-import { env, exports } from "cloudflare:workers";
-import {
-  createExecutionContext,
-  waitOnExecutionContext,
-} from "cloudflare:test";
+import { env, exports } from "./runtime";
+import { createWaitContext, waitOnWaitContext } from "./runtime";
 import { bootstrap as readBootstrap } from "../src/bootstrap";
 import { beforeAll, expect, it } from "vitest";
 import { createBatch, erase, migrate } from "./telemetry_support";
@@ -47,12 +44,12 @@ it("上报入口拒绝非 JSON 正文", async () => {
   expect(response.status).toBe(415);
 });
 
-it("D1 迁移应建立批次的 nonce 列和定时任务状态表", async () => {
+it("PostgreSQL 初始化应建立批次的 nonce 列和定时任务状态表", async () => {
   const batch = await env.DB.prepare(
-    "SELECT name FROM pragma_table_info('batches') WHERE name = 'nonce'",
+    "SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'batches' AND column_name = 'nonce'",
   ).first("name");
   const state = await env.DB.prepare(
-    "SELECT name FROM pragma_table_info('job_state') WHERE name = 'last_success_day'",
+    "SELECT column_name AS name FROM information_schema.columns WHERE table_name = 'job_state' AND column_name = 'last_success_day'",
   ).first("name");
   expect(batch).toBe("nonce");
   expect(state).toBe("last_success_day");
@@ -88,7 +85,7 @@ it("按 UTF-8 字节限制流式正文，接受恰好 128 KiB", async () => {
     expect(response.status).toBe(expected);
   }
   const rejected = await env.DB.prepare(
-    "SELECT 1 FROM batches WHERE batch_id = ?",
+    "SELECT 1 FROM batches WHERE batch_id = $1",
   )
     .bind(oversized.batch_id)
     .first();
@@ -115,7 +112,7 @@ it("拒绝跨域上报与预检，不提供 CORS", async () => {
   );
   expect(preflight.headers.has("Access-Control-Allow-Origin")).toBe(false);
   const stored = await env.DB.prepare(
-    "SELECT 1 FROM batches WHERE batch_id = ?",
+    "SELECT 1 FROM batches WHERE batch_id = $1",
   )
     .bind(payload.batch_id)
     .first();
@@ -148,16 +145,16 @@ it("启动配置按 IP 限流，其他 IP 不受影响", async () => {
     },
   };
   async function bootstrap(ip: string) {
-    const context = createExecutionContext();
+    const context = createWaitContext();
     const response = await readBootstrap(
       new Request(
         "https://app-service.invalid/v1/bootstrap?schema=1&platform=android&channel=github&version=2.0.0",
-        { headers: { "CF-Connecting-IP": ip } },
+        { headers: { "X-Real-IP": ip } },
       ),
       bindings,
       context,
     );
-    await waitOnExecutionContext(context);
+    await waitOnWaitContext(context);
     return response;
   }
   expect((await bootstrap("192.0.2.25")).status).toBe(200);

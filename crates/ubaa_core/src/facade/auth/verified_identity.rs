@@ -90,7 +90,7 @@ pub(super) fn login_identity(profile: &UserProfile, requested: &str) -> Option<S
     if ![Some(identity), profile.username.as_deref().map(str::trim)]
         .into_iter()
         .flatten()
-        .any(|value| value == requested.trim())
+        .any(|value| value.eq_ignore_ascii_case(requested.trim()))
     {
         return None;
     }
@@ -108,6 +108,20 @@ fn unverified() -> UbaaError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn 登录身份接受大小写差异但保留学校学号() {
+        let profile = UserProfile {
+            school_id: Some("SY-FIXTURE-001".into()),
+            username: Some("SY-FIXTURE-001".into()),
+            ..UserProfile::default()
+        };
+        assert_eq!(
+            login_identity(&profile, "sy-fixture-001").as_deref(),
+            Some("SY-FIXTURE-001")
+        );
+        assert_eq!(login_identity(&profile, "sy-fixture-002"), None);
+    }
+
     #[test]
     fn 过期身份能力拒绝登记() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

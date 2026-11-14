@@ -53,7 +53,7 @@
 - 首次使用时按 `.env.example` 创建本地私有的 `.env` 并填写 SDK 位置，然后运行 `just setup` 安装锁定工具。`just doctor` 只读核对本机版本。
 - just 入口和直接执行的项目脚本，通过 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`；已导出的同名环境变量优先。
 - 签名参数按平台和构建模式整组从进程环境或 `.env` 中选一个来源，缺项不得从另一来源补齐。
-- 机密只交给需要它的入口：普通命令只加载非机密键；Android/OHOS 签名只交给对应平台的 SDK 构建命令；学校账号只交给显式的真实验证入口；Cloudflare API Token 只交给显式的文档部署、`app-service-deploy` 和 `app-service-publish`；R2 凭据只交给 Release 分发步骤。
+- 机密只交给需要它的入口：普通命令只加载非机密键；Android/OHOS 签名只交给对应平台的 SDK 构建命令；学校账号只交给显式的真实验证入口；SSH 部署密钥只交给受保护环境中的部署和分发步骤；云盘发布账号仅由服务器发布程序读取，不能进入 CI。
 
 配置示例与安装步骤见[开发环境](docs/development/setup.md)。其他开发文档提到工具链规则时链接本节。
 
@@ -88,7 +88,7 @@
 
 - **读取授权**：用真实账号做认证或只读验证，必须有当前会话中用户给出的功能和连接方式授权。同一会话中仍然适用的授权继续有效，不重复索取。仓库里的 goal、历史报告、凭据文件的存在、以往的授权记录，都不能扩大授权。
 - **不触发学校请求的工作**：普通工程整改、纯 UI 文案、测试整理不因此请求学校。
-- **CI**：检查类 CI 永远不接收真实凭据，也不执行真实业务写入。应用服务部署作业只在受保护的 GitHub Environment 中接收 Cloudflare API Token，永远不接收学校凭据。
+- **CI**：检查类 CI 永远不接收真实凭据，也不执行真实业务写入。应用服务部署作业只在受保护的 GitHub Environment 中接收专用 SSH 部署密钥，永远不接收学校凭据。
 - **双路线**：认证、读取、写入协议变更的 CLI 端到端和 Direct/WebVPN 双路线要求见[来源对照验收](docs/development/commands.md#来源对照与真实验证)。某条路线不可达或未获授权时，登记阻塞原因和重跑条件；另一条路线、Fixture/Mock 或历史成功都不能算作该路线通过。
 - **写入授权**：每次真实写入都必须获得具体操作、目标、路线和时间的授权。CLI 确认参数、Flutter 确认按钮、Mock 通过或读取授权都不能代替。
 - **写入不自动重试**：写请求可能已到达上游后，禁止自动重试；结果未知时先只读核对。
@@ -118,6 +118,6 @@
 | `packages/ubaa_domain`、`packages/ubaa_app`、`packages/ubaa_host` | Dart 模型、应用状态与写协调、共享宿主接线 |
 | `packages/ubaa_platform`、`packages/ubaa_ui`、`packages/ubaa_bindings` | 平台能力、共享界面、FRB/Cargokit |
 | `packages/*_ohos` | 有上游声明的 OHOS 插件适配 |
-| `services/app_service` | 应用服务 Cloudflare Worker |
+| `services/app_service` | Node.js 应用服务与 PostgreSQL |
 | `scripts` | 准备、检查、构建、真实验证、发布与脚本自测入口，副作用见[脚本说明](scripts/README.md) |
 | `docs/` | 文档，按读者划分，见[文档首页](docs/README.md) |

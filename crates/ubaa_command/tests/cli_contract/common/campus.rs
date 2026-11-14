@@ -50,7 +50,7 @@ pub(crate) fn campus_network() -> NetworkUsage {
             free_remaining: amount("0", "byte"),
             billable_remaining: amount("40.125", "G"),
         }],
-        remaining_excludes_packages: true,
+        remaining_excludes_packages: false,
         fetched_at: 128,
     }
 }

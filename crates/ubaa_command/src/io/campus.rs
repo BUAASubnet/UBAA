@@ -15,6 +15,11 @@ pub(super) fn write<W: Write>(
     }
     writeln!(stdout, "查询路线：{route:?}")?;
     if feature == CliFeature::Network {
+        let free_label = if data["remainingExcludesPackages"] == false {
+            "免费流量剩余（含套餐）"
+        } else {
+            "免费流量剩余（不含套餐）"
+        };
         if let Some(products) = data["products"].as_array() {
             for product in products {
                 writeln!(
@@ -24,7 +29,7 @@ pub(super) fn write<W: Write>(
                 )?;
                 for (key, label) in [
                     ("used", "已用流量"),
-                    ("freeRemaining", "免费流量剩余（不含套餐）"),
+                    ("freeRemaining", free_label),
                     ("billableRemaining", "计费流量剩余（不含套餐）"),
                 ] {
                     writeln!(stdout, "{label}：{}", amount(&product[key]))?;

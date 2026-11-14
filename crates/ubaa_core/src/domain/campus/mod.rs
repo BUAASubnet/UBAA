@@ -13,7 +13,7 @@ pub struct PortalProfile {
     pub fetched_at: i64,
 }
 
-/// 保留十进制数值与上游单位，不自动换算流量基数。
+/// 十进制数值与单位；派生流量合计按校园账户规则换算。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CampusAmount {
@@ -44,7 +44,7 @@ pub struct CampusMetrics {
     pub cloud_storage_remaining: CampusMetric<CampusAmount>,
 }
 
-/// 一个网络产品的流量。两项剩余均不含套餐。
+/// 一个网络产品的流量；在线免费剩余包含套餐可用流量，计费剩余保持上游值。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProductUsage {

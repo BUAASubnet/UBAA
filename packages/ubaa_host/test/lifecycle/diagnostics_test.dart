@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ubaa_ui/src/app/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels;
@@ -6,8 +8,20 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  testWidgets('诊断版本读取未完成时可关闭宿主且不遗留定时器', (tester) async {
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backend: DemoBackend(),
+        appInformation: _PendingAppInformation(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('个人页可查看诊断信息且不会包含账号资料', (tester) async {
     await tester.pumpWidget(UbaaAppHost(backend: _SignedInBackend()));
     await tester.pumpAndSettle();
@@ -66,6 +80,16 @@ void main() {
     expect(copied, isNot(contains('模拟原始个人数据')));
     expect(tester.takeException(), isNull);
   });
+}
+
+class _PendingAppInformation implements PlatformAppInformation {
+  final _version = Completer<String?>();
+
+  @override
+  Future<String?> version() => _version.future;
+
+  @override
+  Future<bool> open(AppLink link) async => false;
 }
 
 class _FailingInitialization extends DemoBackend {

@@ -1,0 +1,17 @@
+[Unit]
+Description=UBAA 应用服务
+After=network-online.target postgresql.service
+Wants=network-online.target
+[Service]
+User=ubaa
+Group=ubaa
+EnvironmentFile=/etc/ubaa/service.env
+WorkingDirectory=/srv/ubaa/app_service/current
+ExecStart=/usr/local/bin/node .generated/build/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+[Install]
+WantedBy=multi-user.target

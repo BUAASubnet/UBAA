@@ -21,9 +21,12 @@ impl UbaaClient {
             (record, _) => (Some(ticket), record),
         };
         if let Some(record) = record {
-            let CachePayload::JudgeSummaries(summaries) = record.payload else {
+            let CachePayload::JudgeSummaries(mut summaries) = record.payload else {
                 return Err(OfflineReadError::Cache(CacheError::Corrupt));
             };
+            if let Some(semester) = refresh.semester {
+                summaries.retain(|item| semester.contains(item));
+            }
             refresh.scan.cancellation().cancel();
             let mut resolution = refresh.scan.resolution;
             resolution.mode = record.scope.route;

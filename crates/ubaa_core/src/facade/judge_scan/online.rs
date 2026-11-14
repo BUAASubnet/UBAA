@@ -14,6 +14,8 @@ use std::collections::{BTreeMap, HashSet};
 pub struct JudgeOnlineOptions {
     pub include_expired: bool,
     pub refresh_indices: bool,
+    /// 无持久历史依据时，主动核验所有详情。
+    pub detail_refresh: crate::facade::JudgeDetailRefresh,
     pub full_refresh: bool,
     /// 本机账号仍存在而密钥不可用时也必须核对身份；不发送给学校。
     pub expected_identity: Option<String>,
@@ -204,6 +206,8 @@ impl UbaaClient {
                 plan.cursor.current_assignment(),
                 plan.activated,
                 plan.options.full_refresh
+                    || plan.options.detail_refresh
+                        == crate::facade::JudgeDetailRefresh::RefreshActive
                     || plan.options.keys.is_some()
                     || (plan.options.refresh_indices && plan.cursor.current_assignment().is_none()),
                 prepared,

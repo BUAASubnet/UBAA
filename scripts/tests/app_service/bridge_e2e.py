@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""显式联调宿主接线、Dart FFI、Core、本地 D1 与 KV；不进入 CI。"""
+"""显式联调宿主接线、Dart FFI、Core、本地 PostgreSQL 与 JSON 配置；不进入 CI。"""
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
@@ -79,17 +79,17 @@ def main():
                 require(sent == {UPLOAD: 2, ERASE: 1, BOOTSTRAP: 1},
                         "首次进程的请求数不符；可能未真实上传，或重新开启后发送了已清理批次")
                 require(query() == UPLOADED,
-                        "D1 未收到实际宿主计数，或关闭清理、门控、公告、失败删除产生了额外写入")
+                        "PostgreSQL 未收到实际宿主计数，或关闭清理、门控、公告、失败删除产生了额外写入")
                 run([*command, "--dart-define=UBAA_APP_SERVICE_TEST_REOPEN=true", test],
                     cwd=ROOT, env=env, timeout=600)
                 require(sent == {UPLOAD: 2, ERASE: 2, BOOTSTRAP: 1},
                         "基础模式重启只允许 GUI 重试删除，命令模式不得发请求")
-                require(query() == ERASED, "重启删除成功后 D1 仍有旧明细，或发生了额外写入")
+                require(query() == ERASED, "重启删除成功后 PostgreSQL 仍有旧明细，或发生了额外写入")
             finally:
                 server.shutdown()
                 thread.join()
-    print("宿主与本地 D1 联调通过：正常上报，关闭清除待重试批次，基础模式重启只重试删除")
-    print("宿主与本地 KV 联调通过：命令模式共享门控，公告已读可跨进程恢复")
+    print("宿主与本地 PostgreSQL 联调通过：正常上报，关闭清除待重试批次，基础模式重启只重试删除")
+    print("宿主与本地 JSON 配置 联调通过：命令模式共享门控，公告已读可跨进程恢复")
 
 
 if __name__ == "__main__":

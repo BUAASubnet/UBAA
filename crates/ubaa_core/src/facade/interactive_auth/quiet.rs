@@ -102,7 +102,9 @@ impl UbaaClient {
                 }
                 Err(error) => {
                     context.routes[index].state = InteractiveRouteState::Failed;
-                    context.routes[index].error = Some(safe_interactive_error(&error));
+                    context.routes[index].error = Some(safe_interactive_error(
+                        &error.with_auth_stage(crate::error::AuthStage::Submission),
+                    ));
                 }
             }
         }

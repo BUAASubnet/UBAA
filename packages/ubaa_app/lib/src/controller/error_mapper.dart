@@ -18,6 +18,8 @@ class UbaaErrorMapper {
           retryable: error.retryable,
           resolvedRoute: error.resolvedRoute,
           issueId: error.issueId,
+          authStage: error.authStage,
+          authReason: error.authReason,
         ),
       );
 

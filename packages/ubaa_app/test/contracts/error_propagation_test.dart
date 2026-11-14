@@ -5,6 +5,23 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('登录诊断从 Bridge 经过异常映射后保留', () async {
+    final backend = BridgeBackend(_LoginFailureClient('upstream_changed'));
+    try {
+      await backend.login(
+        const LoginInput(username: 'fixture', password: 'fixture'),
+      );
+      fail('应拒绝登录');
+    } on BackendException catch (error) {
+      final ui = UbaaErrorMapper.fromException(error);
+      final remapped = UbaaErrorMapper.fromObject(BackendException.fromUi(ui));
+      expect(remapped.authStage, AuthFailureStage.identityValidation);
+      expect(remapped.authReason, AuthFailureReason.identityMismatch);
+      expect(remapped.title, '登录身份核对失败');
+      expect(remapped.resolvedRoute, ConnectionMode.webvpn);
+    }
+  });
+
   test('逐路线登录失败保留实际路线和禁止重试标志', () async {
     final backend = BridgeBackend(_LoginFailureClient('network_error'));
     await expectLater(
@@ -183,6 +200,8 @@ class _LoginFailureClient extends _FailingReadClient {
         state: BridgeRouteLoginState.failed,
         error: BridgeSafeError(
           code: failureCode,
+          authStage: 'identity_validation',
+          authReason: 'identity_mismatch',
           kind: 'network',
           retryable: false,
           message: '模拟原始个人资料',

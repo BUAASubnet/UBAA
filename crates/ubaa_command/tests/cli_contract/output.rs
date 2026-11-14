@@ -62,7 +62,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
-    assert_eq!(value["schemaVersion"], 16);
+    assert_eq!(value["schemaVersion"], 17);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_eq!(value["meta"]["routePolicy"], "direct");
     assert_eq!(value["data"]["schoolId"], "TEST-0001");
@@ -220,6 +220,7 @@ fn serialized_envelopes_match_the_cli_json_schema() {
                 route: ConnectionMode::WebVpn,
                 state: RouteLoginState::Failed,
                 error: Some(SafeError {
+                    diagnostic: None,
                     code: "upstream_unavailable".into(),
                     kind: "upstream".into(),
                     retryable: true,
@@ -326,7 +327,7 @@ fn cli_json_schema_accepts_strict_libbook_cancel_result() {
 
 #[test]
 fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 16);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 17);
 
     let features = [
         CliFeature::Cli,
@@ -372,7 +373,7 @@ fn success_json_envelope_has_version_data_and_resolved_route_metadata() {
     );
     let value = serde_json::to_value(envelope).expect("envelope serializes");
 
-    assert_eq!(value["schemaVersion"], 16);
+    assert_eq!(value["schemaVersion"], 17);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["name"], "Fixture User");
     assert_eq!(
@@ -415,7 +416,7 @@ fn unresolved_routed_failure_has_only_feature_metadata() {
     );
 
     let value = serde_json::to_value(envelope).unwrap();
-    assert_eq!(value["schemaVersion"], 16);
+    assert_eq!(value["schemaVersion"], 17);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"], serde_json::json!({"feature": "cli"}));
     assert!(value.get("data").is_none());
@@ -444,7 +445,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
     )
     .unwrap();
 
-    assert_eq!(value["schemaVersion"], 16);
+    assert_eq!(value["schemaVersion"], 17);
     assert_eq!(value["ok"], true);
     assert_eq!(
         value["data"]["routes"],
@@ -474,6 +475,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
 #[test]
 fn aggregate_failure_constructor_keeps_ok_data_error_consistent() {
     let route_error = SafeError {
+        diagnostic: None,
         code: "authentication_required".into(),
         kind: "authentication".into(),
         retryable: false,
@@ -546,6 +548,7 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
         profile: None,
     };
     let impossible_error = SafeError {
+        diagnostic: None,
         code: "internal_error".into(),
         kind: "internal".into(),
         retryable: false,
@@ -573,6 +576,7 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
         profile: None,
     };
     let top_error = SafeError {
+        diagnostic: None,
         code: "internal_error".into(),
         kind: "internal".into(),
         retryable: false,
@@ -606,6 +610,7 @@ fn aggregate_auth_constructors_bind_profile_presence_to_route_readiness() {
     );
 
     let route_error = SafeError {
+        diagnostic: None,
         code: "authentication_required".into(),
         kind: "authentication".into(),
         retryable: false,

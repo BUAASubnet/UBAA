@@ -17,11 +17,12 @@ pub(crate) enum ReadGroup {
     Bykc,
     Cgyy,
     Profile,
+    Exam,
 }
 
 pub(crate) struct ClientPool {
     primary: Mutex<Option<UbaaClient>>,
-    groups: [ReadSlot; 8],
+    groups: [ReadSlot; 9],
     barrier: RwLock<()>,
     permits: Semaphore,
 }

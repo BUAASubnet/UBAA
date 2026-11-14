@@ -2,6 +2,42 @@ import 'package:meta/meta.dart';
 
 import 'route.dart';
 
+/// 登录诊断只接受固定阶段和原因，不携带学校返回的文字。
+enum AuthFailureStage {
+  loginPage('login_page'),
+  submission('submission'),
+  redirect('redirect'),
+  captcha('captcha'),
+  identityValidation('identity_validation');
+
+  const AuthFailureStage(this.wireName);
+  final String wireName;
+  static AuthFailureStage? parse(String? value) {
+    for (final stage in values) {
+      if (stage.wireName == value) return stage;
+    }
+    return null;
+  }
+}
+
+enum AuthFailureReason {
+  loginPageInvalid('login_page_invalid'),
+  redirectInvalid('redirect_invalid'),
+  identityResponseInvalid('identity_response_invalid'),
+  identityMismatch('identity_mismatch'),
+  captchaExpired('captcha_expired'),
+  verificationIncomplete('verification_incomplete');
+
+  const AuthFailureReason(this.wireName);
+  final String wireName;
+  static AuthFailureReason? parse(String? value) {
+    for (final reason in values) {
+      if (reason.wireName == value) return reason;
+    }
+    return null;
+  }
+}
+
 /// 本地启动原因只接受枚举，不接受路径或异常正文。
 enum InitializationFailure {
   configuration,
@@ -94,6 +130,8 @@ class UiError {
     this.kind = UbaaErrorKind.unknown,
     this.resolvedRoute,
     this.initializationFailure,
+    this.authStage,
+    this.authReason,
   });
 
   final UbaaErrorCode code;
@@ -107,6 +145,8 @@ class UiError {
   /// 本次失败的实际路线，不能用配置策略或上一份成功快照代替。
   final ConnectionMode? resolvedRoute;
   final InitializationFailure? initializationFailure;
+  final AuthFailureStage? authStage;
+  final AuthFailureReason? authReason;
 
   /// 不得包含密码、Cookie、URL、上游响应正文或个人信息。
   final String? technicalDetail;
@@ -123,6 +163,8 @@ class UiError {
     resolvedRoute: resolvedRoute,
     technicalDetail: technicalDetail,
     initializationFailure: initializationFailure,
+    authStage: authStage,
+    authReason: authReason,
   );
 
   @override

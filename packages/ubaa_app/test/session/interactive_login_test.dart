@@ -8,6 +8,18 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as recovery;
 
 void main() {
+  test('双路线失败分别记录并优先展示指定路线', () async {
+    final controller = await _controller(_FailedRoutesBackend());
+    addTearDown(controller.dispose);
+    await controller.submitLogin();
+    final records = controller.diagnostics.records
+        .where((r) => r.operation == DiagnosticOperation.login)
+        .toList();
+    expect(records.map((r) => r.route).toSet(), ConnectionMode.values.toSet());
+    expect(records, hasLength(2));
+    expect(controller.error!.resolvedRoute, ConnectionMode.webvpn);
+  });
+
   test('会话恢复验证码耗尽后原位交接人工，完成时保留保存凭据与 Auto', () async {
     final accounts = await recovery.savedAccounts();
     await accounts.retain('synthetic-account', retainSession: true);
@@ -648,4 +660,31 @@ class _AutoReadyBackend extends _InteractiveBackend {
     frame = state.forRoute(ConnectionMode.webvpn)!.frame;
     return state;
   }
+}
+
+class _FailedRoutesBackend extends _InteractiveBackend {
+  @override
+  Future<BackendRouteSettings> routeSettings() async =>
+      const BackendRouteSettings(
+        defaultPolicy: RoutePolicy.webvpn,
+        activeRoutes: [],
+      );
+  @override
+  Future<LoginVerificationState> beginInteractiveLogin(
+    LoginInput input,
+  ) async => LoginVerificationState(
+    routes: [
+      for (final route in ConnectionMode.values)
+        LoginRouteVerification(
+          route: route,
+          status: LoginRouteVerificationStatus.failed,
+          error: mapCoreError(
+            code: route == ConnectionMode.direct
+                ? 'network_error'
+                : 'upstream_changed',
+            resolvedRoute: route,
+          ),
+        ),
+    ],
+  );
 }
