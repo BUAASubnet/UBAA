@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 从已审阅的宣传图生成网站用图：截图页的 WebP、首页展示图和链接分享图。只写 docs/site/public/。
+# 从已审阅的宣传图生成网站用图：截图页的 WebP 和链接分享图。只写 docs/site/public/。
 set -euo pipefail
 
 if [[ $# -ne 0 ]]; then
@@ -30,11 +30,7 @@ for group in phone tablet desktop; do
   done
 done
 
-mkdir -p "$public/images"
-for width in 960 1920; do
-  magick "$creative" -resize "${width}x" -strip -quality 80 "$public/images/showcase-$width.webp"
-done
 # 分享卡片使用 1200x630，从横版宣传图居中裁切。
 magick "$creative" -resize 1200x -gravity center -crop 1200x630+0+0 +repage -strip -quality 85 "$public/og.jpg"
 
-printf '%s\n' "网站用图已更新：$public/screenshots/*/*.webp、$public/images/、$public/og.jpg"
+printf '%s\n' "网站用图已更新：$public/screenshots/*/*.webp、$public/og.jpg"
