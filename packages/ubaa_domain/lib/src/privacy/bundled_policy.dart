@@ -19,7 +19,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '登录所需的账号、密码与验证码用于向学校认证系统验证身份。课表、成绩、作业和预约等请求由设备通过直连或学校 WebVPN 发起，不经旧版 UBAA 中转服务器。',
+          '登录所需的账号、密码与验证码用于向学校认证系统验证身份。课表、成绩、作业和预约等请求由设备通过直连或学校 WebVPN 发起，不经过 UBAA 的服务器中转。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -136,8 +136,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text:
-          '接收方为 Cloudflare, Inc.。统计数据通过 HTTPS 传输，在中国大陆境外的 Cloudflare Worker 和 D1 数据库中处理和存储。正式启用前，项目维护者会在本政策公布实际存储地点和接收方的联系方式。',
+      text: '统计数据通过 HTTPS 传输给 Cloudflare, Inc.，在其位于中国大陆境外的服务器上处理和存储。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
