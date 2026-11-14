@@ -21,6 +21,60 @@ fn posts(fixture: &Fixture) -> usize {
 }
 
 #[tokio::test]
+async fn 学号大小写不同仍能登录并保留学校身份() {
+    for (policy, route) in [
+        (RoutePolicy::Direct, ConnectionMode::Direct),
+        (RoutePolicy::WebVpn, ConnectionMode::WebVpn),
+    ] {
+        let mut fixture = Fixture::new(policy);
+        for transport in [&fixture.direct, &fixture.webvpn] {
+            let mut state = transport.state.lock().unwrap();
+            state.page = PLAIN_PAGE.into();
+            state.username = SYNTHETIC_USERNAME.to_ascii_uppercase();
+        }
+        let login = fixture
+            .client
+            .interactive_login_cancellation()
+            .begin(SYNTHETIC_USERNAME)
+            .unwrap();
+        fixture
+            .client
+            .prepare_quiet_login_for(&login)
+            .await
+            .unwrap();
+        let result = fixture
+            .client
+            .submit_quiet_login(&login, input())
+            .await
+            .unwrap();
+        assert_eq!(
+            result
+                .routes
+                .iter()
+                .find(|r| r.route == route)
+                .unwrap()
+                .state,
+            InteractiveRouteState::Ready
+        );
+        let completed = fixture
+            .client
+            .continue_interactive_login(&login, route, false)
+            .unwrap();
+        assert_eq!(
+            completed.profile.unwrap().school_id.as_deref(),
+            Some(SYNTHETIC_USERNAME.to_ascii_uppercase().as_str())
+        );
+        let status = fixture.client.auth_status().await.unwrap();
+        assert!(
+            status
+                .routes
+                .iter()
+                .any(|r| r.route == route && r.state == ubaa_core::facade::RouteLoginState::Ready)
+        );
+    }
+}
+
+#[tokio::test]
 async fn 校园网仅认证直连而校外同时建立两套会话() {
     for (network, route) in [
         (NetworkState::Campus, ConnectionMode::Direct),

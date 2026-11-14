@@ -433,8 +433,10 @@ impl UbaaClient {
         profile: UserProfile,
     ) -> Result<()> {
         let username = context.login.username();
-        if profile.username.as_deref() != Some(username)
-            && profile.school_id.as_deref() != Some(username)
+        if ![profile.username.as_deref(), profile.school_id.as_deref()]
+            .into_iter()
+            .flatten()
+            .any(|value| value.eq_ignore_ascii_case(username))
         {
             let (runtime, auth) = self.route_parts_for(route_at(index));
             runtime.clear_with(|| auth.clear())?;

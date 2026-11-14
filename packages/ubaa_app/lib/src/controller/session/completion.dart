@@ -24,10 +24,8 @@ mixin ControllerAuthenticationCompletion on ControllerState {
     _activeCompletion = token;
     bool current() => identical(_activeCompletion, token) && scope.isCurrent;
     try {
-      if (internalLocalAccountStore != null &&
-          (profile == null ||
-              (profile.username != input.username.trim() &&
-                  profile.schoolId != input.username.trim()))) {
+      final username = _matchingLoginUsername(profile, input.username.trim());
+      if (internalLocalAccountStore != null && username == null) {
         // 身份拒绝独立于本机清理结果；先关闭 UI/写资格，再结束旧账号入口。
         _releaseCompletionLoading();
         internalError = internalRecordFailure(
@@ -38,7 +36,13 @@ mixin ControllerAuthenticationCompletion on ControllerState {
         await internalRejectMismatchedAccount();
         return;
       }
-      await _acceptAuthenticatedLogin(input, profile, scope, current);
+      await _acceptAuthenticatedLogin(
+        input,
+        profile,
+        scope,
+        current,
+        username: username ?? input.username.trim(),
+      );
       if (current()) {
         internalEndAuthTelemetry(
           route: resolvedRoute ?? internalActiveRoutes.singleOrNull,
@@ -77,9 +81,9 @@ mixin ControllerAuthenticationCompletion on ControllerState {
     LoginInput input,
     UserSummary? profile,
     SessionScope scope,
-    bool Function() current,
-  ) async {
-    final username = input.username.trim();
+    bool Function() current, {
+    required String username,
+  }) async {
     if (internalLocalAccount != null &&
         internalLocalAccount!.username != username) {
       // 原位换账号不能让旧账号的内容继续挂在新身份下面。
@@ -149,3 +153,15 @@ mixin ControllerAuthenticationCompletion on ControllerState {
       unawaited(internalAutomaticSchoolAction(internalRefreshHome));
   }
 }
+
+// SSO 接受学号的 ASCII 大小写变体，本机保存学校返回的写法。
+String? _matchingLoginUsername(UserSummary? profile, String requested) {
+  final expected = _foldLoginUsername(requested);
+  for (final value in [profile?.username, profile?.schoolId]) {
+    if (value != null && _foldLoginUsername(value) == expected) return value;
+  }
+  return null;
+}
+
+String _foldLoginUsername(String value) =>
+    value.replaceAllMapped(RegExp('[A-Z]'), (match) => match[0]!.toLowerCase());
