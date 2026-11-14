@@ -8,7 +8,7 @@
 
 | 项目 | 当前值 | 定义位置 |
 |---|---|---|
-| 产品版本 | `2.0.0`，构建号 `2003`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2003` | [version.toml](../../version.toml)，用 `just version` 同步 |
+| 产品版本 | `2.0.0`，构建号 `2006`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2006` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
