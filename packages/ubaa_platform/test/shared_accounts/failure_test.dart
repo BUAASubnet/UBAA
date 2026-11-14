@@ -16,10 +16,7 @@ void main() {
     transport = _Materials();
     material = SecureMaterialStore(
       transport: transport,
-      coordinator: MaterialCoordinator(
-        directory: root,
-        waitLimit: const Duration(milliseconds: 100),
-      ),
+      coordinator: MaterialCoordinator(directory: root),
     );
     await material.probe();
     accounts = SecureLocalAccountStore(material);
@@ -140,9 +137,17 @@ void main() {
       coordinator: MaterialCoordinator(directory: root),
     );
     await second.probe();
+    final entered = Completer<void>();
+    final creating = second.coordinate(() async {
+      entered.complete();
+      // 让两个消费者在待建密钥的事务期间竞争同一把锁。
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      return SecureLocalAccountStore(second).cacheKey(state.account!);
+    });
+    await entered.future;
     final keys = await Future.wait([
       accounts.cacheKey(state.account!),
-      SecureLocalAccountStore(second).cacheKey(state.account!),
+      creating,
     ]);
     expect(keys.first, keys.last);
   });

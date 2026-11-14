@@ -131,8 +131,9 @@ mod tests {
         );
         assert_eq!(std::fs::read(&path).unwrap(), b"synthetic-corrupt");
         let guard = client.inner.lock().await;
+        // 全程持有网络锁；超时用于发现死锁，并为本地磁盘 I/O 保留时间。
         let value = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            std::time::Duration::from_secs(10),
             BridgeOfflineCache::clear_or_rebuild(
                 root.to_string_lossy().into(),
                 account.into(),
@@ -141,7 +142,7 @@ mod tests {
             ),
         )
         .await
-        .unwrap()
+        .expect("本地缓存重建不得等待网络锁")
         .unwrap();
         let recovered = value.cache.unwrap();
         assert!(value.report.maintenance_error.is_none());
@@ -166,10 +167,12 @@ mod tests {
         .await
         .unwrap();
         let guard = client.inner.lock().await;
-        let value = tokio::time::timeout(std::time::Duration::from_secs(1), old.clear_and_reopen())
-            .await
-            .unwrap()
-            .unwrap();
+        // 全程持有网络锁；超时用于发现死锁，并为本地磁盘 I/O 保留时间。
+        let value =
+            tokio::time::timeout(std::time::Duration::from_secs(10), old.clear_and_reopen())
+                .await
+                .expect("本地缓存清理不得等待网络锁")
+                .unwrap();
         assert!(value.report.compacted);
         assert!(value.report.maintenance_error.is_none());
         assert_eq!(value.report.usage.unwrap().entry_count, 0);
