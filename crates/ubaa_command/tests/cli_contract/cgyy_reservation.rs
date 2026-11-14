@@ -143,7 +143,7 @@ fn with_schema_version(mut value: Value, version: u32) -> Value {
 
 #[test]
 fn cli_唯一_json_schema_版本为_11() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 16);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 17);
 }
 
 #[test]

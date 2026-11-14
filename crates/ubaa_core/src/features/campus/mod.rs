@@ -1,6 +1,7 @@
 //! 用户提供的 HAR 所证明的门户与网费只读协议。
 
 mod network;
+mod packages;
 mod parser;
 mod portal;
 #[cfg(test)]

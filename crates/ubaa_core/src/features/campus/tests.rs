@@ -98,8 +98,25 @@ fn 流量按表头匹配重排列并保留多个产品和单位() {
     assert_eq!(usage.products[0].billable_remaining.value, "40.125");
     assert_eq!(usage.products[0].free_remaining.unit, "byte");
     assert_eq!(usage.products[1].billable_remaining.unit, "M");
-    assert!(usage.remaining_excludes_packages);
+    assert!(!usage.remaining_excludes_packages);
     assert_eq!(usage.fetched_at, 456);
+}
+
+#[test]
+fn 套餐可用流量只计入所属产品免费剩余() {
+    let packages = include_str!("../../../../../fixtures/readonly/campus/network_packages.html");
+    let page = NETWORK.replacen(
+        "</span></td>",
+        &format!("</span></td><td data-col-seq=\"13\">{packages}</td>"),
+        1,
+    );
+    let mut expected = parser::traffic(NETWORK, 456).unwrap();
+    expected.products[0].free_remaining = crate::domain::CampusAmount {
+        value: "5.500011".into(),
+        unit: "G".into(),
+    };
+    assert_eq!(parser::traffic(&page, 456).unwrap(), expected);
+    assert!(parser::traffic(&page.replace("可用流量：5G", "可用流量：未知"), 456).is_err());
 }
 
 #[test]

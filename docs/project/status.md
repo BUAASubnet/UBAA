@@ -11,7 +11,7 @@
 | 产品版本 | `2.0.0`，构建号 `2006`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2006` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
-| 命令输出 | CLI JSON schema v16 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
+| 命令输出 | CLI JSON schema v17 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
 | Rust 与 Dart 之间的接口 | Flutter bridge contract v67 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
@@ -31,7 +31,7 @@
 | 博雅课程 | ✅ 选课列表及普通详情在线读取，列表到底停止续载，支持日程冲突提示及筛选；已选、统计保留缓存 | ✅ 2026-11-06（读取） | ✅ 2026-11-06（读取） | 按需分页、退选截止时间（2026-11-11）尚未真实验证；在线选课、分页结束提示、日程冲突检查和已选缓存展示（2026-11-12）待设备验证 |
 | 希冀作业 | ✅ 本学期刷新、往期课程跳过、同课程最多四并发 | ✅ 2026-11-14（全量 96 份与本学期 13 份对照） | ✅ 2026-11-14（全量 96 份与本学期 13 份对照） | 本学期策略的手机实机耗时 |
 | 课堂签到、iHome、信息门户、个人资料 | ✅ | 校外网络下直连读取失败 | ✅ 2026-11-06 | 校园网内直连 |
-| 门户身份、账户指标、流量 | ✅ GUI 按所需路线恢复会话并记录读取错误 | ✅（Core） | ✅（Core） | App 内用真实账号读取 |
+| 门户身份、账户指标、流量 | ✅ GUI 按所需路线恢复会话并记录读取错误；流量解析区分产品和套餐表，免费剩余合计套餐可用流量 | ✅（Core）；2026-11-14 Android 报告定位套餐有效期误入流量解析 | ✅（Core） | 套餐表修复的回归测试、双路线实测与正式 App 验收 |
 | 财务收入 | ✅ | ✅ 2026-11-08（Core） | ✅ 2026-11-08（Core） | App 页面用真实账号运行 |
 | 日程（列表、周/月视图、编辑、重复、导出 `.ics`） | ✅ 默认后台导入当前整学期课表，首页和日程入口共用任务 | 本地编辑不访问学校；课表读取沿上表 | 本地编辑不访问学校；课表读取沿上表 | 默认整学期同步的设备验证；iOS、Android 的系统保存面板 |
 | 日程跨设备同步（经北航云盘） | ✅ | ✅ 2026-11-05 | ⏳ 需人工完成验证码登录后补验 | GUI 文件面板与其他平台实机 |

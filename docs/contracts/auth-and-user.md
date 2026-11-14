@@ -28,7 +28,9 @@ GUI 与 App 命令模式共用凭据策略、会话及无感恢复，同机退�
 
 ## CLI JSON envelope 版本
 
-稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v16；CLI 不再输出 schema-v9 或更早 envelope。
+稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v17；CLI 不再输出 schema-v9 或更早 envelope。
+
+v17 允许网络流量的 `remainingExcludesPackages=false`，免费剩余包含套餐可用流量。
 
 v16 增加更新门控错误：评教批次发出部分课程后遇到门控时，保留已发课程结果，将未发出的后缀标为 `unattempted`。
 
@@ -136,3 +138,4 @@ CLI JSON envelope 的早期版本依次承载以下合同，当前输出只使�
 | v9 | Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读 |
 | v10 | Evaluation typed target、四态批量结果与 caller-pinned 回读 |
 | v16 | 更新门控错误与评教批次 `unattempted` 后缀 |
+| v17 | 网络免费剩余包含套餐可用流量，保留是否含套餐的布尔标志 |

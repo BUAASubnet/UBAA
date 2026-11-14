@@ -235,7 +235,7 @@ class BridgeCampusSection {
           networkUsage == other.networkUsage;
 }
 
-/// 一个网络产品的流量；两项剩余均不含套餐。
+/// 一个网络产品的流量；免费剩余是否包含套餐由结果标志说明。
 class BridgeNetworkProductUsage {
   final String productName;
   final BridgeCampusAmount used;

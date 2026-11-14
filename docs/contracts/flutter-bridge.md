@@ -737,7 +737,7 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 
 ### v43：门户资料、校园账户与网费流量
 
-新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/parity/campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
+新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../protocol/parity/campus.md)。金额与容量使用十进制字符串和单位；在线网络免费剩余包含套餐可用量，以 `remainingExcludesPackages=false` 标记，换算规则见[只读功能合同](readonly-features.md#门户账户与网络流量)。计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。
 
 ### v44：独立本机日程通道
 

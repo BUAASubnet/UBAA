@@ -70,7 +70,7 @@ class CampusMetrics {
   final CampusMetric<CampusAmount>? cloudStorageRemaining;
 }
 
-/// 一个网络产品的流量；两项剩余均不含套餐，不合成总量。
+/// 一个网络产品的流量；免费剩余是否包含套餐由 NetworkUsage 标志说明。
 @immutable
 class NetworkProductUsage {
   const NetworkProductUsage({

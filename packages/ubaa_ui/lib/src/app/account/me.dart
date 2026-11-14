@@ -496,7 +496,12 @@ class _NetworkPanel extends StatelessWidget {
     if (usage != null && usage.products.isNotEmpty) {
       for (final (i, product) in usage.products.indexed) {
         if (i > 0) children.add(const SizedBox(height: 12));
-        children.add(_NetworkProductCard(product: product));
+        children.add(
+          _NetworkProductCard(
+            product: product,
+            includesPackages: !usage.remainingExcludesPackages,
+          ),
+        );
       }
     } else {
       children.add(
@@ -541,8 +546,12 @@ class _NetworkPanel extends StatelessWidget {
 }
 
 class _NetworkProductCard extends StatelessWidget {
-  const _NetworkProductCard({required this.product});
+  const _NetworkProductCard({
+    required this.product,
+    required this.includesPackages,
+  });
   final NetworkProductUsage product;
+  final bool includesPackages;
 
   @override
   Widget build(BuildContext context) {
@@ -633,6 +642,15 @@ class _NetworkProductCard extends StatelessWidget {
                 figure('计费剩余', product.billableRemaining),
               ],
             ),
+            if (includesPackages) ...[
+              const SizedBox(height: 8),
+              Text(
+                '免费剩余含套餐可用流量',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             // 免费额度的使用进度：已用 ÷（已用 + 免费剩余）。
             if (freeProgress case final progress?) ...[
               const SizedBox(height: 14),
