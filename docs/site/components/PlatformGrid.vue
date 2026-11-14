@@ -1,4 +1,7 @@
 <script setup>
+import { inject } from "vue";
+const release = inject("release");
+const available = (platform) => Boolean(release.value?.platforms[platform.id]?.length);
 // 下载页顶部的平台入口；点击跳到对应平台的下载与安装说明。
 const platforms = [
   { id: "android", name: "Android", detail: "APK · Android 7.0+", ready: true },
@@ -15,7 +18,7 @@ const platforms = [
     <a v-for="platform in platforms" :key="platform.id" :href="`#${platform.id}`">
       <strong>{{ platform.name }}</strong>
       <span>{{ platform.detail }}</span>
-      <em :class="{ soon: !platform.ready }">{{ platform.ready ? "可下载" : "即将上架" }}</em>
+      <em :class="{ soon: !available(platform) }">{{ available(platform) ? "可下载" : platform.ready ? "待发布" : "即将上架" }}</em>
     </a>
   </nav>
 </template>
@@ -30,6 +33,8 @@ const platforms = [
 
 .platform-grid a {
   display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
   gap: 0.25rem;
   padding: 0.875rem 1rem;
   border: 1px solid var(--vp-c-divider);

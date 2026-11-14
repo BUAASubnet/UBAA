@@ -24,7 +24,7 @@ provide('useBhpan', useBhpan)
   <input v-model="useBhpan" type="checkbox" role="switch" />
   使用北航云盘下载
 </label>
-<p class="download-source-note">{{ useBhpan ? '当前使用北航云盘。下载遇到问题时，可关闭开关改用备用下载。' : '当前使用备用下载。开启开关可切换到北航云盘。' }}</p>
+<p v-if="release" class="download-source-note">{{ useBhpan ? '当前使用北航云盘。下载遇到问题时，可关闭开关改用备用下载。' : '当前使用备用下载。开启开关可切换到北航云盘。' }}</p>
 
 <DownloadSuggest />
 
