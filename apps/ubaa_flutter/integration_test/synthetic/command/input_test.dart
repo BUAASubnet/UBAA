@@ -92,7 +92,7 @@ void main() {
         expect(clientCalls, 0);
         final envelope =
             jsonDecode(utf8.decode(input.output)) as Map<String, dynamic>;
-        expect(envelope['schemaVersion'], 16);
+        expect(envelope['schemaVersion'], 17);
         expect(envelope['ok'], false);
         expect(
           (envelope['error'] as Map<String, dynamic>)['code'],
