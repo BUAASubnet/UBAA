@@ -45,6 +45,27 @@ const query = IhomeQuery(
   categoryId: null,
 );
 void main() {
+  test('读取错误保留实际路线、类别和可重试属性', () async {
+    final client = Client()
+      ..error = const BridgeError(
+        code: BridgeErrorCode.timeout,
+        kind: BridgeErrorKind.network,
+        retryable: true,
+        resolvedRoute: BridgeConnectionMode.webVpn,
+        message: '不应展示的原始正文',
+      );
+    await expectLater(
+      BridgeIhomeService(client).page(query),
+      throwsA(
+        isA<UiError>()
+            .having((v) => v.code, '错误码', UbaaErrorCode.timeout)
+            .having((v) => v.kind, '类别', UbaaErrorKind.network)
+            .having((v) => v.retryable, '可重试', true)
+            .having((v) => v.resolvedRoute, '路线', ConnectionMode.webvpn)
+            .having((v) => v.message.contains('原始正文'), '不泄露正文', false),
+      ),
+    );
+  });
   test('查询参数和路线经过类型化投影', () async {
     final client = Client();
     final result = await BridgeIhomeService(client).page(query);
@@ -67,6 +88,7 @@ void main() {
       throwsA(
         isA<UiError>()
             .having((v) => v.code, '错误', UbaaErrorCode.outcomeUnknown)
+            .having((v) => v.message.contains('未确认'), '提示核对', true)
             .having((v) => v.message.contains('敏感'), '不泄露', false),
       ),
     );

@@ -96,6 +96,7 @@ async fn read(runtime: &mut ClientRuntime, url: &str) -> Result<serde_json::Valu
         if response.final_url != expected {
             return Err(invalid());
         }
+        auth::check_gateway_session(runtime, &response, &expected)?;
         if response.status == 401 {
             runtime.feature_state().ihome.clear();
             if attempt == 0 {

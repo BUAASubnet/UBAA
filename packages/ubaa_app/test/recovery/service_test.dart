@@ -36,6 +36,134 @@ Future<AppController> start(_Backend backend, {bool automatic = true}) async {
 }
 
 void main() {
+  final ihomeReads = <String, Future<Object> Function(IhomeService)>{
+    '列表': (service) => service.page(
+      const IhomeQuery(
+        scope: IhomeScope.public,
+        page: 1,
+        limit: 20,
+        keyword: '',
+        filter: IhomeFilter.all,
+        categoryId: null,
+      ),
+    ),
+    '详情': (service) => service.detail(42),
+    '配置': (service) => service.config(),
+    '公告列表': (service) => service.notices(),
+    '公告详情': (service) => service.notice(1),
+  };
+  for (final entry in ihomeReads.entries) {
+    test('iHome ${entry.key}失效后仅恢复 WebVPN 并重读一次', () async {
+      final backend = _Backend()..route = ConnectionMode.webvpn;
+      final controller = await start(backend);
+      await entry.value(controller.ihomeService!);
+      expect(backend.targets, [RecoveryTarget.ihome]);
+      expect(backend.loginRoutes, [ConnectionMode.webvpn]);
+      expect(backend.appeals.reads, 2);
+      expect(controller.diagnostics.records, isEmpty);
+    });
+  }
+  test('iHome 关闭自动登录时保留路线并记录失败', () async {
+    final backend = _Backend()..route = ConnectionMode.webvpn;
+    final controller = await start(backend, automatic: false);
+    await expectLater(
+      controller.ihomeService!.config(),
+      throwsA(isA<UiError>()),
+    );
+    expect(backend.loginRoutes, isEmpty);
+    expect(backend.appeals.reads, 1);
+    final error = controller.diagnostics.records.single;
+    expect(error.code, UbaaErrorCode.authenticationRequired);
+    expect(error.route, ConnectionMode.webvpn);
+  });
+  test('iHome 列表和配置同时失效时共用路线恢复', () async {
+    final backend = _Backend()
+      ..route = ConnectionMode.webvpn
+      ..recoveryGate = Completer<void>();
+    final controller = await start(backend);
+    final service = controller.ihomeService!;
+    final pending = Future.wait([ihomeReads['列表']!(service), service.config()]);
+    await backend.recoveryStarted.future.timeout(const Duration(seconds: 2));
+    await expectLater(
+      service.setReaction(
+        42,
+        IhomeReaction.follow,
+        true,
+        ConnectionMode.webvpn,
+      ),
+      throwsA(
+        isA<UiError>().having(
+          (e) => e.code,
+          '恢复期间禁止写入',
+          UbaaErrorCode.operationConflict,
+        ),
+      ),
+    );
+    expect(backend.appeals.writes, 0);
+    backend.recoveryGate!.complete();
+    await pending;
+    expect(backend.loginRoutes, [ConnectionMode.webvpn]);
+    expect(backend.appeals.reads, 4);
+    expect(controller.diagnostics.records, isEmpty);
+  });
+  test('iHome 恢复后仍失效只记录一次最终错误', () async {
+    final backend = _Backend()
+      ..route = ConnectionMode.webvpn
+      ..alwaysExpired = true;
+    final controller = await start(backend);
+    await expectLater(
+      controller.ihomeService!.notices(),
+      throwsA(isA<UiError>()),
+    );
+    expect(backend.loginRoutes, [ConnectionMode.webvpn]);
+    expect(backend.appeals.reads, 2);
+    expect(controller.diagnostics.records.single.route, ConnectionMode.webvpn);
+  });
+  test('iHome 网络失败直接记录诊断且不触发认证', () async {
+    final backend = _Backend()
+      ..failure = const UiError(
+        code: UbaaErrorCode.timeout,
+        kind: UbaaErrorKind.network,
+        retryable: true,
+        resolvedRoute: ConnectionMode.webvpn,
+        title: '合成错误',
+        message: '禁止进入诊断的原始正文',
+      );
+    final controller = await start(backend);
+    await expectLater(
+      controller.ihomeService!.config(),
+      throwsA(isA<UiError>()),
+    );
+    expect(backend.targets, isEmpty);
+    expect(backend.appeals.reads, 1);
+    final error = controller.diagnostics.records.single;
+    expect(error.code, UbaaErrorCode.timeout);
+    expect(error.route, ConnectionMode.webvpn);
+    expect(error.retryable, isTrue);
+    expect(controller.exportDiagnostics(), isNot(contains('禁止进入诊断的原始正文')));
+  });
+  test('iHome 关注结果未知时只提交一次且不触发读取恢复', () async {
+    final backend = _Backend();
+    final controller = await start(backend);
+    await expectLater(
+      controller.ihomeService!.setReaction(
+        42,
+        IhomeReaction.follow,
+        true,
+        ConnectionMode.webvpn,
+      ),
+      throwsA(
+        isA<UiError>().having(
+          (e) => e.code,
+          '错误码',
+          UbaaErrorCode.outcomeUnknown,
+        ),
+      ),
+    );
+    expect(backend.appeals.writes, 1);
+    expect(backend.targets, isEmpty);
+    expect(backend.loginRoutes, isEmpty);
+  });
   test('我的余额与流量缺少直连会话时按实际目标补认证并完成读取', () async {
     final backend = _Backend();
     final controller = await start(backend);
@@ -309,6 +437,7 @@ class _Backend extends support.FakeRecoveryBackend
         CampusAccountService,
         BhpanProvider,
         FinanceBackend,
+        IhomeBackend,
         RequiredTargetSessionBackend {
   bool ready = false, alwaysExpired = false;
   ConnectionMode route = ConnectionMode.direct;
@@ -320,6 +449,9 @@ class _Backend extends support.FakeRecoveryBackend
   final recoveryStarted = Completer<void>();
   late final disk = _Disk(this);
   late final incomes = _Finance(this);
+  late final appeals = _Ihome(this);
+  @override
+  IhomeService get ihome => appeals;
   @override
   CampusAccountService get campusAccount => this;
   @override
@@ -413,6 +545,72 @@ class _Backend extends support.FakeRecoveryBackend
     return RecoveredRouteSession(
       route: route,
       profile: UserSummary(username: username),
+    );
+  }
+}
+
+class _Ihome implements IhomeService {
+  _Ihome(this.backend);
+  final _Backend backend;
+  int reads = 0, writes = 0;
+  Future<IhomeResult<T>> _read<T>(T value) async {
+    reads++;
+    if (backend.failure case final failure?) throw failure;
+    if (!backend.ready || backend.alwaysExpired) {
+      throw UiError(
+        code: UbaaErrorCode.authenticationRequired,
+        kind: UbaaErrorKind.authentication,
+        resolvedRoute: backend.route,
+        title: '需要登录',
+        message: '合成会话失效',
+      );
+    }
+    return IhomeResult(value, backend.route);
+  }
+
+  @override
+  Future<IhomeResult<IhomePage>> page(IhomeQuery query) =>
+      _read(IhomePage(entries: [], page: 1, lastPage: 1, total: 0));
+  @override
+  Future<IhomeResult<IhomeAppeal>> detail(int id, {bool mine = false}) => _read(
+    IhomeAppeal(
+      id: id,
+      content: '合成诉求',
+      status: '',
+      category: '',
+      publishedAt: '',
+      departments: [],
+      isMine: mine,
+      isFollowed: false,
+      isSupported: false,
+      followCount: 0,
+      supportCount: 0,
+      replies: [],
+      evaluations: [],
+      history: [],
+    ),
+  );
+  @override
+  Future<IhomeResult<IhomeConfig>> config() => _read(
+    IhomeConfig(supportEnabled: false, supportLabel: '支持', categories: []),
+  );
+  @override
+  Future<IhomeResult<List<IhomeNotice>>> notices() => _read(<IhomeNotice>[]);
+  @override
+  Future<IhomeResult<IhomeNotice>> notice(int id) =>
+      _read(IhomeNotice(id: id, title: '合成公告', content: '', date: ''));
+  @override
+  Future<IhomeResult<IhomeAppeal>> setReaction(
+    int id,
+    IhomeReaction reaction,
+    bool enabled,
+    ConnectionMode expectedRoute,
+  ) async {
+    writes++;
+    throw const UiError(
+      code: UbaaErrorCode.outcomeUnknown,
+      title: '结果未确认',
+      message: '请刷新核对',
     );
   }
 }

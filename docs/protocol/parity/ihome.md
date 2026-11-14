@@ -2,6 +2,22 @@
 
 本文件收录 iHome 补充来源裁决、逐操作协议与界面调整记录。
 
+## 会话恢复与错误记录
+
+两份冻结来源均无 iHome，业务操作继续采用下文的补充来源矩阵。共享认证对照采用冻结旧版 `LocalConnectionAuth.kt` 的 `LocalCasParser.extractExecution`、会话失效分类，以及 buaa-api 的 `api/sso/auth.rs`、`request.rs`、`store/cookies.rs`、`store/cred.rs`。两个来源都识别 SSO 登录表单的 `execution` 字段；buaa-api 的业务凭据和重定向策略不用于推断 iHome 协议。
+
+| 操作 | CAS / service | 重定向与最终地址 | Cookie / Token 作用域 | 方法与参数 | 请求头与正文 | 加密签名 | DTO / 解析 | 缓存、并发与重试 | 错误与产品语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 业务认证 | 沿用 `http://i.buaa.edu.cn/api/authLogin` service | 原有白名单与最终地址检查；WebVPN 的 302 `/login` 使用项目已确认的网关失效判定；SSO 的 200 登录表单按 `execution` 识别 | 所选账号和路线的 Cookie，iHome Token 仅在路线内存 | 原有 GET，无新增参数 | 原请求头，无正文 | 无新增常量 | 无业务 DTO 变化 | 保留单飞与代次校验 | 明确的网关登录跳转、SSO 登录表单或 SSO 端点 401 返回 `authentication_required`；普通页面与 5xx 保留服务异常 |
+| 公共、本人、关注、评价列表 | 共用业务认证 | 原业务地址；识别 WebVPN 网关登录跳转 | 原 Bearer 与路线隔离 | 原 GET、分页和筛选参数 | 原 Authorization，无新增正文 | 不适用 | 原分页与诉求投影 | HTTP 401 仍最多重取业务 Token 一次；宿主接入现有目标会话恢复，恢复后最多重读一次 | 保留错误码、类别、可重试属性、实际路线；最终错误记入本地诊断 |
+| 公共 / 本人详情 | 同上 | 原详情地址与上述网关判定 | 同上 | 原 GET 与正数 id | 同上 | 不适用 | 原详情字段 | 同上 | 同上 |
+| 配置与分类 | 同上 | 原 `general_set_more`、`mobile/types` 与上述网关判定 | 同上 | 原重复 key 与 `type_mark=SQLB` | 同上 | 不适用 | 原开关与分类字段 | 同上 | 同上；配置失败不启用支持 |
+| 公告列表与详情 | 同上 | 原 notice 地址与上述网关判定 | 同上 | 原 GET，详情附 id | 同上 | 不适用 | 原公告字段 | 同上 | 同上 |
+
+WebVPN 网关失效依据与现有财务认证的 `check_response` 一致，只接受 HTTPS 默认端口网关 `/login`，不含查询与 fragment。SSO 表单识别复用现有解析器，只在已校验的 SSO `/login` 响应为 200 时使用。没有同协议的冻结来源对上述 iHome 业务参数均不适用，不借用其他业务 URL 或字段。
+
+宿主只对读取调用恢复入口，列表与配置可共用同一次路线恢复。恢复期间仍禁止关注和支持提交，写入不进入自动重放。错误展示采用统一安全模板，不保留上游正文、Cookie、Token 或个人数据。
+
 ## 专项记录
 
 ### 2026-10-25：iHome 补充旧版来源

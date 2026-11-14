@@ -1,5 +1,7 @@
 use super::*;
 use crate::domain::ConnectionMode;
+#[path = "session_tests.rs"]
+mod session_tests;
 #[test]
 fn ihome_公共与本人筛选独立() {
     let q = IhomeQuery {
@@ -50,6 +52,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
 struct Scenario {
+    response_override: Option<(&'static str, u16, &'static str, &'static str)>,
     requests: Vec<HttpRequest>,
     followed: bool,
     supported: bool,
@@ -70,6 +73,9 @@ impl HttpTransport for Transport {
         let mut s = self.0.lock().unwrap();
         s.requests.push(request.clone());
         let mut response = empty_response(&request);
+        if let Some(value) = session_tests::override_response(&s, &request, url.path()) {
+            return Ok(value);
+        }
         if url.host_str() == Some("sso.buaa.edu.cn") {
             s.logins += 1;
             assert!(!request.headers.contains_key("Authorization"));
