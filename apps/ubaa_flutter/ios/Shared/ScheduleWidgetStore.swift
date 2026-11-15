@@ -1,10 +1,13 @@
 import CryptoKit
 import Foundation
+import Security
 
 /// 与 Android `WidgetStore.kt` 同合同的组件安全存储。
-/// 只存 AES-256-GCM 密文（`[版本] + nonce + 密文 + 标签`），密钥材料设备本地保存；
-/// 随机账号别名、发布代次、选择和课表投影处于同一完整性边界。
+/// 只存 AES-256-GCM 密文（`[版本] + nonce + 密文 + 标签`）；密钥在 Keychain
+/// （此设备专用、解锁后可读），副本本身不含解密材料且排除备份，
+/// 随机账号别名与课表投影处于同一完整性边界。
 /// Runner 与 ScheduleWidget 扩展通过 App Group 容器共享这一副本。
+/// 周次翻页偏移是低敏感展示状态，独立存于容器明文，不在此边界内。
 enum ScheduleWidgetStore {
     static let appGroupID = "group.cn.edu.ubaa.widgets"
     static let alias = "ubaa.schedule.widgets.v1"
@@ -30,7 +33,13 @@ enum ScheduleWidgetStore {
             .appendingPathComponent("schedule-widgets.key")
     }
 
+    /// Keychain 条目（`AfterFirstUnlockThisDeviceOnly`：不迁移、不备份、解锁后可读）。
+    private static let keychainService = "cn.edu.ubaa.schedule-widget"
+    private static let keychainAccount = "aes-key"
+
     private static func loadKey(create: Bool) throws -> SymmetricKey {
+        #if targetEnvironment(simulator)
+        // 模拟器无签名 entitlements，访问组不可用；退回容器内密钥文件（仅调试环境）。
         guard let keyURL else { throw StoreError.unavailable }
         if let data = try? Data(contentsOf: keyURL) {
             guard data.count == 32 else { throw StoreError.corrupt }
@@ -40,11 +49,42 @@ enum ScheduleWidgetStore {
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
         else { throw StoreError.unavailable }
-        try Data(bytes).write(
-            to: keyURL,
-            options: .completeFileProtectionUntilFirstUserAuthentication
-        )
+        try Data(bytes).write(to: keyURL, options: [.atomic])
         return SymmetricKey(data: Data(bytes))
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String: true,
+        ]
+        var item: CFTypeRef?
+        switch SecItemCopyMatching(query as CFDictionary, &item) {
+        case errSecSuccess:
+            guard let data = item as? Data, data.count == 32 else {
+                throw StoreError.corrupt
+            }
+            return SymmetricKey(data: data)
+        case errSecItemNotFound:
+            guard create else { throw StoreError.unavailable }
+            var bytes = [UInt8](repeating: 0, count: 32)
+            guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
+            else { throw StoreError.unavailable }
+            let add: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: keychainService,
+                kSecAttrAccount as String: keychainAccount,
+                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+                kSecValueData as String: Data(bytes),
+            ]
+            guard SecItemAdd(add as CFDictionary, nil) == errSecSuccess else {
+                throw StoreError.unavailable
+            }
+            return SymmetricKey(data: Data(bytes))
+        default:
+            throw StoreError.unavailable
+        }
+        #endif
     }
 
     // MARK: - 读写
@@ -77,10 +117,10 @@ enum ScheduleWidgetStore {
         let sealed = try AES.GCM.seal(plain, using: key, authenticating: Data(alias.utf8))
         let encrypted =
             Data([1]) + Data(sealed.nonce) + sealed.ciphertext + sealed.tag
-        try encrypted.write(
-            to: fileURL,
-            options: .completeFileProtectionUntilFirstUserAuthentication
-        )
+        try encrypted.write(to: fileURL, options: [.atomic])
+        #if !targetEnvironment(simulator)
+        try? (fileURL as NSURL).setResourceValue(true, forKey: .isExcludedFromBackupKey)
+        #endif
         let roundtrip = try readLocked()
         let again = try JSONSerialization.data(
             withJSONObject: roundtrip ?? [:],
@@ -102,6 +142,9 @@ enum ScheduleWidgetStore {
             let scope = UUID().uuidString.lowercased()
             guard let owner else {
                 try? FileManager.default.removeItem(at: fileURL)
+                guard !FileManager.default.fileExists(atPath: fileURL.path) else {
+                    throw StoreError.unavailable
+                }
                 return scope
             }
             guard !owner.isEmpty, owner.count <= 128 else { throw StoreError.corrupt }

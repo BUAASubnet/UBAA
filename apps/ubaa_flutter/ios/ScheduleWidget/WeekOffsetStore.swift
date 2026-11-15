@@ -21,16 +21,17 @@ enum WeekOffsetStore {
         return anchor == monday.formatted() ? max(-20, min(20, offset)) : 0
     }
 
+    /// 翻页偏移；`delta == 0` 表示回到本周（对齐 Android 的 step=0 语义）。
     static func bump(delta: Int, today: LocalDate) {
         guard let fileURL else { return }
         let monday = today.adding(days: -(today.isoWeekday - 1))
-        let next = max(-20, min(20, current(today: today) + delta))
+        let next = delta == 0 ? 0 : max(-20, min(20, current(today: today) + delta))
         let object: [String: Any] = [
             "anchor": monday.formatted(),
             "offset": next,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return }
-        try? data.write(to: fileURL, options: .completeFileProtectionUntilFirstUserAuthentication)
+        try? data.write(to: fileURL, options: [.atomic])
     }
 }
 
