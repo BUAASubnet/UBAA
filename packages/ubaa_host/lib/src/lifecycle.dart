@@ -307,10 +307,12 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     );
     final widgetGateway =
         widget.scheduleWidgetGateway ??
-        (Platform.isAndroid &&
-                widget.backend == null &&
-                widget.backendFactory == null
-            ? const AndroidScheduleWidgetGateway()
+        (widget.backend == null && widget.backendFactory == null
+            ? (Platform.isIOS
+                  ? const IOSScheduleWidgetGateway()
+                  : Platform.isAndroid
+                  ? const AndroidScheduleWidgetGateway()
+                  : null)
             : null);
     if (widgetGateway != null) {
       _scheduleWidgetPublisher = ScheduleWidgetPublisher(widgetGateway);
