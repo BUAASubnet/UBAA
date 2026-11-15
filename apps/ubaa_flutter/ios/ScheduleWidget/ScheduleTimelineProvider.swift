@@ -14,6 +14,8 @@ struct ScheduleEntry: TimelineEntry {
     var nextCourse: SavedAgendaItem?
     /// 相对“现在”是否正在上课。
     var inClass: Bool
+    /// 配色主题（iOS 17+ 可由用户配置）。
+    var theme: ScheduleTheme
     var date: Date
 
     var isEmpty: Bool { owner == nil }
@@ -26,7 +28,7 @@ struct ScheduleTimelineProvider: TimelineProvider {
         ScheduleEntry(
             owner: "placeholder", updatedAt: nil,
             todayAgenda: [], upcomingAgenda: [], selected: nil,
-            nextCourse: nil, inClass: false, date: Date()
+            nextCourse: nil, inClass: false, theme: .ocean, date: Date()
         )
     }
 
@@ -43,7 +45,7 @@ struct ScheduleTimelineProvider: TimelineProvider {
         completion(Timeline(entries: [entry], policy: .after(next)))
     }
 
-    private func currentEntry(now: Date) -> ScheduleEntry {
+    func currentEntry(now: Date, theme: ScheduleTheme = .ocean) -> ScheduleEntry {
         let (owner, snapshot) = ScheduleWidgetStore.readState()
         let today = LocalDate.today(now: now)
         let time = Self.clock(now: now)
@@ -78,7 +80,7 @@ struct ScheduleTimelineProvider: TimelineProvider {
             owner: owner, updatedAt: updatedAt,
             todayAgenda: todayAgenda, upcomingAgenda: upcomingAgenda,
             selected: selected, nextCourse: nextCourse, inClass: inClass,
-            date: now
+            theme: theme, date: now
         )
     }
 

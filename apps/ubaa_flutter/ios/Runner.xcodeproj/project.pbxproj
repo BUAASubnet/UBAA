@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB5C1D0100000000000000BB /* ScheduleTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000AB /* ScheduleTheme.swift */; };
 		AB5C1D0100000000000000B1 /* ScheduleWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A3 /* ScheduleWidgetPlugin.swift */; };
 		AB5C1D0100000000000000B2 /* ScheduleWidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */; };
 		AB5C1D0100000000000000B3 /* ScheduleWidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */; };
@@ -76,6 +77,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AB5C1D0100000000000000AB /* ScheduleTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTheme.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetModels.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetStore.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A3 /* ScheduleWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetPlugin.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				AB5C1D0100000000000000A4 /* ScheduleWidgetBundle.swift */,
+				AB5C1D0100000000000000AB /* ScheduleTheme.swift */,
 				AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */,
 				AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */,
 				AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */,
@@ -552,6 +555,7 @@
 				AB5C1D0100000000000000B4 /* ScheduleWidgetModels.swift in Sources */,
 				AB5C1D0100000000000000B5 /* ScheduleWidgetStore.swift in Sources */,
 				AB5C1D0100000000000000B6 /* ScheduleWidgetBundle.swift in Sources */,
+				AB5C1D0100000000000000BB /* ScheduleTheme.swift in Sources */,
 				AB5C1D0100000000000000B7 /* ScheduleTimelineProvider.swift in Sources */,
 				AB5C1D0100000000000000B8 /* ScheduleWidgetViews.swift in Sources */,
 				AB5C1D0100000000000000B9 /* WeekOffsetStore.swift in Sources */,

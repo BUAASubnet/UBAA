@@ -172,3 +172,32 @@ final class ScheduleWidgetStoreTests: XCTestCase {
 private extension Array {
     var single: Element? { count == 1 ? self[0] : nil }
 }
+
+final class WeekOffsetStoreTests: XCTestCase {
+    func test零步长回到本周而非停留() throws {
+        let today = try XCTUnwrap(LocalDate.parse("2026-11-18"))
+        WeekOffsetStore.bump(delta: 2, today: today)
+        XCTAssertEqual(WeekOffsetStore.current(today: today), 2)
+        // 对齐 Android step=0：回到本周。
+        WeekOffsetStore.bump(delta: 0, today: today)
+        XCTAssertEqual(WeekOffsetStore.current(today: today), 0)
+    }
+
+    func test跨周边界自动回到本周() throws {
+        let today = try XCTUnwrap(LocalDate.parse("2026-11-18"))
+        WeekOffsetStore.bump(delta: 3, today: today)
+        let nextWeek = try XCTUnwrap(LocalDate.parse("2026-11-25"))
+        XCTAssertEqual(WeekOffsetStore.current(today: nextWeek), 0)
+    }
+}
+
+final class ScheduleDisplayTests: XCTestCase {
+    func test从周次教师串提取教师名() {
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "1-16周 张明"), "张明")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "3-14周 王强 李强"), "王强 李强")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "张明"), "张明")
+        XCTAssertNil(ScheduleDisplay.teacher(from: nil))
+        XCTAssertNil(ScheduleDisplay.teacher(from: "  "))
+        XCTAssertNil(ScheduleDisplay.teacher(from: "1-16周"))
+    }
+}
