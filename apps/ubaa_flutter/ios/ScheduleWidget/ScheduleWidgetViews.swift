@@ -507,3 +507,108 @@ struct WeekScheduleWidget: Widget {
         .supportedFamilies([.systemLarge])
     }
 }
+
+// MARK: - Xcode Canvas 预览（合成数据，不进入发布行为）
+
+#if DEBUG
+extension ScheduleEntry {
+    /// 预览用合成课表，与真实投影同构。
+    static var preview: ScheduleEntry {
+        let week = WidgetWeek(
+            serialNumber: 12, name: "第12周",
+            startDate: LocalDate(year: 2026, month: 11, day: 10),
+            endDate: LocalDate(year: 2026, month: 11, day: 16),
+            arrangedList: [
+                WidgetCourse(
+                    courseName: "高等数学", dayOfWeek: 1, beginSection: 1, endSection: 1,
+                    beginTime: "08:00", endTime: "09:40", placeName: "主楼 A201",
+                    weeksAndTeachers: nil),
+                WidgetCourse(
+                    courseName: "大学英语", dayOfWeek: 1, beginSection: 2, endSection: 2,
+                    beginTime: "10:00", endTime: "11:40", placeName: "教一楼 B305",
+                    weeksAndTeachers: nil),
+                WidgetCourse(
+                    courseName: "数据结构", dayOfWeek: 1, beginSection: 3, endSection: 3,
+                    beginTime: "14:00", endTime: "15:40", placeName: "实验楼 102",
+                    weeksAndTeachers: nil),
+                WidgetCourse(
+                    courseName: "概率论", dayOfWeek: 2, beginSection: 2, endSection: 2,
+                    beginTime: "10:00", endTime: "11:40", placeName: "主楼 A308",
+                    weeksAndTeachers: nil),
+                WidgetCourse(
+                    courseName: "形势与政策", dayOfWeek: 3, beginSection: 4, endSection: 4,
+                    beginTime: "16:00", endTime: "17:40", placeName: "教一楼 C101",
+                    weeksAndTeachers: nil),
+                WidgetCourse(
+                    courseName: "实验实践", dayOfWeek: 5, beginSection: 3, endSection: 4,
+                    beginTime: "14:00", endTime: "17:40", placeName: "实验楼 301",
+                    weeksAndTeachers: nil),
+            ],
+            times: [
+                WidgetTimeSlot(section: 1, start: "08:00", end: "09:40"),
+                WidgetTimeSlot(section: 2, start: "10:00", end: "11:40"),
+                WidgetTimeSlot(section: 3, start: "14:00", end: "15:40"),
+                WidgetTimeSlot(section: 4, start: "16:00", end: "17:40"),
+            ]
+        )
+        let semester = WidgetSemester(
+            termCode: "2026-2027-1",
+            updatedAt: "2026-11-15T12:34:00.000Z",
+            weeks: [week],
+            name: "2026-2027 第一学期"
+        )
+        let monday = week.arrangedList[0]
+        let agenda = [
+            SavedAgendaItem(date: week.startDate, course: monday),
+            SavedAgendaItem(date: week.startDate, course: week.arrangedList[1]),
+            SavedAgendaItem(date: week.startDate, course: week.arrangedList[2]),
+            SavedAgendaItem(date: week.startDate.adding(days: 1), course: week.arrangedList[3]),
+        ]
+        return ScheduleEntry(
+            owner: "preview", updatedAt: "2026-11-15T12:34:00.000Z",
+            todayAgenda: Array(agenda.prefix(3)),
+            upcomingAgenda: agenda,
+            selected: SelectedWeek(semester: semester, week: week),
+            nextCourse: agenda.first, inClass: true, date: Date()
+        )
+    }
+}
+
+#Preview("今日课程（小）", as: .systemSmall) {
+    TodayScheduleWidget()
+} timeline: {
+    [ScheduleEntry.preview]
+}
+
+#Preview("今日课程（锁屏矩形）", as: .accessoryRectangular) {
+    TodayScheduleWidget()
+} timeline: {
+    [ScheduleEntry.preview]
+}
+
+#Preview("今日课程（锁屏文本）", as: .accessoryInline) {
+    TodayScheduleWidget()
+} timeline: {
+    [ScheduleEntry.preview]
+}
+
+#Preview("近日课程（中）", as: .systemMedium) {
+    UpcomingScheduleWidget()
+} timeline: {
+    [ScheduleEntry.preview]
+}
+
+#Preview("UBAA 周课表（大）", as: .systemLarge) {
+    WeekScheduleWidget()
+} timeline: {
+    [ScheduleEntry.preview]
+}
+
+#Preview("周课表 · 紧凑排版") {
+    WeekCompactContent(
+        entry: .preview,
+        week: ScheduleEntry.preview.selected!.week
+    )
+    .frame(width: 336, height: 172)
+}
+#endif
