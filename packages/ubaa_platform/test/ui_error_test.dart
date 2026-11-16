@@ -51,7 +51,7 @@ void main() {
 
       expect(error.code, UbaaErrorCode.businessUnavailable);
       expect(error.title, '预约暂不可用');
-      expect(error.message, '当前不在预约时段（8:00–20:00）');
+      expect(error.message, '当前无法预约，请稍后刷新');
       expect(error.actionLabel, '重试');
       expect(error.retryable, isTrue);
     });

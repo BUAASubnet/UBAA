@@ -37,7 +37,7 @@ void main() {
 }
 
 class _Client extends FixtureContractVersionClient {
-  _Client(this.route) : super(70);
+  _Client(this.route) : super(71);
   final BridgeConnectionMode? route;
 
   @override

@@ -26998,10 +26998,16 @@ impl SseDecode for crate::api::read::BridgeLibBookDaySchedule {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_day = <String>::sse_decode(deserializer);
+        let mut var_bookStart = <Option<String>>::sse_decode(deserializer);
+        let mut var_bookEnd = <Option<String>>::sse_decode(deserializer);
+        let mut var_bookClose = <Option<String>>::sse_decode(deserializer);
         let mut var_timeSlots =
             <Vec<crate::api::read::BridgeLibBookTimeSlot>>::sse_decode(deserializer);
         return crate::api::read::BridgeLibBookDaySchedule {
             day: var_day,
+            book_start: var_bookStart,
+            book_end: var_bookEnd,
+            book_close: var_bookClose,
             time_slots: var_timeSlots,
         };
     }
@@ -40997,6 +41003,9 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookDaySchedul
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.day.into_into_dart().into_dart(),
+            self.book_start.into_into_dart().into_dart(),
+            self.book_end.into_into_dart().into_dart(),
+            self.book_close.into_into_dart().into_dart(),
             self.time_slots.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -48229,6 +48238,9 @@ impl SseEncode for crate::api::read::BridgeLibBookDaySchedule {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.day, serializer);
+        <Option<String>>::sse_encode(self.book_start, serializer);
+        <Option<String>>::sse_encode(self.book_end, serializer);
+        <Option<String>>::sse_encode(self.book_close, serializer);
         <Vec<crate::api::read::BridgeLibBookTimeSlot>>::sse_encode(self.time_slots, serializer);
     }
 }

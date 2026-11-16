@@ -17,10 +17,16 @@ fn 图书馆日程映射保持逐日原始关联() {
         name: "合成分区".to_owned(),
         days: vec![
             domain::LibBookDaySchedule {
+                book_start: Some("08:30".into()),
+                book_end: Some("23:00".into()),
+                book_close: Some("22:00".into()),
                 day: "2026-09-04".to_owned(),
                 time_slots: vec![],
             },
             domain::LibBookDaySchedule {
+                book_start: None,
+                book_end: None,
+                book_close: None,
                 day: "2026-09-05".to_owned(),
                 time_slots: vec![domain::LibBookTimeSlot {
                     id: "second-slot".to_owned(),
@@ -31,6 +37,10 @@ fn 图书馆日程映射保持逐日原始关联() {
             },
         ],
     });
+    assert_eq!(mapped.days[0].book_start.as_deref(), Some("08:30"));
+    assert_eq!(mapped.days[0].book_end.as_deref(), Some("23:00"));
+    assert_eq!(mapped.days[0].book_close.as_deref(), Some("22:00"));
+    assert_eq!(mapped.days[1].book_start, None);
     assert_eq!(mapped.id, "area-safe");
     assert_eq!(mapped.days[0].day, "2026-09-04");
     assert_eq!(mapped.days[0].time_slots.len(), 0);

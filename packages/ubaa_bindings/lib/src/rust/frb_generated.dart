@@ -21742,11 +21742,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return BridgeLibBookDaySchedule(
       day: dco_decode_String(arr[0]),
-      timeSlots: dco_decode_list_bridge_lib_book_time_slot(arr[1]),
+      bookStart: dco_decode_opt_String(arr[1]),
+      bookEnd: dco_decode_opt_String(arr[2]),
+      bookClose: dco_decode_opt_String(arr[3]),
+      timeSlots: dco_decode_list_bridge_lib_book_time_slot(arr[4]),
     );
   }
 
@@ -32062,8 +32065,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_day = sse_decode_String(deserializer);
+    var var_bookStart = sse_decode_opt_String(deserializer);
+    var var_bookEnd = sse_decode_opt_String(deserializer);
+    var var_bookClose = sse_decode_opt_String(deserializer);
     var var_timeSlots = sse_decode_list_bridge_lib_book_time_slot(deserializer);
-    return BridgeLibBookDaySchedule(day: var_day, timeSlots: var_timeSlots);
+    return BridgeLibBookDaySchedule(
+      day: var_day,
+      bookStart: var_bookStart,
+      bookEnd: var_bookEnd,
+      bookClose: var_bookClose,
+      timeSlots: var_timeSlots,
+    );
   }
 
   @protected
@@ -42356,6 +42368,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.day, serializer);
+    sse_encode_opt_String(self.bookStart, serializer);
+    sse_encode_opt_String(self.bookEnd, serializer);
+    sse_encode_opt_String(self.bookClose, serializer);
     sse_encode_list_bridge_lib_book_time_slot(self.timeSlots, serializer);
   }
 

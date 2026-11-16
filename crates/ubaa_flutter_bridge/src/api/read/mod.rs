@@ -466,6 +466,9 @@ pub struct BridgeLibBookAreaSchedule {
 #[derive(Clone, Debug)]
 pub struct BridgeLibBookDaySchedule {
     pub day: String,
+    pub book_start: Option<String>,
+    pub book_end: Option<String>,
+    pub book_close: Option<String>,
     pub time_slots: Vec<BridgeLibBookTimeSlot>,
 }
 #[derive(Clone, Debug)]

@@ -114,3 +114,16 @@ Direct/WebVPN `verify-live feature=libbook` 均通过 prepare/login/status、楼
 本次重核[只读](#图书馆座位只读查询)和[写入](write-actions.md#逐操作基线矩阵)九列中的 `LibBookApi.kt`、`LocalLibBookApi.kt`、`LibBook.kt`、`LocalLibBookApiBackendTest.kt` 和 `LocalLibBookCryptoTest.kt`。固定示例中无同一座位预约协议，对本页各操作九列均不适用。沿用原 CAS、终点、路线内令牌、POST JSON 参数与请求头、写入 AES、DTO、缓存和只读恢复规则。
 
 五项只读操作的非成功信封按有效业务码拒绝；缺失或畸形码仍为结构错误。除原已确认的会话失效提示外，不将原始消息当作诊断。分区详情等读取返回已记录的 `code=500` 且无数据的非预约时段形态时，`business_unavailable` 附 `outside_reservation_hours`，供图书馆功能单独展示预约时段。预约和取消前的资格错误保留其来源，发送后的未知结果及复核规则不变。
+
+### 2026-11-17 预约开放时间
+
+当前官网 `Space/map` 的 `date.list[]` 同时提供使用时段 `times` 和预约窗口 `book_start/book_end/book_close`。北京时间凌晨的学院路一层西、东均返回空闲座位，官网按钮显示“08:30 立即预约”且禁用。官网 `appointment.17804502827213.js` 按所选日期的窗口比较当前 `HH:mm`：早于开始或晚于任一截止时间禁止预约，边界分钟允许。`book_new` 参与按钮文案，不改变该禁用条件。使用时段不能替代预约窗口。
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalLibBookApi.kt`（mapAreaDetail、预约请求）、`LibBook.kt` 和 Backend 测试只保留 day/times，没有预约窗口判断。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 API 模块没有图书馆协议，下面各列均不适用。窗口字段与分钟边界采用本次官网真实响应和前端实现。
+
+| 操作 | CAS/service | 重定向/最终 URL | 会话范围 | 方法与参数 | 头与编码 | 加密 | DTO/解析 | 缓存/并发/重试 | 错误与产品语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 分区日程 | 原 login/cas service | 原有界跳转 | 原路线内 token | POST Space/map，仅 id | 原 Authorization、Origin、Referer、XHR、JSON | 无 | 每日保留 book_start/book_end/book_close，缺失保留为空 | 原缓存与刷新机制 | 窗口缺失或无效停止座位加载并提示刷新 |
+| 预约准备与提交 | 原 login/cas service | 原写入跳转规则 | 原路线内 token | 预检 map/seat；最终 POST space/confirm 的 aesjson 不变 | 原请求头和 JSON | 原日期派生 AES 与 IV | 用最新 map 的目标日期窗口及北京时间核对 | prepare、commit 均新鲜核对，写请求一次且不自动重试 | 窗口外返回 business_unavailable；UI 在窗口外整页显示“不在预约时间”及开放时间，不加载座位与地图；窗口内选座直接弹出预约面板 |
+
+无窗口信息的 code=500 只提示当前无法预约，不再推断固定营业时间。真实写入不在本次验证范围。

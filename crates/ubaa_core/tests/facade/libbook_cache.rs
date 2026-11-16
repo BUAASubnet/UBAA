@@ -56,7 +56,7 @@ impl HttpTransport for CacheTransport {
                 r#"{"code":1,"data":{"area":[{"id":"a1","name":"合成分区"}]}}"#
             }
             "/v4/Space/map" if mode == 5 => {
-                r#"{"code":1,"data":{"area":{"id":"a1"},"date":{"list":[{"day":"2026-10-02","times":[{"id":"m1","start":"08:00","end":"09:00"}]},{"day":"2026-10-03","times":[{"id":"m2","start":"14:00","end":"15:00"}]}]}}}"#
+                r#"{"code":1,"data":{"area":{"id":"a1"},"date":{"list":[{"day":"2026-10-02","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"m1","start":"08:00","end":"09:00"}]},{"day":"2026-10-03","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"m2","start":"14:00","end":"15:00"}]}]}}}"#
             }
             "/v4/Space/map" => r#"{"code":1,"data":{"area":{"id":"a1"},"date":{"list":[]}}}"#,
             "/v4/Space/seat" => {

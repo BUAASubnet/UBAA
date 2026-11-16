@@ -482,7 +482,7 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
 ) => switch ((code, reason)) {
   (UbaaErrorCode.businessUnavailable, 'outside_reservation_hours') => (
     title: '预约暂不可用',
-    message: '当前不在预约时段（8:00–20:00）',
+    message: '当前无法预约，请稍后刷新',
     actionLabel: '重试',
   ),
   (UbaaErrorCode.upstreamUnavailable, 'http_rate_limited') => (

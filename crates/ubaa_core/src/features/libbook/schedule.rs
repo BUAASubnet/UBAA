@@ -65,7 +65,22 @@ pub(super) fn parse_area_schedule_for(area_id: &str, value: &Value) -> Result<Li
         {
             return Err(error("图书馆分区时段字段不完整"));
         }
-        days.push(LibBookDaySchedule { day, time_slots });
+        days.push(LibBookDaySchedule {
+            day,
+            time_slots,
+            book_start: entry
+                .get("book_start")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            book_end: entry
+                .get("book_end")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            book_close: entry
+                .get("book_close")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+        });
     }
     let id = text(area, &["id"]);
     Ok(LibBookAreaSchedule {
@@ -77,4 +92,39 @@ pub(super) fn parse_area_schedule_for(area_id: &str, value: &Value) -> Result<Li
         name: text(area, &["name"]),
         days,
     })
+}
+
+/// 官网按北京时间的分钟比较预约窗口，截止分钟仍允许预约。
+pub(super) fn check_booking_window(day: &LibBookDaySchedule, now: chrono::NaiveTime) -> Result<()> {
+    use chrono::Timelike;
+    let parse = |value: &Option<String>| {
+        value
+            .as_deref()
+            .filter(|s| s.len() == 5)
+            .and_then(|s| chrono::NaiveTime::parse_from_str(s, "%H:%M").ok())
+    };
+    let (Some(start), Some(end), Some(close)) = (
+        parse(&day.book_start),
+        parse(&day.book_end),
+        parse(&day.book_close),
+    ) else {
+        return Err(crate::error::UbaaError::business_unavailable(
+            "预约开放时间暂不可用，请刷新后重试",
+        ));
+    };
+    let end = end.min(close);
+    let minute = |time: chrono::NaiveTime| time.hour() * 60 + time.minute();
+    if start > end {
+        return Err(crate::error::UbaaError::business_unavailable(
+            "预约开放时间暂不可用，请刷新后重试",
+        ));
+    }
+    if minute(now) < minute(start) || minute(now) > minute(end) {
+        return Err(crate::error::UbaaError::business_unavailable(format!(
+            "当前不在预约时段（{}–{}，北京时间）",
+            start.format("%H:%M"),
+            end.format("%H:%M")
+        )));
+    }
+    Ok(())
 }

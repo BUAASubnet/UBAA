@@ -26,6 +26,7 @@ class LibbookReservationFlow extends StatefulWidget {
     required this.fallback,
     required this.onQuery,
     this.onReserve,
+    this.now,
     super.key,
   });
   final FeatureSnapshot snapshot;
@@ -34,6 +35,7 @@ class LibbookReservationFlow extends StatefulWidget {
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final LibbookReserveStarter? onReserve;
+  final DateTime Function()? now;
   @override
   State<LibbookReservationFlow> createState() => LibbookReservationFlowState();
 }
@@ -56,11 +58,43 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   Object? _refreshToken;
   Future<void> refresh() => _refreshAll();
   int _generation = 0;
+  Timer? _windowTimer;
+  BuildContext? _seatSheetContext;
+  String? _lastBookingNotice;
 
   @override
   void initState() {
     super.initState();
     _consume();
+    _lastBookingNotice = _bookingNotice;
+    _windowTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !TickerMode.valuesOf(context).enabled) return;
+      final notice = _bookingNotice;
+      if (notice == _lastBookingNotice) return;
+      _lastBookingNotice = notice;
+      if (notice != null) {
+        final sheetContext = _seatSheetContext;
+        if (sheetContext != null) Navigator.of(sheetContext).pop();
+      }
+      setState(() {});
+      if (notice == null && _selectedDay != null && _selectedSlot != null) {
+        unawaited(
+          _read(
+            FeatureQuery(
+              view: FeatureQueryView.libbookAreaDetail,
+              areaId: _areaId,
+              date: _parsedDay(_reservationDay ?? ''),
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _windowTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -339,6 +373,37 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if (detail.presentation case LibbookSeatPresentation p)
           p.areaId: '座位分布',
     };
+    if (_bookingNotice case final notice?) {
+      UiAppBarSlot.publish(context, FeatureId.libbook, null);
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.access_time, size: 40),
+              const SizedBox(height: 16),
+              Text('不在预约时间', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(notice, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _busy
+                    ? null
+                    : () => _read(
+                        FeatureQuery(
+                          view: FeatureQueryView.libbookAreaDetail,
+                          areaId: _areaId,
+                          date: _parsedDay(_reservationDay ?? ''),
+                        ),
+                      ),
+                child: const Text('刷新'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     publishLibraryPicker(context);
     return ListView(
       padding: UbaaTheme.pageInsets(context, top: 8, bottom: 16),

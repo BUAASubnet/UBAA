@@ -1,6 +1,37 @@
 part of 'reservation_flow.dart';
 
 extension LibbookReservationSchedule on LibbookReservationFlowState {
+  String? get _bookingNotice =>
+      _bookingNoticeAt(widget.now?.call() ?? DateTime.now());
+
+  String? _bookingNoticeAt(DateTime now) {
+    final day = _selectedDay;
+    if (day == null) return null;
+    int? minutes(String? value) {
+      if (value == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(value))
+        return null;
+      final parts = value.split(':').map(int.parse).toList();
+      return parts[0] < 24 && parts[1] < 60 ? parts[0] * 60 + parts[1] : null;
+    }
+
+    final start = minutes(day.bookStart);
+    final end = minutes(day.bookEnd);
+    final close = minutes(day.bookClose);
+    if (start == null ||
+        end == null ||
+        close == null ||
+        start > end ||
+        start > close) {
+      return '预约开放时间暂不可用，请刷新后重试';
+    }
+    final shanghai = now.toUtc().add(const Duration(hours: 8));
+    final current = shanghai.hour * 60 + shanghai.minute;
+    if (current < start || current > end || current > close) {
+      return '预约开放时间：${day.bookStart}–${end < close ? day.bookEnd : day.bookClose}（北京时间）';
+    }
+    return null;
+  }
+
   bool _validArea(LibbookAreaPresentation area) =>
       area.id.trim().isNotEmpty &&
       // 缺省父字段不构成冲突；明确不同的父字段不能被选择。
@@ -46,7 +77,9 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
     if (_selectedSlot == null && _scheduleSlots.isNotEmpty) {
       _slotId = _scheduleSlots.first.id;
     }
-    if (_selectedDay != null && _selectedSlot != null) {
+    if (_selectedDay != null &&
+        _selectedSlot != null &&
+        _bookingNotice == null) {
       final query = _seatDraft;
       _schedule(() => _read(query));
     }
@@ -112,7 +145,8 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
       _generation++;
     });
     if (_scheduleSlots.isNotEmpty) _slotId = _scheduleSlots.first.id;
-    if (_selectedSlot != null) unawaited(_read(_seatDraft));
+    if (_selectedSlot != null && _bookingNotice == null)
+      unawaited(_read(_seatDraft));
   }
 
   void _chooseSlot(String? id) {
@@ -122,7 +156,8 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
       _hideSeats = true;
       _generation++;
     });
-    if (_selectedSlot != null) unawaited(_read(_seatDraft));
+    if (_selectedSlot != null && _bookingNotice == null)
+      unawaited(_read(_seatDraft));
   }
 
   bool _seatBelongsToQuery(

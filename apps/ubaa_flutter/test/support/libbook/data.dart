@@ -84,6 +84,9 @@ FeatureResult libraryData(FeatureQuery q, String state) {
             days: [
               for (final day in ['2026-09-04', '2026-09-05'])
                 LibbookDaySchedulePresentation(
+                  bookStart: '00:00',
+                  bookEnd: '23:59',
+                  bookClose: '23:59',
                   day: day,
                   timeSlots: const [
                     LibbookTimeSlotPresentation(

@@ -17,7 +17,7 @@ async fn 图书馆日程通过_bridge_只读_facade_且不生成写意图() {
         libbook_cas_request(),
         libbook_login_request(),
         ExpectedRequest::new(HttpMethod::Post, url, HttpResponse::new(200, url,
-            br#"{"code":1,"data":{"area":{"id":"area-safe"},"date":{"list":[{"day":"2026-09-04","times":[]},{"day":"2026-09-05","times":[{"id":"second-slot","start":"14:00","end":"16:00"}]}]}}}"#.to_vec())),
+            br#"{"code":1,"data":{"area":{"id":"area-safe"},"date":{"list":[{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[]},{"day":"2026-09-05","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"second-slot","start":"14:00","end":"16:00"}]}]}}}"#.to_vec())),
     ]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     install_core(
@@ -385,7 +385,7 @@ fn libbook_area_detail_request() -> ExpectedRequest {
         HttpResponse::new(
             200,
             url,
-            r#"{"code":1,"data":{"area":{"id":"area-safe","name":"脱敏分区"},"date":{"list":[{"day":"2026-09-04","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}]}}}"#
+            r#"{"code":1,"data":{"area":{"id":"area-safe","name":"脱敏分区"},"date":{"list":[{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}]}}}"#
                 .as_bytes()
                 .to_vec(),
         ),

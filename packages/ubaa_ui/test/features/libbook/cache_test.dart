@@ -82,6 +82,9 @@ Widget _schedulePage(FeatureLoadStatus status, List<FeatureQuery> queries) {
                 name: '合成分区',
                 days: [
                   LibbookDaySchedulePresentation(
+                    bookStart: '00:00',
+                    bookEnd: '23:59',
+                    bookClose: '23:59',
                     day: online ? '2026-11-16' : '2026-11-14',
                     timeSlots: [
                       LibbookTimeSlotPresentation(

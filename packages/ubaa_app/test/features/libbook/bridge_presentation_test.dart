@@ -26,6 +26,9 @@ void registerLibbookPresentationTests() {
     expect(schedule.id, 'area-1');
     expect(schedule.days.map((day) => day.day), ['2026-09-04', '2026-09-05']);
     expect(schedule.days.first.timeSlots.single.id, 'first-slot');
+    expect(schedule.days.first.bookStart, '08:30');
+    expect(schedule.days.first.bookEnd, '23:00');
+    expect(schedule.days.first.bookClose, '22:00');
     final slot = schedule.days.last.timeSlots.single;
     expect(
       [slot.id, slot.start, slot.end, slot.label],
@@ -194,6 +197,9 @@ class _LibraryScheduleClient extends FixtureCharacterizationBridgeClient {
             name: '合成分区',
             days: [
               BridgeLibBookDaySchedule(
+                bookStart: '08:30',
+                bookEnd: '23:00',
+                bookClose: '22:00',
                 day: '2026-09-04',
                 timeSlots: [
                   BridgeLibBookTimeSlot(
@@ -205,6 +211,9 @@ class _LibraryScheduleClient extends FixtureCharacterizationBridgeClient {
                 ],
               ),
               BridgeLibBookDaySchedule(
+                bookStart: '00:00',
+                bookEnd: '23:59',
+                bookClose: '23:59',
                 day: '2026-09-05',
                 timeSlots: [
                   BridgeLibBookTimeSlot(

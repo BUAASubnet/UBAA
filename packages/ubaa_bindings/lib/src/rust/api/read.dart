@@ -1892,12 +1892,26 @@ class BridgeLibBookBookingsPage {
 
 class BridgeLibBookDaySchedule {
   final String day;
+  final String? bookStart;
+  final String? bookEnd;
+  final String? bookClose;
   final List<BridgeLibBookTimeSlot> timeSlots;
 
-  const BridgeLibBookDaySchedule({required this.day, required this.timeSlots});
+  const BridgeLibBookDaySchedule({
+    required this.day,
+    this.bookStart,
+    this.bookEnd,
+    this.bookClose,
+    required this.timeSlots,
+  });
 
   @override
-  int get hashCode => day.hashCode ^ timeSlots.hashCode;
+  int get hashCode =>
+      day.hashCode ^
+      bookStart.hashCode ^
+      bookEnd.hashCode ^
+      bookClose.hashCode ^
+      timeSlots.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1905,6 +1919,9 @@ class BridgeLibBookDaySchedule {
       other is BridgeLibBookDaySchedule &&
           runtimeType == other.runtimeType &&
           day == other.day &&
+          bookStart == other.bookStart &&
+          bookEnd == other.bookEnd &&
+          bookClose == other.bookClose &&
           timeSlots == other.timeSlots;
 }
 

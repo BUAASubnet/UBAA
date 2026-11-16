@@ -95,9 +95,15 @@ final class LibbookAreaSchedulePresentation extends FeaturePresentation {
 
 final class LibbookDaySchedulePresentation {
   const LibbookDaySchedulePresentation({
+    this.bookStart,
+    this.bookEnd,
+    this.bookClose,
     required this.day,
     required this.timeSlots,
   });
+  final String? bookStart;
+  final String? bookEnd;
+  final String? bookClose;
   final String day;
   final List<LibbookTimeSlotPresentation> timeSlots;
 }

@@ -275,6 +275,17 @@ pub(crate) async fn preflight_reserve(
         return Err(unavailable("图书馆预约时段已变化，请刷新后重新准备"));
     }
 
+    let schedule = parse_area_schedule_for(&request.area_id, &detail_body)?;
+    let day = schedule
+        .days
+        .iter()
+        .find(|day| day.day == request.day)
+        .ok_or_else(|| unavailable("图书馆预约日期已变化，请刷新后重新准备"))?;
+    super::schedule::check_booking_window(
+        day,
+        crate::time::shanghai_datetime(runtime.now()).time(),
+    )?;
+
     let matching_seats = get_seats(
         runtime,
         &request.area_id,

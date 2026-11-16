@@ -53,6 +53,12 @@ pub struct LibBookAreaSchedule {
 #[serde(rename_all = "camelCase")]
 pub struct LibBookDaySchedule {
     pub day: String,
+    #[serde(default)]
+    pub book_start: Option<String>,
+    #[serde(default)]
+    pub book_end: Option<String>,
+    #[serde(default)]
+    pub book_close: Option<String>,
     pub time_slots: Vec<LibBookTimeSlot>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

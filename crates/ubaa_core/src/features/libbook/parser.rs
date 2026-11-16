@@ -94,11 +94,9 @@ pub(super) fn response_data(mut value: Value) -> Result<Value> {
             .with_diagnostic("authentication", "business_session_required"));
         }
         if code == Some(500) && object.get("data").is_none_or(serde_json::Value::is_null) {
-            return Err(
-                UbaaError::business_unavailable("当前不在预约时段（8:00–20:00）")
-                    .with_diagnostic("response", "outside_reservation_hours")
-                    .with_upstream_code(500),
-            );
+            return Err(UbaaError::business_unavailable("当前无法预约，请稍后刷新")
+                .with_diagnostic("response", "outside_reservation_hours")
+                .with_upstream_code(500));
         }
         Err(if let Some(code) = code {
             UbaaError::business_rejected("图书馆服务器拒绝了该请求").with_upstream_code(code)

@@ -133,7 +133,7 @@ fn 图书馆预约按冻结实现生成_direct_与_webvpn_请求头() {
 fn 图书馆预约目标日期非首日时仍只使用该日时段() {
     let scenario = Scenario::new(
         [area_detail_dates(
-            r#"{"day":"2026-09-03","times":[{"id":"other-segment","start":"08:00","end":"10:00"}]},{"day":"2026-09-04","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
+            r#"{"day":"2026-09-03","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"other-segment","start":"08:00","end":"10:00"}]},{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
         )],
         [allowed_seats()],
     );
@@ -201,7 +201,7 @@ fn 图书馆预约拒绝缺失或重复的时段与座位目标() {
         (
             "date-missing",
             area_detail_dates(
-                r#"{"day":"2026-09-03","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
+                r#"{"day":"2026-09-03","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
             ),
             allowed_seats(),
             ErrorCode::InvalidInput,
@@ -211,7 +211,7 @@ fn 图书馆预约拒绝缺失或重复的时段与座位目标() {
         (
             "date-duplicate",
             area_detail_dates(
-                r#"{"day":"2026-09-04","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]},{"day":"2026-09-04","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
+                r#"{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]},{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"segment-safe","start":"08:00","end":"10:00"}]}"#,
             ),
             allowed_seats(),
             ErrorCode::UpstreamChanged,
@@ -456,7 +456,9 @@ fn allowed_area_detail() -> String {
 }
 
 fn area_detail(times: &str) -> String {
-    area_detail_dates(&format!(r#"{{"day":"{DAY}","times":[{times}]}}"#))
+    area_detail_dates(&format!(
+        r#"{{"day":"{DAY}","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{times}]}}"#
+    ))
 }
 
 fn area_detail_dates(dates: &str) -> String {
@@ -667,4 +669,48 @@ fn test_error(code: ErrorCode, message: &'static str) -> UbaaError {
         ErrorKind::Internal
     };
     UbaaError::new(code, kind, false, message)
+}
+
+#[test]
+fn 非预约时段在座位查询与写请求之前拒绝() {
+    use chrono::Timelike;
+    let hour = (chrono::Utc::now() + chrono::Duration::hours(8)).hour();
+    let closed_window = if hour < 12 { "23:00" } else { "01:00" };
+    let detail = allowed_area_detail()
+        .replace("00:00", closed_window)
+        .replace("23:59", closed_window);
+    let scenario = Scenario::new([detail], [allowed_seats()]);
+    let (mut client, root) = client_for("outside-hours", scenario.clone());
+    let error = runtime()
+        .block_on(client.libbook_reserve(reserve_request()))
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::BusinessUnavailable);
+    assert_eq!(scenario.confirm_count(), 0);
+    assert!(!paths(&scenario.requests()).contains(&"/v4/Space/seat".to_owned()));
+    cleanup(root);
+}
+
+#[test]
+fn 预约准备后窗口关闭则提交重新核对并拒绝() {
+    use chrono::Timelike;
+    let hour = (chrono::Utc::now() + chrono::Duration::hours(8)).hour();
+    let closed_window = if hour < 12 { "23:00" } else { "01:00" };
+    let closed = allowed_area_detail()
+        .replace("00:00", closed_window)
+        .replace("23:59", closed_window);
+    let scenario = Scenario::new([allowed_area_detail(), closed], [allowed_seats()]);
+    let (mut client, root) = client_for("window-closed-after-prepare", scenario.clone());
+    let request = reserve_request();
+    let runtime = runtime();
+    runtime
+        .block_on(client.preflight_libbook_reserve(&request))
+        .expect("开放窗口允许准备");
+    let error = runtime
+        .block_on(client.libbook_reserve(request))
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::BusinessUnavailable);
+    assert_eq!(scenario.path_count("/v4/Space/map"), 2);
+    assert_eq!(scenario.path_count("/v4/Space/seat"), 1);
+    assert_eq!(scenario.confirm_count(), 0);
+    cleanup(root);
 }

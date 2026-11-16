@@ -37,7 +37,7 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 70);
+      expect(client.contractVersion(), 71);
       final offline = client.beginNetworkChange(
         online: false,
         timeoutMillis: 30000,

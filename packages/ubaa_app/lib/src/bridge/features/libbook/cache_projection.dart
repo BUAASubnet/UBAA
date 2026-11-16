@@ -289,6 +289,9 @@ FeatureResult bridgeProjectLibbookSchedule(
             detail.days.map(
               (day) => LibbookDaySchedulePresentation(
                 day: day.day,
+                bookStart: day.bookStart,
+                bookEnd: day.bookEnd,
+                bookClose: day.bookClose,
                 timeSlots: List.unmodifiable(
                   day.timeSlots.map(
                     (slot) => LibbookTimeSlotPresentation(
