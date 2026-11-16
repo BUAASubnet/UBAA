@@ -9,7 +9,7 @@ import 'package:ubaa_test_support/grades.dart' as fixtures;
 import 'package:ubaa_test_support/recovery.dart' as startup;
 
 void main() {
-  testWidgets('宿主统计回调在恢复挂起时交付本地集合，失败保留内容', (tester) async {
+  testWidgets('宿主刷新统计时先交付本地集合，恢复失败保留内容', (tester) async {
     final accounts = await startup.widgetAccounts(tester);
     final backend = _Backend();
     await tester.pumpWidget(
@@ -22,7 +22,7 @@ void main() {
     GradesAggregate? progress, result;
     final delivered = Completer<void>();
     final pending = shell
-        .onLoadAllGrades!(false, (value) {
+        .onLoadAllGrades!(true, (value) {
           progress = value;
           if (!delivered.isCompleted) delivered.complete();
         })

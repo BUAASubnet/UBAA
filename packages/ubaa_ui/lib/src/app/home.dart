@@ -443,9 +443,9 @@ class FeatureGridView extends StatelessWidget {
     if (feature == FeatureId.spoc) {
       final snapshot = snapshots[feature];
       if (snapshot == null) return null;
-      final count = const AssignmentListFilters(isSpoc: true)
-          .apply(snapshot.details, '')
-          .length;
+      final count = const AssignmentListFilters(
+        isSpoc: true,
+      ).apply(snapshot.details, '').length;
       return count == 0 ? null : '$count 项作业待交';
     }
     final state = homeState;

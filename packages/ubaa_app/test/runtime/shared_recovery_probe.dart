@@ -345,6 +345,7 @@ final cases = <String, Future<void> Function()>{
       } finally {
         if (!release.isCompleted) release.complete();
         await recovery.close();
+        await recovery.settlement;
         await root.delete(recursive: true);
       }
     },
