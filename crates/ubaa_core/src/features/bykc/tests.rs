@@ -628,9 +628,14 @@ fn 博雅签到与签退资格区分允许拒绝和未知() {
     assert_eq!(passed.sign_eligibility, ActionEligibility::Denied);
     assert_eq!(passed.sign_out_eligibility, ActionEligibility::Denied);
 
+    for (checkin, pass) in [(None, Some(0)), (Some(0), None), (None, None)] {
+        let signing = parse(checkin, pass, Some(&config), "2026-09-04 09:00:00");
+        assert_eq!(signing.sign_eligibility, ActionEligibility::Allowed);
+        let signing_out = parse(checkin, pass, Some(&config), "2026-09-04 10:00:00");
+        assert_eq!(signing_out.sign_out_eligibility, ActionEligibility::Allowed);
+    }
+
     for unknown in [
-        parse(None, Some(0), Some(&config), "2026-09-04 09:00:00"),
-        parse(Some(0), None, Some(&config), "2026-09-04 09:00:00"),
         parse(Some(0), Some(0), None, "2026-09-04 09:00:00"),
         parse(Some(0), Some(0), Some("{not-json"), "2026-09-04 09:00:00"),
         parse(
@@ -642,6 +647,34 @@ fn 博雅签到与签退资格区分允许拒绝和未知() {
     ] {
         assert_eq!(unknown.sign_eligibility, ActionEligibility::Unknown);
         assert_eq!(unknown.sign_out_eligibility, ActionEligibility::Unknown);
+    }
+}
+
+#[test]
+fn 博雅空状态与畸形状态分别处理() {
+    let now = NaiveDateTime::parse_from_str("2026-11-16 10:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("固定时间");
+    let mut record = serde_json::json!({
+        "id": 9, "checkin": null, "pass": null,
+        "courseInfo": {"id": 42, "courseSignConfig": serde_json::json!({
+            "signStartDate": "2026-11-16 09:00:00",
+            "signEndDate": "2026-11-16 11:00:00"
+        }).to_string()}
+    });
+    let parse = |record: &serde_json::Value| {
+        parse_chosen_courses_at(
+            &serde_json::json!({"status":"0", "data":{"courseList":[record]}}).to_string(),
+            now,
+        )
+    };
+    assert_eq!(
+        parse(&record).unwrap()[0].sign_eligibility,
+        ActionEligibility::Allowed
+    );
+    for key in ["checkin", "pass"] {
+        record[key] = serde_json::json!("0");
+        assert!(parse(&record).is_err());
+        record[key] = serde_json::Value::Null;
     }
 }
 

@@ -783,6 +783,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cached_academic_grades(dynamic raw);
 
   @protected
+  BridgeCachedAcademicGradesOverview
+  dco_decode_box_autoadd_bridge_cached_academic_grades_overview(dynamic raw);
+
+  @protected
   BridgeCachedAcademicTerms dco_decode_box_autoadd_bridge_cached_academic_terms(
     dynamic raw,
   );
@@ -1126,6 +1130,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAcademicExamsRefresh dco_decode_bridge_academic_exams_refresh(
     dynamic raw,
   );
+
+  @protected
+  BridgeAcademicGradesOverviewRefresh
+  dco_decode_bridge_academic_grades_overview_refresh(dynamic raw);
 
   @protected
   BridgeAcademicGradesRefresh dco_decode_bridge_academic_grades_refresh(
@@ -1478,6 +1486,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedAcademicGrades dco_decode_bridge_cached_academic_grades(
     dynamic raw,
   );
+
+  @protected
+  BridgeCachedAcademicGradesOverview
+  dco_decode_bridge_cached_academic_grades_overview(dynamic raw);
 
   @protected
   BridgeCachedAcademicTerms dco_decode_bridge_cached_academic_terms(
@@ -3078,6 +3090,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_cached_academic_grades(dynamic raw);
 
   @protected
+  BridgeCachedAcademicGradesOverview?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_grades_overview(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedAcademicTerms?
   dco_decode_opt_box_autoadd_bridge_cached_academic_terms(dynamic raw);
 
@@ -4044,6 +4062,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedAcademicGradesOverview
+  sse_decode_box_autoadd_bridge_cached_academic_grades_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedAcademicTerms sse_decode_box_autoadd_bridge_cached_academic_terms(
     SseDeserializer deserializer,
   );
@@ -4479,6 +4503,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAcademicExamsRefresh sse_decode_bridge_academic_exams_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicGradesOverviewRefresh
+  sse_decode_bridge_academic_grades_overview_refresh(
     SseDeserializer deserializer,
   );
 
@@ -4967,6 +4997,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedAcademicGrades sse_decode_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicGradesOverview
+  sse_decode_bridge_cached_academic_grades_overview(
     SseDeserializer deserializer,
   );
 
@@ -7055,6 +7091,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedAcademicGradesOverview?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_grades_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedAcademicTerms?
   sse_decode_opt_box_autoadd_bridge_cached_academic_terms(
     SseDeserializer deserializer,
@@ -8204,6 +8246,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_grades_overview(
+    BridgeCachedAcademicGradesOverview self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_academic_terms(
     BridgeCachedAcademicTerms self,
     SseSerializer serializer,
@@ -8692,6 +8740,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_academic_exams_refresh(
     BridgeAcademicExamsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_grades_overview_refresh(
+    BridgeAcademicGradesOverviewRefresh self,
     SseSerializer serializer,
   );
 
@@ -9310,6 +9364,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_academic_grades(
     BridgeCachedAcademicGrades self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_grades_overview(
+    BridgeCachedAcademicGradesOverview self,
     SseSerializer serializer,
   );
 
@@ -11863,6 +11923,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_academic_grades(
     BridgeCachedAcademicGrades? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_grades_overview(
+    BridgeCachedAcademicGradesOverview? self,
     SseSerializer serializer,
   );
 

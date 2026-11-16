@@ -6,6 +6,7 @@ const DETAIL_TABLES = [
   "active_days",
   "counter_days",
   "error_days",
+  "error_samples",
   "timing_days",
 ];
 

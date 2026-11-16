@@ -2,7 +2,6 @@ import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../academic/content.dart' show uiSupportsAcademicContent;
 import '../exam/timeline.dart' show uiAcademicSearchValues;
 import 'cards.dart' show GradeCard, GradeSummaryCard;
 import '../../common/state_panel.dart';
@@ -33,11 +32,6 @@ class _GradesFlowState extends State<GradesFlow> {
   int _serial = 0;
   String? _selectedTermCode;
   String _localSearch = '';
-  bool get _ready => {
-    FeatureLoadStatus.success,
-    FeatureLoadStatus.empty,
-    FeatureLoadStatus.stale,
-  }.contains(widget.snapshot.status);
 
   @override
   void initState() {
@@ -69,7 +63,6 @@ class _GradesFlowState extends State<GradesFlow> {
   void _schedule() {
     if (uiScheduled ||
         !widget.visible ||
-        !_ready ||
         _loading ||
         widget.loader == null ||
         (_aggregate != null && !_refreshAfterRead))
@@ -77,7 +70,7 @@ class _GradesFlowState extends State<GradesFlow> {
     uiScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       uiScheduled = false;
-      if (mounted && widget.visible && _ready && !_loading) {
+      if (mounted && widget.visible && !_loading) {
         unawaited(_load(force: _refreshAfterRead));
       }
     });
@@ -117,14 +110,27 @@ class _GradesFlowState extends State<GradesFlow> {
   Widget build(BuildContext context) {
     final snapshot = widget.snapshot;
     final value = snapshot.overview;
-    final current = value is GradesTermOverview ? value : null;
     final aggregate = _aggregate;
-    if ((!_ready && snapshot.status != FeatureLoadStatus.loading) ||
-        current == null ||
-        !uiSupportsAcademicContent(FeatureId.grades, snapshot.details))
-      return widget.fallback;
-
     final terms = aggregate?.terms ?? const <GradeTermRead>[];
+    final savedTerm = terms.where((term) => term.overview != null).firstOrNull;
+    final current = value is GradesTermOverview ? value : savedTerm?.overview;
+    if (current == null) {
+      if (aggregate == null || aggregate.error != null) return widget.fallback;
+      return ListView(
+        padding: UbaaTheme.pageInsets(context, top: 8),
+        children: [
+          GradeSummaryCard(
+            title: '成绩总览',
+            statistics: aggregate.statistics,
+            showCourseAndCredits: true,
+            notice: _gradesAggregateNotice(aggregate, _loading),
+          ),
+        ],
+      );
+    }
+    final currentDetails = value is GradesTermOverview
+        ? snapshot.details
+        : savedTerm!.result.details;
     final selectedCode = _selectedTermCode ?? current.termCode;
     var termIndex = terms.indexWhere((t) => t.code == selectedCode);
     if (termIndex == -1) termIndex = 0;
@@ -135,7 +141,7 @@ class _GradesFlowState extends State<GradesFlow> {
     final currentSuffix = current.statistics == null ? '（本学期）' : '';
     final activeOverview = isCurrentTerm ? current : activeTerm.overview;
     final activeDetails = isCurrentTerm
-        ? snapshot.details
+        ? currentDetails
         : activeTerm.result.details;
     final canPrev = hasTerms && termIndex > 0;
     final canNext = hasTerms && termIndex < terms.length - 1;

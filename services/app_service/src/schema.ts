@@ -55,6 +55,7 @@ export type TelemetryDay = {
     error_kind: string;
     retryable: boolean;
     source?: string;
+    diagnostic?: Record<string, unknown>;
   })[];
   timings: (FeatureCount & { metric: string; bucket: string })[];
   minutes?: {

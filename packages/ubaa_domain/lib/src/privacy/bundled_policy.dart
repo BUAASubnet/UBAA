@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 5,
+  version: 7,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -65,7 +65,8 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '本次运行诊断保存在内存中，用于说明本次运行的错误类别，不会自动上传。反馈问题前请检查拟发送的文字和截图。',
+      text:
+          '本地诊断保存最近七天内最多 100 条错误记录，用于定位读取、提交和启动的失败阶段和原因。完整诊断报告和本地错误编号不会自动上传。反馈问题前请检查拟发送的文字和截图。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -114,13 +115,19 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
-          '按校园日期汇总的功能使用次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
+          '按校园日期汇总的功能读取和写入次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
           '按分钟汇总的登录发起、成功、失败次数和各功能的加载次数及结果，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text:
+          '错误统计还可以附带 Core 源码位置、失败阶段与原因、HTTP 状态、响应长度与类别、JSON 字段类型和解析行列。上游业务码只保留有界数字；业务提示只保留经过逐字确认不含个人数据的固定说明。未知错误正文、业务字段值和响应全文不上传。相同错误维度只保留最新样本，服务端样本保留 14 天。公开看板仅展示汇总，安全诊断样本仅供授权维护者查看。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -195,5 +202,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>['产品改进统计改由维护者位于中国大陆的服务器处理和保存。'],
+  changes: <String>['产品改进统计覆盖更多功能的读取与写入结果；安全诊断样本仅供授权维护者查看。'],
 );

@@ -2,6 +2,8 @@ package cn.edu.ubaa.ubaa_flutter.platform
 
 import android.app.Activity
 import android.content.Intent
+import android.content.ClipData
+import androidx.core.content.FileProvider
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
@@ -34,6 +36,27 @@ class AgendaFileChannel(private val activity: Activity, messenger: BinaryMesseng
     init {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "shareReport" -> {
+                    try {
+                        val name = requireNotNull(call.argument<String>("name"))
+                        require(name.matches(Regex("UBAA-report-[0-9]+\\.json")))
+                        val bytes = requireNotNull(call.argument<ByteArray>("bytes"))
+                        val directory = File(activity.cacheDir, "diagnostic_reports").apply { mkdirs() }
+                        // 保留接收应用读取附件的时间，后续分享时清理七天前的报告。
+                        directory.listFiles()?.filter { it.lastModified() < System.currentTimeMillis() - 7L * 86400000 }
+                            ?.forEach { it.delete() }
+                        val file = File(directory, name).apply { writeBytes(bytes) }
+                        val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.diagnostic-reports", file)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/json"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            clipData = ClipData.newRawUri("错误报告", uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        activity.startActivity(Intent.createChooser(intent, "分享错误报告"))
+                        result.success(null)
+                    } catch (_: Exception) { result.error("share_failed", "无法分享错误报告", null) }
+                }
                 "pickFiles" -> {
                     if (pending != null || target != null || folder != null || stagingPrintFiles) {
                         result.error("busy", "请先结束当前文件操作", null)

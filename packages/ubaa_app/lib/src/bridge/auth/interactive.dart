@@ -202,6 +202,7 @@ LoginVerificationState _acceptInteractiveOutcome(
                   code: error.code,
                   authStage: AuthFailureStage.parse(error.authStage),
                   authReason: AuthFailureReason.parse(error.authReason),
+                  diagnostic: ErrorDiagnostic.parse(error.diagnosticJson),
                   kind: error.kind,
                   retryable: error.retryable,
                   resolvedRoute: route,

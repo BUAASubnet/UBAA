@@ -32,7 +32,11 @@ if (process.argv.includes("--migrate")) {
       "CREATE TABLE IF NOT EXISTS schema_versions (name TEXT PRIMARY KEY)",
     )
     .run();
-  for (const name of ["0001_initial.sql", "0002_minute_counts.sql"]) {
+  for (const name of [
+    "0001_initial.sql",
+    "0002_minute_counts.sql",
+    "0003_error_samples.sql",
+  ]) {
     if (
       await db
         .prepare("SELECT name FROM schema_versions WHERE name = $1")

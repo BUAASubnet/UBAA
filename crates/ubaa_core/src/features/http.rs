@@ -133,6 +133,7 @@ fn resolve_feature_redirect(
     }
 }
 
+#[track_caller]
 fn feature_redirect_error(feature: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
@@ -140,6 +141,7 @@ fn feature_redirect_error(feature: &str) -> UbaaError {
         false,
         format!("{feature} 不支持该重定向"),
     )
+    .with_diagnostic("redirect", "redirect_invalid")
 }
 
 pub(crate) async fn post_form(
@@ -185,6 +187,7 @@ pub(crate) fn body(response: &HttpResponse) -> String {
     String::from_utf8_lossy(&response.body).into_owned()
 }
 
+#[track_caller]
 pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<()> {
     let text = body(response);
     let direct_final_url = crate::connection::from_webvpn_url(&response.final_url)
@@ -203,25 +206,73 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorKind::Authentication,
             false,
             format!("{feature} 需要认证"),
-        ));
+        )
+        .with_diagnostic("response", "authentication_required")
+        .with_response(&response.body, Some(response.status)));
     }
-    if response.status >= 500 {
-        return Err(UbaaError::new(
+    if response.status != 200 {
+        return Err(http_status_error(response, feature));
+    }
+    Ok(())
+}
+
+/// 按 HTTP 语义分类；调用方先处理各业务的成功状态和有证据的认证标记。
+#[track_caller]
+pub(crate) fn http_status_error(response: &HttpResponse, feature: &str) -> UbaaError {
+    let (code, kind, retryable, reason, message) = match response.status {
+        401 => (
+            ErrorCode::AuthenticationRequired,
+            ErrorKind::Authentication,
+            false,
+            "authentication_required",
+            "需要认证",
+        ),
+        403 => (
+            ErrorCode::PermissionDenied,
+            ErrorKind::Upstream,
+            false,
+            "http_forbidden",
+            "服务器拒绝访问",
+        ),
+        408 => (
             ErrorCode::UpstreamUnavailable,
             ErrorKind::Upstream,
             true,
-            format!("{feature} 上游不可用"),
-        ));
-    }
-    if response.status != 200 {
-        return Err(UbaaError::new(
+            "http_request_timeout",
+            "上游请求超时",
+        ),
+        429 => (
+            ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            "http_rate_limited",
+            "请求过于频繁，请稍后重试",
+        ),
+        500..=599 => (
+            ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            "http_server_error",
+            "上游暂时不可用",
+        ),
+        400..=499 => (
+            ErrorCode::BusinessRejected,
+            ErrorKind::Upstream,
+            false,
+            "http_client_error",
+            "服务器拒绝请求",
+        ),
+        _ => (
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            format!("{feature} 请求失败"),
-        ));
-    }
-    Ok(())
+            "http_status_unexpected",
+            "返回了非预期的 HTTP 状态",
+        ),
+    };
+    UbaaError::new(code, kind, retryable, format!("{feature}：{message}"))
+        .with_diagnostic("response", reason)
+        .with_response(&response.body, Some(response.status))
 }
 
 #[cfg(test)]
@@ -287,6 +338,49 @@ mod redirect_tests {
                     );
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod error_classification_tests {
+    use super::*;
+
+    #[test]
+    fn diagnostics_contract_http拒绝限流和服务异常各有明确原因() {
+        for (status, code, reason, retryable) in [
+            (
+                401,
+                ErrorCode::AuthenticationRequired,
+                "authentication_required",
+                false,
+            ),
+            (403, ErrorCode::PermissionDenied, "http_forbidden", false),
+            (
+                429,
+                ErrorCode::UpstreamUnavailable,
+                "http_rate_limited",
+                true,
+            ),
+            (
+                503,
+                ErrorCode::UpstreamUnavailable,
+                "http_server_error",
+                true,
+            ),
+        ] {
+            let response = HttpResponse::new(
+                status,
+                "https://example.invalid/",
+                br#"{"code":403,"status":"503","data":"private"}"#.to_vec(),
+            );
+            let error = check_response(&response, "测试服务").unwrap_err();
+            assert_eq!(error.code, code);
+            assert_eq!(error.retryable, retryable);
+            assert_eq!(error.diagnostic().status, Some(status));
+            assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
+            assert_eq!(error.diagnostic().upstream_code, None);
+            assert!(!error.diagnostic().to_json().unwrap().contains("private"));
         }
     }
 }

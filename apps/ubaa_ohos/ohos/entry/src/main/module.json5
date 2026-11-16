@@ -3,6 +3,7 @@
   "module": {
     "name": "entry",
     "type": "entry",
+    "compressNativeLibs": true,
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [

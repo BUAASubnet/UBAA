@@ -80,6 +80,7 @@ mixin ControllerGrades on ControllerState {
   }) {
     final cache = internalReadCaches.grades;
     if (cache == null || !internalGradesCurrent(cache)) return;
+    cache.aggregate = null;
     if (result.error case final error?) {
       if (error.kind == UbaaErrorKind.authentication) {
         cache.authenticationError = error;
@@ -361,14 +362,22 @@ mixin ControllerGrades on ControllerState {
       return Future.value(GradesAggregate(error: error));
     }
     final cache = internalGradesCache();
+    if (!forceRefresh && cache.aggregate != null) {
+      return Future.value(cache.aggregate!);
+    }
     if (cache.aggregatePending case final pending?) return pending;
     final completer = Completer<GradesAggregate>();
     cache.aggregatePending = completer.future;
     unawaited(() async {
       try {
-        completer.complete(
-          await internalFetchAllGrades(cache, forceRefresh: forceRefresh),
+        final result = await internalFetchAllGrades(
+          cache,
+          forceRefresh: forceRefresh,
         );
+        if (internalGradesCurrent(cache)) {
+          cache.aggregate = result.isComplete ? result : null;
+        }
+        completer.complete(result);
       } on Object catch (error, stackTrace) {
         completer.complete(
           GradesAggregate(
@@ -409,30 +418,10 @@ mixin ControllerGrades on ControllerState {
       if (all.error != null) return GradesAggregate(error: all.error);
       final overview = all.overview;
       if (overview is GraduateGradesOverview) {
-        return GradesAggregate(
-          coreStatistics: GradeStatistics.fromGraduate(
-            overview.statistics,
-            overview.grades,
-          ),
-          terms: [
-            for (final term in overview.terms)
-              GradeTermRead(
-                code: term.code,
-                name: term.name,
-                result: projectGrades(
-                  GradesTermOverview(
-                    requestTerm: term.code,
-                    termCode: term.code,
-                    grades: overview.grades
-                        .where((g) => g.termCode == term.code)
-                        .toList(growable: false),
-                    statistics: term.statistics,
-                  ),
-                  FeatureQueryView.summary,
-                  all.resolvedRoute,
-                ),
-              ),
-          ],
+        return projectGraduateAggregate(
+          overview,
+          all.resolvedRoute,
+          evidence: all.evidence,
         );
       }
     }

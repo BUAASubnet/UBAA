@@ -32,7 +32,7 @@ def prepare_draft(tag, sha, version):
 PUBLIC_SUFFIXES = (
     'android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
     'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
-    'macos-arm64.dmg', 'macos-x86_64.dmg',
+    'macos-arm64.dmg', 'macos-x86_64.dmg', 'harmonyos-arm64.hap',
 )
 
 

@@ -167,12 +167,15 @@ pub(crate) fn upload_result(response: &HttpResponse, mode: ConnectionMode) -> Re
             ErrorKind::Upstream,
             false,
             "文件超过云打印服务器的大小限制",
-        ));
+        )
+        .with_diagnostic("response", "http_content_too_large")
+        .with_http_status(413));
     }
+    let unknown = || unknown().with_http_status(response.status);
     if !matches!(response.status, 302 | 303) {
         return Err(unknown());
     }
-    let locations = response.header_values("location").ok_or_else(unknown)?;
+    let locations = response.header_values("location").ok_or_else(&unknown)?;
     let [location] = locations else {
         return Err(unknown());
     };
@@ -187,7 +190,9 @@ pub(crate) fn upload_result(response: &HttpResponse, mode: ConnectionMode) -> Re
     }
     match number {
         Some(0) => Ok(()),
-        Some(_) => Err(refused()),
+        Some(code) => Err(refused()
+            .with_http_status(response.status)
+            .with_upstream_code(i64::from(code))),
         None => Err(unknown()),
     }
 }

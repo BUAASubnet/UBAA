@@ -55,3 +55,37 @@ FeatureResult projectGrades(
           ),
         );
 }
+
+GradesAggregate projectGraduateAggregate(
+  GraduateGradesOverview overview,
+  ConnectionMode? route, {
+  DataEvidence? evidence,
+}) {
+  return GradesAggregate(
+    termsEvidence: evidence,
+    coreStatistics: GradeStatistics.fromGraduate(
+      overview.statistics,
+      overview.grades,
+    ),
+    terms: [
+      for (final term in overview.terms)
+        GradeTermRead(
+          code: term.code,
+          name: term.name,
+          result: projectGrades(
+            GradesTermOverview(
+              requestTerm: term.code,
+              termCode: term.code,
+              grades: overview.grades
+                  .where((g) => g.termCode == term.code)
+                  .toList(growable: false),
+              statistics: term.statistics,
+            ),
+            FeatureQueryView.summary,
+            route,
+            evidence: evidence,
+          ),
+        ),
+    ],
+  );
+}

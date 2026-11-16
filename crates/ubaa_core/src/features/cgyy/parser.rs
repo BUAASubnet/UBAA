@@ -10,7 +10,7 @@ use crate::domain::{
     CgyyPurposeSource, CgyyPurposeType, CgyyReservationTarget, CgyySlotStatus,
     CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{Result, UbaaError};
 
 pub(super) struct CgyyDayContext {
     pub(super) info: CgyyDayInfo,
@@ -58,33 +58,33 @@ impl<T> NullableField<T> {
     }
 }
 
+#[track_caller]
 pub(super) fn error(message: impl Into<String>) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
 }
 
 pub(super) fn object(body: &str) -> Result<Map<String, Value>> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("研讨室预约响应无法解析"))?;
-    value
-        .as_object()
-        .cloned()
-        .ok_or_else(|| error("研讨室预约响应结构无效"))
+    serde_json::from_str(body)
+        .map_err(|cause| UbaaError::json_error(&cause, "研讨室预约响应无法解析", body.as_bytes()))
+}
+
+#[track_caller]
+pub(super) fn check_code(root: &Map<String, Value>, body: &str) -> Result<()> {
+    let code = root
+        .get("code")
+        .and_then(|value| value.as_i64().or_else(|| value.as_str()?.parse().ok()));
+    match code {
+        Some(200) => Ok(()),
+        Some(_) => Err(UbaaError::business_rejected("研讨室服务器拒绝了该请求")),
+        None => Err(error("研讨室预约响应缺少有效业务状态")
+            .with_diagnostic("parse", "business_code_invalid")),
+    }
+    .map_err(|error| error.with_business_response(body.as_bytes(), None, "code"))
 }
 
 fn success_root(body: &str) -> Result<Map<String, Value>> {
     let root = object(body)?;
-    let code = root.get("code").and_then(|value| {
-        value
-            .as_i64()
-            .or_else(|| value.as_str()?.parse::<i64>().ok())
-    });
-    if code != Some(200) {
-        return Err(error("研讨室预约请求失败"));
-    }
+    check_code(&root, body)?;
     Ok(root)
 }
 

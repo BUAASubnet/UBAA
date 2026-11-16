@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,48 @@ import 'package:ubaa_ui/src/common/error_card.dart'
     show uiErrorMessageRestatesTitle;
 
 void main() {
+  testWidgets('分享错误报告使用对应记录且等待系统面板期间禁止重复打开', (tester) async {
+    final pending = Completer<String?>();
+    var calls = 0;
+    String? shared;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UiDiagnosticsScope(
+          readRecord: (id) => id == 'UBAA-test'
+              ? '{"schema_version":3,"events":[{"issue_id":"UBAA-test"}]}'
+              : null,
+          exportReport: (report) {
+            calls++;
+            shared = report;
+            return pending.future;
+          },
+          child: const Scaffold(
+            body: FriendlyErrorCard(
+              error: UiError(
+                code: UbaaErrorCode.networkError,
+                title: '连接失败',
+                message: '请检查网络',
+                issueId: 'UBAA-test',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pump();
+    await tester.tap(find.text('分享报告文件'));
+    expect(calls, 1);
+    expect(shared, contains('UBAA-test'));
+    expect(shared, contains('schema_version'));
+    pending.completeError(StateError('模拟系统分享失败'));
+    await tester.pumpAndSettle();
+    expect(find.text('报告文件未导出，请重试或复制诊断信息'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('错误卡复制对应诊断记录', (tester) async {
     String? requested;
     String? copied;
@@ -52,6 +95,65 @@ void main() {
     expect(requested, 'UBAA-test');
     expect(copied, contains('identity_validation'));
     expect(copied, contains('schema_version'));
+  });
+
+  testWidgets('写入失败短提示可从现场打开该事件，记录过期后仍可导出安全摘要', (tester) async {
+    final requested = <String>[];
+    String? exported;
+    const error = UiError(
+      code: UbaaErrorCode.outcomeUnknown,
+      title: '结果待核实',
+      message: '请先核对结果',
+      issueId: 'UBAA-expired',
+      resolvedRoute: ConnectionMode.webvpn,
+      technicalDetail: '不应导出的模拟正文',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UiDiagnosticsScope(
+          readRecord: (id) {
+            requested.add(id);
+            return null;
+          },
+          exportReport: (report) async {
+            exported = report;
+            return null;
+          },
+          child: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => UbaaFeedback.showOutcome(
+                  context,
+                  const WriteOutcome(
+                    operation: WriteOperation.bykcSelectCourse,
+                    message: '请先核对结果',
+                    result: WriteCommitResult(
+                      operation: WriteOperation.bykcSelectCourse,
+                      success: false,
+                      message: '请先核对结果',
+                      outcomeUnknown: true,
+                    ),
+                    resultError: error,
+                  ),
+                ),
+                child: const Text('模拟写入'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('模拟写入'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pumpAndSettle();
+    expect(requested, isNotEmpty);
+    expect(requested.toSet(), {'UBAA-expired'});
+    expect(exported, contains('UBAA-expired'));
+    expect(exported, contains('webvpn'));
+    expect(exported, isNot(contains('模拟正文')));
   });
 
   testWidgets('错误卡按需展开诊断并只复制安全字段', (tester) async {

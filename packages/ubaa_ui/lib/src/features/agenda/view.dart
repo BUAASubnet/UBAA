@@ -104,6 +104,7 @@ class AgendaViewState extends State<AgendaView> {
   bool searchVisible = false, noticesDismissed = false;
   String? selectedKey;
   final searchField = TextEditingController();
+  final contentScroll = ScrollController();
   // 页面外层 Focus 已持有焦点，SearchBar 的 autoFocus 不会生效，打开时显式聚焦。
   final searchFocus = FocusNode(debugLabel: 'agenda-search');
   int revision = 0;
@@ -127,8 +128,8 @@ class AgendaViewState extends State<AgendaView> {
     widget.route,
     widget.term,
   );
-  Object get _liveContentScope =>
-      (widget.scopeKey, _contentAccount, widget.route, widget.term);
+  // 同账号自动恢复时保留列表和草稿，路线、学期变化只更新查询。
+  Object get _liveContentScope => (widget.scopeKey, _contentAccount);
 
   bool _refreshScope() {
     final next = _liveScope;
@@ -293,6 +294,7 @@ class AgendaViewState extends State<AgendaView> {
     sheetTick.dispose();
     unawaited(_syncSubscription?.cancel());
     searchField.dispose();
+    contentScroll.dispose();
     searchFocus.dispose();
     super.dispose();
   }
@@ -474,6 +476,8 @@ class AgendaViewState extends State<AgendaView> {
   }
 
   void goDate(DateTime date) {
+    // 所选日期成为列表起点，同时清除手动滚动留下的偏移。重选同一天也要归位。
+    if (contentScroll.hasClients) contentScroll.jumpTo(0);
     setState(() {
       focusDate = agendaDay(date);
       customRange = false;
@@ -770,6 +774,7 @@ class AgendaViewState extends State<AgendaView> {
             },
             child: CustomScrollView(
               key: const ValueKey('agenda-main-scroll'),
+              controller: contentScroll,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 if (result != null && monthGrid)

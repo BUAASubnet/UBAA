@@ -81,6 +81,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// # Errors
   /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicGradesOverviewRefresh> academicGradesOverviewCached({
+    required BridgeOfflineCache cache,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
   Future<BridgeAcademicTermsRefresh> academicTermsCached({
     required BridgeOfflineCache cache,
   });
@@ -1181,6 +1189,9 @@ class BridgeError implements FrbException {
   /// 固定枚举名称，不接收上游正文。
   final String? authStage;
   final String? authReason;
+
+  /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+  final String? diagnosticJson;
   final BridgeErrorCode code;
   final BridgeErrorKind kind;
   final bool retryable;
@@ -1193,6 +1204,7 @@ class BridgeError implements FrbException {
   const BridgeError({
     this.authStage,
     this.authReason,
+    this.diagnosticJson,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1205,6 +1217,7 @@ class BridgeError implements FrbException {
   int get hashCode =>
       authStage.hashCode ^
       authReason.hashCode ^
+      diagnosticJson.hashCode ^
       code.hashCode ^
       kind.hashCode ^
       retryable.hashCode ^
@@ -1219,6 +1232,7 @@ class BridgeError implements FrbException {
           runtimeType == other.runtimeType &&
           authStage == other.authStage &&
           authReason == other.authReason &&
+          diagnosticJson == other.diagnosticJson &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&
@@ -1240,6 +1254,7 @@ enum BridgeErrorCode {
   timeout,
   upstreamUnavailable,
   businessUnavailable,
+  businessRejected,
   upstreamChanged,
   parseError,
   internalError,
@@ -1423,6 +1438,9 @@ class BridgeSafeError {
   /// 固定枚举名称，不接收上游正文。
   final String? authStage;
   final String? authReason;
+
+  /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+  final String? diagnosticJson;
   final String code;
   final String kind;
   final bool retryable;
@@ -1431,6 +1449,7 @@ class BridgeSafeError {
   const BridgeSafeError({
     this.authStage,
     this.authReason,
+    this.diagnosticJson,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1441,6 +1460,7 @@ class BridgeSafeError {
   int get hashCode =>
       authStage.hashCode ^
       authReason.hashCode ^
+      diagnosticJson.hashCode ^
       code.hashCode ^
       kind.hashCode ^
       retryable.hashCode ^
@@ -1453,6 +1473,7 @@ class BridgeSafeError {
           runtimeType == other.runtimeType &&
           authStage == other.authStage &&
           authReason == other.authReason &&
+          diagnosticJson == other.diagnosticJson &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&

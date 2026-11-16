@@ -104,6 +104,13 @@ class _AboutViewState extends State<AboutView> {
           ),
         ),
         const SizedBox(height: 16),
+        Text(
+          '本软件由学生开发者制作并维护，为第三方工具，与北京航空航天大学官方无任何利益关系',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 16),
         Card(
           child: Column(
             children: [

@@ -51,9 +51,11 @@ onMounted(async () => {
 <template>
   <div v-if="suggestion" class="download-suggest">
     <template v-if="suggestion.store">
-      <p>
-        看起来你在使用 {{ suggestion.store }} 设备。{{ suggestion.store }} 版将通过应用商店提供，
-        <a :href="suggestion.anchor">查看说明</a>。
+      <p v-if="suggestion.store === 'iOS'">
+        看起来你在使用 iOS 设备。<a href="https://apps.apple.com/cn/app/ubaa/id6768861821">在 App Store 下载 UBAA</a>。
+      </p>
+      <p v-else>
+        看起来你在使用 HarmonyOS 设备。AppGallery 待审核，<a :href="suggestion.anchor">查看说明</a>。
       </p>
     </template>
     <template v-else>

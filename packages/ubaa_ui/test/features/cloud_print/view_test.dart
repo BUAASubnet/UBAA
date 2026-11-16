@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDiagnosticsScope;
 import 'package:ubaa_ui/src/features/cloud_print/view.dart';
 
 void main() {
@@ -157,8 +158,18 @@ void main() {
   testWidgets('待打印列表不可用时仍可多选、取消或提交上传', (tester) async {
     final service = _Service(queueUnavailable: true);
     var released = 0;
+    String? exported;
     await tester.pumpWidget(
       MaterialApp(
+        builder: (context, child) => UiDiagnosticsScope(
+          readRecord: (issueId) =>
+              '{"events":[{"issue_id":"$issueId","file_index":2}]}',
+          exportReport: (report) async {
+            exported = report;
+            return null;
+          },
+          child: child!,
+        ),
         home: Scaffold(
           body: CloudPrintView(
             service: service,
@@ -194,6 +205,15 @@ void main() {
     ]);
     expect(released, 4);
     expect(find.text('成功 1 / 2'), findsOneWidget);
+    await tester.tap(find.byTooltip('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pumpAndSettle();
+    final records = (jsonDecode(exported!) as Map)['events'] as List;
+    expect(records.single, {
+      'issue_id': 'UBAA-print-upload-2',
+      'file_index': 2,
+    });
   });
 
   testWidgets('纯图片上传直接使用单页设置', (tester) async {
@@ -405,7 +425,7 @@ class _Service implements CloudPrintService {
     PrintOptions options,
   ) async {
     batches.add([for (final source in sources) source.name]);
-    return [null, refused];
+    return [null, refused.withIssueId('UBAA-print-upload-2')];
   }
 
   @override

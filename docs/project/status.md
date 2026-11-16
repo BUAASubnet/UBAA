@@ -2,18 +2,20 @@
 
 本页写给维护者和贡献者，回答三个问题：现在实现了什么，在哪里验证过，发布前还差什么。这里只记录当前事实。每次验证用的命令和结果写在对应提交说明里，旧的逐日记录见[状态流水归档](../archive/history/2026-11-11-status-log.md)。
 
-更新：2026-11-14
+更新：2026-11-17
+
+2026-11-17：图书馆预约页按分区返回的预约窗口和北京时间判断开放状态。窗口外整页提示“不在预约时间”，停止座位和地图加载；到达开放时间后重新读取日程。开放期间点击座位直接弹出预约面板。Core 在准备和提交时分别核对最新窗口，窗口缺失时禁止预约。Direct/WebVPN 图书馆只读验证通过；未提交真实预约。
 
 ## 版本与合同
 
 | 项目 | 当前值 | 定义位置 |
 |---|---|---|
-| 产品版本 | `2.0.0`，构建号 `2006`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2006` | [version.toml](../../version.toml)，用 `just version` 同步 |
+| 产品版本 | `2.0.1`，构建号 `2010`；官方 Flutter 与 OHOS 宿主均为 `2.0.1+2010` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
-| 命令输出 | CLI JSON schema v17 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v67 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
-| 应用服务 | 接口 Schema v1，安装级 SQLite v4，隐私政策 v4 | [应用服务合同](../contracts/app-service.md) |
+| 命令输出 | CLI JSON schema v18 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v71 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| 应用服务 | 接口 Schema v1，安装级 SQLite v5，隐私政策 v6 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
 
@@ -42,7 +44,13 @@
 
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
 
-登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线，并支持从错误卡复制关联记录、应用版本和平台。通用响应异常使用中性提示，遥测与 CLI JSON 协议保持原样。确定性回归覆盖原因传递、路线选择与安全复制，设备端待验收。
+错误详情、诊断页和启动失败页支持交付 JSON 报告文件。Android、iOS、HarmonyOS 和 macOS 使用系统分享，Windows 和 Linux 使用文件保存面板。重启后的历史记录保留错误编号、关联编号与认证原因。附件在各平台实际接收应用中的交付仍待设备验收。
+
+写入错误保留资格核对、实际路线和结果未知的诊断。已知格式的业务拒绝以 `business_rejected` 报告，HTTP 限流与响应结构异常分别记录。允许统计时，写入和专用读取采集操作结果；维护者看板配置支持按版本和错误维度查阅样本，服务端和看板尚未部署。
+
+2026-11-16 使用真实账号完成 Direct 和 WebVPN 只读验证，两条路线各有 56 项通过。财务收入、图书馆分区详情、WebVPN 云打印文档列表和云盘路线边界见[只读验证记录](../runbooks/live-readonly-verification.md#报错诊断链真实只读验证)。
+
+登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线，并支持从错误卡复制关联记录、应用版本和平台。通用响应异常使用中性提示，Core 安全诊断贯穿 Bridge、本地报告和遥测。HTTP 判定以及博雅、SPOC、校园门户与研究生 JSON 解析失败可附带响应摘要。CLI JSON 四字段保持原样。确定性回归覆盖原因传递、路线选择与安全复制，设备端待验收。
 
 云打印错误已保留 Core 实际路线，包括 Auto 回退后的 WebVPN 和上传、删除的逐项结果。选路前的本地参数错误不附带路线。Direct/WebVPN、回退及写入不重放已有合成回归，真实云打印路线验收范围仍见上表。
 
@@ -72,6 +80,8 @@ Android 首页按系统默认网络身份去重；同一网络的能力通知不
 | Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
 | iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |
 | HarmonyOS | 静态分析与测试、无签名 Debug HAP、arm64 Rust 库；模拟器上的合成 HUKS 流程 | 签名包、实机 |
+
+Android 已按[小米 Flip 基础与连续性适配指南](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=2026)补充 `android.supports_size_changes=true`，并显式启用 `resizeableActivity`，沿用 Flutter 对屏幕尺寸、布局、方向和密度配置变化的处理。外屏运行采用[Android 标准声明](https://developer.android.com/reference/android/view/WindowManager#PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN) `PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN=1`。清单 XML 语法和声明静态校验已通过；页面、搜索与滚动状态沿用既有连续性实现。本次未完成 Flutter 回归和完整验收，未构建安装包，也未验证 MIX Flip 2 外屏启动、双向开合接续和键盘行为。
 
 Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材料文件锁内操作随机测试键，失败后不写入未完成业务事务标记，系统恢复后可在下一次启动重新检测；已有未完成业务事务仍阻止访问。Windows 整文件后端的探测继续保留事务保护。官方八包格式、静态分析与 2,217 项测试通过，另有 1 项既有跳过项。macOS 13 项原生集成、Android 原生代码与测试编译、OHOS 分析与 2 项宿主测试通过。Android 本次未执行设备测试。Xiaomi Android 17 的原生诊断曾在 UBAA 原生库加载前记录 Keystore 系统内部错误 4，具体系统原因尚未确定。该系统错误与应用探测留下事务标记分别处理。
 

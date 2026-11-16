@@ -18,8 +18,9 @@ void main() {
     expect(FeatureId.values, hasLength(12));
     expect(FeatureId.values.first, FeatureId.schedule);
     expect(FeatureId.values.last, FeatureId.evaluation);
-    expect(UbaaErrorCode.values, hasLength(18));
+    expect(UbaaErrorCode.values, hasLength(19));
     expect(UbaaErrorCode.values.first, UbaaErrorCode.invalidInput);
+    expect(UbaaErrorCode.businessRejected.wireName, 'business_rejected');
     expect(UbaaErrorCode.updateRequired.wireName, 'update_required');
     expect(FeatureLoadStatus.values, <FeatureLoadStatus>[
       FeatureLoadStatus.idle,

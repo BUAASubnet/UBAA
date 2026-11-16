@@ -3,6 +3,16 @@ part of 'reservation_flow.dart';
 extension LibbookReservationRefresh on LibbookReservationFlowState {
   Future<void> _refreshAll() async {
     if (_busy || widget.onQuery == null) return;
+    if (_bookingNotice != null) {
+      await _read(
+        FeatureQuery(
+          view: FeatureQueryView.libbookAreaDetail,
+          areaId: _areaId,
+          date: _parsedDay(_reservationDay ?? ''),
+        ),
+      );
+      return;
+    }
     final token = Object();
     final date = widget.query.date ?? _parsedDay(_day ?? '');
     _change(() {
@@ -95,7 +105,10 @@ extension LibbookReservationRefresh on LibbookReservationFlowState {
         ),
       ))
         return;
-      if (_selectedDay != null && _selectedSlot != null) await read(_seatDraft);
+      if (_selectedDay != null &&
+          _selectedSlot != null &&
+          _bookingNotice == null)
+        await read(_seatDraft);
     } finally {
       if (mounted && identical(_refreshToken, token)) {
         _change(() => _refreshToken = null);

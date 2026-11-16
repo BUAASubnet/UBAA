@@ -105,6 +105,7 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
         UbaaFeedback.show(
           context,
           e is UiError ? e.message : '操作失败，请检查网络后重试',
+          error: e is UiError ? e : null,
           kind: UbaaFeedbackKind.error,
         );
       return null;
@@ -199,6 +200,7 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
             icon: Icons.cloud_off_outlined,
             title: '回收站读取失败',
             detail: error is UiError ? error.message : '请检查网络后重试',
+            error: error is UiError ? error : null,
             action: '重试',
             onAction: _loading ? null : _load,
           ),

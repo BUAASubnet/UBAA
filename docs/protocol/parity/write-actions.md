@@ -61,7 +61,7 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 |---|---|---|---|---|---|---|---|---|---|
 | 11A Bykc 选课 | `/sscv/cas/login` → `/sscv/choseCourse`；两源等价 | final/Location 提 token，限 `sso/bykc` | 路线内 token | POST `{courseId}` | JSON 密文及双 token/`ak/sk/ts` | AES/RSA/SHA-1 | `status/selected/capacity/window`；缺失为 unknown | 登录单飞、认证失效最多一次刷新 | 仅未选、未满、选课窗内 `available`；其它拒绝 |
 | 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未开课，并检查上游提供的退选截止时间 |
-| 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；缺失/畸形状态或窗口为 unknown，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin=0`，签退仅 `pass!=1 && checkin in {0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
+| 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；空考勤按未签到、空考核按尚未考核；畸形状态或窗口拒绝，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin in {null,0}`，签退仅 `pass!=1 && checkin in {null,0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
 | 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；登录/只读预检可按既有规则刷新，最终 POST 不重放 | 状态 0=allowed、1=denied、缺失/畸形/其它=unknown；仅 allowed 可写；业务 false 原样返回 |
 | 11E LibBook 预约 | CAS 精确 service → `/v4/login/user` → `/v4/space/confirm`；固定示例无任何等价模块，九列均不适用 | 不跟随跳转，最多 8 跳从请求 URL/Location/query/fragment 提 cas；最终写不接受认证跳转 | 主认证 Cookie 按路线隔离；LibBook bearer 仅当前路线内存、不得持久化或跨路线复用 | prepare/commit 都以 `Space/map` 核对日期和唯一时段，再以 `Space/seat` 核对唯一座位；最终 POST `{aesjson}` | JSON + 精确 `bearer<token>`（无空格）+ Origin/Referer/X-Requested-With | AES-128-CBC/PKCS7；key=日期八位数字+逆序，IV=`ZZWBKJ_ZHIHUAWEI`；明文仅 `seat_id/segment/day` 加固定空起止时间，绝无 areaId | `status=1` allowed、`2/3` denied、缺失/畸形/其它 unknown；稳定目标 `(area,seat,day,segment)`，起止时间须与 fresh 时段一致 | token 登录单飞；发送前认证/只读可刷新一次，最终 confirm 只发送一次且绝不重放 | 仅唯一完整目标且明确 allowed 可写；明确业务 false 原样返回；发送后歧义为不可重试 outcome_unknown |
 | 11F LibBook 取消 | **旧版：**精确 CAS service → `/v4/login/user` → `/v4/space/cancel`。**示例：**无 LibBook 模块，本列 N/A 且不等价。**决定：**不采用 relay 路由。 | **旧版：**CAS 最多 8 跳提取 `cas`，业务 client 自动跟随且不验取消 final URL。**示例：**本列 N/A 且不等价。**决定：**保留有界 CAS，最终取消不接受业务/认证跳转。 | **旧版：**主 Cookie 路线隔离，bearer 按用户驻留路线内存且登录单飞。**示例：**本列 N/A 且不等价。**决定：**不落盘、不跨路线。 | **旧版：**取消 POST JSON `{id}`；fresh 列表 POST `/v4/member/seat` 的 `{type:"1",page,limit}`，无详情端点。**示例：**本列 N/A 且不等价。**决定：**本地 action 携带 page/limit，prepare/commit 同页唯一匹配，响应必须显式证明无冲突正数分页；最终 wire 只有 `{id}`。 | **旧版：**固定 Accept/Chrome 147 User-Agent/X-Requested-With、路线 Origin/Referer、JSON Content-Type、精确无空格 bearer。**示例：**本列 N/A 且不等价。**决定：**保持精确 Header 与编码。 | **旧版：**取消无额外加密/签名，冻结 JVM/Android client 使用 trust-all TLS。**示例：**本列 N/A 且不等价。**决定：**不复用预约 AES，不复制 trust-all TLS。 | **旧版：**booking `id/status/statusName`，产品结果 `{success,message}`；已证实状态为 `1/6/8`，但旧产品会信任 `statusName` 与未知状态。**示例：**本列 N/A 且不等价。**决定：**canonical `1`=allowed、`6/8`=denied、缺失/畸形/其它=unknown；`statusName` 仅展示；raw 只以 `code/message` 判定，不假定 raw `success/status`，取消 authority 与最终结果对外都只返回固定安全文案。 | **旧版：**登录单飞，但没有 fresh authority，认证失效可重放取消，server 还可能重建 client。**示例：**本列 N/A 且不等价。**决定：**仅发送前刷新；最终 `request_non_idempotent` 一次且不重放。 | **旧版：**确定负面映射业务错误，HTTP、非 JSON、未知成功文案与 transport 无 outcome-unknown 分类。**示例：**本列 N/A 且不等价，无 CLI exit 证据。**决定：**仅 fresh 页唯一 allowed 目标可写；`/member/seat` 非成功 envelope 固定归约且不透传 message；精确“取消成功”白名单确认成功，确定拒绝不伪装成功；其它发送后歧义为不可重试 `outcome_unknown`。 |
@@ -263,7 +263,7 @@ ID。因此任何 UI 展示字段或外层记录 ID 都不得成为退选目标�
 `pass != 1`、考勤为未签到状态且当前时间处于 `signStartDate..signEndDate` 闭区间；签退允许考勤状态
 `0/5/6`，并使用 `signOutStartDate..signOutEndDate` 闭区间。冻结示例只在被忽略的真实账号样例中使用严格开区间，
 且没有已选、考勤或考核检查，因此不覆盖被迁移产品规则。旧版本把 nullable `checkin/pass` 分别当作未签到与
-未通过；typed 安全合同不再凭字段缺失推断资格，缺失或畸形值记为 `unknown` 并拒绝创建 intent。
+尚未考核；当前沿用该空值语义，畸形值仍拒绝创建 intent。详见[签到空值与时间更新](bykc.md#签到空值与时间更新2026-11-16)。
 
 位置输入不等于“总是要求调用方坐标”：冻结本地实现先从完整签到点列表随机取一个；只有被选中点的半径为
 正数时，才以 `distance = radius * sqrt(U)` 和随机方位角生成圆内均匀坐标，否则要求调用方同时提供
@@ -314,3 +314,9 @@ Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使�
 研讨室订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
 
 Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。
+
+### 评教读取信封错误分类
+
+冻结旧版 `EvaluationService.kt`、`LocalEvaluationService.kt`、`EvaluationModel.kt`、`LocalEvaluationServiceBackendTest.kt` 与固定示例 `api/tes/{core,opt,data}.rs` 已核对。[评教九列](#phase-11j-evaluation-提交逐操作九列2026-09-05)逐项列明会话激活、列表任务、问卷、课程、改模式、题目、最终提交的两来源证据。本次沿该矩阵原样保留 CAS、跳转、Cookie、方法参数、JSON 头和正文、无加密、DTO、缓存与写入规则。两来源的成功码和字段不可拼接。
+
+列表读取与资格检查保留原接受的成功值和 `result/content`；分别识别语法错误、信封结构异常和确定的业务拒绝，诊断只保留安全结构。最终提交仍按既有逐课程写入结论处理，未知结果不自动重放。

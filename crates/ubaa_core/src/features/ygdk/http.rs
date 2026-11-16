@@ -45,15 +45,16 @@ pub(super) async fn post_non_idempotent(
             ensure_active_credential(runtime, generation, credential)
         })
         .await
-        .map_err(|error| {
+        .map_err(|mut error| {
             if error.code == ErrorCode::OutcomeUnknown {
-                super::write_outcome_unknown()
-            } else {
-                error
+                error.message = super::WRITE_OUTCOME_MESSAGE.into();
             }
+            error
         })?;
     if response.status != 200 || response.final_url != expected_final_url {
-        return Err(super::write_outcome_unknown());
+        return Err(
+            super::write_outcome_unknown().with_response(&response.body, Some(response.status))
+        );
     }
     Ok(super::super::body(&response))
 }
@@ -73,8 +74,13 @@ async fn post_request(
             ensure_active_credential(runtime, generation, credential)
         })
         .await?;
-    if response.status != 200 || response.final_url != expected_final_url {
-        return Err(error("阳光打卡服务暂时不可用"));
+    if response.final_url != expected_final_url {
+        return Err(error("阳光打卡响应终点不符")
+            .with_diagnostic("redirect", "response_target_mismatch")
+            .with_http_status(response.status));
+    }
+    if response.status != 200 {
+        return Err(super::super::http::http_status_error(&response, "阳光打卡"));
     }
     Ok(super::super::body(&response))
 }

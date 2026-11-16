@@ -111,7 +111,7 @@ fn only_code_200_is_a_success_envelope() {
     let error = parse_envelope::<Value>(r#"{"code":0,"content":{}}"#)
         .expect_err("the frozen implementation accepts only code 200");
 
-    assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
+    assert_eq!(error.code, crate::error::ErrorCode::BusinessRejected);
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn assignment_page_strictly_types_frozen_metadata_and_assignment_term() {
     ] {
         let error = parse_envelope::<AssignmentPage>(body)
             .expect_err("mistyped frozen page fields must not be ignored");
-        assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+        assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
     }
 }
 
@@ -158,7 +158,7 @@ fn detail_requires_title_and_strict_optional_course_id() {
     ] {
         let error = parse_envelope::<DetailRaw>(body)
             .expect_err("frozen detail identity fields must be strictly typed");
-        assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+        assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
     }
 }
 
@@ -270,7 +270,7 @@ fn detail_requires_its_upstream_id() {
     )
     .expect_err("a detail without its frozen id field is not valid");
 
-    assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+    assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
 }
 
 #[test]
@@ -446,4 +446,42 @@ fn 纯文本保留原有换行且行内标签不插入空格() {
         Some("正文")
     );
     assert_eq!(super::to_plain_text("<p>&nbsp;</p>\n<br>"), None);
+}
+
+#[test]
+fn diagnostics_contract_spoc失败内容不使用成功详情类型解码() {
+    let error = parse_envelope::<Vec<Value>>(
+        r#"{"code":12,"msg":"synthetic-private","content":"failure"}"#,
+    )
+    .unwrap_err();
+    assert_eq!(
+        serde_json::to_value(error.code).unwrap(),
+        "business_rejected"
+    );
+    assert_eq!(error.diagnostic().upstream_code, Some(12));
+    assert!(
+        !error
+            .diagnostic()
+            .to_json()
+            .unwrap()
+            .contains("synthetic-private")
+    );
+}
+
+#[test]
+fn diagnostics_contract_spoc区分无效json和有效json中的错误类型() {
+    use crate::error::ErrorCode;
+    let error =
+        parse_envelope::<Vec<Value>>(r#"{"code":200,"content":"not-an-array"}"#).unwrap_err();
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(
+        error
+            .diagnostic()
+            .json_types
+            .get("content")
+            .map(String::as_str),
+        Some("string")
+    );
+    let error = parse_envelope::<Vec<Value>>(r#"{"code":"#).unwrap_err();
+    assert_eq!(error.code, ErrorCode::ParseError);
 }

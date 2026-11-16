@@ -109,6 +109,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
         UbaaFeedback.show(
           context,
           e is UiError ? e.message : '操作失败，请检查网络后重试',
+          error: e is UiError ? e : null,
           kind: UbaaFeedbackKind.error,
         );
     } finally {
@@ -165,6 +166,7 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
             icon: Icons.cloud_off_outlined,
             title: '分享读取失败',
             detail: error is UiError ? error.message : '请检查网络后重试',
+            error: error is UiError ? error : null,
             action: '重试',
             onAction: _loading ? null : _load,
           ),
@@ -396,6 +398,7 @@ Future<void> bhpanShowShareLink(
       UbaaFeedback.show(
         context,
         e is UiError ? e.message : '分享链接读取失败，请重试',
+        error: e is UiError ? e : null,
         kind: UbaaFeedbackKind.error,
       );
   }

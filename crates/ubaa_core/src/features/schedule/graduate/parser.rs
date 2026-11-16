@@ -34,7 +34,11 @@ fn number(root: &Object, key: &str) -> Result<i32> {
     required(root, key)?.parse().map_err(|_| error())
 }
 fn json(body: &str) -> Result<Value> {
-    serde_json::from_str(body).map_err(|_| error())
+    serde_json::from_str(body).map_err(|_| {
+        error()
+            .with_diagnostic("parse", "graduate_json_invalid")
+            .with_response(body.as_bytes(), None)
+    })
 }
 fn time(value: i32) -> Result<String> {
     if !(0..=2359).contains(&value) || value % 100 >= 60 {

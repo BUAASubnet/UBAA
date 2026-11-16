@@ -5,6 +5,23 @@ import { test } from "node:test";
 import { parse } from "yaml";
 
 const workflow = (name) => parse(readFileSync(`.github/workflows/${name}.yml`, "utf8"));
+test("分发允许复用验收时跳过间接 verify，但要求所有直接依赖成功", () => {
+  const job = workflow("release").jobs.distribute;
+  const expression = job.if.slice(3, -2).replaceAll("needs.*.result", "Object.values(needs).map(job => job.result)");
+  const evaluate = new Function("needs", "cancelled", "contains", `return ${expression}`);
+  const needs = Object.fromEntries(job.needs.map(name => [name, { result: "success" }]));
+  needs.verify = { result: "skipped" };
+  const check = (cancelled = false) => evaluate(needs, () => cancelled, (values, value) => values.includes(value));
+  assert.equal(check(), true);
+  assert.equal(check(true), false);
+  for (const name of job.needs) {
+    for (const result of ["failure", "cancelled", "skipped"]) {
+      needs[name].result = result;
+      assert.equal(check(), false, `${name}: ${result}`);
+    }
+    needs[name].result = "success";
+  }
+});
 test("Release 由手动构建生成草稿，发布草稿不会再次触发构建", () => {
   const release = workflow("release");
   assert.deepEqual(Object.keys(release.on), ["workflow_dispatch"]);
@@ -86,9 +103,9 @@ test("本机 Release 路由覆盖 Apple 构建与验收，普通 CI 保留托管
   }
 });
 
-test("HarmonyOS 商店产物与公开许可证分别上传", () => {
+test("HarmonyOS 商店产物与公开安装包分别上传", () => {
   const uploads = workflow("release").jobs.ohos.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"));
-  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), [".ubaa_local/release/public/licenses.zip"]);
+  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), [".ubaa_local/release/public/*"]);
   assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, ".ubaa_local/release/store/*.app");
   const recovery = workflow("release-distribute");
   assert.deepEqual(Object.keys(recovery.on), ["workflow_dispatch"]);

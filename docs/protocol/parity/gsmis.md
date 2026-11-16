@@ -79,3 +79,14 @@ Core 与 Bridge 继续保留 GSMIS 的完整节次方案和课程时间。Dart �
 | 考试列表 | 同考试入口，POST `modules/ksxxck/getWdksxx.do`，表单 `xnxqdm` | success=true 且 countKs/countKcks/countJk 全零才返回空，任一正数明确不支持明细 | 不推断非空字段；两个冻结来源不适用 |
 
 GSMIS 共用既有 TLS、有界重定向、Direct/WebVPN URL 与 Referer 转换、按路线和域/路径隔离的 Cookie；不硬编码 CAS service、票据或浏览器参数。XHR 头为 JSON Accept、X-Requested-With 与对应应用入口 Referer，表单 Content-Type 沿 Core。无新增加密或签名常量；SSO 落点、登录表单与401返回认证错误，非200及格式不符返回安全错误，不公开响应正文。
+
+#### 成绩总览缓存（2026-11-17）
+
+对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalGradeApi.kt`、`GradeApi.kt`、`Grade.kt`，以及固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/{core,opt,data}.rs`：两个来源均无 GSMIS 全量成绩操作，对该操作的九项协议列均不适用。总览仍采用本页已有 GSMIS 依据，不变更上游协议。
+
+| 操作 | 引导与 service | 重定向与最终地址 | 会话作用域 | 方法与参数 | 请求头与编码 | 加密与签名 | DTO 与解析 | 缓存与并发 | 错误与退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| 研究生成绩总览 | 沿现有 wdcjapp 引导 | 沿现有同路线检查 | 当前账号和路线会话 | 沿现有分页与字典请求 | 沿现有表单和 XHR 头 | 上游无新增常量 | 保存完整 GradeOverview，保留 Core 总体及学期统计 | 使用现有加密账号库和刷新租约保存独立总览范围；普通打开优先读取本地，主动刷新更新 | 保存失败与读取失败分开，退出和清缓存继续撤销租约 |
+| 本科逐学期聚合 | 沿 academic.md | 沿 academic.md | 沿现有会话 | 沿现有学期和成绩请求 | 沿现有头与编码 | 无变化 | 沿现有 GradeData | 复用完整聚合和逐学期缓存 | 不改变学校错误分类 |
+
+总览页面在进入时读取缓存，不依赖当前学期在线读取完成。完整内存总览在同一读取作用域复用，账号、路线或缓存代次变化后失效。

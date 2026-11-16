@@ -13,6 +13,7 @@ pub enum AcademicQuery {
     Week { term: String, week: i32 },
     Exams { term: String },
     Grades { term: String },
+    GradesOverview,
     Classrooms { campus: i32, date: String },
 }
 impl AcademicQuery {
@@ -28,6 +29,7 @@ impl AcademicQuery {
                 week: *week,
             },
             Self::Exams { term } => CacheQuery::Exams { term: term.clone() },
+            Self::GradesOverview => CacheQuery::GradesOverview,
             Self::Grades { term } => CacheQuery::Grades { term: term.clone() },
             Self::Classrooms { campus, date } => CacheQuery::Classrooms {
                 campus: *campus,
@@ -39,7 +41,7 @@ impl AcademicQuery {
         match self {
             Self::Terms | Self::Weeks { .. } | Self::Week { .. } => ReadonlyFeature::Schedule,
             Self::ExamTerms | Self::Exams { .. } => ReadonlyFeature::Exam,
-            Self::Grades { .. } => ReadonlyFeature::Grades,
+            Self::Grades { .. } | Self::GradesOverview => ReadonlyFeature::Grades,
             Self::Classrooms { .. } => ReadonlyFeature::Classroom,
         }
     }
@@ -82,6 +84,9 @@ impl UbaaClient {
                         .await
                         .map(CachePayload::Exams)
                 }
+                AcademicQuery::GradesOverview => crate::features::grades::get_overview(runtime)
+                    .await
+                    .map(CachePayload::GradesOverview),
                 AcademicQuery::Grades { term } => {
                     crate::features::grades::get_grades(runtime, &term)
                         .await

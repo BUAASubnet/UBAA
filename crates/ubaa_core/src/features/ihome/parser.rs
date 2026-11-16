@@ -3,22 +3,28 @@ use crate::domain::{
     IhomeAppeal, IhomeCategory, IhomeConfig, IhomeEntry, IhomeEvaluation, IhomeHistory,
     IhomeNotice, IhomePage, IhomeReply, IhomeScope,
 };
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{Result, UbaaError};
 use serde_json::Value;
+#[track_caller]
 pub(super) fn invalid() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        "iHome 数据结构发生变化，请稍后重试",
-    )
+    UbaaError::upstream_changed("iHome 返回的内容不符合已知结构")
+        .with_diagnostic("parse", "response_shape_invalid")
 }
 pub(crate) fn envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| invalid())?;
-    if number(&value, "code") != Some(20000) || value.get("success") != Some(&Value::Bool(true)) {
-        return Err(invalid());
-    }
-    value.get("data").cloned().ok_or_else(invalid)
+    let value: Value = serde_json::from_str(body)
+        .map_err(|error| UbaaError::json_error(&error, "iHome 响应无法解析", body.as_bytes()))?;
+    let result = match (
+        number(&value, "code"),
+        value.get("success").and_then(Value::as_bool),
+    ) {
+        (Some(20000), Some(true)) => value
+            .get("data")
+            .cloned()
+            .ok_or_else(|| invalid().with_diagnostic("parse", "data_missing")),
+        (Some(_), Some(_)) => Err(UbaaError::business_rejected("iHome 拒绝了该请求")),
+        _ => Err(invalid().with_diagnostic("parse", "envelope_fields_invalid")),
+    };
+    result.map_err(|error| error.with_business_response(body.as_bytes(), None, "code"))
 }
 fn text(v: &Value, k: &str) -> String {
     match v.get(k) {
@@ -45,7 +51,7 @@ fn plain(v: &Value, k: &str) -> String {
     crate::features::spoc::to_plain_text(&text(v, k)).unwrap_or_default()
 }
 fn id(v: &Value) -> Result<i64> {
-    number(v, "id").filter(|n| *n > 0).ok_or_else(invalid)
+    number(v, "id").filter(|n| *n > 0).ok_or_else(|| invalid())
 }
 fn evaluation(v: &Value) -> Result<IhomeEvaluation> {
     Ok(IhomeEvaluation {
@@ -106,7 +112,7 @@ pub(crate) fn page(v: &Value, scope: IhomeScope) -> Result<IhomePage> {
     let rows = v
         .get("data")
         .and_then(Value::as_array)
-        .ok_or_else(invalid)?;
+        .ok_or_else(|| invalid())?;
     Ok(IhomePage {
         entries: rows
             .iter()
@@ -126,17 +132,17 @@ pub(crate) fn page(v: &Value, scope: IhomeScope) -> Result<IhomePage> {
             .collect::<Result<_>>()?,
         page: integer(v, "current_page")
             .filter(|n| *n > 0)
-            .ok_or_else(invalid)?,
+            .ok_or_else(|| invalid())?,
         last_page: integer(v, "last_page")
             .filter(|n| *n >= 0)
-            .ok_or_else(invalid)?,
+            .ok_or_else(|| invalid())?,
         total: integer(v, "total")
             .filter(|n| *n >= 0)
-            .ok_or_else(invalid)?,
+            .ok_or_else(|| invalid())?,
     })
 }
 pub(super) fn config(settings: &Value, types: &Value) -> Result<IhomeConfig> {
-    let values = settings.as_array().ok_or_else(invalid)?;
+    let values = settings.as_array().ok_or_else(|| invalid())?;
     let find = |key| {
         values
             .iter()
@@ -172,7 +178,7 @@ pub(super) fn notice(v: &Value) -> Result<IhomeNotice> {
 }
 pub(super) fn notices(v: &Value) -> Result<Vec<IhomeNotice>> {
     v.as_array()
-        .ok_or_else(invalid)?
+        .ok_or_else(|| invalid())?
         .iter()
         .map(notice)
         .collect()

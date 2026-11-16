@@ -141,6 +141,7 @@ BackendException bridgeMapError(BridgeError error) => BackendException(
   bridgeTypedErrorCode(error.code),
   authStage: AuthFailureStage.parse(error.authStage),
   authReason: AuthFailureReason.parse(error.authReason),
+  diagnostic: ErrorDiagnostic.parse(error.diagnosticJson),
   cacheFailure: bridgeCacheMaintenanceFailure(error.cacheFailure),
   accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
   clientDisposed: error.code == BridgeErrorCode.clientDisposed,
@@ -167,6 +168,7 @@ UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
   BridgeErrorCode.unsupported => UbaaErrorCode.unsupported,
   BridgeErrorCode.businessUnavailable => UbaaErrorCode.businessUnavailable,
+  BridgeErrorCode.businessRejected => UbaaErrorCode.businessRejected,
   BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
   BridgeErrorCode.parseError => UbaaErrorCode.parseError,
   BridgeErrorCode.internalError ||
@@ -213,6 +215,7 @@ UbaaErrorCode bridgeErrorCode(String? code) => switch (code) {
   'upstream_unavailable' => UbaaErrorCode.upstreamUnavailable,
   'businessUnavailable' ||
   'business_unavailable' => UbaaErrorCode.businessUnavailable,
+  'businessRejected' || 'business_rejected' => UbaaErrorCode.businessRejected,
   'upstreamChanged' || 'upstream_changed' => UbaaErrorCode.upstreamChanged,
   'parseError' || 'parse_error' => UbaaErrorCode.parseError,
   'clientDisposed' || 'client_disposed' => UbaaErrorCode.internalError,

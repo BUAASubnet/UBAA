@@ -84,6 +84,9 @@ void main() {
   testWidgets('刷新后座位不可预约时清除原选择且展示可用座位为空', (tester) async {
     final backend = await _open(tester);
     await tapVisible(tester, find.widgetWithText(Card, 'A1'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
     backend.noAvailableSeats = true;
     await tapVisible(tester, find.byTooltip('刷新当前查询'));
     expect(find.text('当前分区暂无可预约座位'), findsOneWidget);
@@ -142,6 +145,9 @@ void main() {
       tester,
       days: [
         LibbookDaySchedulePresentation(
+          bookStart: '00:00',
+          bookEnd: '23:59',
+          bookClose: '23:59',
           day: '2026-09-04',
           timeSlots: [
             ..._defaultDays.first.timeSlots,
@@ -151,6 +157,9 @@ void main() {
       ],
     );
     await tapVisible(tester, find.widgetWithText(Card, 'A1'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
     await tapVisible(tester, _choice('时段', '次日时段 14:00–16:00'));
     expect(backend.libraryReads.last.segment, 'second-slot');
     expect(backend.libraryReads.last.date, DateTime(2026, 9, 4));
@@ -160,6 +169,9 @@ void main() {
     testWidgets('切换$parent 自动加载新分区座位且清除旧选择', (tester) async {
       final backend = await _open(tester, width: 402);
       await tapVisible(tester, find.widgetWithText(Card, 'A1'));
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.tapAt(const Offset(8, 8));
+      await tester.pumpAndSettle();
       if (parent == '楼馆') await tapVisible(tester, find.byTooltip('切换楼馆'));
       await tapVisible(tester, switch (parent) {
         '楼馆' => find.widgetWithText(CheckedPopupMenuItem<String>, '合成乙馆'),
@@ -179,6 +191,9 @@ void main() {
   testWidgets('切换日期挂起时旧座位失效，返回后迟到结果不扩展读取链', (tester) async {
     final backend = await _open(tester);
     await tapVisible(tester, find.widgetWithText(Card, 'A1'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(_choice('日期', '9月5日'));
     await tester.pumpAndSettle();
     final gate = Completer<void>();
@@ -198,10 +213,19 @@ void main() {
   for (final entry in <String, List<LibbookDaySchedulePresentation>>{
     '当前分区暂无可用日期。': [],
     '当前日期暂无可用时段。': [
-      const LibbookDaySchedulePresentation(day: '2026-09-04', timeSlots: []),
+      const LibbookDaySchedulePresentation(
+        bookStart: '00:00',
+        bookEnd: '23:59',
+        bookClose: '23:59',
+        day: '2026-09-04',
+        timeSlots: [],
+      ),
     ],
     '时段信息不完整或重复，请刷新后重试。': [
       const LibbookDaySchedulePresentation(
+        bookStart: '00:00',
+        bookEnd: '23:59',
+        bookClose: '23:59',
         day: '2026-09-04',
         timeSlots: [
           LibbookTimeSlotPresentation(
@@ -367,6 +391,9 @@ Future<_ScheduleBackend> _open(
 
 const _defaultDays = [
   LibbookDaySchedulePresentation(
+    bookStart: '00:00',
+    bookEnd: '23:59',
+    bookClose: '23:59',
     day: '2026-09-04',
     timeSlots: [
       LibbookTimeSlotPresentation(
@@ -378,6 +405,9 @@ const _defaultDays = [
     ],
   ),
   LibbookDaySchedulePresentation(
+    bookStart: '00:00',
+    bookEnd: '23:59',
+    bookClose: '23:59',
     day: '2026-09-05',
     timeSlots: [
       LibbookTimeSlotPresentation(

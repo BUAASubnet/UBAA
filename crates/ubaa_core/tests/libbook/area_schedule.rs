@@ -7,7 +7,7 @@ use ubaa_core::facade::testing::{
 };
 use ubaa_core::facade::{ConnectionMode, Result, RouteClient};
 
-const RESPONSE: &str = r#"{"code":1,"data":{"area":{"name":"合成分区"},"date":{"list":[{"day":"2026-09-04","times":[{"id":"first-slot","start":"08:00","end":"10:00"}]},{"day":"2026-09-05","times":[{"id":"second-slot","start":"14:00","end":"16:00"}]}]}}}"#;
+const RESPONSE: &str = r#"{"code":1,"data":{"area":{"name":"合成分区"},"date":{"list":[{"day":"2026-09-04","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"first-slot","start":"08:00","end":"10:00"}]},{"day":"2026-09-05","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"second-slot","start":"14:00","end":"16:00"}]}]}}}"#;
 
 #[test]
 fn 图书馆日程两路线各一次原请求保留关联且旧详情形状不变() {

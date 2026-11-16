@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart' show DiagnosticOperation;
 import '../../../contracts/recovery.dart';
 
 /// 绑定创建时的账号代次；账号或会话变化后，旧页面的请求与结果都被拒绝。
@@ -44,18 +45,31 @@ class GuardedCampusAccountService implements CampusAccountService {
     return current() ? value : const CampusAccountSnapshot();
   }
 
-  Future<T> _read<T>(RecoveryTarget target, Future<T> Function() call) async {
+  Future<T> _read<T>(
+    RecoveryTarget target,
+    DiagnosticOperation operation,
+    Future<T> Function() call,
+  ) async {
     _check();
-    return read?.call(target, () => _run(call)) ?? _run(call);
+    return read?.call(target, operation, () => _run(call)) ?? _run(call);
   }
 
   @override
-  Future<PortalIdentity> identity() =>
-      _read(RecoveryTarget.portal, delegate.identity);
+  Future<PortalIdentity> identity() => _read(
+    RecoveryTarget.portal,
+    DiagnosticOperation.portalIdentity,
+    delegate.identity,
+  );
   @override
-  Future<CampusMetrics> metrics() =>
-      _read(RecoveryTarget.portal, delegate.metrics);
+  Future<CampusMetrics> metrics() => _read(
+    RecoveryTarget.portal,
+    DiagnosticOperation.portalMetrics,
+    delegate.metrics,
+  );
   @override
-  Future<NetworkUsage> networkUsage() =>
-      _read(RecoveryTarget.network, delegate.networkUsage);
+  Future<NetworkUsage> networkUsage() => _read(
+    RecoveryTarget.network,
+    DiagnosticOperation.networkUsage,
+    delegate.networkUsage,
+  );
 }

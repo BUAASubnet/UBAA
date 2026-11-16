@@ -126,6 +126,7 @@ fn rust_source(path: &str, line: u32) -> Option<String> {
 
 fn telemetry_event(source: Option<String>) -> core::TelemetryEvent {
     core::TelemetryEvent::Error(core::ErrorDimensions {
+        diagnostic: None,
         event: core::ErrorEvent::Crash,
         feature: core::Feature::App,
         route: core::Route::None,

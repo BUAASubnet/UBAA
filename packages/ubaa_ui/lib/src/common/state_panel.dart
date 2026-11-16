@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'error_card.dart' show uiErrorDetailsAction;
 
 /// 全应用统一的空状态与整页提示：圆形图标、标题、说明和一个可选操作。
 ///
@@ -13,6 +15,7 @@ class UiStatePanel extends StatelessWidget {
     this.action,
     this.actionIcon,
     this.onAction,
+    this.error,
     this.compact = false,
   });
   final IconData icon;
@@ -20,6 +23,7 @@ class UiStatePanel extends StatelessWidget {
   final String? detail, action;
   final IconData? actionIcon;
   final VoidCallback? onAction;
+  final UiError? error;
   final bool compact;
 
   @override
@@ -69,6 +73,8 @@ class UiStatePanel extends StatelessWidget {
                       label: Text(label),
                     ),
             ],
+            if (uiErrorDetailsAction(context, error) case final details?)
+              TextButton(onPressed: details, child: const Text('错误详情')),
           ],
         ),
       ),
@@ -82,10 +88,12 @@ class UiInlineRetry extends StatelessWidget {
     super.key,
     required this.message,
     this.onRetry,
+    this.error,
     this.label = '重试',
   });
   final String message;
   final VoidCallback? onRetry;
+  final UiError? error;
   final String label;
 
   @override
@@ -96,6 +104,12 @@ class UiInlineRetry extends StatelessWidget {
         Icon(Icons.error_outline, size: 18, color: theme.colorScheme.error),
         const SizedBox(width: 8),
         Expanded(child: Text(message, style: theme.textTheme.bodyMedium)),
+        if (uiErrorDetailsAction(context, error) case final details?)
+          IconButton(
+            tooltip: '错误详情',
+            onPressed: details,
+            icon: const Icon(Icons.info_outline, size: 18),
+          ),
         if (onRetry != null) TextButton(onPressed: onRetry, child: Text(label)),
       ],
     );

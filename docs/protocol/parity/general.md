@@ -184,3 +184,16 @@ Mock 与 Direct/WebVPN 只读证据。固定 `examples/buaa-api/src/api/class` �
 今日状态字段、form 用户 ID 和嵌套提交结果缺口已由 Phase 11D 的 `b988ae1` 完成本地确定性修复：未知状态
 显式可空、资格与目标由 Core 派生，prepare/commit 重读当天唯一安排，最终写入只发送一次并严格区分业务
 拒绝与结果未知。该阶段证据没有执行真实签到，不替代当前候选或真实写后核对。
+
+## 业务 HTTP 错误诊断
+
+冻结版本见[冻结参考](../references.md)。本节补充各业务矩阵的错误列。HTTP 状态分类不改变成功状态、登录标记、路由、请求、回包解析或重试条件。
+
+| 操作 | 引导与 service | 重定向与最终地址 | Cookie / 凭据 | HTTP 与参数 | 头与编码 | 加密与签名 | DTO 与解析 | 缓存与并发 | 错误语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 本科教务引导、当前学期、学期列表、教学周、今日与周课表、考试 | 逐项沿用[本科教务九列](academic.md#逐操作基线矩阵)；核对旧版 `LocalScheduleApi`、`Schedule.kt`、`LocalScheduleApiBackendTest`，示例 `api/aas/{core,opt,data}.rs` | 保留两来源与现行实现的差异，不加跳转 | 同一账号与路线，分别复用已验证会话 | 沿各操作的 GET/POST 与原参数 | 原 AJAX、Referer 与表单 | 无新增 | 保留原 JSON 投影；错误只取 HTTP 状态及安全结构 | 不改会话复用、缓存或新鲜性规则 | 两来源均未给普通 403/429 提供业务码含义。非 200 后 HTTP 403 表示访问被拒绝，429 表示限流，5xx 表示服务不可用；非服务异常的 4xx 归为拒绝 |
+| 成绩引导、按学期读取成绩 | 沿用[成绩来源](academic.md#未改变的成绩证据)；旧版 `LocalGradeApi`、`Grade.kt`、`LocalScheduleApiBackendTest`，固定示例 App 模块无同协议 | 沿原成绩引导 | 成绩与主会话沿原路线关联 | GET 页面；POST 同端点 `xq/year` | 原 HTML/JSON Accept、XHR、Referer、表单 | 无 | 原 `e/m/d` | 原学期缓存 | 同共享 HTTP 分类，不将 403/429 记为协议变化 |
+| GSMIS 引导、课表学期、周课表、考试学期、考试、成绩 | 逐项沿用[GSMIS 九列](gsmis.md#九列对照)；核对旧版 `GraduateScheduleUpstream.kt` 与课表测试，固定示例只有本科协议；研究生考试和成绩依据既有追加来源 | 原允许主机与终点 | 原路线 jar | 各模块原 GET/POST，不增参数 | 原表单与 XHR | 无 | 保持学期、课表、考试和成绩解析 | 保留既有数据源探测顺序与缓存语义 | 识别到 SSO 仍为认证错误；其他 HTTP 失败保留安全原因 |
+| 希冀列表与详情 | 沿用[希冀列表与详情九列](coursework.md#judge-列表)；旧版 `LocalJudgeApi`、`Judge` DTO 和解析测试，示例无同协议 | 原选课跳转和详情地址 | 原 worker Cookie | 原课程、作业列表和指定作业详情查询 | 原请求头、HTML/JSON | 无新增 | 不变 | 原 worker、详情缓存与有界并发 | HTTP 拒绝、限流和 5xx 分别记录；不变更详情复用或空列表语义 |
+
+SPOC、研讨室与评教的调用也使用本节 HTTP 分类，具体操作的两来源对照见[作业](coursework.md#spoc-信封错误分类)、[研讨室](cgyy.md#场馆信封错误分类)和[评教](write-actions.md#评教读取信封错误分类)。传输层继续单独返回网络或超时错误；业务信封成功不从 HTTP 错误码推断。只有与已验证预期不符的响应结构和重定向按协议错误处理。

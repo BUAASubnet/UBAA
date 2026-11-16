@@ -384,14 +384,14 @@ impl ClientRuntime {
         }
         let pending = self.transport.execute(request);
         drop(permit);
-        let response = pending.await.map_err(|_| write_outcome_unknown())?;
-        self.check_consumer().map_err(|_| write_outcome_unknown())?;
+        let response = pending.await.map_err(unknown_after_send)?;
+        self.check_consumer().map_err(unknown_after_send)?;
         if let Some(scope) = &self.shared_account {
-            scope.check().map_err(|_| write_outcome_unknown())?;
+            scope.check().map_err(unknown_after_send)?;
         }
         self.jar
             .store_response(&response, &request_url, now)
-            .map_err(|_| write_outcome_unknown())?;
+            .map_err(unknown_after_send)?;
         Ok(response)
     }
 
@@ -513,13 +513,15 @@ fn session_conflict() -> UbaaError {
     UbaaError::session_conflict()
 }
 
+const WRITE_OUTCOME_MESSAGE: &str = "写入结果未知，请先刷新状态再决定是否重试";
+
+#[track_caller]
 fn write_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "写入结果未知，请先刷新状态再决定是否重试",
-    )
+    UbaaError::outcome_unknown(WRITE_OUTCOME_MESSAGE)
+}
+
+fn unknown_after_send(error: UbaaError) -> UbaaError {
+    error.with_write_outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }
 
 #[cfg(test)]
@@ -563,7 +565,8 @@ mod tests {
                 ErrorKind::Upstream,
                 false,
                 "fixture response collection failed",
-            ))
+            )
+            .with_diagnostic("receive", "body_incomplete"))
         }
     }
 
@@ -633,6 +636,15 @@ mod tests {
                 .await
                 .expect_err("进入 transport 后失败必须为结果未知");
             assert_eq!(transport_error.code, ErrorCode::OutcomeUnknown);
+            assert!(!transport_error.retryable);
+            assert_eq!(
+                transport_error.diagnostic().stage.as_deref(),
+                Some("receive")
+            );
+            assert_eq!(
+                transport_error.diagnostic().reason.as_deref(),
+                Some("body_incomplete")
+            );
             assert_eq!(transport_calls.load(Ordering::Relaxed), 1);
             assert!(runtime.take_non_idempotent_boundary_crossed());
             assert!(!runtime.take_non_idempotent_boundary_crossed());

@@ -1,5 +1,5 @@
 import '../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
-import '../shared/feedback.dart';
+import 'feedback_notice.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -18,9 +18,10 @@ Future<void> uiShowAppLinkFailure(BuildContext context, AppLink link) =>
               await Clipboard.setData(ClipboardData(text: link.url));
               if (context.mounted) Navigator.pop(context);
             } on Object {
-              if (context.mounted) {
-                UbaaFeedback.show(
-                  context,
+              if (!context.mounted) return;
+              if (ScaffoldMessenger.maybeOf(context) case final messenger?) {
+                uiShowFeedbackNotice(
+                  messenger,
                   '复制失败，请重试',
                   kind: UbaaFeedbackKind.error,
                 );

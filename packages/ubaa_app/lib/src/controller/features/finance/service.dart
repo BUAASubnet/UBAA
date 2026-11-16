@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart' show DiagnosticOperation;
 import '../../../contracts/recovery.dart';
 
 /// 页面前的数据服务，账号或路线代次变化后拒绝旧结果。
@@ -33,7 +34,12 @@ class GuardedFinanceService implements FinanceService {
   @override
   Future<FinanceSnapshot> refresh() async {
     _check();
-    return read?.call(RecoveryTarget.finance, _refresh) ?? _refresh();
+    return read?.call(
+          RecoveryTarget.finance,
+          DiagnosticOperation.financeRefresh,
+          _refresh,
+        ) ??
+        _refresh();
   }
 
   Future<FinanceSnapshot> _refresh() async {

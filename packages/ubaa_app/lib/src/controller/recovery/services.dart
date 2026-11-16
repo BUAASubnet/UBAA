@@ -12,12 +12,46 @@ import '../state/activity.dart';
 /// 专用服务复用所需路线恢复；业务读取最多重试一次，写入不进入本流程。
 mixin ControllerServiceRecovery on ControllerState {
   @internal
-  UiError internalRecordServiceFailure(Object error, StackTrace stack) =>
-      internalRecordFailure(error, DiagnosticOperation.read, stackTrace: stack);
+  UiError internalRecordServiceFailure(
+    Object error,
+    DiagnosticOperation operation,
+    StackTrace stack, {
+    int? fileIndex,
+  }) {
+    if (error is UiError && error.issueId != null) return error;
+    final recorded = internalRecordFailure(
+      error,
+      operation,
+      stackTrace: stack,
+      fileIndex: fileIndex,
+    );
+    // 专用服务已为界面生成过安全提示；保留提示和本地报告编号。
+    return error is UiError && recorded.issueId != null
+        ? error.withIssueId(recorded.issueId!)
+        : recorded;
+  }
+
+  @internal
+  void internalRecordServiceOutcome(
+    DiagnosticOperation operation, {
+    UiError? error,
+    ConnectionMode? route,
+    bool write = false,
+  }) {
+    if (operation.serviceFeature case final feature?) {
+      internalRecordOperationOutcome(
+        feature,
+        write: write,
+        error: error,
+        route: route,
+      );
+    }
+  }
 
   @internal
   Future<T> internalReadService<T>(
     RecoveryTarget target,
+    DiagnosticOperation operation,
     Future<T> Function() read,
   ) async {
     final completion = Completer<void>();
@@ -27,7 +61,12 @@ mixin ControllerServiceRecovery on ControllerState {
         await internalAwaitNetworkReady();
         final network = internalNetworkRevision;
         try {
-          final value = await _readServiceAttempt(target, read);
+          final value = await _readServiceAttempt(
+            target,
+            operation,
+            network,
+            read,
+          );
           if (network == internalNetworkRevision) return value;
         } on Object {
           if (network == internalNetworkRevision ||
@@ -44,12 +83,15 @@ mixin ControllerServiceRecovery on ControllerState {
 
   Future<T> _readServiceAttempt<T>(
     RecoveryTarget target,
+    DiagnosticOperation operation,
+    int network,
     Future<T> Function() read,
   ) async {
     final session = internalCaptureSessionScope();
     final credentialRevision = internalLoginCredentialRevision;
     bool current() =>
         session.isCurrent &&
+        network == internalNetworkRevision &&
         credentialRevision == internalLoginCredentialRevision;
     T? partial;
     Future<T> checkedRead({bool recoverMetrics = false}) async {
@@ -58,6 +100,7 @@ mixin ControllerServiceRecovery on ControllerState {
       final result = await read();
       if (!current())
         throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+      UiError? partFailure;
       if (result is CampusMetrics) {
         final failures = [
           result.networkBalance,
@@ -75,11 +118,25 @@ mixin ControllerServiceRecovery on ControllerState {
           }
         }
         for (final metric in failures) {
-          if (metric.error case final error?) {
-            internalRecordServiceFailure(error, StackTrace.current);
-          }
+          final error = internalRecordServiceFailure(
+            metric.error ??
+                UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
+            operation,
+            StackTrace.current,
+          );
+          partFailure ??= error;
         }
       }
+      internalRecordServiceOutcome(
+        operation,
+        error: partFailure,
+        route: switch (result) {
+          IhomeResult<Object?>(:final route) ||
+          BhpanPage(:final route) ||
+          FinanceSnapshot(:final route) => route,
+          _ => null,
+        },
+      );
       return result;
     }
 
@@ -160,7 +217,8 @@ mixin ControllerServiceRecovery on ControllerState {
               error.reason != RecoveryStopReason.deadline)) {
         throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
       }
-      final recorded = internalRecordServiceFailure(error, stack);
+      final recorded = internalRecordServiceFailure(error, operation, stack);
+      internalRecordServiceOutcome(operation, error: recorded);
       // 恢复失败仍保留本次已经成功的余额项，不把整组数据变成空白。
       if (partial case final value?) return value;
       throw recorded;

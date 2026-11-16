@@ -1,6 +1,8 @@
 import '../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
-import '../shared/feedback.dart';
+import 'feedback_notice.dart' show uiShowFeedbackNotice;
+import 'app_links.dart' show uiShowAppLinkFailure;
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -9,17 +11,26 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 class UiDiagnosticsScope extends InheritedWidget {
   const UiDiagnosticsScope({
     required this.readRecord,
+    this.exportReport,
+    this.exportLabel = '分享报告文件',
+    this.openFeedback,
     required super.child,
     super.key,
   });
   final String? Function(String issueId) readRecord;
+  final Future<String?> Function(String report)? exportReport;
+  final String exportLabel;
+  final Future<bool> Function()? openFeedback;
 
   static UiDiagnosticsScope? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<UiDiagnosticsScope>();
 
   @override
   bool updateShouldNotify(UiDiagnosticsScope oldWidget) =>
-      readRecord != oldWidget.readRecord;
+      readRecord != oldWidget.readRecord ||
+      exportReport != oldWidget.exportReport ||
+      exportLabel != oldWidget.exportLabel ||
+      openFeedback != oldWidget.openFeedback;
 }
 
 /// 统一错误卡片，避免将上游正文、URL 或堆栈直接展示给用户。
@@ -35,6 +46,7 @@ class FriendlyErrorCard extends StatelessWidget {
     final colors = theme.colorScheme;
     final fg = colors.onErrorContainer;
     final message = error.message.trim();
+    final diagnostics = UiDiagnosticsScope.of(context);
     return Card(
       color: colors.errorContainer,
       child: Padding(
@@ -63,11 +75,25 @@ class FriendlyErrorCard extends StatelessWidget {
                       style: theme.textTheme.bodyMedium?.copyWith(color: fg),
                     ),
                   ],
-                  if (_safeIssueId case final id?)
+                  if (_safeIssueId(error) case final id?)
                     _ErrorDetails(
                       issueId: id,
                       code: error.code.wireName,
-                      onCopy: () => _copyError(context),
+                      onCopy: () => _copyDiagnosticText(
+                        context,
+                        _errorReport(diagnostics, error, id),
+                      ),
+                      share: diagnostics?.exportReport == null
+                          ? null
+                          : _ReportExportButton(
+                              report: () =>
+                                  _errorReport(diagnostics, error, id),
+                              export: diagnostics!.exportReport!,
+                              label: diagnostics.exportLabel,
+                            ),
+                      onFeedback: diagnostics?.openFeedback == null
+                          ? null
+                          : uiErrorDetailsAction(context, error),
                     ),
                   if (error.retryable && onRetry != null) ...<Widget>[
                     const SizedBox(height: 12),
@@ -84,34 +110,48 @@ class FriendlyErrorCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  String? get _safeIssueId {
-    final id = error.issueId;
-    return id != null && RegExp(r'^[A-Za-z0-9_-]{1,64}$').hasMatch(id)
-        ? id
-        : null;
-  }
+String? _safeIssueId(UiError error) {
+  final id = error.issueId;
+  return id != null && RegExp(r'^[A-Za-z0-9_-]{1,64}$').hasMatch(id)
+      ? id
+      : null;
+}
 
-  Future<void> _copyError(BuildContext context) async {
-    String? report;
-    final scope = UiDiagnosticsScope.of(context);
-    if (scope != null && _safeIssueId != null) {
-      try {
-        report = scope.readRecord(_safeIssueId!);
-      } on Object {
-        // 记录已不可用时仍可复制安全摘要。
-      }
-    }
-    final summary = <String>[
-      '错误代码：${error.code.wireName}',
-      '错误编号：$_safeIssueId',
-      '错误类别：${error.kind.name}',
-      if (error.authStage != null) '失败阶段：${error.authStage!.wireName}',
-      if (error.authReason != null) '失败原因：${error.authReason!.wireName}',
-      if (error.resolvedRoute != null) '实际路线：${error.resolvedRoute!.name}',
-    ].join('\n');
-    await _copyDiagnosticText(context, report ?? summary);
+String _errorReport(UiDiagnosticsScope? scope, UiError error, String id) {
+  try {
+    if (scope?.readRecord(id) case final report?) return report;
+  } on Object {
+    // 记录无法读取时仍可提取安全摘要。
   }
+  return const JsonEncoder.withIndent('  ').convert({
+    'record_available': false,
+    'issue_id': id,
+    'code': error.code.wireName,
+    'kind': error.kind.name,
+    'retryable': error.retryable,
+    if (error.authStage case final stage?) 'stage': stage.wireName,
+    if (error.authReason case final reason?) 'reason': reason.wireName,
+    if (error.resolvedRoute case final route?) 'route': route.name,
+    if (error.diagnostic case final diagnostic?)
+      'diagnostic': diagnostic.toJson(),
+  });
+}
+
+/// 行内状态与短提示使用同一个报告入口。
+VoidCallback? uiErrorDetailsAction(BuildContext context, UiError? error) {
+  if (error == null || _safeIssueId(error) == null) return null;
+  return () {
+    if (context.mounted) unawaited(uiShowErrorDetails(context, error));
+  };
+}
+
+Future<void> uiShowErrorDetails(BuildContext context, UiError error) async {
+  final id = _safeIssueId(error);
+  if (id == null) return;
+  final scope = UiDiagnosticsScope.of(context);
+  await uiShowDiagnosticsDialog(context, () => _errorReport(scope, error, id));
 }
 
 /// 说明只是换一种说法重复标题时（“暂/暂时”、结尾“请稍后重试”）不再显示。
@@ -131,9 +171,13 @@ class _ErrorDetails extends StatefulWidget {
     required this.issueId,
     required this.code,
     required this.onCopy,
+    this.share,
+    this.onFeedback,
   });
   final String issueId, code;
   final VoidCallback onCopy;
+  final Widget? share;
+  final VoidCallback? onFeedback;
 
   @override
   State<_ErrorDetails> createState() => _ErrorDetailsState();
@@ -174,6 +218,14 @@ class _ErrorDetailsState extends State<_ErrorDetails> {
             icon: const Icon(Icons.copy_outlined, size: 16),
             label: const Text('复制错误信息'),
           ),
+          if (widget.share != null) widget.share!,
+          if (widget.onFeedback != null)
+            TextButton.icon(
+              style: compact,
+              onPressed: widget.onFeedback,
+              icon: const Icon(Icons.feedback_outlined, size: 16),
+              label: const Text('诊断与反馈'),
+            ),
         ],
       ],
     );
@@ -189,7 +241,8 @@ Future<void> _copyDiagnosticText(BuildContext context, String text) async {
     message = '复制失败，请手动选择文字';
   }
   if (context.mounted) {
-    UbaaFeedback.show(context, message);
+    if (ScaffoldMessenger.maybeOf(context) case final messenger?)
+      uiShowFeedbackNotice(messenger, message);
   }
 }
 
@@ -197,18 +250,44 @@ Future<void> uiShowDiagnosticsDialog(
   BuildContext context,
   String Function() readDiagnostics,
 ) async {
-  String report;
-  try {
-    report = readDiagnostics();
-  } on Object {
-    report = '当前无法读取诊断信息';
+  String? readReport() {
+    try {
+      return readDiagnostics();
+    } on Object {
+      return null;
+    }
   }
+
+  final report = readReport() ?? '当前无法读取诊断信息';
+  final scope = UiDiagnosticsScope.of(context);
   await showUiSheet<void>(
     context,
     builder: (context) => UiSheetBody(
       title: '诊断信息',
+      actions: [
+        if (scope?.exportReport != null)
+          _ReportExportButton(
+            report: readReport,
+            export: scope!.exportReport!,
+            label: scope.exportLabel,
+          ),
+      ],
+      primaryAction: FilledButton.icon(
+        onPressed: () => _copyDiagnosticText(context, readReport() ?? report),
+        icon: const Icon(Icons.copy_outlined, size: 18),
+        label: const Text('复制诊断信息'),
+      ),
       // 诊断内容是 JSON：等宽字体放在浅色底框里，便于阅读和复制。
       children: [
+        if (scope?.openFeedback case final openFeedback?) ...[
+          const Text('请先保存或复制报告，再到反馈页面手动附上。打开分享面板或保存文件不会提交反馈。'),
+          TextButton.icon(
+            onPressed: () => unawaited(_openFeedback(context, openFeedback)),
+            icon: const Icon(Icons.open_in_new, size: 18),
+            label: const Text('打开反馈页面'),
+          ),
+          const SizedBox(height: 8),
+        ],
         Builder(
           builder: (context) => Container(
             width: double.infinity,
@@ -230,11 +309,64 @@ Future<void> uiShowDiagnosticsDialog(
           ),
         ),
       ],
-      primaryAction: FilledButton.icon(
-        onPressed: () => _copyDiagnosticText(context, report),
-        icon: const Icon(Icons.copy_outlined, size: 18),
-        label: const Text('复制诊断信息'),
-      ),
     ),
+  );
+}
+
+Future<void> _openFeedback(
+  BuildContext context,
+  Future<bool> Function() open,
+) async {
+  try {
+    if (await open()) return;
+  } on Object {
+    // 系统浏览器不可用时提供可复制的地址。
+  }
+  if (context.mounted) await uiShowAppLinkFailure(context, AppLink.feedback);
+}
+
+/// 一次只打开一个系统面板；失败后仍可复制报告。
+class _ReportExportButton extends StatefulWidget {
+  const _ReportExportButton({
+    required this.report,
+    required this.export,
+    required this.label,
+  });
+  final String? Function() report;
+  final Future<String?> Function(String) export;
+  final String label;
+  @override
+  State<_ReportExportButton> createState() => _ReportExportButtonState();
+}
+
+class _ReportExportButtonState extends State<_ReportExportButton> {
+  bool _busy = false;
+  Future<void> _export() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    String? message;
+    try {
+      final report = widget.report();
+      if (report == null) {
+        message = '错误记录已不可用，请从诊断页导出报告';
+      } else {
+        message = await widget.export(report);
+      }
+    } on Object {
+      message = '报告文件未导出，请重试或复制诊断信息';
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    if (mounted && message != null) {
+      if (ScaffoldMessenger.maybeOf(context) case final messenger?)
+        uiShowFeedbackNotice(messenger, message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: _busy ? null : _export,
+    icon: const Icon(Icons.ios_share_outlined, size: 18),
+    label: Text(widget.label),
   );
 }

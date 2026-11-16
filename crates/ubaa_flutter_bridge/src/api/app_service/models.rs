@@ -49,6 +49,7 @@ pub enum BridgeTelemetryCounter {
     SessionExpired,
     RouteResolved,
     FeatureLoaded,
+    WriteCompleted,
 }
 
 impl From<BridgeTelemetryCounter> for core::CounterEvent {
@@ -60,6 +61,7 @@ impl From<BridgeTelemetryCounter> for core::CounterEvent {
             BridgeTelemetryCounter::SessionExpired => Self::SessionExpired,
             BridgeTelemetryCounter::RouteResolved => Self::RouteResolved,
             BridgeTelemetryCounter::FeatureLoaded => Self::FeatureLoaded,
+            BridgeTelemetryCounter::WriteCompleted => Self::WriteCompleted,
         }
     }
 }
@@ -80,6 +82,12 @@ pub enum BridgeTelemetryFeature {
     Cgyy,
     Ygdk,
     Evaluation,
+    CloudPrint,
+    Bhpan,
+    Ihome,
+    Portal,
+    Network,
+    Finance,
 }
 
 impl From<BridgeTelemetryFeature> for core::Feature {
@@ -99,6 +107,12 @@ impl From<BridgeTelemetryFeature> for core::Feature {
             BridgeTelemetryFeature::Cgyy => Self::Cgyy,
             BridgeTelemetryFeature::Ygdk => Self::Ygdk,
             BridgeTelemetryFeature::Evaluation => Self::Evaluation,
+            BridgeTelemetryFeature::CloudPrint => Self::CloudPrint,
+            BridgeTelemetryFeature::Bhpan => Self::Bhpan,
+            BridgeTelemetryFeature::Ihome => Self::Ihome,
+            BridgeTelemetryFeature::Portal => Self::Portal,
+            BridgeTelemetryFeature::Network => Self::Network,
+            BridgeTelemetryFeature::Finance => Self::Finance,
         }
     }
 }
@@ -143,6 +157,7 @@ pub enum BridgeTelemetryError {
     FeatureFailed,
     UiErrorShown,
     Crash,
+    WriteFailed,
 }
 
 impl From<BridgeTelemetryError> for core::ErrorEvent {
@@ -152,6 +167,7 @@ impl From<BridgeTelemetryError> for core::ErrorEvent {
             BridgeTelemetryError::FeatureFailed => Self::FeatureFailed,
             BridgeTelemetryError::UiErrorShown => Self::UiErrorShown,
             BridgeTelemetryError::Crash => Self::Crash,
+            BridgeTelemetryError::WriteFailed => Self::WriteFailed,
         }
     }
 }

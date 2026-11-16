@@ -104,11 +104,12 @@ extension _IhomeCards on _IhomeViewState {
           ),
           if (loading || _submitting.contains(id))
             const LinearProgressIndicator(),
-          if (_detailErrors[id] != null)
+          if (_detailErrors[id] case final error?)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: UiInlineRetry(
-                message: _detailErrors[id]!,
+                message: error.message,
+                error: error,
                 onRetry: loading || busy ? null : () => _readDetail(id),
                 label: _uncertain.contains(id) ? '刷新' : '重试',
               ),

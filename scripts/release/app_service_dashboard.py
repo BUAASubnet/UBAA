@@ -12,6 +12,7 @@ import re
 import sys
 
 DS = {"type": "grafana-postgresql-datasource", "uid": "ubaa-postgres"}
+DIAGNOSTICS_DS = {"type": "grafana-postgresql-datasource", "uid": "ubaa-diagnostics"}
 
 # 暗色分类色（固定顺序）与状态色
 C = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
@@ -41,7 +42,9 @@ TS = "(extract(epoch FROM (d.day||'T00:00:00+08:00')::timestamptz)*1000)::bigint
 FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("bykc", "博雅课程"),
             ("classroom", "空教室"), ("spoc", "SPOC 作业"), ("judge", "希冀作业"),
             ("libbook", "图书馆"), ("signin", "课堂签到"), ("cgyy", "场馆预约"),
-            ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用")]
+            ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用"),
+            ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "i 北航"),
+            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务")]
 
 
 def case(col, pairs, default=None):
@@ -55,6 +58,9 @@ PLAT = case("platform", [("android", "Android"), ("ios", "iOS"), ("ohos", "Harmo
 CHAN = case("channel", [("github", "GitHub"), ("app_store", "App Store"), ("app_gallery", "华为应用市场")])
 KIND = [("input", "输入"), ("authentication", "认证"), ("network", "网络"),
         ("upstream", "上游"), ("parse", "解析"), ("internal", "内部")]
+ERROR_EVENTS = [("auth_failed", "登录失败"), ("feature_failed", "功能失败"),
+                ("write_failed", "写入失败"), ("crash", "崩溃")]
+FAILURES = "event IN (" + ", ".join(f"'{key}'" for key, _ in ERROR_EVENTS) + ")"
 BUCKETS = [("lt_250", "<0.25s"), ("lt_500", "0.25–0.5s"), ("lt_1000", "0.5–1s"),
            ("lt_2000", "1–2s"), ("lt_5000", "2–5s"), ("lt_10000", "5–10s"), ("ge_10000", "≥10s")]
 BUCKET_ORDER = "CASE bucket " + " ".join(f"WHEN '{k}' THEN {i}" for i, (k, _) in enumerate(BUCKETS)) + " END"
@@ -108,7 +114,7 @@ def prop_override(name, *props):
             "properties": [{"id": k, "value": v} for k, v in props]}
 
 
-def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="short", spark=False,
+def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="none", spark=False,
          thresholds=None, decimals=0):
     defaults = {"unit": unit, "decimals": decimals,
                 "color": {"mode": "fixed", "fixedColor": color} if not thresholds else {"mode": "thresholds"}}
@@ -120,7 +126,7 @@ def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="short", spark
         "justifyMode": "center", "orientation": "auto", "wideLayout": True, "showPercentChange": False})
 
 
-def ts_defaults(unit="short", draw="line", stack=False, fill=18):
+def ts_defaults(unit="none", draw="line", stack=False, fill=18):
     return {"unit": unit, "decimals": 0, "min": 0,
             "color": {"mode": "palette-classic"},
             "custom": {"drawStyle": draw, "lineWidth": 2, "fillOpacity": fill if draw == "line" else 85,
@@ -138,7 +144,7 @@ TS_OPTS = {"legend": {"displayMode": "list", "placement": "bottom", "showLegend"
 def pie(title, pos, sql, label, colors, desc="", value="设备"):
     return panel("piechart", title, pos,
                  [target(sql, [("name", label, "string"), ("value", value, "number")])], desc,
-                 {"unit": "short", "decimals": 0, "color": {"mode": "palette-classic"}},
+                 {"unit": "none", "decimals": 0, "color": {"mode": "palette-classic"}},
                  [color_override(n, c) for n, c in colors.items()],
                  {"pieType": "donut", "displayLabels": [],
                   "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": True},
@@ -222,7 +228,7 @@ def build():
                 f"WHERE {WHERE} GROUP BY app_version ORDER BY app_version DESC LIMIT 10",
                 [("name", "版本", "string"), ("value", "设备", "number")])],
         "所选时段内各版本的去重活跃设备数，最新版本在上。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[0]},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[0]},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         options=HBAR))
     panels.append(pie(
@@ -238,7 +244,7 @@ def build():
                 f"GROUP BY cohort_type, cohort_year ORDER BY value DESC LIMIT 10",
                 [("name", "年级", "string"), ("value", "用户", "number")])],
         "按学号推断的入学年份与类型统计去重用户。研究生显示学号字母前缀，教职工等无法识别的显示为“其他身份”。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[6]},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[6]},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         options=HBAR))
     y += 8
@@ -254,7 +260,7 @@ def build():
                 [("feature", "功能", "string"), ("ok", "成功", "number"), ("empty", "空结果", "number"),
                  ("fail", "失败", "number")])],
         "所选时段内各功能的加载次数，按结果堆叠。空结果指请求成功但没有内容。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "palette-classic"},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "palette-classic"},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         [color_override("成功", C[0]), color_override("空结果", MUTED), color_override("失败", CRIT)],
         {"orientation": "horizontal", "stacking": "normal", "barWidth": 0.7, "groupWidth": 0.7,
@@ -283,7 +289,7 @@ def build():
                                  ("vpn", "经 WebVPN", "number")])],
         "成功率含空结果；“2 秒内完成”来自功能加载耗时分桶；“经 WebVPN”为线路解析走 WebVPN 的占比。",
         {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False, "minWidth": 60},
-         "decimals": 0, "unit": "short",
+         "decimals": 0, "unit": "none",
          "thresholds": {"mode": "absolute", "steps": [{"color": C[0], "value": None}]},
          "color": {"mode": "thresholds"}},
         [prop_override("功能", ("custom.width", 96)), prop_override("使用设备", ("custom.width", 76)),
@@ -386,7 +392,7 @@ def build():
         "所选时段内按星期和小时（北京时间）汇总的功能加载次数，颜色越亮越多，用来看一周里的使用高峰。",
         {"custom": {"align": "center", "cellOptions": {"type": "color-background", "mode": "basic"}, "inspect": False,
                     "minWidth": 36},
-         "unit": "short", "decimals": 0, "min": 0, "noValue": "0",
+         "unit": "none", "decimals": 0, "min": 0, "noValue": "0",
          "color": {"mode": "continuous-blues"}},
         [{"matcher": {"id": "byType", "options": "string"},
           "properties": [{"id": "custom.cellOptions", "value": {"type": "auto"}}, {"id": "custom.width", "value": 56}]}],
@@ -435,17 +441,17 @@ def build():
              {"color": SEQ[0], "value": None}, {"color": SEQ[1], "value": 0.01}, {"color": SEQ[2], "value": 0.15},
              {"color": SEQ[3], "value": 0.3}, {"color": SEQ[4], "value": 0.5}, {"color": SEQ[5], "value": 0.7}]}},
         [prop_override("功能", ("custom.cellOptions", {"type": "auto"}), ("custom.align", "left"), ("custom.width", 110)),
-         prop_override("样本", ("custom.cellOptions", {"type": "auto"}), ("unit", "short"), ("custom.width", 70))],
+         prop_override("样本", ("custom.cellOptions", {"type": "auto"}), ("unit", "none"), ("custom.width", 70))],
         {"showHeader": True, "cellHeight": "sm", "footer": {"show": False}}))
     y += 10
 
     # ───────── 稳定性 ─────────
     panels.append(row("稳定性", y)); y += 1
     panels += [
-        stat("错误次数", (0, y, 6, 4), f"SELECT COALESCE(SUM(count),0) AS n FROM error_days WHERE {WHERE}",
-             [("n", "错误", "number")], None, "所选时段内上报的错误总次数，含登录失败、功能失败、界面错误提示和崩溃。",
+        stat("错误次数", (0, y, 6, 4), f"SELECT COALESCE(SUM(count),0) AS n FROM error_days WHERE {WHERE} AND {FAILURES}",
+             [("n", "错误", "number")], None, "记录的登录失败、功能失败、写入失败和崩溃。界面提示不重复计入。",
              thresholds=[{"color": GOOD, "value": None}, {"color": WARN, "value": 1}, {"color": CRIT, "value": 50}]),
-        stat("受影响设备", (6, y, 6, 4), f"SELECT COUNT(DISTINCT install_id) AS n FROM error_days WHERE {WHERE}",
+        stat("受影响设备", (6, y, 6, 4), f"SELECT COUNT(DISTINCT install_id) AS n FROM error_days WHERE {WHERE} AND {FAILURES}",
              [("n", "设备", "number")], None, "所选时段内至少上报过一次错误的去重设备数。",
              thresholds=[{"color": GOOD, "value": None}, {"color": WARN, "value": 1}]),
         stat("崩溃", (12, y, 6, 4),
@@ -464,27 +470,26 @@ def build():
     panels.append(panel(
         "timeseries", "每日错误（按类型）", (0, y, 10, 10),
         [target(f"{DAYS} SELECT {TS}, {kcols} FROM d LEFT JOIN error_days e ON e.day=d.day AND "
-                f"{filt('e.')} GROUP BY d.day ORDER BY d.day",
+                f"{filt('e.')} AND e.{FAILURES} GROUP BY d.day ORDER BY d.day",
                 [("time", "时间", "timestamp_epoch")] + [(k, v, "number") for k, v in KIND], "timeseries")],
         "按错误类型堆叠的每日错误次数。",
         ts_defaults(draw="bars", stack=True),
         [color_override(v, C[i]) for i, (_, v) in enumerate(KIND)], TS_OPTS))
-    EVT = case("event", [("auth_failed", "登录失败"), ("feature_failed", "功能失败"),
-                         ("ui_error_shown", "界面报错"), ("crash", "崩溃")])
+    EVT = case("event", ERROR_EVENTS)
     panels.append(panel(
         "table", "错误明细", (10, y, 14, 10),
         [target(f"SELECT {EVT} AS event, {FEAT()} AS feature, "
                 f"CASE route WHEN 'direct' THEN '直连' WHEN 'webvpn' THEN 'WebVPN' ELSE '—' END AS route, "
                 f"{case('error_kind', KIND)} AS kind, error_code, "
                 f"CASE WHEN retryable=1 THEN '可重试' ELSE '' END AS retry, SUM(count) AS n, "
-                f"COUNT(DISTINCT install_id) AS devices FROM error_days WHERE {WHERE} "
+                f"COUNT(DISTINCT install_id) AS devices FROM error_days WHERE {WHERE} AND {FAILURES} "
                 f"GROUP BY event, feature, route, error_kind, error_code, retryable ORDER BY n DESC LIMIT 100",
                 [("event", "事件", "string"), ("feature", "功能", "string"), ("route", "线路", "string"),
                  ("kind", "类型", "string"), ("error_code", "错误码", "string"), ("retry", "重试", "string"),
                  ("n", "次数", "number"), ("devices", "设备", "number")])],
         "所选时段内按事件、功能、线路和错误码汇总，按次数降序，最多 100 行。",
         {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False, "filterable": True},
-         "decimals": 0, "unit": "short"},
+         "decimals": 0, "unit": "none"},
         [prop_override("次数", ("custom.cellOptions", {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}),
                        ("color", {"mode": "fixed", "fixedColor": CRIT}), ("custom.width", 140)),
          prop_override("事件", ("custom.width", 90)), prop_override("线路", ("custom.width", 70)),
@@ -507,7 +512,7 @@ def build():
                  ("job", "汇总任务最后成功日", "string"), ("erased", "近 30 天删除数据", "number"),
                  ("first_day", "明细最早日期", "string")])],
         "服务端整体状态，不受平台与渠道筛选影响。汇总任务每天 03:00 运行，本面板不依赖其结果。",
-        {"unit": "short", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}},
+        {"unit": "none", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}},
         options={"reduceOptions": {"calcs": ["lastNotNull"], "fields": "/.*/", "values": False},
                  "colorMode": "none", "graphMode": "none", "textMode": "value_and_name",
                  "justifyMode": "center", "orientation": "horizontal", "wideLayout": True,
@@ -547,11 +552,81 @@ def build():
     return dash
 
 
+def build_maintenance():
+    """维护者按版本筛选失败次数与安全样本；两条查询独立计算。"""
+    _id[0] = 0
+    filters = [("app_version", "版本"), ("feature", "功能"), ("route", "路线"),
+               ("error_code", "错误码")]
+    selection = []
+    variables = []
+    for name, label in filters:
+        selected = "${" + name + ":sqlstring}"
+        selection.append(f"('__all' IN ({selected}) OR {name} IN ({selected}))")
+        display = FEAT(name) if name == 'feature' else name
+        query = (f"SELECT DISTINCT {display} AS __text, {name} AS __value FROM error_days "
+                 f"WHERE {RANGE} AND {FAILURES} ORDER BY __text")
+        variables.append({
+            "name": name, "label": label, "type": "query", "datasource": DIAGNOSTICS_DS,
+            "query": query, "definition": query, "refresh": 2, "multi": True,
+            "includeAll": True, "allValue": "'__all'", "current": {"text": ["All"], "value": ["$__all"]},
+            "options": [],
+        })
+    where = f"{RANGE} AND {FAILURES} AND " + " AND ".join(selection)
+    write_results = (f"SELECT app_version, {FEAT()} AS feature, route, SUM(count) AS total, "
+                     "COALESCE(SUM(count) FILTER (WHERE result='failure'),0) AS failed "
+                     f"FROM counter_days WHERE {RANGE} AND event='write_completed' AND "
+                     + " AND ".join(selection[:-1])
+                     + " GROUP BY app_version, feature, route ORDER BY total DESC LIMIT 100")
+    # 样本保留期较短；样本缺失时失败次数照常显示。
+    counts = (f"SELECT app_version, {case('event', ERROR_EVENTS)} AS event, {FEAT()} AS feature, "
+              f"route, error_code, SUM(count) AS n FROM error_days WHERE {where} "
+              "GROUP BY app_version, event, feature, route, error_code ORDER BY n DESC LIMIT 100")
+    samples = (f"SELECT DISTINCT day, app_version, {FEAT()} AS feature, route, error_code, "
+               "COALESCE(diagnostic->>'source', NULLIF(source,'')) AS source, "
+               "diagnostic->>'stage' AS stage, diagnostic->>'reason' AS reason, "
+               "diagnostic->>'status' AS status, diagnostic->>'upstream_code' AS upstream_code "
+               f"FROM error_samples WHERE {where} "
+               "ORDER BY day DESC, app_version, feature, route, error_code, source, stage, reason, status, upstream_code "
+               "LIMIT 100")
+
+    def detail(title, y, sql, cols, description):
+        entry = target(sql, cols)
+        entry["datasource"] = DIAGNOSTICS_DS
+        return panel("table", title, (0, y, 24, 11), [entry], description,
+                     {"custom": {"filterable": True, "inspect": False}, "noValue": "—"},
+                     options={"showHeader": True, "cellHeight": "sm"}, datasource=DIAGNOSTICS_DS)
+
+    dimensions = [("feature", "功能", "string"), ("route", "路线", "string"),
+                  ("error_code", "错误码", "string")]
+    return {
+        "uid": "ubaa-error-diagnostics", "title": "UBAA 错误诊断（维护者）", "tags": ["ubaa", "diagnostics"],
+        "timezone": "Asia/Shanghai", "editable": False, "schemaVersion": 41, "version": 1,
+        "time": {"from": "now-14d/d", "to": "now"}, "templating": {"list": variables},
+        "panels": [
+            detail("错误明细", 0, counts,
+                   [("app_version", "版本", "string"), ("event", "事件", "string"),
+                    *dimensions, ("n", "次数", "number")],
+                   "从错误计数汇总，界面提示不重复计入。按次数降序，最多 100 行。"),
+            detail("写入结果", 11, write_results,
+                   [("app_version", "版本", "string"), *dimensions[:2],
+                    ("total", "操作次数", "number"), ("failed", "失败次数", "number")],
+                   "成功和失败都计入写操作次数，包括资格核对失败。错误码筛选不影响本表的分母。"),
+            detail("安全诊断样本", 22, samples,
+                   [("day", "日期", "string"), ("app_version", "版本", "string"), *dimensions,
+                    ("source", "源码位置", "string"), ("stage", "阶段", "string"),
+                    ("reason", "原因", "string"), ("status", "HTTP 状态", "string"),
+                    ("upstream_code", "上游业务码", "string")],
+                   "样本保留 14 天，同日的相同诊断合并显示，最多 100 行。没有样本时仍可查看失败次数。"),
+        ],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--output', type=Path, help='写入的文件；省略时输出到 stdout')
+    parser.add_argument('--maintenance', action='store_true', help='生成仅供已授权维护者使用的错误诊断看板')
     args = parser.parse_args()
-    dash = build()
+    dash = build_maintenance() if args.maintenance else build()
     text = json.dumps(dash, ensure_ascii=False, indent=2) + '\n'
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

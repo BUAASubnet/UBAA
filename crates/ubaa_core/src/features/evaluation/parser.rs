@@ -130,12 +130,28 @@ pub fn parse_courses(body: &str) -> Result<EvaluationCoursesResponse> {
 }
 
 pub(super) fn result_value(body: &str) -> Result<Value> {
-    let root: Value = serde_json::from_str(body).map_err(|_| upstream_error("评教响应无法解析"))?;
+    parse_result_value(body)
+        .map_err(|error| error.with_business_response(body.as_bytes(), None, "code"))
+}
+
+fn parse_result_value(body: &str) -> Result<Value> {
+    use crate::error::UbaaError;
+    let root: Value = serde_json::from_str(body).map_err(|_| {
+        UbaaError::parse_error("评教响应无法解析").with_diagnostic("parse", "json_invalid")
+    })?;
     let object = root
         .as_object()
         .ok_or_else(|| upstream_error("评教响应结构无效"))?;
-    if !read_success_code(object.get("code")) {
-        return Err(upstream_error("评教上游返回失败"));
+    let code = object.get("code");
+    if !read_success_code(code) {
+        return Err(
+            if code.is_some_and(|value| value.as_i64().is_some() || value.as_str().is_some()) {
+                UbaaError::business_rejected("评教服务器拒绝了该请求")
+            } else {
+                upstream_error("评教响应缺少有效业务状态")
+                    .with_diagnostic("parse", "business_code_invalid")
+            },
+        );
     }
     object
         .get("result")

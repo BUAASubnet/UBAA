@@ -7,6 +7,7 @@ import 'features/finance/service.dart';
 import 'features/campus/service.dart';
 import 'features/bhpan/service.dart';
 import 'features/cloud_print.dart';
+import 'error_mapper.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
@@ -195,6 +196,8 @@ class AppController extends ControllerState
         canWrite: () => !internalActivities.hasActive,
         onRejected: internalReportUserSchoolRejection,
         read: internalReadService,
+        recordFailure: internalRecordServiceFailure,
+        recordOutcome: internalRecordServiceOutcome,
       );
     }
     return _ihomeService;
@@ -222,12 +225,14 @@ class AppController extends ControllerState
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
         internalWriteCoordinator,
+        internalRecordServiceFailure,
+        internalRecordServiceOutcome,
       );
     }
     return _cloudPrintService;
   }
 
-  BhpanService? _bhpanService;
+  GuardedBhpanService? _bhpanService;
   UbaaBackend? _bhpanBackend;
   int? _bhpanEpoch;
   BhpanService? get bhpanService {
@@ -249,9 +254,27 @@ class AppController extends ControllerState
         readService: internalReadService,
         onRejected: internalReportUserSchoolRejection,
         recordFailure: internalRecordServiceFailure,
+        recordOutcome: internalRecordServiceOutcome,
       );
     }
     return _bhpanService;
+  }
+
+  /// 诊断本地目标选择或交付失败。只有发起下载的服务仍有效时才保存。
+  UiError recordBhpanDeliveryFailure(
+    BhpanService service,
+    Object error,
+    StackTrace stack,
+  ) {
+    final active = _bhpanService;
+    if (active == null || !identical(active, service) || !active.current()) {
+      return UbaaErrorMapper.fromObject(error);
+    }
+    return internalRecordServiceFailure(
+      error,
+      DiagnosticOperation.bhpanDelivery,
+      stack,
+    );
   }
 
   UbaaBackend? _campusBackend;

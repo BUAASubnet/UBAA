@@ -213,9 +213,17 @@ Future<FeatureResult> _projectAcademicFeature(
           throw const BackendException(UbaaErrorCode.invalidInput);
       }
     case FeatureId.grades:
-      if (client.localRoute == null) {
-        final graduate = await _graduateGrades(backend, query);
+      if (client.localRoute == null ||
+          query.view == FeatureQueryView.gradesOverview) {
+        final graduate = await _graduateGrades(client, query);
         if (graduate != null) return graduate;
+      } else {
+        try {
+          final graduate = await _graduateGrades(client, query);
+          if (graduate != null) return graduate;
+        } on AcademicCacheMiss {
+          // 本科逐学期缓存可独立于总览存在。
+        }
       }
       if (query.view == FeatureQueryView.gradesOverview)
         return const FeatureResult.empty();

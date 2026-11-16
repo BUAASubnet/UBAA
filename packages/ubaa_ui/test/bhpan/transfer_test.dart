@@ -7,6 +7,9 @@ import 'package:ubaa_ui/src/features/bhpan/chrome.dart';
 import 'support.dart';
 
 class Destination implements BhpanDownloadDestination {
+  Destination({this.failure});
+
+  final Object? failure;
   int deliveries = 0, discards = 0;
   @override
   String get path => '/synthetic/download.txt';
@@ -16,6 +19,7 @@ class Destination implements BhpanDownloadDestination {
   Future<void> deliver(bool Function() current) async {
     expect(current(), true);
     deliveries++;
+    if (failure case final error?) throw error;
   }
 
   @override
@@ -75,6 +79,41 @@ Future<void> clickDownload(WidgetTester tester, {bool settle = true}) async {
 }
 
 void main() {
+  testWidgets('云盘交付失败只记录一次且可从短提示打开报告', (tester) async {
+    final files = DownloadFiles();
+    final failure = StateError('模拟私有路径');
+    final destination = Destination(failure: failure);
+    var records = 0;
+    await show(
+      tester,
+      BhpanAccess(
+        service: files,
+        pickDownload: (_, _) async => destination,
+        recordDeliveryFailure: (service, error, stack) {
+          expect(service, same(files));
+          expect(error, same(failure));
+          records++;
+          return const UiError(
+            code: UbaaErrorCode.internalError,
+            title: '文件未能保存',
+            message: '请重新选择保存位置',
+            issueId: 'UBAA-file-delivery',
+          );
+        },
+      ),
+    );
+    await clickDownload(tester);
+    expect(records, 1);
+    expect(destination.deliveries, 1);
+    expect(destination.discards, 1);
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    final report = tester
+        .widget<EditableText>(find.textContaining('UBAA-file-delivery'))
+        .controller
+        .text;
+    expect(report, isNot(contains('模拟私有路径')));
+  });
   testWidgets('保存面板取消后不下载，确认位置后完整交付一次文件', (tester) async {
     final files = DownloadFiles();
     final destination = Destination();

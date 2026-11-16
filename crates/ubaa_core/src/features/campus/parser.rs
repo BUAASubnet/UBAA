@@ -204,6 +204,7 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
     })
 }
 
+#[track_caller]
 pub(super) fn invalid() -> UbaaError {
     UbaaError::upstream_changed("校园账户响应不符合已验证的格式")
 }

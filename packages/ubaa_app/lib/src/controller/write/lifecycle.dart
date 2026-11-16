@@ -17,6 +17,13 @@ mixin ControllerWriteLifecycle on ControllerState {
   WriteCoordinator internalCreateWriteCoordinator(UbaaBackend backend) =>
       WriteCoordinator(
         diagnostics: internalDiagnostics,
+        observeResult: (operation, {required error, required route}) =>
+            internalRecordOperationOutcome(
+              operation.feature?.wireName ?? 'bhpan',
+              write: true,
+              error: error,
+              route: route,
+            ),
         canStart: () =>
             !internalDisposed &&
             !internalInteractiveEngaged &&

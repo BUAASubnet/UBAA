@@ -10,28 +10,42 @@ use crate::domain::{
     BykcCourseStatus, BykcCourseSubCategory, BykcSignConfig, BykcSignPoint, BykcStatistic,
     BykcStatistics, BykcUserProfile,
 };
-use crate::error::Result;
+use crate::error::{Result, UbaaError, safe_upstream_message};
 
 pub(super) fn envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("博雅响应无法解析"))?;
+    parse_envelope(body)
+        .map_err(|error| error.with_business_response(body.as_bytes(), None, "status"))
+}
+
+fn parse_envelope(body: &str) -> Result<Value> {
+    let value: Value = serde_json::from_str(body).map_err(|_| {
+        UbaaError::parse_error("博雅响应无法解析").with_diagnostic("parse", "json_invalid")
+    })?;
     let object = value.as_object().ok_or_else(|| error("博雅响应结构无效"))?;
-    let status = object
-        .get("status")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    if status != "0" && object.get("success").and_then(Value::as_bool) != Some(true) {
-        return Err(error(
-            object
-                .get("msg")
-                .and_then(Value::as_str)
-                .unwrap_or("博雅请求失败"),
-        ));
+    let status = object.get("status").and_then(Value::as_str);
+    let success = object.get("success").and_then(Value::as_bool);
+    if status != Some("0") && success != Some(true) {
+        return Err(if status.is_some() || success == Some(false) {
+            rejected(object)
+        } else {
+            error("博雅响应缺少有效状态").with_diagnostic("parse", "business_code_invalid")
+        });
     }
     object
         .get("data")
         .or_else(|| object.get("result"))
         .cloned()
-        .ok_or_else(|| error("博雅响应缺少数据"))
+        .ok_or_else(|| error("博雅响应缺少数据").with_diagnostic("parse", "data_missing"))
+}
+
+#[track_caller]
+pub(super) fn rejected(object: &Map<String, Value>) -> UbaaError {
+    let safe_message = ["errmsg", "msg"]
+        .iter()
+        .filter_map(|key| object.get(*key)?.as_str())
+        .find(|message| safe_upstream_message(message))
+        .unwrap_or("博雅服务器拒绝了该请求");
+    UbaaError::business_rejected(safe_message)
 }
 
 fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
@@ -316,10 +330,8 @@ fn parse_chosen_courses_at_for_purpose(
         .iter()
         .map(|v| {
             let m = v.as_object().ok_or_else(|| error("博雅已选课程字段无效"))?;
-            if write_preflight {
-                ensure_optional_i32(m, "checkin")?;
-                ensure_optional_i32(m, "pass")?;
-            }
+            ensure_optional_i32(m, "checkin")?;
+            ensure_optional_i32(m, "pass")?;
             let course = m.get("courseInfo").and_then(Value::as_object);
             let course_id = course
                 .and_then(|course| course.get("id"))
@@ -465,13 +477,15 @@ pub(super) fn sign_eligibilities(
     config: Option<&BykcSignConfig>,
     now: NaiveDateTime,
 ) -> (ActionEligibility, ActionEligibility) {
-    if course_id <= 0 || checkin.is_none() || pass.is_none() {
+    if course_id <= 0 {
         return (ActionEligibility::Unknown, ActionEligibility::Unknown);
     }
     if pass == Some(1) {
         return (ActionEligibility::Denied, ActionEligibility::Denied);
     }
-    let checkin = checkin.expect("已校验考勤状态存在");
+    // 旧版将缺失的考勤/考核字段按“尚未签到、尚未考核”处理。
+    // 只有明确的考核通过状态会阻止签到。
+    let checkin = checkin.unwrap_or(0);
     let sign = if checkin == 0 {
         window_eligibility(
             config.and_then(|value| value.sign_start_date.as_deref()),
@@ -605,4 +619,23 @@ pub(crate) fn parse_statistics(value: &Value) -> Result<BykcStatistics> {
         total_valid_count: Some(total_valid_count),
         categories,
     })
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn diagnostics_contract_博雅课程已满是确定的业务拒绝() {
+        let error = envelope(r#"{"status":"1","errmsg":"报名失败，该课程人数已满"}"#).unwrap_err();
+        assert_eq!(
+            serde_json::to_value(error.code).unwrap(),
+            "business_rejected"
+        );
+        assert_eq!(error.diagnostic().upstream_code, Some(1));
+        assert_eq!(
+            error.diagnostic().upstream_message.as_deref(),
+            Some("报名失败，该课程人数已满")
+        );
+    }
 }

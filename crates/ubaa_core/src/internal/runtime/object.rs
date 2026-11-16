@@ -88,19 +88,19 @@ impl ClientRuntime {
         let pending = self.transport.upload(request, body, observer);
         drop(permit);
         let result = tokio::select! {biased;_ = transfer.cancelled()=>return Err(write_outcome_unknown()),response=pending=>response};
-        let response = result.map_err(|_| write_outcome_unknown())?;
+        let response = result.map_err(super::unknown_after_send)?;
         if expected
             .is_some_and(|length| transfer.progress().bytes.checked_sub(before) != Some(length))
         {
             return Err(write_outcome_unknown());
         }
         if let Some(shared) = &self.shared_account {
-            shared.check().map_err(|_| write_outcome_unknown())?;
+            shared.check().map_err(super::unknown_after_send)?;
         }
         if !self
             .store
             .is_revision_current(self.session_revision)
-            .map_err(|_| write_outcome_unknown())?
+            .map_err(super::unknown_after_send)?
         {
             return Err(write_outcome_unknown());
         }

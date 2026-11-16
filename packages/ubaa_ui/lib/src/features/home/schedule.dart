@@ -105,7 +105,7 @@ class HomeScheduleSection extends StatelessWidget {
             ),
           ),
         if (error != null)
-          UiInlineRetry(message: error.message, onRetry: onRetry),
+          UiInlineRetry(message: error.message, error: error, onRetry: onRetry),
       ],
     );
   }

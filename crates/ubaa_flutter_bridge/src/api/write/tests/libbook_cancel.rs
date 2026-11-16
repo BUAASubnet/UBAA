@@ -266,7 +266,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
         .prepare_libbook_cancel_booking(cancel_request())
         .await
         .expect_err("prepare 原始上游文案必须安全归约");
-    assert_safe_cancel_authority_error(&error);
+    assert_safe_cancel_rejection(&error);
     assert_eq!(client.write_intents.lock().await.len(), 0);
     assert_eq!(cancel_request_count(&direct), 0);
     direct
@@ -301,7 +301,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
         .commit_write(intent.intent_id.clone())
         .await
         .expect_err("commit 原始上游文案必须安全归约");
-    assert_safe_cancel_authority_error(&error);
+    assert_safe_cancel_rejection(&error);
     assert_eq!(cancel_request_count(&direct), 0);
     let reused = client
         .commit_write(intent.intent_id)
@@ -626,6 +626,19 @@ fn assert_safe_cancel_authority_error(error: &crate::api::client::BridgeError) {
     assert_eq!(error.message, "图书馆预约取消资格核对响应无效");
     for unsafe_fragment in ["private", "secret", "学号", "token", "\n", "\0"] {
         assert!(!error.message.contains(unsafe_fragment));
+    }
+}
+
+fn assert_safe_cancel_rejection(error: &crate::api::client::BridgeError) {
+    assert_eq!(error.code, BridgeErrorCode::BusinessRejected);
+    assert_eq!(error.kind, BridgeErrorKind::Upstream);
+    assert!(!error.retryable);
+    let json = error.diagnostic_json.as_deref().unwrap();
+    let diagnostic = ubaa_core::facade::ErrorDiagnostic::from_json(json).unwrap();
+    assert_eq!(diagnostic.upstream_code, Some(2));
+    for unsafe_fragment in ["private", "secret", "学号", "token", "\n", "\0"] {
+        assert!(!error.message.contains(unsafe_fragment));
+        assert!(!json.contains(unsafe_fragment));
     }
 }
 

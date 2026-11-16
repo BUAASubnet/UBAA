@@ -77,37 +77,37 @@ where
 }
 pub(crate) fn finish(url: &str, response: HttpResponse, write: bool) -> Result<Vec<u8>> {
     if response.final_url != url {
-        return Err(if write { unknown() } else { parse::invalid() });
+        return Err((if write { unknown() } else { parse::invalid() })
+            .with_diagnostic("redirect", "response_target_mismatch")
+            .with_http_status(response.status));
     }
     status(&response, write)?;
     Ok(response.body)
 }
 pub(crate) fn status(response: &HttpResponse, write: bool) -> Result<()> {
-    match response.status {
-        200..=299 => Ok(()),
-        401 => Err(UbaaError::new(
+    let error = match response.status {
+        200..=299 => return Ok(()),
+        401 => UbaaError::new(
             ErrorCode::PermissionDenied,
             ErrorKind::Authentication,
             false,
             "云盘授权已失效，请重新打开云盘或分享",
-        )),
-        403 => Err(UbaaError::new(
-            ErrorCode::PermissionDenied,
-            ErrorKind::Authentication,
-            false,
-            "没有权限执行此云盘操作",
-        )),
-        400 | 404 | 409 => Err(UbaaError::new(
+        )
+        .with_diagnostic("authentication", "bearer_session_required"),
+        403 => return Err(super::super::http::http_status_error(response, "北航云盘")),
+        400 | 404 | 409 => UbaaError::new(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
             false,
             "云盘拒绝操作，请检查目标、同名文件与输入",
-        )),
-        _ if write => Err(unknown()),
-        500..=599 => Err(UbaaError::upstream_unavailable("北航云盘暂时不可用")),
-        _ => Err(parse::invalid()),
-    }
+        )
+        .with_diagnostic("response", "http_client_error"),
+        _ if write => unknown(),
+        _ => return Err(super::super::http::http_status_error(response, "北航云盘")),
+    };
+    Err(error.with_response(&response.body, Some(response.status)))
 }
+#[track_caller]
 pub(crate) fn unknown() -> UbaaError {
     UbaaError::outcome_unknown("云盘操作结果待核对，请在原账号与路线刷新目标，不要重复提交")
 }

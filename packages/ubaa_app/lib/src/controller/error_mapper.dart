@@ -20,6 +20,7 @@ class UbaaErrorMapper {
           issueId: error.issueId,
           authStage: error.authStage,
           authReason: error.authReason,
+          diagnostic: error.diagnostic,
         ),
       );
 

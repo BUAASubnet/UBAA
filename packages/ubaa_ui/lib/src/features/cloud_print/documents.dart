@@ -1,6 +1,6 @@
 part of 'view.dart';
 
-typedef _Transfer = ({String name, String message, bool ok});
+typedef _Transfer = ({String name, String message, bool ok, UiError? error});
 
 enum _FileAction { preview, download, select }
 
@@ -64,6 +64,12 @@ class _DocumentsState extends State<_Documents> {
     return pending;
   }
 
+  @override
+  void didUpdateWidget(covariant _Documents oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.service, widget.service)) _read = _list();
+  }
+
   void _reload() => setState(() {
     _selected.clear();
     _selecting = false;
@@ -77,10 +83,8 @@ class _DocumentsState extends State<_Documents> {
     try {
       await action();
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_error(error))));
+      if (!_current()) return;
+      _showError(context, error);
       if (error is UiError && error.code == UbaaErrorCode.outcomeUnknown) {
         _reload();
       }
@@ -114,6 +118,17 @@ class _DocumentsState extends State<_Documents> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(entry.name),
                   subtitle: Text(entry.message),
+                  trailing: switch (uiErrorDetailsAction(
+                    context,
+                    entry.error,
+                  )) {
+                    final details? => IconButton(
+                      tooltip: '错误详情',
+                      onPressed: details,
+                      icon: const Icon(Icons.info_outline),
+                    ),
+                    _ => null,
+                  },
                 ),
             ],
           ),
@@ -137,6 +152,7 @@ class _DocumentsState extends State<_Documents> {
           name: name,
           ok: errors[index] == null,
           message: errors[index]?.message ?? '成功',
+          error: errors[index],
         ),
     ]);
   }
@@ -184,9 +200,19 @@ class _DocumentsState extends State<_Documents> {
               : await widget.service.scan(doc.id);
           if (!_current()) return;
           final saved = await folder.save(doc.name, bytes, _current);
-          results.add((name: doc.name, ok: true, message: '已保存为 $saved'));
+          results.add((
+            name: doc.name,
+            ok: true,
+            message: '已保存为 $saved',
+            error: null,
+          ));
         } on Object catch (error) {
-          results.add((name: doc.name, ok: false, message: _error(error)));
+          results.add((
+            name: doc.name,
+            ok: false,
+            message: _error(error),
+            error: _asUiError(error),
+          ));
           if (error is UiError &&
               error.code == UbaaErrorCode.operationConflict) {
             break;

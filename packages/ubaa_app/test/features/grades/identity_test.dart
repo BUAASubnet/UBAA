@@ -33,7 +33,7 @@ void main() {
       addTearDown(controller.dispose);
       await controller.initialize();
       await controller.recoverSession(refreshHomeAfter: false);
-      final result = await controller.loadAllGrades();
+      final result = await controller.loadAllGrades(forceRefresh: true);
       expect(controller.phase, AppPhase.login);
       expect(result.terms, isEmpty);
       expect((await accounts.read())!.canRestore, isFalse);

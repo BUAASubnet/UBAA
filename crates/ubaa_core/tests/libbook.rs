@@ -202,7 +202,7 @@ impl HttpTransport for MockLibBookTransport {
             "/v4/Space/map" => HttpResponse::new(
                 200,
                 request.url,
-                r#"{"code":1,"data":{"area":{"id":"8","name":"分区"},"date":{"list":[{"day":"2026-08-27","times":[{"id":"t1","start":"08:00","end":"23:00"}]}]}}}"#.as_bytes().to_vec(),
+                r#"{"code":1,"data":{"area":{"id":"8","name":"分区"},"date":{"list":[{"day":"2026-08-27","book_start":"00:00","book_end":"23:59","book_close":"23:59","times":[{"id":"t1","start":"08:00","end":"23:00"}]}]}}}"#.as_bytes().to_vec(),
             ),
             "/v4/Space/seat" => HttpResponse::new(
                 200,

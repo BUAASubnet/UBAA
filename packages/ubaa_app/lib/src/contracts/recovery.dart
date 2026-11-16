@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/diagnostic_operation.dart';
 
 /// 单一路线的已核实身份，不表示另一条路线已经就绪。
 final class RecoveredRouteSession {
@@ -66,4 +67,24 @@ abstract interface class HomeRecoveryBatchBackend {
 
 /// 专用服务只读入口的恢复与最终错误记录，写操作不使用该回调。
 typedef ServiceRead =
-    Future<T> Function<T>(RecoveryTarget target, Future<T> Function() read);
+    Future<T> Function<T>(
+      RecoveryTarget target,
+      DiagnosticOperation operation,
+      Future<T> Function() read,
+    );
+
+typedef ServiceFailureRecorder =
+    UiError Function(
+      Object cause,
+      DiagnosticOperation operation,
+      StackTrace stackTrace, {
+      int? fileIndex,
+    });
+
+typedef ServiceOutcomeRecorder =
+    void Function(
+      DiagnosticOperation operation, {
+      UiError? error,
+      ConnectionMode? route,
+      bool write,
+    });

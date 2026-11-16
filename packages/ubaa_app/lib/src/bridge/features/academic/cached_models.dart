@@ -53,6 +53,7 @@ bool bridgeIsAcademicCacheQuery(FeatureId feature, FeatureQuery query) =>
         FeatureQueryView.examNotArranged,
       }.contains(query.view),
       FeatureId.grades => {
+        FeatureQueryView.gradesOverview,
         FeatureQueryView.summary,
         FeatureQueryView.gradesScored,
         FeatureQueryView.gradesMissing,

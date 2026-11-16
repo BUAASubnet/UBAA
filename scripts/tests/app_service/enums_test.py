@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 CHECKER = ROOT / 'scripts/check/app_service/enums.py'
 FEATURES = 'packages/ubaa_domain/lib/src/feature/catalog.dart'
 ERRORS = 'crates/ubaa_core/src/error/mod.rs'
+TELEMETRY = 'crates/ubaa_core/src/app_service/types.rs'
 SCHEMA = 'docs/contracts/app-service.schema.json'
 
 
@@ -33,8 +34,13 @@ pub enum ErrorKind {
     Upstream,
 }
 ''')
+        self.write(TELEMETRY, '''wire_enum! {
+    #[serde(rename_all = "snake_case")]
+    pub enum Feature { App, Auth, Grades, CloudPrint }
+}
+''')
         self.schema = {'$defs': {
-            'feature': {'enum': ['app', 'auth', 'grades']},
+            'feature': {'enum': ['app', 'auth', 'grades', 'cloud_print']},
             'errorKind': {'enum': ['upstream']},
         }}
 
@@ -69,6 +75,12 @@ pub enum ErrorKind {
         result = self.check()
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn('feature 多出：extra_feature', result.stderr)
+
+    def test_schema_missing_special_service_fails(self):
+        self.schema['$defs']['feature']['enum'].remove('cloud_print')
+        result = self.check()
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('feature 缺少：cloud_print', result.stderr)
 
     def test_new_rust_error_kind_is_compared_as_serde_snake_case(self):
         errors = (self.root / ERRORS).read_text(encoding='utf-8')

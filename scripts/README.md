@@ -38,7 +38,7 @@
 
 `release/download_manifest.py` 是 `just docs-download-sync` 的入口：读取 R2 上指定构建的公开清单，按 `distribute.py` 的公开安装包列表校验文件、大小和地址，再原样写入文档站下载页数据；`tests/release/download_manifest_test.py` 只用合成清单，不联网。
 
-`release/app_service_dashboard.py` 生成维护者自托管 Grafana 的使用情况看板，只读本地 `.env` 中的账号与 D1 ID，不联网；`tests/release/app_service_dashboard_test.py` 在按 D1 迁移建立的内存 SQLite 上执行看板的每条查询，并核对功能枚举、布局与列顺序。
+`release/app_service_dashboard.py` 生成 Grafana 使用情况看板，`--maintenance` 生成独立的受限错误诊断看板。不读取本地账号或联网。脚本测试核对枚举、布局与列顺序，应用服务测试在隔离 PostgreSQL 中运行查询。
 
 `release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 

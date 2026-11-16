@@ -12,6 +12,14 @@ part 'detail.dart';
 part 'filters.dart';
 part 'actions.dart';
 
+UiError _ihomeError(Object error, String fallback) => error is UiError
+    ? error
+    : UiError(
+        code: UbaaErrorCode.internalError,
+        title: fallback,
+        message: fallback,
+      );
+
 /// 校园服务独立页面，按用户选择读取，不参与首页后台刷新。
 class IhomeView extends StatefulWidget {
   const IhomeView({
@@ -38,13 +46,13 @@ class _IhomeViewState extends State<IhomeView> {
   List<IhomeEntry> _entries = [];
   List<IhomeNotice> _announcements = [];
   IhomeConfig? _config;
-  String? _error, _configError;
+  UiError? _error, _configError;
   ConnectionMode? _route;
   int _epoch = 0;
   final _details = <int, IhomeResult<IhomeAppeal>>{};
   final _expanded = <String>{};
   final _detailLoading = <int>{};
-  final _detailErrors = <int, String>{};
+  final _detailErrors = <int, UiError>{};
   final _busy = <int>{};
   final _submitting = <int>{};
   final _uncertain = <int>{};
@@ -125,9 +133,9 @@ class _IhomeViewState extends State<IhomeView> {
           _config = result.data;
           _configError = null;
         });
-    } on Object {
+    } on Object catch (error) {
       if (mounted && identical(service, widget.service))
-        setState(() => _configError = '分类与设置读取失败');
+        setState(() => _configError = _ihomeError(error, '分类与设置读取失败'));
     }
   }
 
@@ -235,9 +243,7 @@ class _IhomeViewState extends State<IhomeView> {
       }
     } on Object catch (error) {
       if (mounted && revision == _revision)
-        setState(
-          () => _error = error is UiError ? error.message : '读取失败，请稍后重试',
-        );
+        setState(() => _error = _ihomeError(error, '读取失败，请稍后重试'));
     } finally {
       if (mounted && revision == _revision) setState(() => _loading = false);
     }
@@ -302,13 +308,21 @@ class _IhomeViewState extends State<IhomeView> {
       if (!_notices) ..._filters() else const SizedBox(height: 12),
       // 只有首次读取在页面内占位；刷新保留原内容。
       if (_loading && empty) const LoadingPlaceholder(compact: true),
-      if (_error != null)
+      if (_error case final error?)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: UiInlineRetry(message: _error!, onRetry: () => _load()),
+          child: UiInlineRetry(
+            message: error.message,
+            error: error,
+            onRetry: () => _load(),
+          ),
         ),
-      if (_configError != null && !_notices)
-        UiInlineRetry(message: _configError!, onRetry: _loadConfig),
+      if (_configError case final error? when !_notices)
+        UiInlineRetry(
+          message: error.message,
+          error: error,
+          onRetry: _loadConfig,
+        ),
       if (!_loading && _error == null && empty)
         const UiStatePanel(
           compact: true,

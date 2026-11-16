@@ -108,6 +108,51 @@ fn 分区日程信封错误保持错误类别() {
         parse_area_schedule_for("area-safe", "无效响应")
             .unwrap_err()
             .code,
-        ErrorCode::UpstreamChanged
+        ErrorCode::ParseError
+    );
+}
+
+#[test]
+fn 日程保留预约窗口而非使用时段() {
+    let body = response(
+        &json!([{"day":"2026-11-17","book_start":"08:30","book_end":"23:00","book_close":"22:00","times":[{"id":"slot","start":"07:00","end":"23:00"}]}]),
+    );
+    let schedule =
+        serde_json::to_value(parse_area_schedule_for("area-safe", &body).unwrap()).unwrap();
+    assert_eq!(schedule["days"][0]["bookStart"], "08:30");
+    assert_eq!(schedule["days"][0]["bookEnd"], "23:00");
+    assert_eq!(schedule["days"][0]["bookClose"], "22:00");
+}
+
+#[test]
+fn 预约窗口按北京时间分钟边界且取较早截止时间() {
+    use crate::domain::LibBookDaySchedule;
+    let day = LibBookDaySchedule {
+        book_start: Some("08:30".into()),
+        book_end: Some("23:00".into()),
+        book_close: Some("22:00".into()),
+        ..Default::default()
+    };
+    for (time, allowed) in [
+        ("01:00:00", false),
+        ("08:29:59", false),
+        ("08:30:00", true),
+        ("22:00:59", true),
+        ("22:01:00", false),
+        ("23:30:00", false),
+    ] {
+        let now = chrono::NaiveTime::parse_from_str(time, "%H:%M:%S").unwrap();
+        assert_eq!(
+            super::schedule::check_booking_window(&day, now).is_ok(),
+            allowed,
+            "{time}"
+        );
+    }
+    assert!(
+        super::schedule::check_booking_window(
+            &LibBookDaySchedule::default(),
+            chrono::NaiveTime::MIN
+        )
+        .is_err()
     );
 }

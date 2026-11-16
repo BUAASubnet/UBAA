@@ -97,6 +97,8 @@ pub enum RouteLoginState {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SafeError {
+    #[serde(skip)]
+    pub context: Option<crate::error::ErrorDiagnostic>,
     /// 本地与 Bridge 诊断，CLI JSON 保持原合同。
     #[serde(skip)]
     pub diagnostic: Option<crate::error::AuthDiagnostic>,

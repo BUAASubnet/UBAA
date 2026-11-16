@@ -94,6 +94,7 @@ fn counter_and_timing_reject_unknown_dimensions() {
 fn error_dimensions_require_safe_codes_and_source_locations() {
     let error = |event, code: &str, source: Option<&str>| {
         TelemetryEvent::Error(ErrorDimensions {
+            diagnostic: None,
             event,
             feature: Feature::Grades,
             route: Route::Webvpn,

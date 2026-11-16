@@ -35,6 +35,7 @@ class BhpanAccess {
     this.pickFile,
     this.pickDownload,
     this.previewFile,
+    this.recordDeliveryFailure,
   });
   final BhpanService? service;
   final BhpanWriteRunner? runWrite;
@@ -51,6 +52,8 @@ class BhpanAccess {
     bool Function() isCurrent,
   )?
   previewFile;
+  final UiError Function(BhpanService, Object, StackTrace)?
+  recordDeliveryFailure;
 }
 
 /// 外壳的返回按钮和系统返回先交给云盘处理：逐级回到上一层，到顶后才退出。
@@ -193,6 +196,17 @@ class _BhpanViewState extends State<BhpanView> {
     UbaaFeedbackKind kind = UbaaFeedbackKind.info,
   ]) {
     if (mounted) UbaaFeedback.show(context, message, kind: kind);
+  }
+
+  void _notifyError(Object error) {
+    if (mounted) {
+      UbaaFeedback.show(
+        context,
+        _message(error),
+        error: error is UiError ? error : null,
+        kind: UbaaFeedbackKind.error,
+      );
+    }
   }
 
   /// 页面快捷键节点已持有焦点，SearchBar 的 autoFocus 不生效，这里显式聚焦。
@@ -419,7 +433,7 @@ class _BhpanViewState extends State<BhpanView> {
       return result;
     } on Object catch (e) {
       if (rethrowErrors) rethrow;
-      if (_current(generation)) _notify(_message(e), UbaaFeedbackKind.error);
+      if (_current(generation)) _notifyError(e);
       return null;
     } finally {
       if (mounted && identical(_mutationActivity, activity))
@@ -554,7 +568,7 @@ class _BhpanViewState extends State<BhpanView> {
           return null;
       }
     } on Object catch (e) {
-      if (_current(generation)) _notify(_message(e), UbaaFeedbackKind.error);
+      if (_current(generation)) _notifyError(e);
       return null;
     }
   }

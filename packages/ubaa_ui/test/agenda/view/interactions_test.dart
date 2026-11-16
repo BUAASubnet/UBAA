@@ -79,6 +79,38 @@ void main() {
     expect(agendaDateButton('周一 11月9日').hitTestable(), findsOneWidget);
   });
 
+  testWidgets('滚动后选择日期或重选当天，列表从所选日期顶部显示', (tester) async {
+    tester.view.physicalSize = const Size(402, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = await opened(MemoryAgenda());
+    for (var day = 5; day <= 25; day++) {
+      await addItem(service, '$day日日程', AgendaKind.event, day: day);
+    }
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    final scroll = find.byKey(const ValueKey('agenda-main-scroll'));
+    final scrollable = find.descendant(
+      of: scroll,
+      matching: find.byType(Scrollable),
+    );
+    for (final day in [6, 6, 5]) {
+      await tester.drag(scroll, const Offset(0, -700));
+      await tester.pumpAndSettle();
+      expect(
+        tester.state<ScrollableState>(scrollable).position.pixels,
+        greaterThan(0),
+      );
+      await tester.tap(
+        agendaDateButton('周${day == 5 ? '四' : '五'} 11月$day日，有事项'),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+      expect(find.text('$day日日程').hitTestable(), findsOneWidget);
+    }
+  });
+
   testWidgets('筛选面板切换课程、待办和全部，选中状态与事项一致', (tester) async {
     final backend = MemoryAgenda()..school.add(course());
     final service = await opened(backend);

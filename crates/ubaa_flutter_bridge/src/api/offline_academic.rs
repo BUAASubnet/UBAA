@@ -12,6 +12,7 @@ use super::read::{
     BridgeRoutedWeeks, BridgeTerm, BridgeWeek, BridgeWeeklySchedule, map_classroom_query,
     map_exam_arrangement, map_grade_data, map_terms, map_weekly_schedule, map_weeks,
 };
+use super::read::{BridgeGradeOverview, BridgeRoutedGradeOverview};
 use ubaa_core::facade as core;
 
 impl BridgeClient {
@@ -658,5 +659,79 @@ mod tests {
         drop(cache);
         drop(client);
         let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+/// 已保存的精确范围，原时间与路线不由当前配置替换。
+#[derive(Clone, Debug)]
+pub struct BridgeCachedAcademicGradesOverview {
+    pub data: BridgeGradeOverview,
+    pub source_route: BridgeConnectionMode,
+    pub fetched_at: i64,
+    pub complete: bool,
+}
+/// 本次在线内容与是否成功保存分别返回。
+#[derive(Clone, Debug)]
+pub struct BridgeAcademicGradesOverviewRefresh {
+    pub result: BridgeRoutedGradeOverview,
+    pub fetched_at: i64,
+    pub complete: bool,
+    pub save_error: Option<BridgeCacheFailure>,
+}
+impl BridgeOfflineCache {
+    /// 只访问独立本地仓库，不获取网络客户端锁。
+    ///
+    /// # Errors
+    /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+    pub async fn read_academic_grades_overview(
+        &self,
+        route: BridgeConnectionMode,
+    ) -> Result<Option<BridgeCachedAcademicGradesOverview>, BridgeError> {
+        let cache = self.cache.clone();
+        local_task(move || {
+            cache
+                .read_academic(route.into(), &core::AcademicQuery::GradesOverview)
+                .map_err(cache_error)?
+                .map(|record| {
+                    let core::CachePayload::GradesOverview(data) = record.payload else {
+                        return Err(cache_error(core::CacheError::Corrupt));
+                    };
+                    Ok(BridgeCachedAcademicGradesOverview {
+                        data: super::read::graduate::map_overview(data),
+                        source_route: record.scope.route.into(),
+                        fetched_at: record.fetched_at,
+                        complete: record.completeness == core::CacheCompleteness::Complete,
+                    })
+                })
+                .transpose()
+        })
+        .await
+    }
+}
+impl BridgeClient {
+    /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+    ///
+    /// # Errors
+    /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+    pub async fn academic_grades_overview_cached(
+        &self,
+        cache: &BridgeOfflineCache,
+    ) -> Result<BridgeAcademicGradesOverviewRefresh, BridgeError> {
+        let value = self
+            .refresh_academic_record(cache, core::AcademicQuery::GradesOverview)
+            .await?;
+        let core::CachePayload::GradesOverview(data) = value.data else {
+            return Err(cache_error(core::CacheError::Corrupt));
+        };
+        let complete = true;
+        Ok(BridgeAcademicGradesOverviewRefresh {
+            result: BridgeRoutedGradeOverview {
+                data: super::read::graduate::map_overview(data),
+                route: map_route(value.resolution),
+            },
+            fetched_at: value.fetched_at,
+            complete,
+            save_error: value.save_error.map(Into::into),
+        })
     }
 }

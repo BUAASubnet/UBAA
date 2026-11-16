@@ -1,6 +1,7 @@
 import '../../shared/refresh.dart' show RefreshViewport;
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
+import 'package:clock/clock.dart' show clock;
 import 'package:flutter/foundation.dart' show setEquals;
 import '../../shared/infinite_scroll.dart';
 import 'package:flutter/material.dart';
@@ -150,12 +151,85 @@ class FeatureDetailList extends StatefulWidget {
 }
 
 class _FeatureDetailListState extends State<FeatureDetailList> {
+  Timer? _bykcTimer;
+  DateTime _bykcCheckedAt = clock.now();
+  bool _bykcRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncBykcTimer();
+  }
+
+  void _syncBykcTimer() {
+    if (!widget.isBykcChosenDetail || widget.onQuery == null) {
+      _bykcTimer?.cancel();
+      _bykcTimer = null;
+      return;
+    }
+    _bykcTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
+      unawaited(_refreshBykcTimeBoundary());
+    });
+  }
+
+  Future<void> _refreshBykcTimeBoundary() async {
+    if (!widget.isBykcChosenDetail ||
+        !widget.writesEnabled ||
+        widget.onQuery == null ||
+        _bykcRefreshing ||
+        !TickerMode.of(context))
+      return;
+    final now = clock.now();
+    final previous = _bykcCheckedAt;
+    _bykcCheckedAt = now;
+    for (final detail in widget.details) {
+      if (detail.presentation case BykcChosenPresentation course) {
+        if (!detail.actions.whereType<BykcSignAction>().any(
+          (action) => action.courseId == course.courseId,
+        ))
+          continue;
+        bool crossed(String? raw, bool end) {
+          final date = DateTime.tryParse(raw ?? '');
+          if (date == null) return false;
+          bool reached(DateTime time) =>
+              end ? time.isAfter(date) : !time.isBefore(date);
+          return reached(previous) != reached(now);
+        }
+
+        if (crossed(course.signStartDate, false) ||
+            crossed(course.signEndDate, true) ||
+            crossed(course.signOutStartDate, false) ||
+            crossed(course.signOutEndDate, true)) {
+          _bykcRefreshing = true;
+          try {
+            await widget.onQuery!(
+              FeatureQuery(
+                view: FeatureQueryView.bykcChosenCourses,
+                courseId: '${course.courseId}',
+              ),
+            );
+          } finally {
+            _bykcRefreshing = false;
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _bykcTimer?.cancel();
+    super.dispose();
+  }
+
   int _filterGeneration = 0;
   final Set<String> _selectedEvaluationKeys = <String>{};
 
   @override
   void didUpdateWidget(covariant FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncBykcTimer();
     if (oldWidget.filter != widget.filter ||
         !setEquals(oldWidget.bykcStatuses, widget.bykcStatuses) ||
         !setEquals(oldWidget.bykcCategories, widget.bykcCategories) ||

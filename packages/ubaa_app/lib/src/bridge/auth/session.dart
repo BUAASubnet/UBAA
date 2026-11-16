@@ -36,6 +36,7 @@ Future<AuthStatus> bridgeAuthStatus(BridgeContext backend) async {
           retryable: failed.retryable,
           authStage: AuthFailureStage.parse(failed.authStage),
           authReason: AuthFailureReason.parse(failed.authReason),
+          diagnostic: ErrorDiagnostic.parse(failed.diagnosticJson),
           resolvedRoute: bridgeToConnectionMode(route.route),
         );
       }
@@ -127,6 +128,7 @@ Future<void> bridgeLogin(BridgeContext backend, LoginInput input) async {
             retryable: failed.retryable,
             authStage: AuthFailureStage.parse(failed.authStage),
             authReason: AuthFailureReason.parse(failed.authReason),
+            diagnostic: ErrorDiagnostic.parse(failed.diagnosticJson),
             resolvedRoute: bridgeToConnectionMode(route.route),
           );
         }

@@ -517,6 +517,9 @@ pub(crate) fn map_libbook_area_schedule(
             .into_iter()
             .map(|day| BridgeLibBookDaySchedule {
                 day: day.day,
+                book_start: day.book_start,
+                book_end: day.book_end,
+                book_close: day.book_close,
                 time_slots: day
                     .time_slots
                     .into_iter()

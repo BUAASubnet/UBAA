@@ -29,6 +29,7 @@ class WriteReceiptVerifier {
     WriteIntent intent, {
     WriteCommitResult? result,
     UiError? error,
+    UiError? resultError,
     required bool Function() isCurrent,
     void Function(Object, StackTrace)? onReadbackError,
   }) async {
@@ -103,6 +104,7 @@ class WriteReceiptVerifier {
       operation: operation,
       result: result,
       error: error,
+      resultError: resultError,
       cgyyReceiptVerified: receiptVerified,
       cgyyCancellationVerified: cancellationVerified,
       ygdkReadbackAttempted: ygdkAttempted,

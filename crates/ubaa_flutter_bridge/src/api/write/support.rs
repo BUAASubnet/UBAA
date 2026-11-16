@@ -344,23 +344,19 @@ pub(super) fn map_commit_error(
     BridgeError::from_routed(error)
 }
 
-fn routed_local_error(
+pub(super) fn routed_local_error(
     error: &domain::RoutedError,
     code: BridgeErrorCode,
     kind: BridgeErrorKind,
     retryable: bool,
     message: &str,
 ) -> BridgeError {
-    BridgeError {
-        auth_stage: None,
-        auth_reason: None,
-        cache_failure: None,
-        code,
-        kind,
-        retryable,
-        message: message.to_owned(),
-        resolved_route: error.resolution().map(|value| value.mode.into()),
-    }
+    let mut projected = BridgeError::from_routed(error.clone());
+    projected.code = code;
+    projected.kind = kind;
+    projected.retryable = retryable;
+    message.clone_into(&mut projected.message);
+    projected
 }
 
 pub(super) fn ensure_bykc_select_allowed(
@@ -860,4 +856,43 @@ fn unsafe_summary_character(value: char) -> bool {
                 | '\u{2060}'..='\u{206f}'
                 | '\u{feff}'
         )
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn write_remap_keeps_preflight_and_unknown_diagnostics() {
+        let route = domain::ConnectionMode::WebVpn;
+        let resolution = domain::RouteResolution {
+            mode: route,
+            policy: domain::RoutePolicy::WebVpn,
+            diagnostic: domain::RouteDiagnostic::new(domain::NetworkState::Unknown, route),
+        };
+        for (code, expected) in [
+            (
+                domain::ErrorCode::UpstreamChanged,
+                BridgeErrorCode::UpstreamChanged,
+            ),
+            (
+                domain::ErrorCode::OutcomeUnknown,
+                BridgeErrorCode::OutcomeUnknown,
+            ),
+        ] {
+            let error = domain::RoutedError {
+                error: domain::UbaaError::new(code, domain::ErrorKind::Upstream, false, "合成错误"),
+                resolution: Some(resolution),
+            };
+            let expected_diagnostic = error.error.diagnostic().to_json().unwrap();
+            let actual = map_commit_error(BridgeWriteOperation::CgyyCancelOrder, error);
+            assert_eq!(actual.code, expected);
+            assert_eq!(
+                actual.diagnostic_json.as_deref(),
+                Some(expected_diagnostic.as_str())
+            );
+            assert_eq!(actual.resolved_route, Some(route.into()));
+            assert!(!actual.retryable);
+        }
+    }
 }

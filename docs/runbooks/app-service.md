@@ -18,6 +18,10 @@
 
 只有 Nginx 监听公网 HTTPS 10443。Node.js 监听回环 10080，Grafana 监听回环 3000，PostgreSQL 使用回环连接。配置模板位于 [scripts/server](../../scripts/server/)。
 
+文档站的 `/release-data.json` 是公开安装包清单。Nginx 为成功响应设置 `Cache-Control: public, max-age=60`，Cloudflare 的文档缓存规则包含该路径，并遵循源站期限。`/downloads/` 下的临时下载会话继续禁止缓存。浏览器在首页和下载页之间共用清单，一分钟内复用已取得的数据，过期后再次进入页面时更新。加载失败时保留已有下载入口。
+
+修改 Nginx 模板后，通过 SSH 同步到 `/etc/nginx/sites-available/ubaa.conf`，运行 `nginx -t` 后重载 Nginx。文档部署工作流只更新网站文件，不会同步 Nginx 配置或 Cloudflare 缓存规则。
+
 ## 部署应用
 
 [部署工作流](../../.github/workflows/worker.yml)在 main 的相关改动或手动触发时执行服务测试、构建应用和云盘发布工具，然后保存同一次运行的 artifact。部署作业通过 SSH 传递运行编号、源码提交和短期下载地址，服务器直接从 GitHub 下载，不经过代理，不使用 Actions 上传大文件。
@@ -45,9 +49,12 @@ ssh ubaa 'journalctl -u ubaa-app -u ubaa-aggregate --since today'
 
 ## 使用情况看板
 
-Grafana 使用内置 PostgreSQL 数据源 `ubaa-postgres`。匿名访问和自行注册关闭，管理员账号单独配置。看板由 `just app-service-dashboard` 生成，包含活跃、功能、错误、耗时、分钟曲线和汇总状态。
+Grafana 使用内置 PostgreSQL 数据源。匿名访问和自行注册关闭，管理员账号单独配置。
 
-数据源配置在 `/etc/grafana/provisioning/datasources/ubaa.yaml`，看板在 `/var/lib/grafana/dashboards/ubaa.json`。修改生成器后运行应用服务检查，所有查询会在 PostgreSQL 上执行。
+- `just app-service-dashboard` 生成使用情况看板，使用 `ubaa-postgres`。可公开分享此看板，其结果仅包含汇总，不返回安装 ID、用户标识或单个安装的明细。
+- `just app-service-diagnostics-dashboard` 生成维护者错误看板，按版本、功能、路线和错误码筛选。将看板放入单独的维护者文件夹，只向维护者授予查看权限，不开启外部分享。为数据源 `ubaa-diagnostics` 配置单独的只读 PostgreSQL 角色，仅授予查询 `counter_days`、`error_days` 和 `error_samples` 所需的权限。确保普通看板的数据源角色无法读取 `error_samples`，并且普通用户无法查询维护数据源。
+
+普通数据源配置在 `/etc/grafana/provisioning/datasources/ubaa.yaml`，普通看板在 `/var/lib/grafana/dashboards/ubaa.json`。应用服务检查会在隔离的 PostgreSQL 上执行查询。
 
 ## 云盘分发
 

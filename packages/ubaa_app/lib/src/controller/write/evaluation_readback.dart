@@ -109,6 +109,7 @@ void controllerSetEvaluationReadbackFailureIfCurrent(
       DiagnosticOperation.readback,
       stackTrace: stackTrace,
       feature: FeatureId.evaluation,
+      writeOperation: WriteOperation.evaluationSubmitCourses,
     ),
     updatedAt: DateTime.now(),
   );

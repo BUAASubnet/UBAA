@@ -37,6 +37,22 @@ mixin ControllerOfflineStartup on ControllerState {
       if (internalDisposed || epoch != internalLifecycleEpoch) return true;
       if (index == null) return false;
       if (!index.canRestore || index.account == null) {
+        if (internalCredentialRestoreAllowed &&
+            formRevision == 0 &&
+            internalCredentialVault.isAvailable) {
+          final saved = await internalCredentialVault.read();
+          if (internalDisposed || epoch != internalLifecycleEpoch) return true;
+          if (internalNeedsManualLogin(formRevision)) return true;
+          if (saved != null && saved.isUsable) {
+            internalLoginForm = internalLoginForm.copyWith(
+              username: saved.username,
+              password: saved.password,
+              rememberPassword: true,
+              autoLogin: saved.autoLogin,
+            );
+          }
+        }
+        // 主动退出只恢复表单，保存的自动登录选项不触发认证。
         internalSessionRecoveryStatus = SessionRecoveryStatus.signedOut;
         internalSetPhase(AppPhase.login);
         return true;
@@ -72,6 +88,8 @@ mixin ControllerOfflineStartup on ControllerState {
             error,
             DiagnosticOperation.initialization,
             stackTrace: stackTrace,
+            initializationStage:
+                DiagnosticInitializationStage.credentialRestore,
           );
         }
       }
@@ -127,6 +145,7 @@ mixin ControllerOfflineStartup on ControllerState {
         error,
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
+        initializationStage: DiagnosticInitializationStage.localAccountRestore,
       );
       internalSetPhase(AppPhase.login);
       return true;

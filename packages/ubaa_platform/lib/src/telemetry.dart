@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'package:ubaa_domain/ubaa_domain.dart' show FeatureId, FeatureIdText;
+import 'package:ubaa_domain/ubaa_domain.dart'
+    show FeatureId, FeatureIdText, ErrorDiagnostic;
+
+import '../diagnostic_operation.dart';
 
 /// 允许上报的稳定事件名称。
 ///
@@ -17,6 +20,8 @@ abstract final class TelemetryEvents {
   static const routeResolved = 'route_resolved';
   static const featureLoaded = 'feature_loaded';
   static const featureFailed = 'feature_failed';
+  static const writeCompleted = 'write_completed';
+  static const writeFailed = 'write_failed';
   static const uiErrorShown = 'ui_error_shown';
   static const crash = 'crash';
 
@@ -30,6 +35,8 @@ abstract final class TelemetryEvents {
     routeResolved,
     featureLoaded,
     featureFailed,
+    writeCompleted,
+    writeFailed,
     uiErrorShown,
     crash,
   };
@@ -87,11 +94,17 @@ const Set<String> _defaultAllowedFields = {
   'error_kind',
   'retryable',
   'source',
+  'diagnostic',
   'result',
   'bucket',
 };
 
-final _features = {'app', 'auth', ...FeatureId.values.map((f) => f.wireName)};
+final _features = {
+  'app',
+  'auth',
+  ...FeatureId.values.map((f) => f.wireName),
+  ...DiagnosticOperation.serviceFeatures,
+};
 const _routes = {'direct', 'webvpn', 'none'};
 const _results = {'success', 'empty', 'failure'};
 const _errorKinds = {
@@ -388,6 +401,7 @@ TelemetryRecord? sanitizeTelemetryRecord(
   properties.forEach((key, value) {
     if (!effectivePolicy.allowsField(key)) return;
     final accepted = switch (key) {
+      'diagnostic' => value is String && ErrorDiagnostic.parse(value) != null,
       'feature' => _features.contains(value),
       'route' => _routes.contains(value),
       'result' => _results.contains(value),

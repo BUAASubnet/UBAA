@@ -375,3 +375,20 @@ fn ihome_公告正文解码实体并保留分段() {
     });
     assert_eq!(parser::notice(&value).unwrap().content, "“甲”\n乙→丙");
 }
+
+#[test]
+fn diagnostics_contract_ihome区分业务失败语法错误与缺失数据() {
+    let error = parser::envelope(r#"{"code":40000,"success":false}"#).unwrap_err();
+    assert_eq!(
+        serde_json::to_value(error.code).unwrap(),
+        "business_rejected"
+    );
+    assert_eq!(error.diagnostic().upstream_code, Some(40000));
+    assert_eq!(
+        parser::envelope(r#"{"code":"#).unwrap_err().code,
+        ErrorCode::ParseError
+    );
+    let error = parser::envelope(r#"{"code":20000,"success":true}"#).unwrap_err();
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(error.diagnostic().reason.as_deref(), Some("data_missing"));
+}

@@ -1,13 +1,13 @@
 //! 只解析本次 API 响应中的对象授权，不接收宿主 URL。
 use super::parse;
 use crate::{
-    error::{Result, UbaaError},
+    error::Result,
     ports::{HttpMethod, HttpRequest, HttpResponse},
 };
 use serde_json::Value;
 
 pub(crate) fn authorization(value: &Value, method: HttpMethod) -> Result<HttpRequest> {
-    let values = value.as_array().ok_or_else(parse::invalid)?;
+    let values = value.as_array().ok_or_else(|| parse::invalid())?;
     if values.len() < 2 {
         return Err(parse::invalid());
     }
@@ -20,7 +20,7 @@ pub(crate) fn authorization(value: &Value, method: HttpMethod) -> Result<HttpReq
     if values[0].as_str() != Some(expected) {
         return Err(parse::invalid());
     }
-    let raw = values[1].as_str().ok_or_else(parse::invalid)?;
+    let raw = values[1].as_str().ok_or_else(|| parse::invalid())?;
     let url = url::Url::parse(raw).map_err(|_| parse::invalid())?;
     if url.scheme() != "https"
         || url.host_str().is_none()
@@ -37,7 +37,7 @@ pub(crate) fn authorization(value: &Value, method: HttpMethod) -> Result<HttpReq
         let (name, value) = header
             .as_str()
             .and_then(|value| value.split_once(':'))
-            .ok_or_else(parse::invalid)?;
+            .ok_or_else(|| parse::invalid())?;
         let name = reqwest::header::HeaderName::from_bytes(name.trim().as_bytes())
             .map_err(|_| parse::invalid())?;
         let name = name.as_str();
@@ -65,30 +65,39 @@ pub(crate) fn download(bytes: &[u8], batch: bool) -> Result<HttpRequest> {
         let raw = value
             .get("url")
             .and_then(Value::as_str)
-            .ok_or_else(parse::invalid)?;
+            .ok_or_else(|| parse::invalid())?;
         authorization(&serde_json::json!(["GET", raw]), HttpMethod::Get)
     } else {
         authorization(
-            value.get("authrequest").ok_or_else(parse::invalid)?,
+            value.get("authrequest").ok_or_else(|| parse::invalid())?,
             HttpMethod::Get,
         )
     }
 }
 pub(crate) fn success(request: &HttpRequest, response: &HttpResponse) -> Result<()> {
-    if !(200..=299).contains(&response.status)
-        || !crate::ports::same_url(&response.final_url, &request.url)
-        || response.header_first("www-authenticate").is_some()
+    if !crate::ports::same_url(&response.final_url, &request.url) {
+        return Err(parse::invalid()
+            .with_diagnostic("redirect", "response_target_mismatch")
+            .with_http_status(response.status));
+    }
+    if !(200..=299).contains(&response.status) {
+        return Err(super::super::http::http_status_error(
+            response,
+            "云盘文件传输",
+        ));
+    }
+    if response.header_first("www-authenticate").is_some()
         || response.header_first("proxy-authenticate").is_some()
     {
-        return Err(UbaaError::upstream_changed(
-            "对象传输响应状态、认证或重定向不受支持",
-        ));
+        return Err(parse::invalid()
+            .with_diagnostic("authentication", "response_challenge_unexpected")
+            .with_http_status(response.status));
     }
     Ok(())
 }
 pub(crate) fn completion(bytes: &[u8]) -> Result<(HttpRequest, Vec<u8>)> {
     let text = std::str::from_utf8(bytes).map_err(|_| parse::invalid())?;
-    let (boundary, _) = text.split_once("\r\n").ok_or_else(parse::invalid)?;
+    let (boundary, _) = text.split_once("\r\n").ok_or_else(|| parse::invalid())?;
     if !boundary.starts_with("--") || boundary.len() < 3 {
         return Err(parse::invalid());
     }
@@ -100,13 +109,15 @@ pub(crate) fn completion(bytes: &[u8]) -> Result<(HttpRequest, Vec<u8>)> {
         if part == "--\r\n" || part == "--" || part.is_empty() {
             continue;
         }
-        let (_, body) = part.split_once("\r\n\r\n").ok_or_else(parse::invalid)?;
+        let (_, body) = part
+            .split_once("\r\n\r\n")
+            .ok_or_else(|| parse::invalid())?;
         if body.starts_with('<') && xml.is_none() {
             xml = Some(body.as_bytes().to_vec());
         } else if body.starts_with('{') && auth.is_none() {
             let value: Value = serde_json::from_str(body).map_err(|_| parse::invalid())?;
             auth = Some(authorization(
-                value.get("authrequest").ok_or_else(parse::invalid)?,
+                value.get("authrequest").ok_or_else(|| parse::invalid())?,
                 HttpMethod::Post,
             )?);
         } else {
@@ -114,8 +125,8 @@ pub(crate) fn completion(bytes: &[u8]) -> Result<(HttpRequest, Vec<u8>)> {
         }
     }
     Ok((
-        auth.ok_or_else(parse::invalid)?,
-        xml.ok_or_else(parse::invalid)?,
+        auth.ok_or_else(|| parse::invalid())?,
+        xml.ok_or_else(|| parse::invalid())?,
     ))
 }
 

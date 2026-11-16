@@ -17,7 +17,8 @@ extension _BhpanContent on _BhpanViewState {
   }
 
   Widget _errorPanel(Object error) {
-    final code = error is UiError ? error.code : null;
+    final diagnostic = error is UiError ? error : null;
+    final code = diagnostic?.code;
     // 学校 SSO 会话过期时上游给的是「权限不足」码、认证类错误，按登录失效展示。
     final authExpired =
         error is UiError && error.kind == UbaaErrorKind.authentication;
@@ -25,6 +26,7 @@ extension _BhpanContent on _BhpanViewState {
       return UiStatePanel(
         icon: Icons.link_off,
         title: '分享打开失败',
+        error: diagnostic,
         detail: _message(error),
         action: '重新输入链接',
         onAction: _loading ? null : _receivedShare,
@@ -33,6 +35,7 @@ extension _BhpanContent on _BhpanViewState {
       _ when authExpired => UiStatePanel(
         icon: Icons.lock_outline,
         title: '云盘登录已失效',
+        error: diagnostic,
         detail: _message(error),
         action: '重新登录云盘',
         onAction: _loading ? null : () => _load(reconnect: true, keep: true),
@@ -41,6 +44,7 @@ extension _BhpanContent on _BhpanViewState {
       UbaaErrorCode.invalidCredentials => UiStatePanel(
         icon: Icons.lock_outline,
         title: '云盘登录已失效',
+        error: diagnostic,
         detail: '重新登录后恢复当前目录',
         action: '重新登录云盘',
         onAction: _loading ? null : () => _load(reconnect: true, keep: true),
@@ -48,6 +52,7 @@ extension _BhpanContent on _BhpanViewState {
       UbaaErrorCode.permissionDenied => UiStatePanel(
         icon: Icons.block,
         title: '没有权限访问这里',
+        error: diagnostic,
         detail: _message(error),
         action: '重试',
         onAction: _loading ? null : _refresh,
@@ -57,6 +62,7 @@ extension _BhpanContent on _BhpanViewState {
       UbaaErrorCode.upstreamUnavailable => UiStatePanel(
         icon: Icons.wifi_off,
         title: '暂时连不上北航云盘',
+        error: diagnostic,
         detail: '请检查网络后重试',
         action: '重试',
         onAction: _loading ? null : _refresh,
@@ -64,6 +70,7 @@ extension _BhpanContent on _BhpanViewState {
       _ => UiStatePanel(
         icon: Icons.cloud_off_outlined,
         title: '文件夹读取失败',
+        error: diagnostic,
         detail: _message(error),
         action: '重试',
         onAction: _loading ? null : _refresh,

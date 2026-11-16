@@ -96,9 +96,7 @@ class _DocumentPreviewState extends State<_DocumentPreview> {
       await action();
     } on Object catch (error) {
       if (_current()) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_error(error))));
+        _showError(context, error);
       }
     } finally {
       if (mounted) setState(() => _busy = false);

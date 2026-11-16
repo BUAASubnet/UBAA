@@ -11,7 +11,7 @@ import 'read.dart';
 import 'read/graduate.dart';
 
 // These functions are ignored because they are not marked as `pub`: `refresh_academic_record`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 本次在线内容与是否成功保存分别返回。
 class BridgeAcademicClassroomsRefresh {
@@ -70,6 +70,38 @@ class BridgeAcademicExamsRefresh {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeAcademicExamsRefresh &&
+          runtimeType == other.runtimeType &&
+          result == other.result &&
+          fetchedAt == other.fetchedAt &&
+          complete == other.complete &&
+          saveError == other.saveError;
+}
+
+/// 本次在线内容与是否成功保存分别返回。
+class BridgeAcademicGradesOverviewRefresh {
+  final BridgeRoutedGradeOverview result;
+  final PlatformInt64 fetchedAt;
+  final bool complete;
+  final BridgeCacheFailure? saveError;
+
+  const BridgeAcademicGradesOverviewRefresh({
+    required this.result,
+    required this.fetchedAt,
+    required this.complete,
+    this.saveError,
+  });
+
+  @override
+  int get hashCode =>
+      result.hashCode ^
+      fetchedAt.hashCode ^
+      complete.hashCode ^
+      saveError.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeAcademicGradesOverviewRefresh &&
           runtimeType == other.runtimeType &&
           result == other.result &&
           fetchedAt == other.fetchedAt &&
@@ -294,6 +326,38 @@ class BridgeCachedAcademicGrades {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeCachedAcademicGrades &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          sourceRoute == other.sourceRoute &&
+          fetchedAt == other.fetchedAt &&
+          complete == other.complete;
+}
+
+/// 已保存的精确范围，原时间与路线不由当前配置替换。
+class BridgeCachedAcademicGradesOverview {
+  final BridgeGradeOverview data;
+  final BridgeConnectionMode sourceRoute;
+  final PlatformInt64 fetchedAt;
+  final bool complete;
+
+  const BridgeCachedAcademicGradesOverview({
+    required this.data,
+    required this.sourceRoute,
+    required this.fetchedAt,
+    required this.complete,
+  });
+
+  @override
+  int get hashCode =>
+      data.hashCode ^
+      sourceRoute.hashCode ^
+      fetchedAt.hashCode ^
+      complete.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCachedAcademicGradesOverview &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           sourceRoute == other.sourceRoute &&

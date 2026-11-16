@@ -13,7 +13,7 @@ pub(super) enum TransportStage {
 }
 
 impl TransportStage {
-    const fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Send => "send",
             Self::Receive => "receive",
@@ -45,7 +45,7 @@ pub(super) enum FailureReason {
 }
 
 impl FailureReason {
-    const fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Timeout => "timeout",
             Self::ConnectionRefused => "connection_refused",
@@ -92,7 +92,7 @@ pub(super) fn record_known_failure(
     );
 }
 
-fn classify(error: &reqwest::Error) -> FailureReason {
+pub(super) fn classify(error: &reqwest::Error) -> FailureReason {
     if error.is_timeout() {
         return FailureReason::Timeout;
     }

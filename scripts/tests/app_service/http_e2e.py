@@ -42,10 +42,14 @@ SELECT (SELECT count(*) FROM batches) AS batches,
        (SELECT coalesce(sum(count), 0) FROM counter_days) AS counters,
        (SELECT coalesce(sum(count), 0) FROM error_days) AS errors,
        (SELECT coalesce(sum(count), 0) FROM timing_days) AS timings,
-       (SELECT coalesce(sum(count), 0) FROM minute_counts) AS minutes
+       (SELECT coalesce(sum(count), 0) FROM minute_counts) AS minutes,
+       (SELECT diagnostic->>'upstream_code' FROM error_samples
+         WHERE event='write_failed' AND feature='cloud_print' AND route='webvpn'
+           AND error_code='business_rejected' AND diagnostic->>'reason'='business_rejected'
+         LIMIT 1) AS write_sample
 """
 EMPTY = dict(batches=0, tombstones=0, active=0, user_key=None, counters=0, errors=0, timings=0,
-             minutes=0)
+             minutes=0, write_sample=None)
 ERASED = dict(EMPTY, batches=1, tombstones=1)
 ERASED_WITH_MINUTES = dict(ERASED, minutes=2)
 
@@ -236,7 +240,7 @@ def relay(port, query, secret):
                     require(isinstance(stored, str) and hmac.compare_digest(stored, expected.hexdigest()),
                             "PostgreSQL 没有保存经过 HMAC 转换的 Rust 用户标识")
                     require(row == dict(batches=1, tombstones=0, active=1,
-                                        counters=2, errors=1, timings=1, minutes=2),
+                                        counters=2, errors=1, timings=1, minutes=2, write_sample=None),
                             "PostgreSQL 明细或分钟计数与 Rust 批次不符，或重复累加")
                 if self.path == ERASE and attempt == 1:
                     require(query() == ERASED_WITH_MINUTES, "删除未清除明细或改变了匿名分钟计数")

@@ -46,6 +46,7 @@ mixin ControllerAuthentication on ControllerState {
     final generation = internalLifecycleEpoch;
     internalError = previousLoginError;
     internalSetPhase(AppPhase.checkingSession);
+    var stage = DiagnosticInitializationStage.sessionState;
     try {
       if (internalNeedsManualLogin(formRevision)) return;
       if (internalBackend case final RouteSettingsBackend routeBackend) {
@@ -76,6 +77,7 @@ mixin ControllerAuthentication on ControllerState {
       if (internalCredentialRestoreAllowed &&
           internalLoginFormRevision == 0 &&
           internalCredentialVault.isAvailable) {
+        stage = DiagnosticInitializationStage.credentialRestore;
         final saved = await internalCredentialVault.read();
         if (!internalIsCurrentAuthentication(generation)) return;
         if (internalNeedsManualLogin(formRevision)) return;
@@ -108,6 +110,7 @@ mixin ControllerAuthentication on ControllerState {
         error,
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
+        initializationStage: stage,
       );
       internalError = internalLoginFormRevision == formRevision
           ? previousLoginError ?? failure

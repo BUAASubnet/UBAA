@@ -24,6 +24,7 @@ struct Row {
     scheme: Option<String>,
     teachers: Option<String>,
 }
+#[track_caller]
 fn error() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

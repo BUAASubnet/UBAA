@@ -221,8 +221,13 @@ impl BridgeAppService {
         error_kind: BridgeErrorKind,
         retryable: bool,
         source: Option<String>,
+        diagnostic_json: Option<String>,
     ) -> Result<bool, BridgeError> {
         self.enqueue(core::TelemetryEvent::Error(core::ErrorDimensions {
+            diagnostic: diagnostic_json
+                .as_deref()
+                .and_then(ubaa_core::facade::ErrorDiagnostic::from_json)
+                .map(Box::new),
             event: event.into(),
             feature: feature.into(),
             route: route.into(),

@@ -11,6 +11,12 @@ import 'receipt_verifier.dart';
 typedef WriteCommitter = Future<WriteCommitResult> Function(String intentId);
 typedef WritePreparer = Future<WriteIntent> Function();
 typedef WriteDiscarder = Future<void> Function(String intentId);
+typedef WriteResultObserver =
+    void Function(
+      WriteOperation operation, {
+      required UiError? error,
+      required ConnectionMode? route,
+    });
 
 /// 唯一生产写流程；Core 仍拥有最终资格与单次网络发送权威。
 class WriteCoordinator extends ChangeNotifier {
@@ -21,11 +27,13 @@ class WriteCoordinator extends ChangeNotifier {
     DateTime Function()? now,
     bool Function()? canStart,
     LocalDiagnostics? diagnostics,
+    WriteResultObserver? observeResult,
   }) : _commit = commit,
        _discard = discard,
        _receiptVerifier = receiptVerifier ?? const WriteReceiptVerifier(),
        _now = now ?? DateTime.now,
        _canStart = canStart,
+       _observeResult = observeResult,
        _diagnostics = diagnostics ?? LocalDiagnostics();
 
   final WriteCommitter _commit;
@@ -34,6 +42,7 @@ class WriteCoordinator extends ChangeNotifier {
   final DateTime Function() _now;
   final bool Function()? _canStart;
   final LocalDiagnostics _diagnostics;
+  final WriteResultObserver? _observeResult;
   WriteState _state = const WriteState.idle();
   bool _disposed = false;
   int _generation = 0;
@@ -115,9 +124,14 @@ class WriteCoordinator extends ChangeNotifier {
         exception,
         DiagnosticOperation.writePrepare,
         stackTrace,
+        writeOperation: expectedOperation,
       );
       _publish(WriteState(phase: WritePhase.idle, error: error));
       if (!_isCurrent(activity, generation)) return null;
+      // 路线已解析才进入学校资格核对的计数；本地表单和权限校验留在本机。
+      if (expectedOperation != null && error.resolvedRoute != null) {
+        _recordResult(expectedOperation, error: error);
+      }
       throw BackendException.fromUi(error);
     } finally {
       _finish(activity);
@@ -152,6 +166,7 @@ class WriteCoordinator extends ChangeNotifier {
         exception,
         DiagnosticOperation.writeDiscard,
         stackTrace,
+        writeOperation: pending.operation,
       );
       _publish(
         WriteState(phase: WritePhase.ready, intent: pending, error: error),
@@ -178,12 +193,14 @@ class WriteCoordinator extends ChangeNotifier {
     final pending = _state.intent;
     if (!_mayStart || _activity != null || pending == null) return null;
     if (pending.isExpired(_now())) {
+      final error = _safeError(
+        const BackendException(UbaaErrorCode.intentExpired),
+        DiagnosticOperation.writeCommit,
+        StackTrace.current,
+        writeOperation: pending.operation,
+      );
       _publish(
-        WriteState(
-          phase: WritePhase.ready,
-          intent: pending,
-          error: UbaaErrorMapper.fromCode(UbaaErrorCode.intentExpired),
-        ),
+        WriteState(phase: WritePhase.ready, intent: pending, error: error),
       );
       return null;
     }
@@ -196,13 +213,39 @@ class WriteCoordinator extends ChangeNotifier {
       }
       WriteCommitResult? result;
       UiError? error;
+      UiError? resultError;
       UbaaErrorCode? code;
       try {
         result = await _commit(pending.intentId);
+        if (!_isCurrent(activity, generation)) return null;
         if (result.operation != pending.operation) {
+          final failure = BackendException(
+            UbaaErrorCode.outcomeUnknown,
+            resolvedRoute: result.resolvedRoute,
+          );
           result = null;
           code = UbaaErrorCode.outcomeUnknown;
-          error = UbaaErrorMapper.fromCode(code);
+          error = _safeError(
+            failure,
+            DiagnosticOperation.writeCommit,
+            StackTrace.current,
+            writeOperation: pending.operation,
+          );
+        } else if (!result.success || result.outcomeUnknown) {
+          final failure = BackendException(
+            result.outcomeUnknown
+                ? UbaaErrorCode.outcomeUnknown
+                : result.evaluationResult?.stoppedForUpdate == true
+                ? UbaaErrorCode.updateRequired
+                : UbaaErrorCode.businessRejected,
+            resolvedRoute: result.resolvedRoute,
+          );
+          resultError = _safeError(
+            failure,
+            DiagnosticOperation.writeCommit,
+            StackTrace.current,
+            writeOperation: pending.operation,
+          );
         }
       } on Object catch (exception, stackTrace) {
         if (!_isCurrent(activity, generation)) return null;
@@ -215,6 +258,7 @@ class WriteCoordinator extends ChangeNotifier {
           exception,
           DiagnosticOperation.writeCommit,
           stackTrace,
+          writeOperation: pending.operation,
           semanticError: unclassified
               ? UbaaErrorMapper.fromCode(UbaaErrorCode.outcomeUnknown)
               : null,
@@ -226,18 +270,43 @@ class WriteCoordinator extends ChangeNotifier {
         pending,
         result: result,
         error: error,
+        resultError: resultError,
         isCurrent: () => _isCurrent(activity, generation),
         onReadbackError: (cause, stackTrace) {
-          _safeError(cause, DiagnosticOperation.readback, stackTrace);
+          _safeError(
+            cause,
+            DiagnosticOperation.readback,
+            stackTrace,
+            writeOperation: pending.operation,
+            relatedIssueId: (error ?? resultError)?.issueId,
+          );
         },
       );
       if (!_isCurrent(activity, generation)) return null;
       _publish(WriteState(phase: WritePhase.idle, error: error));
+      if (!_isCurrent(activity, generation)) return null;
+      _recordResult(
+        pending.operation,
+        error: error ?? resultError,
+        route: result?.resolvedRoute,
+      );
       return _isCurrent(activity, generation)
           ? (outcome: outcome, code: code)
           : null;
     } finally {
       _finish(activity);
+    }
+  }
+
+  void _recordResult(
+    WriteOperation operation, {
+    UiError? error,
+    ConnectionMode? route,
+  }) {
+    try {
+      _observeResult?.call(operation, error: error, route: route);
+    } on Object {
+      // 统计回调失败不影响学校写入或界面结果。
     }
   }
 
@@ -287,6 +356,8 @@ class WriteCoordinator extends ChangeNotifier {
     DiagnosticOperation operation,
     StackTrace stackTrace, {
     UiError? semanticError,
+    WriteOperation? writeOperation,
+    String? relatedIssueId,
   }) {
     final error = semanticError ?? UbaaErrorMapper.fromObject(exception);
     if (_disposed) return error;
@@ -294,6 +365,9 @@ class WriteCoordinator extends ChangeNotifier {
       return _diagnostics.record(
         operation: operation,
         error: error,
+        feature: writeOperation?.feature,
+        writeOperation: writeOperation,
+        relatedIssueId: relatedIssueId,
         cause: exception,
         stackTrace: stackTrace,
       );

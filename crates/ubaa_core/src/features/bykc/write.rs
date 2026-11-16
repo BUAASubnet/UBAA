@@ -96,7 +96,7 @@ fn validate_course_id(course_id: i64) -> Result<()> {
 }
 
 fn course_action_result(value: &Value, fallback_message: &str) -> Result<BykcActionResult> {
-    let value = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let value = value.as_object().ok_or_else(|| write_outcome_unknown())?;
     serde_json::from_value::<CourseActionPayload>(Value::Object(value.clone()))
         .map_err(|_| write_outcome_unknown())?;
     Ok(BykcActionResult {

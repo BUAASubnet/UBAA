@@ -61,7 +61,11 @@ export async function migrate() {
   await env.DB.prepare(
     "DROP SCHEMA public CASCADE; CREATE SCHEMA public",
   ).run();
-  for (const file of ["0001_initial.sql", "0002_minute_counts.sql"]) {
+  for (const file of [
+    "0001_initial.sql",
+    "0002_minute_counts.sql",
+    "0003_error_samples.sql",
+  ]) {
     await env.DB.prepare(
       await readFile(new URL(`../migrations/${file}`, import.meta.url), "utf8"),
     ).run();

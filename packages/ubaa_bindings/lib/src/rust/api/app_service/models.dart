@@ -214,9 +214,16 @@ enum BridgeTelemetryCounter {
   sessionExpired,
   routeResolved,
   featureLoaded,
+  writeCompleted,
 }
 
-enum BridgeTelemetryError { authFailed, featureFailed, uiErrorShown, crash }
+enum BridgeTelemetryError {
+  authFailed,
+  featureFailed,
+  uiErrorShown,
+  crash,
+  writeFailed,
+}
 
 enum BridgeTelemetryFeature {
   app,
@@ -233,6 +240,12 @@ enum BridgeTelemetryFeature {
   cgyy,
   ygdk,
   evaluation,
+  cloudPrint,
+  bhpan,
+  ihome,
+  portal,
+  network,
+  finance,
 }
 
 enum BridgeTelemetryResult { success, empty, failure }

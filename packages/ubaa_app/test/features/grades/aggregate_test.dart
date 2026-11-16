@@ -136,7 +136,7 @@ void main() {
     expect(value.isComplete, isTrue);
   });
 
-  test('迟到缓存不得覆盖已完成在线结果', () async {
+  test('完整刷新先交付缓存再用在线结果替换', () async {
     final backend = GradesBackend()
       ..online = true
       ..diskGate = Completer<void>();
@@ -147,14 +147,17 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     final progress = <GradesAggregate>[];
-    final pending = controller.loadAllGrades(onProgress: progress.add);
+    final pending = controller.loadAllGrades(
+      forceRefresh: true,
+      onProgress: progress.add,
+    );
     await controller.recoverSession(refreshHomeAfter: false);
+    expect(progress, isEmpty);
+    backend.diskGate!.complete();
     final value = await pending;
     expect(value.error, isNull);
     expect(value.statistics.weightedAverage, 95);
-    backend.diskGate!.complete();
-    await Future<void>.delayed(Duration.zero);
-    expect(progress, isEmpty);
+    expect(progress.single.statistics.weightedAverage, 80);
   });
 }
 

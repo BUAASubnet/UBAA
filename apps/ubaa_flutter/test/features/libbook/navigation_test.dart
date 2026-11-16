@@ -39,6 +39,9 @@ void main() {
   testWidgets('明确空座位后重新加载不复活原选择', (tester) async {
     final backend = await _open(tester);
     await tapVisibleWithScroll(tester, find.widgetWithText(Card, 'A1'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
     backend.emptyNext = true;
     await tapVisibleWithScroll(tester, find.byTooltip('刷新当前查询'));
     expect(find.text('已选座位：A1'), findsNothing);
@@ -49,6 +52,9 @@ void main() {
   testWidgets('换楼馆沿新父项自动加载且返回仍为图书馆菜单', (tester) async {
     final backend = await _open(tester);
     await tapVisibleWithScroll(tester, find.widgetWithText(Card, 'A1'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
     await tapVisibleWithScroll(tester, find.byTooltip('切换楼馆'));
     await tapVisibleWithScroll(
       tester,

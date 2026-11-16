@@ -199,18 +199,21 @@ pub(crate) async fn submit_clockin(
     )
     .await?;
     parse_submit_result(&body)
+        .map_err(|error| error.with_business_response(body.as_bytes(), Some(200), "code"))
 }
 
 pub(super) fn parse_submit_result(body: &str) -> Result<YgdkClockinSubmitResult> {
     let root: Value = serde_json::from_str(body).map_err(|_| super::write_outcome_unknown())?;
-    let object = root.as_object().ok_or_else(super::write_outcome_unknown)?;
+    let object = root
+        .as_object()
+        .ok_or_else(|| super::write_outcome_unknown())?;
     if object.get("code").and_then(Value::as_i64) != Some(1) {
         return Err(super::write_outcome_unknown());
     }
     let result = object
         .get("result")
         .and_then(Value::as_object)
-        .ok_or_else(super::write_outcome_unknown)?;
+        .ok_or_else(|| super::write_outcome_unknown())?;
     let record_id = result
         .get("record_id")
         .and_then(Value::as_i64)
@@ -227,6 +230,7 @@ fn invalid_input(message: &str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }
 
+#[track_caller]
 fn authority_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
@@ -234,11 +238,12 @@ fn authority_error() -> UbaaError {
         false,
         "阳光打卡提交资格核对响应无效",
     )
+    .with_diagnostic("preflight", "authority_check_failed")
 }
 
-fn sanitize_authority_error(error: UbaaError) -> UbaaError {
+fn sanitize_authority_error(mut error: UbaaError) -> UbaaError {
     let safe_message = match error.code {
-        ErrorCode::UpstreamChanged => return authority_error(),
+        ErrorCode::UpstreamChanged => "阳光打卡提交资格核对响应无效",
         ErrorCode::NetworkError => "阳光打卡资格核对网络请求失败",
         ErrorCode::Timeout => "阳光打卡资格核对请求超时",
         ErrorCode::UpstreamUnavailable => "阳光打卡资格核对服务暂时不可用",
@@ -249,12 +254,14 @@ fn sanitize_authority_error(error: UbaaError) -> UbaaError {
         }
         ErrorCode::Unsupported
         | ErrorCode::BusinessUnavailable
+        | ErrorCode::BusinessRejected
         | ErrorCode::InvalidCredentials
         | ErrorCode::PasswordRiskConfirmationFailed
         | ErrorCode::PermissionDenied
         | ErrorCode::UpdateRequired => return error,
     };
-    UbaaError::new(error.code, error.kind, error.retryable, safe_message)
+    error.message = safe_message.into();
+    error.with_diagnostic_default("preflight", "authority_check_failed")
 }
 
 #[cfg(test)]

@@ -129,10 +129,10 @@ pub(in crate::app_service) fn freeze(
         let mut part_length =
             serde_json::to_vec(&part)?.len() + usize::from(!payload.days.is_empty());
         let mut statement = tx.prepare(
-            "SELECT id,category,dimensions,count FROM app_service_pending
+            "SELECT id,category,dimensions,count,diagnostic FROM app_service_pending
              WHERE day=?1 AND version=?2
              UNION ALL
-             SELECT id,?3 AS category,dimensions,count FROM app_service_minutes
+             SELECT id,?3 AS category,dimensions,count,NULL AS diagnostic FROM app_service_minutes
              WHERE day=?1 AND version=?2 AND count>0 ORDER BY category,id",
         )?;
         let mut rows = statement.query(params![part.day, part.app_version, MINUTE_CATEGORY])?;
@@ -144,7 +144,12 @@ pub(in crate::app_service) fn freeze(
             if items.len() == ARRAY_LIMIT {
                 continue;
             }
-            let dimensions: Vec<u8> = row.get(2)?;
+            let mut dimensions: Vec<u8> = row.get(2)?;
+            if let Some(diagnostic) = row.get::<_, Option<String>>(4)? {
+                let mut value: Value = serde_json::from_slice(&dimensions)?;
+                value["diagnostic"] = serde_json::from_str(&diagnostic)?;
+                dimensions = serde_json::to_vec(&value)?;
+            }
             let count: i64 = row.get(3)?;
             let take = count.min(COUNT_LIMIT);
             let item = Item::from_pending(category, &dimensions, take)?;

@@ -57,7 +57,7 @@ pub(crate) async fn login(
     let response = request(runtime, HttpRequest::get(url.as_str())).await?;
     let envelope = envelope(&response)?;
     let mode = runtime.mode();
-    let mut current = auth_target(mode, envelope["result"].as_str().ok_or_else(invalid)?)?;
+    let mut current = auth_target(mode, envelope["result"].as_str().ok_or_else(|| invalid())?)?;
     validate_bootstrap(mode, &current)?;
     let mut service = None;
     for _ in 0..8 {
@@ -82,7 +82,7 @@ pub(crate) async fn login(
         let mut next = redirect_target(
             mode,
             &response.final_url,
-            response.header_first("location").ok_or_else(invalid)?,
+            response.header_first("location").ok_or_else(|| invalid())?,
         )?;
         if next.scheme() == "http"
             && next.host_str() == Some(HOST)
@@ -94,7 +94,9 @@ pub(crate) async fn login(
         if https_origin(&next, SSO_HOST) && next.path() == "/login" && service.is_none() {
             service = Some(cas_service(mode, &next)?);
         } else if !https_origin(&next, HOST) {
-            return Err(invalid());
+            return Err(invalid()
+                .with_diagnostic("redirect", "redirect_origin_unexpected")
+                .with_http_status(response.status));
         } else if current.path() == APP_CALLBACK && next.path() == UNIFIED_ENTRY {
             let mut session = false;
             let mut function = false;
@@ -154,7 +156,7 @@ fn validate_bootstrap(mode: ConnectionMode, url: &Url) -> Result<()> {
     let mut pairs = url.query_pairs();
     let callback = pairs
         .find(|(key, _)| key == "redirectUrl")
-        .ok_or_else(invalid)?
+        .ok_or_else(|| invalid())?
         .1;
     let callback = auth_target(mode, &callback)?;
     if callback.as_str() != format!("http://{HOST}{APP_CALLBACK}")
@@ -165,7 +167,7 @@ fn validate_bootstrap(mode: ConnectionMode, url: &Url) -> Result<()> {
     let target = url
         .query_pairs()
         .find(|(key, _)| key == "targetPageUrl")
-        .ok_or_else(invalid)?
+        .ok_or_else(|| invalid())?
         .1;
     let decoded = STANDARD.decode(target.as_bytes()).map_err(|_| invalid())?;
     let target = auth_target(mode, std::str::from_utf8(&decoded).map_err(|_| invalid())?)?;

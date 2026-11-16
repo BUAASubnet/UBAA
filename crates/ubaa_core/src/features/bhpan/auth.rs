@@ -25,14 +25,14 @@ pub(crate) async fn login(runtime: &mut ClientRuntime) -> Result<SecretValue> {
 async fn login_inner(runtime: &mut ClientRuntime) -> Result<SecretValue> {
     let landing = navigate(runtime, LOGIN, true).await?;
     if landing.path() == "/oauth2/signin" {
-        let raw = landing.query().ok_or_else(parse::invalid)?;
+        let raw = landing.query().ok_or_else(|| parse::invalid())?;
         let mut values = raw
             .split('&')
             .filter_map(|p| p.strip_prefix("login_challenge="));
         let value = values
             .next()
             .filter(|v| !v.is_empty())
-            .ok_or_else(parse::invalid)?;
+            .ok_or_else(|| parse::invalid())?;
         if values.next().is_some() || value.contains([';', '\r', '\n']) {
             return Err(parse::invalid());
         }
@@ -101,7 +101,7 @@ async fn navigate(runtime: &mut ClientRuntime, start: &str, stop_signin: bool) -
             .join(
                 response
                     .header_first("location")
-                    .ok_or_else(parse::invalid)?,
+                    .ok_or_else(|| parse::invalid())?,
             )
             .map_err(|_| parse::invalid())?;
         current = checked(next.as_str())?;

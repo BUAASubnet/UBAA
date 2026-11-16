@@ -89,12 +89,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == '图书馆云打印'
             ? CloudPrintView(
-                key: ValueKey((
-                  _pageContentScope,
-                  widget.cloudPrintService,
-                  widget.connecting,
-                )),
-                service: widget.connecting ? null : widget.cloudPrintService,
+                key: ValueKey(_pageContentScope),
+                service: widget.cloudPrintService,
                 connecting: widget.connecting,
                 pickFiles: widget.onPickPrintFiles,
                 pickFolder: widget.onPickPrintFolder,
@@ -112,6 +108,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                   pickFile: widget.onPickBhpanFile,
                   pickDownload: widget.onPickBhpanDownload,
                   previewFile: widget.onPreviewBhpanFile,
+                  recordDeliveryFailure: widget.onBhpanDeliveryFailure,
                   runWrite: _hasWriteCommands ? _runBhpanWrite : null,
                 ),
               )

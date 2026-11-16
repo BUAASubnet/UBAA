@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'app_service/privacy.dart' show uiShowPrivacyPolicy;
 import '../theme.dart' show UbaaTheme;
 import '../shared/layout/rail_identity.dart' show UiAppIcon;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
@@ -222,6 +223,23 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                                   : const Text('登录'),
                             ),
                           ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                '登录即视为同意',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              TextButton(
+                                onPressed: () => uiShowPrivacyPolicy(
+                                  context,
+                                  bundledPrivacyPolicy,
+                                ),
+                                child: const Text('隐私政策'),
+                              ),
+                            ],
+                          ),
                           if (widget.error case final error?) ...<Widget>[
                             const SizedBox(height: 16),
                             FriendlyErrorCard(error: error),
@@ -235,6 +253,17 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                               ),
                           ],
                           const SizedBox(height: 32),
+                          Text(
+                            '本软件由学生开发者制作并维护，为第三方工具，与北京航空航天大学官方无任何利益关系',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
                           Semantics(
                             link: true,
                             child: InkWell(

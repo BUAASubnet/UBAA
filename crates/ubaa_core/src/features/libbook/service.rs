@@ -40,8 +40,7 @@ pub(crate) async fn get_libraries_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     day: &str,
 ) -> Result<(Vec<LibBookLibrary>, bool)> {
-    let body =
-        response_data(request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?)?;
+    let body = request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?;
     Ok((
         parse_libraries(&body),
         super::observed::list_complete(&body, &["list", "libraries"]),
@@ -67,7 +66,7 @@ pub(crate) async fn get_areas_observed(
     day: &str,
 ) -> Result<(Vec<LibBookArea>, bool)> {
     let body = json!({"premisesIds": premises_id, "categoryIds": [], "storeyIds": storey_id.map_or_else(Vec::new, |id| vec![id]), "boutiqueIds": [], "date": day});
-    let body = response_data(request_json(runtime, "space/pick", body, true).await?)?;
+    let body = request_json(runtime, "space/pick", body, true).await?;
     Ok((
         parse_areas(&body),
         super::observed::list_complete(&body, &["area", "areas", "list"]),
@@ -88,8 +87,7 @@ pub(crate) async fn get_area_detail_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<(LibBookAreaDetail, bool)> {
-    let body =
-        response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?;
+    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
     Ok((
         parse_area_detail_for(area_id, &body)?,
         super::observed::detail_complete(&body),
@@ -101,8 +99,7 @@ pub(crate) async fn get_area_detail_with_schedule_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<(LibBookAreaDetail, bool)> {
-    let body =
-        response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?;
+    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
     let mut detail = parse_area_detail_for(area_id, &body)?;
     detail.schedule = Some(parse_area_schedule_for(area_id, &body)?);
     Ok((detail, super::observed::detail_complete(&body)))
@@ -115,7 +112,7 @@ pub(crate) async fn get_area_schedule(
 ) -> Result<LibBookAreaSchedule> {
     parse_area_schedule_for(
         area_id,
-        &response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?,
+        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
     )
 }
 
@@ -140,7 +137,7 @@ pub(crate) async fn get_seats_observed(
     end_time: &str,
 ) -> Result<(Vec<LibBookSeat>, bool)> {
     let body = json!({"id": area_id, "day": day, "label_id": [], "start_time": start_time, "end_time": end_time, "begdate": "", "enddate": ""});
-    let body = response_data(request_json(runtime, "Space/seat", body, true).await?)?;
+    let body = request_json(runtime, "Space/seat", body, true).await?;
     Ok((
         parse_seats(&body),
         super::observed::list_complete(&body, &["list", "seats"]),
@@ -164,7 +161,7 @@ pub(crate) async fn get_bookings_observed(
     limit: i32,
 ) -> Result<(LibBookBookingsPage, bool)> {
     validate_bookings_page(page, limit)?;
-    let body = response_data(request_bookings(runtime, page, limit).await?)?;
+    let body = request_bookings(runtime, page, limit).await?;
     Ok((
         parse_bookings_for_request(&body, page, limit)?,
         super::observed::list_complete(&body, &["data", "bookings", "list"]),
@@ -205,21 +202,15 @@ async fn get_cancel_bookings(
     validate_bookings_page(page, limit)?;
     request_bookings(runtime, page, limit)
         .await
-        .and_then(response_data)
         .and_then(|data| parse_bookings_with_strict_metadata(&data))
         .map_err(sanitize_cancel_authority_error)
 }
 
-fn sanitize_cancel_authority_error(error: UbaaError) -> UbaaError {
-    if error.code != ErrorCode::UpstreamChanged {
-        return error;
+fn sanitize_cancel_authority_error(mut error: UbaaError) -> UbaaError {
+    if error.code == ErrorCode::UpstreamChanged {
+        error.message = "图书馆预约取消资格核对响应无效".into();
     }
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        "图书馆预约取消资格核对响应无效",
-    )
+    error.with_diagnostic_default("preflight", "authority_check_failed")
 }
 
 pub(crate) async fn reserve(
@@ -243,9 +234,11 @@ pub(crate) async fn reserve(
     apply_headers(runtime, &mut http_request, Some(&authorization))?;
     let response = runtime.request_non_idempotent(http_request).await?;
     if response.status != 200 || final_url_is_authentication(&response.final_url) {
-        return Err(write_outcome_unknown());
+        return Err(write_outcome_unknown().with_response(&response.body, Some(response.status)));
     }
-    let (success, message) = parse_reserve_outcome(&response.body)?;
+    let (success, message) = parse_reserve_outcome(&response.body).map_err(|error| {
+        error.with_business_response(&response.body, Some(response.status), "code")
+    })?;
     Ok(LibBookReserveResult {
         success,
         message,
@@ -259,9 +252,8 @@ pub(crate) async fn preflight_reserve(
     request: &LibBookReserveRequest,
 ) -> Result<LibBookReservePreflight> {
     let request = normalize_reserve_request(request)?;
-    let detail_body = response_data(
-        request_json(runtime, "Space/map", json!({"id": request.area_id}), true).await?,
-    )?;
+    let detail_body =
+        request_json(runtime, "Space/map", json!({"id": request.area_id}), true).await?;
     let detail = parse_area_detail_for_day(&request.area_id, &request.day, &detail_body)?
         .ok_or_else(|| unavailable("图书馆预约日期已变化，请刷新后重新准备"))?;
     if detail.id.trim() != request.area_id {
@@ -282,6 +274,17 @@ pub(crate) async fn preflight_reserve(
     if slot.start.trim() != request.start_time || slot.end.trim() != request.end_time {
         return Err(unavailable("图书馆预约时段已变化，请刷新后重新准备"));
     }
+
+    let schedule = parse_area_schedule_for(&request.area_id, &detail_body)?;
+    let day = schedule
+        .days
+        .iter()
+        .find(|day| day.day == request.day)
+        .ok_or_else(|| unavailable("图书馆预约日期已变化，请刷新后重新准备"))?;
+    super::schedule::check_booking_window(
+        day,
+        crate::time::shanghai_datetime(runtime.now()).time(),
+    )?;
 
     let matching_seats = get_seats(
         runtime,
@@ -380,12 +383,12 @@ fn safe_summary_field(value: &str, fallback: &str) -> String {
 
 fn parse_reserve_outcome(body: &[u8]) -> Result<(bool, String)> {
     let value: Value = serde_json::from_slice(body).map_err(|_| write_outcome_unknown())?;
-    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let object = value.as_object().ok_or_else(|| write_outcome_unknown())?;
     let code = object
         .get("code")
         .and_then(strict_i32)
         .filter(|code| matches!(code, 0 | 1))
-        .ok_or_else(write_outcome_unknown)?;
+        .ok_or_else(|| write_outcome_unknown())?;
     debug_assert!(matches!(code, 0 | 1));
 
     let data = object.get("data").and_then(Value::as_object);
@@ -476,13 +479,9 @@ fn unavailable(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
 }
 
+#[track_caller]
 fn write_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "图书馆预约结果未知，请刷新预约记录后再决定是否重试",
-    )
+    UbaaError::outcome_unknown("图书馆预约结果未知，请刷新预约记录后再决定是否重试")
 }
 
 /// 重新读取 action 产生时所在分页，并形成唯一 active 预约的取消权威摘要。
@@ -575,25 +574,27 @@ pub(crate) async fn cancel_booking(
     if response.status != 200
         || !final_url_matches_request(&expected_final_url, &response.final_url)
     {
-        return Err(cancel_outcome_unknown());
+        return Err(cancel_outcome_unknown().with_response(&response.body, Some(response.status)));
     }
-    parse_cancel_outcome(&response.body)
+    parse_cancel_outcome(&response.body).map_err(|error| {
+        error.with_business_response(&response.body, Some(response.status), "code")
+    })
 }
 
 fn parse_cancel_outcome(body: &[u8]) -> Result<LibBookCancelResult> {
     let value: Value = serde_json::from_slice(body).map_err(|_| cancel_outcome_unknown())?;
-    let object = value.as_object().ok_or_else(cancel_outcome_unknown)?;
+    let object = value.as_object().ok_or_else(|| cancel_outcome_unknown())?;
     let code = object
         .get("code")
         .and_then(canonical_i32)
-        .ok_or_else(cancel_outcome_unknown)?;
+        .ok_or_else(|| cancel_outcome_unknown())?;
     let message = object
         .get("message")
         .or_else(|| object.get("msg"))
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|message| !message.is_empty())
-        .ok_or_else(cancel_outcome_unknown)?;
+        .ok_or_else(|| cancel_outcome_unknown())?;
     if is_authentication_message(message) {
         return Err(cancel_outcome_unknown());
     }
@@ -658,13 +659,9 @@ fn final_url_matches_request(expected: &str, actual: &str) -> bool {
         .is_some_and(|(expected, actual)| expected == actual)
 }
 
+#[track_caller]
 fn cancel_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "图书馆取消结果未知，请刷新预约记录后再决定是否重试",
-    )
+    UbaaError::outcome_unknown("图书馆取消结果未知，请刷新预约记录后再决定是否重试")
 }
 
 async fn request_json(
@@ -684,8 +681,10 @@ async fn request_json(
         .insert("Content-Type".into(), "application/json".into());
     apply_headers(runtime, &mut request, Some(&authorization))?;
     let response = runtime.request(request).await?;
-    let decoded = serde_json::from_str::<Value>(&String::from_utf8_lossy(&response.body))
-        .map_err(|_| error("图书馆响应无法解析"));
+    let decoded = serde_json::from_slice::<Value>(&response.body).map_err(|cause| {
+        UbaaError::json_error(&cause, "图书馆响应无法解析", &response.body)
+            .with_http_status(response.status)
+    });
     debug!(
         target: "ubaa::libbook",
         operation = path,
@@ -701,22 +700,19 @@ async fn request_json(
             runtime.feature_state().libbook.clear_credential();
             return Box::pin(request_json(runtime, path, body, false)).await;
         }
-        return Err(UbaaError::new(
-            ErrorCode::AuthenticationRequired,
-            ErrorKind::Authentication,
-            false,
-            "图书馆业务会话已失效",
-        ));
+        return Err(UbaaError::authentication_required("图书馆业务会话已失效")
+            .with_diagnostic("authentication", "business_session_required")
+            .with_response(&response.body, Some(response.status)));
     }
     if response.status != 200 {
-        return Err(UbaaError::new(
-            ErrorCode::UpstreamUnavailable,
-            ErrorKind::Upstream,
-            true,
-            "图书馆服务暂时不可用",
+        return Err(crate::features::http::http_status_error(
+            &response,
+            "图书馆",
         ));
     }
-    decoded
+    response_data(decoded?).map_err(|error| {
+        error.with_business_response(&response.body, Some(response.status), "code")
+    })
 }
 
 fn safe_url(value: &str) -> String {

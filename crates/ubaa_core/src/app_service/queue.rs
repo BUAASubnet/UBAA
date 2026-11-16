@@ -18,6 +18,9 @@ pub use batch::FrozenBatch;
 pub(super) use batch::{batch_for_send, freeze};
 pub(super) use minutes::MINUTE_SCHEMA;
 
+pub(super) const DIAGNOSTIC_SCHEMA: &str =
+    "ALTER TABLE app_service_pending ADD COLUMN diagnostic BLOB;";
+
 const COUNT_LIMIT: i64 = 100_000;
 const CAPACITY_BYTES: usize = 256 * 1024;
 // 一个批次的固定字段和至多八组外壳（含最长版本、两种来源）。
@@ -131,31 +134,52 @@ pub(super) fn enqueue(
     }
     let day = now.date();
     purge_expired(tx, day)?;
+    let diagnostic = match event {
+        TelemetryEvent::Error(error) => error
+            .diagnostic
+            .as_deref()
+            .and_then(crate::error::ErrorDiagnostic::to_json),
+        _ => None,
+    };
     let (category, dimensions) = match event {
         TelemetryEvent::Counter(dimensions) => (0, serde_json::to_vec(dimensions)?),
-        TelemetryEvent::Error(dimensions) => (1, serde_json::to_vec(dimensions)?),
+        TelemetryEvent::Error(dimensions) => {
+            let mut dimensions = dimensions.clone();
+            dimensions.diagnostic = None;
+            (1, serde_json::to_vec(&dimensions)?)
+        }
         TelemetryEvent::Timing(dimensions) => (2, serde_json::to_vec(dimensions)?),
     };
     let day = day.to_string();
-    let count: i64 = tx
+    let (count, previous_sample): (i64, i64) = tx
         .query_row(
-            "SELECT count FROM app_service_pending
+            "SELECT count, COALESCE(length(CAST(diagnostic AS BLOB)),0) FROM app_service_pending
              WHERE day=?1 AND version=?2 AND category=?3 AND dimensions=?4",
             params![day, version, category, dimensions],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?
-        .unwrap_or(0);
+        .unwrap_or((0, 0));
+    let previous_sample =
+        usize::try_from(previous_sample).map_err(|_| rusqlite::Error::InvalidQuery)?;
     let registration = match user {
         Some(user) if should_register(tx, &day, version, user.key())? => {
             Some((user.key(), serde_json::to_vec(user)?))
         }
         _ => None,
     };
+    let sample_bytes = diagnostic.as_ref().map_or(previous_sample, String::len);
     let event_delta = if count % COUNT_LIMIT == 0 {
-        dimensions.len() + usize::from(COUNT_AND_SEPARATOR_BYTES)
+        dimensions.len()
+            + sample_bytes
+            + usize::from(sample_bytes > 0) * 16
+            + usize::from(COUNT_AND_SEPARATOR_BYTES)
     } else {
-        0
+        let chunks = usize::try_from(1 + (count - 1) / COUNT_LIMIT)
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        (sample_bytes.saturating_sub(previous_sample)
+            + usize::from(previous_sample == 0 && sample_bytes > 0) * 16)
+            * chunks
     };
     let user_delta = registration.as_ref().map_or(0, |(_, body)| body.len() + 1);
     let Some(spare) =
@@ -168,11 +192,11 @@ pub(super) fn enqueue(
         Surface::Command => 2,
     };
     tx.execute(
-        "INSERT INTO app_service_pending(day,version,category,dimensions,surfaces,count)
-         VALUES(?1,?2,?3,?4,?5,1)
+        "INSERT INTO app_service_pending(day,version,category,dimensions,surfaces,count,diagnostic)
+         VALUES(?1,?2,?3,?4,?5,1,?6)
          ON CONFLICT(day,version,category,dimensions) DO UPDATE
-         SET count=count+1, surfaces=surfaces | excluded.surfaces",
-        params![day, version, category, dimensions, surfaces],
+         SET count=count+1, surfaces=surfaces | excluded.surfaces, diagnostic=COALESCE(excluded.diagnostic, diagnostic)",
+        params![day, version, category, dimensions, surfaces, diagnostic],
     )?;
     if let Some((key, body)) = registration {
         tx.execute(
@@ -211,7 +235,7 @@ fn should_register(
 fn queued_bytes(tx: &Transaction<'_>) -> AppServiceResult<usize> {
     let size: i64 = tx.query_row(
         "SELECT
-            (SELECT coalesce(sum((length(dimensions)+?1)*(1+(count-1)/?2)),0) FROM app_service_pending)
+            (SELECT coalesce(sum((length(dimensions)+CASE WHEN diagnostic IS NULL THEN 0 ELSE length(CAST(diagnostic AS BLOB))+16 END+?1)*(1+(count-1)/?2)),0) FROM app_service_pending)
             + (SELECT coalesce(sum((length(dimensions)+?1)*(1+(count-1)/?2)),0)
                FROM app_service_minutes WHERE count>0)
             + (SELECT coalesce(sum(length(pending_body)+1),0) FROM app_service_registrations)

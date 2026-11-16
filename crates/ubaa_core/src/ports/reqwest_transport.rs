@@ -146,7 +146,7 @@ pub(crate) async fn execute_with_client(
             &error,
             started.elapsed(),
         );
-        transport_error(&error)
+        transport_error(&error).with_diagnostic("send", diagnostic::classify(&error).as_str())
     })?;
     let status = response.status().as_u16();
     let final_url = response.url().to_string();
@@ -235,6 +235,7 @@ async fn collect_response_body(
                 started.elapsed(),
             );
             transport_error(&error)
+                .with_diagnostic("receive", diagnostic::classify(&error).as_str())
         })?;
         let Some(chunk) = chunk else {
             break;

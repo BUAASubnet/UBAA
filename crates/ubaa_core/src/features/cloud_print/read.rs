@@ -76,23 +76,21 @@ pub(crate) async fn preview(
         .append_pair("dwCreateTime", &job.time)
         .append_pair("pageNo", &page.to_string());
     let response = request(runtime, HttpRequest::get(url.as_str())).await?;
-    let value = envelope(&response).map_err(|error| {
+    let value = envelope(&response).map_err(|mut error| {
         let image = job.name.rsplit_once('.').is_some_and(|(_, ext)| {
             matches!(ext.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "png")
         });
-        if image && error.code == ErrorCode::BusinessUnavailable {
-            UbaaError::new(
-                ErrorCode::Unsupported,
-                ErrorKind::Upstream,
-                false,
-                "打印站无法预览这份原格式图片。重新上传后会转为可预览的 PDF。",
-            )
-        } else {
-            error
+        if image
+            && error.code == ErrorCode::BusinessRejected
+            && error.diagnostic().upstream_code == Some(1)
+        {
+            error.code = ErrorCode::Unsupported;
+            error.message = "打印站无法预览这份原格式图片。重新上传后会转为可预览的 PDF。".into();
         }
+        error
     })?;
     let bytes = STANDARD
-        .decode(value["result"].as_str().ok_or_else(invalid)?)
+        .decode(value["result"].as_str().ok_or_else(|| invalid())?)
         .map_err(|_| invalid())?;
     if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Err(invalid());
@@ -110,17 +108,21 @@ pub(crate) async fn scan_download(
     let mut url = endpoint("Scan/Download");
     url.query_pairs_mut().append_pair("dwJobId", &job.id);
     let response = request(runtime, HttpRequest::get(url.as_str())).await?;
-    if matches!(response.status, 401 | 403) {
-        return Err(super::authentication_required());
+    if response.status == 401 {
+        return Err(super::authentication_required().with_http_status(response.status));
     }
-    if response.status != 200 || response.body.is_empty() {
-        return Err(invalid());
+    if response.status != 200 {
+        return Err(super::super::http::http_status_error(&response, "云打印"));
+    }
+    if response.body.is_empty() {
+        return Err(invalid().with_http_status(response.status));
     }
     let mime = response
         .header_first("content-type")
         .unwrap_or_default()
         .to_ascii_lowercase();
     scan_payload(response.body, &mime, job.bytes)
+        .map_err(|error| error.with_http_status(response.status))
 }
 
 fn scan_payload(mut body: Vec<u8>, mime: &str, listed_size: Option<u64>) -> Result<Vec<u8>> {
@@ -130,7 +132,7 @@ fn scan_payload(mut body: Vec<u8>, mime: &str, listed_size: Option<u64>) -> Resu
     let size = listed_size
         .and_then(|bytes| usize::try_from(bytes).ok())
         .filter(|&bytes| bytes != 0)
-        .ok_or_else(invalid)?;
+        .ok_or_else(|| invalid())?;
     if body.len() == size {
         return Ok(body);
     }
@@ -154,7 +156,8 @@ fn scan_payload(mut body: Vec<u8>, mime: &str, listed_size: Option<u64>) -> Resu
         ErrorKind::Upstream,
         true,
         "打印站未返回完整的扫描文件，请稍后重试",
-    ))
+    )
+    .with_diagnostic("response", "scan_incomplete"))
 }
 
 pub(crate) async fn delete(
@@ -184,12 +187,15 @@ pub(crate) async fn delete(
         .await?;
     runtime.ensure_session_revision().map_err(|_| unknown())?;
     if !crate::ports::same_url(&response.final_url, &url) {
-        return Err(unknown());
+        return Err(unknown().with_http_status(response.status));
     }
     match envelope(&response) {
         Ok(_) => Ok(()),
-        Err(error) if error.code == crate::error::ErrorCode::BusinessUnavailable => Err(error),
-        Err(_) => Err(unknown()),
+        Err(error) if error.code == ErrorCode::BusinessRejected && response.status == 200 => {
+            Err(error)
+        }
+        Err(error) => Err(error
+            .with_write_outcome_unknown("云打印删除结果未知，请刷新文档列表核对后再决定是否重试")),
     }
 }
 
@@ -335,11 +341,11 @@ fn text(value: &Value, field: &str) -> Result<String> {
         .as_str()
         .filter(|s| !s.is_empty())
         .map(str::to_owned)
-        .ok_or_else(invalid)
+        .ok_or_else(|| invalid())
 }
 
 fn number(value: &Value, field: &str) -> Result<i64> {
-    integer(&value[field]).ok_or_else(invalid)
+    integer(&value[field]).ok_or_else(|| invalid())
 }
 
 fn natural(value: &Value, field: &str) -> Result<u64> {

@@ -10,6 +10,7 @@ import re
 ROOT = Path(__file__).resolve().parents[3]
 FEATURES = 'packages/ubaa_domain/lib/src/feature/catalog.dart'
 ERRORS = 'crates/ubaa_core/src/error/mod.rs'
+TELEMETRY = 'crates/ubaa_core/src/app_service/types.rs'
 SCHEMA = 'docs/contracts/app-service.schema.json'
 
 
@@ -36,7 +37,7 @@ def dart_features(root):
         wire_names[match[1]] = match[3]
     if set(comma_items(variants[1])) != wire_names.keys():
         raise ValueError(f'{FEATURES} 的 wireName 必须覆盖全部 FeatureId')
-    return set(wire_names.values()) | {'app', 'auth'}
+    return set(wire_names.values())
 
 
 def rust_error_kinds(root):
@@ -51,9 +52,21 @@ def rust_error_kinds(root):
     ):
         raise ValueError(f'{ERRORS} 的 ErrorKind 必须由 Serde 按 snake_case 序列化')
 
-    variants = comma_items(enum[2])
+    return snake_case_variants(enum[2], ERRORS, 'ErrorKind')
+
+
+def rust_telemetry_features(root):
+    enum = re.search(r'#\[serde\(rename_all = "snake_case"\)\]\s+pub enum Feature\s*\{([^{}]+)\}',
+                     code(root, TELEMETRY))
+    if enum is None:
+        raise ValueError(f'{TELEMETRY} 未找到按 snake_case 序列化的 Feature')
+    return snake_case_variants(enum[1], TELEMETRY, 'Feature')
+
+
+def snake_case_variants(body, path, name):
+    variants = comma_items(body)
     if any(re.fullmatch(r'[A-Z][A-Za-z0-9]*', variant) is None for variant in variants):
-        raise ValueError(f'{ERRORS} 的 ErrorKind 必须使用无附加声明的枚举成员')
+        raise ValueError(f'{path} 的 {name} 必须使用无附加声明的枚举成员')
     # Serde 对枚举成员的 snake_case 规则在首字母以外的每个大写字母前加下划线。
     return {re.sub(r'(?<!^)[A-Z]', r'_\g<0>', variant).lower() for variant in variants}
 
@@ -76,10 +89,14 @@ def main():
     root = parser.parse_args().root
     try:
         definitions = json.loads((root / SCHEMA).read_text(encoding='utf-8'))['$defs']
+        available = rust_telemetry_features(root)
         errors = [
-            *differences(definitions, 'feature', 'feature', dart_features(root)),
+            *differences(definitions, 'feature', 'feature', available),
             *differences(definitions, 'errorKind', 'error_kind', rust_error_kinds(root)),
         ]
+        missing = dart_features(root) - available
+        if missing:
+            errors.append(f'feature 缺少：{", ".join(sorted(missing))}')
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise SystemExit(f'应用服务枚举检查失败：{error}') from None
     if errors:

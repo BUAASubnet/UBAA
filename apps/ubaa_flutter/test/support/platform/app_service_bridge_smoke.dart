@@ -78,6 +78,30 @@ void main() {
       expect((await command.state()).consent, BridgeAppServiceConsent.agreed);
       await gui.refreshAppBootstrap(force: true);
       await gui.recordAppStarted();
+      expect(
+        await command.enqueueCounter(
+          event: BridgeTelemetryCounter.writeCompleted,
+          feature: BridgeTelemetryFeature.cloudPrint,
+          route: BridgeTelemetryRoute.webvpn,
+          result: BridgeTelemetryResult.failure,
+        ),
+        isTrue,
+      );
+      expect(
+        await command.enqueueError(
+          event: BridgeTelemetryError.writeFailed,
+          feature: BridgeTelemetryFeature.cloudPrint,
+          route: BridgeTelemetryRoute.webvpn,
+          errorCode: 'business_rejected',
+          errorKind: BridgeErrorKind.upstream,
+          retryable: false,
+          diagnosticJson:
+              '{"source":"crates/ubaa_core/src/features/cloud_print/mod.rs:25",'
+              '"stage":"response","reason":"business_rejected",'
+              '"status":200,"upstream_code":16781313}',
+        ),
+        isTrue,
+      );
       await gui.uploadAppService(force: true);
       await bootstrapArrived.future.timeout(const Duration(seconds: 10));
       expect(gui.appUpdate?.status, AppUpdateStatus.updateRequired);

@@ -8,13 +8,9 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
+#[track_caller]
 pub(super) fn error(message: &str) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
 }
 
 pub(super) fn integer(map: &Map<String, Value>, key: &str) -> Option<i32> {
@@ -72,20 +68,24 @@ pub(super) fn list(map: &Map<String, Value>, key: &str) -> Vec<Value> {
 
 /// 解析旧版响应包装，`code=1` 表示业务成功。
 pub fn parse_envelope(body: &str) -> Result<Value> {
-    let payload: Value = serde_json::from_str(body).map_err(|_| error("阳光打卡响应无法解析"))?;
-    let object = payload
-        .as_object()
-        .ok_or_else(|| error("阳光打卡响应结构无效"))?;
-    match integer(object, "code") {
-        Some(1) => Ok(object.get("result").cloned().unwrap_or(Value::Null)),
+    let payload: Map<String, Value> = serde_json::from_str(body)
+        .map_err(|cause| UbaaError::json_error(&cause, "阳光打卡响应无法解析", body.as_bytes()))?;
+    match integer(&payload, "code") {
+        Some(1) => Ok(payload.get("result").cloned().unwrap_or(Value::Null)),
         Some(-98) => Err(UbaaError::new(
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
             false,
             "阳光打卡业务会话已失效",
-        )),
-        _ => Err(error("阳光打卡请求失败")),
+        )
+        .with_diagnostic("authentication", "business_session_required")),
+        Some(_) => Err(UbaaError::business_rejected("阳光打卡服务器拒绝了该请求")),
+        None => {
+            Err(error("阳光打卡响应缺少有效业务状态")
+                .with_diagnostic("parse", "business_code_invalid"))
+        }
     }
+    .map_err(|error| error.with_business_response(body.as_bytes(), None, "code"))
 }
 
 pub fn parse_overview(

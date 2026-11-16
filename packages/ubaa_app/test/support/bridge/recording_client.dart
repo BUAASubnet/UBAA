@@ -493,6 +493,9 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                   ? const []
                   : const [
                       BridgeLibBookDaySchedule(
+                        bookStart: '00:00',
+                        bookEnd: '23:59',
+                        bookClose: '23:59',
                         day: '2026-09-04',
                         timeSlots: [
                           BridgeLibBookTimeSlot(

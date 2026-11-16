@@ -148,6 +148,7 @@ final class GradesReadCache {
   final ReadScope scope;
   final entries = <String, GradeReadEntry>{};
   Future<GradesAggregate>? aggregatePending;
+  GradesAggregate? aggregate;
   UiError? authenticationError;
 }
 

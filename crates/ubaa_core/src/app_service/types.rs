@@ -109,7 +109,7 @@ wire_enum! {
 }
 
 wire_enum! {
-    /// 允许统计的功能，取值与 Dart `FeatureId.wireName` 一致，另含应用和认证。
+    /// 允许统计的功能，包含首页功能、专用服务、应用和认证。
     #[serde(rename_all = "snake_case")]
     pub enum Feature {
         App,
@@ -126,6 +126,12 @@ wire_enum! {
         Cgyy,
         Ygdk,
         Evaluation,
+        CloudPrint,
+        Bhpan,
+        Ihome,
+        Portal,
+        Network,
+        Finance,
     }
 }
 
@@ -149,6 +155,7 @@ wire_enum! {
         SessionExpired,
         RouteResolved,
         FeatureLoaded,
+        WriteCompleted,
     }
 }
 
@@ -178,6 +185,7 @@ wire_enum! {
     pub enum ErrorEvent {
         AuthFailed,
         FeatureFailed,
+        WriteFailed,
         UiErrorShown,
         Crash,
     }
@@ -187,6 +195,8 @@ wire_enum! {
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ErrorDimensions {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostic: Option<Box<crate::error::ErrorDiagnostic>>,
     pub event: ErrorEvent,
     pub feature: Feature,
     pub route: Route,
@@ -257,6 +267,10 @@ impl TelemetryEvent {
             ERROR_CODE.is_match(&error.error_code)
         };
         valid_code
+            && error
+                .diagnostic
+                .as_deref()
+                .is_none_or(crate::error::ErrorDiagnostic::is_valid)
             && error
                 .source
                 .as_ref()

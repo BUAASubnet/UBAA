@@ -173,6 +173,7 @@ pub(super) async fn fetch_current_term(
     .await?;
     check_business_response(&response)?;
     parse_envelope(&crate::features::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
 }
 
 pub(super) async fn fetch_courses(
@@ -193,6 +194,7 @@ pub(super) async fn fetch_courses(
     .await?;
     check_business_response(&response)?;
     parse_envelope(&crate::features::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
 }
 
 pub(super) async fn fetch_assignment_page_as<T: serde::de::DeserializeOwned>(
@@ -227,6 +229,7 @@ pub(super) async fn fetch_assignment_page_as<T: serde::de::DeserializeOwned>(
     .await?;
     check_business_response(&response)?;
     parse_envelope(&crate::features::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
 }
 
 #[derive(Debug, Serialize)]
