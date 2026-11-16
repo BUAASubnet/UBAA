@@ -30,7 +30,10 @@ def validate(manifest, tag, build):
     if not isinstance(assets, list):
         raise ValueError('清单缺少 assets 列表')
     names = [asset.get('name') for asset in assets]
-    if sorted(names) != sorted(expected_names(version)):
+    expected = expected_names(version)
+    # 已发布的历史构建没有 HAP，仍可用于下载页。
+    legacy = [name for name in expected if not name.endswith('.hap')]
+    if sorted(names) not in (sorted(expected), sorted(legacy)):
         raise ValueError('清单文件与公开安装包不一致：' + '、'.join(map(str, names)))
     prefix = f'{PUBLIC_URL}/releases/{tag}/{build}/'
     for asset in assets:

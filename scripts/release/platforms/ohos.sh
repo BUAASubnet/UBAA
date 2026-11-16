@@ -19,12 +19,4 @@ node ../../scripts/release/platforms/ohos_profile.mjs just flutter-ohos build ap
   --dart-define="UBAA_APP_SERVICE_URL=$UBAA_APP_SERVICE_URL" \
   --dart-define=UBAA_DISTRIBUTION_CHANNEL=app_gallery
 cd "$repo_root"
-python3 - <<'PY'
-import os,shutil
-from pathlib import Path
-root=Path('apps/ubaa_ohos/build/ohos')
-apps=list(root.rglob('*-signed.app'))
-if len(apps)!=1: raise SystemExit('未生成唯一的签名 APP')
-out=Path('.ubaa_local/release/store');out.mkdir(parents=True,exist_ok=True)
-shutil.copy2(apps[0],out/f"UBAA-{os.environ['RELEASE_VERSION']}-harmonyos-arm64.app")
-PY
+python3 scripts/release/platforms/ohos_artifacts.py

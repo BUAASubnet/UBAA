@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 from urllib.parse import urlparse
 
@@ -34,7 +35,7 @@ class DistributionTest(unittest.TestCase):
         self.folder.mkdir(parents=True)
         for suffix in ('android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
                        'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',
-                       'macos-arm64.dmg', 'macos-x86_64.dmg'):
+                       'macos-arm64.dmg', 'macos-x86_64.dmg', 'harmonyos-arm64.hap'):
             (self.folder / f'UBAA-2.0.0-{suffix}').write_bytes(b'synthetic artifact')
         (self.folder / 'licenses.zip').write_bytes(b'synthetic licenses')
         self.enterContext(patch.dict(os.environ, {
@@ -95,7 +96,7 @@ class DistributionTest(unittest.TestCase):
                 self.assertCountEqual(self.uploaded, [path.name for path in self.folder.iterdir()])
                 manifest = json.loads((self.folder / 'release.json').read_text())
                 self.assertEqual(manifest['commit'], 'candidate')
-                self.assertEqual(len(manifest['assets']), 9)
+                self.assertEqual(len(manifest['assets']), 10)
 
     def test_公开清单记录每个文件的SHA256供下载页校验(self):
         distribute.main()
@@ -135,6 +136,12 @@ class DistributionTest(unittest.TestCase):
             distribute.main()
         self.calls.assert_not_called()
 
+    def test_HAP缺失时不生成草稿(self):
+        (self.folder / 'UBAA-2.0.0-harmonyos-arm64.hap').unlink()
+        with self.assertRaisesRegex(ValueError, '产物不完整'):
+            distribute.main()
+        self.calls.assert_not_called()
+
     def test_许可证缺失时不生成草稿(self):
         (self.folder / 'licenses.zip').unlink()
         with self.assertRaisesRegex(ValueError, '产物不完整'):
@@ -156,6 +163,29 @@ class DistributionTest(unittest.TestCase):
         manifest = json.loads((self.folder / 'release.json').read_text())
         self.assertTrue(all('/releases/v2.0.0/2003/' in asset['url'] for asset in manifest['assets']))
         self.assertEqual(self.commands('aws'), [])
+
+
+class HarmonyOSArtifactsTest(unittest.TestCase):
+    def test_从商店包提取同次构建的HAP(self):
+        spec = importlib.util.spec_from_file_location(
+            'ohos_artifacts', ROOT / 'scripts/release/platforms/ohos_artifacts.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        parent = ROOT / '.ubaa_local/release_hap/tests'
+        parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=parent) as temporary:
+            root = Path(temporary)
+            build = root / 'build'
+            build.mkdir()
+            app = build / 'entry-default-signed.app'
+            with zipfile.ZipFile(app, 'w') as archive:
+                archive.writestr('entry-default.hap', b'synthetic signed hap')
+                archive.writestr('pack.info', '{}')
+            module.collect(build, root / 'release', '9.9.9')
+            self.assertEqual((root / 'release/public/UBAA-9.9.9-harmonyos-arm64.hap').read_bytes(),
+                             b'synthetic signed hap')
+            self.assertEqual((root / 'release/store/UBAA-9.9.9-harmonyos-arm64.app').read_bytes(),
+                             app.read_bytes())
 
 
 class SourceMetadataTest(unittest.TestCase):
