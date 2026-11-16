@@ -108,7 +108,7 @@ def prop_override(name, *props):
             "properties": [{"id": k, "value": v} for k, v in props]}
 
 
-def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="short", spark=False,
+def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="none", spark=False,
          thresholds=None, decimals=0):
     defaults = {"unit": unit, "decimals": decimals,
                 "color": {"mode": "fixed", "fixedColor": color} if not thresholds else {"mode": "thresholds"}}
@@ -120,7 +120,7 @@ def stat(title, pos, sql, cols, color, desc="", fmt="table", unit="short", spark
         "justifyMode": "center", "orientation": "auto", "wideLayout": True, "showPercentChange": False})
 
 
-def ts_defaults(unit="short", draw="line", stack=False, fill=18):
+def ts_defaults(unit="none", draw="line", stack=False, fill=18):
     return {"unit": unit, "decimals": 0, "min": 0,
             "color": {"mode": "palette-classic"},
             "custom": {"drawStyle": draw, "lineWidth": 2, "fillOpacity": fill if draw == "line" else 85,
@@ -138,7 +138,7 @@ TS_OPTS = {"legend": {"displayMode": "list", "placement": "bottom", "showLegend"
 def pie(title, pos, sql, label, colors, desc="", value="设备"):
     return panel("piechart", title, pos,
                  [target(sql, [("name", label, "string"), ("value", value, "number")])], desc,
-                 {"unit": "short", "decimals": 0, "color": {"mode": "palette-classic"}},
+                 {"unit": "none", "decimals": 0, "color": {"mode": "palette-classic"}},
                  [color_override(n, c) for n, c in colors.items()],
                  {"pieType": "donut", "displayLabels": [],
                   "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": True},
@@ -222,7 +222,7 @@ def build():
                 f"WHERE {WHERE} GROUP BY app_version ORDER BY app_version DESC LIMIT 10",
                 [("name", "版本", "string"), ("value", "设备", "number")])],
         "所选时段内各版本的去重活跃设备数，最新版本在上。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[0]},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[0]},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         options=HBAR))
     panels.append(pie(
@@ -238,7 +238,7 @@ def build():
                 f"GROUP BY cohort_type, cohort_year ORDER BY value DESC LIMIT 10",
                 [("name", "年级", "string"), ("value", "用户", "number")])],
         "按学号推断的入学年份与类型统计去重用户。研究生显示学号字母前缀，教职工等无法识别的显示为“其他身份”。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[6]},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "fixed", "fixedColor": C[6]},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         options=HBAR))
     y += 8
@@ -254,7 +254,7 @@ def build():
                 [("feature", "功能", "string"), ("ok", "成功", "number"), ("empty", "空结果", "number"),
                  ("fail", "失败", "number")])],
         "所选时段内各功能的加载次数，按结果堆叠。空结果指请求成功但没有内容。",
-        {"unit": "short", "decimals": 0, "min": 0, "color": {"mode": "palette-classic"},
+        {"unit": "none", "decimals": 0, "min": 0, "color": {"mode": "palette-classic"},
          "custom": {"fillOpacity": 85, "lineWidth": 0, "axisBorderShow": False}},
         [color_override("成功", C[0]), color_override("空结果", MUTED), color_override("失败", CRIT)],
         {"orientation": "horizontal", "stacking": "normal", "barWidth": 0.7, "groupWidth": 0.7,
@@ -283,7 +283,7 @@ def build():
                                  ("vpn", "经 WebVPN", "number")])],
         "成功率含空结果；“2 秒内完成”来自功能加载耗时分桶；“经 WebVPN”为线路解析走 WebVPN 的占比。",
         {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False, "minWidth": 60},
-         "decimals": 0, "unit": "short",
+         "decimals": 0, "unit": "none",
          "thresholds": {"mode": "absolute", "steps": [{"color": C[0], "value": None}]},
          "color": {"mode": "thresholds"}},
         [prop_override("功能", ("custom.width", 96)), prop_override("使用设备", ("custom.width", 76)),
@@ -386,7 +386,7 @@ def build():
         "所选时段内按星期和小时（北京时间）汇总的功能加载次数，颜色越亮越多，用来看一周里的使用高峰。",
         {"custom": {"align": "center", "cellOptions": {"type": "color-background", "mode": "basic"}, "inspect": False,
                     "minWidth": 36},
-         "unit": "short", "decimals": 0, "min": 0, "noValue": "0",
+         "unit": "none", "decimals": 0, "min": 0, "noValue": "0",
          "color": {"mode": "continuous-blues"}},
         [{"matcher": {"id": "byType", "options": "string"},
           "properties": [{"id": "custom.cellOptions", "value": {"type": "auto"}}, {"id": "custom.width", "value": 56}]}],
@@ -435,7 +435,7 @@ def build():
              {"color": SEQ[0], "value": None}, {"color": SEQ[1], "value": 0.01}, {"color": SEQ[2], "value": 0.15},
              {"color": SEQ[3], "value": 0.3}, {"color": SEQ[4], "value": 0.5}, {"color": SEQ[5], "value": 0.7}]}},
         [prop_override("功能", ("custom.cellOptions", {"type": "auto"}), ("custom.align", "left"), ("custom.width", 110)),
-         prop_override("样本", ("custom.cellOptions", {"type": "auto"}), ("unit", "short"), ("custom.width", 70))],
+         prop_override("样本", ("custom.cellOptions", {"type": "auto"}), ("unit", "none"), ("custom.width", 70))],
         {"showHeader": True, "cellHeight": "sm", "footer": {"show": False}}))
     y += 10
 
@@ -484,7 +484,7 @@ def build():
                  ("n", "次数", "number"), ("devices", "设备", "number")])],
         "所选时段内按事件、功能、线路和错误码汇总，按次数降序，最多 100 行。",
         {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False, "filterable": True},
-         "decimals": 0, "unit": "short"},
+         "decimals": 0, "unit": "none"},
         [prop_override("次数", ("custom.cellOptions", {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}),
                        ("color", {"mode": "fixed", "fixedColor": CRIT}), ("custom.width", 140)),
          prop_override("事件", ("custom.width", 90)), prop_override("线路", ("custom.width", 70)),
@@ -507,7 +507,7 @@ def build():
                  ("job", "汇总任务最后成功日", "string"), ("erased", "近 30 天删除数据", "number"),
                  ("first_day", "明细最早日期", "string")])],
         "服务端整体状态，不受平台与渠道筛选影响。汇总任务每天 03:00 运行，本面板不依赖其结果。",
-        {"unit": "short", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}},
+        {"unit": "none", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}},
         options={"reduceOptions": {"calcs": ["lastNotNull"], "fields": "/.*/", "values": False},
                  "colorMode": "none", "graphMode": "none", "textMode": "value_and_name",
                  "justifyMode": "center", "orientation": "horizontal", "wideLayout": True,
