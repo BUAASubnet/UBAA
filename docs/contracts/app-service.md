@@ -196,9 +196,9 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 | `app_version` | `^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+\d+)?$`，最长 48 字符。预发布后缀按[开发约定](../development/conventions.md#版本号与依赖)使用，比较规则见第 8 节 |
 | `surfaces` | `gui`、`command` 的非空子集 |
 | `users` | 0–3 项，`key` 匹配 `^[0-9a-f]{64}$`，年级字段见第 7 节 |
-| `counters[].event` | `app_started`、`auth_started`、`auth_succeeded`、`session_expired`、`route_resolved`、`feature_loaded` |
-| `errors[].event` | `auth_failed`、`feature_failed`、`ui_error_shown`、`crash` |
-| `feature` | `FeatureId.wireName` 的取值，或 `app`、`auth`。完整列表随 JSON Schema 维护，仓库检查保证它与 `FeatureId` 一致 |
+| `counters[].event` | `app_started`、`auth_started`、`auth_succeeded`、`session_expired`、`route_resolved`、`feature_loaded`、`write_completed` |
+| `errors[].event` | `auth_failed`、`feature_failed`、`write_failed`、`ui_error_shown`、`crash` |
+| `feature` | 首页功能 `FeatureId.wireName` 以及 `app`、`auth`、`cloud_print`、`bhpan`、`ihome`、`portal`、`network`、`finance`。JSON Schema 和 Core 的遥测枚举保持一致 |
 | `route` | `direct`、`webvpn`、`none` |
 | `result` | `success`、`empty`、`failure` |
 | `error_code` | Core 稳定机器码，`^[a-z][a-z0-9_]{0,47}$`。`crash` 事件中为 Dart 异常类型名 `^[A-Za-z_][A-Za-z0-9_]{0,63}$`（去掉泛型参数），Rust panic 固定为 `panic` |
@@ -216,6 +216,8 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 
 错误项可以附带 `diagnostic` 对象，字段规则见 JSON Schema。上下文含 Core 源码位置、失败阶段与原因、响应状态和长度、JSON 字段类型、解析行列及经过确认的固定业务提示。错误详情保存在独立的 `error_samples` 表，不参与计数分组，每个安装、日期、版本和错误维度只保留最新样本，保留 14 天并随安装级删除清理。本地待发队列同一错误维度只保存最新样本，沿用总容量和许可规则。
 
+普通加载和专用读取按 `feature_loaded` 的结果统计完成次数，失败原因记在 `feature_failed`。写入按操作统计完成次数（含资格核对失败），批量操作整体计一次。成功与失败的总次数来自 `write_completed`，失败原因来自 `write_failed`。主动取消不计，写入不进入分钟曲线。业务失败次数不重复计算 `ui_error_shown`。
+
 不得上报的内容：学号原文、姓名、未经确认的错误消息原文、URL、HTTP 正文、课程、成绩、文件名、照片、位置、诊断报告、本机路径、完整堆栈和 panic 消息。
 
 上游健康度由带 `route` 的 `counters` 和 `errors` 合并计算，不另设事件。Rust panic 只上报 `crates/ubaa_*` 内的位置；panic 钩子由 Bridge 实现，实现时须核实 FRB 现有的 panic 处理方式。原生崩溃（例如信号）不在本合同范围内。
@@ -223,6 +225,8 @@ GUI 在前台每 30 分钟检查上传、待删除任务和启动配置。Core �
 ### 5.3 发布顺序
 
 新增 `feature`、`error_kind` 等枚举值或 `minutes` 这样的可选字段时，先部署接受新值的 应用服务，再发布使用新值的客户端。否则旧 应用服务 会以 400 拒绝整个批次，客户端按第 4.2 节删除该批次，其中最多 8 个“日期 × 版本”组合的数据随之丢失。
+
+本次扩展沿用 `schema: 1`。新版服务接受旧版载荷，新事件和功能沿用现有计数表与样本表，无需迁移。
 
 ### 5.4 响应
 

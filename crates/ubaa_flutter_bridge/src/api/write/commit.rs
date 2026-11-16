@@ -207,17 +207,13 @@ fn map_dispatch_error(
             .resolution()
             .is_some_and(|resolution| resolution.mode != expected_route.into())
     {
-        return BridgeError {
-            auth_stage: None,
-            auth_reason: None,
-            diagnostic_json: None,
-            cache_failure: None,
-            code: BridgeErrorCode::OperationConflict,
-            kind: BridgeErrorKind::Input,
-            retryable: true,
-            message: "route changed; prepare the write again".to_owned(),
-            resolved_route: error.resolution().map(|resolution| resolution.mode.into()),
-        };
+        return super::support::routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "连接路线已变化，请重新准备操作",
+        );
     }
     map_commit_error(operation, error)
 }

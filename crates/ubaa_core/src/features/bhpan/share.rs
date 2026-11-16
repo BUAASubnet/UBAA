@@ -46,7 +46,7 @@ pub(crate) async fn open(
     let required = info
         .get("password_required")
         .and_then(serde_json::Value::as_bool)
-        .ok_or_else(parse::invalid)?;
+        .ok_or_else(|| parse::invalid())?;
     if required {
         let password = password.ok_or_else(|| UbaaError::invalid_input("该分享需要提取密码"))?;
         let body = serde_json::to_vec(&serde_json::json!({"id":id,"type":"anonymous","password_required":true,"password":password.expose_secret()})).map_err(|_| parse::invalid())?;

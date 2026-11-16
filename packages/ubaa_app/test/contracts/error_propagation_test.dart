@@ -5,6 +5,38 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('写入错误经过缓存包装后仍保留路线和诊断原因', () async {
+    for (final (code, reason) in [
+      (BridgeErrorCode.upstreamChanged, 'missing_data'),
+      (BridgeErrorCode.outcomeUnknown, 'dispatch_timeout'),
+    ]) {
+      final backend = BridgeBackend(_WriteFailureClient(code, reason));
+      await expectLater(
+        backend.commitWrite('fixture'),
+        throwsA(
+          isA<BackendException>()
+              .having((error) => error.diagnostic?.reason, '原因', reason)
+              .having(
+                (error) => error.authStage,
+                '认证阶段',
+                AuthFailureStage.identityValidation,
+              )
+              .having(
+                (error) => error.authReason,
+                '认证原因',
+                AuthFailureReason.identityMismatch,
+              )
+              .having(
+                (error) => error.resolvedRoute,
+                '路线',
+                ConnectionMode.webvpn,
+              )
+              .having((error) => error.retryable, '可重试', isFalse),
+        ),
+      );
+    }
+  });
+
   test('登录诊断从 Bridge 经过异常映射后保留', () async {
     final backend = BridgeBackend(_LoginFailureClient('upstream_changed'));
     try {
@@ -148,6 +180,27 @@ void main() {
       expect(app.actionLabel, platform.actionLabel, reason: code.name);
     }
   });
+}
+
+class _WriteFailureClient extends _FailingReadClient {
+  _WriteFailureClient(this.writeCode, this.reason);
+  final BridgeErrorCode writeCode;
+  final String reason;
+
+  @override
+  Future<BridgeWriteCommitResult> commitWrite({
+    required String intentId,
+  }) async => throw BridgeError(
+    code: writeCode,
+    kind: BridgeErrorKind.upstream,
+    retryable: false,
+    message: '合成错误',
+    resolvedRoute: BridgeConnectionMode.webVpn,
+    authStage: 'identity_validation',
+    authReason: 'identity_mismatch',
+    diagnosticJson:
+        '{"source":"crates/ubaa_core/src/features/cgyy/parser.rs:21","reason":"$reason"}',
+  );
 }
 
 class _FailingReadClient implements BridgeClient {

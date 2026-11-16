@@ -108,6 +108,6 @@ fn 分区日程信封错误保持错误类别() {
         parse_area_schedule_for("area-safe", "无效响应")
             .unwrap_err()
             .code,
-        ErrorCode::UpstreamChanged
+        ErrorCode::ParseError
     );
 }

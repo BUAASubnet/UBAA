@@ -29,9 +29,10 @@ async fn login(
     )
     .await?;
     check_business_response(&cas)?;
-    let content: serde_json::Value =
-        parse_optional_envelope(&crate::features::body(&cas))?.ok_or_else(spoc_auth_error)?;
-    let role = resolve_role_code(&content).ok_or_else(spoc_auth_error)?;
+    let content: serde_json::Value = parse_optional_envelope(&crate::features::body(&cas))
+        .map_err(|error| error.with_http_status(cas.status))?
+        .ok_or_else(|| spoc_auth_error())?;
+    let role = resolve_role_code(&content).ok_or_else(|| spoc_auth_error())?;
     Ok(SpocCredential::new(token, role))
 }
 
@@ -55,7 +56,7 @@ async fn ensure_credential(
         .spoc
         .store_credential(generation, credential.clone())
         .then_some(credential)
-        .ok_or_else(spoc_auth_error)
+        .ok_or_else(|| spoc_auth_error())
 }
 
 type SpocOperationFuture<'a, T> =
@@ -131,7 +132,7 @@ async fn fetch_login_token(
         }
         let location = response
             .header_first("location")
-            .ok_or_else(spoc_auth_error)?;
+            .ok_or_else(|| spoc_auth_error())?;
         if let Some(token) = extract_login_token(location, runtime.mode()) {
             return Ok(token);
         }

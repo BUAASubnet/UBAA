@@ -188,7 +188,8 @@ async fn spoc_permission_failure_is_not_retried_as_authentication() {
         .await
         .expect_err("permission denial must be returned without replaying the request");
 
-    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(error.code, ErrorCode::BusinessRejected);
+    assert_eq!(error.diagnostic().upstream_code, Some(403));
     observed.assert_exhausted();
     assert_eq!(
         observed

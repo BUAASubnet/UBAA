@@ -27,9 +27,10 @@ pub(crate) const fn exit_code(code: ErrorCode) -> ExitCode {
         | ErrorCode::UpstreamUnavailable
         | ErrorCode::BusinessUnavailable
         | ErrorCode::OutcomeUnknown => ExitCode::Network,
-        ErrorCode::Unsupported | ErrorCode::UpstreamChanged | ErrorCode::ParseError => {
-            ExitCode::Upstream
-        }
+        ErrorCode::Unsupported
+        | ErrorCode::BusinessRejected
+        | ErrorCode::UpstreamChanged
+        | ErrorCode::ParseError => ExitCode::Upstream,
         ErrorCode::InternalError => ExitCode::Internal,
         ErrorCode::UpdateRequired => ExitCode::UpdateRequired,
     }
@@ -47,7 +48,9 @@ pub(crate) fn safe_error_exit_code(error: &SafeError) -> i32 {
         | "upstream_unavailable"
         | "business_unavailable"
         | "outcome_unknown" => ExitCode::Network as i32,
-        "unsupported" | "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
+        "unsupported" | "business_rejected" | "upstream_changed" | "parse_error" => {
+            ExitCode::Upstream as i32
+        }
         "update_required" => ExitCode::UpdateRequired as i32,
         _ => ExitCode::Internal as i32,
     }

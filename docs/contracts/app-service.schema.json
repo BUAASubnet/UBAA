@@ -34,7 +34,8 @@
       "type": "string",
       "enum": [
         "app", "auth", "schedule", "exam", "grades", "bykc", "classroom", "spoc",
-        "judge", "libbook", "signin", "cgyy", "ygdk", "evaluation"
+        "judge", "libbook", "signin", "cgyy", "ygdk", "evaluation",
+        "cloud_print", "bhpan", "ihome", "portal", "network", "finance"
       ]
     },
     "route": {"type": "string", "enum": ["direct", "webvpn", "none"]},
@@ -70,7 +71,7 @@
       "properties": {
         "event": {
           "type": "string",
-          "enum": ["app_started", "auth_started", "auth_succeeded", "session_expired", "route_resolved", "feature_loaded"]
+          "enum": ["app_started", "auth_started", "auth_succeeded", "session_expired", "route_resolved", "feature_loaded", "write_completed"]
         },
         "feature": {"$ref": "#/$defs/feature"},
         "route": {"$ref": "#/$defs/route"},
@@ -120,8 +121,8 @@
         },
         "upstream_code": {
           "type": "integer",
-          "minimum": -99999,
-          "maximum": 99999
+          "minimum": -2147483648,
+          "maximum": 2147483647
         },
         "upstream_message": {
           "enum": [
@@ -293,7 +294,7 @@
       "required": ["event", "feature", "route", "error_code", "error_kind", "retryable", "count"],
       "properties": {
         "diagnostic": {"$ref": "#/$defs/diagnostic"},
-        "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "ui_error_shown", "crash"]},
+        "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "write_failed", "ui_error_shown", "crash"]},
         "feature": {"$ref": "#/$defs/feature"},
         "route": {"$ref": "#/$defs/route"},
         "error_code": {"type": "string"},

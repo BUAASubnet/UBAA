@@ -8,7 +8,7 @@ mod read;
 mod upload;
 mod write;
 
-use crate::error::{ErrorCode, ErrorKind, UbaaError};
+use crate::error::UbaaError;
 pub(crate) use crate::internal::route_state::YgdkCredential;
 
 #[allow(unused_imports)]
@@ -19,13 +19,11 @@ pub(crate) use read::{
 };
 pub(crate) use write::{preflight_submit, submit_clockin, validate_submit_request};
 
+const WRITE_OUTCOME_MESSAGE: &str = "阳光打卡提交结果未知，请刷新概览和记录后核对";
+
+#[track_caller]
 fn write_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "阳光打卡提交结果未知，请刷新概览和记录后核对",
-    )
+    UbaaError::outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }
 
 #[cfg(test)]

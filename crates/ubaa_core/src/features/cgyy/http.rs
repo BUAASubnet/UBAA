@@ -2,13 +2,13 @@
 
 use std::collections::BTreeMap;
 
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpMethod, HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 
-use super::parser::{error, object};
+use super::parser::{check_code, error, object};
 use super::sign::{sign, timestamp_millis};
 
 const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
@@ -100,25 +100,33 @@ pub(super) fn check_business_response(response: &HttpResponse, feature: &str) ->
             ErrorKind::Authentication,
             false,
             format!("{feature}需要认证"),
-        ));
+        )
+        .with_diagnostic("authentication", "business_session_required")
+        .with_response(&response.body, Some(response.status)));
     }
     if (300..400).contains(&response.status) {
         return Err(UbaaError::new(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
-            true,
+            false,
             format!("{feature}返回了未处理的重定向"),
-        ));
+        )
+        .with_diagnostic("redirect", "redirect_unexpected")
+        .with_response(&response.body, Some(response.status)));
     }
-    let root = object(&text)?;
-    let code = root.get("code").and_then(|value| {
-        value
-            .as_i64()
-            .or_else(|| value.as_str()?.parse::<i64>().ok())
-    });
-    if code != Some(200) {
-        warn!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = ?code, "Cgyy 业务 code 非成功值");
-        return Err(error("研讨室预约请求失败"));
+    let result = object(&text).and_then(|root| check_code(&root, &text));
+    if let Err(error) = result {
+        if response.status == 429 {
+            let limited = super::super::http::http_status_error(response, feature);
+            return Err(match error.diagnostic().upstream_code {
+                Some(code) => limited.with_upstream_code(code),
+                None => limited,
+            });
+        }
+        if response.status != 200 && error.code != ErrorCode::BusinessRejected {
+            return Err(super::super::http::http_status_error(response, feature));
+        }
+        return Err(error.with_http_status(response.status));
     }
     debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
     Ok(())
@@ -180,4 +188,48 @@ pub(super) fn log_response(runtime: &ClientRuntime, operation: &str, response: &
 
 pub(super) fn safe_url(value: &str) -> String {
     crate::logging::safe_url(value)
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn 研讨室限流保留http语义与已验证的业务码() {
+        let response = HttpResponse::new(
+            429,
+            "https://cgyy.buaa.edu.cn/",
+            br#"{"code":429,"data":null}"#.to_vec(),
+        );
+        let error = check_business_response(&response, "研讨室").unwrap_err();
+        assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+        assert_eq!(
+            error.diagnostic().reason.as_deref(),
+            Some("http_rate_limited")
+        );
+        assert_eq!(error.diagnostic().upstream_code, Some(429));
+    }
+
+    #[test]
+    fn diagnostics_contract_研讨室http业务错误保留明确业务码() {
+        let response = HttpResponse::new(
+            500,
+            "https://cgyy.buaa.edu.cn/",
+            br#"{"code":34,"message":"synthetic-private","data":null}"#.to_vec(),
+        );
+        let error = check_business_response(&response, "研讨室").unwrap_err();
+        assert_eq!(
+            serde_json::to_value(error.code).unwrap(),
+            "business_rejected"
+        );
+        assert_eq!(error.diagnostic().upstream_code, Some(34));
+        assert_eq!(error.diagnostic().status, Some(500));
+        assert!(
+            !error
+                .diagnostic()
+                .to_json()
+                .unwrap()
+                .contains("synthetic-private")
+        );
+    }
 }

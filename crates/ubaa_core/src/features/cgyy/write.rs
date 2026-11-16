@@ -39,13 +39,13 @@ pub(crate) async fn preflight_cancel_order(
         BTreeMap::new(),
     )
     .await
-    .map_err(|error| sanitize_cancel_authority_error(&error))?;
+    .map_err(sanitize_cancel_authority_error)?;
     let authority = parse_cancel_order_authority(
         &body,
         request.order_id,
         crate::time::shanghai_datetime(runtime.now()),
     )
-    .map_err(|error| sanitize_cancel_authority_error(&error))?;
+    .map_err(sanitize_cancel_authority_error)?;
     match authority.eligibility {
         ActionEligibility::Allowed => {}
         ActionEligibility::Denied => {
@@ -95,15 +95,16 @@ pub(crate) async fn cancel_order(
         .await
         .map_err(cancel_send_error)?;
     log_response(runtime, "orders.cancel", &response);
+    let unknown = || cancel_outcome_unknown().with_response(&response.body, Some(response.status));
     if response.status != 200 || response.final_url != expected_final_url {
-        return Err(cancel_outcome_unknown());
+        return Err(unknown());
     }
     let root = serde_json::from_slice::<Value>(&response.body)
         .ok()
         .and_then(|value| value.as_object().cloned())
-        .ok_or_else(cancel_outcome_unknown)?;
+        .ok_or_else(&unknown)?;
     if root.get("code").and_then(strict_i32_value) != Some(200) {
-        return Err(cancel_outcome_unknown());
+        return Err(unknown());
     }
     Ok(CgyyCancelOrderResult {
         success: true,
@@ -120,18 +121,21 @@ fn normalize_cancel_order_request(
     Ok(request)
 }
 
-fn sanitize_cancel_authority_error(error: &UbaaError) -> UbaaError {
+fn sanitize_cancel_authority_error(mut error: UbaaError) -> UbaaError {
     let message = match error.code {
         ErrorCode::AuthenticationRequired
         | ErrorCode::InvalidCredentials
-        | ErrorCode::PasswordRiskConfirmationFailed
-        | ErrorCode::PermissionDenied => "研讨室取消资格核对需要重新认证",
+        | ErrorCode::PasswordRiskConfirmationFailed => "研讨室取消资格核对需要重新认证",
+        ErrorCode::PermissionDenied | ErrorCode::BusinessRejected => {
+            "研讨室服务器拒绝了取消资格核对"
+        }
         ErrorCode::NetworkError | ErrorCode::Timeout | ErrorCode::UpstreamUnavailable => {
             "研讨室取消资格核对暂时不可用"
         }
         _ => "研讨室取消资格核对响应无效",
     };
-    UbaaError::new(error.code, error.kind, error.retryable, message)
+    error.message = message.into();
+    error.with_diagnostic_default("preflight", "authority_check_failed")
 }
 
 fn reservation_order_json(selections: &[CgyyReservationSelection]) -> Result<String> {
@@ -346,20 +350,27 @@ async fn submit_order(
     let expected_final_url = http_request.url.clone();
     let response = runtime.request_non_idempotent(http_request).await?;
     log_response(runtime, "reservation.submit", &response);
+    let diagnostic = |error: UbaaError| {
+        error.with_business_response(&response.body, Some(response.status), "code")
+    };
     if response.status == 401
         || (300..400).contains(&response.status)
         || response.final_url != expected_final_url
     {
-        return Err(write_outcome_unknown());
+        return Err(diagnostic(write_outcome_unknown()));
     }
-    let root = parse_submit_root(&response)?;
+    let root = parse_submit_root(&response).map_err(diagnostic)?;
     let code = root.get("code").and_then(strict_i32_value);
     match code {
         Some(200) => {}
-        Some(_) => return Err(submit_rejected()),
-        None => return Err(write_outcome_unknown()),
+        Some(_) => {
+            return Err(diagnostic(UbaaError::business_rejected(
+                "研讨室服务器拒绝了该预约",
+            )));
+        }
+        None => return Err(diagnostic(write_outcome_unknown())),
     }
-    let receipt = parse_receipt(&root, request)?;
+    let receipt = parse_receipt(&root, request).map_err(diagnostic)?;
     Ok(CgyyReservationResult {
         success: true,
         message: "预约成功".into(),
@@ -469,7 +480,7 @@ fn parse_submit_root(response: &HttpResponse) -> Result<Map<String, Value>> {
     serde_json::from_slice::<Value>(&response.body)
         .ok()
         .and_then(|value| value.as_object().cloned())
-        .ok_or_else(write_outcome_unknown)
+        .ok_or_else(|| write_outcome_unknown())
 }
 
 fn parse_receipt(
@@ -536,46 +547,24 @@ fn unavailable(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
 }
 
+#[track_caller]
 fn authority_changed(message: &'static str) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message).with_diagnostic("preflight", "authority_check_failed")
 }
 
-fn submit_rejected() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        "研讨室预约提交未被确认",
-    )
-}
-
+#[track_caller]
 fn write_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "研讨室预约请求已发送，结果未知，请先刷新订单后再决定是否重试",
-    )
+    UbaaError::outcome_unknown("研讨室预约请求已发送，结果未知，请先刷新订单后再决定是否重试")
 }
 
+#[track_caller]
 fn cancel_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "研讨室取消请求已发送，结果未知，请刷新订单后再决定是否重试",
-    )
+    UbaaError::outcome_unknown("研讨室取消请求已发送，结果未知，请刷新订单后再决定是否重试")
 }
 
-fn cancel_send_error(error: UbaaError) -> UbaaError {
+fn cancel_send_error(mut error: UbaaError) -> UbaaError {
     if error.code == ErrorCode::OutcomeUnknown {
-        cancel_outcome_unknown()
-    } else {
-        error
+        error.message = cancel_outcome_unknown().message;
     }
+    error
 }

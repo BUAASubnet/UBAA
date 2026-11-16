@@ -28,12 +28,15 @@ pub(super) const TOPIC_URL: &str =
 pub(super) const SUBMIT_URL: &str =
     "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/submitSaveEvaluation";
 
+#[track_caller]
 pub(super) fn upstream_error(message: &'static str) -> UbaaError {
-    UbaaError::upstream_changed(message)
+    UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
 }
 
+#[track_caller]
 pub(super) fn authority_error() -> UbaaError {
     upstream_error("评教提交资格核对响应无效")
+        .with_diagnostic("preflight", "authority_check_failed")
 }
 
 pub(super) fn invalid_input(message: &'static str) -> UbaaError {

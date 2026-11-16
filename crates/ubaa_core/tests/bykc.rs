@@ -510,7 +510,13 @@ fn 博雅签到写前核对拒绝宽松信封与畸形资格且不发送写请�
             }))
             .expect_err("宽松配置信封不得成为签到资格证据");
 
-        assert_eq!(error.code, ErrorCode::UpstreamChanged, "{case}");
+        let expected = if case == "nonzero-status" {
+            assert_eq!(error.diagnostic().upstream_code, Some(1));
+            ErrorCode::BusinessRejected
+        } else {
+            ErrorCode::UpstreamChanged
+        };
+        assert_eq!(error.code, expected, "{case}");
         assert!(!error.retryable, "{case}");
         let paths = requests
             .lock()

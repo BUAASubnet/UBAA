@@ -314,3 +314,9 @@ Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使�
 研讨室订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
 
 Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。
+
+### 评教读取信封错误分类
+
+冻结旧版 `EvaluationService.kt`、`LocalEvaluationService.kt`、`EvaluationModel.kt`、`LocalEvaluationServiceBackendTest.kt` 与固定示例 `api/tes/{core,opt,data}.rs` 已核对。[评教九列](#phase-11j-evaluation-提交逐操作九列2026-09-05)逐项列明会话激活、列表任务、问卷、课程、改模式、题目、最终提交的两来源证据。本次沿该矩阵原样保留 CAS、跳转、Cookie、方法参数、JSON 头和正文、无加密、DTO、缓存与写入规则。两来源的成功码和字段不可拼接。
+
+列表读取与资格检查保留原接受的成功值和 `result/content`；分别识别语法错误、信封结构异常和确定的业务拒绝，诊断只保留安全结构。最终提交仍按既有逐课程写入结论处理，未知结果不自动重放。

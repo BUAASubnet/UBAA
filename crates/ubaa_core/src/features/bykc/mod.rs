@@ -22,7 +22,7 @@ use crate::error::UbaaError;
 
 #[track_caller]
 fn error(message: &str) -> UbaaError {
-    UbaaError::upstream_changed(message)
+    UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
 }
 
 #[cfg(test)]

@@ -21,10 +21,13 @@ pub(crate) const PAGE: &str = "https://print.lib.buaa.edu.cn/client/new/cprintPc
 pub(crate) const QUEUE_PAGE: &str =
     "https://print.lib.buaa.edu.cn/client/new/cprintPc/printDoc.html";
 
+#[track_caller]
 pub(crate) fn invalid() -> UbaaError {
     UbaaError::upstream_changed("云打印返回了无法识别的结果")
+        .with_diagnostic("parse", "response_shape_invalid")
 }
 
+#[track_caller]
 pub(crate) fn authentication_required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -32,17 +35,15 @@ pub(crate) fn authentication_required() -> UbaaError {
         false,
         "云打印需要有效的学校登录，请恢复登录后重试",
     )
+    .with_diagnostic("authentication", "business_session_required")
 }
 
+#[track_caller]
 pub(crate) fn refused() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::BusinessUnavailable,
-        ErrorKind::Upstream,
-        false,
-        "云打印服务器拒绝了该操作",
-    )
+    UbaaError::business_rejected("云打印服务器拒绝了该操作")
 }
 
+#[track_caller]
 pub(crate) fn unknown() -> UbaaError {
     UbaaError::outcome_unknown("云打印操作结果未知，请刷新文档列表核对后再决定是否重试")
 }
@@ -118,17 +119,50 @@ fn integer(value: &Value) -> Option<i64> {
 }
 
 fn envelope(response: &HttpResponse) -> Result<Value> {
-    if matches!(response.status, 401 | 403) {
-        return Err(authentication_required());
+    if response.status == 401 {
+        return Err(authentication_required().with_http_status(response.status));
     }
     if response.status != 200 {
-        return Err(invalid());
+        return Err(super::http::http_status_error(response, "云打印"));
     }
-    let value: Value = serde_json::from_slice(&response.body).map_err(|_| invalid())?;
+    let value: Value = serde_json::from_slice(&response.body).map_err(|cause| {
+        UbaaError::json_error(&cause, "云打印响应无法解析", &response.body)
+            .with_http_status(response.status)
+    })?;
     match value.get("code").and_then(integer) {
         Some(0) => Ok(value),
         Some(4) => Err(authentication_required()),
         Some(_) => Err(refused()),
-        None => Err(invalid()),
+        None => Err(invalid().with_diagnostic("parse", "business_code_invalid")),
+    }
+    .map_err(|error| error.with_business_response(&response.body, Some(response.status), "code"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn diagnostics_contract_云打印保留业务码且没有图书馆时段原因() {
+        let response = HttpResponse::new(
+            200,
+            ORIGIN,
+            br#"{"code":16781313,"message":"synthetic-private"}"#.to_vec(),
+        );
+        let error = envelope(&response).unwrap_err();
+        assert_eq!(error.code, ErrorCode::BusinessRejected);
+        assert_eq!(error.diagnostic().status, Some(200));
+        assert_eq!(error.diagnostic().upstream_code, Some(16_781_313));
+        assert_eq!(
+            error.diagnostic().reason.as_deref(),
+            Some("business_rejected")
+        );
+        assert!(
+            !error
+                .diagnostic()
+                .to_json()
+                .unwrap()
+                .contains("synthetic-private")
+        );
     }
 }

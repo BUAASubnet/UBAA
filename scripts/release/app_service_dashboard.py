@@ -41,7 +41,9 @@ TS = "(extract(epoch FROM (d.day||'T00:00:00+08:00')::timestamptz)*1000)::bigint
 FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("bykc", "博雅课程"),
             ("classroom", "空教室"), ("spoc", "SPOC 作业"), ("judge", "希冀作业"),
             ("libbook", "图书馆"), ("signin", "课堂签到"), ("cgyy", "场馆预约"),
-            ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用")]
+            ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用"),
+            ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "i 北航"),
+            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务")]
 
 
 def case(col, pairs, default=None):

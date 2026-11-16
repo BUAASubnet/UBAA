@@ -7,6 +7,7 @@ final class ErrorDiagnostic {
 
   final Map<String, Object?> _fields;
   Map<String, Object?> toJson() => _fields;
+  String? get reason => _fields['reason'] as String?;
   String? get upstreamMessage => _fields['upstream_message'] as String?;
 
   static ErrorDiagnostic? parse(String? text) {
@@ -55,7 +56,8 @@ final class ErrorDiagnostic {
                         'object',
                       }.contains(entry.value),
                 ),
-          'upstream_code' => item is int && item >= -99999 && item <= 99999,
+          'upstream_code' =>
+            item is int && item >= -2147483648 && item <= 2147483647,
           'status' => item is int && item >= 100 && item <= 599,
           'response_bytes' ||
           'json_line' ||

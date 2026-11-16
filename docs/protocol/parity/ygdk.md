@@ -67,3 +67,7 @@
 `feature/overview.dart`与`presentation/ygdk.dart`承载公开投影；`bridge/read/ygdk.dart`普通/pinned读取复用mapper。显式首页概览后固定本次actual route读记录，默认后台概览、写后指定回读不增加Auto。`features/ygdk/home_flow.dart`保留概要、追加相邻同路线记录，显示局部错误；宿主传入同requestRevision的固定回读记录，不额外查询。`record_card.dart`按旧顺序展示，编号/state进入本地详情且仍可搜索。服务端页码/total/hasMore不靠本地长度重算，未知目标不伪造资格。
 
 宿主可见性、连续追加及写后固定回读3项测试通过；首次写后页面没有显示更新记录的行为RED后补接线，未更改WriteCoordinator。新增表单暂复用既有Dialog，仅准备和取消已原生通过；旧独立表单与完整草稿、一次commit/失败/unknown继续P5。提醒开关与首页六来源仍待接入，不把本批只读页面验收当全功能完成。
+
+### 阳光打卡信封错误分类
+
+再次核对冻结 `YgdkApi.kt`、`LocalYgdkApi.kt`、`Ygdk.kt`、`LocalYgdkApiBackendTest.kt`；示例 API 全部模块中无阳光打卡。同一 OAuth、跳转、路线内凭据、精确方法参数、表单和上传编码、无新增签名、DTO、缓存与重试，逐项见[读取矩阵](#阳光打卡只读查询)和[提交矩阵](write-actions.md#phase-11i-ygdk-提交逐操作九列2026-09-05)。读取和资格校验按有效 `code=-98` 识别原业务会话失效，其他非成功业务码为拒绝。无法解码和信封结构不满足约定分开。最终打卡依旧只按提交矩阵的严格成功条件确认结果；失去响应证据时保留结果未知。

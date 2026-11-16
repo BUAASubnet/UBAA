@@ -109,7 +109,7 @@ wire_enum! {
 }
 
 wire_enum! {
-    /// 允许统计的功能，取值与 Dart `FeatureId.wireName` 一致，另含应用和认证。
+    /// 允许统计的功能，包含首页功能、专用服务、应用和认证。
     #[serde(rename_all = "snake_case")]
     pub enum Feature {
         App,
@@ -126,6 +126,12 @@ wire_enum! {
         Cgyy,
         Ygdk,
         Evaluation,
+        CloudPrint,
+        Bhpan,
+        Ihome,
+        Portal,
+        Network,
+        Finance,
     }
 }
 
@@ -149,6 +155,7 @@ wire_enum! {
         SessionExpired,
         RouteResolved,
         FeatureLoaded,
+        WriteCompleted,
     }
 }
 
@@ -178,6 +185,7 @@ wire_enum! {
     pub enum ErrorEvent {
         AuthFailed,
         FeatureFailed,
+        WriteFailed,
         UiErrorShown,
         Crash,
     }

@@ -95,6 +95,7 @@ async fn fetch_assignment_detail(
     .await?;
     check_business_response(&response)?;
     parse_envelope(&crate::features::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
 }
 
 async fn fetch_optional_submission(
@@ -137,4 +138,5 @@ async fn fetch_submission(
     .await?;
     check_business_response(&response)?;
     parse_optional_envelope(&crate::features::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
 }

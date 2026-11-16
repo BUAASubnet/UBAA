@@ -348,10 +348,10 @@ fn 图书馆取消准备与提交的预约列表错误不暴露上游原文() {
 
         assert_eq!(
             (error.code, error.kind, error.retryable),
-            (ErrorCode::UpstreamChanged, ErrorKind::Upstream, false),
+            (ErrorCode::BusinessRejected, ErrorKind::Upstream, false),
             "{phase}"
         );
-        assert_eq!(error.message, "图书馆预约取消资格核对响应无效", "{phase}");
+        assert_eq!(error.diagnostic().upstream_code, Some(2), "{phase}");
         for unsafe_fragment in ["private", "secret", "学号", "token", "\n", "\0"] {
             assert!(
                 !error.message.contains(unsafe_fragment),
@@ -365,7 +365,7 @@ fn 图书馆取消准备与提交的预约列表错误不暴露上游原文() {
 }
 
 #[test]
-fn 图书馆取消列表畸形_json_仍返回固定资格核对错误且不发送写请求() {
+fn 图书馆取消列表畸形_json_返回语法错误且不发送写请求() {
     for phase in ["prepare", "commit"] {
         let scenario = Scenario::new(["{无效响应".to_owned()]);
         let (mut client, root) = client_for(&format!("invalid-json-{phase}"), scenario.clone());
@@ -378,8 +378,8 @@ fn 图书馆取消列表畸形_json_仍返回固定资格核对错误且不发�
                 .block_on(client.libbook_cancel_booking(cancel_request()))
                 .unwrap_err()
         };
-        assert_eq!(error.code, ErrorCode::UpstreamChanged);
-        assert_eq!(error.message, "图书馆预约取消资格核对响应无效");
+        assert_eq!(error.code, ErrorCode::ParseError);
+        assert_eq!(error.diagnostic().reason.as_deref(), Some("json_invalid"));
         assert_eq!(scenario.cancel_count(), 0);
         cleanup(root);
     }

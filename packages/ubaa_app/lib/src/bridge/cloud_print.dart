@@ -23,6 +23,8 @@ final class BridgeCloudPrintService implements CloudPrintService {
       message: error.message,
       resolvedRoute: mapped.resolvedRoute,
       retryable: mapped.retryable,
+      authStage: mapped.authStage,
+      authReason: mapped.authReason,
       diagnostic: mapped.diagnostic,
     );
   }

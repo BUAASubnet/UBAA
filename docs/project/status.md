@@ -11,8 +11,8 @@
 | 产品版本 | `2.0.0`，构建号 `2006`；官方 Flutter 与 OHOS 宿主均为 `2.0.0+2006` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
-| 命令输出 | CLI JSON schema v17 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v68 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| 命令输出 | CLI JSON schema v18 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v69 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v5，隐私政策 v6 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -43,6 +43,10 @@
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
 
 错误详情、诊断页和启动失败页支持交付 JSON 报告文件。Android、iOS、HarmonyOS 和 macOS 使用系统分享，Windows 和 Linux 使用文件保存面板。重启后的历史记录保留错误编号、关联编号与认证原因。附件在各平台实际接收应用中的交付仍待设备验收。
+
+写入错误保留资格核对、实际路线和结果未知的诊断。已知格式的业务拒绝以 `business_rejected` 报告，HTTP 限流与响应结构异常分别记录。允许统计时，写入和专用读取采集操作结果；维护者看板配置支持按版本和错误维度查阅样本，服务端和看板尚未部署。
+
+2026-11-16 使用真实账号完成 Direct 和 WebVPN 只读验证，两条路线各有 56 项通过。财务收入、图书馆分区详情、WebVPN 云打印文档列表和云盘路线边界见[只读验证记录](../runbooks/live-readonly-verification.md#报错诊断链真实只读验证)。
 
 登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线，并支持从错误卡复制关联记录、应用版本和平台。通用响应异常使用中性提示，Core 安全诊断贯穿 Bridge、本地报告和遥测。HTTP 判定以及博雅、SPOC、校园门户与研究生 JSON 解析失败可附带响应摘要。CLI JSON 四字段保持原样。确定性回归覆盖原因传递、路线选择与安全复制，设备端待验收。
 

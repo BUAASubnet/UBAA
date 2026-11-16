@@ -12,14 +12,15 @@ pub(crate) fn parts(bytes: &[u8], count: u64) -> Result<Vec<HttpRequest>> {
     let auth = value
         .get("authrequests")
         .and_then(Value::as_object)
-        .ok_or_else(parse::invalid)?;
+        .ok_or_else(|| parse::invalid())?;
     if count == 0 || auth.len() as u64 != count {
         return Err(parse::invalid());
     }
     (1..=count)
         .map(|number| {
             object::authorization(
-                auth.get(&number.to_string()).ok_or_else(parse::invalid)?,
+                auth.get(&number.to_string())
+                    .ok_or_else(|| parse::invalid())?,
                 HttpMethod::Put,
             )
         })

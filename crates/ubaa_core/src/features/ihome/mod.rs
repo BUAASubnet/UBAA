@@ -104,14 +104,10 @@ async fn read(runtime: &mut ClientRuntime, url: &str) -> Result<serde_json::Valu
             }
         }
         if !(200..300).contains(&response.status) {
-            return Err(UbaaError::new(
-                ErrorCode::UpstreamUnavailable,
-                ErrorKind::Upstream,
-                false,
-                "iHome 暂时不可用，请稍后重试",
-            ));
+            return Err(super::http::http_status_error(&response, "iHome"));
         }
-        return parser::envelope(&crate::features::body(&response));
+        return parser::envelope(&crate::features::body(&response))
+            .map_err(|error| error.with_http_status(response.status));
     }
     Err(invalid())
 }
@@ -218,11 +214,15 @@ pub(crate) async fn set_reaction(
     }
     match get_detail(runtime, id, false).await {
         Ok(after) if current(&after) == Some(enabled) => Ok(after),
-        _ => Err(UbaaError::new(
-            ErrorCode::OutcomeUnknown,
-            ErrorKind::Upstream,
-            false,
-            "操作结果未确认，请刷新诉求详情后核对",
-        )),
+        _ => {
+            let error = UbaaError::outcome_unknown("操作结果未确认，请刷新诉求详情后核对");
+            Err(match sent {
+                Ok(response) => error.with_response(&response.body, Some(response.status)),
+                Err(mut sent_error) => {
+                    sent_error.message = error.message;
+                    sent_error
+                }
+            })
+        }
     }
 }

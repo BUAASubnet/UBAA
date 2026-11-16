@@ -10,36 +10,42 @@ use crate::domain::{
     BykcCourseStatus, BykcCourseSubCategory, BykcSignConfig, BykcSignPoint, BykcStatistic,
     BykcStatistics, BykcUserProfile,
 };
-use crate::error::Result;
+use crate::error::{Result, UbaaError, safe_upstream_message};
 
 pub(super) fn envelope(body: &str) -> Result<Value> {
-    parse_envelope(body).map_err(|error| {
-        error
-            .with_diagnostic("parse", "bykc_envelope_invalid")
-            .with_response(body.as_bytes(), None)
-    })
+    parse_envelope(body)
+        .map_err(|error| error.with_business_response(body.as_bytes(), None, "status"))
 }
 
 fn parse_envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("博雅响应无法解析"))?;
+    let value: Value = serde_json::from_str(body).map_err(|_| {
+        UbaaError::parse_error("博雅响应无法解析").with_diagnostic("parse", "json_invalid")
+    })?;
     let object = value.as_object().ok_or_else(|| error("博雅响应结构无效"))?;
-    let status = object
-        .get("status")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    if status != "0" && object.get("success").and_then(Value::as_bool) != Some(true) {
-        return Err(error(
-            object
-                .get("msg")
-                .and_then(Value::as_str)
-                .unwrap_or("博雅请求失败"),
-        ));
+    let status = object.get("status").and_then(Value::as_str);
+    let success = object.get("success").and_then(Value::as_bool);
+    if status != Some("0") && success != Some(true) {
+        return Err(if status.is_some() || success == Some(false) {
+            rejected(object)
+        } else {
+            error("博雅响应缺少有效状态").with_diagnostic("parse", "business_code_invalid")
+        });
     }
     object
         .get("data")
         .or_else(|| object.get("result"))
         .cloned()
-        .ok_or_else(|| error("博雅响应缺少数据"))
+        .ok_or_else(|| error("博雅响应缺少数据").with_diagnostic("parse", "data_missing"))
+}
+
+#[track_caller]
+pub(super) fn rejected(object: &Map<String, Value>) -> UbaaError {
+    let safe_message = ["errmsg", "msg"]
+        .iter()
+        .filter_map(|key| object.get(*key)?.as_str())
+        .find(|message| safe_upstream_message(message))
+        .unwrap_or("博雅服务器拒绝了该请求");
+    UbaaError::business_rejected(safe_message)
 }
 
 fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
@@ -613,4 +619,23 @@ pub(crate) fn parse_statistics(value: &Value) -> Result<BykcStatistics> {
         total_valid_count: Some(total_valid_count),
         categories,
     })
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn diagnostics_contract_博雅课程已满是确定的业务拒绝() {
+        let error = envelope(r#"{"status":"1","errmsg":"报名失败，该课程人数已满"}"#).unwrap_err();
+        assert_eq!(
+            serde_json::to_value(error.code).unwrap(),
+            "business_rejected"
+        );
+        assert_eq!(error.diagnostic().upstream_code, Some(1));
+        assert_eq!(
+            error.diagnostic().upstream_message.as_deref(),
+            Some("报名失败，该课程人数已满")
+        );
+    }
 }

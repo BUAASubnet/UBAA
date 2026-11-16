@@ -25254,16 +25254,17 @@ impl SseDecode for crate::api::client::BridgeErrorCode {
             8 => crate::api::client::BridgeErrorCode::Timeout,
             9 => crate::api::client::BridgeErrorCode::UpstreamUnavailable,
             10 => crate::api::client::BridgeErrorCode::BusinessUnavailable,
-            11 => crate::api::client::BridgeErrorCode::UpstreamChanged,
-            12 => crate::api::client::BridgeErrorCode::ParseError,
-            13 => crate::api::client::BridgeErrorCode::InternalError,
-            14 => crate::api::client::BridgeErrorCode::ClientDisposed,
-            15 => crate::api::client::BridgeErrorCode::ConfirmationRequired,
-            16 => crate::api::client::BridgeErrorCode::IntentExpired,
-            17 => crate::api::client::BridgeErrorCode::OperationConflict,
-            18 => crate::api::client::BridgeErrorCode::OutcomeUnknown,
-            19 => crate::api::client::BridgeErrorCode::Unsupported,
-            20 => crate::api::client::BridgeErrorCode::UpdateRequired,
+            11 => crate::api::client::BridgeErrorCode::BusinessRejected,
+            12 => crate::api::client::BridgeErrorCode::UpstreamChanged,
+            13 => crate::api::client::BridgeErrorCode::ParseError,
+            14 => crate::api::client::BridgeErrorCode::InternalError,
+            15 => crate::api::client::BridgeErrorCode::ClientDisposed,
+            16 => crate::api::client::BridgeErrorCode::ConfirmationRequired,
+            17 => crate::api::client::BridgeErrorCode::IntentExpired,
+            18 => crate::api::client::BridgeErrorCode::OperationConflict,
+            19 => crate::api::client::BridgeErrorCode::OutcomeUnknown,
+            20 => crate::api::client::BridgeErrorCode::Unsupported,
+            21 => crate::api::client::BridgeErrorCode::UpdateRequired,
             _ => unreachable!("Invalid variant for BridgeErrorCode: {}", inner),
         };
     }
@@ -28245,6 +28246,7 @@ impl SseDecode for crate::api::app_service::models::BridgeTelemetryCounter {
             3 => crate::api::app_service::models::BridgeTelemetryCounter::SessionExpired,
             4 => crate::api::app_service::models::BridgeTelemetryCounter::RouteResolved,
             5 => crate::api::app_service::models::BridgeTelemetryCounter::FeatureLoaded,
+            6 => crate::api::app_service::models::BridgeTelemetryCounter::WriteCompleted,
             _ => unreachable!("Invalid variant for BridgeTelemetryCounter: {}", inner),
         };
     }
@@ -28259,6 +28261,7 @@ impl SseDecode for crate::api::app_service::models::BridgeTelemetryError {
             1 => crate::api::app_service::models::BridgeTelemetryError::FeatureFailed,
             2 => crate::api::app_service::models::BridgeTelemetryError::UiErrorShown,
             3 => crate::api::app_service::models::BridgeTelemetryError::Crash,
+            4 => crate::api::app_service::models::BridgeTelemetryError::WriteFailed,
             _ => unreachable!("Invalid variant for BridgeTelemetryError: {}", inner),
         };
     }
@@ -28283,6 +28286,12 @@ impl SseDecode for crate::api::app_service::models::BridgeTelemetryFeature {
             11 => crate::api::app_service::models::BridgeTelemetryFeature::Cgyy,
             12 => crate::api::app_service::models::BridgeTelemetryFeature::Ygdk,
             13 => crate::api::app_service::models::BridgeTelemetryFeature::Evaluation,
+            14 => crate::api::app_service::models::BridgeTelemetryFeature::CloudPrint,
+            15 => crate::api::app_service::models::BridgeTelemetryFeature::Bhpan,
+            16 => crate::api::app_service::models::BridgeTelemetryFeature::Ihome,
+            17 => crate::api::app_service::models::BridgeTelemetryFeature::Portal,
+            18 => crate::api::app_service::models::BridgeTelemetryFeature::Network,
+            19 => crate::api::app_service::models::BridgeTelemetryFeature::Finance,
             _ => unreachable!("Invalid variant for BridgeTelemetryFeature: {}", inner),
         };
     }
@@ -38661,16 +38670,17 @@ impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeErrorCode {
             Self::Timeout => 8.into_dart(),
             Self::UpstreamUnavailable => 9.into_dart(),
             Self::BusinessUnavailable => 10.into_dart(),
-            Self::UpstreamChanged => 11.into_dart(),
-            Self::ParseError => 12.into_dart(),
-            Self::InternalError => 13.into_dart(),
-            Self::ClientDisposed => 14.into_dart(),
-            Self::ConfirmationRequired => 15.into_dart(),
-            Self::IntentExpired => 16.into_dart(),
-            Self::OperationConflict => 17.into_dart(),
-            Self::OutcomeUnknown => 18.into_dart(),
-            Self::Unsupported => 19.into_dart(),
-            Self::UpdateRequired => 20.into_dart(),
+            Self::BusinessRejected => 11.into_dart(),
+            Self::UpstreamChanged => 12.into_dart(),
+            Self::ParseError => 13.into_dart(),
+            Self::InternalError => 14.into_dart(),
+            Self::ClientDisposed => 15.into_dart(),
+            Self::ConfirmationRequired => 16.into_dart(),
+            Self::IntentExpired => 17.into_dart(),
+            Self::OperationConflict => 18.into_dart(),
+            Self::OutcomeUnknown => 19.into_dart(),
+            Self::Unsupported => 20.into_dart(),
+            Self::UpdateRequired => 21.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -42850,6 +42860,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::app_service::models::BridgeTe
             Self::SessionExpired => 3.into_dart(),
             Self::RouteResolved => 4.into_dart(),
             Self::FeatureLoaded => 5.into_dart(),
+            Self::WriteCompleted => 6.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -42873,6 +42884,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::app_service::models::BridgeTe
             Self::FeatureFailed => 1.into_dart(),
             Self::UiErrorShown => 2.into_dart(),
             Self::Crash => 3.into_dart(),
+            Self::WriteFailed => 4.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -42906,6 +42918,12 @@ impl flutter_rust_bridge::IntoDart for crate::api::app_service::models::BridgeTe
             Self::Cgyy => 11.into_dart(),
             Self::Ygdk => 12.into_dart(),
             Self::Evaluation => 13.into_dart(),
+            Self::CloudPrint => 14.into_dart(),
+            Self::Bhpan => 15.into_dart(),
+            Self::Ihome => 16.into_dart(),
+            Self::Portal => 17.into_dart(),
+            Self::Network => 18.into_dart(),
+            Self::Finance => 19.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -46835,16 +46853,17 @@ impl SseEncode for crate::api::client::BridgeErrorCode {
                 crate::api::client::BridgeErrorCode::Timeout => 8,
                 crate::api::client::BridgeErrorCode::UpstreamUnavailable => 9,
                 crate::api::client::BridgeErrorCode::BusinessUnavailable => 10,
-                crate::api::client::BridgeErrorCode::UpstreamChanged => 11,
-                crate::api::client::BridgeErrorCode::ParseError => 12,
-                crate::api::client::BridgeErrorCode::InternalError => 13,
-                crate::api::client::BridgeErrorCode::ClientDisposed => 14,
-                crate::api::client::BridgeErrorCode::ConfirmationRequired => 15,
-                crate::api::client::BridgeErrorCode::IntentExpired => 16,
-                crate::api::client::BridgeErrorCode::OperationConflict => 17,
-                crate::api::client::BridgeErrorCode::OutcomeUnknown => 18,
-                crate::api::client::BridgeErrorCode::Unsupported => 19,
-                crate::api::client::BridgeErrorCode::UpdateRequired => 20,
+                crate::api::client::BridgeErrorCode::BusinessRejected => 11,
+                crate::api::client::BridgeErrorCode::UpstreamChanged => 12,
+                crate::api::client::BridgeErrorCode::ParseError => 13,
+                crate::api::client::BridgeErrorCode::InternalError => 14,
+                crate::api::client::BridgeErrorCode::ClientDisposed => 15,
+                crate::api::client::BridgeErrorCode::ConfirmationRequired => 16,
+                crate::api::client::BridgeErrorCode::IntentExpired => 17,
+                crate::api::client::BridgeErrorCode::OperationConflict => 18,
+                crate::api::client::BridgeErrorCode::OutcomeUnknown => 19,
+                crate::api::client::BridgeErrorCode::Unsupported => 20,
+                crate::api::client::BridgeErrorCode::UpdateRequired => 21,
                 _ => {
                     unimplemented!("");
                 }
@@ -48950,6 +48969,7 @@ impl SseEncode for crate::api::app_service::models::BridgeTelemetryCounter {
                 crate::api::app_service::models::BridgeTelemetryCounter::SessionExpired => 3,
                 crate::api::app_service::models::BridgeTelemetryCounter::RouteResolved => 4,
                 crate::api::app_service::models::BridgeTelemetryCounter::FeatureLoaded => 5,
+                crate::api::app_service::models::BridgeTelemetryCounter::WriteCompleted => 6,
                 _ => {
                     unimplemented!("");
                 }
@@ -48968,6 +48988,7 @@ impl SseEncode for crate::api::app_service::models::BridgeTelemetryError {
                 crate::api::app_service::models::BridgeTelemetryError::FeatureFailed => 1,
                 crate::api::app_service::models::BridgeTelemetryError::UiErrorShown => 2,
                 crate::api::app_service::models::BridgeTelemetryError::Crash => 3,
+                crate::api::app_service::models::BridgeTelemetryError::WriteFailed => 4,
                 _ => {
                     unimplemented!("");
                 }
@@ -48996,6 +49017,12 @@ impl SseEncode for crate::api::app_service::models::BridgeTelemetryFeature {
                 crate::api::app_service::models::BridgeTelemetryFeature::Cgyy => 11,
                 crate::api::app_service::models::BridgeTelemetryFeature::Ygdk => 12,
                 crate::api::app_service::models::BridgeTelemetryFeature::Evaluation => 13,
+                crate::api::app_service::models::BridgeTelemetryFeature::CloudPrint => 14,
+                crate::api::app_service::models::BridgeTelemetryFeature::Bhpan => 15,
+                crate::api::app_service::models::BridgeTelemetryFeature::Ihome => 16,
+                crate::api::app_service::models::BridgeTelemetryFeature::Portal => 17,
+                crate::api::app_service::models::BridgeTelemetryFeature::Network => 18,
+                crate::api::app_service::models::BridgeTelemetryFeature::Finance => 19,
                 _ => {
                     unimplemented!("");
                 }

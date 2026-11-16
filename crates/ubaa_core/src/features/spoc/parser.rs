@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use super::calendar::normalize_datetime;
 use crate::domain::{SpocAssignmentDetail, SpocAssignmentSummary, SpocSubmissionStatus};
+use crate::error::{Result, UbaaError};
 
 /// 映射已验证的 SPOC 状态值，不擅自创造新状态。
 #[must_use]
@@ -128,18 +129,11 @@ pub struct Envelope<T> {
 }
 
 /// 解码一个 SPOC 包装，不暴露原始响应体文本。
-pub fn parse_envelope<T: for<'de> Deserialize<'de>>(body: &str) -> crate::error::Result<T> {
-    let envelope: Envelope<T> = parse_envelope_json(body)?;
-    if envelope.code != 200 {
-        return Err(classify_envelope_error(&envelope, body));
-    }
-    envelope.content.ok_or_else(|| {
-        crate::error::UbaaError::new(
-            crate::error::ErrorCode::UpstreamChanged,
-            crate::error::ErrorKind::Upstream,
-            false,
-            "SPOC 响应缺少内容",
-        )
+pub fn parse_envelope<T: for<'de> Deserialize<'de>>(body: &str) -> Result<T> {
+    parse_optional_envelope(body)?.ok_or_else(|| {
+        UbaaError::upstream_changed("SPOC 响应缺少内容")
+            .with_diagnostic("parse", "content_missing")
+            .with_business_response(body.as_bytes(), None, "code")
     })
 }
 
@@ -192,30 +186,26 @@ pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssign
 
 pub(super) fn parse_optional_envelope<T: for<'de> Deserialize<'de>>(
     body: &str,
-) -> crate::error::Result<Option<T>> {
-    let envelope: Envelope<T> = parse_envelope_json(body)?;
+) -> Result<Option<T>> {
+    // 失败信封的 content 可为提示文本，不要求符合成功 DTO。
+    let envelope: Envelope<Value> = serde_json::from_str(body)
+        .map_err(|error| UbaaError::json_error(&error, "SPOC 响应无法解析", body.as_bytes()))?;
     if envelope.code != 200 {
         return Err(classify_envelope_error(&envelope, body));
     }
-    Ok(envelope.content)
+    envelope
+        .content
+        .map(|content| {
+            serde_json::from_value(content).map_err(|_| {
+                UbaaError::upstream_changed("SPOC 响应内容不符合已知结构")
+                    .with_diagnostic("parse", "content_shape_invalid")
+                    .with_business_response(body.as_bytes(), None, "code")
+            })
+        })
+        .transpose()
 }
 
-fn parse_envelope_json<T: for<'de> Deserialize<'de>>(
-    body: &str,
-) -> crate::error::Result<Envelope<T>> {
-    serde_json::from_str(body).map_err(|_| {
-        crate::error::UbaaError::new(
-            crate::error::ErrorCode::ParseError,
-            crate::error::ErrorKind::Parse,
-            false,
-            "SPOC 响应不是有效 JSON",
-        )
-        .with_diagnostic("parse", "spoc_envelope_invalid")
-        .with_response(body.as_bytes(), None)
-    })
-}
-
-fn classify_envelope_error<T>(envelope: &Envelope<T>, body: &str) -> crate::error::UbaaError {
+fn classify_envelope_error<T>(envelope: &Envelope<T>, body: &str) -> UbaaError {
     let messages = envelope
         .msg
         .iter()
@@ -226,22 +216,15 @@ fn classify_envelope_error<T>(envelope: &Envelope<T>, body: &str) -> crate::erro
     if looks_like_authentication_failure(&messages) || looks_like_authentication_failure(body) {
         spoc_auth_error()
     } else {
-        crate::error::UbaaError::new(
-            crate::error::ErrorCode::UpstreamChanged,
-            crate::error::ErrorKind::Upstream,
-            false,
-            "SPOC 响应返回失败状态码",
-        )
+        UbaaError::business_rejected("SPOC 拒绝了该请求")
     }
+    .with_business_response(body.as_bytes(), None, "code")
 }
 
-pub(super) fn spoc_auth_error() -> crate::error::UbaaError {
-    crate::error::UbaaError::new(
-        crate::error::ErrorCode::AuthenticationRequired,
-        crate::error::ErrorKind::Authentication,
-        false,
-        "SPOC 功能需要认证",
-    )
+#[track_caller]
+pub(super) fn spoc_auth_error() -> UbaaError {
+    UbaaError::authentication_required("SPOC 功能需要认证")
+        .with_diagnostic("authentication", "business_session_required")
 }
 
 fn looks_like_authentication_failure(text: &str) -> bool {

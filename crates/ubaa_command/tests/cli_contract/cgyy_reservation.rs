@@ -143,8 +143,8 @@ fn with_schema_version(mut value: Value, version: u32) -> Value {
 }
 
 #[test]
-fn cli_唯一_json_schema_版本为_17() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 17);
+fn cli_唯一_json_schema_版本为_18() {
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn cli_信封只接受当前_schema_并拒绝旧版本() {
             "当前 schema 应接受 {kind} 信封：{current}"
         );
 
-        for version in [11, 16] {
+        for version in [11, 17] {
             let old = with_schema_version(current.clone(), version);
             assert!(
                 !validator.is_valid(&old),

@@ -105,7 +105,11 @@ class UiErrorMapper {
     bool includeTechnicalDetail = false,
   }) {
     final code = _parseCode(payload.code);
-    final template = _authTemplate(payload.authReason) ?? _templateFor(code);
+    final template = code == UbaaErrorCode.outcomeUnknown
+        ? _templateFor(code)
+        : _authTemplate(payload.authReason) ??
+              _diagnosticTemplate(code, payload.diagnostic?.reason) ??
+              _templateFor(code);
     final retryable =
         code == UbaaErrorCode.outcomeUnknown ||
             code == UbaaErrorCode.updateRequired
@@ -121,7 +125,9 @@ class UiErrorMapper {
     return UiError(
       code: code,
       title: template.title,
-      message: payload.diagnostic?.upstreamMessage == null
+      message:
+          code == UbaaErrorCode.outcomeUnknown ||
+              payload.diagnostic?.upstreamMessage == null
           ? template.message
           : '学校返回：${payload.diagnostic!.upstreamMessage}',
       actionLabel: template.actionLabel,
@@ -279,9 +285,10 @@ UiErrorKind _parseKind(String? raw, String code) {
     UbaaErrorCode.networkError ||
     UbaaErrorCode.timeout ||
     UbaaErrorCode.upstreamUnavailable ||
-    UbaaErrorCode.businessUnavailable ||
     UbaaErrorCode.outcomeUnknown => UiErrorKind.network,
     UbaaErrorCode.upstreamChanged ||
+    UbaaErrorCode.businessUnavailable ||
+    UbaaErrorCode.businessRejected ||
     UbaaErrorCode.updateRequired => UiErrorKind.upstream,
     UbaaErrorCode.parseError => UiErrorKind.parse,
     UbaaErrorCode.internalError ||
@@ -299,6 +306,7 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.invalidCredentials ||
   UbaaErrorCode.passwordRiskConfirmationFailed ||
   UbaaErrorCode.permissionDenied ||
+  UbaaErrorCode.businessRejected ||
   UbaaErrorCode.upstreamChanged ||
   UbaaErrorCode.parseError ||
   UbaaErrorCode.internalError ||
@@ -354,9 +362,14 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     actionLabel: '重试',
   ),
   UbaaErrorCode.businessUnavailable => (
-    title: '预约暂不可用',
-    message: '当前不在预约时段（8:00–20:00）',
+    title: '服务暂不可用',
+    message: '当前无法使用此服务，请稍后重试',
     actionLabel: '重试',
+  ),
+  UbaaErrorCode.businessRejected => (
+    title: '操作未获受理',
+    message: '学校服务未接受本次操作，请刷新并核对当前状态',
+    actionLabel: null,
   ),
   UbaaErrorCode.upstreamChanged => (
     title: '暂时无法完成操作',
@@ -460,6 +473,28 @@ Object? _extractRoute(Object? value, Map<Object?, Object?> error) {
 ConnectionMode? _parseRoute(Object? value) => switch (value) {
   'direct' => ConnectionMode.direct,
   'webvpn' => ConnectionMode.webvpn,
+  _ => null,
+};
+
+({String title, String message, String? actionLabel})? _diagnosticTemplate(
+  UbaaErrorCode code,
+  String? reason,
+) => switch ((code, reason)) {
+  (UbaaErrorCode.businessUnavailable, 'outside_reservation_hours') => (
+    title: '预约暂不可用',
+    message: '当前不在预约时段（8:00–20:00）',
+    actionLabel: '重试',
+  ),
+  (UbaaErrorCode.upstreamUnavailable, 'http_rate_limited') => (
+    title: '学校服务限制请求频率',
+    message: '请稍后再次操作',
+    actionLabel: '重试',
+  ),
+  (UbaaErrorCode.permissionDenied, 'http_forbidden') => (
+    title: '学校服务拒绝访问',
+    message: '请核对当前连接方式；若仍无法访问，可导出诊断报告反馈',
+    actionLabel: null,
+  ),
   _ => null,
 };
 

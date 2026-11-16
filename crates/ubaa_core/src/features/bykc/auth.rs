@@ -4,10 +4,10 @@
 use serde_json::Value;
 
 use super::crypto::{decrypt_response, encrypt_request};
-use super::parser::envelope;
+use super::parser::{envelope, rejected};
 use super::{BykcCredential, error};
 use crate::domain::ConnectionMode;
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{Result, UbaaError};
 use crate::ports::HttpRequest;
 
 pub(super) const BASE_URL: &str = "https://bykc.buaa.edu.cn";
@@ -187,22 +187,31 @@ async fn request_api_inner(
     };
     if response.status != 200 {
         return Err(if kind == ApiRequestKind::Write {
-            write_outcome_unknown()
+            write_outcome_unknown().with_response(&response.body, Some(response.status))
         } else {
-            error("博雅服务暂时不可用")
+            super::super::http::http_status_error(&response, "博雅")
         });
     }
     let text = super::super::body(&response);
     let plain = decrypt_response(&text, &encrypted.aes_key).unwrap_or(text);
-    match kind {
+    let parsed = match kind {
         ApiRequestKind::Read => envelope(&plain),
         ApiRequestKind::WritePreflight => preflight_envelope(&plain),
         ApiRequestKind::Write => write_envelope(&plain),
-    }
+    };
+    parsed.map_err(|error| error.with_http_status(response.status))
 }
 
 fn preflight_envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("博雅预检响应无法解析"))?;
+    preflight_envelope_value(body)
+        .map_err(|error| error.with_business_response(body.as_bytes(), None, "status"))
+}
+
+fn preflight_envelope_value(body: &str) -> Result<Value> {
+    let value: Value = serde_json::from_str(body).map_err(|_| {
+        UbaaError::parse_error("博雅资格核对响应无法解析")
+            .with_diagnostic("preflight", "json_invalid")
+    })?;
     let object = value
         .as_object()
         .ok_or_else(|| error("博雅预检响应结构无效"))?;
@@ -211,13 +220,7 @@ fn preflight_envelope(body: &str) -> Result<Value> {
         .and_then(Value::as_str)
         .ok_or_else(|| error("博雅预检响应缺少有效状态"))?;
     if status != "0" {
-        return Err(error(
-            object
-                .get("errmsg")
-                .or_else(|| object.get("msg"))
-                .and_then(Value::as_str)
-                .unwrap_or("博雅预检请求失败"),
-        ));
+        return Err(rejected(object).with_diagnostic("preflight", "business_rejected"));
     }
     object
         .get("data")
@@ -227,31 +230,23 @@ fn preflight_envelope(body: &str) -> Result<Value> {
 }
 
 fn write_envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| write_outcome_unknown())?;
-    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let unknown =
+        || write_outcome_unknown().with_business_response(body.as_bytes(), None, "status");
+    let value: Value = serde_json::from_str(body).map_err(|_| unknown())?;
+    let object = value.as_object().ok_or_else(&unknown)?;
     let status = object
         .get("status")
         .and_then(Value::as_str)
-        .ok_or_else(write_outcome_unknown)?;
+        .ok_or_else(unknown)?;
     if status != "0" {
-        return Err(error(
-            object
-                .get("errmsg")
-                .or_else(|| object.get("msg"))
-                .and_then(Value::as_str)
-                .unwrap_or("博雅请求失败"),
-        ));
+        return Err(rejected(object).with_business_response(body.as_bytes(), None, "status"));
     }
     Ok(object.get("data").cloned().unwrap_or(Value::Null))
 }
 
+#[track_caller]
 pub(super) fn write_outcome_unknown() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::OutcomeUnknown,
-        ErrorKind::Upstream,
-        false,
-        "博雅写入结果未知，请先刷新状态再决定是否重试",
-    )
+    UbaaError::outcome_unknown("博雅写入结果未知，请先刷新状态再决定是否重试")
 }
 
 #[cfg(test)]
@@ -279,16 +274,16 @@ mod tests {
     fn 非零写入状态即使_success_为真也按冻结错误字段返回确定失败() {
         for (body, expected_message) in [
             (
-                r#"{"status":"1","success":true,"errmsg":"冻结业务失败","msg":"备用错误","data":{"message":"不得返回"}}"#,
-                "冻结业务失败",
+                r#"{"status":"1","success":true,"errmsg":"报名失败，该课程人数已满","msg":"备用错误","data":{"message":"不得返回"}}"#,
+                "报名失败，该课程人数已满",
             ),
             (
-                r#"{"status":"2","success":true,"msg":"冻结备用错误","data":{"message":"不得返回"}}"#,
-                "冻结备用错误",
+                r#"{"status":"2","success":true,"msg":"已报名过该课程，请不要重复报名","data":{"message":"不得返回"}}"#,
+                "已报名过该课程，请不要重复报名",
             ),
         ] {
             let error = write_envelope(body).expect_err("非零 status 不得被 success=true 覆盖");
-            assert_eq!(error.code, ErrorCode::UpstreamChanged);
+            assert_eq!(error.code, ErrorCode::BusinessRejected);
             assert_eq!(error.message, expected_message);
             assert!(!error.retryable);
         }

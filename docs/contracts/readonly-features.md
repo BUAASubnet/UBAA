@@ -75,7 +75,7 @@ LibBook booking 的公开 `status` 为 nullable int，并由 Core 派生 `cancel
 
 ## 仅供验证的诊断
 
-隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户命令面。输出与普通读取相同的 schema-v17 路由 envelope，并且一次完整功能运行必须保持同一条已解析路线。
+隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户命令面。输出与普通读取相同的 schema-v18 路由 envelope，并且一次完整功能运行必须保持同一条已解析路线。
 
 SPOC 诊断：
 

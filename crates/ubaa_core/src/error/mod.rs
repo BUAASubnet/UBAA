@@ -33,6 +33,8 @@ pub enum ErrorCode {
     UpstreamUnavailable,
     /// 上游业务当前不在可用时段或状态。
     BusinessUnavailable,
+    /// 上游已明确拒绝业务请求。
+    BusinessRejected,
     /// 非幂等写请求可能已到达上游，但无法确定最终业务结果。
     OutcomeUnknown,
     /// 上游协议不再符合已验证合同。
@@ -145,8 +147,47 @@ impl UbaaError {
         self
     }
 
+    pub(crate) fn with_http_status(mut self, status: u16) -> Self {
+        self.diagnostic.status = Some(status);
+        self
+    }
+
+    pub(crate) fn with_upstream_code(mut self, code: i64) -> Self {
+        self.diagnostic.upstream_code = diagnostic::bounded_upstream_code(code);
+        self
+    }
+
+    pub(crate) fn with_write_outcome_unknown(mut self, message: &'static str) -> Self {
+        self.code = ErrorCode::OutcomeUnknown;
+        self.kind = ErrorKind::Upstream;
+        self.retryable = false;
+        self.message = message.into();
+        self.cause = None;
+        self.with_diagnostic_default("confirmation", "outcome_unknown")
+    }
+
+    pub(crate) fn with_diagnostic_default(
+        mut self,
+        stage: &'static str,
+        reason: &'static str,
+    ) -> Self {
+        self.diagnostic.stage.get_or_insert_with(|| stage.into());
+        self.diagnostic.reason.get_or_insert_with(|| reason.into());
+        self
+    }
+
     pub(crate) fn with_response(mut self, body: &[u8], status: Option<u16>) -> Self {
-        self.diagnostic.response(body, status);
+        self.diagnostic.response(body, status, None);
+        self
+    }
+
+    pub(crate) fn with_business_response(
+        mut self,
+        body: &[u8],
+        status: Option<u16>,
+        code_field: &'static str,
+    ) -> Self {
+        self.diagnostic.response(body, status, Some(code_field));
         self
     }
 
@@ -216,6 +257,20 @@ impl UbaaError {
         Self::new(ErrorCode::ParseError, ErrorKind::Parse, false, message)
     }
 
+    #[track_caller]
+    pub(crate) fn json_error(
+        error: &serde_json::Error,
+        message: &'static str,
+        body: &[u8],
+    ) -> Self {
+        if error.is_data() {
+            Self::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
+        } else {
+            Self::parse_error(message).with_diagnostic("parse", "json_invalid")
+        }
+        .with_response(body, None)
+    }
+
     /// 构造认证要求错误。
     #[track_caller]
     pub fn authentication_required(message: impl Into<String>) -> Self {
@@ -262,6 +317,17 @@ impl UbaaError {
         )
     }
 
+    #[track_caller]
+    pub(crate) fn business_rejected(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::BusinessRejected,
+            ErrorKind::Upstream,
+            false,
+            message,
+        )
+        .with_diagnostic("response", "business_rejected")
+    }
+
     /// 构造学校请求被更新门控拒绝的错误。
     #[must_use]
     pub fn update_required() -> Self {
@@ -282,6 +348,7 @@ impl UbaaError {
             false,
             message,
         )
+        .with_diagnostic("confirmation", "outcome_unknown")
     }
 
     pub(crate) fn with_initialization_failure(mut self, failure: InitializationFailure) -> Self {
@@ -338,6 +405,7 @@ impl UbaaError {
         matches!(self.cause, Some(ErrorCause::AgendaCreationRouteChanged))
     }
 
+    #[track_caller]
     pub(crate) fn bhpan_route_unverified() -> Self {
         Self {
             cause: Some(ErrorCause::BhpanRouteUnverified),
@@ -347,6 +415,7 @@ impl UbaaError {
                 false,
                 "北航云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
             )
+            .with_diagnostic("route", "route_unverified")
         }
     }
 

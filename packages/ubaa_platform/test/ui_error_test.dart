@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
+import 'package:ubaa_domain/ubaa_domain.dart' show ErrorDiagnostic;
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
@@ -36,17 +37,29 @@ void main() {
     });
 
     test('图书馆非预约时段保留安全文案并允许重试', () {
-      final error = mapCoreError(
-        code: 'business_unavailable',
-        kind: 'upstream',
-        retryable: true,
-        message: 'ignored upstream detail',
+      final error = const UiErrorMapper().fromCore(
+        CoreErrorPayload(
+          code: 'business_unavailable',
+          kind: 'upstream',
+          retryable: true,
+          diagnostic: ErrorDiagnostic.parse(
+            '{"source":"crates/ubaa_core/src/features/libbook/parser.rs:96",'
+            '"stage":"response","reason":"outside_reservation_hours"}',
+          ),
+        ),
       );
 
       expect(error.code, UbaaErrorCode.businessUnavailable);
       expect(error.title, '预约暂不可用');
       expect(error.message, '当前不在预约时段（8:00–20:00）');
       expect(error.actionLabel, '重试');
+      expect(error.retryable, isTrue);
+    });
+
+    test('云打印服务不可用与图书馆预约时段使用不同的恢复建议', () {
+      final error = mapCoreError(code: 'business_unavailable');
+      expect(error.code, UbaaErrorCode.businessUnavailable);
+      expect(error.message, '当前无法使用此服务，请稍后重试');
       expect(error.retryable, isTrue);
     });
 

@@ -5,11 +5,14 @@ use crate::domain::{
 use crate::error::{Result, UbaaError};
 use serde::Deserialize;
 
+#[track_caller]
 pub(crate) fn invalid() -> UbaaError {
     UbaaError::upstream_changed("北航云盘响应不符合已核实格式")
+        .with_diagnostic("parse", "response_shape_invalid")
 }
 pub(crate) fn json<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T> {
-    serde_json::from_slice(bytes).map_err(|_| invalid())
+    serde_json::from_slice(bytes)
+        .map_err(|cause| UbaaError::json_error(&cause, "北航云盘响应无法解析", bytes))
 }
 
 #[derive(Clone)]
@@ -101,7 +104,7 @@ pub(crate) fn field(bytes: &[u8], name: &str) -> Result<String> {
     let value = object
         .get(name)
         .and_then(serde_json::Value::as_str)
-        .ok_or_else(invalid)?;
+        .ok_or_else(|| invalid())?;
     nonempty(value)?;
     Ok(value.into())
 }

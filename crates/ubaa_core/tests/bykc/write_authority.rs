@@ -215,7 +215,13 @@ fn 博雅课程写前核对拒绝宽松信封且不发送写请求() {
                 r#"{"status":"0","data":{"message":"不得发送"}}"#,
             );
             let error = result.expect_err("宽松信封不得成为写资格证据");
-            assert_eq!(error.code, ErrorCode::UpstreamChanged, "{action:?}/{case}");
+            let expected = if case == "nonzero-status" {
+                assert_eq!(error.diagnostic().upstream_code, Some(1));
+                ErrorCode::BusinessRejected
+            } else {
+                ErrorCode::UpstreamChanged
+            };
+            assert_eq!(error.code, expected, "{action:?}/{case}");
             assert_eq!(paths, ["/sscv/cas/login", "/sscv/queryCourseById"]);
             let _ = std::fs::remove_dir_all(root);
         }

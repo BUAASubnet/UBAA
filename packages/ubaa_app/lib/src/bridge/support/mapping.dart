@@ -168,6 +168,7 @@ UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
   BridgeErrorCode.unsupported => UbaaErrorCode.unsupported,
   BridgeErrorCode.businessUnavailable => UbaaErrorCode.businessUnavailable,
+  BridgeErrorCode.businessRejected => UbaaErrorCode.businessRejected,
   BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
   BridgeErrorCode.parseError => UbaaErrorCode.parseError,
   BridgeErrorCode.internalError ||
@@ -214,6 +215,7 @@ UbaaErrorCode bridgeErrorCode(String? code) => switch (code) {
   'upstream_unavailable' => UbaaErrorCode.upstreamUnavailable,
   'businessUnavailable' ||
   'business_unavailable' => UbaaErrorCode.businessUnavailable,
+  'businessRejected' || 'business_rejected' => UbaaErrorCode.businessRejected,
   'upstreamChanged' || 'upstream_changed' => UbaaErrorCode.upstreamChanged,
   'parseError' || 'parse_error' => UbaaErrorCode.parseError,
   'clientDisposed' || 'client_disposed' => UbaaErrorCode.internalError,

@@ -8,13 +8,9 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
+#[track_caller]
 pub(super) fn error(message: impl Into<String>) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
 }
 
 pub(super) fn text(map: &Map<String, Value>, keys: &[&str]) -> String {
@@ -66,7 +62,11 @@ fn array<'a>(map: &'a Map<String, Value>, keys: &[&str]) -> &'a [Value] {
 
 #[cfg(test)]
 pub(super) fn envelope(body: &str) -> Result<Value> {
-    response_data(serde_json::from_str(body).map_err(|_| error("图书馆响应无法解析"))?)
+    response_data(
+        serde_json::from_str(body).map_err(|cause| {
+            UbaaError::json_error(&cause, "图书馆响应无法解析", body.as_bytes())
+        })?,
+    )
 }
 
 pub(super) fn response_data(mut value: Value) -> Result<Value> {
@@ -90,18 +90,21 @@ pub(super) fn response_data(mut value: Value) -> Result<Value> {
                 ErrorKind::Authentication,
                 false,
                 "图书馆业务会话已失效",
-            ));
+            )
+            .with_diagnostic("authentication", "business_session_required"));
         }
         if code == Some(500) && object.get("data").is_none_or(serde_json::Value::is_null) {
-            return Err(UbaaError::business_unavailable(
-                "当前不在预约时段（8:00–20:00）",
-            ));
+            return Err(
+                UbaaError::business_unavailable("当前不在预约时段（8:00–20:00）")
+                    .with_diagnostic("response", "outside_reservation_hours")
+                    .with_upstream_code(500),
+            );
         }
-        Err(error(if message.is_empty() {
-            "图书馆请求失败".to_owned()
+        Err(if let Some(code) = code {
+            UbaaError::business_rejected("图书馆服务器拒绝了该请求").with_upstream_code(code)
         } else {
-            message
-        }))
+            error("图书馆响应缺少有效业务状态").with_diagnostic("parse", "business_code_invalid")
+        })
     }
 }
 

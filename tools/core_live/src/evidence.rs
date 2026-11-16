@@ -142,6 +142,7 @@ pub(crate) fn error_code(code: ErrorCode) -> &'static str {
         ErrorCode::Timeout => "timeout",
         ErrorCode::UpstreamUnavailable => "upstream_unavailable",
         ErrorCode::BusinessUnavailable => "business_unavailable",
+        ErrorCode::BusinessRejected => "business_rejected",
         ErrorCode::OutcomeUnknown => "outcome_unknown",
         ErrorCode::UpdateRequired => "update_required",
         ErrorCode::UpstreamChanged => "upstream_changed",

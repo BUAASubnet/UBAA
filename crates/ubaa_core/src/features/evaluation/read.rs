@@ -128,6 +128,7 @@ pub(super) async fn fetch_result(
             return Err(upstream_error("评教读取终点无效"));
         }
         result_value(&super::super::body(&response))
+            .map_err(|error| error.with_http_status(response.status))
     }
     .await;
     match result {

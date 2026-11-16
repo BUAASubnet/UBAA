@@ -45,15 +45,15 @@ impl ClientRuntime {
         drop(permit);
         let result = pending.await;
         if write {
-            let response = result.map_err(|_| write_outcome_unknown())?;
+            let response = result.map_err(super::unknown_after_send)?;
             // 已收到确定响应后，普通关闭不改写结果；账号撤销与会话替换仍使结果待核对。
             if let Some(scope) = &self.shared_account {
-                scope.check().map_err(|_| write_outcome_unknown())?;
+                scope.check().map_err(super::unknown_after_send)?;
             }
             if !self
                 .store
                 .is_revision_current(self.session_revision)
-                .map_err(|_| write_outcome_unknown())?
+                .map_err(super::unknown_after_send)?
             {
                 return Err(write_outcome_unknown());
             }

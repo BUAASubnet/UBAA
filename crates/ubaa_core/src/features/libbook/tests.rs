@@ -133,7 +133,10 @@ fn 非预约时段响应不应被归为接口变化() {
     .expect_err("非预约时段响应应返回业务错误");
     assert_eq!(error.code, ErrorCode::BusinessUnavailable);
     assert!(error.retryable);
-    assert_eq!(error.message, "当前不在预约时段（8:00–20:00）");
+    assert_eq!(
+        error.diagnostic().reason.as_deref(),
+        Some("outside_reservation_hours")
+    );
 }
 
 #[test]

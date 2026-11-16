@@ -108,3 +108,9 @@ Direct/WebVPN `verify-live feature=libbook` 均通过 prepare/login/status、楼
 - 原 Core/Bridge `LibBookAreaDetail` 与旧读取方法继续保持 `id/name/availableDates/timeSlots`，CLI 仍使用旧方法，schema10 不加字段；Session2、配置1不变。图书馆专用 `live_readonly_test.dart` 仅同步新类型和自然选择步骤，本批没有执行此驱动、native 构建、生产只读或真实写入。
 
 可编译 RED 分别记录了旧公开详情不能表达逐日关联/接受重复日期、旧 App 投影不含嵌套关联、组件缺少日期选择。随后独立新 API 的 GREEN 覆盖同响应两个日期的不同原时段、空首日期、重复日期、空/畸形时段、双路线原请求、旧详情形状、App 投影和实际组件选择/清除/切父项/返回与迟到结果。完整命令与退出码保存在本机仓库外私有证据目录 `macos-ui-20260915/libbook-dates/`；最终候选与 macOS 实操仍由主线分别验收。
+
+### 图书馆信封的错误诊断
+
+本次重核[只读](#图书馆座位只读查询)和[写入](write-actions.md#逐操作基线矩阵)九列中的 `LibBookApi.kt`、`LocalLibBookApi.kt`、`LibBook.kt`、`LocalLibBookApiBackendTest.kt` 和 `LocalLibBookCryptoTest.kt`。固定示例中无同一座位预约协议，对本页各操作九列均不适用。沿用原 CAS、终点、路线内令牌、POST JSON 参数与请求头、写入 AES、DTO、缓存和只读恢复规则。
+
+五项只读操作的非成功信封按有效业务码拒绝；缺失或畸形码仍为结构错误。除原已确认的会话失效提示外，不将原始消息当作诊断。分区详情等读取返回已记录的 `code=500` 且无数据的非预约时段形态时，`business_unavailable` 附 `outside_reservation_hours`，供图书馆功能单独展示预约时段。预约和取消前的资格错误保留其来源，发送后的未知结果及复核规则不变。

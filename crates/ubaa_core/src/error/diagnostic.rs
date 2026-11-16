@@ -58,7 +58,7 @@ impl ErrorDiagnostic {
     #[must_use]
     pub fn is_valid(&self) -> bool {
         self.upstream_code
-            .is_none_or(|v| (-99999..=99999).contains(&v))
+            .is_none_or(|v| bounded_upstream_code(v).is_some())
             && self.json_types.iter().all(|(key, value)| {
                 JSON_FIELDS.contains(&key.as_str()) && JSON_TYPES.contains(&value.as_str())
             })
@@ -93,7 +93,7 @@ impl ErrorDiagnostic {
     }
 
     /// 只提取响应类别和经过逐字确认的业务提示，不保留业务字段值。
-    pub(crate) fn response(&mut self, body: &[u8], status: Option<u16>) {
+    pub(crate) fn response(&mut self, body: &[u8], status: Option<u16>, code_field: Option<&str>) {
         self.upstream_code = None;
         self.upstream_message = None;
         self.json_types.clear();
@@ -104,13 +104,10 @@ impl ErrorDiagnostic {
         self.response_kind = Some(
             match serde_json::from_slice::<serde_json::Value>(body) {
                 Ok(value) => {
-                    self.upstream_code = ["code", "status"]
-                        .iter()
-                        .filter_map(|key| {
-                            let raw = value.get(key)?;
-                            raw.as_i64().or_else(|| raw.as_str()?.parse::<i64>().ok())
-                        })
-                        .find(|code| (-99999..=99999).contains(code));
+                    self.upstream_code = code_field
+                        .and_then(|key| value.get(key))
+                        .and_then(|raw| raw.as_i64().or_else(|| raw.as_str()?.parse::<i64>().ok()))
+                        .and_then(bounded_upstream_code);
                     for key in JSON_FIELDS {
                         let mut item = Some(&value);
                         for part in key.split('.') {
@@ -128,11 +125,13 @@ impl ErrorDiagnostic {
                             self.json_types.insert(key.to_owned(), kind.into());
                         }
                     }
-                    self.upstream_message = ["msg", "message", "errmsg"]
-                        .iter()
-                        .filter_map(|key| value.get(key)?.as_str())
-                        .find(|text| safe_upstream_message(text))
-                        .map(str::to_owned);
+                    if code_field.is_some() {
+                        self.upstream_message = ["errmsg", "msg", "message"]
+                            .iter()
+                            .filter_map(|key| value.get(key)?.as_str())
+                            .find(|text| safe_upstream_message(text))
+                            .map(str::to_owned);
+                    }
                     match value {
                         serde_json::Value::Object(_) => "json_object",
                         serde_json::Value::Array(_) => "json_array",
@@ -157,6 +156,10 @@ impl ErrorDiagnostic {
             .to_owned(),
         );
     }
+}
+
+pub(super) fn bounded_upstream_code(code: i64) -> Option<i64> {
+    i32::try_from(code).ok().map(i64::from)
 }
 
 const JSON_FIELDS: [&str; 14] = [
@@ -198,7 +201,8 @@ mod tests {
         let mut diagnostic = ErrorDiagnostic::at(std::panic::Location::caller());
         diagnostic.response(
             br#"{"status":"12","msg":"secret","data":{"name":"private","token":"secret"}}"#,
-            Some(403),
+            Some(200),
+            Some("status"),
         );
         let text = diagnostic.to_json().unwrap();
         assert!(!text.contains("secret"));
@@ -211,6 +215,7 @@ mod tests {
         diagnostic.response(
             "{\"msg\":\"报名失败，该课程人数已满\"}".as_bytes(),
             Some(200),
+            Some("status"),
         );
         assert_eq!(
             diagnostic.upstream_message.as_deref(),
@@ -224,9 +229,10 @@ mod tests {
         diagnostic.response(
             "<html>统一身份认证<input value='private'></html>".as_bytes(),
             Some(200),
+            None,
         );
         assert_eq!(diagnostic.response_kind.as_deref(), Some("login_html"));
-        diagnostic.response(b"{\n bad", Some(200));
+        diagnostic.response(b"{\n bad", Some(200), None);
         assert_eq!(diagnostic.response_kind.as_deref(), Some("text_or_binary"));
         assert_eq!(diagnostic.json_line, Some(2));
     }

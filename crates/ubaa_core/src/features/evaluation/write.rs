@@ -63,7 +63,7 @@ pub(crate) async fn preflight_submit_courses(
             snapshot
                 .unique_allowed(target)
                 .map(|(course, _)| course.clone())
-                .ok_or_else(authority_error)
+                .ok_or_else(|| authority_error())
         })
         .collect::<Result<Vec<_>>>()?;
     Ok(EvaluationSubmitPreflight {

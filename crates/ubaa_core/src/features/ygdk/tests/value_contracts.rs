@@ -348,8 +348,8 @@ fn 只读信封错误不透传上游原始消息() {
     let error = parse_envelope(r#"{"code":500,"msg":"secret raw upstream detail\nprivate"}"#)
         .expect_err("非成功信封必须返回稳定错误");
 
-    assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
-    assert_eq!(error.message, "阳光打卡请求失败");
+    assert_eq!(error.code, crate::error::ErrorCode::BusinessRejected);
+    assert_eq!(error.diagnostic().upstream_code, Some(500));
     assert!(!error.message.contains("secret"));
     assert!(!error.message.contains('\n'));
 }

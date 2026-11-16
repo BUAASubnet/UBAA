@@ -544,9 +544,9 @@ fn 场馆取消详情核对错误使用固定安全文案且不越过写边界()
         (
             "business-error",
             Scenario::new([r#"{"code":500,"message":"学号=private token=secret\n失败"}"#.into()]),
-            ErrorCode::UpstreamChanged,
+            ErrorCode::BusinessRejected,
             ErrorKind::Upstream,
-            "研讨室取消资格核对响应无效",
+            "研讨室服务器拒绝了取消资格核对",
             1,
             1,
         ),
