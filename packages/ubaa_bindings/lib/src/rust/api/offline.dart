@@ -161,6 +161,14 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   ///
   /// # Errors
   /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicGradesOverview?> readAcademicGradesOverview({
+    required BridgeConnectionMode route,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
   Future<BridgeCachedAcademicTerms?> readAcademicTerms({
     required BridgeConnectionMode route,
   });

@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/offline.dart';
 import 'package:ubaa_app/src/presentation/grades.dart';
+import '../state/models.dart' show GradesReadCache;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase;
 
@@ -27,32 +27,48 @@ mixin ControllerOfflineGrades on ControllerState {
         lifecycle == internalLifecycleEpoch &&
         epoch == internalReadCacheEpoch &&
         policy == internalLoginForm.routePolicy;
-    final online = internalLoadAllGrades(forceRefresh: forceRefresh);
-    if (account == null || backend is! OfflineQueryBackend) return online;
-    var onlineFinished = false;
-    final local = internalReadLocalGrades(
-      backend as OfflineQueryBackend,
-      account,
-      policy,
-      current,
-    );
-    unawaited(
-      local.then((value) {
-        if (!onlineFinished && current() && value != null)
-          onProgress?.call(value);
-      }),
-    );
-    final result = await online;
-    onlineFinished = true;
+    if (!current())
+      return GradesAggregate(error: internalAcademicTermsConflict().error);
+    final memory = internalReadCaches.grades;
+    if (!forceRefresh &&
+        memory != null &&
+        memory.scope.isCurrent &&
+        memory.aggregate != null) {
+      onProgress?.call(memory.aggregate!);
+      return memory.aggregate!;
+    }
+    final saved = account != null && backend is OfflineQueryBackend
+        ? await internalReadLocalGrades(
+            backend as OfflineQueryBackend,
+            account,
+            policy,
+            current,
+          )
+        : null;
+    if (!current())
+      return GradesAggregate(error: internalAcademicTermsConflict().error);
+    if (saved != null) {
+      onProgress?.call(saved);
+      if (!forceRefresh && saved.isComplete) {
+        final cache = internalReadCaches.grades;
+        if (cache == null || !cache.scope.isCurrent) {
+          internalReadCaches.grades = GradesReadCache(
+            internalCaptureReadScope(),
+          )..aggregate = saved;
+        } else {
+          cache.aggregate = saved;
+        }
+        return saved;
+      }
+    }
+    final result = await internalLoadAllGrades(forceRefresh: forceRefresh);
     if (!current())
       return GradesAggregate(error: internalAcademicTermsConflict().error);
     if (result.isComplete) return result;
-    final saved = await local;
-    if (!current())
-      return GradesAggregate(error: internalAcademicTermsConflict().error);
     if (saved == null) return result;
     if (result.terms.isEmpty)
       return GradesAggregate(
+        coreStatistics: saved.coreStatistics,
         terms: saved.terms,
         termsEvidence: saved.termsEvidence,
         error: result.error,
@@ -130,6 +146,17 @@ mixin ControllerOfflineGrades on ControllerState {
 
     try {
       await internalOfflineOpenFuture;
+      final all = await read(
+        FeatureId.grades,
+        const FeatureQuery(view: FeatureQueryView.gradesOverview),
+      );
+      if (all?.overview case final GraduateGradesOverview overview) {
+        return projectGraduateAggregate(
+          overview,
+          all!.resolvedRoute,
+          evidence: all.evidence,
+        );
+      }
       final options = await read(
         FeatureId.schedule,
         const FeatureQuery(view: FeatureQueryView.scheduleTerms),

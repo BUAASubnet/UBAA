@@ -8,8 +8,8 @@ use super::{
 use super::{CachedCampusMetrics, CachedDisplayProfile};
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
-    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, LibBookArea,
-    LibBookAreaDetail, LibBookLibrary, Term, TodayClass, Week, WeeklySchedule,
+    ExamArrangement, GradeData, GradeOverview, JudgeAssignmentDetail, JudgeAssignmentSummary,
+    LibBookArea, LibBookAreaDetail, LibBookLibrary, Term, TodayClass, Week, WeeklySchedule,
 };
 use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocAssignments};
 use crate::domain::{NetworkUsage, PortalProfile};
@@ -99,6 +99,7 @@ pub enum CacheQuery {
     Grades {
         term: String,
     },
+    GradesOverview,
     GradeScoreBaseline {
         term: String,
     },
@@ -207,6 +208,7 @@ pub enum CachePayload {
     Weeks(Vec<Week>),
     Exams(ExamArrangement),
     Grades(GradeData),
+    GradesOverview(GradeOverview),
     GradeScoreBaseline(CachedGradeScoreBaseline),
     Classrooms(ClassroomQuery),
     JudgeCourses(Vec<Course>),
@@ -515,6 +517,9 @@ impl CachePayload {
             }
             (Self::GradeScoreBaseline(data), CacheQuery::GradeScoreBaseline { term }) => {
                 &data.term_code == term && data.valid()
+            }
+            (Self::GradesOverview(data), CacheQuery::GradesOverview) => {
+                !data.graduate || data.statistics.is_some()
             }
             (Self::Grades(data), CacheQuery::Grades { term }) => {
                 &data.term_code == term

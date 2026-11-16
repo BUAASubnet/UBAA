@@ -44,7 +44,7 @@ GraduateGradeStatistics _graduateStats(BridgeGradeStatistics s) =>
       averageCredits: s.averageCredits,
     );
 Future<FeatureResult?> _graduateGrades(
-  BridgeContext backend,
+  _AcademicReader reader,
   FeatureQuery query,
 ) async {
   if (!{
@@ -55,9 +55,9 @@ Future<FeatureResult?> _graduateGrades(
     FeatureQueryView.gradesOverview,
   }.contains(query.view))
     throw const BackendException(UbaaErrorCode.invalidInput);
-  final result = await backend.client.gradesOverview();
+  final result = await reader.gradesOverview();
   final value = result.data;
-  final route = bridgeToConnectionMode(result.route.resolvedRoute);
+  final route = result.route;
   if (!value.graduate)
     return query.view == FeatureQueryView.gradesOverview
         ? FeatureResult.empty(resolvedRoute: route)

@@ -81,6 +81,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// # Errors
   /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicGradesOverviewRefresh> academicGradesOverviewCached({
+    required BridgeOfflineCache cache,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
   Future<BridgeAcademicTermsRefresh> academicTermsCached({
     required BridgeOfflineCache cache,
   });

@@ -34,7 +34,7 @@ pub(super) fn stats(v: domain::GradeStatistics) -> BridgeGradeStatistics {
         average_credits: v.average_credits,
     }
 }
-pub(super) fn map_overview(v: domain::GradeOverview) -> BridgeGradeOverview {
+pub(crate) fn map_overview(v: domain::GradeOverview) -> BridgeGradeOverview {
     let grades = super::mappers::map_grade_data(domain::GradeData {
         statistics: None,
         term_code: String::new(),

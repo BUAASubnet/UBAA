@@ -298,6 +298,10 @@ class _Cache implements BridgeOfflineCache {
   @override
   Future<void> activate() async {}
   @override
+  Future<BridgeCachedAcademicGradesOverview?> readAcademicGradesOverview({
+    required BridgeConnectionMode route,
+  }) async => null;
+  @override
   Future<BridgeCachedAcademicGrades?> readAcademicGrades({
     required BridgeConnectionMode route,
     required String term,
@@ -313,7 +317,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 69;
+  int contractVersion() => 70;
   @override
   Future<BridgeRoutedGradeOverview> gradesOverview() async =>
       const BridgeRoutedGradeOverview(
@@ -331,6 +335,15 @@ class _Client implements BridgeClient {
           usedFallback: false,
         ),
       );
+  @override
+  Future<BridgeAcademicGradesOverviewRefresh> academicGradesOverviewCached({
+    required BridgeOfflineCache cache,
+  }) async => BridgeAcademicGradesOverviewRefresh(
+    result: await gradesOverview(),
+    fetchedAt: 200,
+    complete: true,
+    saveError: null,
+  );
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

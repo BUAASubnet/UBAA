@@ -86,6 +86,11 @@ FeatureOverview? readonlyFeatureOverview(FeatureOverview? overview) =>
         semesterStart: value.semesterStart,
         semesterEnd: value.semesterEnd,
       ),
+      GraduateGradesOverview value => GraduateGradesOverview(
+        grades: List.unmodifiable(value.grades),
+        terms: List.unmodifiable(value.terms),
+        statistics: value.statistics,
+      ),
       GradesTermOverview value => GradesTermOverview(
         requestTerm: value.requestTerm,
         termCode: value.termCode,

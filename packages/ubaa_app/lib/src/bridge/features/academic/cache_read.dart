@@ -259,6 +259,43 @@ final class _AcademicReader {
     );
   }
 
+  Future<AcademicValue<BridgeGradeOverview>> gradesOverview() async {
+    await bridgeAwaitOfflineScope(backend);
+    final cache = backend.cache.handle;
+    final account = backend.cache.account;
+    final route = localRoute;
+    if (route != null) {
+      if (cache == null || account == null) throw const AcademicCacheMiss();
+      final value = await cache.readAcademicGradesOverview(route: route);
+      if (value == null) throw const AcademicCacheMiss();
+      record(account, value.fetchedAt.toInt(), value.complete, true);
+      return AcademicValue(
+        value.data,
+        bridgeToConnectionMode(value.sourceRoute),
+      );
+    }
+    if (cache != null && account != null) {
+      final value = await backend.client.academicGradesOverviewCached(
+        cache: cache,
+      );
+      record(
+        account,
+        value.fetchedAt.toInt(),
+        value.complete,
+        value.saveError == null,
+      );
+      return AcademicValue(
+        value.result.data,
+        bridgeToConnectionMode(value.result.route.resolvedRoute),
+      );
+    }
+    final value = await backend.client.gradesOverview();
+    return AcademicValue(
+      value.data,
+      bridgeToConnectionMode(value.route.resolvedRoute),
+    );
+  }
+
   Future<AcademicValue<BridgeGradeData>> grades({required String term}) async {
     await bridgeAwaitOfflineScope(backend);
     final cache = backend.cache.handle;
@@ -392,7 +429,8 @@ Future<CachedFeatureProjection?> bridgeCachedAcademicProjection(
       scopeDate: evidence.scopeDate,
       details: result.details,
       overview:
-          result.overview is GradesTermOverview ||
+          result.overview is GraduateGradesOverview ||
+              result.overview is GradesTermOverview ||
               result.overview is ScheduleWeekOverview
           ? result.overview
           : null,
