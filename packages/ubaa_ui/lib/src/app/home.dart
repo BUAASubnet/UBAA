@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
+import '../features/coursework/assignment_filters.dart'
+    show AssignmentListFilters;
 import '../features/home/schedule.dart';
 import '../features/home/todo_card.dart';
 import '../features/home/todo_grid.dart';
@@ -436,8 +438,16 @@ class FeatureGridView extends StatelessWidget {
     ],
   );
 
-  /// 入口的实时摘要：今天的课程数与各来源的待办数；没有可说的内容时为空。
+  /// SPOC 使用默认列表数量，其他入口使用首页课程或待办数量。
   String? _live(FeatureId feature) {
+    if (feature == FeatureId.spoc) {
+      final snapshot = snapshots[feature];
+      if (snapshot == null) return null;
+      final count = const AssignmentListFilters(isSpoc: true)
+          .apply(snapshot.details, '')
+          .length;
+      return count == 0 ? null : '$count 项作业待交';
+    }
     final state = homeState;
     if (state == null) return null;
     if (feature == FeatureId.schedule) {
@@ -451,7 +461,7 @@ class FeatureGridView extends StatelessWidget {
     final count = state.todos.where((todo) => todo.feature == feature).length;
     if (count == 0) return null;
     return switch (feature) {
-      FeatureId.spoc || FeatureId.judge => '$count 项作业待交',
+      FeatureId.judge => '$count 项作业待交',
       FeatureId.exam => '近期 $count 场考试',
       _ => '$count 项待办',
     };
