@@ -87,7 +87,7 @@ impl ErrorDiagnostic {
 
     pub(super) fn at(location: &std::panic::Location<'_>) -> Self {
         Self {
-            source: format!("{}:{}", location.file(), location.line()),
+            source: format!("{}:{}", location.file().replace('\\', "/"), location.line()),
             ..Self::default()
         }
     }
