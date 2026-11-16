@@ -43,6 +43,7 @@ Future<void> controllerRefreshYgdkAfterWrite(
       cause,
       DiagnosticOperation.readback,
       feature: FeatureId.ygdk,
+      writeOperation: WriteOperation.ygdkSubmit,
       stackTrace: stackTrace,
     );
   }

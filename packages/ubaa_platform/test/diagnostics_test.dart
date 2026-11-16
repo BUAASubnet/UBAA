@@ -5,6 +5,30 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('重启后保留云打印文件序号和写操作归属', () async {
+    final storage = MemoryPreferenceValues();
+    final diagnostics = LocalDiagnostics(storage: storage);
+    diagnostics.record(
+      operation: DiagnosticOperation.cloudPrintUpload,
+      fileIndex: 2,
+      error: mapCoreError(code: 'network_error'),
+    );
+    diagnostics.record(
+      operation: DiagnosticOperation.writeCommit,
+      feature: FeatureId.libbook,
+      writeOperation: WriteOperation.libbookReserve,
+      error: mapCoreError(code: 'business_unavailable'),
+    );
+    await diagnostics.flushed;
+    final restarted = LocalDiagnostics(storage: storage);
+    await restarted.flushed;
+    final rows =
+        (jsonDecode(restarted.exportText()) as Map)['previous_events'] as List;
+    expect(rows[0]['feature'], 'cloud_print');
+    expect(rows[0]['file_index'], 2);
+    expect(rows[1]['write_operation'], 'libbookReserve');
+  });
+
   test('重启导出应保留错误编号与关联编号', () async {
     final storage = MemoryPreferenceValues();
     final first = LocalDiagnostics(storage: storage);

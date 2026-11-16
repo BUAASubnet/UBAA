@@ -4,6 +4,8 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart'
     show FeatureId, FeatureIdText, ErrorDiagnostic;
 
+import '../diagnostic_operation.dart';
+
 /// 允许上报的稳定事件名称。
 ///
 /// 事件集合是代码中的白名单；调用方不能通过任意字符串扩展遥测面。事件
@@ -18,6 +20,8 @@ abstract final class TelemetryEvents {
   static const routeResolved = 'route_resolved';
   static const featureLoaded = 'feature_loaded';
   static const featureFailed = 'feature_failed';
+  static const writeCompleted = 'write_completed';
+  static const writeFailed = 'write_failed';
   static const uiErrorShown = 'ui_error_shown';
   static const crash = 'crash';
 
@@ -31,6 +35,8 @@ abstract final class TelemetryEvents {
     routeResolved,
     featureLoaded,
     featureFailed,
+    writeCompleted,
+    writeFailed,
     uiErrorShown,
     crash,
   };
@@ -93,7 +99,12 @@ const Set<String> _defaultAllowedFields = {
   'bucket',
 };
 
-final _features = {'app', 'auth', ...FeatureId.values.map((f) => f.wireName)};
+final _features = {
+  'app',
+  'auth',
+  ...FeatureId.values.map((f) => f.wireName),
+  ...DiagnosticOperation.serviceFeatures,
+};
 const _routes = {'direct', 'webvpn', 'none'};
 const _results = {'success', 'empty', 'failure'};
 const _errorKinds = {

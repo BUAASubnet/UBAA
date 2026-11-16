@@ -229,7 +229,7 @@ class _DestinationState extends State<_Destination> {
   final _trail = <BhpanItem>[];
   int _baseDepth = 0;
   List<BhpanItem>? _folders;
-  String? _error;
+  Object? _error;
   bool _loading = true;
   int _generation = 0;
 
@@ -284,8 +284,7 @@ class _DestinationState extends State<_Destination> {
               ),
       );
     } on Object catch (e) {
-      if (mounted && generation == _generation)
-        setState(() => _error = e is UiError ? e.message : '文件夹读取失败');
+      if (mounted && generation == _generation) setState(() => _error = e);
     } finally {
       if (mounted && generation == _generation)
         setState(() => _loading = false);
@@ -360,7 +359,10 @@ class _DestinationState extends State<_Destination> {
               child: _error != null
                   ? UiStatePanel(
                       icon: Icons.cloud_off_outlined,
-                      title: _error!,
+                      title: _error is UiError
+                          ? (_error! as UiError).message
+                          : '文件夹读取失败',
+                      error: _error is UiError ? _error! as UiError : null,
                       action: '重试',
                       onAction: _load,
                     )

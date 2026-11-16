@@ -73,6 +73,7 @@ Future<bool> controllerVerifyCgyyCancellation(
         DiagnosticOperation.readback,
         stackTrace: stackTrace,
         feature: FeatureId.cgyy,
+        writeOperation: WriteOperation.cgyyCancelOrder,
       );
     }
   }
@@ -98,6 +99,7 @@ Future<bool> controllerVerifyCgyyCancellation(
         DiagnosticOperation.readback,
         stackTrace: stackTrace,
         feature: FeatureId.cgyy,
+        writeOperation: WriteOperation.cgyyCancelOrder,
       );
     }
   }

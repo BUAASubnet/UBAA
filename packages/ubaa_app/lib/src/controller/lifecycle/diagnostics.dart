@@ -25,6 +25,9 @@ mixin ControllerDiagnostics on ControllerState {
     DiagnosticOperation operation, {
     StackTrace? stackTrace,
     FeatureId? feature,
+    WriteOperation? writeOperation,
+    int? fileIndex,
+    DiagnosticInitializationStage? initializationStage,
     Duration? latency,
     String? relatedIssueId,
   }) {
@@ -36,6 +39,9 @@ mixin ControllerDiagnostics on ControllerState {
         operation: operation,
         error: error,
         feature: feature,
+        writeOperation: writeOperation,
+        fileIndex: fileIndex,
+        initializationStage: initializationStage,
         latency: latency,
         cause: cause,
         relatedIssueId: relatedIssueId,
@@ -145,6 +151,31 @@ mixin ControllerDiagnostics on ControllerState {
   }
 
   @internal
+  void internalRecordOperationOutcome(
+    String feature, {
+    bool write = false,
+    UiError? error,
+    ConnectionMode? route,
+  }) {
+    if (internalDisposed) return;
+    final resolved = error?.resolvedRoute ?? route;
+    _counter(
+      write ? TelemetryEvents.writeCompleted : TelemetryEvents.featureLoaded,
+      feature,
+      route: resolved,
+      result: error == null ? 'success' : 'failure',
+    );
+    if (error != null) {
+      _error(
+        write ? TelemetryEvents.writeFailed : TelemetryEvents.featureFailed,
+        feature,
+        error,
+        route: resolved,
+      );
+    }
+  }
+
+  @internal
   Future<void> internalRecordFeature(
     FeatureId feature, {
     bool success = false,
@@ -156,21 +187,23 @@ mixin ControllerDiagnostics on ControllerState {
   }) async {
     final name = feature.wireName;
     final resolved = error?.resolvedRoute ?? route;
+    _counter(
+      TelemetryEvents.featureLoaded,
+      name,
+      route: resolved,
+      result: error != null
+          ? 'failure'
+          : success
+          ? 'success'
+          : empty
+          ? 'empty'
+          : 'failure',
+    );
     if (error == null) {
       _expiredRoutes.removeWhere(
         (entry) =>
             entry.$1 == feature &&
             (resolved == null || entry.$2 == resolved || entry.$2 == null),
-      );
-      _counter(
-        TelemetryEvents.featureLoaded,
-        name,
-        route: resolved,
-        result: success
-            ? 'success'
-            : empty
-            ? 'empty'
-            : 'failure',
       );
     } else {
       _error(

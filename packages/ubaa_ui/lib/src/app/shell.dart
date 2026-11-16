@@ -73,6 +73,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPickBhpanFile,
     this.onPickBhpanDownload,
     this.onPreviewBhpanFile,
+    this.onBhpanDeliveryFailure,
     this.connecting = false,
     this.homeClock,
     this.connectionStatus,
@@ -200,6 +201,8 @@ class UbaaMainShell extends StatefulWidget {
 
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPreviewBhpanFile;
+  final UiError Function(BhpanService, Object, StackTrace)?
+  onBhpanDeliveryFailure;
 
   final bool connecting;
   final String? connectionStatus;

@@ -88,6 +88,8 @@ mixin ControllerOfflineStartup on ControllerState {
             error,
             DiagnosticOperation.initialization,
             stackTrace: stackTrace,
+            initializationStage:
+                DiagnosticInitializationStage.credentialRestore,
           );
         }
       }
@@ -143,6 +145,7 @@ mixin ControllerOfflineStartup on ControllerState {
         error,
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
+        initializationStage: DiagnosticInitializationStage.localAccountRestore,
       );
       internalSetPhase(AppPhase.login);
       return true;

@@ -143,7 +143,8 @@ void main() {
   test('未知异常关联到安全本地诊断且不保留正文', () async {
     final backend = _SuccessfulReadBackend()
       ..failure = StateError('姓名：示例用户，账号：2099000000');
-    final controller = AppController(backend: backend);
+    final telemetry = MockTelemetryClient();
+    final controller = AppController(backend: backend, telemetry: telemetry);
     addTearDown(controller.dispose);
     await controller.refreshHome(only: [FeatureId.schedule]);
     final error = controller.snapshots[FeatureId.schedule]!.error!;
@@ -154,6 +155,16 @@ void main() {
     expect(record.cause, DiagnosticCause.state);
     expect(record.feature, FeatureId.schedule);
     expect(controller.exportDiagnostics(), isNot(contains('2099000000')));
+    final total = telemetry.records
+        .where((record) => record.name == TelemetryEvents.featureLoaded)
+        .single;
+    expect(total.properties['result'], 'failure');
+    expect(
+      telemetry.records.where(
+        (record) => record.name == TelemetryEvents.featureFailed,
+      ),
+      hasLength(1),
+    );
   });
 
   test('注销后晚到的失败不污染诊断或新页面', () async {

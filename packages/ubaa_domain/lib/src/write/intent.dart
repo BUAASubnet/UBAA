@@ -3,6 +3,7 @@ import '../bhpan/models.dart';
 
 import '../common/route.dart';
 import '../common/cache_management.dart';
+import '../feature/catalog.dart';
 import '../feature/query.dart';
 
 /// 应用写操作。各 typed Bridge 共用同一个写入协调器。
@@ -21,6 +22,20 @@ enum WriteOperation {
 }
 
 extension WriteOperationText on WriteOperation {
+  FeatureId? get feature => switch (this) {
+    WriteOperation.bykcSelectCourse ||
+    WriteOperation.bykcDeselectCourse ||
+    WriteOperation.bykcSignCourse => FeatureId.bykc,
+    WriteOperation.signinPerform => FeatureId.signin,
+    WriteOperation.libbookReserve ||
+    WriteOperation.libbookCancelBooking => FeatureId.libbook,
+    WriteOperation.cgyySubmitReservation ||
+    WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+    WriteOperation.ygdkSubmit => FeatureId.ygdk,
+    WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+    WriteOperation.bhpan => null,
+  };
+
   String get title => switch (this) {
     WriteOperation.bykcSelectCourse => '博雅选课',
     WriteOperation.bykcDeselectCourse => '博雅退选',

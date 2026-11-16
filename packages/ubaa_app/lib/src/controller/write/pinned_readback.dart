@@ -82,6 +82,7 @@ Future<void> controllerPinnedWriteReadback(
         DiagnosticOperation.readback,
         stackTrace: stackTrace,
         feature: feature,
+        writeOperation: operation,
       ),
       updatedAt: DateTime.now(),
     );

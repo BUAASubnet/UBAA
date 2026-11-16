@@ -37,11 +37,7 @@ extension _IhomeActions on _IhomeViewState {
       });
     } on Object catch (error) {
       if (mounted && epoch == _epoch && revision == _revision)
-        _update(
-          () => _detailErrors[id] = error is UiError
-              ? error.message
-              : '详情读取失败，请重试',
-        );
+        _update(() => _detailErrors[id] = _ihomeError(error, '详情读取失败，请重试'));
     } finally {
       if (mounted && epoch == _epoch && revision == _revision)
         _update(() => _detailLoading.remove(id));
@@ -90,7 +86,7 @@ extension _IhomeActions on _IhomeViewState {
       if (mounted && epoch == _epoch)
         _update(() {
           _uncertain.add(id);
-          _detailErrors[id] = error is UiError ? error.message : '结果未确认，请刷新后查看';
+          _detailErrors[id] = _ihomeError(error, '结果未确认，请刷新后查看');
         });
     } finally {
       if (mounted && epoch == _epoch)

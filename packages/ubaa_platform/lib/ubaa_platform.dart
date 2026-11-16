@@ -6,6 +6,7 @@ export 'src/infrastructure/cloud_print_file.dart';
 export 'package:ubaa_domain/ubaa_domain.dart' show UiError, UbaaErrorCode;
 export 'src/credentials.dart';
 export 'src/defaults.dart';
+export 'diagnostic_operation.dart';
 export 'src/diagnostics.dart';
 export 'src/location.dart';
 export 'src/media.dart';

@@ -17,17 +17,5 @@ class WriteReadbackHint {
   final ConnectionMode route;
   final DateTime startedAt;
 
-  FeatureId? get feature => switch (operation) {
-    WriteOperation.bykcSelectCourse ||
-    WriteOperation.bykcDeselectCourse ||
-    WriteOperation.bykcSignCourse => FeatureId.bykc,
-    WriteOperation.signinPerform => FeatureId.signin,
-    WriteOperation.libbookReserve ||
-    WriteOperation.libbookCancelBooking => FeatureId.libbook,
-    WriteOperation.cgyySubmitReservation ||
-    WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
-    WriteOperation.ygdkSubmit => FeatureId.ygdk,
-    WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
-    WriteOperation.bhpan => null,
-  };
+  FeatureId? get feature => operation.feature;
 }

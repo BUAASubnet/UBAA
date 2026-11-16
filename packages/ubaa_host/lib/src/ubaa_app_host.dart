@@ -35,18 +35,30 @@ Future<void> bootstrapUbaaHost({
   required Future<PlatformCapabilities> Function() createCapabilities,
   required void Function(Widget app) runApplication,
   Future<ThemeMode> Function()? readThemeMode,
+  PreferenceValues? preferenceValues,
+  PlatformAppInformation? appInformation,
+  DiagnosticReportExporter reportExporter = const DiagnosticReportExporter(),
 }) async {
   ensureFlutterInitialized();
+  final preferences = preferenceValues ?? PluginPreferenceValues();
+  final information = appInformation ?? SystemAppInformation();
+  final diagnostics = _newStartupDiagnostics(preferences);
+  unawaited(_readDiagnosticVersion(diagnostics, information));
   // 首帧前有限等待保存的主题，启动页与宿主使用同一初值。
-  final themeMode = await _readStartupThemeMode(readThemeMode);
+  final themeMode = await _readStartupThemeMode(
+    readThemeMode ??
+        () async => ThemeMode.values.byName(
+          await ThemePreferenceStore(values: preferences).read(),
+        ),
+  );
   // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
   runApplication(UbaaBootSplash(themeMode: themeMode));
-  var stage = 'SDK 初始化';
+  var stage = DiagnosticInitializationStage.sdk;
   try {
     await initializeSdk();
-    stage = 'Bridge 自检';
+    stage = DiagnosticInitializationStage.bridgeCheck;
     assert(debugHello() == _expectedBridgeHello);
-    stage = '平台能力初始化';
+    stage = DiagnosticInitializationStage.platformCapabilities;
     final capabilities = await createCapabilities();
     runApplication(
       UbaaAppHost(
@@ -58,28 +70,23 @@ Future<void> bootstrapUbaaHost({
         permissionGateway: capabilities.permissionGateway,
         locationProvider: capabilities.locationProvider,
         initialThemeMode: themeMode,
+        preferenceValues: preferences,
+        appInformation: information,
+        diagnosticReportExporter: reportExporter,
+        startupDiagnostics: diagnostics,
       ),
     );
   } on Object catch (error, stackTrace) {
-    final diagnostics = LocalDiagnostics();
-    final safe = error is InitializationException
-        ? error
-        : const InitializationException(
-            InitializationFailure.componentUnavailable,
-          );
-    final failure = diagnostics.record(
-      operation: DiagnosticOperation.initialization,
-      error: const UiErrorMapper().fromException(safe),
-      cause: error,
-      stackTrace: stackTrace,
-    );
+    final failure = _recordStartupError(diagnostics, stage, error, stackTrace);
     runApplication(
       _startupApplication(
         themeMode: themeMode,
+        reportExporter: reportExporter,
+        openLink: information.open,
         home: _StartupFailure(
           error: failure,
           stage: stage,
-          diagnostics: diagnostics.exportText(),
+          diagnostics: diagnostics,
         ),
       ),
     );
@@ -89,14 +96,10 @@ Future<void> bootstrapUbaaHost({
 
 /// 有限等待偏好读取；超时或失败时跟随系统，继续启动首帧。
 Future<ThemeMode> _readStartupThemeMode(
-  Future<ThemeMode> Function()? read,
+  Future<ThemeMode> Function() read,
 ) async {
   try {
-    return await Future<ThemeMode>.sync(
-      read ??
-          () async =>
-              ThemeMode.values.byName(await ThemePreferenceStore().read()),
-    ).timeout(
+    return await Future<ThemeMode>.sync(read).timeout(
       const Duration(milliseconds: 300),
       onTimeout: () => ThemeMode.system,
     );
@@ -145,6 +148,7 @@ class UbaaAppHost extends StatefulWidget {
     this.recentFeatureStore,
     this.preferenceValues,
     this.appInformation,
+    this.startupDiagnostics,
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
     this.scheduleWidgetGateway,
@@ -184,6 +188,7 @@ class UbaaAppHost extends StatefulWidget {
   final RecentFeatureStore? recentFeatureStore;
   final PreferenceValues? preferenceValues;
   final PlatformAppInformation? appInformation;
+  final LocalDiagnostics? startupDiagnostics;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
   final ScheduleWidgetGateway? scheduleWidgetGateway;

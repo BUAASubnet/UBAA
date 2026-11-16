@@ -51,6 +51,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     animation: Listenable.merge([_controller, _gradeWatch]),
     builder: (context, _) => MaterialApp(
       builder: (context, child) => UiDiagnosticsScope(
+        openFeedback: () => (widget.appInformation ?? SystemAppInformation())
+            .open(AppLink.feedback),
         exportReport: widget.diagnosticReportExporter.export,
         exportLabel: widget.diagnosticReportExporter.supportsSharing
             ? '分享报告文件'
@@ -161,6 +163,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           : null,
       onPickBhpanFile: widget.bhpanFilePicker.pick,
       onPickBhpanDownload: widget.bhpanFileSaver.select,
+      onBhpanDeliveryFailure: _controller.recordBhpanDeliveryFailure,
       onPreviewBhpanFile: widget.bhpanFilePreviewer.isAvailable
           ? widget.bhpanFilePreviewer.select
           : null,

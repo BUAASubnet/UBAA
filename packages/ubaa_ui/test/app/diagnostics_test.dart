@@ -97,6 +97,65 @@ void main() {
     expect(copied, contains('schema_version'));
   });
 
+  testWidgets('写入失败短提示可从现场打开该事件，记录过期后仍可导出安全摘要', (tester) async {
+    final requested = <String>[];
+    String? exported;
+    const error = UiError(
+      code: UbaaErrorCode.outcomeUnknown,
+      title: '结果待核实',
+      message: '请先核对结果',
+      issueId: 'UBAA-expired',
+      resolvedRoute: ConnectionMode.webvpn,
+      technicalDetail: '不应导出的模拟正文',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UiDiagnosticsScope(
+          readRecord: (id) {
+            requested.add(id);
+            return null;
+          },
+          exportReport: (report) async {
+            exported = report;
+            return null;
+          },
+          child: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => UbaaFeedback.showOutcome(
+                  context,
+                  const WriteOutcome(
+                    operation: WriteOperation.bykcSelectCourse,
+                    message: '请先核对结果',
+                    result: WriteCommitResult(
+                      operation: WriteOperation.bykcSelectCourse,
+                      success: false,
+                      message: '请先核对结果',
+                      outcomeUnknown: true,
+                    ),
+                    resultError: error,
+                  ),
+                ),
+                child: const Text('模拟写入'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('模拟写入'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pumpAndSettle();
+    expect(requested, isNotEmpty);
+    expect(requested.toSet(), {'UBAA-expired'});
+    expect(exported, contains('UBAA-expired'));
+    expect(exported, contains('webvpn'));
+    expect(exported, isNot(contains('模拟正文')));
+  });
+
   testWidgets('错误卡按需展开诊断并只复制安全字段', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

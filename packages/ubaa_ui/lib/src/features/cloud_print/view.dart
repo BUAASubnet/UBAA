@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 import '../../shared/create_button.dart';
+import '../../shared/feedback.dart';
+import '../../common/error_card.dart' show uiErrorDetailsAction;
 import '../../shared/file_list/file_action_sheet.dart';
 import '../../shared/file_list/file_tile.dart';
 import '../../shared/file_list/selection_bar.dart';
@@ -118,6 +120,7 @@ class _Load<T> extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (snapshot.hasError) {
+        final error = _asUiError(snapshot.error);
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -126,7 +129,15 @@ class _Load<T> extends StatelessWidget {
               children: [
                 Text(_error(snapshot.error), textAlign: TextAlign.center),
                 const SizedBox(height: 8),
-                OutlinedButton(onPressed: retry, child: const Text('重试')),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton(onPressed: retry, child: const Text('重试')),
+                    if (uiErrorDetailsAction(context, error)
+                        case final details?)
+                      TextButton(onPressed: details, child: const Text('错误详情')),
+                  ],
+                ),
               ],
             ),
           ),
@@ -139,6 +150,15 @@ class _Load<T> extends StatelessWidget {
 
 String _error(Object? error) =>
     error is UiError ? error.message : '操作未完成，请稍后重试';
+
+UiError? _asUiError(Object? error) => error is UiError ? error : null;
+
+void _showError(BuildContext context, Object error) => UbaaFeedback.show(
+  context,
+  _error(error),
+  error: _asUiError(error),
+  kind: UbaaFeedbackKind.error,
+);
 
 String _dateTime(String date, String time) {
   final d = RegExp(r'^(\d{4})(\d{2})(\d{2})$').firstMatch(date);

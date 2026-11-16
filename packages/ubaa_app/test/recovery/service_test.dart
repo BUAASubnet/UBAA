@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'backend_rebuild/fakes.dart' as base;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_app/runtime.dart'
     show RecoveryInterrupted, RecoveryStopReason;
+import 'package:ubaa_app/src/bridge/support/mapping.dart' show bridgeMapError;
+import 'package:ubaa_bindings/ubaa_bindings.dart'
+    show BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
+
+part 'service_diagnostics.dart';
 
 const expired = UiError(
   code: UbaaErrorCode.authenticationRequired,
@@ -16,9 +22,35 @@ const expired = UiError(
   message: '合成会话失效',
 );
 
-Future<AppController> start(_Backend backend, {bool automatic = true}) async {
+const writeFailure = BridgeError(
+  code: BridgeErrorCode.outcomeUnknown,
+  kind: BridgeErrorKind.upstream,
+  retryable: false,
+  message: '合成写入结果未知',
+  resolvedRoute: BridgeConnectionMode.webVpn,
+  diagnosticJson:
+      '{"source":"crates/ubaa_core/src/features/bykc/parser.rs:42",'
+      '"stage":"decode_response","reason":"missing_field","status":200}',
+);
+
+WriteIntent _intent() => WriteIntent(
+  intentId: 'fixture',
+  operation: WriteOperation.bykcSelectCourse,
+  targetSummary: '私有选课目标',
+  resolvedRoute: ConnectionMode.direct,
+  warnings: const [],
+  expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+  requestDigest: 'fixture',
+);
+
+Future<AppController> start(
+  _Backend backend, {
+  bool automatic = true,
+  TelemetryClient? telemetry,
+}) async {
   final controller = AppController(
     backend: backend,
+    telemetry: telemetry,
     localAccountStore: await support.savedAccounts(),
     credentialVault: MemoryCredentialVault(
       initial: Credential(
@@ -36,6 +68,7 @@ Future<AppController> start(_Backend backend, {bool automatic = true}) async {
 }
 
 void main() {
+  _registerServiceDiagnosticsTests();
   final ihomeReads = <String, Future<Object> Function(IhomeService)>{
     '列表': (service) => service.page(
       const IhomeQuery(
@@ -144,7 +177,8 @@ void main() {
   });
   test('iHome 关注结果未知时只提交一次且不触发读取恢复', () async {
     final backend = _Backend();
-    final controller = await start(backend);
+    final telemetry = MockTelemetryClient();
+    final controller = await start(backend, telemetry: telemetry);
     await expectLater(
       controller.ihomeService!.setReaction(
         42,
@@ -153,16 +187,18 @@ void main() {
         ConnectionMode.webvpn,
       ),
       throwsA(
-        isA<UiError>().having(
-          (e) => e.code,
-          '错误码',
-          UbaaErrorCode.outcomeUnknown,
-        ),
+        isA<UiError>()
+            .having((e) => e.code, '错误码', UbaaErrorCode.outcomeUnknown)
+            .having((e) => _event(controller, e)['feature'], '功能', 'ihome'),
       ),
     );
     expect(backend.appeals.writes, 1);
     expect(backend.targets, isEmpty);
     expect(backend.loginRoutes, isEmpty);
+    final failure = telemetry.records
+        .where((r) => r.name == 'write_failed')
+        .single;
+    expect(failure.properties['feature'], 'ihome');
   });
   test('我的余额与流量缺少直连会话时按实际目标补认证并完成读取', () async {
     final backend = _Backend();
@@ -436,14 +472,17 @@ class _Backend extends support.FakeRecoveryBackend
         CampusAccountBackend,
         CampusAccountService,
         BhpanProvider,
+        CloudPrintProvider,
         FinanceBackend,
         IhomeBackend,
+        WriteCommitBackend,
         RequiredTargetSessionBackend {
   bool ready = false, alwaysExpired = false;
   ConnectionMode route = ConnectionMode.direct;
   BackendException? recoveryFailure;
   UiError? failure, metricError;
-  int metricsReads = 0, networkReads = 0;
+  int metricsReads = 0, networkReads = 0, commits = 0;
+  WriteCommitResult? writeResult;
   final targets = <RecoveryTarget>[], loginRoutes = <ConnectionMode>[];
   Completer<void>? recoveryGate;
   final recoveryStarted = Completer<void>();
@@ -456,6 +495,16 @@ class _Backend extends support.FakeRecoveryBackend
   CampusAccountService get campusAccount => this;
   @override
   BhpanService get bhpan => disk;
+  @override
+  CloudPrintService get cloudPrint => _Print();
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commits++;
+    return writeResult ?? (throw bridgeMapError(writeFailure));
+  }
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {}
   @override
   FinanceService get finance => incomes;
   @override
@@ -650,8 +699,22 @@ class _Disk implements BhpanService {
   _Disk(this.backend);
   final _Backend backend;
   int prepares = 0;
+  Completer<BhpanDownloadReceipt>? downloadGate;
   @override
   Future<void> login() async => backend.check();
+  @override
+  Future<BhpanDownloadPreparation> downloadPreparation(
+    List<String> handles,
+    String name,
+  ) async => throw expired;
+  @override
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  ) async => downloadGate?.future ?? (throw StateError(path));
   @override
   Future<BhpanPage> read(BhpanRead query) async {
     backend.check();
@@ -670,6 +733,34 @@ class _Disk implements BhpanService {
     throw StateError('测试不提交写入');
   }
 
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Print implements CloudPrintService {
+  @override
+  Future<List<PrintDocument>> documents({required bool scans}) async {
+    if (scans) return const [];
+    throw expired;
+  }
+
+  @override
+  Future<List<UiError?>> delete(
+    List<String> ids, {
+    required bool scans,
+  }) async => [null, expired, expired];
+
+  @override
+  Future<List<UiError?>> upload(
+    List<PrintSource> files,
+    PrintOptions options,
+  ) async => throw expired;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Transfer implements BhpanTransferTask {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

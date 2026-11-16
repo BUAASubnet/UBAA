@@ -42,6 +42,7 @@ class WriteOutcome {
     required this.message,
     this.result,
     this.error,
+    this.resultError,
     this.cgyyReceiptVerified,
     this.cgyyCancellationVerified,
     this.ygdkReadbackAttempted = false,
@@ -51,6 +52,9 @@ class WriteOutcome {
   final String message;
   final WriteCommitResult? result;
   final UiError? error;
+
+  /// 已返回部分或失败结果时对应的诊断，原始提交结果仍可用于界面核对。
+  final UiError? resultError;
   final bool? cgyyReceiptVerified;
   final bool? cgyyCancellationVerified;
   final bool ygdkReadbackAttempted;

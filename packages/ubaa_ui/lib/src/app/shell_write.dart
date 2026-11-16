@@ -106,6 +106,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     var attempted = false;
     WriteOutcome? outcome;
     String? failure;
+    Object? failureDetails;
     WriteIntent? intent;
     _setBykcWriteActive((operation, courseId));
     page?.beginBykcCourseWrite();
@@ -121,9 +122,10 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         return;
       attempted = true;
       outcome = await confirm();
-    } on Object {
+    } on Object catch (error) {
       if (mounted && generation == _accountGeneration) {
         failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : '提交失败，请刷新后重试';
+        failureDetails = error;
       }
     } finally {
       // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
@@ -147,7 +149,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
               policy != widget.routePolicy)
             return;
           if (failure != null) {
-            UbaaFeedback.show(context, failure, kind: UbaaFeedbackKind.warning);
+            UbaaFeedback.showWarning(context, failure, failureDetails);
           } else if (outcome != null) {
             final success =
                 outcome.result?.success == true &&
@@ -160,6 +162,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
               success
                   ? (refreshed == true ? '$label成功' : '$label成功，列表暂未更新')
                   : outcome.message,
+              error: outcome.error ?? outcome.resultError,
               kind: success && refreshed == true
                   ? UbaaFeedbackKind.success
                   : UbaaFeedbackKind.warning,
@@ -299,6 +302,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     WriteIntent? intent;
     WriteOutcome? outcome;
     String? failure;
+    Object? failureDetails;
     _setDirectWriteActive(expectedOperation);
     try {
       intent = await run(prepare, expectedOperation: expectedOperation);
@@ -307,8 +311,9 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         outcome = await confirm();
         if (outcome == null) failure = failureMessage;
       }
-    } on Object {
+    } on Object catch (error) {
       failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : failureMessage;
+      failureDetails = error;
     } finally {
       // 过期等原因未被消费的意图立即释放，避免阻塞下一次操作。
       if (mounted &&
@@ -323,7 +328,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     }
     if (!mounted || generation != _accountGeneration) return;
     if (failure != null) {
-      UbaaFeedback.show(context, failure, kind: UbaaFeedbackKind.warning);
+      UbaaFeedback.showWarning(context, failure, failureDetails);
     } else if (outcome != null) {
       UbaaFeedback.showOutcome(context, outcome);
     }
@@ -334,9 +339,9 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (cancel == null || widget.writeState.isSubmitting) return;
     try {
       await cancel();
-    } on Object {
+    } on Object catch (error) {
       if (!mounted) return;
-      UbaaFeedback.show(context, '操作失败，请重试', kind: UbaaFeedbackKind.error);
+      UbaaFeedback.showError(context, '操作失败，请重试', error);
     }
   }
 }
@@ -370,9 +375,9 @@ extension UbaaHomeSignin on _UbaaMainShellState {
         UbaaFeedback.showOutcome(context, outcome);
       }
       return outcome;
-    } on Object {
+    } on Object catch (error) {
       if (mounted && generation == _accountGeneration) {
-        UbaaFeedback.show(context, '签到失败，请刷新后重试', kind: UbaaFeedbackKind.error);
+        UbaaFeedback.showError(context, '签到失败，请刷新后重试', error);
       }
       return null;
     } finally {

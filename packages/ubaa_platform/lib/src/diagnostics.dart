@@ -3,25 +3,10 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../diagnostic_operation.dart';
 import 'credentials.dart';
 import 'infrastructure/preferences.dart';
 import 'secure_material.dart';
-
-/// 本地排障阶段。记录的是程序操作，不接收用户输入或业务目标。
-enum DiagnosticOperation {
-  crash,
-  initialization,
-  login,
-  routeChange,
-  logout,
-  read,
-  writePrepare,
-  writeCommit,
-  writeDiscard,
-  readback,
-  telemetry,
-  disposal,
-}
 
 /// 只依赖异常类型，绝不通过异常正文猜测原因。
 enum DiagnosticCause {
@@ -37,6 +22,20 @@ enum DiagnosticCause {
   unknown,
 }
 
+/// 启动过程中能独立定位的宿主阶段。
+enum DiagnosticInitializationStage {
+  sdk,
+  bridgeCheck,
+  platformCapabilities,
+  backendOpen,
+  backendInstall,
+  localAccountRestore,
+  sessionState,
+  credentialRestore,
+}
+
+const _platformNames = {'android', 'ios', 'macos', 'windows', 'linux', 'ohos'};
+
 /// 只含允许字段的不可变诊断事件；不能直接构造或填入任意文本。
 final class DiagnosticRecord {
   DiagnosticRecord._({
@@ -50,8 +49,11 @@ final class DiagnosticRecord {
     required List<String> source,
     this.route,
     this.feature,
+    this.writeOperation,
+    this.fileIndex,
     this.latency,
     this.initializationFailure,
+    this.initializationStage,
     this.authStage,
     this.authReason,
     this.diagnostic,
@@ -68,8 +70,11 @@ final class DiagnosticRecord {
   final List<String> source;
   final ConnectionMode? route;
   final FeatureId? feature;
+  final WriteOperation? writeOperation;
+  final int? fileIndex;
   final Duration? latency;
   final InitializationFailure? initializationFailure;
+  final DiagnosticInitializationStage? initializationStage;
   final AuthFailureStage? authStage;
   final AuthFailureReason? authReason;
   final ErrorDiagnostic? diagnostic;
@@ -88,11 +93,19 @@ final class DiagnosticRecord {
     if (relatedIssueId != null) 'related_issue_id': relatedIssueId,
     'time': timestamp.toUtc().toIso8601String(),
     if (route != null) 'route': route!.name,
-    if (feature != null) 'feature': feature!.wireName,
+    if ((feature?.wireName ??
+            operation.serviceFeature ??
+            (writeOperation == WriteOperation.bhpan ? 'bhpan' : null))
+        case final name?)
+      'feature': name,
+    if (writeOperation != null) 'write_operation': writeOperation!.name,
+    if (fileIndex != null) 'file_index': fileIndex,
     if (latency != null) 'latency_ms': latency!.inMilliseconds,
     if (source.isNotEmpty) 'source': source,
     if (initializationFailure != null)
       'initialization_failure': initializationFailure!.name,
+    if (initializationStage != null)
+      'initialization_stage': initializationStage!.name,
   };
 }
 
@@ -165,12 +178,23 @@ final class LocalDiagnostics {
             (v) => v.name == item['initialization_failure'],
           ))
             'initialization_failure': item['initialization_failure'],
+          if (DiagnosticInitializationStage.values.any(
+            (v) => v.name == item['initialization_stage'],
+          ))
+            'initialization_stage': item['initialization_stage'],
           if (item['latency_ms'] is int && (item['latency_ms'] as int) >= 0)
             'latency_ms': item['latency_ms'],
           if (ConnectionMode.values.any((v) => v.name == item['route']))
             'route': item['route'],
-          if (FeatureId.values.any((v) => v.wireName == item['feature']))
+          if (FeatureId.values.any((v) => v.wireName == item['feature']) ||
+              DiagnosticOperation.serviceFeatures.contains(item['feature']))
             'feature': item['feature'],
+          if (WriteOperation.values.any(
+            (v) => v.name == item['write_operation'],
+          ))
+            'write_operation': item['write_operation'],
+          if (item['file_index'] is int && (item['file_index'] as int) > 0)
+            'file_index': item['file_index'],
           if (UbaaErrorKind.values.any((v) => v.name == item['kind']))
             'kind': item['kind'],
           if (DiagnosticCause.values.any((v) => v.name == item['cause']))
@@ -181,6 +205,8 @@ final class LocalDiagnostics {
                 r'^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.+-]+)?$',
               ).hasMatch(item['app_version']))
             'app_version': item['app_version'],
+          if (_platformNames.contains(item['platform']))
+            'platform': item['platform'],
           if (diagnostic != null) 'diagnostic': diagnostic.toJson(),
           'source': _safeSource(
             StackTrace.fromString(
@@ -207,6 +233,7 @@ final class LocalDiagnostics {
               (r) => {
                 ...r.toJson(),
                 if (_appVersion != null) 'app_version': _appVersion,
+                if (_platform != null) 'platform': _platform,
               },
             ),
           ];
@@ -232,22 +259,20 @@ final class LocalDiagnostics {
 
   /// 宿主提供安装包版本和系统名称，不接受设备标识。
   void setEnvironment({String? appVersion, String? platform}) {
+    var changed = false;
     if (appVersion != null &&
+        appVersion != _appVersion &&
         RegExp(
           r'^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.+-]+)?$',
         ).hasMatch(appVersion)) {
       _appVersion = appVersion;
+      changed = true;
     }
-    if (const [
-      'android',
-      'ios',
-      'macos',
-      'windows',
-      'linux',
-      'ohos',
-    ].contains(platform)) {
+    if (platform != _platform && _platformNames.contains(platform)) {
       _platform = platform;
+      changed = true;
     }
+    if (changed && _records.isNotEmpty) _persist();
   }
 
   List<DiagnosticRecord> get records => List.unmodifiable(_records);
@@ -256,10 +281,13 @@ final class LocalDiagnostics {
     required DiagnosticOperation operation,
     required UiError error,
     FeatureId? feature,
+    WriteOperation? writeOperation,
+    int? fileIndex,
     Duration? latency,
     Object? cause,
     StackTrace? stackTrace,
     String? relatedIssueId,
+    DiagnosticInitializationStage? initializationStage,
   }) {
     final issueId = 'UBAA-$_runId-${++_sequence}';
     _records.add(
@@ -271,8 +299,11 @@ final class LocalDiagnostics {
         retryable: error.retryable,
         route: error.resolvedRoute,
         feature: feature,
+        writeOperation: writeOperation,
+        fileIndex: fileIndex,
         latency: latency,
         initializationFailure: error.initializationFailure,
+        initializationStage: initializationStage,
         authStage: error.authStage,
         authReason: error.authReason,
         diagnostic: error.diagnostic,

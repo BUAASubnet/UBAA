@@ -25,8 +25,7 @@ extension _BhpanTransfers on _BhpanViewState {
           _update(() => _progress = progress);
       } on Object catch (error) {
         transfer.cancel();
-        if (mounted && identical(_transfer, transfer))
-          _notify(_message(error), UbaaFeedbackKind.error);
+        if (mounted && identical(_transfer, transfer)) _notifyError(error);
       }
     }
 
@@ -96,8 +95,7 @@ extension _BhpanTransfers on _BhpanViewState {
           await refresh();
           final phase = (await fast.progress()).phase;
           if (phase != BhpanTransferPhase.blocked) {
-            if (_current(generation))
-              _notify(_message(error), UbaaFeedbackKind.error);
+            if (_current(generation)) _notifyError(error);
             return;
           }
         } finally {
@@ -121,14 +119,12 @@ extension _BhpanTransfers on _BhpanViewState {
       );
       await refresh();
     } on Object catch (error) {
-      if (mounted && identical(service, _service))
-        _notify(_message(error), UbaaFeedbackKind.error);
+      if (mounted && identical(service, _service)) _notifyError(error);
     } finally {
       try {
         await selected?.release();
       } on Object catch (error) {
-        if (_current(generation))
-          _notify(_message(error), UbaaFeedbackKind.error);
+        if (_current(generation)) _notifyError(error);
       }
       task?.cancel();
       await refresh?.call();
@@ -159,6 +155,7 @@ extension _BhpanTransfers on _BhpanViewState {
     BhpanDownloadDestination? destination;
     BhpanTransferTask? task;
     Future<void> Function()? refresh;
+    var platformDelivery = true;
     _update(() {
       _working = true;
       _mutationActivity = activity;
@@ -169,6 +166,7 @@ extension _BhpanTransfers on _BhpanViewState {
         () => _current(generation) && identical(service, _service),
       );
       if (destination == null || !_current(generation)) return;
+      platformDelivery = false;
       final transfer = service.createTransfer();
       task = transfer;
       refresh = _track(
@@ -184,9 +182,11 @@ extension _BhpanTransfers on _BhpanViewState {
         transfer,
       );
       if (!_current(generation)) return;
+      platformDelivery = true;
       await destination.deliver(
         () => _current(generation) && identical(service, _service),
       );
+      platformDelivery = false;
       await refresh();
       if (_current(generation)) {
         if (!preview)
@@ -202,9 +202,17 @@ extension _BhpanTransfers on _BhpanViewState {
           ),
         );
       }
-    } on Object catch (error) {
-      if (_current(generation))
-        _notify(_message(error), UbaaFeedbackKind.error);
+    } on Object catch (error, stackTrace) {
+      if (_current(generation) && identical(service, _service)) {
+        final record = widget.access.recordDeliveryFailure;
+        final safe =
+            platformDelivery &&
+                record != null &&
+                (error is! UiError || error.issueId == null)
+            ? record(service, error, stackTrace)
+            : error;
+        _notifyError(safe);
+      }
     } finally {
       task?.cancel();
       if (identical(_transfer, task) &&
@@ -214,8 +222,7 @@ extension _BhpanTransfers on _BhpanViewState {
       try {
         await destination?.discard();
       } on Object catch (error) {
-        if (_current(generation))
-          _notify(_message(error), UbaaFeedbackKind.error);
+        if (_current(generation)) _notifyError(error);
       }
       if (mounted && identical(_mutationActivity, activity))
         _update(() {

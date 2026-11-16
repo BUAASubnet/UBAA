@@ -345,6 +345,9 @@ abstract class ControllerOperations extends ChangeNotifier {
     DiagnosticOperation operation, {
     StackTrace? stackTrace,
     FeatureId? feature,
+    WriteOperation? writeOperation,
+    int? fileIndex,
+    DiagnosticInitializationStage? initializationStage,
     Duration? latency,
     String? relatedIssueId,
   });
@@ -359,6 +362,13 @@ abstract class ControllerOperations extends ChangeNotifier {
     Duration? latency,
     ConnectionMode? route,
     StackTrace? stackTrace,
+  });
+  @internal
+  void internalRecordOperationOutcome(
+    String feature, {
+    bool write = false,
+    UiError? error,
+    ConnectionMode? route,
   });
 
   @internal

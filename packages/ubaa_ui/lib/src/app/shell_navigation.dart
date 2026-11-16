@@ -108,6 +108,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                   pickFile: widget.onPickBhpanFile,
                   pickDownload: widget.onPickBhpanDownload,
                   previewFile: widget.onPreviewBhpanFile,
+                  recordDeliveryFailure: widget.onBhpanDeliveryFailure,
                   runWrite: _hasWriteCommands ? _runBhpanWrite : null,
                 ),
               )

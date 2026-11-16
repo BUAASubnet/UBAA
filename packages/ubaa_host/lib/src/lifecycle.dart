@@ -9,8 +9,14 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late CgyyReservationDefaultsStore _cgyyDefaultsStore;
   late RecentFeatureStore _recentFeatureStore;
   late GradeScoreWatch _gradeWatch;
-  final _startupDiagnostics = LocalDiagnostics();
-  UiError? _startupError;
+  late final _preferences =
+      widget.preferenceValues ??
+      (widget.backend != null || widget.backendFactory != null
+          ? MemoryPreferenceValues()
+          : PluginPreferenceValues());
+  late final _diagnostics =
+      widget.startupDiagnostics ?? _newStartupDiagnostics(_preferences);
+  ({UiError error, DiagnosticInitializationStage stage})? _startupFailure;
   int _startupGeneration = 0;
   void _updateStartup(VoidCallback update) {
     if (mounted) setState(update);
@@ -185,6 +191,15 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _ => false,
     };
     WidgetsBinding.instance.addObserver(this);
+    if (widget.startupDiagnostics == null) {
+      unawaited(
+        _readDiagnosticVersion(
+          _diagnostics,
+          widget.appInformation ?? SystemAppInformation(),
+          isCurrent: () => !_disposed,
+        ),
+      );
+    }
     if (widget.backend case final backend?) {
       _installBackend(backend);
     } else {
@@ -194,11 +209,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   void _installBackend(UbaaBackend opened) {
     final backend = widget.backend;
-    final preferences =
-        widget.preferenceValues ??
-        (backend != null || widget.backendFactory != null
-            ? MemoryPreferenceValues()
-            : PluginPreferenceValues());
+    final preferences = _preferences;
     _placeStore =
         widget.preferenceValues == null &&
             (backend != null || widget.backendFactory != null)
@@ -218,20 +229,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? MemoryYgdkReminderStore()
             : PreferencesYgdkReminderStore(scope: defaultConfigDirectory()));
     final backendFactory = widget.backendFactory ?? _createBackend;
-    final diagnostics = LocalDiagnostics(storage: preferences)
-      ..setEnvironment(platform: Platform.operatingSystem);
-    unawaited(() async {
-      try {
-        // 版本读取独立于启动流程，迟到的结果不再更新已关闭宿主的诊断。
-        final version = await (widget.appInformation ?? SystemAppInformation())
-            .version();
-        if (!_disposed) diagnostics.setEnvironment(appVersion: version);
-      } on Object {
-        // 版本不可用不影响登录和错误记录。
-      }
-    }());
     _readyController = AppController(
-      diagnostics: diagnostics,
+      diagnostics: _diagnostics,
       backend: opened,
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,
@@ -424,6 +423,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         messenger,
         error.message,
         kind: UbaaFeedbackKind.error,
+        onDetails: switch (_navigatorKey.currentState?.overlay?.context) {
+          final context? => uiErrorDetailsAction(context, error),
+          _ => null,
+        },
       );
     });
   }
