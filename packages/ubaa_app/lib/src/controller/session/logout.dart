@@ -162,6 +162,21 @@ mixin ControllerLogout on ControllerState {
         internalLoginForm = clearSavedCredential && failure == null
             ? LoginFormState(routePolicy: internalLoginForm.routePolicy)
             : internalLoginForm.copyWith(password: '', captcha: '');
+        if (!clearSavedCredential &&
+            ownsCleanup &&
+            internalCredentialVault.isAvailable) {
+          await attempt(() async {
+            final saved = await internalCredentialVault.read();
+            if (internalDisposed || saved == null || !saved.isUsable) return;
+            internalLoginForm = internalLoginForm.copyWith(
+              username: saved.username,
+              password: saved.password,
+              rememberPassword: true,
+              autoLogin: saved.autoLogin,
+            );
+          });
+        }
+        if (internalDisposed) return;
         internalResetFeatureSnapshots();
         internalSetPhase(AppPhase.login);
       }

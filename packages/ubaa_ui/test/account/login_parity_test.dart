@@ -4,6 +4,23 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('登录页可打开离线隐私政策全文并返回表单', (tester) async {
+    await tester.pumpWidget(_login());
+    final link = find.widgetWithText(TextButton, '隐私政策');
+    await tester.ensureVisible(link);
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.byType(PrivacyPolicyPage), findsOneWidget);
+    expect(
+      tester.widget<PrivacyPolicyPage>(find.byType(PrivacyPolicyPage)).policy,
+      bundledPrivacyPolicy,
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(UbaaLoginView), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('旧登录忙碌时按钮及键盘完成均不再次提交', (tester) async {
     var submits = 0;
     await tester.pumpWidget(_login(loading: true, submit: () => submits++));

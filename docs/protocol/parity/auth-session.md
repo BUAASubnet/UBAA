@@ -4,6 +4,24 @@
 
 ## 当前规则
 
+### 退出后回填已保存的登录表单
+
+2026-11-16 对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `AuthViewModel.kt` 和 `api/storage/CredentialStore.kt`，以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `store/cred.rs` 和 `api/sso/auth.rs`。本次操作仅从设备安全存储回填表单，不修改学校认证协议。
+
+| 对照项 | 旧版 | buaa-api | 当前行为 |
+| --- | --- | --- | --- |
+| CAS/引导 URL 与 service | 本地回填不适用 | 没有登录表单，不适用 | 不请求学校 |
+| 重定向与最终 URL | 不适用 | 不适用 | 不适用 |
+| Cookie、Session、Token 作用域 | 回填读取 CredentialStore | 凭据与业务 Token 在 CredentialStore 管理，无对应回填操作 | 只读取设备保险箱，不恢复已退出会话 |
+| HTTP 方法与参数 | 不适用 | 不适用 | 不适用 |
+| 请求头与正文编码 | 不适用 | 不适用 | 不适用 |
+| 加密与签名常量 | 本地 Settings 保存 | 无对应表单操作 | 继续使用现有平台安全存储 |
+| DTO 与字段 | username、password、rememberPassword、autoLogin | username/password 可选，无表单选项 | 从 Credential 恢复账号、密码与自动登录选项 |
+| 缓存、并发、重试 | 初始化和账号切换读取已保存凭据 | 无对应表单操作 | 普通退出结束和已退出账号启动时读取，迟到结果不得覆盖用户输入或销毁状态，不自动重试 |
+| 错误、退出与产品语义 | 记住密码时初始化回填，取消记住时删除凭据 | 无对应表单操作 | 普通退出保留并回填凭据，等待手动登录；退出并清除删除凭据；读取失败沿现有诊断反馈 |
+
+回归覆盖开启、关闭自动登录时的普通退出与重启回填。保存的自动登录选项不会撤销主动退出状态。该操作不产生学校请求，Direct/WebVPN 协议沿用既有规则。
+
 ### 登录错误的本地诊断
 
 2026-11-14 对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`（准备、提交、验证码、身份与错误转换），以及 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`error.rs`、`request.rs`、`store/{cookies,cred}.rs`。旧版按用户错误码转换提示；buaa-api 保留 SSO 标签和错误来源。两者均无当前 Bridge 的结构化诊断合同。新增阶段和原因只来自本地已确认分支，不从学校错误文本猜测。
