@@ -177,7 +177,7 @@ fn 博雅签到写入前重读当前学期资格并形成坐标() {
 }
 
 #[test]
-fn 博雅签到资格字段缺失时不发送写请求() {
+fn 博雅未考核课程允许在时间窗口内签到() {
     let root = std::env::temp_dir().join(format!("ubaa-bykc-sign-unknown-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
@@ -210,16 +210,16 @@ fn 博雅签到资格字段缺失时不发送写请求() {
         .build()
         .unwrap();
 
-    let error = runtime
+    let result = runtime
         .block_on(client.bykc_sign_course(BykcSignRequest {
             course_id: 42,
             lat: None,
             lng: None,
             sign_type: 1,
         }))
-        .expect_err("资格字段缺失时必须拒绝");
+        .expect("未考核课程允许签到");
 
-    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(result.data.message, "ok");
     let paths = requests
         .lock()
         .unwrap()
@@ -232,6 +232,7 @@ fn 博雅签到资格字段缺失时不发送写请求() {
             "/sscv/cas/login",
             "/sscv/getAllConfig",
             "/sscv/queryChosenCourse",
+            "/sscv/signCourseByUser",
         ]
     );
     let _ = std::fs::remove_dir_all(root);

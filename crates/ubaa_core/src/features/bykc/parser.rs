@@ -316,10 +316,8 @@ fn parse_chosen_courses_at_for_purpose(
         .iter()
         .map(|v| {
             let m = v.as_object().ok_or_else(|| error("博雅已选课程字段无效"))?;
-            if write_preflight {
-                ensure_optional_i32(m, "checkin")?;
-                ensure_optional_i32(m, "pass")?;
-            }
+            ensure_optional_i32(m, "checkin")?;
+            ensure_optional_i32(m, "pass")?;
             let course = m.get("courseInfo").and_then(Value::as_object);
             let course_id = course
                 .and_then(|course| course.get("id"))
@@ -465,13 +463,15 @@ pub(super) fn sign_eligibilities(
     config: Option<&BykcSignConfig>,
     now: NaiveDateTime,
 ) -> (ActionEligibility, ActionEligibility) {
-    if course_id <= 0 || checkin.is_none() || pass.is_none() {
+    if course_id <= 0 {
         return (ActionEligibility::Unknown, ActionEligibility::Unknown);
     }
     if pass == Some(1) {
         return (ActionEligibility::Denied, ActionEligibility::Denied);
     }
-    let checkin = checkin.expect("已校验考勤状态存在");
+    // 旧版将缺失的考勤/考核字段按“尚未签到、尚未考核”处理。
+    // 只有明确的考核通过状态会阻止签到。
+    let checkin = checkin.unwrap_or(0);
     let sign = if checkin == 0 {
         window_eligibility(
             config.and_then(|value| value.sign_start_date.as_deref()),
