@@ -73,6 +73,8 @@ Android 首页按系统默认网络身份去重；同一网络的能力通知不
 | iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |
 | HarmonyOS | 静态分析与测试、无签名 Debug HAP、arm64 Rust 库；模拟器上的合成 HUKS 流程 | 签名包、实机 |
 
+Android 已按[小米 Flip 基础与连续性适配指南](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=2026)补充 `android.supports_size_changes=true`，并显式启用 `resizeableActivity`，沿用 Flutter 对屏幕尺寸、布局、方向和密度配置变化的处理。外屏运行采用[Android 标准声明](https://developer.android.com/reference/android/view/WindowManager#PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN) `PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN=1`。清单 XML 语法和声明静态校验已通过；页面、搜索与滚动状态沿用既有连续性实现。本次未完成 Flutter 回归和完整验收，未构建安装包，也未验证 MIX Flip 2 外屏启动、双向开合接续和键盘行为。
+
 Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材料文件锁内操作随机测试键，失败后不写入未完成业务事务标记，系统恢复后可在下一次启动重新检测；已有未完成业务事务仍阻止访问。Windows 整文件后端的探测继续保留事务保护。官方八包格式、静态分析与 2,217 项测试通过，另有 1 项既有跳过项。macOS 13 项原生集成、Android 原生代码与测试编译、OHOS 分析与 2 项宿主测试通过。Android 本次未执行设备测试。Xiaomi Android 17 的原生诊断曾在 UBAA 原生库加载前记录 Keystore 系统内部错误 4，具体系统原因尚未确定。该系统错误与应用探测留下事务标记分别处理。
 
 表中的托管 Release 构建来自候选 `cb2a67ac` 的[运行记录](https://github.com/BUAASubnet/UBAA/actions/runs/43015152128)。macOS 两个架构已提交 Apple 公证。Release 当前暂停，等待公证服务恢复后再继续；尚未发布 v2.0.0 Tag、GitHub/R2 产物或商店构建。
