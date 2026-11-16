@@ -131,6 +131,7 @@ class UbaaAppHost extends StatefulWidget {
     this.locationProvider,
     this.initialDestination = UiDestination.home,
     this.agendaFileSaver = const SystemAgendaFileSaver(),
+    this.diagnosticReportExporter = const DiagnosticReportExporter(),
     this.bhpanFilePicker = const SystemBhpanFilePicker(),
     this.bhpanFileSaver = const SystemBhpanFileSaver(),
     this.bhpanFilePreviewer = const SystemBhpanFilePreviewer(),
@@ -167,6 +168,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformLocationProvider? locationProvider;
   final UiDestination initialDestination;
   final AgendaFileSaver agendaFileSaver;
+  final DiagnosticReportExporter diagnosticReportExporter;
   final BhpanFilePicker bhpanFilePicker;
   final BhpanFileSaver bhpanFileSaver;
   final BhpanFilePreviewer bhpanFilePreviewer;

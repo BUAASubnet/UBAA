@@ -24,6 +24,32 @@ final class AgendaFilePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any] ?? [:]
     switch call.method {
+    case "shareReport":
+      guard let presenter = registrar.viewController, presenter.presentedViewController == nil,
+        let name = args["name"] as? String, name.range(of: "^UBAA-report-[0-9]+\\.json$", options: .regularExpression) != nil,
+        let bytes = args["bytes"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "unavailable", message: "无法分享错误报告", details: nil)); return
+      }
+      do {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diagnostic_reports", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for old in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) {
+          if let date = try old.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+            date < Date().addingTimeInterval(-7 * 86400) { try? FileManager.default.removeItem(at: old) }
+        }
+        let file = directory.appendingPathComponent(name)
+        try bytes.data.write(to: file, options: .atomic)
+        let share = UIActivityViewController(activityItems: [file], applicationActivities: nil)
+        // iPad 的分享面板必须提供锚点。
+        share.popoverPresentationController?.sourceView = presenter.view
+        share.popoverPresentationController?.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1, height: 1)
+        share.completionWithItemsHandler = { _, _, _, error in
+          if error != nil { result(FlutterError(code: "share_failed", message: "无法分享错误报告", details: nil)) }
+          else { result(nil) }
+        }
+        presenter.present(share, animated: true)
+      } catch { result(FlutterError(code: "share_failed", message: "无法分享错误报告", details: nil)) }
+
     case "selectFolder", "select":
       guard pending == nil, target == nil,
         let presenter = registrar.viewController else {

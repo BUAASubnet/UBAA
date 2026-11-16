@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:ubaa_ui/src/app/profile.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemChannels;
+import 'package:flutter/services.dart' show SystemChannels, MethodChannel;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
@@ -11,6 +11,43 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  testWidgets('后端创建失败可以分享完整错误报告文件', (tester) async {
+    const channel = MethodChannel('cn.edu.buaa.ubaa/agenda-file');
+    Map? shared;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method == 'shareReport') shared = call.arguments as Map;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    await tester.pumpWidget(
+      UbaaAppHost(
+        diagnosticReportExporter: const DiagnosticReportExporter(
+          operatingSystem: 'android',
+        ),
+        backendFactory: () =>
+            throw const InitializationException(InitializationFailure.session),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('查看诊断信息'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pumpAndSettle();
+    expect(shared, isNotNull);
+    final report = String.fromCharCodes((shared!['bytes'] as List).cast<int>());
+    expect(report, contains('schema_version'));
+    expect(report, contains('initialization_failure'));
+    expect(report, contains('session'));
+    expect(shared!['name'], endsWith('.json'));
+  });
+
   testWidgets('诊断版本读取未完成时可关闭宿主且不遗留定时器', (tester) async {
     await tester.pumpWidget(
       UbaaAppHost(

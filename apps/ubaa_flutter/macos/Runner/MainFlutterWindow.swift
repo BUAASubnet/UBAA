@@ -2,6 +2,9 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  private var reportChannel: FlutterMethodChannel?
+  private var reportPicker: NSSharingServicePicker?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     // 首帧前的窗口底色按保存的主题与 Flutter surface 一致，避免启动时闪色。
@@ -13,6 +16,30 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    reportChannel = FlutterMethodChannel(name: "cn.edu.buaa.ubaa/agenda-file", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    reportChannel?.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "shareReport" else { result(FlutterMethodNotImplemented); return }
+      guard let self, let view = self.contentView,
+        let args = call.arguments as? [String: Any], let name = args["name"] as? String,
+        name.range(of: "^UBAA-report-[0-9]+\\.json$", options: .regularExpression) != nil,
+        let bytes = args["bytes"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "invalid", message: "错误报告不可用", details: nil)); return
+      }
+      do {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diagnostic_reports", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for old in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) {
+          if let date = try old.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+            date < Date().addingTimeInterval(-7 * 86400) { try? FileManager.default.removeItem(at: old) }
+        }
+        let file = directory.appendingPathComponent(name)
+        try bytes.data.write(to: file, options: .atomic)
+        let picker = NSSharingServicePicker(items: [file])
+        self.reportPicker = picker
+        picker.show(relativeTo: NSRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1), of: view, preferredEdge: .minY)
+        result(nil)
+      } catch { result(FlutterError(code: "share_failed", message: "无法分享错误报告", details: nil)) }
+    }
 
     super.awakeFromNib()
     title = "UBAA"

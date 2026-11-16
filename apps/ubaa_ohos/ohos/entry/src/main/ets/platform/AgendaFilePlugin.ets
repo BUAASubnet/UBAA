@@ -3,6 +3,8 @@ import { FlutterPlugin, FlutterPluginBinding, MethodCall, MethodCallHandler,
 import { common } from '@kit.AbilityKit';
 import { picker, fileIo, fileUri } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
+import { systemShare } from '@kit.ShareKit';
+import { uniformTypeDescriptor } from '@kit.ArkData';
 
 // 选择面板不接收日历内容。账号与路线核对通过后才创建并写入文件。
 export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandler {
@@ -28,6 +30,7 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
   }
   onMethodCall(call: MethodCall, result: MethodResult): void {
     const args = call.args as Map<string, Object>;
+    if (call.method === 'shareReport') { this.shareReport(args, result); return; }
     if (call.method === 'pickFolder') { this.pickFolder(result); return; }
     if (call.method === 'pickFile' || call.method === 'pickFiles') {
       this.pickFiles(call.method === 'pickFiles', result); return;
@@ -64,6 +67,34 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
       }
       result.success(null);
     } catch (_) { result.error('write_failed', '日历文件未保存', null); }
+  }
+  private async shareReport(args: Map<string, Object>, result: MethodResult): Promise<void> {
+    try {
+      const name = args.get('name') as string;
+      if (!/^UBAA-report-[0-9]+\.json$/.test(name)) { result.error('invalid', '错误报告不可用', null); return; }
+      const directory = this.context.cacheDir + '/diagnostic_reports';
+      if (!fileIo.accessSync(directory)) fileIo.mkdirSync(directory);
+      for (const old of fileIo.listFileSync(directory)) {
+        const path = directory + '/' + old;
+        if (fileIo.statSync(path).mtime < Date.now() / 1000 - 7 * 86400) fileIo.unlinkSync(path);
+      }
+      const path = directory + '/' + name;
+      const bytes = args.get('bytes') as Uint8Array;
+      const file = fileIo.openSync(path, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC);
+      try {
+        if (fileIo.writeSync(file.fd, bytes.buffer) !== bytes.byteLength) throw new Error('报告写入不完整');
+      } finally { fileIo.closeSync(file); }
+      const data = new systemShare.SharedData({
+        utd: uniformTypeDescriptor.UniformDataType.FILE,
+        uri: fileUri.getUriFromPath(path),
+        title: 'UBAA 错误报告',
+      });
+      await new systemShare.ShareController(data).show(this.context, {
+        selectionMode: systemShare.SelectionMode.SINGLE,
+        previewMode: systemShare.SharePreviewMode.DEFAULT,
+      });
+      result.success(null);
+    } catch (_) { result.error('share_failed', '无法分享错误报告', null); }
   }
   private async pickFiles(multiple: boolean, result: MethodResult): Promise<void> {
     if (this.selecting || this.target !== null) {result.error('busy', '请先结束当前文件选择', null); return;}

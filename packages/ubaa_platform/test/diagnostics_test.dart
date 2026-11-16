@@ -5,6 +5,34 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('重启导出应保留错误编号与关联编号', () async {
+    final storage = MemoryPreferenceValues();
+    final first = LocalDiagnostics(storage: storage);
+    final failure = first.record(
+      operation: DiagnosticOperation.login,
+      error: const UiErrorMapper().fromCore(
+        const CoreErrorPayload(
+          code: 'upstream_changed',
+          authStage: AuthFailureStage.identityValidation,
+          authReason: AuthFailureReason.identityMismatch,
+        ),
+      ),
+    );
+    first.record(
+      operation: DiagnosticOperation.login,
+      error: mapCoreError(code: 'network_error'),
+      relatedIssueId: failure.issueId,
+    );
+    await first.flushed;
+    final restarted = LocalDiagnostics(storage: storage);
+    await restarted.flushed;
+    final report = jsonDecode(restarted.exportText()) as Map;
+    final previous = report['previous_events'] as List;
+    expect(previous[0]['issue_id'], failure.issueId);
+    expect(previous[1]['related_issue_id'], failure.issueId);
+    expect(previous[0]['reason'], 'identity_mismatch');
+  });
+
   test('复制单次失败包含关联路线与版本并保留安全原因', () {
     final diagnostics = LocalDiagnostics()
       ..setEnvironment(appVersion: '2.0.0+2004', platform: 'android');

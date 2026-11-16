@@ -8,6 +8,13 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:resizeableActivity="true">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.diagnostic-reports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/diagnostic_report_paths" />
+        </provider>
         <!-- 允许外屏运行；尺寸切换由现有Flutter配置变更处理承接，保持页面状态。 -->
         <property
             android:name="android.window.PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN"

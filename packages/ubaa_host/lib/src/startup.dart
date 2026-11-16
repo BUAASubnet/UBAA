@@ -58,8 +58,10 @@ extension _BackendStartup on _UbaaAppHostState {
       ? UbaaBootSplash(themeMode: _themeMode)
       : _startupApplication(
           themeMode: _themeMode,
+          reportExporter: widget.diagnosticReportExporter,
           home: _StartupFailure(
             error: _startupError!,
+            diagnostics: _startupDiagnostics.exportText(),
             onRetry: () => unawaited(_openBackend()),
           ),
         );
@@ -68,6 +70,7 @@ extension _BackendStartup on _UbaaAppHostState {
 Widget _startupApplication({
   required Widget home,
   ThemeMode themeMode = ThemeMode.system,
+  DiagnosticReportExporter reportExporter = const DiagnosticReportExporter(),
 }) => MaterialApp(
   title: 'UBAA',
   locale: UbaaTheme.locale,
@@ -77,6 +80,12 @@ Widget _startupApplication({
   theme: UbaaTheme.light(),
   darkTheme: UbaaTheme.dark(),
   themeMode: themeMode,
+  builder: (context, child) => UiDiagnosticsScope(
+    readRecord: (_) => null,
+    exportReport: reportExporter.export,
+    exportLabel: reportExporter.supportsSharing ? '分享报告文件' : '保存报告文件',
+    child: child!,
+  ),
   home: home,
 );
 
@@ -111,6 +120,13 @@ class _StartupFailure extends StatelessWidget {
                 FilledButton(onPressed: onRetry, child: const Text('重新打开'))
               else
                 const Text('请关闭应用后重新打开。'),
+              if (diagnostics != null)
+                TextButton.icon(
+                  onPressed: () =>
+                      uiShowDiagnosticsDialog(context, () => diagnostics!),
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('查看诊断信息'),
+                ),
               if (diagnostics != null)
                 ExpansionTile(
                   title: const Text('诊断详情'),

@@ -51,6 +51,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     animation: Listenable.merge([_controller, _gradeWatch]),
     builder: (context, _) => MaterialApp(
       builder: (context, child) => UiDiagnosticsScope(
+        exportReport: widget.diagnosticReportExporter.export,
+        exportLabel: widget.diagnosticReportExporter.supportsSharing
+            ? '分享报告文件'
+            : '保存报告文件',
         readRecord: (issueId) =>
             _controller.diagnostics.records.any(
               (record) =>

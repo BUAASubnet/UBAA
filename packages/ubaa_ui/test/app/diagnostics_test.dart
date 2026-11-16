@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,48 @@ import 'package:ubaa_ui/src/common/error_card.dart'
     show uiErrorMessageRestatesTitle;
 
 void main() {
+  testWidgets('分享错误报告使用对应记录且等待系统面板期间禁止重复打开', (tester) async {
+    final pending = Completer<String?>();
+    var calls = 0;
+    String? shared;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UiDiagnosticsScope(
+          readRecord: (id) => id == 'UBAA-test'
+              ? '{"schema_version":3,"events":[{"issue_id":"UBAA-test"}]}'
+              : null,
+          exportReport: (report) {
+            calls++;
+            shared = report;
+            return pending.future;
+          },
+          child: const Scaffold(
+            body: FriendlyErrorCard(
+              error: UiError(
+                code: UbaaErrorCode.networkError,
+                title: '连接失败',
+                message: '请检查网络',
+                issueId: 'UBAA-test',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('分享报告文件'));
+    await tester.pump();
+    await tester.tap(find.text('分享报告文件'));
+    expect(calls, 1);
+    expect(shared, contains('UBAA-test'));
+    expect(shared, contains('schema_version'));
+    pending.completeError(StateError('模拟系统分享失败'));
+    await tester.pumpAndSettle();
+    expect(find.text('报告文件未导出，请重试或复制诊断信息'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('错误卡复制对应诊断记录', (tester) async {
     String? requested;
     String? copied;

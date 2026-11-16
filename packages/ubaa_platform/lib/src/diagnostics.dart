@@ -147,6 +147,26 @@ final class LocalDiagnostics {
           'time': time.toUtc().toIso8601String(),
           'code': code.wireName,
           'operation': operation.name,
+          for (final key in ['issue_id', 'related_issue_id'])
+            if (item[key] is String &&
+                RegExp(r'^UBAA-[A-Za-z0-9-]{1,59}$').hasMatch(item[key]))
+              key: item[key],
+          if (AuthFailureStage.parse(
+                item['stage'] is String ? item['stage'] : null,
+              )
+              case final stage?)
+            'stage': stage.wireName,
+          if (AuthFailureReason.parse(
+                item['reason'] is String ? item['reason'] : null,
+              )
+              case final reason?)
+            'reason': reason.wireName,
+          if (InitializationFailure.values.any(
+            (v) => v.name == item['initialization_failure'],
+          ))
+            'initialization_failure': item['initialization_failure'],
+          if (item['latency_ms'] is int && (item['latency_ms'] as int) >= 0)
+            'latency_ms': item['latency_ms'],
           if (ConnectionMode.values.any((v) => v.name == item['route']))
             'route': item['route'],
           if (FeatureId.values.any((v) => v.wireName == item['feature']))
