@@ -196,7 +196,7 @@ fn denied_bykc_chosen_sign_request() -> ExpectedRequest {
 
 fn unknown_bykc_chosen_sign_request() -> ExpectedRequest {
     bykc_chosen_sign_request(
-        r#"{"status":"0","data":{"courseList":[{"id":9,"checkin":0,"courseInfo":{"id":42,"courseName":"脱敏资格课程","courseSignConfig":"{\"signStartDate\":\"2000-01-01 00:00:00\",\"signEndDate\":\"2999-12-31 23:59:59\",\"signOutStartDate\":\"2000-01-01 00:00:00\",\"signOutEndDate\":\"2999-12-31 23:59:59\",\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"}}]}}"#,
+        r#"{"status":"0","data":{"courseList":[{"id":9,"checkin":0,"pass":0,"courseInfo":{"id":42,"courseName":"脱敏资格课程","courseSignConfig":"{\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"}}]}}"#,
     )
 }
 
