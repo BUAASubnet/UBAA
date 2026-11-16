@@ -194,6 +194,9 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   void _schedule(Future<void> Function() action) {
     if (_refreshToken != null) return;
     final snapshot = widget.snapshot;
+    // 缓存只供展示，在线刷新完成前或失败后不能用旧日期继续查询。
+    if (snapshot.status == FeatureLoadStatus.loading || snapshot.error != null)
+      return;
     final generation = _generation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
