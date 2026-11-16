@@ -43,7 +43,7 @@ features:
 
 <script setup>
 import { useRelease } from './components/use_release.js'
-const release = useRelease()
+useRelease()
 </script>
 
 ::: info UBAA v2.0

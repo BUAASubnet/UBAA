@@ -18,6 +18,10 @@
 
 只有 Nginx 监听公网 HTTPS 10443。Node.js 监听回环 10080，Grafana 监听回环 3000，PostgreSQL 使用回环连接。配置模板位于 [scripts/server](../../scripts/server/)。
 
+文档站的 `/release-data.json` 是公开安装包清单。Nginx 为成功响应设置 `Cache-Control: public, max-age=60`，Cloudflare 的文档缓存规则包含该路径，并遵循源站期限。`/downloads/` 下的临时下载会话继续禁止缓存。浏览器在首页和下载页之间共用清单，一分钟内复用已取得的数据，过期后再次进入页面时更新。加载失败时保留已有下载入口。
+
+修改 Nginx 模板后，通过 SSH 同步到 `/etc/nginx/sites-available/ubaa.conf`，运行 `nginx -t` 后重载 Nginx。文档部署工作流只更新网站文件，不会同步 Nginx 配置或 Cloudflare 缓存规则。
+
 ## 部署应用
 
 [部署工作流](../../.github/workflows/worker.yml)在 main 的相关改动或手动触发时执行服务测试、构建应用和云盘发布工具，然后保存同一次运行的 artifact。部署作业通过 SSH 传递运行编号、源码提交和短期下载地址，服务器直接从 GitHub 下载，不经过代理，不使用 Actions 上传大文件。

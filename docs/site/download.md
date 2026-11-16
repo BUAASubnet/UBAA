@@ -5,8 +5,9 @@ description: 下载 UBAA：App Store 链接，Android、Windows、macOS 和 Linu
 <script setup>
 import { provide, ref } from 'vue'
 import { useRelease } from './components/use_release.js'
-const release = useRelease()
+const { release, loading } = useRelease()
 provide('release', release)
+provide('releaseLoading', loading)
 import DownloadSuggest from './components/DownloadSuggest.vue'
 import DownloadOptions from './components/DownloadOptions.vue'
 import PlatformGrid from './components/PlatformGrid.vue'
@@ -18,6 +19,7 @@ provide('useBhpan', useBhpan)
 # 下载 UBAA
 
 <p v-if="release">当前版本 v{{ release.version }}（构建 {{ release.build }}）。</p>
+<p v-else-if="loading" role="status">正在加载下载信息…</p>
 <p v-else>安装包尚未发布或发布信息暂时不可用，请稍后重试。</p>
 
 <label v-if="release" class="download-source-toggle">
@@ -77,7 +79,7 @@ HarmonyOS 版在 AppGallery 的状态为**待审核**，上架后在这里提供
 
 ## 其他下载
 
-- <a :href="useBhpan ? release?.licenses.url : release?.licenses.mirrorUrl" target="_self">第三方软件许可证</a>（{{ release?.licenses.size }}）随当前安装包一同提供。
+- <span v-if="release"><a :href="useBhpan ? release.licenses.url : release.licenses.mirrorUrl" target="_self">第三方软件许可证</a>（{{ release.licenses.size }}）随当前安装包一同提供。</span><span v-else>第三方软件许可证随安装包一同提供。</span>
 - 旧版 v1.x 的安装包和历史记录保留在 [GitHub Releases](https://github.com/BUAASubnet/UBAA/releases)。
 - 安装或登录遇到问题，可查看[常见问题](/tech/troubleshooting)。
 

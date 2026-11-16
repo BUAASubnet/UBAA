@@ -1,12 +1,32 @@
 import { onMounted, ref } from "vue";
 
-export function useRelease() {
-  const release = ref(null);
-  onMounted(async () => {
+// 同一页面会话中的首页与下载页共用清单，刷新失败时保留已显示的下载入口。
+const release = ref(null);
+const loading = ref(true);
+let expiresAt = 0;
+let pending;
+
+async function refresh() {
+  if (release.value && Date.now() < expiresAt) return;
+  if (pending) return pending;
+  loading.value = true;
+  pending = (async () => {
     try {
-      const response = await fetch("/release-data.json", { cache: "no-store" });
-      if (response.ok) release.value = await response.json();
-    } catch { /* 发布信息暂时不可用时保持等待状态。 */ }
-  });
-  return release;
+      const response = await fetch("/release-data.json");
+      if (response.ok) {
+        release.value = await response.json();
+        expiresAt = Date.now() + 60_000;
+      }
+    } catch { /* 请求失败时保留已有清单，下一次进入页面时重试。 */ }
+    finally {
+      loading.value = false;
+      pending = undefined;
+    }
+  })();
+  return pending;
+}
+
+export function useRelease() {
+  onMounted(refresh);
+  return { release, loading };
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { inject } from "vue";
 const release = inject("release");
+const loading = inject("releaseLoading");
 const available = (platform) => platform.id === "ios" || Boolean(release.value?.platforms[platform.id]?.length);
 // 下载页顶部的平台入口；点击跳到对应平台的下载与安装说明。
 const platforms = [
@@ -18,7 +19,7 @@ const platforms = [
     <a v-for="platform in platforms" :key="platform.id" :href="`#${platform.id}`">
       <strong>{{ platform.name }}</strong>
       <span>{{ platform.detail }}</span>
-      <em :class="{ soon: !available(platform) }">{{ available(platform) ? "可下载" : platform.ready ? "待发布" : "待审核" }}</em>
+      <em :class="{ soon: !available(platform) }">{{ available(platform) ? "可下载" : !platform.ready ? "待审核" : loading ? "加载中" : "暂不可用" }}</em>
     </a>
   </nav>
 </template>
