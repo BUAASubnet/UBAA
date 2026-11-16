@@ -14,7 +14,7 @@ from http_e2e import (BOOTSTRAP, EMPTY, ERASE, ERASED, LOOPBACK, ROOT, UPLOAD,
                       exchange, local_worker, prepare, require, run)
 
 
-UPLOADED = dict(EMPTY, batches=1, active=1, counters=1)
+UPLOADED = dict(EMPTY, batches=1, active=1, counters=2, errors=1, write_sample="16781313")
 
 
 def main():

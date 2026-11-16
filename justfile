@@ -162,9 +162,13 @@ app-service-publish:
 app-service-deploy:
     python3 scripts/lib/toolchain.py release deploy
 
-# 生成使用情况看板 JSON 到 .ubaa_local；只读本地配置，不联网，部署见应用服务手册。
+# 生成使用情况看板 JSON，不联网，部署见应用服务手册。
 app-service-dashboard output=".ubaa_local/app_service_dashboard/ubaa.json":
     python3 scripts/release/app_service_dashboard.py --output "{{output}}"
+
+# 生成供维护者查看的错误诊断看板 JSON。
+app-service-diagnostics-dashboard output=".ubaa_local/app_service_dashboard/diagnostics.json":
+    python3 scripts/release/app_service_dashboard.py --maintenance --output "{{output}}"
 
 # 只读核对网站正文摘要和应用内嵌入的政策。
 privacy-policy-check:

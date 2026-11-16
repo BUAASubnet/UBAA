@@ -16,6 +16,88 @@ const panels: Panel[] = dashboard.panels.flatMap((panel: Panel) => [
   panel,
   ...(panel.panels ?? []),
 ]);
+
+it("维护看板按版本和错误维度筛选，样本不改变失败次数", async () => {
+  const maintenance = JSON.parse(
+    execFileSync(
+      "python3",
+      ["../../scripts/release/app_service_dashboard.py", "--maintenance"],
+      { encoding: "utf8" },
+    ),
+  );
+  const start = Date.parse("2026-11-01T00:00:00+08:00");
+  const variables = {
+    "${__from}": String(start),
+    "${__to}": String(start + 86400000),
+    "${app_version:sqlstring}": "'2.0.0+2008'",
+    "${feature:sqlstring}": "'cgyy'",
+    "${route:sqlstring}": "'webvpn'",
+    "${error_code:sqlstring}": "'business_rejected'",
+  };
+  function sql(title: string) {
+    const panel = (maintenance.panels as Panel[]).find(
+      (item) => item.title === title,
+    )!;
+    return Object.entries(variables).reduce(
+      (raw, [key, value]) => raw.replaceAll(key, value),
+      panel.targets![0].rawSql,
+    );
+  }
+
+  await env.DB.prepare(
+    `
+    INSERT INTO error_days
+      (day, install_id, app_version, event, feature, route, error_code, error_kind, retryable, source, platform, channel, count)
+    VALUES
+      ('2026-11-01','a','2.0.0+2008','feature_failed','cgyy','webvpn','business_rejected','upstream',0,'core-a','ios','app_store',7),
+      ('2026-11-01','a','2.0.0+2008','feature_failed','cgyy','webvpn','business_rejected','upstream',1,'core-a','ios','app_store',2),
+      ('2026-11-01','b','2.0.0+2008','feature_failed','cgyy','webvpn','business_rejected','upstream',0,'','ios','app_store',3),
+      ('2026-11-01','c','2.0.0+2007','feature_failed','cgyy','webvpn','business_rejected','upstream',0,'','ios','app_store',20),
+      ('2026-11-01','d','2.0.0+2008','feature_failed','cgyy','direct','business_rejected','upstream',0,'','ios','app_store',10),
+      ('2026-11-01','a','2.0.0+2008','ui_error_shown','cgyy','webvpn','business_rejected','upstream',0,'core-a','ios','app_store',7);
+    INSERT INTO error_samples VALUES
+      ('2026-11-01','a','2.0.0+2008','feature_failed','cgyy','webvpn','business_rejected','core-a',
+       '{"stage":"response","reason":"business_rejected","status":200,"upstream_code":42}');
+    INSERT INTO counter_days
+      (day,install_id,app_version,event,feature,route,result,platform,channel,count)
+    VALUES
+      ('2026-11-01','a','2.0.0+2008','write_completed','cgyy','webvpn','success','ios','app_store',5),
+      ('2026-11-01','a','2.0.0+2008','write_completed','cgyy','webvpn','failure','ios','app_store',2),
+      ('2026-11-01','a','2.0.0+2007','write_completed','cgyy','webvpn','failure','ios','app_store',9)
+  `,
+  ).run();
+  const counts = await env.DB.prepare(sql("错误明细")).all<
+    Record<string, string>
+  >();
+  expect(counts.results.reduce((n, row) => n + Number(row["次数"]), 0)).toBe(
+    12,
+  );
+  const writes = await env.DB.prepare(sql("写入结果")).all<
+    Record<string, number>
+  >();
+  expect(writes.results).toHaveLength(1);
+  expect(Number(writes.results[0]["操作次数"])).toBe(7);
+  expect(Number(writes.results[0]["失败次数"])).toBe(2);
+  const samples = await env.DB.prepare(sql("安全诊断样本")).all();
+  expect(samples.results).toHaveLength(1);
+  expect(samples.results[0]).toMatchObject({
+    阶段: "response",
+    原因: "business_rejected",
+    "HTTP 状态": "200",
+    上游业务码: "42",
+  });
+  expect(samples.results[0]).not.toHaveProperty("install_id");
+  expect(
+    panels
+      .flatMap((panel) => panel.targets ?? [])
+      .map((item) => item.rawSql)
+      .join(" "),
+  ).not.toContain("error_samples");
+  const absent = await env.DB.prepare(
+    sql("安全诊断样本").replaceAll("'2.0.0+2008'", "'2.0.0+2007'"),
+  ).all();
+  expect(absent.results).toEqual([]);
+});
 for (const panel of panels) {
   for (const target of panel.targets ?? []) {
     it(`PostgreSQL 看板查询可运行：${panel.title}`, async () => {

@@ -193,6 +193,7 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `just app-service-publish` | 校验渠道和公告，触发 main 的服务器部署工作流 |
 | `just app-service-deploy` | 校验内容及本地 应用服务，触发 main 的服务器部署工作流；配置见[应用服务部署手册](../runbooks/app-service.md) |
 | `just app-service-dashboard` | 生成 PostgreSQL 数据源的 Grafana 使用情况看板 JSON，默认写入 `.ubaa_local/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
+| `just app-service-diagnostics-dashboard` | 生成维护者专用的错误诊断看板 JSON，默认写入同一目录；不联网 |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
 
