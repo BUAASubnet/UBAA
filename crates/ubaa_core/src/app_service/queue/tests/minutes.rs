@@ -69,6 +69,7 @@ fn app_service_minutes_同分钟累加并在校园午夜从零起算() {
         })
     };
     let failed = TelemetryEvent::Error(ErrorDimensions {
+        diagnostic: None,
         event: ErrorEvent::AuthFailed,
         feature: Feature::Auth,
         route: Route::Webvpn,

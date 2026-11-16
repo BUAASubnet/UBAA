@@ -20,6 +20,7 @@ fn database() -> Connection {
     let db = Connection::open_in_memory().unwrap();
     db.execute_batch(SCHEMA).unwrap();
     db.execute_batch(MINUTE_SCHEMA).unwrap();
+    db.execute_batch(DIAGNOSTIC_SCHEMA).unwrap();
     db
 }
 
@@ -57,6 +58,7 @@ fn counter() -> TelemetryEvent {
 
 fn detailed_error(index: usize) -> TelemetryEvent {
     TelemetryEvent::Error(ErrorDimensions {
+        diagnostic: None,
         event: ErrorEvent::FeatureFailed,
         feature: Feature::Schedule,
         route: Route::Direct,
@@ -474,5 +476,62 @@ fn app_service_pending_expiry_does_not_change_partially_expired_frozen_body() {
             .get::<_, i64>(0))
             .unwrap(),
         0
+    );
+}
+
+#[test]
+fn 相同错误更新样本而不拆分计数且冻结携带最新详情() {
+    let mut db = database();
+    let tx = transaction(&mut db);
+    let mut event = detailed_error(0);
+    for status in [502, 503] {
+        let TelemetryEvent::Error(dimensions) = &mut event else {
+            unreachable!()
+        };
+        dimensions.diagnostic = Some(Box::new(crate::error::ErrorDiagnostic {
+            source: "crates/ubaa_core/src/features/http.rs:12".into(),
+            status: Some(status),
+            ..Default::default()
+        }));
+        assert!(enqueue(&tx, day(), VERSION, Surface::Gui, &event, None).unwrap());
+    }
+    let rows: i64 = tx
+        .query_row("SELECT COUNT(*) FROM app_service_pending", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(rows, 1);
+    let batch = freeze(
+        &tx,
+        day(),
+        Uuid::new_v4(),
+        Platform::Android,
+        Channel::Github,
+    )
+    .unwrap()
+    .unwrap();
+    let payload = days(&batch);
+    assert_eq!(payload[0]["errors"][0]["count"], 2);
+    assert_eq!(payload[0]["errors"][0]["diagnostic"]["status"], 503);
+}
+
+#[test]
+fn 诊断队列容量按中文提示的utf8字节计量() {
+    let mut db = database();
+    let tx = transaction(&mut db);
+    let mut event = detailed_error(0);
+    let TelemetryEvent::Error(dimensions) = &mut event else {
+        unreachable!()
+    };
+    let base_bytes = serde_json::to_vec(dimensions).unwrap().len();
+    let diagnostic = crate::error::ErrorDiagnostic {
+        source: "crates/ubaa_core/src/features/bykc/parser.rs:30".into(),
+        upstream_message: Some("报名失败，该课程人数已满".into()),
+        ..Default::default()
+    };
+    let diagnostic_bytes = diagnostic.to_json().unwrap().len();
+    dimensions.diagnostic = Some(Box::new(diagnostic));
+    assert!(enqueue(&tx, day(), VERSION, Surface::Gui, &event, None).unwrap());
+    assert_eq!(
+        queued_bytes(&tx).unwrap(),
+        base_bytes + diagnostic_bytes + 16 + usize::from(COUNT_AND_SEPARATOR_BYTES)
     );
 }

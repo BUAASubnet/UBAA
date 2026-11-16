@@ -3,13 +3,13 @@ use futures_util::FutureExt;
 use ubaa_core::facade as core;
 
 pub(crate) struct PreparationError {
-    bridge: BridgeError,
+    bridge: Box<BridgeError>,
     original: Option<core::RoutedError>,
 }
 impl PreparationError {
     pub(crate) fn from_routed(error: core::RoutedError) -> Self {
         Self {
-            bridge: BridgeError::from_routed(error.clone()),
+            bridge: Box::new(BridgeError::from_routed(error.clone())),
             original: Some(error),
         }
     }
@@ -18,22 +18,22 @@ impl PreparationError {
         map: impl FnOnce(core::RoutedError) -> BridgeError,
     ) -> Self {
         Self {
-            bridge: map(error.clone()),
+            bridge: Box::new(map(error.clone())),
             original: Some(error),
         }
     }
     pub(crate) fn into_bridge(self) -> BridgeError {
-        self.bridge
+        *self.bridge
     }
     pub(crate) fn into_routed(self) -> core::RoutedError {
         self.original
-            .unwrap_or_else(|| routed_bridge_error(self.bridge))
+            .unwrap_or_else(|| routed_bridge_error(*self.bridge))
     }
 }
 impl From<BridgeError> for PreparationError {
     fn from(bridge: BridgeError) -> Self {
         Self {
-            bridge,
+            bridge: Box::new(bridge),
             original: None,
         }
     }

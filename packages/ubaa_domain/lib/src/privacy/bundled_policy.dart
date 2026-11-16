@@ -2,7 +2,7 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 5,
+  version: 6,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
@@ -65,7 +65,8 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '本次运行诊断保存在内存中，用于说明本次运行的错误类别，不会自动上传。反馈问题前请检查拟发送的文字和截图。',
+      text:
+          '本地诊断保存最近七天内最多 100 条错误记录，用于定位错误阶段和原因。完整诊断报告不会自动上传。反馈问题前请检查拟发送的文字和截图。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -121,6 +122,12 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       level: 0,
       text:
           '按分钟汇总的登录发起、成功、失败次数和各功能的加载次数及结果，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text:
+          '错误统计还可以附带 Core 源码位置、失败阶段与原因、HTTP 状态、响应长度与类别、JSON 字段类型和解析行列。上游业务码只保留有界数字；业务提示只保留经过逐字确认不含个人数据的固定说明。未知错误正文、业务字段值和响应全文不上传。相同错误维度只保留最新样本，服务端样本保留 14 天。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -195,5 +202,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>['产品改进统计改由维护者位于中国大陆的服务器处理和保存。'],
+  changes: <String>['错误统计增加安全诊断样本，本地诊断保留最近七天的有限记录。'],
 );

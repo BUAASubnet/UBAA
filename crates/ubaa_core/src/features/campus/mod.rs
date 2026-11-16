@@ -172,7 +172,11 @@ pub(super) fn status(response: &HttpResponse) -> Result<()> {
 pub(super) async fn json(runtime: &mut ClientRuntime, direct: &str) -> Result<serde_json::Value> {
     let response = get(runtime, direct, true, PORTAL_HOME).await?;
     status(&response)?;
-    serde_json::from_slice(&response.body).map_err(|_| parser::invalid())
+    serde_json::from_slice(&response.body).map_err(|_| {
+        parser::invalid()
+            .with_diagnostic("parse", "campus_json_invalid")
+            .with_response(&response.body, Some(response.status))
+    })
 }
 
 pub(super) async fn activate(runtime: &mut ClientRuntime, service: Service) -> Result<()> {

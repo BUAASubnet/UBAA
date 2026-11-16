@@ -210,6 +210,8 @@ fn parse_envelope_json<T: for<'de> Deserialize<'de>>(
             false,
             "SPOC 响应不是有效 JSON",
         )
+        .with_diagnostic("parse", "spoc_envelope_invalid")
+        .with_response(body.as_bytes(), None)
     })
 }
 

@@ -476,3 +476,30 @@ it("并发删除与上报完成后不留下安装明细", async () => {
     (await postTelemetry({ ...payload, batch_id: crypto.randomUUID() })).status,
   ).toBe(410);
 });
+
+it("诊断样本与计数分开保存并随安装删除", async () => {
+  const payload = createBatch();
+  const diagnostic = {
+    source: "crates/ubaa_core/src/features/http.rs:12",
+    stage: "response",
+    reason: "http_server_error",
+    status: 503,
+  };
+  Object.assign(payload.days[0].errors[0], { diagnostic });
+  expect((await postTelemetry(payload)).status).toBe(204);
+  expect((await postTelemetry(payload)).status).toBe(204);
+  const row = await env.DB.prepare(
+    "SELECT diagnostic FROM error_samples WHERE install_id = $1",
+  )
+    .bind(payload.install_id)
+    .first<{ diagnostic: typeof diagnostic }>();
+  expect(row?.diagnostic).toEqual(diagnostic);
+  expect((await erase(payload.install_id)).status).toBe(204);
+  expect(
+    await env.DB.prepare(
+      "SELECT diagnostic FROM error_samples WHERE install_id = $1",
+    )
+      .bind(payload.install_id)
+      .first(),
+  ).toBeNull();
+});

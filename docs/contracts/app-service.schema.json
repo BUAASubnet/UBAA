@@ -78,11 +78,221 @@
         "count": {"$ref": "#/$defs/count"}
       }
     },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^crates/ubaa_[a-z_]+/(?:src|tests)/[A-Za-z0-9_/]+\\.rs:[0-9]+$"
+        },
+        "stage": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "response_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_kind": {
+          "enum": [
+            "json_object",
+            "json_array",
+            "json_null",
+            "json_scalar",
+            "login_html",
+            "html",
+            "text_or_binary"
+          ]
+        },
+        "upstream_code": {
+          "type": "integer",
+          "minimum": -99999,
+          "maximum": 99999
+        },
+        "upstream_message": {
+          "enum": [
+            "已报名过该课程，请不要重复报名",
+            "报名失败，该课程人数已满",
+            "选课失败，该课程不可选择",
+            "您的会话已失效,请重新登录后再试"
+          ]
+        },
+        "json_line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "json_column": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "json_types": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "status": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "success": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "msg": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "message": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "errmsg": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "data": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "result": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "content": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "data.items": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "data.rows": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "data.list": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "result.items": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            "content.list": {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "string",
+                "array",
+                "object"
+              ]
+            }
+          }
+        }
+      }
+    },
     "error": {
       "type": "object",
       "additionalProperties": false,
       "required": ["event", "feature", "route", "error_code", "error_kind", "retryable", "count"],
       "properties": {
+        "diagnostic": {"$ref": "#/$defs/diagnostic"},
         "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "ui_error_shown", "crash"]},
         "feature": {"$ref": "#/$defs/feature"},
         "route": {"$ref": "#/$defs/route"},

@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 67;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 68;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -62,6 +62,8 @@ pub struct BridgeError {
     /// 固定枚举名称，不接收上游正文。
     pub auth_stage: Option<String>,
     pub auth_reason: Option<String>,
+    /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+    pub diagnostic_json: Option<String>,
     pub code: BridgeErrorCode,
     pub kind: BridgeErrorKind,
     pub retryable: bool,
@@ -95,6 +97,7 @@ impl BridgeError {
             cache_failure: None,
             auth_stage: None,
             auth_reason: None,
+            diagnostic_json: None,
         }
     }
 
@@ -121,6 +124,7 @@ impl BridgeError {
                 .auth_diagnostic()
                 .and_then(|value| value.reason)
                 .map(|value| value.wire_name().into()),
+            diagnostic_json: error.diagnostic().to_json(),
             message: error.message,
             resolved_route,
             cache_failure: None,
@@ -207,6 +211,8 @@ pub struct BridgeSafeError {
     /// 固定枚举名称，不接收上游正文。
     pub auth_stage: Option<String>,
     pub auth_reason: Option<String>,
+    /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+    pub diagnostic_json: Option<String>,
     pub code: String,
     pub kind: String,
     pub retryable: bool,
@@ -595,6 +601,10 @@ fn map_route_login(result: RouteLoginResult) -> BridgeRouteLoginResult {
 
 pub(crate) fn map_safe_error(error: SafeError) -> BridgeSafeError {
     BridgeSafeError {
+        diagnostic_json: error
+            .context
+            .as_ref()
+            .and_then(ubaa_core::facade::ErrorDiagnostic::to_json),
         auth_stage: error.diagnostic.map(|value| value.stage.wire_name().into()),
         auth_reason: error
             .diagnostic

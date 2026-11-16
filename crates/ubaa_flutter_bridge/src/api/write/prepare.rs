@@ -600,6 +600,7 @@ impl BridgeClient {
                 return Err((BridgeError {
                     auth_stage: None,
                     auth_reason: None,
+                    diagnostic_json: None,
                     cache_failure: None,
                     code: crate::api::client::BridgeErrorCode::UpstreamChanged,
                     kind: crate::api::client::BridgeErrorKind::Upstream,

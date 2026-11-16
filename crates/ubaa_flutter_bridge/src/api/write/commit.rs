@@ -161,6 +161,7 @@ pub(super) fn finish_commit_success(
         return Err(BridgeError {
             auth_stage: None,
             auth_reason: None,
+            diagnostic_json: None,
             cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
@@ -173,6 +174,7 @@ pub(super) fn finish_commit_success(
         return Err(BridgeError {
             auth_stage: None,
             auth_reason: None,
+            diagnostic_json: None,
             cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
@@ -208,6 +210,7 @@ fn map_dispatch_error(
         return BridgeError {
             auth_stage: None,
             auth_reason: None,
+            diagnostic_json: None,
             cache_failure: None,
             code: BridgeErrorCode::OperationConflict,
             kind: BridgeErrorKind::Input,

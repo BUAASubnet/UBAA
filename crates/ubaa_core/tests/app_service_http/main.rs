@@ -143,6 +143,7 @@ async fn upload_retry_and_erase_over_http() {
         result: CounterResult::Success,
     });
     let error = TelemetryEvent::Error(ErrorDimensions {
+        diagnostic: None,
         event: ErrorEvent::FeatureFailed,
         feature: Feature::Grades,
         route: Route::Webvpn,

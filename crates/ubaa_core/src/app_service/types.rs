@@ -187,6 +187,8 @@ wire_enum! {
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ErrorDimensions {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostic: Option<Box<crate::error::ErrorDiagnostic>>,
     pub event: ErrorEvent,
     pub feature: Feature,
     pub route: Route,
@@ -257,6 +259,10 @@ impl TelemetryEvent {
             ERROR_CODE.is_match(&error.error_code)
         };
         valid_code
+            && error
+                .diagnostic
+                .as_deref()
+                .is_none_or(crate::error::ErrorDiagnostic::is_valid)
             && error
                 .source
                 .as_ref()

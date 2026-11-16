@@ -20,6 +20,7 @@ pub(crate) use write::{deselect_course, preflight_sign_course, select_course, si
 
 use crate::error::UbaaError;
 
+#[track_caller]
 fn error(message: &str) -> UbaaError {
     UbaaError::upstream_changed(message)
 }

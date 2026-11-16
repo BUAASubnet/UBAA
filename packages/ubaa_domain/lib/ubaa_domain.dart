@@ -29,3 +29,5 @@ export 'src/privacy/bundled_policy.dart';
 export 'src/privacy/policy.dart';
 
 export 'src/app_service.dart';
+
+export 'src/common/error_diagnostic.dart';

@@ -67,6 +67,7 @@ final class BridgeBhpanService implements BhpanService {
         kind: mapped.kind,
         resolvedRoute: mapped.resolvedRoute,
         retryable: mapped.retryable,
+        diagnostic: mapped.diagnostic,
       );
     }
   }

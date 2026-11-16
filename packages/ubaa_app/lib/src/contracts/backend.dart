@@ -14,6 +14,7 @@ class BackendException implements Exception {
     this.issueId,
     this.authStage,
     this.authReason,
+    this.diagnostic,
     this.accountMismatch = false,
     this.clientDisposed = false,
     this.captchaRequired = false,
@@ -29,6 +30,7 @@ class BackendException implements Exception {
     issueId: error.issueId,
     authStage: error.authStage,
     authReason: error.authReason,
+    diagnostic: error.diagnostic,
   );
 
   final UbaaErrorCode code;
@@ -39,6 +41,7 @@ class BackendException implements Exception {
   final String? issueId;
   final AuthFailureStage? authStage;
   final AuthFailureReason? authReason;
+  final ErrorDiagnostic? diagnostic;
 
   /// 缓存身份不一致必须关闭账号投影，不能只作为局部查询错误。
   final bool accountMismatch;

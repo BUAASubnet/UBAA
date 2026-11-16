@@ -249,17 +249,23 @@ mixin ControllerAppService on ControllerState {
     return completion.future;
   }
 
-  Future<void> recordAppCrash(Object error, StackTrace? stackTrace) =>
-      internalTrackTelemetry(
-        TelemetryEvents.crash,
-        properties: {
-          'feature': 'app',
-          'error_code': error.runtimeType.toString().split('<').first,
-          'error_kind': 'internal',
-          'retryable': false,
-          if (telemetrySource(stackTrace) case final source?) 'source': source,
-        },
-      );
+  Future<void> recordAppCrash(Object error, StackTrace? stackTrace) {
+    internalRecordFailure(
+      error,
+      DiagnosticOperation.crash,
+      stackTrace: stackTrace,
+    );
+    return internalTrackTelemetry(
+      TelemetryEvents.crash,
+      properties: {
+        'feature': 'app',
+        'error_code': error.runtimeType.toString().split('<').first,
+        'error_kind': 'internal',
+        'retryable': false,
+        if (telemetrySource(stackTrace) case final source?) 'source': source,
+      },
+    );
+  }
 
   void recordPresentedError(UiError error) => internalRecordVisibleError(error);
 

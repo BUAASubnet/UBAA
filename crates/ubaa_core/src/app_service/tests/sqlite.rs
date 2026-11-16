@@ -303,7 +303,7 @@ fn 校园午夜后原会话再次登记同一用户和年级() {
 
 #[test]
 fn 既有安装数据库迁移保留同意开关和交付时间() {
-    for version in [1, 2, 3] {
+    for version in [1, 2, 3, 4] {
         check_migration(version);
     }
 }
@@ -328,8 +328,11 @@ fn check_migration(version: u32) {
             )
             .unwrap();
     }
-    if version == 3 {
+    if version >= 3 {
         installation.execute_batch(bootstrap::SCHEMA).unwrap();
+    }
+    if version >= 4 {
+        installation.execute_batch(queue::MINUTE_SCHEMA).unwrap();
     }
     installation
         .pragma_update(None, "user_version", version)
@@ -380,7 +383,7 @@ fn check_migration(version: u32) {
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        4
+        5
     );
     let attempt: Option<i64> = installation
         .query_row(

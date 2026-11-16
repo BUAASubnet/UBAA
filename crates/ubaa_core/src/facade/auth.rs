@@ -334,6 +334,7 @@ pub(super) fn safe_error(error: &UbaaError) -> SafeError {
         .trim_matches('"')
         .to_owned();
     SafeError {
+        context: Some(error.diagnostic().clone()),
         diagnostic: error.auth_diagnostic(),
         code,
         kind,

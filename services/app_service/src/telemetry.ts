@@ -66,6 +66,13 @@ function detailUpserts(db: Database) {
       countColumns,
       updateCount,
     ),
+    sample: detailUpsert(
+      db,
+      "error_samples",
+      [...keyedByVersion, ...eventDimensions, "error_code", "source"],
+      ["diagnostic"],
+      "diagnostic = excluded.diagnostic",
+    ),
     timing: detailUpsert(
       db,
       "timing_days",
@@ -228,8 +235,23 @@ export async function reportTelemetry(
       error_kind,
       retryable,
       source,
+      diagnostic,
       count,
     } of errors) {
+      if (diagnostic) {
+        statements.push(
+          upserts.sample.bind(
+            ...dimensions,
+            event,
+            feature,
+            route,
+            error_code,
+            source ?? "",
+            JSON.stringify(diagnostic),
+            ...gate,
+          ),
+        );
+      }
       statements.push(
         upserts.error.bind(
           ...dimensions,

@@ -163,6 +163,7 @@ export async function runAggregation(
     ...Object.keys(COUNT_KEYS).map((name) =>
       cleanup(`${name}_days`, "day", countCutoff),
     ),
+    cleanup("error_samples", "day", shiftDay(day, -14)),
     cleanup("batches", "received_at", timestampCutoff(14).toISOString()),
     cleanup("erased_installs", "erased_at", thirtyDayCutoff.toISOString()),
     cleanup("minute_counts", "minute_at", campusMinute(thirtyDayCutoff)),

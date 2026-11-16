@@ -13,6 +13,14 @@ use crate::domain::{
 use crate::error::Result;
 
 pub(super) fn envelope(body: &str) -> Result<Value> {
+    parse_envelope(body).map_err(|error| {
+        error
+            .with_diagnostic("parse", "bykc_envelope_invalid")
+            .with_response(body.as_bytes(), None)
+    })
+}
+
+fn parse_envelope(body: &str) -> Result<Value> {
     let value: Value = serde_json::from_str(body).map_err(|_| error("博雅响应无法解析"))?;
     let object = value.as_object().ok_or_else(|| error("博雅响应结构无效"))?;
     let status = object

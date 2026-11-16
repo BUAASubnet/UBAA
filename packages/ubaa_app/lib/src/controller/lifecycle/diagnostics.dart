@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -230,6 +231,8 @@ mixin ControllerDiagnostics on ControllerState {
         'feature': feature,
         'route': (error.resolvedRoute ?? route)?.name ?? 'none',
         'error_code': error.code.wireName,
+        if (error.diagnostic != null)
+          'diagnostic': jsonEncode(error.diagnostic!.toJson()),
         'error_kind': error.kind == UbaaErrorKind.unknown
             ? 'internal'
             : error.kind.name,

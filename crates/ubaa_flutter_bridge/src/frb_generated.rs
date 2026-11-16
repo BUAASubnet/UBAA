@@ -1859,6 +1859,7 @@ fn wire__crate__api__app_service__BridgeAppService_enqueue_error_impl(
                 <crate::api::client::BridgeErrorKind>::sse_decode(&mut deserializer);
             let api_retryable = <bool>::sse_decode(&mut deserializer);
             let api_source = <Option<String>>::sse_decode(&mut deserializer);
+            let api_diagnostic_json = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::client::BridgeError>(
@@ -1889,6 +1890,7 @@ fn wire__crate__api__app_service__BridgeAppService_enqueue_error_impl(
                             api_error_kind,
                             api_retryable,
                             api_source,
+                            api_diagnostic_json,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)
@@ -25213,6 +25215,7 @@ impl SseDecode for crate::api::client::BridgeError {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_authStage = <Option<String>>::sse_decode(deserializer);
         let mut var_authReason = <Option<String>>::sse_decode(deserializer);
+        let mut var_diagnosticJson = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <crate::api::client::BridgeErrorCode>::sse_decode(deserializer);
         let mut var_kind = <crate::api::client::BridgeErrorKind>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
@@ -25224,6 +25227,7 @@ impl SseDecode for crate::api::client::BridgeError {
         return crate::api::client::BridgeError {
             auth_stage: var_authStage,
             auth_reason: var_authReason,
+            diagnostic_json: var_diagnosticJson,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -27901,6 +27905,7 @@ impl SseDecode for crate::api::client::BridgeSafeError {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_authStage = <Option<String>>::sse_decode(deserializer);
         let mut var_authReason = <Option<String>>::sse_decode(deserializer);
+        let mut var_diagnosticJson = <Option<String>>::sse_decode(deserializer);
         let mut var_code = <String>::sse_decode(deserializer);
         let mut var_kind = <String>::sse_decode(deserializer);
         let mut var_retryable = <bool>::sse_decode(deserializer);
@@ -27908,6 +27913,7 @@ impl SseDecode for crate::api::client::BridgeSafeError {
         return crate::api::client::BridgeSafeError {
             auth_stage: var_authStage,
             auth_reason: var_authReason,
+            diagnostic_json: var_diagnosticJson,
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
@@ -38618,6 +38624,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeError {
         [
             self.auth_stage.into_into_dart().into_dart(),
             self.auth_reason.into_into_dart().into_dart(),
+            self.diagnostic_json.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -42419,6 +42426,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeSafeError {
         [
             self.auth_stage.into_into_dart().into_dart(),
             self.auth_reason.into_into_dart().into_dart(),
+            self.diagnostic_json.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.retryable.into_into_dart().into_dart(),
@@ -46795,6 +46803,7 @@ impl SseEncode for crate::api::client::BridgeError {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Option<String>>::sse_encode(self.auth_stage, serializer);
         <Option<String>>::sse_encode(self.auth_reason, serializer);
+        <Option<String>>::sse_encode(self.diagnostic_json, serializer);
         <crate::api::client::BridgeErrorCode>::sse_encode(self.code, serializer);
         <crate::api::client::BridgeErrorKind>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);
@@ -48688,6 +48697,7 @@ impl SseEncode for crate::api::client::BridgeSafeError {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Option<String>>::sse_encode(self.auth_stage, serializer);
         <Option<String>>::sse_encode(self.auth_reason, serializer);
+        <Option<String>>::sse_encode(self.diagnostic_json, serializer);
         <String>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.kind, serializer);
         <bool>::sse_encode(self.retryable, serializer);

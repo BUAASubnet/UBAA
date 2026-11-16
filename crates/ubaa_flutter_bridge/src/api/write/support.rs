@@ -354,6 +354,7 @@ fn routed_local_error(
     BridgeError {
         auth_stage: None,
         auth_reason: None,
+        diagnostic_json: None,
         cache_failure: None,
         code,
         kind,

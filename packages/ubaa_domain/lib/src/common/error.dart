@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'route.dart';
+import 'error_diagnostic.dart';
 
 /// 登录诊断只接受固定阶段和原因，不携带学校返回的文字。
 enum AuthFailureStage {
@@ -132,6 +133,7 @@ class UiError {
     this.initializationFailure,
     this.authStage,
     this.authReason,
+    this.diagnostic,
   });
 
   final UbaaErrorCode code;
@@ -147,6 +149,7 @@ class UiError {
   final InitializationFailure? initializationFailure;
   final AuthFailureStage? authStage;
   final AuthFailureReason? authReason;
+  final ErrorDiagnostic? diagnostic;
 
   /// 不得包含密码、Cookie、URL、上游响应正文或个人信息。
   final String? technicalDetail;
@@ -165,6 +168,7 @@ class UiError {
     initializationFailure: initializationFailure,
     authStage: authStage,
     authReason: authReason,
+    diagnostic: diagnostic,
   );
 
   @override

@@ -20,6 +20,7 @@ class CoreErrorPayload {
     this.resolvedRoute,
     this.authStage,
     this.authReason,
+    this.diagnostic,
   });
 
   final String code;
@@ -30,6 +31,7 @@ class CoreErrorPayload {
   final ConnectionMode? resolvedRoute;
   final AuthFailureStage? authStage;
   final AuthFailureReason? authReason;
+  final ErrorDiagnostic? diagnostic;
 
   /// 从 Core 错误对象或当前 CLI schema-v10（兼容历史版本）envelope 中解析。
   factory CoreErrorPayload.fromJson(Object? value) {
@@ -51,6 +53,9 @@ class CoreErrorPayload {
     final reason = map['authReason'];
     return CoreErrorPayload(
       code: rawCode.trim(),
+      diagnostic: map['diagnostic'] is String
+          ? ErrorDiagnostic.parse(map['diagnostic'] as String)
+          : null,
       authStage: AuthFailureStage.parse(stage is String ? stage : null),
       authReason: AuthFailureReason.parse(reason is String ? reason : null),
       kind: rawKind is String ? rawKind.trim() : null,
@@ -116,7 +121,9 @@ class UiErrorMapper {
     return UiError(
       code: code,
       title: template.title,
-      message: template.message,
+      message: payload.diagnostic?.upstreamMessage == null
+          ? template.message
+          : '学校返回：${payload.diagnostic!.upstreamMessage}',
       actionLabel: template.actionLabel,
       retryable: retryable,
       issueId: issueId,
@@ -124,6 +131,7 @@ class UiErrorMapper {
       resolvedRoute: payload.resolvedRoute,
       authStage: payload.authStage,
       authReason: payload.authReason,
+      diagnostic: payload.diagnostic,
     );
   }
 

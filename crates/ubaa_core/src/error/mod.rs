@@ -1,7 +1,9 @@
 //! 供宿主与绑定层使用的稳定、可序列化错误。
 
 mod auth_diagnostic;
+mod diagnostic;
 pub use auth_diagnostic::{AuthDiagnostic, AuthReason, AuthStage};
+pub use diagnostic::{ErrorDiagnostic, safe_upstream_message};
 
 use std::fmt;
 
@@ -62,7 +64,7 @@ pub enum ErrorKind {
 }
 
 /// Core 返回的安全错误载荷。
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, Serialize)]
 pub struct UbaaError {
     /// 稳定机器码。
     pub code: ErrorCode,
@@ -75,6 +77,8 @@ pub struct UbaaError {
     /// 仅本进程的可信控制流使用，不属于公开 wire 错误合同。
     #[serde(skip)]
     cause: Option<ErrorCause>,
+    #[serde(skip)]
+    diagnostic: Box<ErrorDiagnostic>,
     #[serde(skip)]
     auth_diagnostic: Option<AuthDiagnostic>,
 }
@@ -104,6 +108,18 @@ pub enum InitializationFailure {
     ComponentUnavailable,
 }
 
+// 诊断位置随调用点变化，不参与业务错误的相等判断。
+impl PartialEq for UbaaError {
+    fn eq(&self, other: &Self) -> bool {
+        self.code == other.code
+            && self.kind == other.kind
+            && self.retryable == other.retryable
+            && self.message == other.message
+            && self.cause == other.cause
+            && self.auth_diagnostic == other.auth_diagnostic
+    }
+}
+
 impl fmt::Debug for UbaaError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -117,6 +133,23 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    /// 返回与展示文案分离的安全诊断信息。
+    #[must_use]
+    pub fn diagnostic(&self) -> &ErrorDiagnostic {
+        &self.diagnostic
+    }
+
+    pub(crate) fn with_diagnostic(mut self, stage: &'static str, reason: &'static str) -> Self {
+        self.diagnostic.stage = Some(stage.into());
+        self.diagnostic.reason = Some(reason.into());
+        self
+    }
+
+    pub(crate) fn with_response(mut self, body: &[u8], status: Option<u16>) -> Self {
+        self.diagnostic.response(body, status);
+        self
+    }
+
     /// 返回不含用户数据的本地登录诊断。
     #[must_use]
     pub const fn auth_diagnostic(&self) -> Option<AuthDiagnostic> {
@@ -124,12 +157,17 @@ impl UbaaError {
     }
 
     pub(crate) fn with_auth_reason(mut self, reason: AuthReason) -> Self {
+        self.diagnostic.stage = Some(reason.diagnostic().stage.wire_name().into());
+        self.diagnostic.reason = Some(reason.wire_name().into());
         self.auth_diagnostic = Some(reason.diagnostic());
         self
     }
 
     pub(crate) fn with_auth_stage(mut self, stage: AuthStage) -> Self {
         if self.auth_diagnostic.is_none() {
+            self.diagnostic
+                .stage
+                .get_or_insert_with(|| stage.wire_name().into());
             self.auth_diagnostic = Some(AuthDiagnostic {
                 stage,
                 reason: None,
@@ -156,11 +194,13 @@ impl UbaaError {
         matches!(self.cause, Some(ErrorCause::NetworkChanged))
     }
     /// 构造不可重试的输入错误。
+    #[track_caller]
     pub fn invalid_input(message: impl Into<String>) -> Self {
         Self::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
     }
 
     /// 构造不可重试的上游协议变化错误。
+    #[track_caller]
     pub fn upstream_changed(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::UpstreamChanged,
@@ -171,11 +211,13 @@ impl UbaaError {
     }
 
     /// 构造不可重试的解析错误。
+    #[track_caller]
     pub fn parse_error(message: impl Into<String>) -> Self {
         Self::new(ErrorCode::ParseError, ErrorKind::Parse, false, message)
     }
 
     /// 构造认证要求错误。
+    #[track_caller]
     pub fn authentication_required(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::AuthenticationRequired,
@@ -199,6 +241,7 @@ impl UbaaError {
     }
 
     /// 构造可重试的上游不可用错误。
+    #[track_caller]
     pub fn upstream_unavailable(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::UpstreamUnavailable,
@@ -209,6 +252,7 @@ impl UbaaError {
     }
 
     /// 构造可重试的上游业务不可用错误。
+    #[track_caller]
     pub fn business_unavailable(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::BusinessUnavailable,
@@ -230,6 +274,7 @@ impl UbaaError {
     }
 
     /// 构造不可重试的结果未知错误。
+    #[track_caller]
     pub fn outcome_unknown(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::OutcomeUnknown,
@@ -265,6 +310,7 @@ impl UbaaError {
         .with_initialization_failure(InitializationFailure::ResourceBusy)
     }
     /// 构造安全的 Core 错误。
+    #[track_caller]
     pub fn new(
         code: ErrorCode,
         kind: ErrorKind,
@@ -276,6 +322,7 @@ impl UbaaError {
             kind,
             retryable,
             message: message.into(),
+            diagnostic: Box::new(ErrorDiagnostic::at(std::panic::Location::caller())),
             cause: None,
             auth_diagnostic: None,
         }

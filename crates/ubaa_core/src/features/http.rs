@@ -203,7 +203,9 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorKind::Authentication,
             false,
             format!("{feature} 需要认证"),
-        ));
+        )
+        .with_diagnostic("response", "authentication_required")
+        .with_response(&response.body, Some(response.status)));
     }
     if response.status >= 500 {
         return Err(UbaaError::new(
@@ -211,7 +213,9 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorKind::Upstream,
             true,
             format!("{feature} 上游不可用"),
-        ));
+        )
+        .with_diagnostic("response", "http_server_error")
+        .with_response(&response.body, Some(response.status)));
     }
     if response.status != 200 {
         return Err(UbaaError::new(
@@ -219,7 +223,9 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorKind::Upstream,
             false,
             format!("{feature} 请求失败"),
-        ));
+        )
+        .with_diagnostic("response", "http_status_unexpected")
+        .with_response(&response.body, Some(response.status)));
     }
     Ok(())
 }

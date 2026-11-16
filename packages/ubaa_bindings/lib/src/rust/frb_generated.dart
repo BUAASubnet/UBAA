@@ -298,6 +298,7 @@ abstract class RustLibApi extends BaseApi {
     required BridgeErrorKind errorKind,
     required bool retryable,
     String? source,
+    String? diagnosticJson,
   });
 
   Future<bool> crateApiAppServiceBridgeAppServiceEnqueueTiming({
@@ -3350,6 +3351,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required BridgeErrorKind errorKind,
     required bool retryable,
     String? source,
+    String? diagnosticJson,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -3366,6 +3368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_bridge_error_kind(errorKind, serializer);
           sse_encode_bool(retryable, serializer);
           sse_encode_opt_String(source, serializer);
+          sse_encode_opt_String(diagnosticJson, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -3387,6 +3390,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           errorKind,
           retryable,
           source,
+          diagnosticJson,
         ],
         apiImpl: this,
       ),
@@ -3405,6 +3409,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "errorKind",
           "retryable",
           "source",
+          "diagnosticJson",
         ],
       );
 
@@ -20324,17 +20329,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeError dco_decode_bridge_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return BridgeError(
       authStage: dco_decode_opt_String(arr[0]),
       authReason: dco_decode_opt_String(arr[1]),
-      code: dco_decode_bridge_error_code(arr[2]),
-      kind: dco_decode_bridge_error_kind(arr[3]),
-      retryable: dco_decode_bool(arr[4]),
-      message: dco_decode_String(arr[5]),
-      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[6]),
-      cacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[7]),
+      diagnosticJson: dco_decode_opt_String(arr[2]),
+      code: dco_decode_bridge_error_code(arr[3]),
+      kind: dco_decode_bridge_error_kind(arr[4]),
+      retryable: dco_decode_bool(arr[5]),
+      message: dco_decode_String(arr[6]),
+      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[7]),
+      cacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[8]),
     );
   }
 
@@ -22581,15 +22587,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeSafeError dco_decode_bridge_safe_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BridgeSafeError(
       authStage: dco_decode_opt_String(arr[0]),
       authReason: dco_decode_opt_String(arr[1]),
-      code: dco_decode_String(arr[2]),
-      kind: dco_decode_String(arr[3]),
-      retryable: dco_decode_bool(arr[4]),
-      message: dco_decode_String(arr[5]),
+      diagnosticJson: dco_decode_opt_String(arr[2]),
+      code: dco_decode_String(arr[3]),
+      kind: dco_decode_String(arr[4]),
+      retryable: dco_decode_bool(arr[5]),
+      message: dco_decode_String(arr[6]),
     );
   }
 
@@ -30342,6 +30349,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_authStage = sse_decode_opt_String(deserializer);
     var var_authReason = sse_decode_opt_String(deserializer);
+    var var_diagnosticJson = sse_decode_opt_String(deserializer);
     var var_code = sse_decode_bridge_error_code(deserializer);
     var var_kind = sse_decode_bridge_error_kind(deserializer);
     var var_retryable = sse_decode_bool(deserializer);
@@ -30355,6 +30363,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BridgeError(
       authStage: var_authStage,
       authReason: var_authReason,
+      diagnosticJson: var_diagnosticJson,
       code: var_code,
       kind: var_kind,
       retryable: var_retryable,
@@ -32808,6 +32817,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_authStage = sse_decode_opt_String(deserializer);
     var var_authReason = sse_decode_opt_String(deserializer);
+    var var_diagnosticJson = sse_decode_opt_String(deserializer);
     var var_code = sse_decode_String(deserializer);
     var var_kind = sse_decode_String(deserializer);
     var var_retryable = sse_decode_bool(deserializer);
@@ -32815,6 +32825,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BridgeSafeError(
       authStage: var_authStage,
       authReason: var_authReason,
+      diagnosticJson: var_diagnosticJson,
       code: var_code,
       kind: var_kind,
       retryable: var_retryable,
@@ -40977,6 +40988,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_String(self.authStage, serializer);
     sse_encode_opt_String(self.authReason, serializer);
+    sse_encode_opt_String(self.diagnosticJson, serializer);
     sse_encode_bridge_error_code(self.code, serializer);
     sse_encode_bridge_error_kind(self.kind, serializer);
     sse_encode_bool(self.retryable, serializer);
@@ -42913,6 +42925,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_String(self.authStage, serializer);
     sse_encode_opt_String(self.authReason, serializer);
+    sse_encode_opt_String(self.diagnosticJson, serializer);
     sse_encode_String(self.code, serializer);
     sse_encode_String(self.kind, serializer);
     sse_encode_bool(self.retryable, serializer);
@@ -46294,6 +46307,7 @@ class BridgeAppServiceImpl extends RustOpaque implements BridgeAppService {
     required BridgeErrorKind errorKind,
     required bool retryable,
     String? source,
+    String? diagnosticJson,
   }) => RustLib.instance.api.crateApiAppServiceBridgeAppServiceEnqueueError(
     that: this,
     event: event,
@@ -46303,6 +46317,7 @@ class BridgeAppServiceImpl extends RustOpaque implements BridgeAppService {
     errorKind: errorKind,
     retryable: retryable,
     source: source,
+    diagnosticJson: diagnosticJson,
   );
 
   /// 聚合一条已分桶的耗时。

@@ -18,9 +18,9 @@
 诊断的边界：
 
 - 复制是用户的主动操作，报告不会自动上传。
-- 报告只在内存中保存本次运行最近 100 项错误，退出进程后消失。
+- 报告保留本次运行及此前七天内最近 100 项错误。宿主将安全字段保存到本机偏好存储，重启后通过 previous_events 导出历史记录。
 - 不读取凭据、会话文件、账号资料或业务输入，也不保存 HTTP 正文、完整 URL、Cookie、照片和位置。
-- 报告使用独立的 `schema_version=1`，这是本地诊断格式的版本，与 CLI 和 Bridge 合同版本无关。
+- 报告使用独立的 `schema_version=3`，这是本地诊断格式的版本，与 CLI 和 Bridge 合同版本无关。
 
 ## 步骤
 
@@ -77,3 +77,24 @@ Flutter 本地报告与 Rust stderr 是两个诊断层：前者记录 UI 操作�
 - 新错误场景先写从真实适配器或控制器到最终状态的失败测试，并检查原文不会进入 UI、日志或报告。
 - 检查按[检查选择与完成条件](../development/commands.md#检查选择与完成条件)执行，日志字段按[日志与诊断脱敏](../development/conventions.md#日志与诊断脱敏)处理。
 - 全量门禁、宿主 integration、本地回环和真实学校验证的结果分别记录。真实 App 与 Core-live 按 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)运行。
+
+## 结构化错误上下文
+
+`diagnostic` 保留 Core 源码位置、失败阶段和原因。响应诊断包含 HTTP 状态、响应长度与类别、允许字段的 JSON 类型及解析行列。博雅业务拒绝可携带已确认无个人数据的固定上游提示，未知正文不自动共享。
+
+自动上报只发送经过同一字段规则校验的上下文，完整报告仍由用户主动复制。服务端 `error_samples` 与错误计数分开存储，每个安装、日期、版本和错误维度保留最新样本，14 天后清理，安装级删除同时删除样本。部署时先升级服务端 Schema 和数据库，再发布客户端。
+
+维护者可在应用服务数据库查询最近的安全错误样本：
+
+```sql
+SELECT day, app_version, feature, route, error_code,
+       diagnostic->>'source' AS core_source,
+       diagnostic->>'stage' AS stage,
+       diagnostic->>'reason' AS reason,
+       diagnostic
+FROM error_samples
+ORDER BY day DESC
+LIMIT 20;
+```
+
+同一错误的计数仍从 `error_days` 或 `error_daily` 查询，样本条数不等于失败次数。

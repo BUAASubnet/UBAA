@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'package:ubaa_domain/ubaa_domain.dart' show FeatureId, FeatureIdText;
+import 'package:ubaa_domain/ubaa_domain.dart'
+    show FeatureId, FeatureIdText, ErrorDiagnostic;
 
 /// 允许上报的稳定事件名称。
 ///
@@ -87,6 +88,7 @@ const Set<String> _defaultAllowedFields = {
   'error_kind',
   'retryable',
   'source',
+  'diagnostic',
   'result',
   'bucket',
 };
@@ -388,6 +390,7 @@ TelemetryRecord? sanitizeTelemetryRecord(
   properties.forEach((key, value) {
     if (!effectivePolicy.allowsField(key)) return;
     final accepted = switch (key) {
+      'diagnostic' => value is String && ErrorDiagnostic.parse(value) != null,
       'feature' => _features.contains(value),
       'route' => _routes.contains(value),
       'result' => _results.contains(value),

@@ -121,6 +121,7 @@ Future<void> bridgeRecordAppService(
       errorKind: kind,
       retryable: retryable,
       source: fields['source'] as String?,
+      diagnosticJson: fields['diagnostic'] as String?,
     );
   } else if (_timings[record.name] case final metric?) {
     final bucket = _buckets[fields['bucket']];

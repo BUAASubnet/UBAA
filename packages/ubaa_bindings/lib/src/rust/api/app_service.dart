@@ -62,6 +62,7 @@ abstract class BridgeAppService implements RustOpaqueInterface {
     required BridgeErrorKind errorKind,
     required bool retryable,
     String? source,
+    String? diagnosticJson,
   });
 
   /// 聚合一条已分桶的耗时。

@@ -1181,6 +1181,9 @@ class BridgeError implements FrbException {
   /// 固定枚举名称，不接收上游正文。
   final String? authStage;
   final String? authReason;
+
+  /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+  final String? diagnosticJson;
   final BridgeErrorCode code;
   final BridgeErrorKind kind;
   final bool retryable;
@@ -1193,6 +1196,7 @@ class BridgeError implements FrbException {
   const BridgeError({
     this.authStage,
     this.authReason,
+    this.diagnosticJson,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1205,6 +1209,7 @@ class BridgeError implements FrbException {
   int get hashCode =>
       authStage.hashCode ^
       authReason.hashCode ^
+      diagnosticJson.hashCode ^
       code.hashCode ^
       kind.hashCode ^
       retryable.hashCode ^
@@ -1219,6 +1224,7 @@ class BridgeError implements FrbException {
           runtimeType == other.runtimeType &&
           authStage == other.authStage &&
           authReason == other.authReason &&
+          diagnosticJson == other.diagnosticJson &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&
@@ -1423,6 +1429,9 @@ class BridgeSafeError {
   /// 固定枚举名称，不接收上游正文。
   final String? authStage;
   final String? authReason;
+
+  /// Core 已筛选的诊断 JSON，不包含原始异常正文。
+  final String? diagnosticJson;
   final String code;
   final String kind;
   final bool retryable;
@@ -1431,6 +1440,7 @@ class BridgeSafeError {
   const BridgeSafeError({
     this.authStage,
     this.authReason,
+    this.diagnosticJson,
     required this.code,
     required this.kind,
     required this.retryable,
@@ -1441,6 +1451,7 @@ class BridgeSafeError {
   int get hashCode =>
       authStage.hashCode ^
       authReason.hashCode ^
+      diagnosticJson.hashCode ^
       code.hashCode ^
       kind.hashCode ^
       retryable.hashCode ^
@@ -1453,6 +1464,7 @@ class BridgeSafeError {
           runtimeType == other.runtimeType &&
           authStage == other.authStage &&
           authReason == other.authReason &&
+          diagnosticJson == other.diagnosticJson &&
           code == other.code &&
           kind == other.kind &&
           retryable == other.retryable &&
