@@ -64,6 +64,12 @@ class _DocumentsState extends State<_Documents> {
     return pending;
   }
 
+  @override
+  void didUpdateWidget(covariant _Documents oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.service, widget.service)) _read = _list();
+  }
+
   void _reload() => setState(() {
     _selected.clear();
     _selecting = false;

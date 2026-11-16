@@ -127,8 +127,8 @@ class AgendaViewState extends State<AgendaView> {
     widget.route,
     widget.term,
   );
-  Object get _liveContentScope =>
-      (widget.scopeKey, _contentAccount, widget.route, widget.term);
+  // 同账号自动恢复时保留列表和草稿，路线、学期变化只更新查询。
+  Object get _liveContentScope => (widget.scopeKey, _contentAccount);
 
   bool _refreshScope() {
     final next = _liveScope;
