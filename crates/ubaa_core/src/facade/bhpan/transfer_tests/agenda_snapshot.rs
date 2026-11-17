@@ -74,6 +74,100 @@ fn locate(f: &Fixture, files: &[serde_json::Value], dirs: &[serde_json::Value]) 
     );
 }
 #[tokio::test]
+async fn 拉取已有快照合并日程并清理临时正文() {
+    let mut f = Fixture::new();
+    let store = store(&mut f);
+    std::fs::create_dir(f.root.join("source")).unwrap();
+    let source =
+        AgendaStore::open(&f.root.join("source"), "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+    let mut item = event();
+    source.create(item.clone()).unwrap();
+    let snapshot = source.sync_snapshot().unwrap();
+    let identity = Publication {
+        publisher: snapshot.document().items[0].device_id,
+        sequence: 2,
+    };
+    let name = identity.file_name();
+    let body = identity.encode(snapshot.document()).unwrap();
+    let length = body.len();
+    locate(
+        &f,
+        &[
+            entry(
+                "gns://fixture/older",
+                &Publication {
+                    sequence: 1,
+                    ..identity
+                }
+                .file_name(),
+                100,
+            ),
+            entry(
+                "gns://fixture/created",
+                &name,
+                i64::try_from(length).unwrap(),
+            ),
+        ],
+        &[],
+    );
+    f.transport.script.add(
+        HttpMethod::Post,
+        "/api/efast/v1/file/metadata",
+        Some(json!({"docid":"gns://fixture/created"})),
+        &serde_json::to_vec(
+            &json!({"docid":"gns://fixture/created","rev":"snapshot-r","name":name,"size":length}),
+        )
+        .unwrap(),
+    );
+    f.transport.script.add(HttpMethod::Post,"/api/efast/v1/file/osdownload",Some(json!({"docid":"gns://fixture/created","rev":"snapshot-r","authtype":"QUERY_STRING"})),&serde_json::to_vec(&json!({"docid":"gns://fixture/created","rev":"snapshot-r","name":name,"size":length,"authrequest":["GET",OBJECT,"Authorization: object-only"]})).unwrap());
+    f.transport.objects.lock().unwrap().push_back(ObjectStep {
+        status: 200,
+        etag: None,
+        length: None,
+        bytes: body,
+    });
+    let scratch = f.root.join("scratch");
+    let mut service = AgendaSyncService::new(store.clone(), scratch.clone());
+    let report = service
+        .run(
+            &mut f.client,
+            AgendaSyncAction::Pull,
+            t("2026-11-05T03:00:00+08:00"),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, AgendaSyncStatus::UpToDate);
+    assert_eq!(report.pending_count, 0);
+    item.locally_modified = false;
+    assert_eq!(store.get(item.id).unwrap(), Some(item));
+    assert_eq!(std::fs::read_dir(scratch).unwrap().count(), 0);
+    assert_eq!(f.transport.object_calls.load(Ordering::SeqCst), 1);
+    drop((service, source, store));
+    f.finish();
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn 系统禁止硬链接时仍可拉取云端日程() {
+    let output = std::process::Command::new("/usr/bin/sandbox-exec")
+        .args(["-p", "(version 1)(allow default)(deny file-link)"])
+        .arg(std::env::current_exe().unwrap())
+        .arg(format!(
+            "{}::拉取已有快照合并日程并清理临时正文",
+            module_path!().strip_prefix("ubaa_core::").unwrap()
+        ))
+        .args(["--exact", "--nocapture"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "禁止硬链接后的同步失败：\n{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[tokio::test]
 async fn 快照发布只新建独立文件并在最终登记后读取当前版本正文确认() {
     let mut f = Fixture::new();
     let store = store(&mut f);

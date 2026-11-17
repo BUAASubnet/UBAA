@@ -65,6 +65,7 @@ final class AgendaService {
   final _syncUpdates = StreamController<AgendaSyncState>.broadcast();
   Stream<AgendaSyncState> get syncUpdates => _syncUpdates.stream;
   Future<void> _syncTail = Future<void>.value();
+  int _pendingCountRequest = 0;
   bool get supportsSync => _backend is AgendaSyncBackend;
   bool _syncEnabled = false;
   bool get syncEnabled => _syncEnabled;
@@ -143,6 +144,7 @@ final class AgendaService {
             await refreshPermission();
             if (generation != _generation || _disposed)
               throw const AgendaException(AgendaFailure.superseded);
+            _pendingCountRequest++;
             _setSync(
               AgendaSyncState(
                 report: report,
@@ -168,12 +170,10 @@ final class AgendaService {
 
   void _syncAfterWrite(AgendaTime now) {
     if (!supportsSync) return;
-    if (!_syncEnabled) {
-      unawaited(
-        _refreshLocalPendingCount().then<void>((_) {}, onError: (Object _) {}),
-      );
-      return;
-    }
+    unawaited(
+      _refreshLocalPendingCount().then<void>((_) {}, onError: (Object _) {}),
+    );
+    if (!_syncEnabled) return;
     unawaited(
       sync(
         AgendaSyncAction.push,
@@ -184,8 +184,12 @@ final class AgendaService {
 
   Future<void> _refreshLocalPendingCount() async {
     final generation = _generation;
+    final request = ++_pendingCountRequest;
     final count = await _backend.unsyncedCount();
-    if (generation != _generation || _disposed) return;
+    if (generation != _generation ||
+        request != _pendingCountRequest ||
+        _disposed)
+      return;
     _setSync(
       AgendaSyncState(
         report: _syncState.report,
@@ -379,6 +383,7 @@ final class AgendaService {
     return _run(() async {
       final count = await _backend.clearLocalData();
       if (generation == _generation && !_disposed) {
+        _pendingCountRequest++;
         _setSync(
           AgendaSyncState(
             report: _syncState.report,

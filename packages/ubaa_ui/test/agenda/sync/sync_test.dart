@@ -11,7 +11,7 @@ const unknown = AgendaSyncReport(
   changedCount: 0,
 );
 const missing = AgendaSyncReport(
-  status: AgendaSyncStatus.locationUnknown,
+  status: AgendaSyncStatus.needsCreation,
   pendingCount: 2,
   changedCount: 0,
 );
@@ -124,7 +124,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
   });
-  testWidgets('范围未知时取消创建不写入，确认后创建并显示同步结果', (tester) async {
+  testWidgets('目录确认缺失时取消创建不写入，确认后创建并显示同步结果', (tester) async {
     final backend = SyncAgenda()..result = missing;
     final service = await opened(backend);
     await tester.pumpWidget(app(service));
@@ -148,7 +148,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
   });
-  testWidgets('未验证状态保留待同步数量且关闭云端操作', (tester) async {
+  testWidgets('未验证状态保留待同步数量并允许只读刷新', (tester) async {
     final backend = SyncAgenda()
       ..result = const AgendaSyncReport(
         status: AgendaSyncStatus.unverified,
@@ -160,13 +160,27 @@ void main() {
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
     expect(find.text('云端暂时无法同步，3 条修改未同步'), findsOneWidget);
-    expect(
-      tester
-          .widget<ButtonStyleButton>(find.widgetWithText(FilledButton, '同步'))
-          .onPressed,
-      isNull,
-    );
-    expect(backend.calls, [AgendaSyncAction.pull]);
+    await tester.tap(find.widgetWithText(FilledButton, '刷新'));
+    await tester.pumpAndSettle();
+    expect(backend.calls, [AgendaSyncAction.pull, AgendaSyncAction.pull]);
+    await tester.pumpWidget(const SizedBox());
+    await service.dispose();
+  });
+  testWidgets('目录范围未知时只能只读刷新，不能确认创建', (tester) async {
+    final backend = SyncAgenda()
+      ..result = const AgendaSyncReport(
+        status: AgendaSyncStatus.locationUnknown,
+        pendingCount: 2,
+        changedCount: 0,
+      );
+    final service = await opened(backend);
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
+    await tester.tap(find.widgetWithText(FilledButton, '刷新'));
+    await tester.pumpAndSettle();
+    expect(backend.calls, [AgendaSyncAction.pull, AgendaSyncAction.pull]);
+    expect(find.byType(AlertDialog), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
   });

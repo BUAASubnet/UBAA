@@ -14,7 +14,10 @@ use crate::{
     facade::{UbaaClient, bhpan::BhpanTransfer},
 };
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+};
 
 fn core_error(error: crate::error::UbaaError) -> RemoteError {
     if error.is_bhpan_route_unverified() {
@@ -123,12 +126,23 @@ impl SyncRemote for BhpanRemote<'_> {
                     .await
                     .map_err(core_error)?;
                 self.check_current()?;
-                let mut versions = Vec::with_capacity(files.len());
+                let mut publications = BTreeMap::new();
                 for file in files {
                     if file.kind != BhpanItemKind::File {
                         return Err(RemoteError::Failed);
                     }
-                    Publication::parse_file_name(&file.name).map_err(RemoteError::Local)?;
+                    let identity =
+                        Publication::parse_file_name(&file.name).map_err(RemoteError::Local)?;
+                    if publications.insert(identity, file).is_some() {
+                        return Err(RemoteError::Failed);
+                    }
+                }
+                let mut publishers = BTreeSet::new();
+                let mut versions = Vec::new();
+                for (identity, file) in publications.into_iter().rev() {
+                    if !publishers.insert(identity.publisher) {
+                        continue;
+                    }
                     let version = self
                         .client
                         .bhpan_file_version(&file.handle, None)
@@ -209,9 +223,10 @@ impl SyncRemote for BhpanRemote<'_> {
             )));
         }
         let scratch = Scratch::new(self.scratch_root).map_err(core_error)?;
+        // 独占临时目录允许重命名交付，避免 Android 禁止的硬链接。
         let receipt = self
             .client
-            .bhpan_download_file_version(version, scratch.path(), false, BhpanTransfer::new())
+            .bhpan_download_file_version(version, scratch.path(), true, BhpanTransfer::new())
             .await
             .map_err(core_error)?;
         self.check_current()?;

@@ -43,9 +43,11 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(prompts, 2);
 
-    final background = service.syncUpdates.firstWhere(
-      (state) => identical(state.error, denied),
-    );
+    final background = service.syncUpdates
+        .skipWhile((state) => !state.running)
+        .firstWhere(
+          (state) => !state.running && identical(state.error, denied),
+        );
     await service.complete('synthetic-local-item', null, true, now);
     await background;
     expect(backend.data.localCompletions, 1);
