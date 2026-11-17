@@ -6,7 +6,7 @@ import '../theme.dart' show UbaaTheme;
 import '../shared/layout/rail_identity.dart' show UiAppIcon;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
 import '../common/error_card.dart'
-    show FriendlyErrorCard, uiShowDiagnosticsDialog;
+    show FriendlyErrorCard, uiDiagnosticsGuidance, uiShowDiagnosticsDialog;
 
 /// 登录表单。状态由应用协调器持有，组件本身不保存密码。
 class UbaaLoginView extends StatefulWidget {
@@ -242,14 +242,21 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                           ),
                           if (widget.error case final error?) ...<Widget>[
                             const SizedBox(height: 16),
-                            FriendlyErrorCard(error: error),
+                            FriendlyErrorCard(
+                              error: error,
+                              diagnosticsGuidance:
+                                  widget.onReadDiagnostics == null
+                                  ? uiDiagnosticsGuidance
+                                  : '如需反馈，请点下方「诊断信息」分享完整诊断。',
+                            ),
                             if (widget.onReadDiagnostics != null)
-                              TextButton(
+                              TextButton.icon(
                                 onPressed: () => uiShowDiagnosticsDialog(
                                   context,
                                   widget.onReadDiagnostics!,
                                 ),
-                                child: const Text('查看诊断信息'),
+                                icon: const Icon(Icons.bug_report_outlined),
+                                label: const Text('诊断信息'),
                               ),
                           ],
                           const SizedBox(height: 32),

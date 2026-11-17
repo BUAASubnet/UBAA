@@ -373,7 +373,7 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   ),
   UbaaErrorCode.upstreamChanged => (
     title: '暂时无法完成操作',
-    message: '应用无法处理学校返回的信息，请复制诊断信息反馈',
+    message: '应用无法处理学校返回的信息，请到「设置 › 诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   UbaaErrorCode.parseError => (
@@ -492,7 +492,7 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   ),
   (UbaaErrorCode.permissionDenied, 'http_forbidden') => (
     title: '学校服务拒绝访问',
-    message: '请核对当前连接方式；若仍无法访问，可导出诊断报告反馈',
+    message: '请核对当前连接方式；若仍无法访问，请到「设置 › 诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   _ => null,
@@ -503,7 +503,7 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
 ) => switch (reason) {
   AuthFailureReason.identityMismatch => (
     title: '登录身份核对失败',
-    message: '学校返回的身份与本次登录账号不匹配，请重新登录；若仍失败，请复制诊断信息反馈',
+    message: '学校返回的身份与本次登录账号不匹配，请重新登录；若仍失败，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.captchaExpired => (
@@ -518,17 +518,17 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   ),
   AuthFailureReason.loginPageInvalid => (
     title: '无法识别登录页面',
-    message: '应用无法处理当前登录页面，请复制诊断信息反馈',
+    message: '应用无法处理当前登录页面，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.redirectInvalid => (
     title: '登录跳转异常',
-    message: '登录跳转未能完成，请复制诊断信息反馈',
+    message: '登录跳转未能完成，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.identityResponseInvalid => (
     title: '无法确认登录身份',
-    message: '学校返回的身份信息无法核验，请复制诊断信息反馈',
+    message: '学校返回的身份信息无法核验，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   null => null,

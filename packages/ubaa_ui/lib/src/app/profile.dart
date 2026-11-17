@@ -188,6 +188,7 @@ class ProfileView extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: const Text('诊断信息'),
+                  subtitle: const Text('遇到问题时私下分享给维护者'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () =>
                       uiShowDiagnosticsDialog(context, onReadDiagnostics!),

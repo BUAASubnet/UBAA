@@ -16,6 +16,7 @@ export 'common/error_card.dart'
     show
         FriendlyErrorCard,
         UiDiagnosticsScope,
+        uiDiagnosticsGuidance,
         uiShowDiagnosticsDialog,
         uiErrorDetailsAction;
 export 'features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;

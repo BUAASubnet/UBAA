@@ -59,13 +59,6 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         exportLabel: widget.diagnosticReportExporter.supportsSharing
             ? '分享完整诊断'
             : '保存完整诊断',
-        readRecord: (issueId) =>
-            _controller.diagnostics.records.any(
-              (record) =>
-                  record.issueId == issueId || record.relatedIssueId == issueId,
-            )
-            ? _controller.exportDiagnostics(issueId: issueId)
-            : null,
         child: child!,
       ),
       title: 'UBAA',
