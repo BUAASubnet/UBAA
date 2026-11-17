@@ -69,3 +69,21 @@ Grafana 使用内置 PostgreSQL 数据源。匿名访问和自行注册关闭，
 acme.sh 使用 Cloudflare DNS 验证申请 `ubaa.top` 与 `*.ubaa.top` 的证书，证书安装到 `/etc/nginx/ssl/ubaa.top/`，续期后先检查 Nginx 配置再重载。DNS Token 只拥有 `ubaa.top` 的 DNS 写入权限，保存在服务器私有 acme.sh 配置中。
 
 证书任务使用 `http://192.168.6.2:7890`，部署下载保持直连。代理配置仅作用于 acme.sh。文档域名开启 Cloudflare 代理，Origin Rule 将 HTTPS 回源端口设为 10443，并使用严格证书验证；应用、下载与看板域名使用 DNS 解析直连。
+
+## 文档站留言区
+
+文档站的 `/community` 使用 Artalk 2.10.1，前端版本固定在根目录 npm 锁文件。服务运行在 `ubaa-comments.service`，以独立的 `ubaa-comments` 用户监听 `127.0.0.1:23366`。Nginx 将同域 `/comments-api/` 转发到留言服务，并禁止缓存响应。
+
+服务端二进制来自 [Artalk 官方发布](https://github.com/ArtalkJS/Artalk/releases/tag/v2.10.1)，安装在 `/opt/ubaa/artalk/artalk`。配置模板见 `scripts/server/comments.yml`，实际配置位于 `/etc/ubaa-comments/artalk.yml`，由服务用户读取，权限为 `600`。部署时需生成独立的随机 `app_key`，不得用模板覆盖已有密钥。systemd 单元见 `scripts/server/ubaa-comments.service`。
+
+留言允许访客填写昵称和邮箱后发布，支持回复和点赞。服务保留默认的频率验证码，关闭图片上传、邮件通知和社交登录。维护者通过网站留言区的管理入口登录，可审核、置顶和删除留言。管理员由服务器上的 `artalk admin` 命令创建，账号凭据保存在服务器私有的 `/var/lib/ubaa-comments/admin-access.json`，不得提交。
+
+数据库位于 `/var/lib/ubaa-comments/artalk.db`。`ubaa-comments-backup.timer` 每天北京时间 04:00 使用 SQLite 在线备份接口生成副本，保留最近 14 天，文件在同目录的 `backups/`。这些副本用于误删恢复，服务器磁盘损坏仍会同时影响原库和备份。删除申请需要同时考虑备份的保留周期。
+
+```bash
+ssh ubaa 'systemctl status ubaa-comments ubaa-comments-backup.timer'
+ssh ubaa 'systemctl start ubaa-comments-backup.service'
+ssh ubaa 'journalctl -u ubaa-comments --since today'
+```
+
+更新文档站使用原有构建与部署入口。更新 Artalk 前先执行备份，前后端版本一并更新。回滚文档站不会删除留言数据库；停用服务时关闭 `ubaa-comments.service`，保留数据库供后续恢复。

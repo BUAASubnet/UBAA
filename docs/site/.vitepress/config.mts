@@ -50,6 +50,7 @@ export default defineConfig({
       { text: '开始使用', link: '/guide/start', activeMatch: '^/guide/' },
       { text: '功能', link: '/features/', activeMatch: '^/features/' },
       { text: '帮助', link: '/tech/troubleshooting', activeMatch: '^/tech/' },
+      { text: '交流与建议', link: '/community' },
       {
         text: '动态',
         activeMatch: '^/(changelog|announcements)/',
@@ -109,6 +110,7 @@ export default defineConfig({
         text: '帮助',
         items: [
           { text: '常见问题', link: '/tech/troubleshooting' },
+          { text: '交流与建议', link: '/community' },
           { text: '设置说明', link: '/tech/configuration' },
           { text: '数据与隐私说明', link: '/tech/data-and-privacy' },
           { text: '隐私政策', link: '/tech/privacy-policy' },

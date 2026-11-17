@@ -14,6 +14,9 @@ hero:
     - theme: alt
       text: 开始使用
       link: /guide/start
+    - theme: alt
+      text: 交流与建议
+      link: /community
 features:
   - title: 学习与日程
     details: 汇集课表、考试、SPOC 和希冀作业，添加自己的日程与待办，按教学周安排重复事项。
