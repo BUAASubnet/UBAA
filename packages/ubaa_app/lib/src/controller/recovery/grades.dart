@@ -69,6 +69,7 @@ mixin ControllerOfflineGrades on ControllerState {
     if (result.terms.isEmpty)
       return GradesAggregate(
         coreStatistics: saved.coreStatistics,
+        currentTermCode: saved.currentTermCode,
         terms: saved.terms,
         termsEvidence: saved.termsEvidence,
         error: result.error,
@@ -76,6 +77,7 @@ mixin ControllerOfflineGrades on ControllerState {
     final old = {for (final term in saved.terms) term.code: term};
     return GradesAggregate(
       termsEvidence: result.termsEvidence,
+      currentTermCode: result.currentTermCode,
       error:
           result.error ??
           result.terms
@@ -150,17 +152,18 @@ mixin ControllerOfflineGrades on ControllerState {
         FeatureId.grades,
         const FeatureQuery(view: FeatureQueryView.gradesOverview),
       );
+      final options = await read(
+        FeatureId.schedule,
+        const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+      );
       if (all?.overview case final GraduateGradesOverview overview) {
         return projectGraduateAggregate(
           overview,
           all!.resolvedRoute,
           evidence: all.evidence,
+          currentTermCode: gradeCurrentTermCode(options?.details ?? const []),
         );
       }
-      final options = await read(
-        FeatureId.schedule,
-        const FeatureQuery(view: FeatureQueryView.scheduleTerms),
-      );
       if (options == null || !current()) return null;
       final terms = <String, String>{};
       for (final detail in options.details) {
@@ -201,6 +204,7 @@ mixin ControllerOfflineGrades on ControllerState {
       return GradesAggregate(
         terms: List.unmodifiable(values),
         termsEvidence: options.evidence,
+        currentTermCode: gradeCurrentTermCode(options.details),
       );
     } on Object catch (error, stackTrace) {
       if (current())

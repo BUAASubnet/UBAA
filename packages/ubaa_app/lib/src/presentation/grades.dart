@@ -60,8 +60,10 @@ GradesAggregate projectGraduateAggregate(
   GraduateGradesOverview overview,
   ConnectionMode? route, {
   DataEvidence? evidence,
+  String? currentTermCode,
 }) {
   return GradesAggregate(
+    currentTermCode: currentTermCode,
     termsEvidence: evidence,
     coreStatistics: GradeStatistics.fromGraduate(
       overview.statistics,
@@ -88,4 +90,13 @@ GradesAggregate projectGraduateAggregate(
         ),
     ],
   );
+}
+
+String? gradeCurrentTermCode(Iterable<FeatureDetail> details) {
+  final selected = details
+      .map((detail) => detail.presentation)
+      .whereType<TermPresentation>()
+      .where((term) => term.selected && term.code.trim().isNotEmpty)
+      .toList(growable: false);
+  return selected.length == 1 ? selected.single.code : null;
 }

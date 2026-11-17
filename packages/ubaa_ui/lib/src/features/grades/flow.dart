@@ -112,8 +112,12 @@ class _GradesFlowState extends State<GradesFlow> {
     final value = snapshot.overview;
     final aggregate = _aggregate;
     final terms = aggregate?.terms ?? const <GradeTermRead>[];
-    // 总览缓存不提供当前学期，等待页面的学期读取确定后再显示学期内容。
-    final current = value is GradesTermOverview ? value : null;
+    final savedCurrent = terms
+        .where((term) => term.code == aggregate?.currentTermCode)
+        .firstOrNull;
+    final current = value is GradesTermOverview
+        ? value
+        : savedCurrent?.overview;
     if (current == null) {
       if (aggregate == null || aggregate.error != null) return widget.fallback;
       return ListView(
@@ -139,7 +143,9 @@ class _GradesFlowState extends State<GradesFlow> {
     final currentSuffix = current.statistics == null ? '（本学期）' : '';
     final activeOverview = isCurrentTerm ? current : activeTerm.overview;
     final activeDetails = isCurrentTerm
-        ? snapshot.details
+        ? (value is GradesTermOverview
+              ? snapshot.details
+              : savedCurrent!.result.details)
         : activeTerm.result.details;
     final canPrev = hasTerms && termIndex > 0;
     final canNext = hasTerms && termIndex >= 0 && termIndex < terms.length - 1;
