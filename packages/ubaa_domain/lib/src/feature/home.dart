@@ -30,12 +30,16 @@ final class HomeTodo {
     this.startsAt,
     this.endsAt,
     this.local = false,
+    this.color,
   });
   final String id, title, subtitle, statusLabel, timeLabel;
   final FeatureId feature;
   final DateTime sortTime;
   final DateTime? deadline, startsAt, endsAt;
   final bool local;
+
+  /// 自建事项的颜色，格式为 #RRGGBB；学校事项由界面按来源配色。
+  final String? color;
 
   HomeTodo withoutSigninAction() => HomeTodo(
     id: id,
@@ -51,6 +55,7 @@ final class HomeTodo {
     endsAt: endsAt,
     soon: soon,
     local: local,
+    color: color,
   );
   final bool soon;
 
@@ -176,6 +181,7 @@ HomeTodo formatHomeTodo(
       endsAt: endTime,
       soon: entry.soon,
       local: true,
+      color: local.content.color,
     );
   }
   final item = entry.school!;

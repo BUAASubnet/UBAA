@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/tag.dart';
+import '../../common/agenda_colors.dart';
 import '../../shared/feature_icons.dart' show uiFeatureIcon;
 import '../../theme.dart';
 
@@ -85,7 +86,12 @@ class HomeTodoCard extends StatelessWidget {
                                 local: item.local,
                               ),
                               icon: uiFeatureIcon(item.feature),
-                              tone: UiTagTone.primary,
+                              color: uiAgendaSourceColor(
+                                item.local ? null : item.feature,
+                                theme.colorScheme,
+                                title: item.title,
+                                customColor: item.color,
+                              ),
                             ),
                             if (subtitle.isNotEmpty) ...[
                               const SizedBox(width: 8),

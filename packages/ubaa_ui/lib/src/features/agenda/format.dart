@@ -1,11 +1,4 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'dart:ui' show Color;
-
-Color? agendaColor(String? value) {
-  if (value == null || !RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value))
-    return null;
-  return Color(0xFF000000 | int.parse(value.substring(1), radix: 16));
-}
 
 DateTime campusDate(DateTime value) =>
     value.toUtc().add(const Duration(hours: 8));

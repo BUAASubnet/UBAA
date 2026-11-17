@@ -60,6 +60,8 @@ void main() {
     expect(result.todos.single.feature, FeatureId.schedule);
     expect(result.todos.single.local, isTrue);
     expect(result.todos.single.navigation, isNull);
+    expect(result.todos.single.color, '#336699');
+    expect(result.todos.single.withoutSigninAction().color, '#336699');
   });
   test('日程覆盖损坏单独报告，缓存写入失败仍交付已取得学校结果', () async {
     api.handle.activation.complete();
@@ -334,6 +336,7 @@ BridgeAgendaEntry _localEntry({bool completed = false}) {
       content: BridgeAgendaContent(
         kind: BridgeAgendaKind.event,
         title: '自建复习',
+        color: '#336699',
         start: start,
         end: end,
         allDay: false,
