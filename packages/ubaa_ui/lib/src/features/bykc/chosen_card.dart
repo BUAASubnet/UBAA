@@ -1,4 +1,4 @@
-import 'package:clock/clock.dart' show clock;
+import '../../shared/when.dart' show uiCampusNow, uiParseCampusTime;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'card_parts.dart' show BykcCardTags, BykcCardInfo, BykcCardFooter;
@@ -46,10 +46,10 @@ class BykcChosenCard extends StatelessWidget {
                 time: uiBykcRange(course.courseStartDate, course.courseEndDate),
                 deadlineLabel: '退选截止',
                 // 退选截止已过时不再显示。
-                deadline: switch (DateTime.tryParse(
-                  course.courseCancelEndDate?.trim() ?? '',
+                deadline: switch (uiParseCampusTime(
+                  course.courseCancelEndDate,
                 )) {
-                  final end? when clock.now().isBefore(end) => uiBykcDate(
+                  final end? when uiCampusNow().isBefore(end) => uiBykcDate(
                     course.courseCancelEndDate!,
                   ),
                   _ => null,
