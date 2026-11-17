@@ -63,13 +63,11 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   void _openHomeTodo(HomeTodo item) {
     final target = item.navigation;
-    if (target == null) {
-      if (item.feature == FeatureId.schedule) {
-        _selectTab(UiDestination.agenda.index);
-      }
-      return;
+    if (target != null) {
+      _openHomeNavigation(target);
+    } else if (item.feature == FeatureId.schedule) {
+      _selectTab(UiDestination.agenda.index);
     }
-    _openHomeNavigation(target);
   }
 
   /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
