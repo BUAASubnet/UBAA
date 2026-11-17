@@ -14,6 +14,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
+        reminderStore: await _enabledReminderStore(backend),
       ),
     );
     await tester.pumpAndSettle();
@@ -80,6 +81,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
+        reminderStore: await _enabledReminderStore(backend),
       ),
     );
     await tester.pumpAndSettle();
@@ -110,6 +112,18 @@ void main() {
     expect(find.text('本周阳光打卡未达标'), findsNothing);
     expect(backend.homeQueries, hasLength(count));
   });
+}
+
+Future<MemoryYgdkReminderStore> _enabledReminderStore(
+  _PreviewBackend backend,
+) async {
+  final store = MemoryYgdkReminderStore();
+  final user = (await backend.userInfo())!;
+  await store.write(
+    user.username,
+    const YgdkReminderSettings(manualEnabled: true),
+  );
+  return store;
 }
 
 /// 固定预览顺序，分别验收首页的签到操作、提醒设置和作业详情。
