@@ -46,6 +46,21 @@ void main() {
     expect(api.handle.calls, 1);
     expect(api.calls, 2);
   });
+  test('首页投影包含近期未完成的自建日程，并可识别完成事项', () async {
+    api.handle.activation.complete();
+    api.handle.localEntries = [_localEntry(), _localEntry(completed: true)];
+    final backend = BridgeAgendaBackend(
+      BridgeContext(_Client(), configDirectory: '/synthetic'),
+    );
+    await backend.openAccount(alias);
+
+    final result = await backend.projectHomeTodos(request(account: alias));
+
+    expect(result.todos.map((item) => item.title), ['自建复习']);
+    expect(result.todos.single.feature, FeatureId.schedule);
+    expect(result.todos.single.local, isTrue);
+    expect(result.todos.single.navigation, isNull);
+  });
   test('日程覆盖损坏单独报告，缓存写入失败仍交付已取得学校结果', () async {
     api.handle.activation.complete();
     final backend = BridgeAgendaBackend(
@@ -280,6 +295,7 @@ class _Handle implements BridgeAgendaStore {
   final activation = Completer<void>();
   int calls = 0;
   bool failure = false;
+  List<BridgeAgendaEntry> localEntries = const [];
   @override
   Future<void> activate() => activation.future;
   @override
@@ -294,7 +310,47 @@ class _Handle implements BridgeAgendaStore {
   }
 
   @override
+  Future<BridgeAgendaQueryResult> queryLocal({
+    required BridgeAgendaQuery query,
+  }) async => BridgeAgendaQueryResult(entries: localEntries, sources: const []);
+
+  @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+BridgeAgendaEntry _localEntry({bool completed = false}) {
+  final start = BridgeAgendaTime(
+    rfc3339: '2026-03-25T18:00:00+08:00',
+    timezone: 'Asia/Shanghai',
+  );
+  final end = BridgeAgendaTime(
+    rfc3339: '2026-03-25T19:00:00+08:00',
+    timezone: 'Asia/Shanghai',
+  );
+  return BridgeAgendaEntry(
+    local: BridgeAgendaOccurrence(
+      itemId: 'local-id',
+      recurrenceId: start.rfc3339,
+      content: BridgeAgendaContent(
+        kind: BridgeAgendaKind.event,
+        title: '自建复习',
+        start: start,
+        end: end,
+        allDay: false,
+      ),
+      completedAt: completed ? end : null,
+      overridden: false,
+    ),
+    timing: BridgeAgendaTiming(
+      kind: BridgeAgendaTimingKind.period,
+      start: start,
+      end: end,
+    ),
+    sortTime: start,
+    soon: true,
+    completed: completed,
+    hidden: false,
+  );
 }
 
 class _Client implements BridgeClient {

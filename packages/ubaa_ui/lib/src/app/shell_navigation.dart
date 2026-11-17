@@ -63,7 +63,12 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   void _openHomeTodo(HomeTodo item) {
     final target = item.navigation;
-    if (target == null) return;
+    if (target == null) {
+      if (item.feature == FeatureId.schedule) {
+        _selectTab(UiDestination.agenda.index);
+      }
+      return;
+    }
     _openHomeNavigation(target);
   }
 

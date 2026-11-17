@@ -5,16 +5,18 @@ import '../../shared/feature_icons.dart' show uiFeatureIcon;
 import '../../theme.dart';
 
 /// 首页待办和加载提示使用的来源短名。
-String uiHomeFeatureLabel(FeatureId feature) => switch (feature) {
-  FeatureId.exam => '考试',
-  FeatureId.bykc => '博雅',
-  FeatureId.spoc => 'SPOC',
-  FeatureId.judge => '希冀',
-  FeatureId.cgyy => '研讨室',
-  FeatureId.signin => '签到',
-  FeatureId.ygdk => '阳光打卡',
-  _ => feature.title,
-};
+String uiHomeFeatureLabel(FeatureId feature, {bool local = false}) =>
+    switch ((feature, local)) {
+      (FeatureId.schedule, true) => '我的日程',
+      (FeatureId.exam, _) => '考试',
+      (FeatureId.bykc, _) => '博雅',
+      (FeatureId.spoc, _) => 'SPOC',
+      (FeatureId.judge, _) => '希冀',
+      (FeatureId.cgyy, _) => '研讨室',
+      (FeatureId.signin, _) => '签到',
+      (FeatureId.ygdk, _) => '阳光打卡',
+      (_, _) => feature.title,
+    };
 
 /// 首页待办卡片：来源标签与课程等补充信息同处一行，标题单独占行。
 class HomeTodoCard extends StatelessWidget {
@@ -57,7 +59,7 @@ class HomeTodoCard extends StatelessWidget {
       child: InkWell(
         onTap: item.feature == FeatureId.signin
             ? (signing ? null : onSignin ?? onRefreshSignin)
-            : item.navigation == null
+            : item.navigation == null && !item.local
             ? null
             : onTap,
         child: Padding(
@@ -78,7 +80,10 @@ class HomeTodoCard extends StatelessWidget {
                         Row(
                           children: [
                             UiTag(
-                              uiHomeFeatureLabel(item.feature),
+                              uiHomeFeatureLabel(
+                                item.feature,
+                                local: item.local,
+                              ),
                               icon: uiFeatureIcon(item.feature),
                               tone: UiTagTone.primary,
                             ),
