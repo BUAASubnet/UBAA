@@ -8,6 +8,7 @@ final class ErrorDiagnostic {
   final Map<String, Object?> _fields;
   Map<String, Object?> toJson() => _fields;
   String? get reason => _fields['reason'] as String?;
+  bool get isCacheBusy => _fields['stage'] == 'cache' && reason == 'cache_busy';
   String? get upstreamMessage => _fields['upstream_message'] as String?;
 
   static ErrorDiagnostic? parse(String? text) {

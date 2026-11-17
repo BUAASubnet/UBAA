@@ -118,6 +118,46 @@ fn 用量统计不需要解析业务密文() {
 }
 
 #[test]
+fn 另一连接持有写锁时开始读取返回锁忙() {
+    let (root, mut reader, scope) = fixture();
+    let mut writer = super::open_connection(reader.path()).unwrap();
+    let lock = writer
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .unwrap();
+    let result = reader.begin_read(scope);
+    drop((lock, reader));
+    drop(writer);
+    std::fs::remove_dir_all(root).unwrap();
+
+    assert_eq!(result.err(), Some(CacheError::Busy));
+}
+
+#[test]
+fn 写锁短暂占用后释放时开始读取成功() {
+    let (root, mut reader, scope) = fixture();
+    let mut writer = super::open_connection(reader.path()).unwrap();
+    let lock = writer
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .unwrap();
+    let result = std::thread::scope(|thread| {
+        let (started, wait) = std::sync::mpsc::sync_channel(0);
+        let reader = &mut reader;
+        let read = thread.spawn(move || {
+            started.send(()).unwrap();
+            reader.begin_read(scope)
+        });
+        wait.recv().unwrap();
+        std::thread::sleep(Duration::from_millis(750));
+        lock.rollback().unwrap();
+        read.join().unwrap()
+    });
+    drop((writer, reader));
+    std::fs::remove_dir_all(root).unwrap();
+
+    result.unwrap();
+}
+
+#[test]
 fn 旧开发格式一律拒绝且普通打开不改原库() {
     for version in [1, 2, 3, 4, 5, 6, 99] {
         let (root, mut repo, scope) = fixture();

@@ -105,10 +105,11 @@ class UiErrorMapper {
     bool includeTechnicalDetail = false,
   }) {
     final code = _parseCode(payload.code);
+    final kind = kindOf(payload);
     final template = code == UbaaErrorCode.outcomeUnknown
         ? _templateFor(code)
         : _authTemplate(payload.authReason) ??
-              _diagnosticTemplate(code, payload.diagnostic?.reason) ??
+              _diagnosticTemplate(code, kind, payload.diagnostic) ??
               _templateFor(code);
     final retryable =
         code == UbaaErrorCode.outcomeUnknown ||
@@ -133,7 +134,7 @@ class UiErrorMapper {
       actionLabel: template.actionLabel,
       retryable: retryable,
       issueId: issueId,
-      kind: kindOf(payload),
+      kind: kind,
       resolvedRoute: payload.resolvedRoute,
       authStage: payload.authStage,
       authReason: payload.authReason,
@@ -478,8 +479,12 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
 
 ({String title, String message, String? actionLabel})? _diagnosticTemplate(
   UbaaErrorCode code,
-  String? reason,
-) => switch ((code, reason)) {
+  UiErrorKind kind,
+  ErrorDiagnostic? diagnostic,
+) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.timeout, _)
+      when kind == UiErrorKind.internal && diagnostic?.isCacheBusy == true =>
+    (title: '本机缓存暂时繁忙', message: '本机缓存正在使用，请稍后重试', actionLabel: '重试'),
   (UbaaErrorCode.businessUnavailable, 'outside_reservation_hours') => (
     title: '预约暂不可用',
     message: '当前无法预约，请稍后刷新',

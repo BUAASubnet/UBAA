@@ -83,7 +83,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 72;
+const _supportedBridgeContractVersion = 73;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。

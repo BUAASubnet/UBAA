@@ -237,7 +237,7 @@ pub(super) fn valid_overlay(v: &SchoolAgendaOverlay) -> bool {
 fn read_error(error: &rusqlite::Error) -> CacheError {
     match error.sqlite_error_code() {
         Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => {
-            CacheError::Unavailable
+            CacheError::Busy
         }
         _ => CacheError::Corrupt,
     }

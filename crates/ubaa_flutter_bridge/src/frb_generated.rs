@@ -21933,6 +21933,7 @@ impl SseDecode for crate::api::agenda::models::BridgeAgendaFailure {
             4 => crate::api::agenda::models::BridgeAgendaFailure::Inactive,
             5 => crate::api::agenda::models::BridgeAgendaFailure::Superseded,
             6 => crate::api::agenda::models::BridgeAgendaFailure::Capacity,
+            7 => crate::api::agenda::models::BridgeAgendaFailure::Busy,
             _ => unreachable!("Invalid variant for BridgeAgendaFailure: {}", inner),
         };
     }
@@ -23439,6 +23440,7 @@ impl SseDecode for crate::api::offline::BridgeCacheFailure {
             4 => crate::api::offline::BridgeCacheFailure::Inactive,
             5 => crate::api::offline::BridgeCacheFailure::Superseded,
             6 => crate::api::offline::BridgeCacheFailure::Capacity,
+            7 => crate::api::offline::BridgeCacheFailure::Busy,
             _ => unreachable!("Invalid variant for BridgeCacheFailure: {}", inner),
         };
     }
@@ -34369,6 +34371,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaF
             Self::Inactive => 4.into_dart(),
             Self::Superseded => 5.into_dart(),
             Self::Capacity => 6.into_dart(),
+            Self::Busy => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -36328,6 +36331,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::offline::BridgeCacheFailure {
             Self::Inactive => 4.into_dart(),
             Self::Superseded => 5.into_dart(),
             Self::Capacity => 6.into_dart(),
+            Self::Busy => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -44640,6 +44644,7 @@ impl SseEncode for crate::api::agenda::models::BridgeAgendaFailure {
                 crate::api::agenda::models::BridgeAgendaFailure::Inactive => 4,
                 crate::api::agenda::models::BridgeAgendaFailure::Superseded => 5,
                 crate::api::agenda::models::BridgeAgendaFailure::Capacity => 6,
+                crate::api::agenda::models::BridgeAgendaFailure::Busy => 7,
                 _ => {
                     unimplemented!("");
                 }
@@ -45847,6 +45852,7 @@ impl SseEncode for crate::api::offline::BridgeCacheFailure {
                 crate::api::offline::BridgeCacheFailure::Inactive => 4,
                 crate::api::offline::BridgeCacheFailure::Superseded => 5,
                 crate::api::offline::BridgeCacheFailure::Capacity => 6,
+                crate::api::offline::BridgeCacheFailure::Busy => 7,
                 _ => {
                     unimplemented!("");
                 }

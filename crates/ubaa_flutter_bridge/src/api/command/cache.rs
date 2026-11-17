@@ -5,8 +5,14 @@ pub(super) fn project<T, D>(
     extract: impl FnOnce(D) -> Option<T>,
 ) -> core::RoutedResult<T> {
     let value = value.map_err(error)?;
-    if value.save_error.is_some() {
-        tracing::warn!("本次在线结果未写入本机缓存");
+    match value.save_error {
+        Some(core::CacheError::Busy) => {
+            tracing::warn!(reason = "cache_busy", "本次在线结果未写入本机缓存");
+        }
+        Some(_) => {
+            tracing::warn!("本次在线结果未写入本机缓存");
+        }
+        None => {}
     }
     let data = extract(value.data).ok_or_else(|| core::RoutedError {
         error: core::UbaaError::new(
@@ -33,6 +39,10 @@ fn error(value: core::OfflineReadError) -> core::RoutedError {
                 "本机缓存与会话账号不一致",
             ),
             resolution: Some(resolution),
+        },
+        core::OfflineReadError::Cache(core::CacheError::Busy) => core::RoutedError {
+            error: core::UbaaError::cache_busy(),
+            resolution: None,
         },
         core::OfflineReadError::Cache(_) => core::RoutedError {
             error: core::UbaaError::new(

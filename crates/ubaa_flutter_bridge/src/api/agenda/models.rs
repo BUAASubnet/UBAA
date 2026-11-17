@@ -8,6 +8,7 @@ pub enum BridgeAgendaFailure {
     Inactive,
     Superseded,
     Capacity,
+    Busy,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeAgendaError {

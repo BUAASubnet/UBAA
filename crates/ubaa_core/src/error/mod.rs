@@ -421,6 +421,20 @@ impl UbaaError {
         )
         .with_initialization_failure(InitializationFailure::ResourceBusy)
     }
+
+    /// 构造由本地缓存锁占用导致的可重试错误。
+    #[track_caller]
+    #[must_use]
+    pub fn cache_busy() -> Self {
+        Self::new(
+            ErrorCode::Timeout,
+            ErrorKind::Internal,
+            true,
+            crate::cache::CacheError::Busy.to_string(),
+        )
+        .with_diagnostic("cache", "cache_busy")
+    }
+
     /// 构造安全的 Core 错误。
     #[track_caller]
     pub fn new(

@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `72`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `73`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=72` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=73` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -532,8 +532,9 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v72）
+### 近期版本摘要（v55–v73）
 
+- v73 在 `BridgeCacheFailure` 和 `BridgeAgendaFailure` 增加 `Busy`，区分 SQLite 锁忙与存储不可用。业务缓存锁忙异常使用 `timeout`、`internal`、`retryable=true` 和诊断 `stage=cache`、`reason=cache_busy`。在线读取成功后的缓存保存失败仍单独返回 `saveError`。CLI JSON schema 保持 v18。
 - v72 增加 `exportRawDiagnostics`：用户主动导出当前客户端及派生请求的原始响应，独立于错误摘要和自动遥测。
 - v71 为图书馆逐日日程增加预约开始、结束和关闭时间，界面与提交前检查按北京时间限制预约。
 - v70 增加 `readAcademicGradesOverview` 和 `academicGradesOverviewCached`，使用独立加密缓存保存研究生完整成绩及总体统计。普通打开复用缓存，主动刷新更新学校数据。
@@ -677,7 +678,7 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 
 ### 合同 v33：本地缓存错误与学校错误分列
 
-`BridgeError.cache_failure/cacheFailure` 为可选 `BridgeCacheFailure`，只由本地缓存错误映射产生；学校错误和客户端已释放错误保持空值，原 code/kind/retryable/resolvedRoute 不变。App 只对 Corrupt、Unavailable、UnsupportedVersion、Capacity 取消旧希冀持久计划，在下一安全批次沿同账号、同客户端创建在线分段计划。Inactive、Superseded、InvalidInput、身份冲突及未分类错误不能绕过栅栏。
+`BridgeError.cache_failure/cacheFailure` 为可选 `BridgeCacheFailure`，只由本地缓存错误映射产生；学校错误和客户端已释放错误保持空值，原 code/kind/retryable/resolvedRoute 不变。App 只对 Corrupt、Unavailable、UnsupportedVersion、Capacity 取消旧希冀持久计划，在下一安全批次沿同账号、同客户端创建在线分段计划。Busy 可稍后重试，不能触发此降级；Inactive、Superseded、InvalidInput、身份冲突及未分类错误不能绕过栅栏。
 
 每个异步边界继续检查取消与缓存代次，退出后迟到句柄立即取消，迟到学校错误不能覆盖本地取消。在线结果的 `DataEvidence.cacheFailure` 与学校错误分别显示，`savedForOffline=false`；本地故障不将已取得的学校内容标为读取失败，也不允许写操作。保存失败已附带完整在线内容时只提示未保存，不额外重读。
 

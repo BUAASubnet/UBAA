@@ -9,6 +9,7 @@ enum AgendaFailure {
   inactive,
   superseded,
   capacity,
+  busy,
 }
 
 final class AgendaTime {

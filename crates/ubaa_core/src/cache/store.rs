@@ -560,6 +560,9 @@ fn validate_ticket(
 impl From<rusqlite::Error> for CacheError {
     fn from(error: rusqlite::Error) -> Self {
         match error.sqlite_error_code() {
+            Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => {
+                Self::Busy
+            }
             Some(rusqlite::ErrorCode::DiskFull) => Self::Capacity,
             Some(rusqlite::ErrorCode::DatabaseCorrupt | rusqlite::ErrorCode::NotADatabase) => {
                 Self::Corrupt
@@ -621,7 +624,8 @@ fn open_connection(path: &Path) -> CacheResult<Connection> {
             | OpenFlags::SQLITE_OPEN_NOFOLLOW,
     )
     .map_err(CacheError::from)?;
-    db.busy_timeout(Duration::from_millis(250))
+    // 缓存事务只执行本地读写，可以短暂等待另一个进程提交。
+    db.busy_timeout(Duration::from_secs(3))
         .map_err(CacheError::from)?;
     Ok(db)
 }

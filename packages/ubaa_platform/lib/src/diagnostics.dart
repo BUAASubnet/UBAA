@@ -10,7 +10,7 @@ import 'secure_material.dart';
 import 'media.dart';
 import 'infrastructure/agenda_file.dart';
 
-/// 只依赖异常类型，绝不通过异常正文猜测原因。
+/// 只依赖异常类型和安全诊断，绝不通过异常正文猜测原因。
 enum DiagnosticCause {
   none,
   timeout,
@@ -31,6 +31,7 @@ enum DiagnosticCause {
   upstream,
   parse,
   unknown,
+  cacheBusy,
 }
 
 /// 启动过程中能独立定位的宿主阶段。
@@ -341,7 +342,12 @@ final class LocalDiagnostics {
         relatedIssueId: _records.any((r) => r.issueId == relatedIssueId)
             ? relatedIssueId
             : null,
-        cause: _classify(cause),
+        cause:
+            error.code == UbaaErrorCode.timeout &&
+                error.kind == UbaaErrorKind.internal &&
+                error.diagnostic?.isCacheBusy == true
+            ? DiagnosticCause.cacheBusy
+            : _classify(cause),
         localReason: _localReason(cause),
         timestamp: DateTime.now().toUtc(),
         source: _safeSource(stackTrace),
@@ -439,6 +445,7 @@ String? _localReason(Object? cause) => switch (cause) {
 DiagnosticCause _classify(Object? cause) => switch (cause) {
   null => DiagnosticCause.none,
   PlatformCapabilityException() => DiagnosticCause.platformCapability,
+  AgendaException(failure: AgendaFailure.busy) => DiagnosticCause.cacheBusy,
   AgendaException() => DiagnosticCause.agenda,
   AgendaFileException() => DiagnosticCause.file,
   MaterialCoordinationException() => DiagnosticCause.secureMaterial,

@@ -44,6 +44,7 @@ final class BridgeAgendaBackend
           BridgeAgendaFailure.inactive => AgendaFailure.inactive,
           BridgeAgendaFailure.superseded => AgendaFailure.superseded,
           BridgeAgendaFailure.capacity => AgendaFailure.capacity,
+          BridgeAgendaFailure.busy => AgendaFailure.busy,
         }),
         stack,
       );
