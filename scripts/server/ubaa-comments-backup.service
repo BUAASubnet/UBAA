@@ -1,0 +1,9 @@
+[Unit]
+Description=备份 UBAA 留言数据库
+
+[Service]
+Type=oneshot
+User=ubaa-comments
+Group=ubaa-comments
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/ubaa/artalk/comments_backup.py

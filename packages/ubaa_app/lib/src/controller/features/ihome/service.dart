@@ -45,6 +45,7 @@ class GuardedIhomeService implements IhomeService {
   }) async {
     final write = writeOperation != null;
     _check(write: write);
+    final elapsed = Stopwatch()..start();
     try {
       final result = await call();
       _check(write: write);
@@ -60,7 +61,12 @@ class GuardedIhomeService implements IhomeService {
       if (current() && (!write || canWrite?.call() != false)) {
         onRejected?.call(error);
         if (writeOperation != null) {
-          final recorded = recordFailure?.call(error, writeOperation, stack);
+          final recorded = recordFailure?.call(
+            error,
+            writeOperation,
+            stack,
+            latency: elapsed.elapsed,
+          );
           if (recorded != null) {
             recordOutcome?.call(writeOperation, write: true, error: recorded);
             throw recorded;

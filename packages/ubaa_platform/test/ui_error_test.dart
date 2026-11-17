@@ -31,7 +31,7 @@ void main() {
       );
 
       expect(error.title, '暂时无法完成操作');
-      expect(error.message, '应用无法处理学校返回的信息，请复制诊断信息反馈');
+      expect(error.message, '应用无法处理学校返回的信息，请到「设置 › 诊断信息」分享完整诊断');
       expect(error.actionLabel, isNull);
       expect(error.retryable, isFalse);
     });

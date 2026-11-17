@@ -275,6 +275,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
     }
 }
 
+#[track_caller]
 fn dual_session_conflict() -> UbaaError {
     UbaaError::session_conflict()
 }

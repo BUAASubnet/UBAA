@@ -6,6 +6,7 @@ use tracing_subscriber::prelude::*;
 
 const TRANSPORT_TARGET: &str = "ubaa::transport";
 const SCHOOL_GATE_TARGET: &str = "ubaa::app_service::school_gate";
+const COMMAND_CACHE_TARGET: &str = "ubaa::command::cache";
 const SAFE_FIELDS: [&str; 4] = ["message", "stage", "reason", "elapsed_ms"];
 
 pub(super) fn install_default() {
@@ -37,6 +38,13 @@ fn is_safe_diagnostic_event(metadata: &Metadata<'_>) -> bool {
                 && metadata.level() == &Level::WARN
                 && fields.iter().count() == 1
                 && fields.field("message").is_some()
+        }
+        COMMAND_CACHE_TARGET => {
+            metadata.is_event()
+                && metadata.level() == &Level::WARN
+                && fields.iter().count() == 2
+                && fields.field("message").is_some()
+                && fields.field("reason").is_some()
         }
         _ => false,
     }

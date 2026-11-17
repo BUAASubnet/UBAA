@@ -119,7 +119,11 @@ final class GradesAggregate {
     this.error,
     this.termsEvidence,
     this.coreStatistics,
+    this.currentTermCode,
   });
+
+  /// 学期索引中唯一标记为当前的学期；缺少标记时为空。
+  final String? currentTermCode;
   final DataEvidence? termsEvidence;
   final GradeStatistics? coreStatistics;
   final List<GradeTermRead> terms;

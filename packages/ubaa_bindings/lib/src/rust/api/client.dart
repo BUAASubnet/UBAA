@@ -13,6 +13,7 @@ import 'campus.dart';
 import 'cloud_print.dart';
 import 'command.dart';
 import 'finance.dart';
+import 'health_cloud.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -44,7 +45,7 @@ import 'shared_account.dart';
 import 'write.dart';
 import 'write/cache.dart';
 
-// These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
+// These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_core`, `from_routed`, `local_diagnostic`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`, `with_diagnostic`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>>
@@ -628,6 +629,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeSharedAccount scope,
   });
 
+  /// 用户主动分享完整诊断时读取原始响应；不得用于遥测或普通错误展示。
+  String exportRawDiagnostics();
+
   Future<BridgeFinanceRefresh> financeCached({
     required BridgeOfflineCache cache,
   });
@@ -637,6 +641,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedGrades> grades({required String term});
 
   Future<BridgeRoutedGradeOverview> gradesOverview();
+
+  /// 读取某个年份或网站当前的体测页面。
+  ///
+  /// # Errors
+  /// 会话未就绪或站点读取失败。
+  Future<BridgeHealthCloudPage> healthCloudPage({String? year});
 
   /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
   ///

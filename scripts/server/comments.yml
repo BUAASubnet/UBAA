@@ -1,0 +1,35 @@
+host: 127.0.0.1
+port: 23366
+locale: zh-CN
+timezone: Asia/Shanghai
+site_default: UBAA
+site_url: https://www.ubaa.top
+trusted_domains:
+  - https://www.ubaa.top
+db:
+  type: sqlite
+  file: /var/lib/ubaa-comments/artalk.db
+http:
+  body_limit: 1
+  proxy_header: X-Real-IP
+log:
+  enabled: false
+img_upload:
+  enabled: false
+email:
+  enabled: false
+auth:
+  enabled: false
+  anonymous: true
+frontend:
+  emoticons: false
+  imgUpload: false
+  versionCheck: false
+
+login_timeout: 259200
+captcha:
+  enabled: true
+  always: false
+  captcha_type: image
+  action_limit: 3
+  action_reset: 60

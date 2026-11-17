@@ -35,10 +35,12 @@ enum DiagnosticOperation {
   ihomeNotices('ihome'),
   ihomeNotice('ihome'),
   ihomeReaction('ihome'),
+  healthCloudRead,
   portalIdentity('portal'),
   portalMetrics('portal'),
   networkUsage('network'),
-  financeRefresh('finance');
+  financeRefresh('finance'),
+  agenda('agenda');
 
   const DiagnosticOperation([this.serviceFeature]);
   final String? serviceFeature;

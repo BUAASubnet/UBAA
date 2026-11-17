@@ -29,6 +29,7 @@ pub use operation_control::with_operation_control;
 mod shared_account;
 pub use shared_account::{ClientCloseControl, SharedAccountGuard};
 mod diagnostic;
+pub use crate::ports::diagnostics::RawDiagnostics;
 mod judge_refresh;
 mod judge_scan;
 #[path = "client/readonly.rs"]
@@ -55,8 +56,11 @@ pub use judge_scan::{
 };
 pub(super) use offline::begin_refresh;
 pub use offline::{CachedRefresh, OfflineCache, OfflineReadError, OfflineRefresh};
+#[path = "read/health_cloud.rs"]
+mod health_cloud;
 #[path = "read/ihome.rs"]
 mod ihome;
+pub use crate::domain::{HealthCloudEvent, HealthCloudPage, HealthCloudReport, HealthCloudYear};
 mod interactive_auth;
 mod read;
 pub use crate::domain::{

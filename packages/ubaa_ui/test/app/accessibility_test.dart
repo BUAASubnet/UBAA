@@ -177,7 +177,9 @@ void _registerLayoutMatrix() {
                 onLogout: () async {},
                 onLogoutAndClearAccount: () async {},
                 onRoutePolicyChanged: (_) {},
-                onThemeModeChanged: changes.add,
+                appearance: UiAppearanceSettings(
+                  onThemeModeChanged: changes.add,
+                ),
               ),
             ),
           );

@@ -106,6 +106,8 @@ mixin ControllerScheduleImport on ControllerState {
               ? ScheduleImportStatus.running
               : progress.saved
               ? ScheduleImportStatus.saved
+              : progress.saveFailure == CacheMaintenanceFailure.superseded
+              ? ScheduleImportStatus.cancelled
               : ScheduleImportStatus.failed,
           progress: progress,
         );

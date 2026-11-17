@@ -469,13 +469,12 @@ mixin ControllerRefresh on ControllerState {
               if (!visible.isCompleted) visible.complete();
             },
           );
-      final result = controllerRetainJudgePartial(
-        feature,
-        query == null
-            ? internalHomeDefaults[feature]!
-            : internalSnapshots[feature]!,
-        rawResult,
-      );
+      final displayed = query == null
+          ? internalHomeDefaults[feature]!
+          : internalSnapshots[feature]!;
+      final result =
+          _retainSupersededRead(displayed, rawResult) ??
+          controllerRetainJudgePartial(feature, displayed, rawResult);
       completed = true;
       outcome = result.error;
       if (scope.valid && result.error == null) internalAgendaEpoch++;
@@ -698,4 +697,42 @@ mixin ControllerRefresh on ControllerState {
       internalHomeDefaults[feature] = FeatureSnapshot(feature: feature);
     }
   }
+}
+
+/// 没有可交付的完整结果时保留同一查询已经显示的只读内容。
+FeatureResult? _retainSupersededRead(
+  FeatureSnapshot previous,
+  FeatureResult result,
+) {
+  final evidence = result.evidence;
+  final prior = previous.evidence;
+  if (result.error != null ||
+      evidence == null ||
+      evidence.cacheFailure != CacheMaintenanceFailure.superseded ||
+      evidence.complete ||
+      evidence.origin == DataOrigin.persisted ||
+      result.details.isNotEmpty ||
+      result.overview != null ||
+      prior == null ||
+      prior.accountId != evidence.accountId ||
+      (evidence.scopeDate != null && evidence.scopeDate != prior.scopeDate)) {
+    return null;
+  }
+  final retained = DataEvidence(
+    accountId: prior.accountId,
+    origin: prior.origin,
+    fetchedAt: prior.fetchedAt,
+    complete: false,
+    savedForOffline: prior.savedForOffline,
+    scopeDate: prior.scopeDate,
+    cacheFailure: evidence.cacheFailure,
+  );
+  return FeatureResult.success(
+    summary: previous.summary,
+    overview: previous.overview,
+    details: readonlyFeatureDetails(previous.details),
+    resolvedRoute: previous.resolvedRoute,
+    pagination: previous.pagination,
+    evidence: retained,
+  );
 }

@@ -135,7 +135,7 @@ impl BridgeClient {
         self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .prepare_quiet_login_for(&login.inner)
                 .await
@@ -172,7 +172,7 @@ impl BridgeClient {
     ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let result = client
                 .resume_required_captcha(&login.inner, route.into())
                 .await
@@ -236,7 +236,7 @@ impl BridgeClient {
     ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let result = client
                 .prepare_interactive_login_for(&login.inner)
                 .await
@@ -267,7 +267,7 @@ impl BridgeClient {
         self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let input = DualLoginInput {
                 username,
                 password: SecretValue::new(password),
@@ -306,7 +306,7 @@ impl BridgeClient {
     ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let result = client
                 .refresh_interactive_captcha(&login.inner, route.into())
                 .await
@@ -334,7 +334,7 @@ impl BridgeClient {
     ) -> Result<BridgeInteractiveLoginCompletion, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let outcome = client
                 .continue_interactive_login(&login.inner, selected_route.into(), pin_ready_route)
                 .map(map_login_outcome)
@@ -395,6 +395,7 @@ fn map_interactive_outcome(outcome: InteractiveLoginOutcome) -> BridgeInteractiv
     }
 }
 
+#[track_caller]
 fn cancelled_login_error() -> BridgeError {
     BridgeError::local(
         super::client::BridgeErrorCode::InvalidInput,

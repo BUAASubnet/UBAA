@@ -28,7 +28,7 @@ pub(crate) async fn term(runtime: &mut ClientRuntime) -> Result<SpocAssignments>
     let code = term
         .mrxq
         .filter(|value| !value.trim().is_empty() && value.len() <= 1024)
-        .ok_or_else(changed)?;
+        .ok_or_else(|| changed())?;
     Ok(SpocAssignments {
         term_code: code,
         term_name: term.dqxq,
@@ -117,6 +117,7 @@ pub(crate) fn sort(data: &mut SpocAssignments) {
     sort_assignments(&mut data.assignments);
 }
 
+#[track_caller]
 fn changed() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

@@ -41,13 +41,14 @@ struct RawClassroom {
 
 /// 解析教室 `e/m/d` 包装，同时允许合法的空列表。
 pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
-    let response: RawResponse = serde_json::from_str(body).map_err(|_| {
+    let response: RawResponse = serde_json::from_str(body).map_err(|cause| {
         UbaaError::new(
             ErrorCode::ParseError,
             ErrorKind::Parse,
             false,
             "空教室响应不是有效 JSON",
         )
+        .with_json_error(&cause, body.as_bytes())
     })?;
     Ok(ClassroomQuery {
         code: response.code,
@@ -121,10 +122,13 @@ pub(crate) async fn search(
     let body = super::body(&response);
     if session_expired(&response, &body) {
         feature_state.classroom.clear();
-        return Err(authentication_required());
+        return Err(authentication_required()
+            .with_diagnostic("response", "business_session_required")
+            .with_response(&response.body, Some(response.status)));
     }
-    check_query_status(response.status)?;
-    parse_response(&body)
+    check_query_status(response.status)
+        .map_err(|error| error.with_response(&response.body, Some(response.status)))?;
+    parse_response(&body).map_err(|error| error.with_http_status(response.status))
 }
 
 async fn synchronize_session(runtime: &mut crate::runtime::ClientRuntime) -> bool {
@@ -163,6 +167,7 @@ fn starts_with_ignore_ascii_case(value: &str, prefix: &str) -> bool {
         .is_some_and(|candidate| candidate.eq_ignore_ascii_case(prefix))
 }
 
+#[track_caller]
 fn check_query_status(status: u16) -> Result<()> {
     if status >= 500 {
         return Err(UbaaError::new(
@@ -170,7 +175,8 @@ fn check_query_status(status: u16) -> Result<()> {
             ErrorKind::Upstream,
             true,
             "空教室上游不可用",
-        ));
+        )
+        .with_diagnostic("response", "http_server_error"));
     }
     if status != 200 {
         return Err(UbaaError::new(
@@ -178,11 +184,13 @@ fn check_query_status(status: u16) -> Result<()> {
             ErrorKind::Upstream,
             false,
             "空教室请求失败",
-        ));
+        )
+        .with_diagnostic("response", "http_status_unexpected"));
     }
     Ok(())
 }
 
+#[track_caller]
 fn authentication_required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,

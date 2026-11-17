@@ -87,11 +87,66 @@ impl UbaaClient {
             query.clone().read(self.runtime_for(resolution.mode)).await
         );
         let data = refresh.read_result(self.finish_routed(resolution, result))?;
+        if matches!(query, BykcCacheQuery::Chosen) {
+            return refresh
+                .finish_shared(
+                    data,
+                    true,
+                    BykcReadData::readonly_payload,
+                    chosen_from_cache,
+                )
+                .map(|value| value.result);
+        }
         refresh
             .finish(data, true, BykcReadData::readonly_payload)
             .map(|value| value.result)
     }
 }
+fn chosen_from_cache(payload: CachePayload) -> super::CacheResult<BykcReadData> {
+    let CachePayload::BykcChosen(value) = payload else {
+        return Err(super::CacheError::Corrupt);
+    };
+    Ok(BykcReadData::Chosen {
+        semester_start: value.semester_start,
+        semester_end: value.semester_end,
+        courses: value
+            .courses
+            .into_iter()
+            .map(|course| BykcChosenCourse {
+                id: course.id,
+                course_id: course.course_id,
+                course_name: course.course_name,
+                course_position: course.course_position,
+                course_teacher: course.course_teacher,
+                course_start_date: course.course_start_date,
+                course_end_date: course.course_end_date,
+                select_date: course.select_date,
+                course_cancel_end_date: course.course_cancel_end_date,
+                category: course.category,
+                sub_category: course.sub_category,
+                checkin: course.checkin,
+                score: course.score,
+                pass: course.pass,
+                course_sign_type: course.course_sign_type,
+                homework: course.homework,
+                homework_attachment_name: course.homework_attachment_name,
+                // 线上模型用坐标列表表达签到范围；只知道存在范围时保持未知。
+                sign_config: course
+                    .sign_window
+                    .filter(|window| !window.has_points)
+                    .map(|window| super::BykcSignConfig {
+                        sign_start_date: window.sign_start_date,
+                        sign_end_date: window.sign_end_date,
+                        sign_out_start_date: window.sign_out_start_date,
+                        sign_out_end_date: window.sign_out_end_date,
+                        ..super::BykcSignConfig::default()
+                    }),
+                ..BykcChosenCourse::default()
+            })
+            .collect(),
+    })
+}
+
 impl OfflineCache {
     /// 独立本地读取，不访问网络客户端或授予学校写资格。
     ///

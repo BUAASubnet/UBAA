@@ -45,7 +45,7 @@ impl BridgeClient {
                 return Err(disposed_error());
             }
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .open_cgyy_lock_display()
                 .map(|inner| BridgeCgyyLockDisplayLease { inner })
@@ -65,7 +65,7 @@ impl BridgeClient {
                 return Err(disposed_error());
             }
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .read_cgyy_lock_display(&lease.inner)
                 .await

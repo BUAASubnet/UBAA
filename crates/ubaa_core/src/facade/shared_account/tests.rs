@@ -138,6 +138,37 @@ fn 未完成材料事务和损坏版本均拒绝实际存储且保留记录() {
     drop(store);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn diagnostics_contract_共享身份撤销区分事务与代次且保留判断位置() {
+    for (file, value, reason) in [
+        ("transaction.v1", "UBAA1:B", "shared_transaction_incomplete"),
+        (
+            "account-generation.v1",
+            "UBAA1:2",
+            "shared_generation_changed",
+        ),
+    ] {
+        let root = root();
+        let guard = SharedAccountGuard::new(&root, 1).unwrap();
+        std::fs::write(root.join(file), value).unwrap();
+        let error = guard.check().unwrap_err();
+        assert!(error.is_shared_account_conflict());
+        assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
+        assert!(
+            error
+                .diagnostic()
+                .source
+                .contains("facade/shared_account/mod.rs:")
+        );
+        assert!(!error.diagnostic().to_json().unwrap().contains(value));
+        assert_eq!(
+            guard.check().unwrap_err().diagnostic().reason.as_deref(),
+            Some("shared_authority_revoked")
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
 #[test]
 fn 子进程材料与真实存储工作器() {
     let Ok(root) = std::env::var("UBAA_SYNTHETIC_SHARED_ROOT") else {

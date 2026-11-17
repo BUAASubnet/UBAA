@@ -153,3 +153,34 @@ ConnectionMode agendaRoute(
             ? ConnectionMode.webvpn
             : ConnectionMode.direct),
 };
+
+/// 体育课决定默认提醒，用户手动选择优先。
+YgdkReminderSettings effectiveYgdkReminder(
+  YgdkReminderSettings settings,
+  bool hasPe,
+) => settings.copyWith(
+  enabled: settings.manualEnabled ?? (settings.enabled && hasPe),
+);
+
+ButtonStyle homeRailButtonStyle(ColorScheme colors) =>
+    IconButton.styleFrom(minimumSize: const Size(56, 48)).copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? colors.secondaryContainer
+            : null,
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? colors.onSecondaryContainer
+            : null,
+      ),
+    );
+
+Widget homeRailScroll(BuildContext context, Widget child) =>
+    ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        // 导航只在内容溢出时滚动，边界不随触摸板回弹。
+        physics: const ClampingScrollPhysics(),
+      ),
+      child: child,
+    );

@@ -56,12 +56,16 @@ abstract interface class AgendaBackend {
 /// 排队的旧写入与迟到结果不能流入新账号，挂起读取不阻塞关闭。
 final class AgendaService {
   AgendaService(this._backend);
+
+  /// 当前账号操作失败时交给宿主记录，回调不接收业务参数。
+  void Function(Object error, StackTrace stack)? onFailure;
   final AgendaBackend _backend;
   AgendaSyncState _syncState = const AgendaSyncState();
   AgendaSyncState get syncState => _syncState;
   final _syncUpdates = StreamController<AgendaSyncState>.broadcast();
   Stream<AgendaSyncState> get syncUpdates => _syncUpdates.stream;
   Future<void> _syncTail = Future<void>.value();
+  int _pendingCountRequest = 0;
   bool get supportsSync => _backend is AgendaSyncBackend;
   bool _syncEnabled = false;
   bool get syncEnabled => _syncEnabled;
@@ -140,6 +144,7 @@ final class AgendaService {
             await refreshPermission();
             if (generation != _generation || _disposed)
               throw const AgendaException(AgendaFailure.superseded);
+            _pendingCountRequest++;
             _setSync(
               AgendaSyncState(
                 report: report,
@@ -165,12 +170,10 @@ final class AgendaService {
 
   void _syncAfterWrite(AgendaTime now) {
     if (!supportsSync) return;
-    if (!_syncEnabled) {
-      unawaited(
-        _refreshLocalPendingCount().then<void>((_) {}, onError: (Object _) {}),
-      );
-      return;
-    }
+    unawaited(
+      _refreshLocalPendingCount().then<void>((_) {}, onError: (Object _) {}),
+    );
+    if (!_syncEnabled) return;
     unawaited(
       sync(
         AgendaSyncAction.push,
@@ -181,8 +184,12 @@ final class AgendaService {
 
   Future<void> _refreshLocalPendingCount() async {
     final generation = _generation;
+    final request = ++_pendingCountRequest;
     final count = await _backend.unsyncedCount();
-    if (generation != _generation || _disposed) return;
+    if (generation != _generation ||
+        request != _pendingCountRequest ||
+        _disposed)
+      return;
     _setSync(
       AgendaSyncState(
         report: _syncState.report,
@@ -280,8 +287,13 @@ final class AgendaService {
         check();
         if (syncNow != null) _syncAfterWrite(syncNow);
         return value;
-      } on Object {
+      } on Object catch (error, stack) {
         check();
+        try {
+          onFailure?.call(error, stack);
+        } on Object {
+          // 诊断记录失败不能改变已完成的本地操作结果。
+        }
         rethrow;
       }
     }
@@ -371,6 +383,7 @@ final class AgendaService {
     return _run(() async {
       final count = await _backend.clearLocalData();
       if (generation == _generation && !_disposed) {
+        _pendingCountRequest++;
         _setSync(
           AgendaSyncState(
             report: _syncState.report,

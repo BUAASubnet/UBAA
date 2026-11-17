@@ -147,6 +147,32 @@ impl UbaaError {
         self
     }
 
+    /// 字段名必须来自源码常量，只导出预期类型与实际类型，不保留字段值。
+    pub(crate) fn with_json_field(
+        mut self,
+        field: &'static str,
+        expected: &'static str,
+        value: Option<&serde_json::Value>,
+    ) -> Self {
+        use serde_json::Value;
+        let actual = match value {
+            None => "missing",
+            Some(Value::Null) => "null",
+            Some(Value::Bool(_)) => "boolean",
+            Some(Value::Number(_)) => "number",
+            Some(Value::String(s)) if s.is_empty() => "empty_string",
+            Some(Value::String(_)) => "string",
+            Some(Value::Array(_)) => "array",
+            Some(Value::Object(_)) => "object",
+        };
+        self.diagnostic.stage.get_or_insert_with(|| "parse".into());
+        self.diagnostic.reason = Some(format!(
+            "{}_expected_{expected}_got_{actual}",
+            field.to_ascii_lowercase()
+        ));
+        self
+    }
+
     pub(crate) fn with_http_status(mut self, status: u16) -> Self {
         self.diagnostic.status = Some(status);
         self
@@ -217,6 +243,7 @@ impl UbaaError {
         self
     }
 
+    #[track_caller]
     pub(crate) fn network_changed() -> Self {
         Self {
             cause: Some(ErrorCause::NetworkChanged),
@@ -226,6 +253,7 @@ impl UbaaError {
                 false,
                 "网络已变化，读取已取消",
             )
+            .with_diagnostic("network", "network_revision_changed")
         }
     }
 
@@ -263,12 +291,29 @@ impl UbaaError {
         message: &'static str,
         body: &[u8],
     ) -> Self {
-        if error.is_data() {
-            Self::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")
+        let result = if error.is_data() {
+            Self::upstream_changed(message)
         } else {
-            Self::parse_error(message).with_diagnostic("parse", "json_invalid")
-        }
-        .with_response(body, None)
+            Self::parse_error(message)
+        };
+        result.with_json_error(error, body)
+    }
+
+    /// 为已有错误补充 JSON 解码上下文，保留调用方的错误码与重试语义。
+    pub(crate) fn with_json_error(mut self, error: &serde_json::Error, body: &[u8]) -> Self {
+        self = self
+            .with_diagnostic(
+                "parse",
+                if error.is_data() {
+                    "response_shape_invalid"
+                } else {
+                    "json_invalid"
+                },
+            )
+            .with_response(body, None);
+        self.diagnostic.json_line = Some(error.line());
+        self.diagnostic.json_column = Some(error.column());
+        self
     }
 
     /// 构造认证要求错误。
@@ -376,6 +421,20 @@ impl UbaaError {
         )
         .with_initialization_failure(InitializationFailure::ResourceBusy)
     }
+
+    /// 构造由本地缓存锁占用导致的可重试错误。
+    #[track_caller]
+    #[must_use]
+    pub fn cache_busy() -> Self {
+        Self::new(
+            ErrorCode::Timeout,
+            ErrorKind::Internal,
+            true,
+            crate::cache::CacheError::Busy.to_string(),
+        )
+        .with_diagnostic("cache", "cache_busy")
+    }
+
     /// 构造安全的 Core 错误。
     #[track_caller]
     pub fn new(
@@ -395,10 +454,11 @@ impl UbaaError {
         }
     }
 
+    #[track_caller]
     pub(crate) fn agenda_creation_route_changed() -> Self {
         let mut error = Self::invalid_input("日程同步路线已变化，请重新拉取并确认");
         error.cause = Some(ErrorCause::AgendaCreationRouteChanged);
-        error
+        error.with_diagnostic("route", "route_revision_changed")
     }
 
     pub(crate) const fn is_agenda_creation_route_changed(&self) -> bool {
@@ -423,6 +483,7 @@ impl UbaaError {
         matches!(self.cause, Some(ErrorCause::BhpanRouteUnverified))
     }
 
+    #[track_caller]
     pub(crate) fn session_conflict() -> Self {
         Self {
             cause: Some(ErrorCause::SessionConflict),
@@ -432,9 +493,11 @@ impl UbaaError {
                 true,
                 "local session changed in another process",
             )
+            .with_diagnostic("session", "session_revision_changed")
         }
     }
 
+    #[track_caller]
     pub(crate) fn client_closed() -> Self {
         Self {
             cause: Some(ErrorCause::ClientClosed),
@@ -444,6 +507,7 @@ impl UbaaError {
                 false,
                 "client handle is closed",
             )
+            .with_diagnostic("lifecycle", "client_closed")
         }
     }
     /// 此错误是否由本进程句柄普通关闭产生。
@@ -451,6 +515,7 @@ impl UbaaError {
     pub fn is_client_closed(&self) -> bool {
         self.cause == Some(ErrorCause::ClientClosed)
     }
+    #[track_caller]
     pub(crate) fn shared_account_conflict() -> Self {
         Self {
             cause: Some(ErrorCause::SharedAccountConflict),
@@ -460,6 +525,7 @@ impl UbaaError {
                 false,
                 "shared account authority was revoked",
             )
+            .with_diagnostic("session", "shared_account_conflict")
         }
     }
     /// 此错误是否由本机共享身份的固定版本检查产生。

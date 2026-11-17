@@ -127,6 +127,7 @@ enum BridgeAgendaFailure {
   inactive,
   superseded,
   capacity,
+  busy,
 }
 
 class BridgeAgendaItem {

@@ -19,10 +19,13 @@ class BridgeCampusAccountService implements CampusAccountService {
   Future<T> _call<T>(Future<T> Function() call) async {
     try {
       return await call();
-    } on BridgeError catch (error) {
-      throw UbaaErrorMapper.fromException(bridgeMapError(error));
-    } on BackendException catch (error) {
-      throw UbaaErrorMapper.fromException(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(
+        UbaaErrorMapper.fromException(bridgeMapError(error)),
+        stack,
+      );
+    } on BackendException catch (error, stack) {
+      Error.throwWithStackTrace(UbaaErrorMapper.fromException(error), stack);
     }
   }
 

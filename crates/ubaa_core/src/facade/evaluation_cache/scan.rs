@@ -4,7 +4,10 @@ use crate::facade::{
     CacheScope, EvaluationCoursesResponse, OfflineCache, OfflineReadError, ReadonlyFeature,
     RouteResolution, UbaaClient,
 };
-use crate::{features::evaluation::scan::Cursor, internal::route_state::RouteFeatureState};
+use crate::{
+    cache::SharedReadRecovery, domain::EvaluationCourse, features::evaluation::scan::Cursor,
+    internal::route_state::RouteFeatureState,
+};
 use std::sync::{
     Arc, Weak,
     atomic::{AtomicBool, Ordering},
@@ -66,6 +69,113 @@ impl EvaluationScan {
                 Ok(None)
             }
         }
+    }
+
+    fn batch(&self, publication: Option<CachePublication>) -> EvaluationScanBatch {
+        EvaluationScanBatch {
+            resolution: self.resolution,
+            data: self.cursor.data(),
+            completed_course_lists: self.cursor.completed_course_lists,
+            fetched_at: self.fetched_at,
+            finished: self.cursor.finished,
+            complete: self.cursor.complete(),
+            publication,
+            save_error: self.save_error,
+            error: self
+                .cursor
+                .error
+                .clone()
+                .map(|error| crate::facade::RoutedError {
+                    resolution: Some(self.resolution),
+                    error,
+                }),
+        }
+    }
+
+    fn recover_shared_read(
+        &mut self,
+        mut batch: EvaluationScanBatch,
+    ) -> Result<EvaluationScanBatch, OfflineReadError> {
+        let (Some(cache), Some(ticket)) = (&self.cache, &self.ticket) else {
+            return Err(OfflineReadError::Cache(CacheError::Superseded));
+        };
+        let recovery = cache
+            .repository(|repo| repo.recover_shared_read(ticket, batch.complete))
+            .map_err(OfflineReadError::Cache)?;
+        let recovery = if let SharedReadRecovery::Retry(next) = recovery {
+            match cache.repository(|repo| {
+                repo.publish(
+                    &next,
+                    CachePayload::EvaluationCurrent(batch.data.clone().into()),
+                    batch.fetched_at,
+                    CacheCompleteness::Complete,
+                )
+            }) {
+                Err(CacheError::Superseded) => cache
+                    .repository(|repo| {
+                        Ok(match repo.recover_shared_read(&next, false)? {
+                            SharedReadRecovery::Reuse(record) => {
+                                SharedReadRecovery::Superseded(Some(record))
+                            }
+                            recovery => recovery,
+                        })
+                    })
+                    .map_err(OfflineReadError::Cache)?,
+                result => {
+                    batch.publication = self.storage(result)?;
+                    batch.save_error = self.save_error;
+                    return Ok(batch);
+                }
+            }
+        } else {
+            recovery
+        };
+        self.cursor.finished = true;
+        self.ticket = None;
+        batch.finished = true;
+        batch.error = None;
+        let selected = match recovery {
+            SharedReadRecovery::Reuse(record) => {
+                batch.complete = true;
+                batch.publication = Some(CachePublication::Stored);
+                batch.save_error = None;
+                Some(record)
+            }
+            SharedReadRecovery::Superseded(record) => {
+                batch.complete = false;
+                batch.publication = record.as_ref().map(|_| CachePublication::Preserved);
+                batch.save_error = Some(CacheError::Superseded);
+                record
+            }
+            SharedReadRecovery::Retry(_) => {
+                return Err(OfflineReadError::Cache(CacheError::Superseded));
+            }
+        };
+        batch.data = if let Some(record) = selected {
+            let CachePayload::EvaluationCurrent(value) = record.payload else {
+                return Err(OfflineReadError::Cache(CacheError::Corrupt));
+            };
+            batch.fetched_at = record.fetched_at;
+            batch.resolution.mode = record.scope.route;
+            batch.resolution.diagnostic.mode = record.scope.route;
+            EvaluationCoursesResponse {
+                courses: value
+                    .courses
+                    .into_iter()
+                    .map(|course| EvaluationCourse {
+                        id: course.id,
+                        kcmc: course.kcmc,
+                        bpmc: course.bpmc,
+                        is_evaluated: course.is_evaluated,
+                        ..EvaluationCourse::default()
+                    })
+                    .collect(),
+                progress: value.progress,
+            }
+        } else {
+            EvaluationCoursesResponse::default()
+        };
+        Ok(batch)
     }
 }
 impl UbaaClient {
@@ -151,7 +261,7 @@ impl UbaaClient {
         }
         Ok(plan)
     }
-    fn validate_evaluation_scan(
+    fn validate_evaluation_owner(
         &mut self,
         plan: &mut EvaluationScan,
         before: bool,
@@ -165,14 +275,6 @@ impl UbaaClient {
             || self.route_generation != plan.route_generation
         {
             return Err(OfflineReadError::Cache(CacheError::Superseded));
-        }
-        if let Some(cache) = &plan.cache {
-            let result = if let Some(ticket) = &plan.ticket {
-                cache.validate_read(ticket)
-            } else {
-                cache.check_read_generation()
-            };
-            plan.storage(result)?;
         }
         Ok(())
     }
@@ -197,9 +299,16 @@ impl UbaaClient {
         &mut self,
         plan: &mut EvaluationScan,
     ) -> Result<EvaluationScanBatch, OfflineReadError> {
-        self.validate_evaluation_scan(plan, true)?;
-        if let (Some(cache), Some(ticket)) = (&plan.cache, &mut plan.ticket) {
-            let result = cache.repository(|repo| repo.renew_read(ticket));
+        self.validate_evaluation_owner(plan, true)?;
+        if let Some(cache) = &plan.cache {
+            let result = if let Some(ticket) = &mut plan.ticket {
+                cache.repository(|repo| repo.renew_read(ticket))
+            } else {
+                cache.check_read_generation()
+            };
+            if matches!(result, Err(CacheError::Superseded)) && plan.ticket.is_some() {
+                return plan.recover_shared_read(plan.batch(None));
+            }
             plan.storage(result)?;
         }
         let original = plan.cursor.clone();
@@ -228,44 +337,33 @@ impl UbaaClient {
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?
             .data;
-        self.validate_evaluation_scan(plan, false)?;
-        let data = plan.cursor.data();
-        let complete = plan.cursor.complete();
-        let mut publication = None;
-        if plan.cursor.finished
-            && let (Some(cache), Some(ticket)) = (&plan.cache, &plan.ticket)
-        {
-            let result = cache.repository(|repo| {
-                repo.publish(
-                    ticket,
-                    CachePayload::EvaluationCurrent(data.clone().into()),
-                    plan.fetched_at,
-                    if complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
-                    },
-                )
-            });
-            publication = plan.storage(result)?;
+        self.validate_evaluation_owner(plan, false)?;
+        let mut batch = plan.batch(None);
+        if let Some(cache) = &plan.cache {
+            let result = match &plan.ticket {
+                Some(ticket) if batch.finished => cache
+                    .repository(|repo| {
+                        repo.publish(
+                            ticket,
+                            CachePayload::EvaluationCurrent(batch.data.clone().into()),
+                            batch.fetched_at,
+                            if batch.complete {
+                                CacheCompleteness::Complete
+                            } else {
+                                CacheCompleteness::Partial
+                            },
+                        )
+                    })
+                    .map(Some),
+                Some(ticket) => cache.validate_read(ticket).map(|()| None),
+                None => cache.check_read_generation().map(|()| None),
+            };
+            if matches!(result, Err(CacheError::Superseded)) && plan.ticket.is_some() {
+                return plan.recover_shared_read(batch);
+            }
+            batch.publication = plan.storage(result)?.flatten();
+            batch.save_error = plan.save_error;
         }
-        Ok(EvaluationScanBatch {
-            resolution: plan.resolution,
-            data,
-            completed_course_lists: plan.cursor.completed_course_lists,
-            fetched_at: plan.fetched_at,
-            finished: plan.cursor.finished,
-            complete,
-            publication,
-            save_error: plan.save_error,
-            error: plan
-                .cursor
-                .error
-                .clone()
-                .map(|error| crate::facade::RoutedError {
-                    resolution: Some(plan.resolution),
-                    error,
-                }),
-        })
+        Ok(batch)
     }
 }

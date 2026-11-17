@@ -16,6 +16,7 @@ pub trait HttpTransferObserver: Send + Sync {
     fn advance(&self, bytes: u64);
     fn set_total(&self, _bytes: u64) {}
 }
+#[track_caller]
 pub(super) fn unavailable() -> UbaaError {
     UbaaError::invalid_input("当前传输端口不支持对象字节流")
 }

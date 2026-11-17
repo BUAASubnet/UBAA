@@ -38,14 +38,9 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
 
   AppServiceNotices? get _appServiceNotices {
     final update = _controller.appUpdate;
-    final banners = [
-      for (final announcement in _controller.pendingAnnouncements)
-        if (announcement.level == AppAnnouncementLevel.banner) announcement,
-    ];
-    if (update == null && banners.isEmpty) return null;
+    if (update == null || !update.gateActive) return null;
     return AppServiceNotices(
       update: update,
-      banners: banners,
       onOpenUrl: _openAppServiceUrl,
       onDismissUpdate: _controller.dismissUpdateAvailable,
       onDismissAnnouncement: _controller.markAnnouncementRead,
@@ -71,7 +66,7 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
 
   /// 用户主动访问学校被门控拒绝时提示更新；自动任务不会发出这个信号。
   Future<void> _showUpdatePrompt() async {
-    if (_disposed || _updatePromptOpen) return;
+    if (_disposed || _updatePromptOpen || _appServicePopupOpen) return;
     _updatePromptOpen = true;
     try {
       // 链接与门控以共享存储为准，另一进程可能刚刚刷新过配置。
@@ -86,39 +81,124 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
       if (update && url != null) await _openAppServiceUrl(url);
     } finally {
       _updatePromptOpen = false;
+      _syncAppServicePopup();
     }
   }
 
-  /// 弹窗级公告逐条显示；确认后记为已读，再显示下一条。
-  void _syncAnnouncementPopup() {
-    if (_disposed || _readyController == null || _announcementOpen) return;
-    final next = _controller.pendingAnnouncements
-        .where((item) => item.level == AppAnnouncementLevel.popup)
-        .firstOrNull;
-    if (next == null) return;
-    _announcementOpen = true;
+  static const _updateReminderKey = 'flutter.ubaa.update_reminder';
+
+  Future<void> _loadUpdateReminder() async {
+    try {
+      final saved = await _preferences.read(_updateReminderKey);
+      final parts = saved?.split('\n');
+      if (parts != null && parts.length == 2) {
+        _snoozedUpdateVersion = parts[0];
+        _updateReminderAt = DateTime.tryParse(parts[1]);
+      }
+    } on Object {
+      // 普通偏好读取失败时仍允许显示更新提示。
+    }
+    if (_disposed) return;
+    _updateReminderLoaded = true;
+    _scheduleUpdateReminder();
+    _syncAppServicePopup();
+  }
+
+  void _scheduleUpdateReminder() {
+    _updateReminderTimer?.cancel();
+    final at = _updateReminderAt;
+    if (_disposed || at == null || !DateTime.now().isBefore(at)) return;
+    _updateReminderTimer = Timer(
+      at.difference(DateTime.now()),
+      _syncAppServicePopup,
+    );
+  }
+
+  Future<void> _snoozeUpdate(String version) async {
+    _snoozedUpdateVersion = version;
+    _updateReminderAt = DateTime.now().add(const Duration(hours: 1));
+    _scheduleUpdateReminder();
+    try {
+      await _preferences.write(
+        _updateReminderKey,
+        '$version\n${_updateReminderAt!.toIso8601String()}',
+      );
+    } on Object {
+      // 保存失败时，本次运行仍保持一小时的提醒间隔。
+    }
+  }
+
+  /// 新版本优先，公告逐条显示，更新关闭后一小时再提醒，公告确认后保存已读状态。
+  void _syncAppServicePopup() {
+    if (_disposed ||
+        _readyController == null ||
+        !_updateReminderLoaded ||
+        _wasBackgrounded ||
+        _appServicePopupOpen ||
+        _updatePromptOpen)
+      return;
+    final update = _controller.appUpdate;
+    final version = update?.latestVersion;
+    final showUpdate =
+        update != null &&
+        !update.gateActive &&
+        update.status == AppUpdateStatus.updateAvailable &&
+        version != null &&
+        !(version == _snoozedUpdateVersion &&
+            _updateReminderAt != null &&
+            DateTime.now().isBefore(_updateReminderAt!));
+    final next = _controller.pendingAnnouncements.firstOrNull;
+    if (!showUpdate && next == null) return;
+    _appServicePopupOpen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      var continueQueue = false;
       try {
         final context = _navigatorKey.currentContext;
         if (_disposed || context == null || !context.mounted) return;
-        // 帧间状态可能已经变化，确认这条公告仍然待显示。
-        if (!_controller.pendingAnnouncements.any((a) => a.id == next.id))
-          return;
-        final link = next.linkUrl;
-        final confirmed = await uiShowAnnouncement(
-          context,
-          next,
-          onOpenLink: link == null
-              ? null
-              : () => unawaited(_openAppServiceUrl(link)),
-        );
-        if (confirmed && !_disposed) {
-          await _controller.markAnnouncementRead(next.id);
+        if (showUpdate) {
+          final current = _controller.appUpdate;
+          if (current?.latestVersion != version ||
+              current?.status != AppUpdateStatus.updateAvailable ||
+              current!.gateActive) {
+            continueQueue = true;
+            return;
+          }
+          final go = await uiShowReleaseNotes(
+            context,
+            version: version,
+            notes: current.releaseNotes,
+            canUpdate: current.url != null,
+          );
+          if (_disposed) return;
+          await _snoozeUpdate(version);
+          if (go && current.url != null) await _openAppServiceUrl(current.url!);
+          continueQueue = true;
+        } else if (next != null) {
+          // 帧间状态可能已经变化，只显示仍然未读且有效的公告。
+          if (!_controller.pendingAnnouncements.any((a) => a.id == next.id)) {
+            continueQueue = true;
+            return;
+          }
+          final link = next.linkUrl;
+          final confirmed = await uiShowAnnouncement(
+            context,
+            next,
+            onOpenLink: link == null
+                ? null
+                : () => unawaited(_openAppServiceUrl(link)),
+          );
+          if (confirmed && !_disposed) {
+            await _controller.markAnnouncementRead(next.id);
+            continueQueue = !_controller.pendingAnnouncements.any(
+              (a) => a.id == next.id,
+            );
+          }
         }
       } finally {
-        _announcementOpen = false;
-        if (!_disposed) _syncAnnouncementPopup();
+        _appServicePopupOpen = false;
+        if (!_disposed && continueQueue) _syncAppServicePopup();
       }
     });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 }

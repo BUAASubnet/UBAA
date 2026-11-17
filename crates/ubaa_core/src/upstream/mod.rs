@@ -271,6 +271,7 @@ fn selector(query: &str) -> Selector {
     Selector::parse(query).expect("static selector compiles")
 }
 
+#[track_caller]
 fn upstream_changed(message: impl Into<String>) -> UbaaError {
     UbaaError::upstream_changed(message)
 }

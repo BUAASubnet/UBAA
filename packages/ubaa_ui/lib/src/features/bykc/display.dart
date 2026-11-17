@@ -1,7 +1,6 @@
-import 'package:clock/clock.dart' show clock;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../shared/when.dart' show uiDay;
+import '../../shared/when.dart' show uiCampusNow, uiDay, uiParseCampusTime;
 import '../../common/tag.dart';
 
 String uiBykcStatusLabel(BykcCourseStatus status) => switch (status) {
@@ -86,8 +85,8 @@ String? uiBykcRange(String? start, String? end) {
 ) {
   final start = course.courseSelectStartDate?.trim();
   final end = course.courseSelectEndDate?.trim();
-  final startDate = start == null ? null : DateTime.tryParse(start);
-  if (startDate != null && clock.now().isBefore(startDate)) {
+  final startDate = uiParseCampusTime(start);
+  if (startDate != null && uiCampusNow().isBefore(startDate)) {
     return (label: '开始选课', value: uiBykcDate(start!));
   }
   if (end != null && end.isNotEmpty) {

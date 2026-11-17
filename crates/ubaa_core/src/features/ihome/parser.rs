@@ -40,11 +40,11 @@ fn number(v: &Value, k: &str) -> Option<i64> {
 fn integer(v: &Value, k: &str) -> Option<i32> {
     number(v, k).and_then(|n| i32::try_from(n).ok())
 }
-fn objects<'a>(v: &'a Value, k: &str) -> Result<Vec<&'a Value>> {
+fn objects<'a>(v: &'a Value, k: &'static str) -> Result<Vec<&'a Value>> {
     match v.get(k) {
         None | Some(Value::Null) => Ok(vec![]),
         Some(Value::Array(a)) if a.iter().all(Value::is_object) => Ok(a.iter().collect()),
-        _ => Err(invalid()),
+        _ => Err(invalid().with_json_field(k, "object_array", v.get(k))),
     }
 }
 fn plain(v: &Value, k: &str) -> String {

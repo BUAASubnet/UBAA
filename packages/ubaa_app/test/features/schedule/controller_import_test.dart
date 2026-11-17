@@ -241,6 +241,24 @@ void main() {
     expect(controller.scheduleImports['selected']!.progress!.saved, isFalse);
     expect(backend.events.where((e) => e == 'begin').length, 2);
   });
+  test('导入被另一读取替代时保留进度且不显示操作错误', () async {
+    final backend = _Backend();
+    final controller = await setup(backend);
+    final epoch = controller.agendaProjectionEpoch;
+    final importing = controller.saveScheduleSemester('selected');
+    await until(() => backend.task.pending.isNotEmpty);
+    backend.task.release(
+      finished: true,
+      failure: CacheMaintenanceFailure.superseded,
+    );
+    await importing;
+    final state = controller.scheduleImports['selected']!;
+    expect(state.status, ScheduleImportStatus.cancelled);
+    expect(state.progress?.saveFailure, CacheMaintenanceFailure.superseded);
+    expect(state.error, isNull);
+    expect(controller.agendaProjectionEpoch, epoch);
+    expect(backend.task.calls, 1);
+  });
   test('首页刷新不取消固定学期，显式清理拒绝随后到达的保存结果', () async {
     final backend = _Backend();
     final controller = await setup(backend);

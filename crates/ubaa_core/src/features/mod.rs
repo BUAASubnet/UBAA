@@ -12,6 +12,7 @@ pub mod cgyy;
 pub mod classroom;
 pub mod evaluation;
 pub mod grades;
+pub(crate) mod health_cloud;
 pub(crate) mod ihome;
 pub mod judge;
 pub mod libbook;

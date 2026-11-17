@@ -7,6 +7,7 @@ struct CacheTransport {
     mode: Arc<AtomicUsize>,
     calls: Arc<AtomicUsize>,
     cancel: Arc<std::sync::Mutex<Option<ubaa_core::facade::EvaluationScanCancellation>>>,
+    replace: Arc<std::sync::Mutex<Option<ubaa_core::facade::OfflineRepository>>>,
 }
 #[async_trait]
 impl HttpTransport for CacheTransport {
@@ -21,6 +22,11 @@ impl HttpTransport for CacheTransport {
             && let Some(cancel) = self.cancel.lock().unwrap().take()
         {
             cancel.cancel();
+        }
+        if path.ends_with("getRequiredReviewsData")
+            && let Some(mut repository) = self.replace.lock().unwrap().take()
+        {
+            repository.begin_read(scan::shared_scope()).unwrap();
         }
         let mode = self.mode.load(Ordering::SeqCst);
         let query: std::collections::HashMap<_, _> = url.query_pairs().collect();
@@ -117,6 +123,7 @@ fn setup(root: &std::path::Path) -> (UbaaClient, OfflineCache, CacheTransport) {
         mode: Arc::new(AtomicUsize::new(0)),
         calls: Arc::new(AtomicUsize::new(0)),
         cancel: Arc::new(std::sync::Mutex::new(None)),
+        replace: Arc::new(std::sync::Mutex::new(None)),
     };
     let client = UbaaClient::with_routing(
         transport.clone(),

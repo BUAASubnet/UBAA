@@ -27,7 +27,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   DialogRoute<void>? _captchaDialogRoute;
   StreamSubscription<void>? _updatePromptSubscription;
   bool _updatePromptOpen = false;
-  bool _announcementOpen = false;
+  bool _appServicePopupOpen = false;
+  bool _updateReminderLoaded = false;
+  String? _snoozedUpdateVersion;
+  DateTime? _updateReminderAt;
+  Timer? _updateReminderTimer;
   ModalRoute<dynamic>? _loginSheetRoute;
   bool _captchaDialogScheduled = false;
   UiError? _scheduledHomeFeedback;
@@ -42,6 +46,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void _preferencesChanged() => setState(() => _preferenceRevision++);
   int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
+  int _accentRevision = 0;
+  UbaaAccent _accent = UbaaAccent.blue;
 
   late final _nativeTheme = widget.nativeThemeSync ?? NativeThemeSync();
 
@@ -50,6 +56,22 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     setState(() => _themeMode = value);
     unawaited(_themeStore.write(value.name).catchError((Object _) {}));
     unawaited(_nativeTheme.apply(value.name));
+  }
+
+  void _setAccent(UbaaAccent value) {
+    if (value == _accent) return;
+    _accentRevision++;
+    setState(() => _accent = value);
+    unawaited(_themeStore.writeAccent(value.name).catchError((Object _) {}));
+  }
+
+  Future<void> _restoreAccent() async {
+    final revision = _accentRevision;
+    final value = UbaaAccent.parse(await _themeStore.readAccent());
+    // 本次打开后用户已选择的主题色优先于迟到的读取结果。
+    if (mounted && revision == _accentRevision && value != _accent) {
+      setState(() => _accent = value);
+    }
   }
 
   Future<void> _restoreTheme() async {
@@ -184,6 +206,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _themeMode = widget.initialThemeMode;
+    _accent = widget.initialAccent;
     _wasBackgrounded = switch (WidgetsBinding.instance.lifecycleState) {
       AppLifecycleState.paused ||
       AppLifecycleState.hidden ||
@@ -223,6 +246,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
           );
     _themeStore = ThemePreferenceStore(values: preferences);
     unawaited(_restoreTheme());
+    unawaited(_restoreAccent());
     _reminderStore =
         widget.reminderStore ??
         (backend != null || widget.backendFactory != null
@@ -276,7 +300,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
-    _controller.addListener(_syncAnnouncementPopup);
+    _controller.addListener(_syncAppServicePopup);
+    unawaited(_loadUpdateReminder());
     _updatePromptSubscription = _controller.updatePromptRequests.listen(
       (_) => unawaited(_showUpdatePrompt()),
     );
@@ -317,6 +342,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void dispose() {
     _disposed = true;
     _appServiceTimer?.cancel();
+    _updateReminderTimer?.cancel();
     _crashHandlers?.dispose();
     _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
@@ -329,7 +355,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncCaptchaDialog);
-    _controller.removeListener(_syncAnnouncementPopup);
+    _controller.removeListener(_syncAppServicePopup);
     unawaited(_updatePromptSubscription?.cancel());
     _controller.removeListener(_syncScheduleWidgets);
     _scheduleWidgetPublisher?.dispose();
@@ -361,6 +387,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (_readyController == null) return;
       _listenNetworkChanges();
       _controller.setAppForeground(true);
+      _syncAppServicePopup();
       unawaited(_attemptAppService(force: false));
       unawaited(_controller.refreshAppBootstrap());
       if (_recoveryInFlight) return;

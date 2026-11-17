@@ -33,17 +33,21 @@ final class BridgeAgendaBackend
       return result;
     } on LocalAccountConflict {
       throw const AgendaException(AgendaFailure.superseded);
-    } on BridgeAgendaError catch (e) {
-      throw AgendaException(switch (e.failure) {
-        BridgeAgendaFailure.unavailable => AgendaFailure.unavailable,
-        BridgeAgendaFailure.invalidInput => AgendaFailure.invalidInput,
-        BridgeAgendaFailure.corrupt => AgendaFailure.corrupt,
-        BridgeAgendaFailure.unsupportedVersion =>
-          AgendaFailure.unsupportedVersion,
-        BridgeAgendaFailure.inactive => AgendaFailure.inactive,
-        BridgeAgendaFailure.superseded => AgendaFailure.superseded,
-        BridgeAgendaFailure.capacity => AgendaFailure.capacity,
-      });
+    } on BridgeAgendaError catch (e, stack) {
+      Error.throwWithStackTrace(
+        AgendaException(switch (e.failure) {
+          BridgeAgendaFailure.unavailable => AgendaFailure.unavailable,
+          BridgeAgendaFailure.invalidInput => AgendaFailure.invalidInput,
+          BridgeAgendaFailure.corrupt => AgendaFailure.corrupt,
+          BridgeAgendaFailure.unsupportedVersion =>
+            AgendaFailure.unsupportedVersion,
+          BridgeAgendaFailure.inactive => AgendaFailure.inactive,
+          BridgeAgendaFailure.superseded => AgendaFailure.superseded,
+          BridgeAgendaFailure.capacity => AgendaFailure.capacity,
+          BridgeAgendaFailure.busy => AgendaFailure.busy,
+        }),
+        stack,
+      );
     }
   }
 
@@ -215,14 +219,46 @@ final class BridgeAgendaBackend
     if (handle != null) {
       try {
         rows = await handle.projectHome(values: values, context: ctx);
-        return bridgeHomeTodoProjection(rows, request);
       } on BridgeAgendaError catch (e) {
         failure = AgendaFailure.values.byName(e.failure.name);
+        rows = await agendaProjectHome(values: values, context: ctx);
+      }
+    } else {
+      rows = await agendaProjectHome(values: values, context: ctx);
+    }
+    if (handle != null) {
+      try {
+        final local = await handle.queryLocal(query: _homeLocalQuery(request));
+        rows = [...rows, ...local.entries.where(_includeHomeLocalEntry)];
+      } on BridgeAgendaError catch (e) {
+        failure ??= AgendaFailure.values.byName(e.failure.name);
       }
     }
-    rows = await agendaProjectHome(values: values, context: ctx);
     return bridgeHomeTodoProjection(rows, request, overlayFailure: failure);
   }
+
+  BridgeAgendaQuery _homeLocalQuery(HomeTodoRequest request) {
+    final now = homeCampusTime(request.now);
+    final from = homeDateKey(now);
+    final to = homeDateKey(now.add(const Duration(days: 8)));
+    return BridgeAgendaQuery(
+      route: BridgeConnectionMode.direct,
+      term: '',
+      from: from,
+      to: to,
+      now: bridgeHomeAgendaContext(request).now,
+      includeHidden: false,
+      ygdkEnabled: false,
+      ygdkWeekDone: false,
+      ygdkTermDone: false,
+    );
+  }
+
+  bool _includeHomeLocalEntry(BridgeAgendaEntry entry) =>
+      entry.local != null &&
+      !entry.completed &&
+      !entry.hidden &&
+      entry.timing.kind != BridgeAgendaTimingKind.undated;
 
   @override
   Future<AgendaItem> create(AgendaDraft draft, AgendaTime now) => _call(

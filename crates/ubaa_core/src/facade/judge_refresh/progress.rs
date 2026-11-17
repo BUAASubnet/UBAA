@@ -29,6 +29,68 @@ pub(super) fn finish(
                 .any(|item| item.course_id == *course)
         });
     }
+    let (summaries, summary_fetched_at, summary_has_cached) = summary(refresh, now);
+    if batch.finished && batch.complete {
+        refresh.final_summary_at = Some(now);
+    }
+    refresh
+        .scan
+        .cache
+        .validate_read(&refresh.scan.ticket)
+        .map_err(OfflineReadError::Cache)?;
+    if batch.finished {
+        let completeness = if batch.complete {
+            CacheCompleteness::Complete
+        } else {
+            CacheCompleteness::Partial
+        };
+        remember_save(
+            &mut refresh.save_error,
+            refresh.scan.cache.repository(|repository| {
+                repository.publish_observed(
+                    &refresh.scan.ticket,
+                    CachePayload::JudgeSummaries(summaries.clone()),
+                    crate::cache::CacheObservation {
+                        source_at: summary_fetched_at,
+                        attempted_at: now,
+                    },
+                    completeness,
+                )
+            }),
+        )?;
+        refresh.final_summary_at = None;
+    }
+    if let Some(semester) = refresh.semester
+        && refresh.options.current_assignment.is_none()
+        && refresh.options.preferred_course.is_none()
+    {
+        step.batch.assignments.retain(|item| {
+            refresh
+                .summaries
+                .get(&(item.course_id.clone(), item.assignment_id.clone()))
+                .is_none_or(|summary| {
+                    summary.title != item.title
+                        || summary.course_name != item.course_name
+                        || semester.contains(summary)
+                })
+        });
+    }
+    Ok(JudgeRefreshBatch {
+        resolution: refresh.scan.resolution,
+        batch: step.batch,
+        summaries,
+        summary_fetched_at,
+        summary_has_cached,
+        reused: step.reused,
+        fetched_at: Some(step.source_at),
+        save_error: refresh.save_error,
+    })
+}
+
+pub(super) fn summary(
+    refresh: &JudgeRefresh,
+    now: i64,
+) -> (Vec<crate::facade::JudgeAssignmentSummary>, i64, bool) {
     let mut summaries: Vec<_> = refresh
         .summaries
         .values()
@@ -61,57 +123,7 @@ pub(super) fn finish(
             .cached_keys
             .contains(&(item.course_id.clone(), item.assignment_id.clone()))
     });
-    refresh
-        .scan
-        .cache
-        .validate_read(&refresh.scan.ticket)
-        .map_err(OfflineReadError::Cache)?;
-    if batch.finished {
-        let completeness = if batch.complete {
-            CacheCompleteness::Complete
-        } else {
-            CacheCompleteness::Partial
-        };
-        remember_save(
-            &mut refresh.save_error,
-            refresh.scan.cache.repository(|repository| {
-                repository.publish_observed(
-                    &refresh.scan.ticket,
-                    CachePayload::JudgeSummaries(summaries.clone()),
-                    crate::cache::CacheObservation {
-                        source_at: summary_fetched_at,
-                        attempted_at: now,
-                    },
-                    completeness,
-                )
-            }),
-        )?;
-    }
-    if let Some(semester) = refresh.semester
-        && refresh.options.current_assignment.is_none()
-        && refresh.options.preferred_course.is_none()
-    {
-        step.batch.assignments.retain(|item| {
-            refresh
-                .summaries
-                .get(&(item.course_id.clone(), item.assignment_id.clone()))
-                .is_none_or(|summary| {
-                    summary.title != item.title
-                        || summary.course_name != item.course_name
-                        || semester.contains(summary)
-                })
-        });
-    }
-    Ok(JudgeRefreshBatch {
-        resolution: refresh.scan.resolution,
-        batch: step.batch,
-        summaries,
-        summary_fetched_at,
-        summary_has_cached,
-        reused: step.reused,
-        fetched_at: Some(step.source_at),
-        save_error: refresh.save_error,
-    })
+    (summaries, summary_fetched_at, summary_has_cached)
 }
 
 fn apply_content(

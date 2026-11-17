@@ -14,8 +14,8 @@ final class BridgeNetworkOperation implements NetworkChangeOperation {
         BridgeNetworkState.offCampus => BackendNetworkState.offCampus,
         BridgeNetworkState.unknown => BackendNetworkState.unknown,
       };
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 

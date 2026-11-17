@@ -26,6 +26,7 @@ struct FeaturePolicies {
     network: Option<RoutePolicy>,
     finance: Option<RoutePolicy>,
     ihome: Option<RoutePolicy>,
+    health_cloud: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
@@ -65,6 +66,7 @@ struct RawFeatures {
     network: Option<RoutePolicy>,
     finance: Option<RoutePolicy>,
     ihome: Option<RoutePolicy>,
+    health_cloud: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
@@ -111,6 +113,7 @@ impl RouteConfig {
                 network: raw.route.features.network,
                 finance: raw.route.features.finance,
                 ihome: raw.route.features.ihome,
+                health_cloud: raw.route.features.health_cloud,
                 bykc: raw.route.features.bykc,
                 cgyy: raw.route.features.cgyy,
                 libbook: raw.route.features.libbook,
@@ -229,6 +232,7 @@ impl RouteConfig {
             ReadonlyFeature::Network => self.features.network,
             ReadonlyFeature::Finance => self.features.finance,
             ReadonlyFeature::Ihome => self.features.ihome,
+            ReadonlyFeature::HealthCloud => self.features.health_cloud,
             ReadonlyFeature::Bykc => self.features.bykc,
             ReadonlyFeature::Cgyy => self.features.cgyy,
             ReadonlyFeature::LibBook => self.features.libbook,
@@ -245,12 +249,13 @@ impl RouteConfig {
         .unwrap_or(self.default)
     }
 
-    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 16] {
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 17] {
         [
             (ReadonlyFeature::Portal, self.features.portal),
             (ReadonlyFeature::Network, self.features.network),
             (ReadonlyFeature::Finance, self.features.finance),
             (ReadonlyFeature::Ihome, self.features.ihome),
+            (ReadonlyFeature::HealthCloud, self.features.health_cloud),
             (ReadonlyFeature::Bykc, self.features.bykc),
             (ReadonlyFeature::Cgyy, self.features.cgyy),
             (ReadonlyFeature::LibBook, self.features.libbook),
@@ -456,6 +461,7 @@ impl FeatureRouteConfig {
     }
 }
 
+#[track_caller]
 fn invalid_config() -> UbaaError {
     UbaaError::new(
         ErrorCode::InvalidInput,

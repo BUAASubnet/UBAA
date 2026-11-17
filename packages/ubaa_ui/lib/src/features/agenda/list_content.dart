@@ -1,11 +1,10 @@
-import '../schedule/colors.dart' show ScheduleCourseColors;
+import '../../common/agenda_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'calendar_values.dart';
 import 'format.dart';
 import '../../common/state_panel.dart';
 import '../../common/tag.dart';
-import '../../theme.dart';
 
 /// 列表分组标题：今天/明天/昨天优先，其余显示「11月5日 周四」。
 String agendaDayLabel(DateTime day, DateTime now) {
@@ -252,19 +251,14 @@ class _AgendaDayHeader extends SliverPersistentHeaderDelegate {
 
 /// 来源色：自建事项用用户颜色，课程按课程分色，其余学校事项按来源区分。
 Color agendaSourceColor(AgendaEntry entry, ColorScheme colors) =>
-    agendaColor(entry.local?.content.color) ??
-    switch (entry.school?.navigation.feature) {
-      // 课程按课程名取色，与课表页同一套色板。
-      AgendaFeature.schedule => ScheduleCourseColors.accent(
-        entry.school!.title,
-        colors.brightness,
-      ),
-      AgendaFeature.spoc || AgendaFeature.judge => const Color(0xFFE8833A),
-      AgendaFeature.exam => colors.error,
-      AgendaFeature.bykc => UbaaTheme.category(const Color(0xFF8E5CD9), colors),
-      AgendaFeature.cgyy => const Color(0xFF2E9E8F),
-      _ => colors.tertiary,
-    };
+    uiAgendaSourceColor(
+      entry.school == null
+          ? null
+          : FeatureId.values.byName(entry.school!.navigation.feature.name),
+      colors,
+      title: agendaTitle(entry),
+      customColor: entry.local?.content.color,
+    );
 
 IconData agendaSourceIcon(AgendaEntry entry) => entry.local != null
     ? (entry.local!.content.kind == AgendaKind.task

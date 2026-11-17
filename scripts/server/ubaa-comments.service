@@ -1,0 +1,14 @@
+[Unit]
+Description=UBAA 留言服务
+After=network.target
+
+[Service]
+User=ubaa-comments
+Group=ubaa-comments
+WorkingDirectory=/var/lib/ubaa-comments
+ExecStart=/opt/ubaa/artalk/artalk server -c /etc/ubaa-comments/artalk.yml
+Restart=on-failure
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

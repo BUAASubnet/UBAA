@@ -46,6 +46,7 @@ pub struct JudgeRefresh {
     cached_keys: HashSet<(String, String)>,
     oldest_source_at: i64,
     save_error: Option<CacheError>,
+    final_summary_at: Option<i64>,
     history: Option<history::CourseProgress>,
     parallel: parallel::DetailReads,
 }
@@ -184,6 +185,7 @@ impl UbaaClient {
             original,
             oldest_source_at: now,
             save_error,
+            final_summary_at: None,
         })
     }
     /// 一批新读取或已保存详情立即返回；最后只以完整集合替换已保存摘要。

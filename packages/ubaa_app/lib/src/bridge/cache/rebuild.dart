@@ -54,8 +54,8 @@ Future<CacheClearOutcome> bridgeClearOrRebuildBusinessCache(
         account.id,
         cacheReady: result.cache != null,
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   });
 }

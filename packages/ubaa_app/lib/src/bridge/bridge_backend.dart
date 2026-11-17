@@ -3,6 +3,7 @@ import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
 import 'ihome/service.dart';
+import 'health_cloud.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
 import 'bhpan/service.dart';
@@ -83,7 +84,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 71;
+const _supportedBridgeContractVersion = 74;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -94,9 +95,11 @@ const _previousBridgeContractVersion = 54;
 class BridgeBackend
     implements
         UbaaBackend,
+        RawDiagnosticsBackend,
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,
+        HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,
         BhpanProvider,
@@ -160,6 +163,9 @@ class BridgeBackend
   }
 
   @override
+  String exportRawDiagnostics() => _context.client.exportRawDiagnostics();
+
+  @override
   NetworkChangeOperation beginNetworkChange({
     required bool online,
     required Duration budget,
@@ -171,8 +177,8 @@ class BridgeBackend
           timeoutMillis: budget.inMilliseconds,
         ),
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 
@@ -186,8 +192,8 @@ class BridgeBackend
         client,
         await client.openCgyyLockDisplay(),
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 
@@ -402,6 +408,11 @@ class BridgeBackend
 
   @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
+
+  @override
+  ReadHealthCloud? get healthCloud => client.contractVersion() < 74
+      ? null
+      : (year) => bridgeHealthCloudPage(_context.client, year);
   @override
   late final BhpanService bhpan = BridgeBhpanService(_context);
 

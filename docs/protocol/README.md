@@ -33,6 +33,7 @@
 | 直接写操作与评教 | [write-actions.md](parity/write-actions.md) | 各写入九列、typed 操作资格、评教提交信封及多业务 DTO 原语补充 |
 | 门户、账户指标与财务 | [campus.md](parity/campus.md) | 门户资料、账户指标、网费流量、财务收入 |
 | iHome | [ihome.md](parity/ihome.md) | 补充旧版来源、逐操作协议、界面调整 |
+| 健康云 | [health-cloud.md](parity/health-cloud.md) | 认证跳转、体测年份和成绩 |
 | 北航云盘 | [bhpan.md](parity/bhpan.md) | 认证、读取、写入、分享、传输、日程固定文件版本条件 |
 | 应用服务 | [app-service.md](parity/app-service.md) | 遥测、更新、公告与统计开关（非学校协议） |
 | 宿主界面与平台能力 | [host-platform.md](parity/host-platform.md) | 列表连续滚动、系统选图与拍照、功能卡片按钮 |

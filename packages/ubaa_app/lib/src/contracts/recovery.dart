@@ -25,6 +25,7 @@ enum RecoveryTarget {
   network,
   finance,
   ihome,
+  healthCloud,
   schedule,
   exam,
   grades,
@@ -47,6 +48,7 @@ enum RecoveryTarget {
     network ||
     finance ||
     ihome ||
+    healthCloud ||
     bhpan ||
     connection => null,
     _ => FeatureId.values.byName(name),
@@ -79,6 +81,7 @@ typedef ServiceFailureRecorder =
       DiagnosticOperation operation,
       StackTrace stackTrace, {
       int? fileIndex,
+      Duration? latency,
     });
 
 typedef ServiceOutcomeRecorder =

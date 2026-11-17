@@ -103,9 +103,13 @@ Future<FeatureResult> _finishCgyyRefresh(
   BridgeCgyyRefreshState state,
 ) async {
   var selected = online;
-  var origin = DataOrigin.online;
+  final superseded = state.saveError == BridgeCacheFailure.superseded;
+  var origin = superseded && state.preservedPrevious
+      ? DataOrigin.persisted
+      : DataOrigin.online;
   var fetchedAt = bridgeCacheTime(state.fetchedAt.toInt());
-  if (!state.complete &&
+  if (!superseded &&
+      !state.complete &&
       (state.preservedPrevious || !state.savedForOffline) &&
       online.resolvedRoute != null) {
     CachedFeatureProjection? old;
@@ -150,7 +154,9 @@ Future<FeatureResult> _finishCgyyRefresh(
     origin: origin,
     fetchedAt: fetchedAt,
     complete: state.complete,
-    savedForOffline: state.savedForOffline,
+    savedForOffline:
+        state.savedForOffline || (superseded && state.preservedPrevious),
+    cacheFailure: bridgeCacheMaintenanceFailure(state.saveError),
     scopeDate: query.view == FeatureQueryView.cgyyDayInfo ? today : null,
   );
   return selected.isEmpty && state.complete

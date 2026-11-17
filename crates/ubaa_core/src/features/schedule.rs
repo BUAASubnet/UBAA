@@ -315,8 +315,16 @@ async fn activate_undergraduate_portal(runtime: &mut crate::runtime::ClientRunti
     super::check_response(&response, "schedule")?;
     let final_url = crate::connection::from_webvpn_url(&response.final_url)
         .unwrap_or_else(|_| response.final_url.clone());
-    let final_url = url::Url::parse(&final_url).map_err(|_| portal_response_error())?;
-    let expected_url = url::Url::parse(AAS_VERIFY_URL).map_err(|_| portal_response_error())?;
+    let final_url = url::Url::parse(&final_url).map_err(|_| {
+        portal_response_error()
+            .with_diagnostic("redirect", "url_invalid")
+            .with_http_status(response.status)
+    })?;
+    let expected_url = url::Url::parse(AAS_VERIFY_URL).map_err(|_| {
+        portal_response_error()
+            .with_diagnostic("redirect", "url_invalid")
+            .with_http_status(response.status)
+    })?;
     if final_url.origin() != expected_url.origin() || final_url.path() != expected_url.path() {
         return Err(UbaaError::new(
             ErrorCode::UpstreamChanged,
@@ -377,13 +385,24 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
     }
     // 以实际 currentUser 业务响应确认身份，门户 HTML 或任意 JSON 不授予就绪状态。
     let upstream = crate::connection::from_webvpn_url(&response.final_url)?;
-    let endpoint = url::Url::parse(&upstream).map_err(|_| portal_response_error())?;
-    let expected = url::Url::parse(CURRENT_USER_URL).map_err(|_| portal_response_error())?;
+    let endpoint = url::Url::parse(&upstream).map_err(|_| {
+        portal_response_error()
+            .with_diagnostic("redirect", "url_invalid")
+            .with_http_status(response.status)
+    })?;
+    let expected = url::Url::parse(CURRENT_USER_URL).map_err(|_| {
+        portal_response_error()
+            .with_diagnostic("redirect", "url_invalid")
+            .with_http_status(response.status)
+    })?;
     if endpoint.origin() != expected.origin() || endpoint.path() != expected.path() {
         return Err(portal_response_error());
     }
-    let payload: serde_json::Value =
-        serde_json::from_slice(&response.body).map_err(|_| portal_response_error())?;
+    let payload: serde_json::Value = serde_json::from_slice(&response.body).map_err(|cause| {
+        portal_response_error()
+            .with_json_error(&cause, &response.body)
+            .with_http_status(response.status)
+    })?;
     if payload.get("code").and_then(serde_json::Value::as_str) != Some("0")
         || payload
             .get("datas")
@@ -396,6 +415,7 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
     Ok(())
 }
 
+#[track_caller]
 fn portal_response_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
@@ -405,6 +425,7 @@ fn portal_response_error() -> UbaaError {
     )
 }
 
+#[track_caller]
 fn invalid_url() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamChanged,

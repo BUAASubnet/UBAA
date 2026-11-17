@@ -36,7 +36,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Spoc))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let plan = client
                 .begin_spoc_scan(
@@ -87,7 +87,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Spoc))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let batch = client
                 .next_spoc_scan(&mut plan)
@@ -102,7 +102,10 @@ impl BridgeClient {
                     fetched_at: batch.fetched_at,
                     complete: batch.complete,
                     saved_for_offline: batch.publication == Some(core::CachePublication::Stored),
-                    preserved_previous: !batch.complete,
+                    preserved_previous: batch.publication
+                        == Some(core::CachePublication::Preserved)
+                        || (!batch.complete
+                            && batch.save_error != Some(core::CacheError::Superseded)),
                     save_error: batch.save_error.map(Into::into),
                     scope_date: None,
                 },

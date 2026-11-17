@@ -71,39 +71,41 @@ class AgendaSyncStatusCard extends StatelessWidget {
       final enable =
           !service.syncEnabled && status != AgendaSyncStatus.outcomeUnknown;
       final count = state.localPendingCount ?? report?.pendingCount ?? 0;
-      final mayCreate =
-          status == AgendaSyncStatus.needsCreation ||
-          status == AgendaSyncStatus.locationUnknown;
-      final refreshBeforeCreate =
-          (enable || mayCreate) &&
-          (state.error != null || status == AgendaSyncStatus.unverified);
-      final create = (enable || mayCreate) && !refreshBeforeCreate;
+      final mayCreate = status == AgendaSyncStatus.needsCreation;
+      final refresh =
+          state.error != null ||
+          status == AgendaSyncStatus.locationUnknown ||
+          status == AgendaSyncStatus.unverified ||
+          status == AgendaSyncStatus.failed ||
+          status == AgendaSyncStatus.outcomeUnknown;
+      final create = (enable || mayCreate) && !refresh;
       final text = state.running
           ? '正在同步日程'
-          : refreshBeforeCreate
-          ? '请先刷新，再创建云端日程'
           : state.error != null
-          ? '同步未完成'
-          : !service.syncEnabled && status != AgendaSyncStatus.outcomeUnknown
+          ? count > 0
+                ? '同步未完成，$count 条修改未同步'
+                : '同步未完成'
+          : !service.syncEnabled && !refresh
           ? count > 0
                 ? '$count 条修改未同步'
                 : '未开启云端同步'
           : switch (status) {
-              AgendaSyncStatus.upToDate => '日程已同步',
+              AgendaSyncStatus.upToDate =>
+                count > 0 ? '$count 条修改待同步' : '日程已同步',
               AgendaSyncStatus.pending => '$count 条修改待同步',
               AgendaSyncStatus.needsCreation => '还没有云端日程，$count 条修改未同步',
-              AgendaSyncStatus.locationUnknown => '找不到云端日程，$count 条修改未同步',
+              AgendaSyncStatus.locationUnknown => '尚未确认云端日程位置',
               AgendaSyncStatus.unverified => '云端暂时无法同步，$count 条修改未同步',
               AgendaSyncStatus.failed => '同步失败，$count 条修改未同步',
               AgendaSyncStatus.conflict => '云端日程已更新，$count 条修改待同步',
               AgendaSyncStatus.outcomeUnknown => '上次同步结果未知，$count 条修改未同步',
               null => service.syncEnabled ? '日程云端同步' : '未开启云端同步',
             };
-      final reconcile = status == AgendaSyncStatus.outcomeUnknown;
       final theme = Theme.of(context);
       final colors = theme.colorScheme;
       final ok =
           status == AgendaSyncStatus.upToDate &&
+          count == 0 &&
           service.syncEnabled &&
           state.error == null;
       final warn =
@@ -111,6 +113,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
           status == AgendaSyncStatus.failed ||
           status == AgendaSyncStatus.conflict ||
           status == AgendaSyncStatus.outcomeUnknown ||
+          status == AgendaSyncStatus.locationUnknown ||
           status == AgendaSyncStatus.unverified;
       final Color tone = ok
           ? UbaaTheme.success(colors)
@@ -132,29 +135,33 @@ class AgendaSyncStatusCard extends StatelessWidget {
           ? '正在同步到北航云盘'
           : ok
           ? '你添加的日程、备注和完成状态已保存到北航云盘'
+          : state.error != null
+          ? _failureHint(state.error!)
+          : status == AgendaSyncStatus.unverified
+          ? '当前连接方式不支持云盘同步，请切换为直连后刷新'
+          : status == AgendaSyncStatus.locationUnknown
+          ? '刷新以确认云端目录，本机修改仍然保留'
+          : status == AgendaSyncStatus.outcomeUnknown
+          ? '刷新以核对上次结果，本机修改仍然保留'
           : enable
           ? '保存到北航云盘，换设备也能看到'
           : warn
           ? '修改不会丢失，可稍后重试'
           : '修改后会自动同步，也可立即同步';
-      final label = refreshBeforeCreate
+      final label = refresh
           ? '刷新'
           : enable
           ? '启用云端同步'
           : create
           ? '创建云端日程'
-          : reconcile
-          ? '刷新'
           : '同步';
-      final onPressed =
-          state.running ||
-              status == AgendaSyncStatus.unverified && !refreshBeforeCreate
+      final onPressed = state.running
           ? null
           : () => _run(
               context,
               create
                   ? AgendaSyncAction.createConfirmed
-                  : reconcile || refreshBeforeCreate
+                  : refresh
                   ? AgendaSyncAction.pull
                   : AgendaSyncAction.push,
             );
@@ -217,4 +224,14 @@ class AgendaSyncStatusCard extends StatelessWidget {
       );
     },
   );
+
+  static String _failureHint(Object error) => switch (error) {
+    UiError() => error.message,
+    AgendaException(failure: AgendaFailure.superseded) => '登录状态或网络已变化，请刷新后再试',
+    AgendaException(
+      failure: AgendaFailure.corrupt || AgendaFailure.unsupportedVersion,
+    ) =>
+      '日程数据无法读取，请保留本机数据并分享诊断信息',
+    _ => '同步未完成，本机修改仍然保留，请刷新后再试',
+  };
 }

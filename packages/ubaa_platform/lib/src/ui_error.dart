@@ -105,10 +105,11 @@ class UiErrorMapper {
     bool includeTechnicalDetail = false,
   }) {
     final code = _parseCode(payload.code);
+    final kind = kindOf(payload);
     final template = code == UbaaErrorCode.outcomeUnknown
         ? _templateFor(code)
         : _authTemplate(payload.authReason) ??
-              _diagnosticTemplate(code, payload.diagnostic?.reason) ??
+              _diagnosticTemplate(code, kind, payload.diagnostic) ??
               _templateFor(code);
     final retryable =
         code == UbaaErrorCode.outcomeUnknown ||
@@ -133,7 +134,7 @@ class UiErrorMapper {
       actionLabel: template.actionLabel,
       retryable: retryable,
       issueId: issueId,
-      kind: kindOf(payload),
+      kind: kind,
       resolvedRoute: payload.resolvedRoute,
       authStage: payload.authStage,
       authReason: payload.authReason,
@@ -373,7 +374,7 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   ),
   UbaaErrorCode.upstreamChanged => (
     title: '暂时无法完成操作',
-    message: '应用无法处理学校返回的信息，请复制诊断信息反馈',
+    message: '应用无法处理学校返回的信息，请到「设置 › 诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   UbaaErrorCode.parseError => (
@@ -478,8 +479,12 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
 
 ({String title, String message, String? actionLabel})? _diagnosticTemplate(
   UbaaErrorCode code,
-  String? reason,
-) => switch ((code, reason)) {
+  UiErrorKind kind,
+  ErrorDiagnostic? diagnostic,
+) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.timeout, _)
+      when kind == UiErrorKind.internal && diagnostic?.isCacheBusy == true =>
+    (title: '本机缓存暂时繁忙', message: '本机缓存正在使用，请稍后重试', actionLabel: '重试'),
   (UbaaErrorCode.businessUnavailable, 'outside_reservation_hours') => (
     title: '预约暂不可用',
     message: '当前无法预约，请稍后刷新',
@@ -492,7 +497,7 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   ),
   (UbaaErrorCode.permissionDenied, 'http_forbidden') => (
     title: '学校服务拒绝访问',
-    message: '请核对当前连接方式；若仍无法访问，可导出诊断报告反馈',
+    message: '请核对当前连接方式；若仍无法访问，请到「设置 › 诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   _ => null,
@@ -503,7 +508,7 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
 ) => switch (reason) {
   AuthFailureReason.identityMismatch => (
     title: '登录身份核对失败',
-    message: '学校返回的身份与本次登录账号不匹配，请重新登录；若仍失败，请复制诊断信息反馈',
+    message: '学校返回的身份与本次登录账号不匹配，请重新登录；若仍失败，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.captchaExpired => (
@@ -518,17 +523,17 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   ),
   AuthFailureReason.loginPageInvalid => (
     title: '无法识别登录页面',
-    message: '应用无法处理当前登录页面，请复制诊断信息反馈',
+    message: '应用无法处理当前登录页面，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.redirectInvalid => (
     title: '登录跳转异常',
-    message: '登录跳转未能完成，请复制诊断信息反馈',
+    message: '登录跳转未能完成，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   AuthFailureReason.identityResponseInvalid => (
     title: '无法确认登录身份',
-    message: '学校返回的身份信息无法核验，请复制诊断信息反馈',
+    message: '学校返回的身份信息无法核验，请通过「诊断信息」分享完整诊断',
     actionLabel: null,
   ),
   null => null,

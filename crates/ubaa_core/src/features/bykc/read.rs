@@ -1,7 +1,6 @@
 //! 博雅只读服务调用与当前学期选择。
 #![allow(clippy::missing_errors_doc)]
 
-use chrono::Local;
 use serde_json::Value;
 
 use super::auth::{request_api, request_preflight_api};
@@ -38,7 +37,7 @@ pub(crate) async fn get_courses(
         )
         .await?,
         all,
-        Local::now().naive_local(),
+        super::campus_now(),
     )
 }
 
@@ -61,7 +60,7 @@ pub(crate) async fn get_course_catalog(
         catalog_payload(page, size),
     )
     .await?;
-    parse_catalog_at(&body, all, Local::now().naive_local())
+    parse_catalog_at(&body, all, super::campus_now())
 }
 
 pub(crate) async fn get_course_full_detail(
@@ -179,7 +178,7 @@ async fn get_chosen_data_observed(
         write_preflight,
     )
     .await?;
-    let (start, end) = resolve_current_semester(&config, Local::now().naive_local())?;
+    let (start, end) = resolve_current_semester(&config, super::campus_now())?;
     let body = request_for_purpose(
         runtime,
         "queryChosenCourse",
@@ -233,7 +232,7 @@ mod tests {
             &serde_json::json!({"semester":[{
                 "semesterStartDate":"2000-01-02 03:04:05", "semesterEndDate":"2999-06-07 08:09:10"
             }]}),
-            Local::now().naive_local(),
+            crate::features::bykc::campus_now(),
         )
         .unwrap();
         assert_eq!(

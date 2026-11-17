@@ -52,12 +52,17 @@ impl Crypto {
         Ok(result)
     }
     pub fn open<T: DeserializeOwned>(&self, bytes: &[u8], aad: &[u8]) -> CacheResult<T> {
+        let decrypted = self.open_json(bytes, aad)?;
+        serde_json::from_slice(&decrypted).map_err(|_| CacheError::Corrupt)
+    }
+
+    pub(super) fn open_json(&self, bytes: &[u8], aad: &[u8]) -> CacheResult<Zeroizing<Vec<u8>>> {
         if bytes.len() < 28 {
             return Err(CacheError::Corrupt);
         }
         let cipher =
             Aes256Gcm::new_from_slice(self.key.0.as_ref()).map_err(|_| CacheError::Unavailable)?;
-        let decrypted = Zeroizing::new(
+        Ok(Zeroizing::new(
             cipher
                 .decrypt(
                     bytes[..12].try_into().map_err(|_| CacheError::Corrupt)?,
@@ -67,8 +72,7 @@ impl Crypto {
                     },
                 )
                 .map_err(|_| CacheError::Corrupt)?,
-        );
-        serde_json::from_slice(&decrypted).map_err(|_| CacheError::Corrupt)
+        ))
     }
 }
 

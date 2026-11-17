@@ -31,6 +31,7 @@ enum BridgeRecoveryFeature {
   ygdk,
   evaluation,
   connection,
+  healthCloud,
 }
 
 /// 仅此路线已完成身份验证，不代表其他路线状态。

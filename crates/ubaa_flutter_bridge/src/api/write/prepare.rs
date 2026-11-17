@@ -45,7 +45,8 @@ impl BridgeClient {
                 crate::api::client::BridgeErrorKind::Input,
                 true,
                 "an equivalent write is already awaiting confirmation",
-            ));
+            )
+            .with_diagnostic("write_prepare", "equivalent_write_pending"));
         }
         intents.insert(
             intent_id.clone(),
@@ -83,7 +84,7 @@ impl BridgeClient {
         validate_id(request.course_id)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .bykc_course_detail(request.course_id)
                 .await
@@ -119,7 +120,7 @@ impl BridgeClient {
         validate_id(request.course_id)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .bykc_course_detail(request.course_id)
                 .await
@@ -155,7 +156,7 @@ impl BridgeClient {
         validate_bykc_sign_request(&request)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_bykc_sign_course(&domain::BykcSignRequest {
                     course_id: request.course_id,
@@ -214,7 +215,7 @@ impl BridgeClient {
         validate_text(&request.course_id)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_signin_perform(&request.course_id)
                 .await
@@ -273,7 +274,7 @@ impl BridgeClient {
         );
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_libbook_reserve(&domain::LibBookReserveRequest {
                     area_id: request.area_id.clone(),
@@ -329,7 +330,7 @@ impl BridgeClient {
         );
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_libbook_cancel(&domain::LibBookCancelRequest {
                     booking_id: request.id.clone(),
@@ -387,7 +388,7 @@ impl BridgeClient {
         let domain_request = map_ygdk_request(request);
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_ygdk_submit(&domain_request)
                 .await
@@ -434,7 +435,7 @@ impl BridgeClient {
         validate_cgyy_request(&super::command::reservation_selection(&request))?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let domain_request = request.clone();
             let current = client
                 .preflight_cgyy_reservation(&domain_request)
@@ -508,7 +509,7 @@ impl BridgeClient {
         validate_id_i32(request.order_id)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let current = client
                 .preflight_cgyy_cancel(&domain::CgyyCancelOrderRequest {
                     order_id: request.order_id,
@@ -566,7 +567,7 @@ impl BridgeClient {
         let request = map_evaluation_request(request)?;
         catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let routed = client
                 .preflight_evaluation_submit_courses(&request)
                 .await
@@ -600,7 +601,10 @@ impl BridgeClient {
                 return Err((BridgeError {
                     auth_stage: None,
                     auth_reason: None,
-                    diagnostic_json: None,
+                    diagnostic_json: crate::api::client::local_diagnostic(
+                        "local",
+                        "local_rejected",
+                    ),
                     cache_failure: None,
                     code: crate::api::client::BridgeErrorCode::UpstreamChanged,
                     kind: crate::api::client::BridgeErrorKind::Upstream,

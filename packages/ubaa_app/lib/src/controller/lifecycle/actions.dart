@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import '../../backend/unavailable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
@@ -148,6 +149,24 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   /// 只导出本次运行允许字段，不读取凭据、业务输入或磁盘会话。
   String exportDiagnostics({String? issueId}) =>
       internalDiagnostics.exportText(issueId: issueId);
+
+  /// 主动分享时才读取原始响应，不写入普通诊断存储或遥测。
+  String exportFullDiagnostics({String? summary}) {
+    final report =
+        jsonDecode(summary ?? exportDiagnostics()) as Map<String, dynamic>;
+    report['schema_version'] = 4;
+    report['report_type'] = 'full_diagnostics';
+    report['contains_sensitive_data'] = true;
+    final backend = internalBackend;
+    report['raw_http'] = backend is RawDiagnosticsBackend
+        ? jsonDecode((backend as RawDiagnosticsBackend).exportRawDiagnostics())
+        : {
+            'enabled': false,
+            'unavailable_reason': 'backend_unavailable',
+            'records': [],
+          };
+    return const JsonEncoder.withIndent('  ').convert(report);
+  }
 
   Future<void> initialize() async {
     unawaited(refreshAppService().then((_) => internalRecordAppOpen()));

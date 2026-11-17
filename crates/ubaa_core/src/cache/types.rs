@@ -281,6 +281,7 @@ pub enum CachePublication {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CacheError {
     Unavailable,
+    Busy,
     InvalidInput,
     Corrupt,
     UnsupportedVersion,
@@ -292,6 +293,7 @@ impl std::fmt::Display for CacheError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::Unavailable => "本地缓存暂不可用",
+            Self::Busy => "本地缓存正被占用，请稍后重试",
             Self::InvalidInput => "缓存范围无效",
             Self::Corrupt => "缓存或密钥无法校验",
             Self::UnsupportedVersion => "缓存版本暂不支持",
@@ -312,6 +314,9 @@ pub struct CacheReadTicket {
     pub(super) epoch: u64,
     pub(super) database_id: [u8; 16],
     pub(super) revision: i64,
+    pub(super) generation: u64,
+    pub(super) lineage: Option<i64>,
+    pub(super) local: Option<std::sync::Arc<()>>,
 }
 
 impl CacheReadTicket {

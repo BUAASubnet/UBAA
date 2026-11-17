@@ -21,6 +21,7 @@ enum CacheMaintenanceFailure {
   inactive,
   superseded,
   capacity,
+  busy,
 }
 
 /// 返回此结果即表示内容清除已提交；空间回收故障不能伪装为事务失败。

@@ -21,8 +21,8 @@ class BridgeLockDisplaySession implements CgyyLockDisplaySession {
     final BridgeCgyyLockDisplay value;
     try {
       value = await client.readCgyyLockDisplay(lease: lease);
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
     if (_closed) throw const BackendException(UbaaErrorCode.invalidInput);
     return _last = CgyyLockDisplay(

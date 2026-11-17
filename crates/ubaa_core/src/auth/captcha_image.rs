@@ -61,6 +61,7 @@ fn decode_captcha_frame(bytes: &[u8]) -> Result<CaptchaFrame> {
     })
 }
 
+#[track_caller]
 fn invalid_image() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

@@ -1,25 +1,6 @@
 part of 'shell.dart';
 
-/// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
-  Widget _withRefreshShortcuts(
-    Widget shell,
-    Future<void> Function()? refreshPage,
-  ) {
-    // 桌面快捷键的父层级保持稳定，切页时只调整可用的绑定。
-    void refresh() => unawaited(refreshPage?.call());
-    return CallbackShortcuts(
-      bindings: {
-        if (refreshPage != null)
-          const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
-        if (refreshPage != null)
-          const SingleActivator(LogicalKeyboardKey.keyR, control: true):
-              refresh,
-      },
-      child: Focus(autofocus: true, child: shell),
-    );
-  }
-
   void _goBack() {
     if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {
@@ -81,11 +62,13 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   void _openHomeTodo(HomeTodo item) {
     final target = item.navigation;
-    if (target == null) return;
-    _openHomeNavigation(target);
+    if (target != null) {
+      _openHomeNavigation(target);
+    } else if (item.feature == FeatureId.schedule) {
+      _selectTab(UiDestination.agenda.index);
+    }
   }
 
-  /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == '图书馆云打印'
             ? CloudPrintView(
@@ -119,6 +102,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 connecting: widget.connecting,
                 service: widget.ihomeService,
               )
+            : _utilityPage == healthCloudTitle
+            ? HealthCloudView(read: widget.healthCloudRead)
             : _utilityPage == '财务查询'
             ? FinanceView(
                 key: ValueKey(_pageContentScope),
@@ -137,7 +122,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       : MediaQuery.sizeOf(context).width >= 600
       ? _buildTabPage(context, _selectedIndex)
       : _buildTabPager(context);
-
   Widget _buildTabPager(BuildContext context) {
     _tabPager = currentTabPager(_tabPager, _selectedIndex);
     return TabPager(
@@ -235,7 +219,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       now: widget.homeClock == null
           ? null
           : campusDate(widget.homeClock!.now()),
-      reminder: _reminderSettings,
+      reminder:
+          _effectiveReminder ?? const YgdkReminderSettings(enabled: false),
       onOpenSchool: _openHomeNavigation,
       onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
       onImportSchedule: _importAgendaSchedule,
@@ -254,6 +239,10 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           : null,
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
+          : null,
+      onOpenHealthCloud:
+          index == UiDestination.campus.index && widget.healthCloudRead != null
+          ? () => _openUtility(healthCloudTitle)
           : null,
       onOpenFinance:
           index == UiDestination.campus.index && widget.financeService != null
@@ -283,7 +272,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     ),
     _ => _buildProfile(),
   };
-
   Widget _buildProfile() => ProfileView(
     cacheAccountId: widget.cacheAccountId,
     canClearBusinessCache: widget.canClearBusinessCache,
@@ -303,154 +291,17 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
     activeRoutes: widget.activeRoutes,
     onReadDiagnostics: widget.onReadDiagnostics,
-    themeMode: widget.themeMode,
-    onThemeModeChanged: widget.onThemeModeChanged,
+    appearance: widget.appearance,
   );
-
-  Widget _buildRail(BuildContext context) => ScrollConfiguration(
-    behavior: ScrollConfiguration.of(context).copyWith(
-      // 导航只在内容溢出时滚动，边界不随触摸板回弹。
-      physics: const ClampingScrollPhysics(),
-    ),
-    child: _buildRailContent(context),
+  Widget _buildRailContent(BuildContext context) => uiShellRail(
+    context,
+    selectedIndex: _selectedIndex,
+    utilityPage: _utilityPage,
+    featureOpen: _openedFeature != null,
+    leading: (extended) => _buildRailLeading(context, extended),
+    onSelectTab: _selectTab,
+    onOpenAbout: () => _openUtility('关于'),
   );
-
-  Widget _buildRailContent(BuildContext context) {
-    final extended = MediaQuery.sizeOf(context).width >= 1000;
-    final colors = Theme.of(context).colorScheme;
-    if (!extended) {
-      final railButtonStyle =
-          IconButton.styleFrom(minimumSize: const Size(56, 48)).copyWith(
-            backgroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? colors.secondaryContainer
-                  : null,
-            ),
-            foregroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? colors.onSecondaryContainer
-                  : null,
-            ),
-          );
-      // 矮窗口收紧间距、设置紧跟分组、省去“关于”（在“我的”页），不再遮住分组。
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final short = constraints.maxHeight < 560;
-          return NavigationRail(
-            scrollable: true,
-            minWidth: 88,
-            selectedIndex: _selectedIndex < 4 && _utilityPage == null
-                ? _selectedIndex
-                : null,
-            onDestinationSelected: _selectTab,
-            labelType: NavigationRailLabelType.none,
-            leading: _buildRailLeading(context, false),
-            trailingAtBottom: !short,
-            trailing: Padding(
-              padding: EdgeInsets.only(bottom: short ? 8 : 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: '设置',
-                    isSelected:
-                        _selectedIndex == UiDestination.settings.index &&
-                        _utilityPage == null,
-                    style: railButtonStyle,
-                    onPressed: () => _selectTab(UiDestination.settings.index),
-                    icon: Icon(UiDestination.settings.icon),
-                    selectedIcon: Icon(UiDestination.settings.selectedIcon),
-                  ),
-                  if (!short) ...[
-                    const SizedBox(height: 8),
-                    IconButton(
-                      tooltip: '关于',
-                      isSelected:
-                          _utilityPage == '关于' && _openedFeature == null,
-                      style: railButtonStyle,
-                      onPressed: () => _openUtility('关于'),
-                      icon: const Icon(Icons.info_outline),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            destinations: _UbaaMainShellState._tabs
-                .take(4)
-                .map(
-                  (tab) => NavigationRailDestination(
-                    padding: EdgeInsets.symmetric(vertical: short ? 0 : 8),
-                    icon: Tooltip(
-                      message: tab.label,
-                      excludeFromSemantics: true,
-                      child: Icon(tab.icon),
-                    ),
-                    selectedIcon: Tooltip(
-                      message: tab.label,
-                      excludeFromSemantics: true,
-                      child: Icon(tab.selectedIcon),
-                    ),
-                    label: Text(tab.label),
-                  ),
-                )
-                .toList(),
-          );
-        },
-      );
-    }
-    Widget entry(UiDestination tab) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: ListTile(
-        selected: _selectedIndex == tab.index && _utilityPage == null,
-        selectedTileColor: colors.secondaryContainer,
-        selectedColor: colors.onSecondaryContainer,
-        leading: Icon(
-          _selectedIndex == tab.index ? tab.selectedIcon : tab.icon,
-        ),
-        title: Text(tab.label),
-        onTap: () => _selectTab(tab.index),
-      ),
-    );
-    return Material(
-      color: colors.surfaceContainer,
-      child: SizedBox(
-        width: 248,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-                child: _buildRailLeading(context, true),
-              ),
-              Expanded(
-                child: ListView(
-                  primary: false,
-                  children: [
-                    for (final tab in _UbaaMainShellState._tabs.take(4))
-                      entry(tab),
-                  ],
-                ),
-              ),
-              entry(UiDestination.settings),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 3, 12, 16),
-                child: ListTile(
-                  selected: _utilityPage == '关于' && _openedFeature == null,
-                  selectedTileColor: colors.secondaryContainer,
-                  selectedColor: colors.onSecondaryContainer,
-                  leading: Icon(
-                    _utilityPage == '关于' ? Icons.info : Icons.info_outline,
-                  ),
-                  title: const Text('关于'),
-                  onTap: () => _openUtility('关于'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildRailLeading(
     BuildContext context,
@@ -467,7 +318,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onTap: onTap ?? () => _selectTab(UiDestination.me.index),
   );
 
-  /// 写操作进行中不退出；侧栏不再放退出入口，统一在设置页的「账号」分组。
   Future<void> _logout() async {
     if (widget.writeState.intent != null) return;
     await widget.onLogout();

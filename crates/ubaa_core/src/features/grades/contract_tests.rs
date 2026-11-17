@@ -10,3 +10,21 @@ fn grades_require_verified_term_shape_and_map_e_m_d_payload() {
     assert_eq!(data.grades[0].course_name.as_deref(), Some("Fixture"));
     assert_eq!(data.grades[0].score.as_deref(), Some("95"));
 }
+
+#[test]
+fn diagnostics_contract_成绩区分语法类型和业务状态且不保存成绩值() {
+    for (body, reason, code) in [
+        ("{", "json_invalid", None),
+        (r#"{"e":0,"d":[]}"#, "response_shape_invalid", None),
+        (
+            r#"{"e":99,"m":"PRIVATE","d":{}}"#,
+            "business_code_nonzero",
+            Some(99),
+        ),
+    ] {
+        let error = parse_scores("2025-2026-1", body).unwrap_err();
+        assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
+        assert_eq!(error.diagnostic().upstream_code, code);
+        assert!(!error.diagnostic().to_json().unwrap().contains("PRIVATE"));
+    }
+}

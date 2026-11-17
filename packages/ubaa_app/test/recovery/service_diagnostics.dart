@@ -18,11 +18,17 @@ void _registerServiceDiagnosticsTests() {
     await expectLater(
       service.documents(scans: false),
       throwsA(
-        isA<UiError>().having(
-          (error) => _event(controller, error)['feature'],
-          '读取功能',
-          'cloud_print',
-        ),
+        isA<UiError>()
+            .having(
+              (error) => _event(controller, error)['feature'],
+              '读取功能',
+              'cloud_print',
+            )
+            .having(
+              (error) => _event(controller, error)['latency_ms'],
+              '失败耗时',
+              isA<int>(),
+            ),
       ),
     );
     final results = await service.delete([

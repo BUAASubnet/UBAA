@@ -88,8 +88,8 @@ Future<CacheUsageSummary> bridgeCacheUsage(
   try {
     final usage = await bridgeManagementCache(backend, accountId).usage();
     return bridgeCacheUsageSummary(usage, accountId);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 });
 
@@ -106,8 +106,8 @@ Future<CacheClearOutcome> bridgeClearBusinessCache(
       backend.cache.handle = reset.cache;
       await bridgeCommitSharedBinding(backend.sharedAccount);
       return bridgeCacheClearOutcome(reset.report, accountId);
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   });
 }

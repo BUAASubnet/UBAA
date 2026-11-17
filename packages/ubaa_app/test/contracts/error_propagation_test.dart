@@ -5,6 +5,18 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('Bridge 错误映射保留原始异步调用位置', () async {
+    final backend = BridgeBackend(
+      _WriteFailureClient(BridgeErrorCode.upstreamChanged, 'missing_data'),
+    );
+    try {
+      await backend.commitWrite('fixture');
+      fail('应返回业务失败');
+    } on BackendException catch (_, stack) {
+      expect(stack.toString(), contains('_WriteFailureClient.commitWrite'));
+    }
+  });
+
   test('写入错误经过缓存包装后仍保留路线和诊断原因', () async {
     for (final (code, reason) in [
       (BridgeErrorCode.upstreamChanged, 'missing_data'),
@@ -169,6 +181,34 @@ void main() {
     expect(error.resolvedRoute, ConnectionMode.webvpn);
   });
 
+  test('本机缓存锁忙与网络超时在界面诊断中可区分', () async {
+    final controller = AppController(
+      backend: BridgeBackend(
+        _FailingReadClient(
+          code: BridgeErrorCode.timeout,
+          kind: BridgeErrorKind.internal,
+          retryable: true,
+          diagnosticJson:
+              '{"source":"crates/ubaa_core/src/error/mod.rs:1","stage":"cache","reason":"cache_busy"}',
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.refreshFeatureQuery(
+      FeatureId.schedule,
+      const FeatureQuery(view: FeatureQueryView.scheduleToday),
+    );
+
+    final error = controller.snapshots[FeatureId.schedule]!.error!;
+    final record = controller.diagnostics.records.single;
+    expect(record.cause, DiagnosticCause.cacheBusy);
+    expect(record.diagnostic?.reason, 'cache_busy');
+    expect(record.code, UbaaErrorCode.timeout);
+    expect(record.kind, UbaaErrorKind.internal);
+    expect(record.retryable, isTrue);
+    expect(error.title, '本机缓存暂时繁忙');
+  });
+
   test('应用与平台入口对所有机器码提供同一错误策略', () {
     for (final code in UbaaErrorCode.values) {
       final app = UbaaErrorMapper.fromCode(code);
@@ -207,10 +247,14 @@ class _FailingReadClient implements BridgeClient {
   _FailingReadClient({
     this.code = BridgeErrorCode.parseError,
     this.kind = BridgeErrorKind.parse,
+    this.retryable = false,
+    this.diagnosticJson,
   });
 
   final BridgeErrorCode code;
   final BridgeErrorKind kind;
+  final bool retryable;
+  final String? diagnosticJson;
   @override
   int contractVersion() => 54;
 
@@ -218,7 +262,8 @@ class _FailingReadClient implements BridgeClient {
   Future<BridgeRoutedTodayClasses> scheduleToday() async => throw BridgeError(
     code: code,
     kind: kind,
-    retryable: false,
+    retryable: retryable,
+    diagnosticJson: diagnosticJson,
     message: 'upstream-secret',
     resolvedRoute: BridgeConnectionMode.webVpn,
   );

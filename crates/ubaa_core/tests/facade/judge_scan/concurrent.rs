@@ -1,5 +1,130 @@
 use super::*;
-use ubaa_core::facade::JudgeRefreshOptions;
+use ubaa_core::facade::{CacheError, CacheQuery, CacheScope, JudgeRefreshOptions};
+
+#[test]
+fn shared_profile_judge_pending_scan_keeps_saved_summary_without_network() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/shared_profile_phase2")
+        .join(test_root("judge-shared-recovery").file_name().unwrap());
+    std::fs::create_dir_all(&root).unwrap();
+    let (root, mut client, cache, transport) = setup_at(root);
+    let mut other = ubaa_core::facade::OfflineRepository::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut warm = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            while !client
+                .next_judge_refresh(&mut warm)
+                .await
+                .unwrap()
+                .batch
+                .finished
+            {}
+            let mut plan = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let newer = other
+                .begin_read(CacheScope {
+                    query: CacheQuery::JudgeSummaries {
+                        include_expired: false,
+                    },
+                    route: ConnectionMode::Direct,
+                })
+                .unwrap();
+            let before = transport.requests.lock().unwrap().len();
+            let result = client.next_judge_refresh(&mut plan).await.unwrap();
+            assert!(result.batch.finished);
+            assert_eq!(result.save_error, Some(CacheError::Superseded));
+            assert_eq!(result.summaries.len(), 3);
+            assert_eq!(transport.requests.lock().unwrap().len(), before);
+            other.validate_read(&newer).unwrap();
+        });
+    drop((cache, client, other));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn shared_profile_judge_target_parent_competitor_keeps_only_exact_detail() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/shared_profile_phase2")
+        .join(test_root("judge-shared-target").file_name().unwrap());
+    std::fs::create_dir_all(&root).unwrap();
+    let (root, mut client, cache, transport) = setup_at(root);
+    let mut other = ubaa_core::facade::OfflineRepository::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut warm = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            while !client
+                .next_judge_refresh(&mut warm)
+                .await
+                .unwrap()
+                .batch
+                .finished
+            {}
+            let mut plan = client
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        current_assignment: Some(ubaa_core::facade::JudgeAssignmentKey {
+                            course_id: "12".into(),
+                            assignment_id: "101".into(),
+                        }),
+                        ..JudgeRefreshOptions::default()
+                    },
+                )
+                .await
+                .unwrap();
+            let newer = other
+                .begin_read(CacheScope {
+                    query: CacheQuery::JudgeSummaries {
+                        include_expired: false,
+                    },
+                    route: ConnectionMode::Direct,
+                })
+                .unwrap();
+            let before = transport.requests.lock().unwrap().len();
+            let result = client.next_judge_refresh(&mut plan).await.unwrap();
+            assert!(result.batch.finished);
+            assert_eq!(result.save_error, Some(CacheError::Superseded));
+            let detail = result.batch.detail.unwrap();
+            assert_eq!(
+                (detail.course_id.as_str(), detail.assignment_id.as_str()),
+                ("12", "101")
+            );
+            assert_eq!(
+                result.summaries,
+                Vec::<ubaa_core::facade::JudgeAssignmentSummary>::new()
+            );
+            assert_eq!(transport.requests.lock().unwrap().len(), before);
+            other.validate_read(&newer).unwrap();
+        });
+    drop((cache, client, other));
+    std::fs::remove_dir_all(root).unwrap();
+}
 
 #[test]
 fn judge_detail_pending_competitor_still_returns_requested_detail() {

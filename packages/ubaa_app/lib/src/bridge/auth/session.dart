@@ -44,8 +44,8 @@ Future<AuthStatus> bridgeAuthStatus(BridgeContext backend) async {
     if (outcome.routes.length != 2)
       throw const BackendException(UbaaErrorCode.internalError);
     return AuthStatus.signedOut;
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -53,8 +53,8 @@ Future<UserSummary?> bridgeUserInfo(BridgeContext backend) async {
   try {
     final result = await backend.client.userInfo();
     return bridgeProfileSummary(result.data);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -67,8 +67,8 @@ Future<void> bridgePrepareLogin(
   try {
     await setPolicy(policy);
     await backend.client.prepareLogin();
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -87,8 +87,8 @@ Future<BackendRouteSettings> bridgeSetDefaultRoutePolicy(
         settings.activeRoutes.map(bridgeToConnectionMode),
       ),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -101,8 +101,8 @@ Future<BackendRouteSettings> bridgeRouteSettings(BridgeContext backend) async {
         settings.activeRoutes.map(bridgeToConnectionMode),
       ),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -135,8 +135,8 @@ Future<void> bridgeLogin(BridgeContext backend, LoginInput input) async {
       }
       throw const BackendException(UbaaErrorCode.internalError);
     }
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -144,8 +144,8 @@ Future<void> bridgeLogout(BridgeContext backend) async {
   _interruptInteractiveLogin(backend);
   try {
     await backend.client.logout();
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 

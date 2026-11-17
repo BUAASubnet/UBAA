@@ -12,6 +12,46 @@ const unknown = AgendaSyncReport(
   changedCount: 0,
 );
 void main() {
+  test('同步成功后迟到的旧待同步计数不能覆盖新结果', () async {
+    final backend = Backend()
+      ..enabled = true
+      ..result = const AgendaSyncReport(
+        status: AgendaSyncStatus.upToDate,
+        pendingCount: 0,
+        changedCount: 0,
+      );
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    backend.countGate = Completer<int>();
+    await service.complete('item', null, true, now);
+    await Future<void>.delayed(Duration.zero);
+    expect(service.syncState.localPendingCount, 0);
+    backend.countGate!.complete(1);
+    await Future<void>.delayed(Duration.zero);
+    expect(service.syncState.localPendingCount, 0);
+    await service.dispose();
+  });
+
+  test('自动同步失败仍更新本机待同步数量', () async {
+    final backend = Backend()
+      ..enabled = true
+      ..result = const AgendaSyncReport(
+        status: AgendaSyncStatus.upToDate,
+        pendingCount: 0,
+        changedCount: 0,
+      );
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    await service.sync(AgendaSyncAction.pull, now);
+    backend.failure = StateError('合成网络失败');
+    await service.complete('item', null, true, now);
+    await Future<void>.delayed(Duration.zero);
+    expect(service.syncState.error, same(backend.failure));
+    expect(service.syncState.localPendingCount, 1);
+    expect(backend.calls, [AgendaSyncAction.pull, AgendaSyncAction.push]);
+    await service.dispose();
+  });
+
   test('准备和取消启用作业不保存许可，确认执行后才允许后续自动同步', () async {
     final backend = Backend();
     final service = AgendaService(backend);
@@ -142,6 +182,7 @@ void main() {
 }
 
 class Backend implements AgendaBackend, AgendaSyncBackend {
+  AgendaSyncReport result = unknown;
   bool enabled = false;
   @override
   Future<bool> syncEnabled() async {
@@ -155,6 +196,7 @@ class Backend implements AgendaBackend, AgendaSyncBackend {
   Object? failure;
   Object? preferenceFailure;
   int localWrites = 0;
+  Completer<int>? countGate;
   @override
   Future<void> openAccount(String accountId) async {}
   @override
@@ -172,7 +214,7 @@ class Backend implements AgendaBackend, AgendaSyncBackend {
   @override
   Future<int> clearLocalData() async => 0;
   @override
-  Future<int> unsyncedCount() async => localWrites;
+  Future<int> unsyncedCount() async => countGate?.future ?? localWrites;
   @override
   AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) =>
       () => sync(action, now);
@@ -182,7 +224,7 @@ class Backend implements AgendaBackend, AgendaSyncBackend {
     calls.add(action);
     if (!started.isCompleted) started.complete();
     if (failure != null) throw failure!;
-    return gate?.future ?? unknown;
+    return gate?.future ?? result;
   }
 
   @override

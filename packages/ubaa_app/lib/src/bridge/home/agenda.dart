@@ -199,8 +199,12 @@ HomeTodoProjection bridgeHomeTodoProjection(
     formatHomeTodo(
       fromAgendaEntry(row),
       now: homeCampusTime(request.now),
-      navigation: _navigation(row.school!.navigation),
-      signinAction: _signinAction(row.school!, request),
+      navigation: row.school == null
+          ? null
+          : _navigation(row.school!.navigation),
+      signinAction: row.school == null
+          ? null
+          : _signinAction(row.school!, request),
     ),
 ], overlayFailure: overlayFailure);
 

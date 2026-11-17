@@ -540,6 +540,7 @@ impl BridgeCommandResult {
         }
     }
 }
+#[track_caller]
 fn failure_error(failure: BridgeCommandFailure) -> UbaaError {
     use BridgeCommandFailure as F;
     let (code, kind, message) = match failure {
@@ -579,6 +580,7 @@ fn failure_error(failure: BridgeCommandFailure) -> UbaaError {
     };
     UbaaError::new(code, kind, false, message)
 }
+#[track_caller]
 fn stopped() -> BridgeError {
     BridgeError::from_core(
         UbaaError::new(
@@ -649,7 +651,7 @@ impl BridgeClient {
             .control
             .run(Box::pin(async {
                 let mut inner = self.inner.lock().await;
-                let client = inner.as_mut().ok_or_else(disposed_error)?;
+                let client = inner.as_mut().ok_or_else(|| disposed_error())?;
                 *command.close.write().unwrap() = Some(client.close_control());
                 if let Some(logout) = logout {
                     let previous = client.shared_account_guard();
@@ -793,7 +795,7 @@ impl BridgeClient {
         let mut inner = self.inner.lock().await;
         let identity = inner
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .take_verified_login_identity()
             .map_err(|e| BridgeError::from_core(e, None))?;
         Ok(BridgeCommandLoginIdentity {
@@ -812,7 +814,7 @@ impl BridgeClient {
         let identity = identity.identity.lock().unwrap();
         inner
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .validate_login_identity(identity.as_ref().ok_or_else(stopped)?)
             .map(str::to_owned)
             .map_err(|e| BridgeError::from_core(e, None))
@@ -829,7 +831,7 @@ impl BridgeClient {
         let mut identity = identity.identity.lock().unwrap();
         inner
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .consume_login_identity(identity.as_ref().ok_or_else(stopped)?)
             .map_err(|e| BridgeError::from_core(e, None))?;
         *identity = None;

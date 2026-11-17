@@ -17,15 +17,13 @@ Future<void> openFeature(
     await tester.tap(find.byType(NavigationDestination).at(destination.index));
   } else {
     final rail = find.byType(NavigationRail);
-    final selected = find.descendant(
-      of: rail,
-      matching: find.byIcon(destination.selectedIcon),
-    );
+    // 侧栏头像的应用占位图也使用学习图标，按导航提示定位分组入口。
     final target = rail.evaluate().isEmpty
         ? find.widgetWithText(ListTile, destination.label)
-        : selected.evaluate().isNotEmpty
-        ? selected
-        : find.descendant(of: rail, matching: find.byIcon(destination.icon));
+        : find.descendant(
+            of: rail,
+            matching: find.byTooltip(destination.label),
+          );
     await tester.ensureVisible(target.first);
     await tester.tap(target.first);
   }

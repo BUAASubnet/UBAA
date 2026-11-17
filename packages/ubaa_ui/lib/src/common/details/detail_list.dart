@@ -1,7 +1,6 @@
 import '../../shared/refresh.dart' show RefreshViewport;
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
-import 'package:clock/clock.dart' show clock;
 import 'package:flutter/foundation.dart' show setEquals;
 import '../../shared/infinite_scroll.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +49,8 @@ import '../../write/cgyy/form.dart'
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/loading.dart' show LoadingGlyph;
-import '../../shared/when.dart' show uiShortDateTime, uiShortRange;
+import '../../shared/when.dart'
+    show uiCampusNow, uiParseCampusTime, uiShortDateTime, uiShortRange;
 import '../tag.dart';
 
 part 'assignments.dart';
@@ -152,7 +152,7 @@ class FeatureDetailList extends StatefulWidget {
 
 class _FeatureDetailListState extends State<FeatureDetailList> {
   Timer? _bykcTimer;
-  DateTime _bykcCheckedAt = clock.now();
+  DateTime _bykcCheckedAt = uiCampusNow();
   bool _bykcRefreshing = false;
 
   @override
@@ -161,8 +161,14 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     _syncBykcTimer();
   }
 
+  // 已选详情与已选列表都按签到时间边界重新读取，资格始终由 Core 在线判定。
+  bool get _watchesBykcSignTime =>
+      widget.feature == FeatureId.bykc &&
+      (widget.isBykcChosenDetail ||
+          widget.query?.view == FeatureQueryView.bykcChosenCourses);
+
   void _syncBykcTimer() {
-    if (!widget.isBykcChosenDetail || widget.onQuery == null) {
+    if (!_watchesBykcSignTime || widget.onQuery == null) {
       _bykcTimer?.cancel();
       _bykcTimer = null;
       return;
@@ -173,13 +179,14 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
   }
 
   Future<void> _refreshBykcTimeBoundary() async {
-    if (!widget.isBykcChosenDetail ||
+    if (!_watchesBykcSignTime ||
         !widget.writesEnabled ||
         widget.onQuery == null ||
         _bykcRefreshing ||
         !TickerMode.of(context))
       return;
-    final now = clock.now();
+    // 上游签到时间是北京时间文本，与校园墙上时间比较，不随设备时区偏移。
+    final now = uiCampusNow();
     final previous = _bykcCheckedAt;
     _bykcCheckedAt = now;
     for (final detail in widget.details) {
@@ -189,7 +196,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
         ))
           continue;
         bool crossed(String? raw, bool end) {
-          final date = DateTime.tryParse(raw ?? '');
+          final date = uiParseCampusTime(raw);
           if (date == null) return false;
           bool reached(DateTime time) =>
               end ? time.isAfter(date) : !time.isBefore(date);
@@ -203,10 +210,12 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
           _bykcRefreshing = true;
           try {
             await widget.onQuery!(
-              FeatureQuery(
-                view: FeatureQueryView.bykcChosenCourses,
-                courseId: '${course.courseId}',
-              ),
+              widget.isBykcChosenDetail
+                  ? FeatureQuery(
+                      view: FeatureQueryView.bykcChosenCourses,
+                      courseId: '${course.courseId}',
+                    )
+                  : widget.query!,
             );
           } finally {
             _bykcRefreshing = false;
@@ -449,10 +458,9 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                               );
                             return BykcChosenCard(
                               course: course,
-                              action: _bykcListAction(
+                              action: _bykcChosenCardAction(
                                 detail,
                                 course.courseId,
-                                selected: true,
                               ),
                               onTap:
                                   widget.bykcPendingCourseId != null ||

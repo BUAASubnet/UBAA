@@ -52,6 +52,7 @@ impl OfflineRepository {
                     path,
                     limits,
                     generation,
+                    shared_reads: super::shared_read::LocalReaders::default(),
                 };
                 let report = repo.clear_for_reopen()?;
                 let crypto = repo.crypto;
@@ -111,6 +112,7 @@ impl OfflineRepository {
                 path,
                 limits,
                 generation,
+                shared_reads: super::shared_read::LocalReaders::default(),
             })
         })();
         match ready {

@@ -351,6 +351,7 @@ pub(crate) fn is_valid_webvpn_gateway(url: &Url) -> bool {
             .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
 }
 
+#[track_caller]
 fn permission_error(message: &'static str) -> UbaaError {
     UbaaError::new(
         ErrorCode::PermissionDenied,
@@ -618,6 +619,7 @@ fn is_allowed_auth_scheme(url: &Url) -> bool {
     matches!(url.scheme(), "http" | "https")
 }
 
+#[track_caller]
 fn protocol_error(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

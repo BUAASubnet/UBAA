@@ -135,7 +135,10 @@ class AgendaViewState extends State<AgendaView> {
     final next = _liveScope;
     if (_scope == next) return false;
     _scope = next;
-    if (widget.service != null) _contentAccount = widget.service!.accountId;
+    // 共享账号重新绑定期间服务会暂时关闭，保留原账号的草稿归属。
+    if (widget.service?.accountId case final account?) {
+      _contentAccount = account;
+    }
     final sameContent =
         _contentScope == _liveContentScope && _contentAccount != null;
     _contentScope = _liveContentScope;

@@ -174,6 +174,7 @@ CacheMaintenanceFailure fromCacheFailure(BridgeCacheFailure v) => switch (v) {
   BridgeCacheFailure.inactive => CacheMaintenanceFailure.inactive,
   BridgeCacheFailure.superseded => CacheMaintenanceFailure.superseded,
   BridgeCacheFailure.capacity => CacheMaintenanceFailure.capacity,
+  BridgeCacheFailure.busy => CacheMaintenanceFailure.busy,
 };
 BridgeCacheFailure toCacheFailure(CacheMaintenanceFailure v) => switch (v) {
   CacheMaintenanceFailure.unavailable => BridgeCacheFailure.unavailable,
@@ -184,4 +185,5 @@ BridgeCacheFailure toCacheFailure(CacheMaintenanceFailure v) => switch (v) {
   CacheMaintenanceFailure.inactive => BridgeCacheFailure.inactive,
   CacheMaintenanceFailure.superseded => BridgeCacheFailure.superseded,
   CacheMaintenanceFailure.capacity => BridgeCacheFailure.capacity,
+  CacheMaintenanceFailure.busy => BridgeCacheFailure.busy,
 };

@@ -11,6 +11,7 @@ export 'src/app_link.dart';
 export 'src/feature/schedule/widget_snapshot.dart';
 
 export 'src/feature/ihome.dart';
+export 'src/feature/health_cloud.dart';
 
 export 'src/feature/schedule/home.dart';
 export 'src/feature/home_state.dart';

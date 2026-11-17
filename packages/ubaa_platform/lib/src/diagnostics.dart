@@ -7,8 +7,10 @@ import '../diagnostic_operation.dart';
 import 'credentials.dart';
 import 'infrastructure/preferences.dart';
 import 'secure_material.dart';
+import 'media.dart';
+import 'infrastructure/agenda_file.dart';
 
-/// 只依赖异常类型，绝不通过异常正文猜测原因。
+/// 只依赖异常类型和安全诊断，绝不通过异常正文猜测原因。
 enum DiagnosticCause {
   none,
   timeout,
@@ -19,7 +21,17 @@ enum DiagnosticCause {
   type,
   credentialStorage,
   secureMaterial,
+  platformCapability,
+  agenda,
+  file,
+  operationConflict,
+  authentication,
+  permission,
+  network,
+  upstream,
+  parse,
   unknown,
+  cacheBusy,
 }
 
 /// 启动过程中能独立定位的宿主阶段。
@@ -47,7 +59,10 @@ final class DiagnosticRecord {
     required this.cause,
     required this.timestamp,
     required List<String> source,
+    this.localReason,
     this.route,
+    this.requestedPolicy,
+    this.recoveryAttempts,
     this.feature,
     this.writeOperation,
     this.fileIndex,
@@ -66,9 +81,12 @@ final class DiagnosticRecord {
   final UbaaErrorKind kind;
   final bool retryable;
   final DiagnosticCause cause;
+  final String? localReason;
   final DateTime timestamp;
   final List<String> source;
   final ConnectionMode? route;
+  final RoutePolicy? requestedPolicy;
+  final int? recoveryAttempts;
   final FeatureId? feature;
   final WriteOperation? writeOperation;
   final int? fileIndex;
@@ -87,12 +105,15 @@ final class DiagnosticRecord {
     'kind': kind.name,
     'retryable': retryable,
     'cause': cause.name,
+    if (localReason != null) 'local_reason': localReason,
     if (diagnostic != null) 'diagnostic': diagnostic!.toJson(),
     if (authStage != null) 'stage': authStage!.wireName,
     if (authReason != null) 'reason': authReason!.wireName,
     if (relatedIssueId != null) 'related_issue_id': relatedIssueId,
     'time': timestamp.toUtc().toIso8601String(),
     if (route != null) 'route': route!.name,
+    if (requestedPolicy != null) 'requested_policy': requestedPolicy!.name,
+    if (recoveryAttempts != null) 'recovery_attempts': recoveryAttempts,
     if ((feature?.wireName ??
             operation.serviceFeature ??
             (writeOperation == WriteOperation.bhpan ? 'bhpan' : null))
@@ -186,6 +207,11 @@ final class LocalDiagnostics {
             'latency_ms': item['latency_ms'],
           if (ConnectionMode.values.any((v) => v.name == item['route']))
             'route': item['route'],
+          if (RoutePolicy.values.any((v) => v.name == item['requested_policy']))
+            'requested_policy': item['requested_policy'],
+          if (item['recovery_attempts'] is int &&
+              (item['recovery_attempts'] as int) >= 0)
+            'recovery_attempts': item['recovery_attempts'],
           if (FeatureId.values.any((v) => v.wireName == item['feature']) ||
               DiagnosticOperation.serviceFeatures.contains(item['feature']))
             'feature': item['feature'],
@@ -199,6 +225,8 @@ final class LocalDiagnostics {
             'kind': item['kind'],
           if (DiagnosticCause.values.any((v) => v.name == item['cause']))
             'cause': item['cause'],
+          if (_localReasons.contains(item['local_reason']))
+            'local_reason': item['local_reason'],
           if (item['retryable'] is bool) 'retryable': item['retryable'],
           if (item['app_version'] is String &&
               RegExp(
@@ -287,6 +315,8 @@ final class LocalDiagnostics {
     Object? cause,
     StackTrace? stackTrace,
     String? relatedIssueId,
+    RoutePolicy? requestedPolicy,
+    int? recoveryAttempts,
     DiagnosticInitializationStage? initializationStage,
   }) {
     final issueId = 'UBAA-$_runId-${++_sequence}';
@@ -298,6 +328,8 @@ final class LocalDiagnostics {
         kind: error.kind,
         retryable: error.retryable,
         route: error.resolvedRoute,
+        requestedPolicy: requestedPolicy,
+        recoveryAttempts: recoveryAttempts,
         feature: feature,
         writeOperation: writeOperation,
         fileIndex: fileIndex,
@@ -310,7 +342,13 @@ final class LocalDiagnostics {
         relatedIssueId: _records.any((r) => r.issueId == relatedIssueId)
             ? relatedIssueId
             : null,
-        cause: _classify(cause),
+        cause:
+            error.code == UbaaErrorCode.timeout &&
+                error.kind == UbaaErrorKind.internal &&
+                error.diagnostic?.isCacheBusy == true
+            ? DiagnosticCause.cacheBusy
+            : _classify(cause),
+        localReason: _localReason(cause),
         timestamp: DateTime.now().toUtc(),
         source: _safeSource(stackTrace),
       ),
@@ -323,25 +361,49 @@ final class LocalDiagnostics {
   }
 
   String exportText({String? issueId}) {
-    String? group = issueId;
-    for (final record in _records) {
-      if (record.issueId == issueId) group = record.relatedIssueId ?? issueId;
-    }
+    final related = _relatedIssueIds(issueId);
+    bool selected(Map<String, Object?> event) =>
+        issueId == null ||
+        related.contains(event['issue_id']) ||
+        related.contains(event['related_issue_id']);
+    final history = _history.where(selected).toList(growable: false);
+    final current = _records
+        .map((event) => event.toJson())
+        .where(selected)
+        .toList(growable: false);
     return const JsonEncoder.withIndent('  ').convert({
       'schema_version': 3,
       if (_appVersion != null) 'app_version': _appVersion,
       if (_platform != null) 'platform': _platform,
-      if (issueId == null && _history.isNotEmpty) 'previous_events': _history,
-      'events': _records
-          .where(
-            (r) =>
-                issueId == null ||
-                r.issueId == group ||
-                r.relatedIssueId == group,
-          )
-          .map((event) => event.toJson())
-          .toList(growable: false),
+      if (issueId == null && history.isNotEmpty) 'previous_events': history,
+      'events': issueId == null ? current : [...history, ...current],
     });
+  }
+
+  Set<String?> _relatedIssueIds(String? issueId) {
+    if (issueId == null) return <String?>{null};
+    final events = <Map<String, Object?>>[
+      ..._history,
+      ..._records.map((event) => event.toJson()),
+    ];
+    final ids = <String>{issueId};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final event in events) {
+        final eventId = event['issue_id'];
+        final relatedId = event['related_issue_id'];
+        if (eventId is String && ids.contains(eventId) && relatedId is String) {
+          changed |= ids.add(relatedId);
+        }
+        if (relatedId is String &&
+            ids.contains(relatedId) &&
+            eventId is String) {
+          changed |= ids.add(eventId);
+        }
+      }
+    }
+    return ids;
   }
 
   void clear() {
@@ -355,8 +417,38 @@ final class LocalDiagnostics {
   }
 }
 
+final _localReasons = <String>{
+  for (final permission in PlatformPermission.values)
+    for (final status in PlatformPermissionStatus.values)
+      'permission_${permission.name}_${status.name}',
+  for (final code in CredentialVaultErrorCode.values) 'credential_${code.name}',
+  'material_transaction_uncertain',
+  'material_coordination_unavailable',
+  'agenda_file_save_failed',
+  for (final failure in AgendaFailure.values) 'agenda_${failure.name}',
+};
+
+String? _localReason(Object? cause) => switch (cause) {
+  PlatformCapabilityException(:final permission, :final status) =>
+    'permission_${permission.name}_${status.name}',
+  CredentialVaultException(:final code) => 'credential_${code.name}',
+  SecureMaterialCoordinationException(:final uncertain) ||
+  MaterialCoordinationException(:final uncertain) =>
+    uncertain
+        ? 'material_transaction_uncertain'
+        : 'material_coordination_unavailable',
+  AgendaFileException() => 'agenda_file_save_failed',
+  AgendaException(:final failure) => 'agenda_${failure.name}',
+  _ => null,
+};
+
 DiagnosticCause _classify(Object? cause) => switch (cause) {
   null => DiagnosticCause.none,
+  PlatformCapabilityException() => DiagnosticCause.platformCapability,
+  AgendaException(failure: AgendaFailure.busy) => DiagnosticCause.cacheBusy,
+  AgendaException() => DiagnosticCause.agenda,
+  AgendaFileException() => DiagnosticCause.file,
+  MaterialCoordinationException() => DiagnosticCause.secureMaterial,
   CredentialVaultException() => DiagnosticCause.credentialStorage,
   SecureMaterialException() => DiagnosticCause.secureMaterial,
   TimeoutException() => DiagnosticCause.timeout,
@@ -365,6 +457,26 @@ DiagnosticCause _classify(Object? cause) => switch (cause) {
   ArgumentError() => DiagnosticCause.argument,
   AssertionError() => DiagnosticCause.assertion,
   TypeError() => DiagnosticCause.type,
+  UiError error => _classifyCode(error.code),
+  _ => DiagnosticCause.unknown,
+};
+
+DiagnosticCause _classifyCode(UbaaErrorCode code) => switch (code) {
+  UbaaErrorCode.operationConflict ||
+  UbaaErrorCode.intentExpired => DiagnosticCause.operationConflict,
+  UbaaErrorCode.authenticationRequired ||
+  UbaaErrorCode.invalidCredentials ||
+  UbaaErrorCode.passwordRiskConfirmationFailed =>
+    DiagnosticCause.authentication,
+  UbaaErrorCode.permissionDenied => DiagnosticCause.permission,
+  UbaaErrorCode.networkError ||
+  UbaaErrorCode.timeout => DiagnosticCause.network,
+  UbaaErrorCode.upstreamUnavailable ||
+  UbaaErrorCode.businessUnavailable ||
+  UbaaErrorCode.businessRejected ||
+  UbaaErrorCode.upstreamChanged ||
+  UbaaErrorCode.outcomeUnknown => DiagnosticCause.upstream,
+  UbaaErrorCode.parseError => DiagnosticCause.parse,
   _ => DiagnosticCause.unknown,
 };
 
@@ -377,7 +489,8 @@ List<String> _safeSource(StackTrace? stackTrace) {
   );
   return pattern
       .allMatches(bounded)
-      .take(3)
-      .map((match) => match.group(0)!)
+      .map((m) => m.group(0)!)
+      .toSet()
+      .take(8)
       .toList(growable: false);
 }

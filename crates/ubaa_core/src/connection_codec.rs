@@ -27,6 +27,7 @@ pub(crate) fn decrypt_host(encoded: &str) -> Result<String> {
     String::from_utf8(plaintext).map_err(|_| protocol_error("WebVPN 主机不是 UTF-8"))
 }
 
+#[track_caller]
 fn protocol_error(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

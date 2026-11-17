@@ -11,6 +11,7 @@ import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
     show TabPager, CompactNavigationBar, currentTabPager;
 import '../features/ihome/view.dart';
+import '../features/health_cloud/view.dart';
 import '../features/finance/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,7 @@ import '../shared/app_bar_slot.dart' show UiAppBarSlot;
 import '../shared/layout/page_transition.dart' show UiPageTransition;
 import '../shared/loading.dart' show UiBusyRegistry, UiBusyScope;
 import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
-import 'package:flutter/services.dart';
+import '../shared/layout/refresh_shortcuts.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/sync_status.dart'
@@ -29,7 +30,9 @@ import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
+import 'navigation/rail.dart' show uiShellRail;
 import '../features/home/shell_helpers.dart';
+import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
 import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
@@ -83,8 +86,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onRefreshWriteReadbacks,
     this.onReconnect,
     this.onCompleteLogin,
-    this.themeMode = ThemeMode.system,
-    this.onThemeModeChanged,
+    this.appearance = const UiAppearanceSettings(),
     this.readCacheEpoch = 0,
     this.businessCacheEpoch = 0,
     this.localPreferencesRevision = 0,
@@ -103,6 +105,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveCgyyDefaults,
     this.onLoadAppVersion,
     this.ihomeService,
+    this.healthCloudRead,
     this.financeService,
     this.onOpenAppLink,
     this.onLoadAllGrades,
@@ -212,8 +215,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function()? onRefreshWriteReadbacks;
   final VoidCallback? onReconnect;
   final ValueChanged<BuildContext>? onCompleteLogin;
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final UiAppearanceSettings appearance;
 
   final int readCacheEpoch;
   final int businessCacheEpoch;
@@ -234,6 +236,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(CgyyReservationDefaults)? onSaveCgyyDefaults;
   final Future<String?> Function()? onLoadAppVersion;
   final IhomeService? ihomeService;
+  final ReadHealthCloud? healthCloudRead;
 
   /// 财务收入只读服务；为空时不显示入口。
   final FinanceService? financeService;
@@ -293,6 +296,35 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   YgdkReminderSettings? _reminderSettings;
+  YgdkReminderSettings? get _effectiveReminder => _reminderSettings == null
+      ? null
+      : effectiveYgdkReminder(_reminderSettings!, _ygdkSchedule.hasPe);
+  final _ygdkSchedule = YgdkScheduleCheck();
+  void _checkYgdkSchedule() => unawaited(
+    _ygdkSchedule.update(
+      owner:
+          widget.cacheAccountId ??
+          widget.user?.accountScope ??
+          widget.user?.username,
+      epoch: (widget.agendaEpoch, widget.businessCacheEpoch),
+      service: widget.agenda.service,
+      policy: widget.routePolicy,
+      active: widget.activeRoutes,
+      schoolRoute: widget.agendaSchoolRoute,
+      term: widget.agenda.term,
+      now: (widget.homeClock ?? clock).now(),
+      changed: () {
+        if (mounted) setState(_publishReminder);
+      },
+    ),
+  );
+  bool? _publishedReminderEnabled;
+  void _publishReminder() {
+    final value = _effectiveReminder;
+    _publishedReminderEnabled = value?.enabled;
+    widget.onHomeReminderChanged?.call(value);
+  }
+
   String? _reminderError;
   int _reminderRevision = 0;
   BykcCourseFilters _bykcFilters = const BykcCourseFilters.defaults();
@@ -360,6 +392,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     super.initState();
     _selectedIndex = widget.initialDestination.index;
     _tabPager = PageController(keepPage: false);
+    _checkYgdkSchedule();
     unawaited(_loadReminderSettings());
     unawaited(_loadBykcFilters());
     unawaited(_loadRecentFeatures());
@@ -373,6 +406,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   void didUpdateWidget(covariant UbaaMainShell oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _checkYgdkSchedule();
     Object? account(UbaaMainShell shell) =>
         shell.cacheAccountId ??
         shell.user?.accountScope ??
@@ -451,6 +485,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       unawaited(_loadBykcFilters());
       unawaited(_loadReminderSettings());
     }
+    if (!accountChanged &&
+        _publishedReminderEnabled != _effectiveReminder?.enabled) {
+      _publishReminder();
+    }
   }
 
   Future<void> _loadReminderSettings() async {
@@ -459,7 +497,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final load = widget.onLoadYgdkReminder;
     if (load == null) {
       _reminderSettings = const YgdkReminderSettings();
-      widget.onHomeReminderChanged?.call(_reminderSettings);
+      _publishReminder();
       return;
     }
     try {
@@ -468,7 +506,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           generation == _accountGeneration &&
           revision == _reminderRevision) {
         setState(() => _reminderSettings = value);
-        widget.onHomeReminderChanged?.call(value);
+        _publishReminder();
       }
     } on Object {
       if (mounted &&
@@ -485,7 +523,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final revision = ++_reminderRevision;
     setState(() {
       _reminderSettings = value;
-      widget.onHomeReminderChanged?.call(value);
+      _publishReminder();
       _reminderError = null;
     });
     try {
@@ -496,7 +534,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           revision == _reminderRevision) {
         setState(() {
           _reminderSettings = before;
-          widget.onHomeReminderChanged?.call(before);
+          _publishReminder();
           _reminderError = '提醒设置保存失败，请重试';
         });
       }
@@ -506,10 +544,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _setReminderEnabled(bool enabled) {
     final current = _reminderSettings;
     if (current != null)
-      unawaited(_saveReminderSettings(current.copyWith(enabled: enabled)));
+      unawaited(
+        _saveReminderSettings(
+          current.copyWith(enabled: enabled, manualEnabled: enabled),
+        ),
+      );
   }
 
   void _observeHomeProgress(WeekPresentation week, YgdkOverview overview) {
+    if (_effectiveReminder?.enabled != true) return;
     final next = observedReminderProgress(_reminderSettings, week, overview);
     if (next != null) unawaited(_saveReminderSettings(next));
   }
@@ -538,6 +581,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   @override
   void dispose() {
+    _ygdkSchedule.dispose();
     _campusLoader.dispose();
     _bhpanModalScope.value++;
     _bhpanModalScope.dispose();
@@ -669,7 +713,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               onChanged: _savePlace,
               child: Row(
                 children: <Widget>[
-                  if (wide) _buildRail(context),
+                  if (wide) homeRailScroll(context, _buildRailContent(context)),
                   Expanded(
                     key: const ValueKey<String>('feature-pages'),
                     child: Column(
@@ -755,7 +799,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               ),
       ),
     );
-    return touchRefresh ? shell : _withRefreshShortcuts(shell, refreshPage);
+    return touchRefresh ? shell : withRefreshShortcuts(shell, refreshPage);
   }
 
   final _refreshes = <Object, Future<void>>{};
@@ -816,7 +860,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         bykcFilterError: _bykcFilterError,
         onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
         ygdkRecordsReadback: widget.ygdkRecordsReadback,
-        reminderSettings: _reminderSettings,
+        reminderSettings: _effectiveReminder,
         reminderError: _reminderError,
         onReminderChanged: widget.onSaveYgdkReminder == null
             ? null

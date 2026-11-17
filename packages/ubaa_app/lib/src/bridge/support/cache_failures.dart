@@ -40,4 +40,5 @@ CacheMaintenanceFailure? bridgeCacheMaintenanceFailure(
   BridgeCacheFailure.inactive => CacheMaintenanceFailure.inactive,
   BridgeCacheFailure.superseded => CacheMaintenanceFailure.superseded,
   BridgeCacheFailure.capacity => CacheMaintenanceFailure.capacity,
+  BridgeCacheFailure.busy => CacheMaintenanceFailure.busy,
 };

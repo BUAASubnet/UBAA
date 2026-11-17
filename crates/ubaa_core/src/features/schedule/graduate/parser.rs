@@ -7,12 +7,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 type Object = Map<String, Value>;
 fn object(value: &Value) -> Result<&Object> {
-    value.as_object().ok_or_else(error)
+    value.as_object().ok_or_else(|| error())
 }
-fn objects<'a>(root: &'a Object, key: &str) -> Result<Vec<&'a Object>> {
+fn objects<'a>(root: &'a Object, key: &'static str) -> Result<Vec<&'a Object>> {
     root.get(key)
         .and_then(Value::as_array)
-        .ok_or_else(error)?
+        .ok_or_else(|| error().with_json_field(key, "array", root.get(key)))?
         .iter()
         .map(object)
         .collect()
@@ -25,13 +25,15 @@ fn text(root: &Object, key: &str) -> Option<String> {
         _ => None,
     }
 }
-fn required(root: &Object, key: &str) -> Result<String> {
+fn required(root: &Object, key: &'static str) -> Result<String> {
     text(root, key)
         .filter(|s| !s.trim().is_empty())
-        .ok_or_else(error)
+        .ok_or_else(|| error().with_json_field(key, "text", root.get(key)))
 }
-fn number(root: &Object, key: &str) -> Result<i32> {
-    required(root, key)?.parse().map_err(|_| error())
+fn number(root: &Object, key: &'static str) -> Result<i32> {
+    required(root, key)?
+        .parse()
+        .map_err(|_| error().with_json_field(key, "integer", root.get(key)))
 }
 fn json(body: &str) -> Result<Value> {
     serde_json::from_str(body).map_err(|_| {
@@ -52,8 +54,8 @@ pub(crate) fn parse_terms(body: &str) -> Result<Vec<Term>> {
     if text(root, "code").as_deref() != Some("0") {
         return Err(error());
     }
-    let data = object(root.get("datas").ok_or_else(error)?)?;
-    let data = object(data.get("kfdxnxqcx").ok_or_else(error)?)?;
+    let data = object(root.get("datas").ok_or_else(|| error())?)?;
+    let data = object(data.get("kfdxnxqcx").ok_or_else(|| error())?)?;
     let rows = objects(data, "rows")?;
     if usize::try_from(number(data, "totalSize")?).ok() != Some(rows.len()) {
         return Err(error());
@@ -191,7 +193,7 @@ fn row_scheme(row: &Object, schemes: &[&Object]) -> Result<String> {
             [scheme] => text(scheme, "DM").filter(|s| !s.trim().is_empty()),
             _ => None,
         })
-        .ok_or_else(error)
+        .ok_or_else(|| error())
 }
 
 fn semester_start(courses: &[&Object], rows: &[&Object]) -> Result<Option<NaiveDate>> {
@@ -222,7 +224,7 @@ fn semester_start(courses: &[&Object], rows: &[&Object]) -> Result<Option<NaiveD
             starts.insert(
                 first
                     .checked_sub_days(Days::new(offset))
-                    .ok_or_else(error)?,
+                    .ok_or_else(|| error())?,
             );
         }
     }

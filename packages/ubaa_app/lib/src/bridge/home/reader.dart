@@ -13,6 +13,7 @@ import 'cache.dart' show bridgeCachedHomeProjection;
 import '../read/cache_query.dart' show bridgeReadCachedQuery;
 import '../support/mapping.dart'
     show
+        bridgeCacheMaintenanceFailure,
         bridgeCacheTime,
         bridgeMapError,
         bridgeToBridgeConnectionMode,

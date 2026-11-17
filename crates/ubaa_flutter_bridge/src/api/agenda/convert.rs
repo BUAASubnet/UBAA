@@ -17,6 +17,7 @@ pub(crate) fn error(e: core::CacheError) -> BridgeAgendaError {
             core::CacheError::Inactive => BridgeAgendaFailure::Inactive,
             core::CacheError::Superseded => BridgeAgendaFailure::Superseded,
             core::CacheError::Capacity => BridgeAgendaFailure::Capacity,
+            core::CacheError::Busy => BridgeAgendaFailure::Busy,
         },
     }
 }

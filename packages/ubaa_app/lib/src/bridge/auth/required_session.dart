@@ -83,8 +83,8 @@ RequiredRecoveryOperation _start(
         route: bridgeToConnectionMode(value.route),
         profile: profile,
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }();
   return _BridgeOperation(result, control);
@@ -109,6 +109,7 @@ BridgeRecoveryFeature _target(RecoveryTarget target) => switch (target) {
   RecoveryTarget.network => BridgeRecoveryFeature.network,
   RecoveryTarget.finance => BridgeRecoveryFeature.finance,
   RecoveryTarget.ihome => BridgeRecoveryFeature.ihome,
+  RecoveryTarget.healthCloud => BridgeRecoveryFeature.healthCloud,
   RecoveryTarget.schedule => BridgeRecoveryFeature.schedule,
   RecoveryTarget.exam => BridgeRecoveryFeature.exam,
   RecoveryTarget.grades => BridgeRecoveryFeature.grades,

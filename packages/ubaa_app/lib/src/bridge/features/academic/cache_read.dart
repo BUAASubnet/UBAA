@@ -9,17 +9,18 @@ final class _AcademicReader {
   void record(
     LocalAccount account,
     int fetchedAt,
-    bool complete,
-    bool saved, {
+    bool complete, {
     String? date,
+    BridgeCacheFailure? saveError,
   }) {
     evidence = DataEvidence(
       accountId: account.id,
       origin: localRoute == null ? DataOrigin.online : DataOrigin.persisted,
       fetchedAt: bridgeCacheTime(fetchedAt),
       complete: complete,
-      savedForOffline: saved,
+      savedForOffline: saveError == null,
       scopeDate: date,
+      cacheFailure: bridgeCacheMaintenanceFailure(saveError),
     );
   }
 
@@ -32,13 +33,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readAcademicTerms(route: route);
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -50,8 +45,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -75,13 +69,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readExamTerms(route: route);
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -93,8 +81,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -120,13 +107,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readAcademicWeeks(route: route, term: term);
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -141,8 +122,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -173,13 +153,7 @@ final class _AcademicReader {
         week: week,
       );
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -195,8 +169,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -222,13 +195,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readAcademicExams(route: route, term: term);
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -243,8 +210,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -268,7 +234,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readAcademicGradesOverview(route: route);
       if (value == null) throw const AcademicCacheMiss();
-      record(account, value.fetchedAt.toInt(), value.complete, true);
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -282,7 +248,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -305,13 +271,7 @@ final class _AcademicReader {
       if (cache == null || account == null) throw const AcademicCacheMiss();
       final value = await cache.readAcademicGrades(route: route, term: term);
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: null,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -326,8 +286,7 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
-        date: null,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,
@@ -358,13 +317,7 @@ final class _AcademicReader {
         date: date,
       );
       if (value == null) throw const AcademicCacheMiss();
-      record(
-        account,
-        value.fetchedAt.toInt(),
-        value.complete,
-        true,
-        date: date,
-      );
+      record(account, value.fetchedAt.toInt(), value.complete, date: date);
       return AcademicValue(
         value.data,
         bridgeToConnectionMode(value.sourceRoute),
@@ -380,8 +333,8 @@ final class _AcademicReader {
         account,
         value.fetchedAt.toInt(),
         value.complete,
-        value.saveError == null,
         date: date,
+        saveError: value.saveError,
       );
       return AcademicValue(
         value.result.data,

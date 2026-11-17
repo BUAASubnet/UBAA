@@ -20,6 +20,7 @@ import 'api/cloud_print.dart';
 import 'api/command.dart';
 import 'api/command/output.dart';
 import 'api/finance.dart';
+import 'api/health_cloud.dart';
 import 'api/ihome.dart';
 import 'api/initialization.dart';
 import 'api/interactive_auth.dart';
@@ -988,6 +989,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeStatistics dco_decode_box_autoadd_bridge_grade_statistics(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeHealthCloudReport dco_decode_box_autoadd_bridge_health_cloud_report(
     dynamic raw,
   );
 
@@ -1978,6 +1984,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHealthCloudEvent dco_decode_bridge_health_cloud_event(dynamic raw);
+
+  @protected
+  BridgeHealthCloudPage dco_decode_bridge_health_cloud_page(dynamic raw);
+
+  @protected
+  BridgeHealthCloudReport dco_decode_bridge_health_cloud_report(dynamic raw);
+
+  @protected
+  BridgeHealthCloudYear dco_decode_bridge_health_cloud_year(dynamic raw);
+
+  @protected
   BridgeHomeAgendaContext dco_decode_bridge_home_agenda_context(dynamic raw);
 
   @protected
@@ -2823,6 +2841,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeHealthCloudEvent> dco_decode_list_bridge_health_cloud_event(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeHealthCloudYear> dco_decode_list_bridge_health_cloud_year(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeHomeBykc> dco_decode_list_bridge_home_bykc(dynamic raw);
 
   @protected
@@ -3300,6 +3328,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeGradeStatistics? dco_decode_opt_box_autoadd_bridge_grade_statistics(
     dynamic raw,
   );
+
+  @protected
+  BridgeHealthCloudReport?
+  dco_decode_opt_box_autoadd_bridge_health_cloud_report(dynamic raw);
 
   @protected
   BridgeIhomeEvaluation? dco_decode_opt_box_autoadd_bridge_ihome_evaluation(
@@ -4339,6 +4371,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeStatistics sse_decode_box_autoadd_bridge_grade_statistics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHealthCloudReport sse_decode_box_autoadd_bridge_health_cloud_report(
     SseDeserializer deserializer,
   );
 
@@ -5637,6 +5674,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHealthCloudEvent sse_decode_bridge_health_cloud_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHealthCloudPage sse_decode_bridge_health_cloud_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHealthCloudReport sse_decode_bridge_health_cloud_report(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHealthCloudYear sse_decode_bridge_health_cloud_year(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeHomeAgendaContext sse_decode_bridge_home_agenda_context(
     SseDeserializer deserializer,
   );
@@ -6742,6 +6799,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeHealthCloudEvent> sse_decode_list_bridge_health_cloud_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHealthCloudYear> sse_decode_list_bridge_health_cloud_year(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeHomeBykc> sse_decode_list_bridge_home_bykc(
     SseDeserializer deserializer,
   );
@@ -7361,6 +7428,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeStatistics? sse_decode_opt_box_autoadd_bridge_grade_statistics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHealthCloudReport?
+  sse_decode_opt_box_autoadd_bridge_health_cloud_report(
     SseDeserializer deserializer,
   );
 
@@ -8548,6 +8621,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_grade_statistics(
     BridgeGradeStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_health_cloud_report(
+    BridgeHealthCloudReport self,
     SseSerializer serializer,
   );
 
@@ -10133,6 +10212,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_health_cloud_event(
+    BridgeHealthCloudEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_health_cloud_page(
+    BridgeHealthCloudPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_health_cloud_report(
+    BridgeHealthCloudReport self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_health_cloud_year(
+    BridgeHealthCloudYear self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_home_agenda_context(
     BridgeHomeAgendaContext self,
     SseSerializer serializer,
@@ -11507,6 +11610,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_health_cloud_event(
+    List<BridgeHealthCloudEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_health_cloud_year(
+    List<BridgeHealthCloudYear> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_home_bykc(
     List<BridgeHomeBykc> self,
     SseSerializer serializer,
@@ -12211,6 +12326,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_grade_statistics(
     BridgeGradeStatistics? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_health_cloud_report(
+    BridgeHealthCloudReport? self,
     SseSerializer serializer,
   );
 

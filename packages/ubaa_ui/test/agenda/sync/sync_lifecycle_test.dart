@@ -17,7 +17,7 @@ const done = AgendaSyncReport(
   changedCount: 0,
 );
 const needsCreation = AgendaSyncReport(
-  status: AgendaSyncStatus.locationUnknown,
+  status: AgendaSyncStatus.needsCreation,
   pendingCount: 1,
   changedCount: 0,
 );
@@ -103,6 +103,31 @@ void size(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('云端读取失败显示原因且刷新只读取不创建', (tester) async {
+    size(tester);
+    const failure = UiError(
+      code: UbaaErrorCode.networkError,
+      title: '连接失败',
+      message: '请检查网络连接后重试',
+    );
+    final backend = Backend()..pullError = failure;
+    final service = AgendaService(backend);
+    await service.openAccount('fixture-a');
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
+    expect(find.text(failure.message), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '刷新'));
+    await tester.pumpAndSettle();
+    expect(backend.calls.map((call) => call.$2), [
+      AgendaSyncAction.pull,
+      AgendaSyncAction.pull,
+    ]);
+    expect(find.byType(AlertDialog), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await service.dispose();
+  });
+
   testWidgets('同账号服务恢复保留编辑草稿并使用新服务保存', (tester) async {
     size(tester);
     final previous = MemoryAgenda();

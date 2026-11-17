@@ -218,7 +218,11 @@ fn with_selection(mut response: HttpResponse, parsed: &url::Url) -> HttpResponse
 }
 
 fn setup(label: &str) -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
-    let root = test_root(label);
+    setup_at(test_root(label))
+}
+fn setup_at(
+    root: std::path::PathBuf,
+) -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
     let store = FileSessionStore::new(&root).unwrap();
     store
         .save(&SessionSnapshot {

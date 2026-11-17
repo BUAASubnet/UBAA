@@ -25,6 +25,7 @@ pub enum BridgeCacheFailure {
     Inactive,
     Superseded,
     Capacity,
+    Busy,
 }
 
 /// 磁盘中取得的不可写今日内容及原日期/来源。
@@ -236,14 +237,15 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Judge))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             if !self.write_intents.lock().await.is_empty() {
                 return Err(BridgeError::local(
                     BridgeErrorCode::OperationConflict,
                     BridgeErrorKind::Input,
                     true,
                     "请先完成当前操作",
-                ));
+                )
+                .with_diagnostic("cache_refresh", "write_confirmation_pending"));
             }
             let value = client
                 .refresh_cached_judge(&cache.cache, include_expired)
@@ -275,14 +277,15 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Academic))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             if !self.write_intents.lock().await.is_empty() {
                 return Err(BridgeError::local(
                     BridgeErrorCode::OperationConflict,
                     BridgeErrorKind::Input,
                     true,
                     "请先完成当前操作",
-                ));
+                )
+                .with_diagnostic("cache_refresh", "write_confirmation_pending"));
             }
             let value = client
                 .refresh_cached_today(&cache.cache)
@@ -312,7 +315,7 @@ pub(super) fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
         core::OfflineReadError::IdentityMismatch { resolution, .. } => BridgeError {
             auth_stage: None,
             auth_reason: None,
-            diagnostic_json: None,
+            diagnostic_json: crate::api::client::local_diagnostic("cache", "account_mismatch"),
             cache_failure: None,
             code: BridgeErrorCode::CacheIdentityMismatch,
             kind: BridgeErrorKind::Authentication,
@@ -342,19 +345,40 @@ fn map_today(data: Vec<core::TodayClass>) -> Vec<BridgeTodayClass> {
         })
         .collect()
 }
+#[track_caller]
 pub(super) fn cache_error(error: core::CacheError) -> BridgeError {
-    let code = match error {
-        core::CacheError::InvalidInput => BridgeErrorCode::InvalidInput,
-        core::CacheError::Inactive => BridgeErrorCode::AuthenticationRequired,
-        core::CacheError::Superseded => BridgeErrorCode::OperationConflict,
-        _ => BridgeErrorCode::InternalError,
+    use BridgeErrorCode as Code;
+    use BridgeErrorKind as Kind;
+    let (code, kind, reason) = match error {
+        core::CacheError::Busy => {
+            let mut mapped = BridgeError::from_core(core::UbaaError::cache_busy(), None);
+            mapped.cache_failure = Some(BridgeCacheFailure::Busy);
+            return mapped;
+        }
+        core::CacheError::Superseded => {
+            (Code::OperationConflict, Kind::Input, "cache_scope_changed")
+        }
+        core::CacheError::Unavailable => (Code::InternalError, Kind::Internal, "cache_unavailable"),
+        core::CacheError::InvalidInput => (Code::InvalidInput, Kind::Input, "cache_input_invalid"),
+        core::CacheError::Inactive => (
+            Code::AuthenticationRequired,
+            Kind::Authentication,
+            "cache_inactive",
+        ),
+        core::CacheError::Corrupt => (Code::InternalError, Kind::Internal, "cache_corrupt"),
+        core::CacheError::UnsupportedVersion => (
+            Code::InternalError,
+            Kind::Internal,
+            "cache_version_unsupported",
+        ),
+        core::CacheError::Capacity => (
+            Code::InternalError,
+            Kind::Internal,
+            "cache_capacity_exceeded",
+        ),
     };
-    let kind = match error {
-        core::CacheError::InvalidInput | core::CacheError::Superseded => BridgeErrorKind::Input,
-        core::CacheError::Inactive => BridgeErrorKind::Authentication,
-        _ => BridgeErrorKind::Internal,
-    };
-    let mut mapped = BridgeError::local(code, kind, false, error.to_string());
+    let mut mapped =
+        BridgeError::local(code, kind, false, error.to_string()).with_diagnostic("cache", reason);
     mapped.cache_failure = Some(error.into());
     mapped
 }
@@ -368,6 +392,7 @@ impl From<core::CacheError> for BridgeCacheFailure {
             core::CacheError::Inactive => Self::Inactive,
             core::CacheError::Superseded => Self::Superseded,
             core::CacheError::Capacity => Self::Capacity,
+            core::CacheError::Busy => Self::Busy,
         }
     }
 }
@@ -401,6 +426,38 @@ mod tests {
         );
         assert_eq!(school.cache_failure, None);
         assert_eq!(school.resolved_route, Some(BridgeConnectionMode::Direct));
+    }
+
+    #[test]
+    fn 缓存范围替换与缓存不可用可从诊断区分() {
+        let changed = cache_error(core::CacheError::Superseded);
+        let unavailable = cache_error(core::CacheError::Unavailable);
+        let diagnostic = |error: &BridgeError| {
+            core::ErrorDiagnostic::from_json(error.diagnostic_json.as_deref().unwrap()).unwrap()
+        };
+        assert_eq!(
+            diagnostic(&changed).reason.as_deref(),
+            Some("cache_scope_changed")
+        );
+        assert_eq!(
+            diagnostic(&unavailable).reason.as_deref(),
+            Some("cache_unavailable")
+        );
+        assert_eq!(diagnostic(&changed).stage.as_deref(), Some("cache"));
+        assert_ne!(diagnostic(&changed), diagnostic(&unavailable));
+    }
+
+    #[test]
+    fn 缓存锁忙保留可重试错误和独立诊断() {
+        let error = offline_read_error(core::OfflineReadError::Cache(core::CacheError::Busy));
+        assert_eq!(error.code, BridgeErrorCode::Timeout);
+        assert_eq!(error.kind, BridgeErrorKind::Internal);
+        assert_eq!(error.cache_failure, Some(BridgeCacheFailure::Busy));
+        assert!(error.retryable);
+        let diagnostic =
+            core::ErrorDiagnostic::from_json(error.diagnostic_json.as_deref().unwrap()).unwrap();
+        assert_eq!(diagnostic.stage.as_deref(), Some("cache"));
+        assert_eq!(diagnostic.reason.as_deref(), Some("cache_busy"));
     }
     static NEXT: AtomicU64 = AtomicU64::new(0);
 

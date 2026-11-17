@@ -82,6 +82,10 @@ abstract interface class IhomeBackend {
   IhomeService get ihome;
 }
 
+abstract interface class HealthCloudBackend {
+  ReadHealthCloud? get healthCloud;
+}
+
 /// 门户资料、校园账户指标与网费流量的在线只读能力。
 abstract interface class CampusAccountBackend {
   CampusAccountService get campusAccount;
@@ -89,4 +93,9 @@ abstract interface class CampusAccountBackend {
 
 abstract interface class FinanceBackend {
   FinanceService get finance;
+}
+
+/// 仅由用户主动导出的完整学校响应，不用于错误摘要或自动统计。
+abstract interface class RawDiagnosticsBackend {
+  String exportRawDiagnostics();
 }

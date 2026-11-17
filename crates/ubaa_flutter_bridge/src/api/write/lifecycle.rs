@@ -14,7 +14,7 @@ impl BridgeClient {
         catch_panic(async {
             // 与 commit、登录和路线重建保持相同的锁顺序，避免取消和提交交错。
             let guard = self.inner.lock().await;
-            guard.as_ref().ok_or_else(disposed_error)?;
+            guard.as_ref().ok_or_else(|| disposed_error())?;
             self.write_intents.lock().await.remove(&intent_id);
             Ok(())
         })

@@ -90,7 +90,7 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     backend.refresh.complete(
       const AgendaSyncReport(
-        status: AgendaSyncStatus.locationUnknown,
+        status: AgendaSyncStatus.needsCreation,
         pendingCount: 0,
         changedCount: 0,
       ),
@@ -141,7 +141,7 @@ void main() {
 
     backend.refresh.complete(
       const AgendaSyncReport(
-        status: AgendaSyncStatus.locationUnknown,
+        status: AgendaSyncStatus.needsCreation,
         pendingCount: 0,
         changedCount: 0,
       ),

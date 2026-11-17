@@ -18,6 +18,7 @@ import 'projection.dart'
         bridgeProjectBykcStatistics;
 import '../../support/mapping.dart'
     show
+        bridgeCacheMaintenanceFailure,
         bridgeCacheTime,
         bridgeRequiredPositiveQueryInt,
         bridgeToConnectionMode;
@@ -190,6 +191,7 @@ FeatureResult _finishBykcRefresh(
     fetchedAt: bridgeCacheTime(state.fetchedAt.toInt()),
     complete: true,
     savedForOffline: state.saveError == null,
+    cacheFailure: bridgeCacheMaintenanceFailure(state.saveError),
   );
   return result.isEmpty
       ? FeatureResult.empty(

@@ -226,6 +226,7 @@ pub(super) fn parse_submit_result(body: &str) -> Result<YgdkClockinSubmitResult>
     })
 }
 
+#[track_caller]
 fn invalid_input(message: &str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }

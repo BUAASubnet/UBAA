@@ -117,10 +117,16 @@ Future<WriteCommitResult> bridgeCommitWrite(
     );
     if (!projected.outcomeUnknown) await acknowledge();
     return projected.withCacheFailure(cacheFailure);
-  } on BridgeError catch (error) {
-    throw bridgeWriteCacheError(bridgeMapError(error), cacheFailure);
-  } on BackendException catch (error) {
-    throw bridgeWriteCacheError(error, cacheFailure);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(
+      bridgeWriteCacheError(bridgeMapError(error), cacheFailure),
+      stack,
+    );
+  } on BackendException catch (error, stack) {
+    Error.throwWithStackTrace(
+      bridgeWriteCacheError(error, cacheFailure),
+      stack,
+    );
   } on Object {
     throw BackendException(
       UbaaErrorCode.outcomeUnknown,

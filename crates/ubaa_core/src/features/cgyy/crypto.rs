@@ -37,6 +37,7 @@ fn encrypt_captcha_text(plain: &str, secret_key: &str) -> Result<String> {
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
+#[track_caller]
 fn error(message: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

@@ -50,9 +50,10 @@ extension _BackendStartup on _UbaaAppHostState {
   }
 
   Widget _buildStartup() => switch (_startupFailure) {
-    null => UbaaBootSplash(themeMode: _themeMode),
+    null => UbaaBootSplash(themeMode: _themeMode, accent: _accent),
     (:final error, :final stage) => _startupApplication(
       themeMode: _themeMode,
+      accent: _accent,
       reportExporter: widget.diagnosticReportExporter,
       openLink: (widget.appInformation ?? SystemAppInformation()).open,
       home: _StartupFailure(
@@ -107,6 +108,7 @@ UiError _recordStartupError(
 Widget _startupApplication({
   required Widget home,
   ThemeMode themeMode = ThemeMode.system,
+  UbaaAccent accent = UbaaAccent.blue,
   DiagnosticReportExporter reportExporter = const DiagnosticReportExporter(),
   Future<bool> Function(AppLink)? openLink,
 }) => MaterialApp(
@@ -115,13 +117,12 @@ Widget _startupApplication({
   supportedLocales: UbaaTheme.supportedLocales,
   localizationsDelegates: UbaaTheme.localizationsDelegates,
   debugShowCheckedModeBanner: false,
-  theme: UbaaTheme.light(),
-  darkTheme: UbaaTheme.dark(),
+  theme: UbaaTheme.light(accent: accent),
+  darkTheme: UbaaTheme.dark(accent: accent),
   themeMode: themeMode,
   builder: (context, child) => UiDiagnosticsScope(
-    readRecord: (_) => null,
     exportReport: reportExporter.export,
-    exportLabel: reportExporter.supportsSharing ? '分享报告文件' : '保存报告文件',
+    exportLabel: reportExporter.supportsSharing ? '分享诊断报告' : '保存诊断报告',
     openFeedback: openLink == null ? null : () => openLink(AppLink.feedback),
     child: child!,
   ),
@@ -172,17 +173,10 @@ class _StartupFailure extends StatelessWidget {
               else
                 const Text('请关闭应用后重新打开。'),
               TextButton.icon(
-                onPressed: () => uiShowDiagnosticsDialog(
-                  context,
-                  () => diagnostics.exportText(issueId: error.issueId),
-                ),
-                icon: const Icon(Icons.description_outlined),
-                label: const Text('查看诊断信息'),
-              ),
-              TextButton(
                 onPressed: () =>
                     uiShowDiagnosticsDialog(context, diagnostics.exportText),
-                child: const Text('查看诊断历史'),
+                icon: const Icon(Icons.bug_report_outlined),
+                label: const Text('诊断信息'),
               ),
             ],
           ),

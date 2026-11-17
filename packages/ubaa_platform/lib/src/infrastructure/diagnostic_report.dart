@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart' as selector;
 import 'package:flutter/services.dart';
 
-/// 用户主动交付的脱敏诊断报告。系统分享面板由用户选择接收方。
+/// 用户主动交付的诊断报告，完整诊断可能包含个人数据与认证凭据。系统分享面板由用户选择接收方。
 final class DiagnosticReportExporter {
   const DiagnosticReportExporter({this.operatingSystem});
   final String? operatingSystem;

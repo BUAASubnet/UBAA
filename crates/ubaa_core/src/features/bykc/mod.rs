@@ -20,6 +20,11 @@ pub(crate) use write::{deselect_course, preflight_sign_course, select_course, si
 
 use crate::error::UbaaError;
 
+/// 博雅上游时间是不带时区的北京时间；资格判定不依赖设备时区。
+fn campus_now() -> chrono::NaiveDateTime {
+    crate::time::shanghai_datetime(std::time::SystemTime::now())
+}
+
 #[track_caller]
 fn error(message: &str) -> UbaaError {
     UbaaError::upstream_changed(message).with_diagnostic("parse", "response_shape_invalid")

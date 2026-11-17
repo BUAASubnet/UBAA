@@ -1,8 +1,8 @@
 //! SPOC 选择和希冀摘要同查询竞争的完整结果复用与原子重读。
 use super::{
     CacheCompleteness, CacheError, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
-    OfflineRepository, OptionalExtension, TransactionBehavior, invalidation, load_body,
-    load_current_control, params, require_active, save_control,
+    OfflineRepository, OptionalExtension, TransactionBehavior, allocate_read, invalidation,
+    load_body, load_current_control, require_active,
 };
 use crate::cache::CacheQuery;
 
@@ -67,31 +67,23 @@ impl OfflineRepository {
                 && record.last_attempt_succeeded
                 && request_revision.is_none_or(|revision| revision <= record.revision)
         });
-        let next_ticket = if reusable.is_some() {
+        let mut next_ticket = if reusable.is_some() {
             ticket.clone()
         } else {
-            control.revision = control
-                .revision
-                .checked_add(1)
-                .ok_or(CacheError::Capacity)?;
-            save_control(&tx, &self.crypto, &self.account, &control)?;
-            let body = self
-                .crypto
-                .seal(&ticket.scope, &invalidation::scope_aad(&key))?;
-            tx.execute(
-                "INSERT INTO requests(key,revision,scope) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET revision=excluded.revision,scope=excluded.scope",
-                params![key, control.revision, body],
-            )
-            .map_err(CacheError::from)?;
-            CacheReadTicket {
-                account: self.account.clone(),
-                scope: ticket.scope.clone(),
-                epoch: control.epoch,
-                database_id: control.database_id,
-                revision: control.revision,
-            }
+            allocate_read(
+                &tx,
+                &self.crypto,
+                &self.account,
+                &mut control,
+                &key,
+                ticket.scope.clone(),
+                None,
+            )?
         };
         tx.commit().map_err(CacheError::from)?;
+        if reusable.is_none() {
+            self.shared_reads.register(key, &mut next_ticket);
+        }
         Ok((next_ticket, reusable))
     }
 }

@@ -29,11 +29,17 @@ final class HomeTodo {
     this.deadline,
     this.startsAt,
     this.endsAt,
+    this.local = false,
+    this.color,
   });
   final String id, title, subtitle, statusLabel, timeLabel;
   final FeatureId feature;
   final DateTime sortTime;
   final DateTime? deadline, startsAt, endsAt;
+  final bool local;
+
+  /// 自建事项的颜色，格式为 #RRGGBB；学校事项由界面按来源配色。
+  final String? color;
 
   HomeTodo withoutSigninAction() => HomeTodo(
     id: id,
@@ -48,6 +54,8 @@ final class HomeTodo {
     startsAt: startsAt,
     endsAt: endsAt,
     soon: soon,
+    local: local,
+    color: color,
   );
   final bool soon;
 
@@ -87,17 +95,23 @@ String _homeRange(DateTime? start, DateTime? end, DateTime now) {
 final class YgdkReminderSettings {
   const YgdkReminderSettings({
     this.enabled = true,
+    this.manualEnabled,
     this.weekDoneKey,
     this.termDoneKey,
   });
   final bool enabled;
+
+  /// 用户手动选择优先于课表决定的默认值。
+  final bool? manualEnabled;
   final String? weekDoneKey, termDoneKey;
   YgdkReminderSettings copyWith({
     bool? enabled,
+    bool? manualEnabled,
     String? weekDoneKey,
     String? termDoneKey,
   }) => YgdkReminderSettings(
     enabled: enabled ?? this.enabled,
+    manualEnabled: manualEnabled ?? this.manualEnabled,
     weekDoneKey: weekDoneKey ?? this.weekDoneKey,
     termDoneKey: termDoneKey ?? this.termDoneKey,
   );
@@ -142,6 +156,34 @@ HomeTodo formatHomeTodo(
   FeatureReadNavigation? navigation,
   SigninPerformAction? signinAction,
 }) {
+  if (entry.local case final local?) {
+    final start = local.content.start?.rfc3339;
+    final end = local.content.end?.rfc3339;
+    final due = local.content.due?.rfc3339;
+    final startTime = start == null
+        ? null
+        : homeCampusTime(DateTime.parse(start));
+    final endTime = end == null ? null : homeCampusTime(DateTime.parse(end));
+    final dueTime = due == null ? null : homeCampusTime(DateTime.parse(due));
+    final label = dueTime != null
+        ? '${_relativeHomeTime(dueTime, now)} 截止'
+        : _homeRange(startTime, endTime, now);
+    return HomeTodo(
+      id: 'local:${local.itemId}:${local.recurrenceId}',
+      feature: FeatureId.schedule,
+      title: local.content.title,
+      subtitle: local.content.location ?? '我的日程',
+      statusLabel: '我的日程',
+      timeLabel: label,
+      sortTime: startTime ?? dueTime ?? now,
+      deadline: dueTime,
+      startsAt: startTime,
+      endsAt: endTime,
+      soon: entry.soon,
+      local: true,
+      color: local.content.color,
+    );
+  }
   final item = entry.school!;
   DateTime? display(String? raw) =>
       raw == null ? null : homeCampusTime(DateTime.parse(raw));

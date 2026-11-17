@@ -119,4 +119,44 @@ void main() {
       Brightness.dark,
     );
   });
+
+  testWidgets('保存的主题色在启动页、宿主与初始化失败页首帧生效', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final preferences = MemoryPreferenceValues();
+    await ThemePreferenceStore(values: preferences).writeAccent('teal');
+    final expected = UbaaTheme.light(accent: UbaaAccent.teal).colorScheme;
+    for (final fail in [false, true]) {
+      final apps = <Widget>[];
+      final run = bootstrapUbaaHost(
+        ensureFlutterInitialized: () {},
+        preferenceValues: preferences,
+        initializeSdk: () async {
+          if (fail) throw StateError('合成初始化失败');
+        },
+        debugHello: () => 'UBAA FRB 2.13.0 ready',
+        createCapabilities: () async => fixtureCapabilities(),
+        runApplication: apps.add,
+      );
+      if (fail) {
+        await expectLater(run, throwsStateError);
+      } else {
+        await run;
+      }
+      await tester.pumpWidget(apps.first);
+      expect(
+        Theme.of(tester.element(find.byType(UbaaSplashView))).colorScheme,
+        expected,
+      );
+      if (fail) {
+        await tester.pumpWidget(apps.last);
+        expect(
+          Theme.of(tester.element(find.byType(Scaffold))).colorScheme.primary,
+          expected.primary,
+        );
+      } else {
+        expect((apps.last as UbaaAppHost).initialAccent, UbaaAccent.teal);
+      }
+    }
+  });
 }

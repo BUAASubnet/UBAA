@@ -201,7 +201,7 @@ Future<WriteIntent> _prepareIntent(
 ) async {
   try {
     return bridgeMapIntent(await pending);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }

@@ -99,6 +99,9 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
     if args.feature == "all" || args.feature == "ihome" {
         run_ihome(&mut client, &mut evidence).await;
     }
+    if args.feature == "health_cloud" {
+        run_health_cloud(&mut client, &mut evidence).await;
+    }
     if args.feature == "all" || args.feature == "ygdk" {
         run_ygdk(&mut client, &mut evidence).await;
     }
@@ -182,9 +185,11 @@ fn authentication_dependencies(
         ("ihome", "config"),
         ("ihome", "notices"),
         ("ihome", "notice"),
+        ("health_cloud", "years"),
+        ("health_cloud", "report"),
     ];
     ALL.iter().copied().filter(move |(operation_feature, _)| {
-        feature == "all"
+        (feature == "all" && *operation_feature != "health_cloud")
             || feature == *operation_feature
             || *operation_feature == "auth"
             || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
@@ -648,6 +653,30 @@ async fn run_evaluation(client: &mut UbaaClient, evidence: &mut Evidence) {
             evidence.fail("evaluation", "all", error.error.code);
             evidence.blocked("evaluation", "pending", "all_failed");
         }
+    }
+}
+
+async fn run_health_cloud(client: &mut UbaaClient, evidence: &mut Evidence) {
+    let page = match client.health_cloud_page(None).await {
+        Ok(result) => result.data,
+        Err(error) => {
+            evidence.fail("health_cloud", "years", error.error.code);
+            evidence.blocked("health_cloud", "report", "years_failed");
+            return;
+        }
+    };
+    evidence.pass("health_cloud", "years", Some(page.years.len()));
+    let Some(year) = page.years.get(1).or(page.years.first()) else {
+        evidence.blocked("health_cloud", "report", "no_year");
+        return;
+    };
+    match client.health_cloud_page(Some(&year.key)).await {
+        Ok(result) => evidence.pass(
+            "health_cloud",
+            "report",
+            result.data.report.map(|report| report.events.len()),
+        ),
+        Err(error) => evidence.fail("health_cloud", "report", error.error.code),
     }
 }
 

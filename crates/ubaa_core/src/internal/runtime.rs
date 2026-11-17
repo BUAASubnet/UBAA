@@ -17,6 +17,12 @@ use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, 
 mod readonly;
 use readonly::ReadonlyOwner;
 
+#[cfg(test)]
+#[path = "runtime_session_tests.rs"]
+mod session_tests;
+
+const SESSION_ACTIVITY_SAVE_INTERVAL_SECS: i64 = 60;
+
 pub(crate) struct ClientRuntime {
     pub(crate) network_failure_domain: Option<String>,
     pub(crate) reached_domains: std::collections::BTreeSet<String>,
@@ -27,6 +33,7 @@ pub(crate) struct ClientRuntime {
     jar: CookieJar,
     authenticated_at: Option<i64>,
     last_activity: Option<i64>,
+    persisted_authentication: Option<Arc<SessionSnapshot>>,
     account_name: Option<String>,
     session_revision: u64,
     authentication_generation: uuid::Uuid,
@@ -83,12 +90,14 @@ impl ClientRuntime {
         let mut jar = CookieJar::default();
         let mut authenticated_at = None;
         let mut last_activity = None;
+        let mut persisted_authentication = None;
         let mut session_revision = persisted.revision;
         if let Some(snapshot) = persisted.snapshot {
             if snapshot.mode == mode {
-                jar.replace(snapshot.cookies);
+                jar.replace(snapshot.cookies.clone());
                 authenticated_at = Some(snapshot.authenticated_at);
                 last_activity = Some(snapshot.last_activity);
+                persisted_authentication = Some(Arc::new(snapshot));
             } else {
                 session_revision = match store.compare_exchange(session_revision, None)? {
                     SessionMutation::Applied { revision } => revision,
@@ -106,6 +115,7 @@ impl ClientRuntime {
             jar,
             authenticated_at,
             last_activity,
+            persisted_authentication,
             account_name: None,
             session_revision,
             authentication_generation: uuid::Uuid::new_v4(),
@@ -164,6 +174,7 @@ impl ClientRuntime {
             jar,
             authenticated_at: self.authenticated_at,
             last_activity: self.last_activity,
+            persisted_authentication: self.persisted_authentication.clone(),
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             authentication_generation: self.authentication_generation,
@@ -408,6 +419,19 @@ impl ClientRuntime {
             self.ensure_session_revision()?;
             return Ok((authenticated_at, now));
         }
+        if self.persisted_authentication.as_ref().is_some_and(|saved| {
+            authenticated_at == saved.authenticated_at
+                && now.saturating_sub(saved.last_activity) < SESSION_ACTIVITY_SAVE_INTERVAL_SECS
+                && self.jar.matches_persisted(&saved.cookies)
+        }) {
+            // 即使无需保存，也必须拒绝外部修订，不能把旧核验结果当作成功。
+            if let Err(error) = self.ensure_session_revision() {
+                self.clear_memory();
+                clear_workflow();
+                return Err(error);
+            }
+            return Ok((authenticated_at, now));
+        }
         let snapshot = SessionSnapshot {
             mode: self.mode,
             cookies: self.jar.cookies().to_vec(),
@@ -433,6 +457,7 @@ impl ClientRuntime {
         match mutation {
             SessionMutation::Applied { revision } => {
                 self.session_revision = revision;
+                self.persisted_authentication = Some(Arc::new(snapshot));
                 Ok((authenticated_at, now))
             }
             SessionMutation::Conflict => {
@@ -484,6 +509,7 @@ impl ClientRuntime {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
+        self.persisted_authentication = None;
         self.account_name = None;
         self.feature_state.clear();
         if let Some(owner) = &self.readonly_generation {
@@ -509,6 +535,7 @@ fn now_seconds_at(now: SystemTime) -> Result<i64> {
         })
 }
 
+#[track_caller]
 fn session_conflict() -> UbaaError {
     UbaaError::session_conflict()
 }
@@ -520,6 +547,7 @@ fn write_outcome_unknown() -> UbaaError {
     UbaaError::outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }
 
+#[track_caller]
 fn unknown_after_send(error: UbaaError) -> UbaaError {
     error.with_write_outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }

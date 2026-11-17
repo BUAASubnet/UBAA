@@ -28,8 +28,8 @@ Future<List<WriteReadbackHint>> bridgeReadWriteReadbackHints(
         );
       }),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 });
 
@@ -44,7 +44,7 @@ Future<void> bridgeDismissWriteReadbackHint(
       backend,
       accountId,
     ).dismissWriteReadback(id: id);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 });

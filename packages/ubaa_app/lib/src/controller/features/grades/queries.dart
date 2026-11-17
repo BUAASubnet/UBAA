@@ -459,6 +459,7 @@ mixin ControllerGrades on ControllerState {
     return GradesAggregate(
       terms: List.unmodifiable(reads),
       termsEvidence: options.evidence,
+      currentTermCode: gradeCurrentTermCode(options.details),
     );
   }
 }

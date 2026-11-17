@@ -1,8 +1,8 @@
 //! `SQLite` 短事务与持久代次；不持有或等待学校网络客户端。
 use super::{
     CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CacheObservation,
-    CachePayload, CachePublication, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
-    crypto::Crypto, files,
+    CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult,
+    CacheScope, crypto::Crypto, files,
 };
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
@@ -41,6 +41,7 @@ pub struct OfflineRepository {
     path: PathBuf,
     limits: CacheLimits,
     generation: Generation,
+    shared_reads: shared_read::LocalReaders,
 }
 
 impl OfflineRepository {
@@ -67,6 +68,7 @@ impl OfflineRepository {
             path,
             limits,
             generation,
+            shared_reads: shared_read::LocalReaders::default(),
         })
     }
 
@@ -172,27 +174,25 @@ impl OfflineRepository {
                 self.generation,
             )?;
         }
-        control.revision = control
-            .revision
-            .checked_add(1)
-            .ok_or(CacheError::Capacity)?;
-        save_control(&tx, &self.crypto, &self.account, &control)?;
-        let body = self.crypto.seal(&scope, &invalidation::scope_aad(&key))?;
-        tx.execute("INSERT INTO requests(key,revision,scope) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET revision=excluded.revision,scope=excluded.scope", params![key, control.revision, body]).map_err(CacheError::from)?;
-        // 崩溃遗留的请求不无限增长；被回收的旧 ticket 会校验失败。
+        let lineage = shared_read::scope_lineage(&tx, &self.crypto, &key, &scope.query)?;
+        let mut ticket = allocate_read(
+            &tx,
+            &self.crypto,
+            &self.account,
+            &mut control,
+            &key,
+            scope,
+            lineage,
+        )?;
+        // 崩溃遗留的请求不无限增长；被回收的旧票据不能发布。
         tx.execute(
             "DELETE FROM requests WHERE revision < ?1",
             [control.revision.saturating_sub(4096)],
         )
         .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
-        Ok(CacheReadTicket {
-            account: self.account.clone(),
-            scope,
-            epoch: control.epoch,
-            database_id: control.database_id,
-            revision: control.revision,
-        })
+        self.shared_reads.register(key, &mut ticket);
+        Ok(ticket)
     }
 
     /// 只读本地内容；单条损坏隔离该范围，其余范围保持可读。
@@ -363,21 +363,18 @@ impl OfflineRepository {
                 completeness,
             }
         };
-        let body = self.crypto.seal(&record, &key)?;
-        if u64::try_from(body.len()).map_err(|_| CacheError::Capacity)? > self.limits.hard_bytes {
-            return Err(CacheError::Capacity);
-        }
-        retention::Admission {
-            db: &tx,
-            crypto: &self.crypto,
-            account: &self.account,
-            limits: self.limits,
-            now,
-        }
-        .reserve(&key, &record, body.len())?;
-        tx.execute("INSERT INTO entries(key,body,accessed) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed", params![key, body, now]).map_err(CacheError::from)?;
-        tx.execute("DELETE FROM requests WHERE key=?1", [&key])
-            .map_err(CacheError::from)?;
+        write_record(
+            &retention::Admission {
+                db: &tx,
+                crypto: &self.crypto,
+                account: &self.account,
+                limits: self.limits,
+                now,
+            },
+            &key,
+            &record,
+            shared_read::ReadStamp::for_record(ticket, &record),
+        )?;
         tx.commit().map_err(CacheError::from)?;
         Ok(if preserve {
             CachePublication::Preserved
@@ -439,7 +436,12 @@ impl OfflineRepository {
             let mut record: CacheRecord = self.crypto.open(&body, &key)?;
             record.last_attempt_at = now;
             record.last_attempt_succeeded = false;
-            let body = self.crypto.seal(&record, &key)?;
+            let body = shared_read::seal_record(
+                &self.crypto,
+                &key,
+                &record,
+                shared_read::ReadStamp::for_record(ticket, &record),
+            )?;
             tx.execute(
                 "UPDATE entries SET body=?1 WHERE key=?2",
                 params![body, key],
@@ -494,6 +496,58 @@ impl OfflineRepository {
         }
         tx.commit().map_err(CacheError::from)
     }
+}
+
+fn write_record(
+    admission: &retention::Admission<'_>,
+    key: &[u8],
+    record: &CacheRecord,
+    stamp: shared_read::ReadStamp,
+) -> CacheResult<()> {
+    let body = shared_read::seal_record(admission.crypto, key, record, stamp)?;
+    if u64::try_from(body.len()).map_err(|_| CacheError::Capacity)? > admission.limits.hard_bytes {
+        return Err(CacheError::Capacity);
+    }
+    admission.reserve(key, record, body.len())?;
+    admission.db.execute("INSERT INTO entries(key,body,accessed) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed", params![key, body, admission.now]).map_err(CacheError::from)?;
+    admission
+        .db
+        .execute("DELETE FROM requests WHERE key=?1", [key])
+        .map_err(CacheError::from)?;
+    Ok(())
+}
+
+fn allocate_read(
+    db: &Connection,
+    crypto: &Crypto,
+    account: &str,
+    control: &mut Control,
+    key: &[u8],
+    scope: CacheScope,
+    lineage: Option<i64>,
+) -> CacheResult<CacheReadTicket> {
+    control.revision = control
+        .revision
+        .checked_add(1)
+        .ok_or(CacheError::Capacity)?;
+    save_control(db, crypto, account, control)?;
+    let lineage =
+        shared_read::needs_lineage(&scope.query).then(|| lineage.unwrap_or(control.revision));
+    let body = shared_read::seal_scope(crypto, key, &scope, lineage)?;
+    db.execute(
+        "INSERT INTO requests(key,revision,scope) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET revision=excluded.revision,scope=excluded.scope",
+        params![key, control.revision, body],
+    ).map_err(CacheError::from)?;
+    Ok(CacheReadTicket {
+        account: account.to_owned(),
+        scope,
+        epoch: control.epoch,
+        database_id: control.database_id,
+        revision: control.revision,
+        generation: control.generation,
+        lineage,
+        local: None,
+    })
 }
 
 fn load_control(db: &Connection, crypto: &Crypto, account: &str) -> CacheResult<Control> {
@@ -560,6 +614,9 @@ fn validate_ticket(
 impl From<rusqlite::Error> for CacheError {
     fn from(error: rusqlite::Error) -> Self {
         match error.sqlite_error_code() {
+            Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => {
+                Self::Busy
+            }
             Some(rusqlite::ErrorCode::DiskFull) => Self::Capacity,
             Some(rusqlite::ErrorCode::DatabaseCorrupt | rusqlite::ErrorCode::NotADatabase) => {
                 Self::Corrupt
@@ -598,7 +655,12 @@ mod recovery_tests;
 
 mod recovery;
 
+mod shared_read;
+pub(crate) use shared_read::SharedReadRecovery;
+
 mod retention;
+
+mod semester;
 
 #[cfg(test)]
 mod rebuild_tests;
@@ -621,7 +683,8 @@ fn open_connection(path: &Path) -> CacheResult<Connection> {
             | OpenFlags::SQLITE_OPEN_NOFOLLOW,
     )
     .map_err(CacheError::from)?;
-    db.busy_timeout(Duration::from_millis(250))
+    // 缓存事务只执行本地读写，可以短暂等待另一个进程提交。
+    db.busy_timeout(Duration::from_secs(3))
         .map_err(CacheError::from)?;
     Ok(db)
 }

@@ -61,6 +61,34 @@ extension BykcDetailActions on _FeatureDetailListState {
           );
   }
 
+  /// 已选卡片：处在签到或签退时间内时直接给出对应按钮，否则保留退选。
+  Widget? _bykcChosenCardAction(FeatureDetail detail, int courseId) {
+    final start = widget.onBykcSignWrite;
+    final signs = <BykcSignAction>[
+      if (start != null && courseId > 0)
+        for (final kind in BykcSignKind.values)
+          if (_bykcSignAction(detail, kind) case final action?
+              when action.courseId == courseId &&
+                  action.eligibility == ActionEligibility.allowed)
+            action,
+    ];
+    if (signs.isEmpty) return _bykcListAction(detail, courseId, selected: true);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final action in signs)
+          FilledButton.tonalIcon(
+            onPressed: widget.writesEnabled ? () => start!(action) : null,
+            icon: Icon(
+              action.kind == BykcSignKind.signIn ? Icons.login : Icons.logout,
+            ),
+            label: Text(action.kind == BykcSignKind.signIn ? '签到' : '签退'),
+          ),
+      ],
+    );
+  }
+
   List<Widget> _bykcCourseWriteFields(
     BuildContext context,
     int? courseId,

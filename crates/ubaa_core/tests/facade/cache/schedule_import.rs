@@ -14,6 +14,22 @@ struct ImportTransport {
     unknown_weeks: Arc<std::sync::atomic::AtomicBool>,
     unknown_week: Arc<std::sync::atomic::AtomicBool>,
     cancel_on_week: Arc<Mutex<Option<ubaa_core::facade::ScheduleImportCancellation>>>,
+    replace_on_last_week: Arc<Mutex<Option<ubaa_core::facade::OfflineRepository>>>,
+}
+impl ImportTransport {
+    fn replace_import_before_week_result(&self, request_body: &str) {
+        if request_body.contains("week=2")
+            && let Some(mut repo) = self.replace_on_last_week.lock().unwrap().take()
+        {
+            repo.begin_read(CacheScope {
+                route: ConnectionMode::Direct,
+                query: CacheQuery::ScheduleImport {
+                    term: "2025-2026-1".into(),
+                },
+            })
+            .unwrap();
+        }
+    }
 }
 #[async_trait]
 impl HttpTransport for ImportTransport {
@@ -56,6 +72,7 @@ impl HttpTransport for ImportTransport {
                     "合成第二周失败",
                 ));
             }
+            self.replace_import_before_week_result(&body);
             include_bytes!("../../../../../fixtures/readonly/schedule-week.json").to_vec()
         } else {
             panic!("未预期的合成只读请求");
@@ -158,6 +175,141 @@ fn imported(mode: ConnectionMode) -> CacheScope {
         route: mode,
         query: CacheQuery::ImportedSchedules,
     }
+}
+
+#[test]
+fn 共享资料目录中的学期导入复用另一仓库已完成结果且不再读取学校() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let root = test_root("schedule-import-shared-complete");
+    let transport = ImportTransport::default();
+    let (mut client, cache) = setup(&root, ConnectionMode::Direct, transport.clone());
+    let other = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    runtime.block_on(async {
+        let mut old = client
+            .begin_schedule_import(&cache, "2025-2026-1")
+            .await
+            .unwrap();
+        client.next_schedule_import(&mut old).await.unwrap();
+        let mut latest = client
+            .begin_schedule_import(&other, "2025-2026-1")
+            .await
+            .unwrap();
+        for _ in 0..4 {
+            client.next_schedule_import(&mut latest).await.unwrap();
+        }
+        let scope = imported(ConnectionMode::Direct);
+        let stored = other.read(&scope, 1).unwrap().unwrap();
+        let before = transport.requests.lock().unwrap().len();
+        let batch = client.next_schedule_import(&mut old).await.unwrap();
+        assert!(batch.data.finished);
+        assert!(batch.data.save_error.is_none());
+        assert_eq!(batch.data.completed_weeks, 2);
+        assert_eq!(batch.data.total_weeks, Some(2));
+        assert_eq!(cache.read(&scope, 1).unwrap().unwrap(), stored);
+        assert_eq!(transport.requests.lock().unwrap().len(), before);
+    });
+    drop((client, cache, other));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 共享资料目录中的学期导入已经收齐时只补发本地保存() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let root = test_root("schedule-import-shared-pending");
+    let transport = ImportTransport::default();
+    let (mut client, cache) = setup(&root, ConnectionMode::Direct, transport.clone());
+    *transport.replace_on_last_week.lock().unwrap() = Some(
+        ubaa_core::facade::OfflineRepository::open(
+            &root,
+            "0123456789abcdef0123456789abcdef",
+            CacheKey::new([9; 32]),
+            CacheLimits::default(),
+        )
+        .unwrap(),
+    );
+    runtime.block_on(async {
+        let mut plan = client.begin_schedule_import(&cache, "2025-2026-1").await.unwrap();
+        for _ in 0..3 {
+            client.next_schedule_import(&mut plan).await.unwrap();
+        }
+        let batch = client.next_schedule_import(&mut plan).await.unwrap();
+        assert!(batch.data.finished);
+        assert!(batch.data.save_error.is_none());
+        assert_eq!(batch.data.completed_weeks, 2);
+        let saved = cache.read(&imported(ConnectionMode::Direct), 1).unwrap().unwrap();
+        assert!(matches!(saved.payload, CachePayload::ImportedSchedules(values) if values[0].schedules.len() == 2));
+        assert_eq!(transport.requests.lock().unwrap().iter().filter(|request| request.url.contains("getMyScheduleDetail.do")).count(), 2);
+    });
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 共享资料目录中的学期导入尚未收齐时保留旧缓存且不继续读取() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let root = test_root("schedule-import-shared-incomplete");
+    let transport = ImportTransport::default();
+    transport.two_terms.store(true, Ordering::SeqCst);
+    let (mut client, cache) = setup(&root, ConnectionMode::Direct, transport.clone());
+    let other = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    runtime.block_on(async {
+        let mut saved = client
+            .begin_schedule_import(&cache, "2025-2026-1")
+            .await
+            .unwrap();
+        for _ in 0..4 {
+            client.next_schedule_import(&mut saved).await.unwrap();
+        }
+        let scope = imported(ConnectionMode::Direct);
+        let mut old = client
+            .begin_schedule_import(&cache, "2025-2026-1")
+            .await
+            .unwrap();
+        client.next_schedule_import(&mut old).await.unwrap();
+        let _pending = client
+            .begin_schedule_import(&other, "2025-2026-1")
+            .await
+            .unwrap();
+        let mut different = client
+            .begin_schedule_import(&other, "2025-2026-2")
+            .await
+            .unwrap();
+        for _ in 0..4 {
+            client.next_schedule_import(&mut different).await.unwrap();
+        }
+        let stored = cache.read(&scope, 1).unwrap().unwrap();
+        let before = transport.requests.lock().unwrap().len();
+        let batch = client.next_schedule_import(&mut old).await.unwrap();
+        assert!(batch.data.finished);
+        assert_eq!(batch.data.save_error, Some(CacheError::Superseded));
+        assert_eq!(cache.read(&scope, 1).unwrap().unwrap(), stored);
+        assert_eq!(transport.requests.lock().unwrap().len(), before);
+    });
+    drop((client, cache, other));
+    std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
 fn 两路线逐元数据和单周返回_全部完成后才发布() {

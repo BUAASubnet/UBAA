@@ -488,6 +488,7 @@ enum BridgeCacheFailure {
   inactive,
   superseded,
   capacity,
+  busy,
 }
 
 /// 已保存的希冀待办摘要，筛选范围与取得时间均保留。

@@ -651,6 +651,34 @@ fn 博雅签到与签退资格区分允许拒绝和未知() {
 }
 
 #[test]
+fn 博雅签到资格按东八区当前时间判定而不随设备时区() {
+    // 上游时间是不带时区的北京时间；设备时区不是东八区或无法解析时也不能错开窗口。
+    let campus_now = crate::time::shanghai_datetime(std::time::SystemTime::now());
+    let at = |minutes: i64| {
+        (campus_now + chrono::Duration::minutes(minutes))
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string()
+    };
+    let config = serde_json::json!({
+        "signStartDate": at(-30),
+        "signEndDate": at(-20),
+        "signOutStartDate": at(-10),
+        "signOutEndDate": at(10),
+        "signPointList": [{"lat": 39.9, "lng": 116.3, "radius": 100.0}]
+    })
+    .to_string();
+    let body = serde_json::json!({"status": "0", "data": [{
+        "id": 9, "checkin": 5, "pass": 0,
+        "courseInfo": {"id": 42, "courseSignConfig": config}
+    }]});
+    let chosen = parse_chosen_courses(&body.to_string())
+        .expect("解析已选课程")
+        .remove(0);
+    assert_eq!(chosen.sign_out_eligibility, ActionEligibility::Allowed);
+    assert_eq!(chosen.sign_eligibility, ActionEligibility::Denied);
+}
+
+#[test]
 fn 博雅空状态与畸形状态分别处理() {
     let now = NaiveDateTime::parse_from_str("2026-11-16 10:00:00", "%Y-%m-%d %H:%M:%S")
         .expect("固定时间");

@@ -85,6 +85,7 @@ fn body_text(response: &HttpResponse) -> String {
     String::from_utf8_lossy(&response.body).into_owned()
 }
 
+#[track_caller]
 fn authentication_required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -94,6 +95,7 @@ fn authentication_required() -> UbaaError {
     )
 }
 
+#[track_caller]
 fn status_error(status: u16, message: impl Into<String>) -> UbaaError {
     if status >= 500 {
         UbaaError::new(

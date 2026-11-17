@@ -261,7 +261,9 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
               Card(
                 child: SwitchListTile(
                   title: const Text('首页提醒'),
-                  subtitle: Text(widget.reminderError ?? '在首页提醒本周阳光打卡'),
+                  subtitle: widget.reminderError == null
+                      ? null
+                      : Text(widget.reminderError!),
                   value: widget.reminderSettings?.enabled ?? false,
                   onChanged: widget.reminderSettings == null
                       ? null

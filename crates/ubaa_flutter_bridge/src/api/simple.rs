@@ -52,12 +52,14 @@ mod tests {
         assert!(stderr.contains("reason=\"timeout\""));
         assert!(stderr.contains("elapsed_ms=7"));
         assert!(stderr.contains("无法读取应用服务门控状态，本次学校请求继续"));
+        assert!(stderr.contains(r#"reason="cache_read_superseded""#));
         for forbidden in [
             "core-secret",
             "third-party-secret",
             "same-target-secret",
             "gate-detail-secret",
             "gate-wrong-level",
+            "cache-detail-secret",
             "ubaa::cgyy",
         ] {
             assert!(!stderr.contains(forbidden), "Bridge 日志泄露了 {forbidden}");
@@ -128,6 +130,17 @@ mod tests {
             reason = "timeout",
             elapsed_ms = 7_u64,
             "HTTP 传输失败"
+        );
+        tracing::warn!(
+            target: "ubaa::command::cache",
+            reason = "cache_read_superseded",
+            "缓存读取已被较新的请求替代"
+        );
+        tracing::warn!(
+            target: "ubaa::command::cache",
+            reason = "cache_read_superseded",
+            detail = "cache-detail-secret",
+            "带额外字段的缓存事件"
         );
         tracing::warn!(
             target: "ubaa::app_service::school_gate",

@@ -4,9 +4,11 @@ use crate::ports::{HttpFileRange, HttpMethod, HttpRequest, HttpResponse, HttpTra
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
+#[track_caller]
 fn local() -> UbaaError {
     UbaaError::invalid_input("本机传输文件不可读写或内容已变化")
 }
+#[track_caller]
 fn rejected() -> UbaaError {
     UbaaError::upstream_changed("对象传输未取得可接受的完整响应")
 }
@@ -122,7 +124,7 @@ impl ReqwestTransport {
                 file.write_all(block).await.map_err(|_| local())?;
                 written = written
                     .checked_add(block.len() as u64)
-                    .ok_or_else(rejected)?;
+                    .ok_or_else(|| rejected())?;
                 observer.advance(block.len() as u64);
             }
         }

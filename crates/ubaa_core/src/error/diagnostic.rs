@@ -259,4 +259,25 @@ mod contract_tests {
             4
         );
     }
+
+    #[test]
+    fn json字段类型错误保留解码位置并区分语法错误() {
+        #[derive(serde::Deserialize)]
+        struct Response {
+            #[allow(dead_code)]
+            count: u64,
+        }
+        for (body, reason) in [
+            ("{\n\"count\":\"PRIVATE\"}", "response_shape_invalid"),
+            ("{\n\"count\":", "json_invalid"),
+        ] {
+            let cause = serde_json::from_str::<Response>(body).err().unwrap();
+            let error = UbaaError::json_error(&cause, "读取失败", body.as_bytes());
+            let diagnostic = error.diagnostic();
+            assert_eq!(diagnostic.reason.as_deref(), Some(reason));
+            assert_eq!(diagnostic.json_line, Some(cause.line()));
+            assert_eq!(diagnostic.json_column, Some(cause.column()));
+            assert!(!diagnostic.to_json().unwrap().contains("PRIVATE"));
+        }
+    }
 }

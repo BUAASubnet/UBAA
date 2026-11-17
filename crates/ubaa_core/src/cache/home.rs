@@ -62,3 +62,28 @@ impl From<YgdkOverview> for CachedYgdkOverview {
         }
     }
 }
+
+impl CachedYgdkOverview {
+    pub(crate) fn trim_to_source_date(
+        &mut self,
+        fetched_at: i64,
+        now: i64,
+    ) -> super::CacheResult<()> {
+        use chrono::Datelike;
+        let offset = chrono::FixedOffset::east_opt(8 * 3600).expect("固定校园时区");
+        let day = |timestamp| {
+            chrono::DateTime::from_timestamp(timestamp, 0)
+                .map(|value| value.with_timezone(&offset).date_naive())
+                .ok_or(super::CacheError::InvalidInput)
+        };
+        let source = day(fetched_at)?;
+        let today = day(now)?;
+        if source != today {
+            self.summary.day_count = None;
+        }
+        if (source.year(), source.month()) != (today.year(), today.month()) {
+            self.summary.month_count = None;
+        }
+        Ok(())
+    }
+}
