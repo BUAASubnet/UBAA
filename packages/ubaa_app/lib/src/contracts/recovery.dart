@@ -25,6 +25,7 @@ enum RecoveryTarget {
   network,
   finance,
   ihome,
+  healthCloud,
   schedule,
   exam,
   grades,
@@ -47,6 +48,7 @@ enum RecoveryTarget {
     network ||
     finance ||
     ihome ||
+    healthCloud ||
     bhpan ||
     connection => null,
     _ => FeatureId.values.byName(name),

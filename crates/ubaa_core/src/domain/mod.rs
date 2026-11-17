@@ -15,6 +15,8 @@ mod route;
 pub use route::*;
 mod bykc;
 pub use bykc::*;
+mod health_cloud;
+pub use health_cloud::*;
 mod ihome;
 pub use ihome::*;
 mod libbook;

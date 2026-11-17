@@ -11,6 +11,7 @@ import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
     show TabPager, CompactNavigationBar, currentTabPager;
 import '../features/ihome/view.dart';
+import '../features/health_cloud/view.dart';
 import '../features/finance/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import '../shared/app_bar_slot.dart' show UiAppBarSlot;
 import '../shared/layout/page_transition.dart' show UiPageTransition;
 import '../shared/loading.dart' show UiBusyRegistry, UiBusyScope;
 import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
+import '../shared/layout/refresh_shortcuts.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/sync_status.dart'
@@ -102,6 +104,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveCgyyDefaults,
     this.onLoadAppVersion,
     this.ihomeService,
+    this.healthCloudRead,
     this.financeService,
     this.onOpenAppLink,
     this.onLoadAllGrades,
@@ -232,6 +235,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(CgyyReservationDefaults)? onSaveCgyyDefaults;
   final Future<String?> Function()? onLoadAppVersion;
   final IhomeService? ihomeService;
+  final ReadHealthCloud? healthCloudRead;
 
   /// 财务收入只读服务；为空时不显示入口。
   final FinanceService? financeService;
@@ -794,7 +798,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               ),
       ),
     );
-    return touchRefresh ? shell : withHomeRefreshShortcuts(shell, refreshPage);
+    return touchRefresh ? shell : withRefreshShortcuts(shell, refreshPage);
   }
 
   final _refreshes = <Object, Future<void>>{};

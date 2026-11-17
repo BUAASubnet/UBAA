@@ -56,8 +56,11 @@ pub use judge_scan::{
 };
 pub(super) use offline::begin_refresh;
 pub use offline::{CachedRefresh, OfflineCache, OfflineReadError, OfflineRefresh};
+#[path = "read/health_cloud.rs"]
+mod health_cloud;
 #[path = "read/ihome.rs"]
 mod ihome;
+pub use crate::domain::{HealthCloudEvent, HealthCloudPage, HealthCloudReport, HealthCloudYear};
 mod interactive_auth;
 mod read;
 pub use crate::domain::{

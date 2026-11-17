@@ -30,3 +30,4 @@ flutter:
   assets:
     - assets/libbook_maps/
     - assets/icons/
+    - assets/health_cloud/

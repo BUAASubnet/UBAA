@@ -3,6 +3,7 @@ import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
 import 'ihome/service.dart';
+import 'health_cloud.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
 import 'bhpan/service.dart';
@@ -83,7 +84,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 73;
+const _supportedBridgeContractVersion = 74;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -98,6 +99,7 @@ class BridgeBackend
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,
+        HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,
         BhpanProvider,
@@ -406,6 +408,11 @@ class BridgeBackend
 
   @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
+
+  @override
+  ReadHealthCloud? get healthCloud => client.contractVersion() < 74
+      ? null
+      : (year) => bridgeHealthCloudPage(_context.client, year);
   @override
   late final BhpanService bhpan = BridgeBhpanService(_context);
 

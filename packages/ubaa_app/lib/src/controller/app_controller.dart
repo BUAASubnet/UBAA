@@ -13,6 +13,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
+import 'package:ubaa_app/src/contracts/recovery.dart' show RecoveryTarget;
 import 'cache/home.dart' show ControllerOfflineCache;
 import 'cache/management.dart' show ControllerCacheManagement;
 import 'features/academic/terms.dart' show ControllerAcademicTerms;
@@ -175,6 +176,29 @@ class AppController extends ControllerState
   }
 
   IhomeService? _ihomeService;
+
+  ReadHealthCloud? get healthCloudRead {
+    final backend = internalBackend;
+    if (backend is! HealthCloudBackend) return null;
+    final read = (backend as HealthCloudBackend).healthCloud;
+    if (read == null) return null;
+    final session = internalCaptureSessionScope();
+    return (year) => internalReadService(
+      RecoveryTarget.healthCloud,
+      DiagnosticOperation.healthCloudRead,
+      () {
+        if (!session.isCurrent) {
+          throw const UiError(
+            code: UbaaErrorCode.operationConflict,
+            title: '登录状态已变化',
+            message: '请重新打开健康云',
+          );
+        }
+        return read(year);
+      },
+    );
+  }
+
   UbaaBackend? _ihomeBackend;
   int? _ihomeEpoch;
   IhomeService? get ihomeService {

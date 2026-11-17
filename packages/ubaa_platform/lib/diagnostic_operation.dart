@@ -35,6 +35,7 @@ enum DiagnosticOperation {
   ihomeNotices('ihome'),
   ihomeNotice('ihome'),
   ihomeReaction('ihome'),
+  healthCloudRead,
   portalIdentity('portal'),
   portalMetrics('portal'),
   networkUsage('network'),

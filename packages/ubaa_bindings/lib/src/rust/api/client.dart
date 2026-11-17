@@ -13,6 +13,7 @@ import 'campus.dart';
 import 'cloud_print.dart';
 import 'command.dart';
 import 'finance.dart';
+import 'health_cloud.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -640,6 +641,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedGrades> grades({required String term});
 
   Future<BridgeRoutedGradeOverview> gradesOverview();
+
+  /// 读取某个年份或网站当前的体测页面。
+  ///
+  /// # Errors
+  /// 会话未就绪或站点读取失败。
+  Future<BridgeHealthCloudPage> healthCloudPage({String? year});
 
   /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
   ///

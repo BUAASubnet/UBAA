@@ -101,6 +101,11 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 connecting: widget.connecting,
                 service: widget.ihomeService,
               )
+            : _utilityPage == healthCloudTitle
+            ? HealthCloudView(
+                key: ValueKey(_pageContentScope),
+                read: widget.healthCloudRead,
+              )
             : _utilityPage == '财务查询'
             ? FinanceView(
                 key: ValueKey(_pageContentScope),
@@ -237,6 +242,10 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           : null,
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
+          : null,
+      onOpenHealthCloud:
+          index == UiDestination.campus.index && widget.healthCloudRead != null
+          ? () => _openUtility(healthCloudTitle)
           : null,
       onOpenFinance:
           index == UiDestination.campus.index && widget.financeService != null

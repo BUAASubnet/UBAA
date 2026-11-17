@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:flutter/material.dart';
 import '../../shared/feedback.dart';
@@ -163,23 +161,6 @@ YgdkReminderSettings effectiveYgdkReminder(
 ) => settings.copyWith(
   enabled: settings.manualEnabled ?? (settings.enabled && hasPe),
 );
-
-Widget withHomeRefreshShortcuts(
-  Widget shell,
-  Future<void> Function()? refreshPage,
-) {
-  // 桌面快捷键的父层级保持稳定，切页时只调整可用的绑定。
-  void refresh() => unawaited(refreshPage?.call());
-  return CallbackShortcuts(
-    bindings: {
-      if (refreshPage != null)
-        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
-      if (refreshPage != null)
-        const SingleActivator(LogicalKeyboardKey.keyR, control: true): refresh,
-    },
-    child: Focus(autofocus: true, child: shell),
-  );
-}
 
 ButtonStyle homeRailButtonStyle(ColorScheme colors) =>
     IconButton.styleFrom(minimumSize: const Size(56, 48)).copyWith(
