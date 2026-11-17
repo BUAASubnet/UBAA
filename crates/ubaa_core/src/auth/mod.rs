@@ -355,6 +355,7 @@ fn strip_query(url: &str) -> Result<String> {
     Ok(parsed.to_string())
 }
 
+#[track_caller]
 fn upstream_changed(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
@@ -364,6 +365,7 @@ fn upstream_changed(message: impl Into<String>) -> UbaaError {
     )
 }
 
+#[track_caller]
 fn status_error(status: u16, message: impl Into<String>) -> UbaaError {
     if status >= 500 {
         UbaaError::new(

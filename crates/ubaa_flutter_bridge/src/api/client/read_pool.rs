@@ -101,7 +101,7 @@ impl ClientPool {
         let barrier = self.barrier.read().await;
         let mut client = slot.client.lock().await;
         let mut primary = self.primary.lock().await;
-        let parent = primary.as_mut().ok_or_else(disposed_error)?;
+        let parent = primary.as_mut().ok_or_else(|| disposed_error())?;
         let current = match client.as_mut() {
             Some(worker) => worker
                 .synchronize_parallel_readonly(parent)

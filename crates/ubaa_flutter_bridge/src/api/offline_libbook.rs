@@ -103,7 +103,7 @@ impl BridgeClient {
     ) -> Result<core::LibBookRefresh, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             client
                 .refresh_cached_libbook(&cache.cache, query)

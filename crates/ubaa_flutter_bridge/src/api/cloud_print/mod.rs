@@ -82,7 +82,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let rows = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_documents(scans)
                 .await
                 .map_err(BridgeError::from_routed)?;
@@ -108,7 +108,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             g.as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_preview(&id, page)
                 .await
                 .map(|routed| routed.data)
@@ -121,7 +121,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             g.as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_scan(&id)
                 .await
                 .map(|routed| routed.data)
@@ -134,7 +134,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             g.as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_scan_pdf(ids)
                 .await
                 .map(|routed| routed.data)
@@ -152,7 +152,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let results = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_delete(scans, ids)
                 .await
                 .map_err(BridgeError::from_routed)?;
@@ -211,7 +211,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let results = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_upload(files, options)
                 .await
                 .map_err(BridgeError::from_routed)?;
@@ -234,7 +234,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let rows = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_stations()
                 .await
                 .map_err(BridgeError::from_routed)?;
@@ -269,7 +269,7 @@ impl BridgeClient {
             };
             let result = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .cloud_print_records(&begin, &end, kind, page)
                 .await
                 .map_err(BridgeError::from_routed)?;

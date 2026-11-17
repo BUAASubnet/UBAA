@@ -106,7 +106,7 @@ impl BridgeClient {
                 core::HomeQuery::YgdkOverview => crate::api::read_pool::ReadGroup::Ygdk,
             };
             let mut guard = self.inner.read(Some(group)).await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             client
                 .refresh_cached_home(&cache.cache, query)

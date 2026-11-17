@@ -292,6 +292,7 @@ async fn get_html(
     unreachable!("有界希冀重试循环必定返回")
 }
 
+#[track_caller]
 fn invalid_url() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamChanged,

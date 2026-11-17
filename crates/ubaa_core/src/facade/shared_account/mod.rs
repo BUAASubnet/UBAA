@@ -67,7 +67,8 @@ impl SharedAccountGuard {
     }
     pub(crate) fn acquire(&self) -> Result<SharedAccountPermit> {
         if self.revoked.load(Ordering::SeqCst) {
-            return Err(UbaaError::shared_account_conflict());
+            return Err(UbaaError::shared_account_conflict()
+                .with_diagnostic("shared_account", "shared_authority_revoked"));
         }
         match self.acquire_inner(Duration::from_secs(5)) {
             Ok(permit) => Ok(permit),
@@ -79,7 +80,8 @@ impl SharedAccountGuard {
     }
     pub(crate) fn try_acquire_for_telemetry(&self) -> Result<SharedAccountPermit> {
         if self.revoked.load(Ordering::SeqCst) {
-            return Err(UbaaError::shared_account_conflict());
+            return Err(UbaaError::shared_account_conflict()
+                .with_diagnostic("shared_account", "shared_authority_revoked"));
         }
         self.acquire_inner(Duration::ZERO)
     }
@@ -102,14 +104,18 @@ impl SharedAccountGuard {
             std::thread::sleep(Duration::from_millis(10));
         }
         let permit = SharedAccountPermit(file);
-        if read_small(&root.join("transaction.v1"))? != "UBAA1:C"
-            || read_small(&root.join("account-generation.v1"))? != self.expected.as_ref()
-        {
-            return Err(UbaaError::shared_account_conflict());
+        if read_small(&root.join("transaction.v1"))? != "UBAA1:C" {
+            return Err(UbaaError::shared_account_conflict()
+                .with_diagnostic("shared_account", "shared_transaction_incomplete"));
+        }
+        if read_small(&root.join("account-generation.v1"))? != self.expected.as_ref() {
+            return Err(UbaaError::shared_account_conflict()
+                .with_diagnostic("shared_account", "shared_generation_changed"));
         }
         Ok(permit)
     }
 }
+#[track_caller]
 fn conflict(_: impl std::fmt::Debug) -> UbaaError {
     UbaaError::shared_account_conflict()
 }

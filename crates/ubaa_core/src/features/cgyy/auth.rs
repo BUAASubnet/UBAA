@@ -201,6 +201,7 @@ fn parse_cookie_snapshot(body: &str, name: &str) -> Option<String> {
     })
 }
 
+#[track_caller]
 fn authentication_error(message: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,

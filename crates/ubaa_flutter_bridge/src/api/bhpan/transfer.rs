@@ -24,7 +24,7 @@ impl BridgeClient {
             }
             let p = guard
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_prepare_upload(
                     &parent,
                     std::path::PathBuf::from(path),
@@ -62,7 +62,7 @@ impl BridgeClient {
             }
             let receipt = guard
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_download(
                     &handles,
                     &name,

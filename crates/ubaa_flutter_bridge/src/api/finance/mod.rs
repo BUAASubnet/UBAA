@@ -70,7 +70,7 @@ impl BridgeClient {
     pub async fn finance_incomes(&self) -> Result<BridgeFinanceResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .finance_incomes()
                 .await
@@ -88,7 +88,7 @@ impl BridgeClient {
     ) -> Result<BridgeFinanceRefresh, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let value = client
                 .refresh_cached_finance(&cache.cache)

@@ -191,7 +191,7 @@ impl BridgeClient {
     pub async fn portal_profile(&self) -> Result<BridgePortalProfileResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .portal_profile()
                 .await
@@ -208,7 +208,7 @@ impl BridgeClient {
     pub async fn campus_metrics(&self) -> Result<BridgeCampusMetricsResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .campus_metrics()
                 .await
@@ -225,7 +225,7 @@ impl BridgeClient {
     pub async fn network_usage(&self) -> Result<BridgeNetworkUsageResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .network_usage()
                 .await
@@ -436,7 +436,7 @@ impl BridgeClient {
     ) -> Result<BridgeCampusRefresh, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let value = client
                 .refresh_cached_campus(&cache.cache, query.into())

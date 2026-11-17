@@ -73,7 +73,7 @@ impl BridgeClient {
             let operation = pending.operation();
             let impact = pending.cache_impact();
             let expected_route = entry.resolved_route;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let observation = client.observe_write_boundary();
             panic_scope = Some((observation, impact.clone(), expected_route));
             // 所有提交都在 Core 一次解析中绑定确认路线、fresh authority 和最终发送。
@@ -161,7 +161,7 @@ pub(super) fn finish_commit_success(
         return Err(BridgeError {
             auth_stage: None,
             auth_reason: None,
-            diagnostic_json: None,
+            diagnostic_json: crate::api::client::local_diagnostic("local", "local_rejected"),
             cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
@@ -174,7 +174,7 @@ pub(super) fn finish_commit_success(
         return Err(BridgeError {
             auth_stage: None,
             auth_reason: None,
-            diagnostic_json: None,
+            diagnostic_json: crate::api::client::local_diagnostic("local", "local_rejected"),
             cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,

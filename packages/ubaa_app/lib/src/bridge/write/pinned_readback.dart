@@ -59,7 +59,7 @@ Future<FeatureResult> bridgePinnedWriteReadback(
       default:
         throw const BackendException(UbaaErrorCode.invalidInput);
     }
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }

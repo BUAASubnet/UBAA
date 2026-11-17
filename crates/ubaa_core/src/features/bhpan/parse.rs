@@ -99,13 +99,13 @@ pub(crate) fn size(bytes: &[u8]) -> Result<BhpanSize> {
         bytes: s.totalsize,
     })
 }
-pub(crate) fn field(bytes: &[u8], name: &str) -> Result<String> {
+pub(crate) fn field(bytes: &[u8], name: &'static str) -> Result<String> {
     let object: serde_json::Value = json(bytes)?;
     let value = object
         .get(name)
         .and_then(serde_json::Value::as_str)
-        .ok_or_else(|| invalid())?;
-    nonempty(value)?;
+        .ok_or_else(|| invalid().with_json_field(name, "text", object.get(name)))?;
+    nonempty(value).map_err(|error| error.with_json_field(name, "text", object.get(name)))?;
     Ok(value.into())
 }
 fn nonempty(value: &str) -> Result<()> {

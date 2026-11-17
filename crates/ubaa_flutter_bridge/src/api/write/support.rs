@@ -819,6 +819,7 @@ fn text_shape(value: Option<&str>) -> String {
         |text| format!("present:{}", text.len()),
     )
 }
+#[track_caller]
 pub(super) fn invalid_input(message: &str) -> BridgeError {
     BridgeError::local(
         BridgeErrorCode::InvalidInput,

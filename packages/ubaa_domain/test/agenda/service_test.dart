@@ -3,6 +3,28 @@ import 'package:test/test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('日程失败报告原始异常且过期账号不产生记录', () async {
+    for (final stale in [false, true]) {
+      final backend = _Backend();
+      final failures = <Object>[];
+      final service = AgendaService(backend)
+        ..onFailure = (error, stack) {
+          expect(stack.toString(), isNotEmpty);
+          failures.add(error);
+        };
+      await service.openAccount('known-alias');
+      final pending = service.unsyncedCount();
+      final result = expectLater(pending, throwsA(isA<AgendaException>()));
+      await backend.started.future;
+      if (stale) await service.close();
+      const error = AgendaException(AgendaFailure.corrupt);
+      backend.result.completeError(error, StackTrace.current);
+      await result;
+      expect(failures, stale ? isEmpty : [same(error)]);
+      await service.dispose();
+    }
+  });
+
   test('退出立即撤销访问并拒绝迟到查询，重新登录沿用账号', () async {
     final backend = _Backend();
     final service = AgendaService(backend);

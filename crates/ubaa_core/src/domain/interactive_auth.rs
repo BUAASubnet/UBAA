@@ -195,6 +195,7 @@ pub struct CaptchaAnswer {
     pub answer: SecretValue,
 }
 
+#[track_caller]
 pub(crate) fn invalid_interaction() -> UbaaError {
     UbaaError::new(
         ErrorCode::InvalidInput,

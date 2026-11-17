@@ -82,7 +82,21 @@ impl fmt::Display for BridgeError {
 
 impl std::error::Error for BridgeError {}
 
+/// 本地拒绝的固定原因和真实调用位置，不读取展示文案。
+#[track_caller]
+pub(crate) fn local_diagnostic(stage: &'static str, reason: &'static str) -> Option<String> {
+    let at = std::panic::Location::caller();
+    ubaa_core::facade::ErrorDiagnostic {
+        source: format!("{}:{}", at.file().replace('\\', "/"), at.line()),
+        stage: Some(stage.into()),
+        reason: Some(reason.into()),
+        ..Default::default()
+    }
+    .to_json()
+}
+
 impl BridgeError {
+    #[track_caller]
     pub(crate) fn local(
         code: BridgeErrorCode,
         kind: BridgeErrorKind,
@@ -98,8 +112,36 @@ impl BridgeError {
             cache_failure: None,
             auth_stage: None,
             auth_reason: None,
-            diagnostic_json: None,
+            diagnostic_json: local_diagnostic(
+                "local",
+                match code {
+                    BridgeErrorCode::OperationConflict => "operation_conflict",
+                    BridgeErrorCode::ClientDisposed => "client_closed",
+                    BridgeErrorCode::CacheIdentityMismatch => "account_mismatch",
+                    BridgeErrorCode::InvalidInput => "invalid_input",
+                    BridgeErrorCode::AuthenticationRequired => "session_required",
+                    BridgeErrorCode::CaptchaRequired => "captcha_required",
+                    BridgeErrorCode::ConfirmationRequired => "confirmation_required",
+                    BridgeErrorCode::IntentExpired => "intent_expired",
+                    BridgeErrorCode::Unsupported => "unsupported_operation",
+                    BridgeErrorCode::OutcomeUnknown => "outcome_unknown",
+                    _ => "local_rejected",
+                },
+            ),
         }
+    }
+
+    pub(crate) fn with_diagnostic(mut self, stage: &'static str, reason: &'static str) -> Self {
+        if let Some(mut diagnostic) = self
+            .diagnostic_json
+            .as_deref()
+            .and_then(ubaa_core::facade::ErrorDiagnostic::from_json)
+        {
+            diagnostic.stage = Some(stage.into());
+            diagnostic.reason = Some(reason.into());
+            self.diagnostic_json = diagnostic.to_json();
+        }
+        self
     }
 
     pub(crate) fn from_core(
@@ -369,7 +411,7 @@ impl BridgeClient {
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             Ok(map_preparation(client.prepare_login().await))
         })
         .await
@@ -397,7 +439,7 @@ impl BridgeClient {
         }
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let input = ubaa_core::facade::DualLoginInput {
                 username: username.trim().to_owned(),
                 password: ubaa_core::facade::SecretValue::new(password),
@@ -424,7 +466,7 @@ impl BridgeClient {
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let result = client
                 .auth_status()
                 .await
@@ -446,7 +488,7 @@ impl BridgeClient {
     pub async fn user_info(&self) -> Result<BridgeRoutedUserProfile, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .get_user_info()
                 .await
@@ -469,7 +511,7 @@ impl BridgeClient {
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let result = client
                 .logout()
                 .await
@@ -488,7 +530,7 @@ impl BridgeClient {
     pub async fn route_settings(&self) -> Result<BridgeRouteSettings, BridgeError> {
         catch_panic(async {
             let guard = self.inner.lock().await;
-            let client = guard.as_ref().ok_or_else(disposed_error)?;
+            let client = guard.as_ref().ok_or_else(|| disposed_error())?;
             Ok(BridgeRouteSettings {
                 default_policy: client.default_route_policy().into(),
                 active_routes: client.active_routes().into_iter().map(Into::into).collect(),
@@ -514,7 +556,7 @@ impl BridgeClient {
             if self.is_disposed.load(Ordering::SeqCst) {
                 return Err(disposed_error());
             }
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .set_default_route_policy(policy.into())
                 .map_err(|error| BridgeError::from_core(error, None))?;
@@ -529,7 +571,7 @@ impl BridgeClient {
                 reopened.interactive_login_cancellation();
             *guard = Some(reopened);
             self.write_intents.lock().await.clear();
-            let client = guard.as_ref().ok_or_else(disposed_error)?;
+            let client = guard.as_ref().ok_or_else(|| disposed_error())?;
             Ok(BridgeRouteSettings {
                 default_policy: client.default_route_policy().into(),
                 active_routes: client.active_routes().into_iter().map(Into::into).collect(),
@@ -550,6 +592,7 @@ where
         .unwrap_or_else(|_| Err(panic_error()))
 }
 
+#[track_caller]
 pub(crate) fn panic_error() -> BridgeError {
     BridgeError::local(
         BridgeErrorCode::InternalError,
@@ -559,6 +602,7 @@ pub(crate) fn panic_error() -> BridgeError {
     )
 }
 
+#[track_caller]
 pub(crate) fn disposed_error() -> BridgeError {
     BridgeError::local(
         BridgeErrorCode::ClientDisposed,
@@ -691,6 +735,31 @@ impl From<NetworkState> for BridgeNetworkState {
 #[cfg(test)]
 mod tests {
     use super::{BridgeClient, BridgeError, BridgeErrorCode, catch_panic};
+
+    #[test]
+    fn 本地错误保留实际拒绝位置且不带异常正文() {
+        let error = BridgeError::local(
+            BridgeErrorCode::OperationConflict,
+            super::BridgeErrorKind::Input,
+            true,
+            "PRIVATE",
+        );
+        let other = BridgeError::local(
+            BridgeErrorCode::OperationConflict,
+            super::BridgeErrorKind::Input,
+            true,
+            "PRIVATE",
+        );
+        let first =
+            ubaa_core::facade::ErrorDiagnostic::from_json(error.diagnostic_json.as_ref().unwrap())
+                .unwrap();
+        let second =
+            ubaa_core::facade::ErrorDiagnostic::from_json(other.diagnostic_json.as_ref().unwrap())
+                .unwrap();
+        assert!(first.source.starts_with(file!()));
+        assert_ne!(first.source, second.source);
+        assert!(!error.diagnostic_json.unwrap().contains("PRIVATE"));
+    }
 
     #[tokio::test]
     async fn panic_is_reduced_to_a_stable_internal_error_without_payload() {

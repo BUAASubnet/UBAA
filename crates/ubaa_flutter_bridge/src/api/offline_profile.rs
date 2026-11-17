@@ -73,7 +73,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(super::read_pool::ReadGroup::Profile))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let value = client
                 .refresh_cached_profile(&cache.cache)

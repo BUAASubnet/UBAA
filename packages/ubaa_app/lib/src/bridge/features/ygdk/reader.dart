@@ -38,8 +38,8 @@ Future<FeatureResult> bridgeLoadYgdkOverviewOnRoute(
       result.data,
       bridgeToConnectionMode(result.pinnedRoute),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -62,8 +62,8 @@ Future<FeatureResult> bridgeLoadYgdkRecordsOnRoute(
       result.data,
       bridgeToConnectionMode(result.pinnedRoute),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 

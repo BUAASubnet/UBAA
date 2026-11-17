@@ -39,6 +39,7 @@ pub(super) fn authority_error() -> UbaaError {
         .with_diagnostic("preflight", "authority_check_failed")
 }
 
+#[track_caller]
 pub(super) fn invalid_input(message: &'static str) -> UbaaError {
     UbaaError::invalid_input(message)
 }

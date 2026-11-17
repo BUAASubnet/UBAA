@@ -368,7 +368,7 @@ class WriteCoordinator extends ChangeNotifier {
         feature: writeOperation?.feature,
         writeOperation: writeOperation,
         relatedIssueId: relatedIssueId,
-        cause: exception,
+        cause: exception is BackendException ? error : exception,
         stackTrace: stackTrace,
       );
     } on Object {

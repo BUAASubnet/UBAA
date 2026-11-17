@@ -128,7 +128,7 @@ impl BridgeClient {
         if self.is_disposed.load(Ordering::SeqCst) {
             return Err(disposed_error().into());
         }
-        let client = guard.as_ref().ok_or_else(disposed_error)?;
+        let client = guard.as_ref().ok_or_else(|| disposed_error())?;
         Ok(BridgeAgendaSyncScope {
             inner: client.agenda_sync_scope()?,
         })
@@ -183,7 +183,7 @@ impl BridgeClient {
         if self.is_disposed.load(Ordering::SeqCst) {
             return Err(disposed_error().into());
         }
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
+        let client = guard.as_mut().ok_or_else(|| disposed_error())?;
         if action == BridgeAgendaSyncAction::CreateConfirmed && scope.is_none() {
             return Err(core::AgendaSyncError::Local(core::CacheError::Superseded).into());
         }

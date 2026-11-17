@@ -157,7 +157,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Ygdk))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             client
                 .refresh_cached_ygdk_records(&cache.cache, page, size)
@@ -184,7 +184,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Ygdk))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             client
                 .refresh_cached_ygdk_records_for_overview(

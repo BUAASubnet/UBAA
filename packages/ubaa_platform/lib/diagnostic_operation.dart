@@ -38,7 +38,8 @@ enum DiagnosticOperation {
   portalIdentity('portal'),
   portalMetrics('portal'),
   networkUsage('network'),
-  financeRefresh('finance');
+  financeRefresh('finance'),
+  agenda('agenda');
 
   const DiagnosticOperation([this.serviceFeature]);
   final String? serviceFeature;

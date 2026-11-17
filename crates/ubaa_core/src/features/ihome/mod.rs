@@ -12,6 +12,7 @@ use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
 use parser::invalid;
 const BASE: &str = "https://i.buaa.edu.cn/api";
+#[track_caller]
 fn input_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::InvalidInput,

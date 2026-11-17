@@ -61,7 +61,11 @@ async fn post(
         runtime.request(request).await?
     };
     check(&response)?;
-    serde_json::from_slice(&response.body).map_err(|_| invalid("JSON语法"))
+    serde_json::from_slice(&response.body).map_err(|cause| {
+        invalid("JSON语法")
+            .with_json_error(&cause, &response.body)
+            .with_http_status(response.status)
+    })
 }
 
 fn check(response: &HttpResponse) -> Result<()> {
@@ -85,6 +89,7 @@ fn check(response: &HttpResponse) -> Result<()> {
     })
 }
 
+#[track_caller]
 fn invalid(field: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::ParseError,
@@ -102,11 +107,13 @@ fn text(row: &Value, key: &str) -> Option<String> {
     }
 }
 
-fn required(row: &Value, key: &str) -> Result<String> {
-    text(row, key).ok_or_else(|| invalid(key))
+fn required(row: &Value, key: &'static str) -> Result<String> {
+    text(row, key).ok_or_else(|| invalid(key).with_json_field(key, "text", row.get(key)))
 }
-fn integer(row: &Value, key: &str) -> Result<i32> {
-    required(row, key)?.parse().map_err(|_| invalid(key))
+fn integer(row: &Value, key: &'static str) -> Result<i32> {
+    required(row, key)?
+        .parse()
+        .map_err(|_| invalid(key).with_json_field(key, "integer", row.get(key)))
 }
 fn number(row: &Value, key: &str) -> Option<f64> {
     text(row, key)?
@@ -114,10 +121,10 @@ fn number(row: &Value, key: &str) -> Option<f64> {
         .ok()
         .filter(|n| n.is_finite())
 }
-fn array<'a>(row: &'a Value, key: &str) -> Result<&'a Vec<Value>> {
+fn array<'a>(row: &'a Value, key: &'static str) -> Result<&'a Vec<Value>> {
     row.get(key)
         .and_then(Value::as_array)
-        .ok_or_else(|| invalid(key))
+        .ok_or_else(|| invalid(key).with_json_field(key, "array", row.get(key)))
 }
 fn table<'a>(root: &'a Value, name: &str) -> Result<&'a Value> {
     if text(root, "code").as_deref() != Some("0") {
@@ -127,4 +134,23 @@ fn table<'a>(root: &'a Value, name: &str) -> Result<&'a Value> {
         .and_then(|v| v.get(name))
         .filter(|v| v.is_object())
         .ok_or_else(|| invalid("datas"))
+}
+
+#[cfg(test)]
+mod diagnostic_field_tests {
+    use super::*;
+    #[test]
+    fn 字段诊断区分缺失和类型而不保存字段值() {
+        let missing = required(&serde_json::json!({}), "XNXQDM").unwrap_err();
+        let wrong = array(&serde_json::json!({"rows":"PRIVATE"}), "rows").unwrap_err();
+        assert_eq!(
+            missing.diagnostic().reason.as_deref(),
+            Some("xnxqdm_expected_text_got_missing")
+        );
+        assert_eq!(
+            wrong.diagnostic().reason.as_deref(),
+            Some("rows_expected_array_got_string")
+        );
+        assert!(!wrong.diagnostic().to_json().unwrap().contains("PRIVATE"));
+    }
 }

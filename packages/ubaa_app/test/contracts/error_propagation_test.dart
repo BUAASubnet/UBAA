@@ -5,6 +5,18 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('Bridge 错误映射保留原始异步调用位置', () async {
+    final backend = BridgeBackend(
+      _WriteFailureClient(BridgeErrorCode.upstreamChanged, 'missing_data'),
+    );
+    try {
+      await backend.commitWrite('fixture');
+      fail('应返回业务失败');
+    } on BackendException catch (_, stack) {
+      expect(stack.toString(), contains('_WriteFailureClient.commitWrite'));
+    }
+  });
+
   test('写入错误经过缓存包装后仍保留路线和诊断原因', () async {
     for (final (code, reason) in [
       (BridgeErrorCode.upstreamChanged, 'missing_data'),

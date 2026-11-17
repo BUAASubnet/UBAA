@@ -55,6 +55,7 @@ pub(crate) fn parse_image_captcha(html: &str) -> Result<Option<ImageCaptchaPage>
     }))
 }
 
+#[track_caller]
 fn unsupported() -> crate::error::UbaaError {
     super::upstream_changed("SSO 登录页要求未支持的验证步骤")
 }

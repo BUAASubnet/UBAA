@@ -67,6 +67,7 @@ pub(crate) struct FileSnapshot {
     pub md5: String,
     pub crc32: String,
 }
+#[track_caller]
 fn local() -> UbaaError {
     UbaaError::invalid_input("本机文件不可读或选择后已变化，请重新选择")
 }

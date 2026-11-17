@@ -359,6 +359,7 @@ fn course_concurrency(mode: crate::domain::ConnectionMode) -> usize {
     }
 }
 
+#[track_caller]
 fn worker_error() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::InternalError,
@@ -368,6 +369,7 @@ fn worker_error() -> crate::error::UbaaError {
     )
 }
 
+#[track_caller]
 fn judge_business_authentication_error() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamUnavailable,
@@ -419,6 +421,7 @@ fn webvpn_cookie_path_targets_judge(path: &str) -> bool {
         .is_some_and(|host| host == "judge.buaa.edu.cn" || host.ends_with(".judge.buaa.edu.cn"))
 }
 
+#[track_caller]
 fn not_found() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamChanged,

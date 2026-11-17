@@ -83,8 +83,8 @@ RequiredRecoveryOperation _start(
         route: bridgeToConnectionMode(value.route),
         profile: profile,
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }();
   return _BridgeOperation(result, control);

@@ -395,7 +395,7 @@ fn parse_chosen_courses_at_for_purpose(
         .collect()
 }
 
-fn ensure_optional_i32(map: &Map<String, Value>, key: &str) -> Result<()> {
+fn ensure_optional_i32(map: &Map<String, Value>, key: &'static str) -> Result<()> {
     let Some(value) = map.get(key) else {
         return Ok(());
     };
@@ -407,7 +407,7 @@ fn ensure_optional_i32(map: &Map<String, Value>, key: &str) -> Result<()> {
     {
         return Ok(());
     }
-    Err(error("博雅写前资格字段类型无效"))
+    Err(error("博雅写前资格字段类型无效").with_json_field(key, "integer", Some(value)))
 }
 
 pub(super) fn normalized_string(map: &Map<String, Value>, key: &str) -> Option<String> {

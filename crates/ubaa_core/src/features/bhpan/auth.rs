@@ -138,6 +138,7 @@ pub(crate) fn checked(raw: &str) -> Result<Url> {
     };
     if valid { Ok(u) } else { Err(parse::invalid()) }
 }
+#[track_caller]
 pub(crate) fn unavailable() -> UbaaError {
     UbaaError::bhpan_route_unverified()
 }

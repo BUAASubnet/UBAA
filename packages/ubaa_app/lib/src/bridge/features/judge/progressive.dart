@@ -77,10 +77,11 @@ Future<FeatureReadTask?> bridgeBeginJudgeRead(
         persistent: true,
       ),
     );
-  } on BridgeError catch (error) {
+  } on BridgeError catch (error, stack) {
     bridgeCheckOfflineGeneration(backend, generation);
     final failure = bridgeMapError(error);
-    if (!bridgeCanReadJudgeWithoutStorage(failure)) throw failure;
+    if (!bridgeCanReadJudgeWithoutStorage(failure))
+      Error.throwWithStackTrace(failure, stack);
     return _JudgeFallbackTask(
       backend,
       account,
@@ -217,8 +218,8 @@ final class _JudgeFeatureTask implements FeatureReadTask {
               resolvedRoute: route,
             );
       return FeatureReadBatch(result, finished: progress.batch.finished);
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 

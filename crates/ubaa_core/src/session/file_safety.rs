@@ -135,6 +135,7 @@ pub(super) fn unix_seconds(time: SystemTime) -> Result<i64> {
         .map_err(|_| session_error("system clock is before Unix epoch"))
 }
 
+#[track_caller]
 pub(super) fn session_error(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
         ErrorCode::InternalError,

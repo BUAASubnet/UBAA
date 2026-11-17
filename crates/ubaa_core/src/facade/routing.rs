@@ -196,7 +196,7 @@ impl UbaaClient {
                 .await?
                 .user
                 .school_id
-                .ok_or_else(authentication_required)?,
+                .ok_or_else(|| authentication_required())?,
         };
         let actual = self.auth_status_route(ConnectionMode::WebVpn).await?;
         if actual.user.school_id.as_deref() != Some(expected.as_str()) {
@@ -501,6 +501,7 @@ fn should_clear_invalidated_route<T>(result: &Result<T>) -> bool {
         .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
 }
 
+#[track_caller]
 fn authentication_required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -510,6 +511,7 @@ fn authentication_required() -> UbaaError {
     )
 }
 
+#[track_caller]
 pub(super) fn invalid_input(message: impl Into<String>) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }

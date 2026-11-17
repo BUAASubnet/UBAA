@@ -104,7 +104,7 @@ Future<ProfileRefresh> bridgeRefreshProfile(
         savedForOffline: saved,
       ),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }

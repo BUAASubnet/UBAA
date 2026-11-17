@@ -180,27 +180,34 @@ pub(super) fn build_submit_body(pjjglist: &[Value]) -> Result<Vec<u8>> {
     .map_err(|_| upstream_error("评教提交正文无法编码"))
 }
 
-fn required_object<'a>(map: &'a Map<String, Value>, key: &str) -> Result<&'a Map<String, Value>> {
-    map.get(key)
-        .and_then(Value::as_object)
-        .ok_or_else(|| upstream_error("评教问卷结构无效"))
+fn required_object<'a>(
+    map: &'a Map<String, Value>,
+    key: &'static str,
+) -> Result<&'a Map<String, Value>> {
+    map.get(key).and_then(Value::as_object).ok_or_else(|| {
+        upstream_error("评教问卷结构无效").with_json_field(key, "object", map.get(key))
+    })
 }
 
-fn required_array<'a>(map: &'a Map<String, Value>, key: &str) -> Result<&'a [Value]> {
+fn required_array<'a>(map: &'a Map<String, Value>, key: &'static str) -> Result<&'a [Value]> {
     map.get(key)
         .and_then(Value::as_array)
         .map(Vec::as_slice)
-        .ok_or_else(|| upstream_error("评教问卷数组结构无效"))
+        .ok_or_else(|| {
+            upstream_error("评教问卷数组结构无效").with_json_field(key, "array", map.get(key))
+        })
 }
 
-fn required_text<'a>(map: &'a Map<String, Value>, key: &str) -> Result<&'a str> {
+fn required_text<'a>(map: &'a Map<String, Value>, key: &'static str) -> Result<&'a str> {
     map.get(key)
         .and_then(Value::as_str)
         .filter(|value| !value.is_empty() && *value == value.trim())
-        .ok_or_else(|| upstream_error("评教问卷标识无效"))
+        .ok_or_else(|| {
+            upstream_error("评教问卷标识无效").with_json_field(key, "text", map.get(key))
+        })
 }
 
-fn required_value(map: &Map<String, Value>, key: &str) -> Result<Value> {
+fn required_value(map: &Map<String, Value>, key: &'static str) -> Result<Value> {
     required_text(map, key)?;
     Ok(map.get(key).expect("required_text 已验证字段").clone())
 }

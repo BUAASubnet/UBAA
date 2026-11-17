@@ -70,14 +70,17 @@ struct ScoreCourse {
 
 /// 解析成绩应用已验证的 `e/m/d` 响应。
 pub fn parse_scores(term_code: &str, body: &str) -> Result<GradeData> {
-    let response: ScoreResponse = serde_json::from_str(body).map_err(|_| parse_error())?;
+    let response: ScoreResponse = serde_json::from_str(body)
+        .map_err(|cause| parse_error().with_json_error(&cause, body.as_bytes()))?;
     if response.code != 0 {
         return Err(UbaaError::new(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
             "grades response returned a nonzero code",
-        ));
+        )
+        .with_diagnostic("response", "business_code_nonzero")
+        .with_business_response(body.as_bytes(), None, "e"));
     }
     Ok(GradeData {
         statistics: None,
@@ -174,10 +177,12 @@ fn clean(value: Option<String>) -> Option<String> {
     })
 }
 
+#[track_caller]
 fn invalid_term() -> UbaaError {
     UbaaError::invalid_input("term code must use yyyy-yyyy-semester")
 }
 
+#[track_caller]
 fn parse_error() -> UbaaError {
     UbaaError::parse_error("grades response is not valid JSON")
 }

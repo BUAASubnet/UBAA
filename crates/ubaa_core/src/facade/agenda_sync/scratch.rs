@@ -49,6 +49,7 @@ impl Drop for Scratch {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+#[track_caller]
 pub(super) fn failed() -> UbaaError {
     UbaaError::new(
         ErrorCode::InternalError,

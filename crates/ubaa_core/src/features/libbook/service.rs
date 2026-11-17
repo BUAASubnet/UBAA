@@ -475,6 +475,7 @@ fn final_url_is_authentication(value: &str) -> bool {
     }) || matches!(url.path(), "/login" | "/v4/login/cas")
 }
 
+#[track_caller]
 fn unavailable(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
 }

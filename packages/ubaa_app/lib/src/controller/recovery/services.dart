@@ -17,6 +17,9 @@ mixin ControllerServiceRecovery on ControllerState {
     DiagnosticOperation operation,
     StackTrace stack, {
     int? fileIndex,
+    Duration? latency,
+    String? relatedIssueId,
+    int? recoveryAttempts,
   }) {
     if (error is UiError && error.issueId != null) return error;
     final recorded = internalRecordFailure(
@@ -24,6 +27,9 @@ mixin ControllerServiceRecovery on ControllerState {
       operation,
       stackTrace: stack,
       fileIndex: fileIndex,
+      latency: latency,
+      relatedIssueId: relatedIssueId,
+      recoveryAttempts: recoveryAttempts,
     );
     // 专用服务已为界面生成过安全提示；保留提示和本地报告编号。
     return error is UiError && recorded.issueId != null
@@ -87,6 +93,7 @@ mixin ControllerServiceRecovery on ControllerState {
     int network,
     Future<T> Function() read,
   ) async {
+    final elapsed = Stopwatch()..start();
     final session = internalCaptureSessionScope();
     final credentialRevision = internalLoginCredentialRevision;
     bool current() =>
@@ -94,6 +101,10 @@ mixin ControllerServiceRecovery on ControllerState {
         network == internalNetworkRevision &&
         credentialRevision == internalLoginCredentialRevision;
     T? partial;
+    Object? originalFailure;
+    StackTrace? originalStack;
+    Duration? originalLatency;
+    var recoveryAttempts = 0;
     Future<T> checkedRead({bool recoverMetrics = false}) async {
       if (!current())
         throw const RecoveryInterrupted(RecoveryStopReason.superseded);
@@ -143,7 +154,7 @@ mixin ControllerServiceRecovery on ControllerState {
     try {
       try {
         return await checkedRead(recoverMetrics: true);
-      } on Object catch (error) {
+      } on Object catch (error, stack) {
         final failure = UbaaErrorMapper.fromObject(error);
         final needsAuthentication =
             failure.code == UbaaErrorCode.authenticationRequired ||
@@ -168,6 +179,10 @@ mixin ControllerServiceRecovery on ControllerState {
         final activity = internalActivities.begin(
           ControllerActivityKind.serviceRecovery,
         );
+        originalFailure = error;
+        originalStack = stack;
+        originalLatency = elapsed.elapsed;
+        recoveryAttempts++;
         internalWriteCoordinator.invalidate();
         try {
           final result = await internalRecoverTargetSession(
@@ -217,7 +232,24 @@ mixin ControllerServiceRecovery on ControllerState {
               error.reason != RecoveryStopReason.deadline)) {
         throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
       }
-      final recorded = internalRecordServiceFailure(error, operation, stack);
+      final original =
+          originalFailure == null || identical(originalFailure, error)
+          ? null
+          : internalRecordServiceFailure(
+              originalFailure,
+              operation,
+              originalStack!,
+              latency: originalLatency,
+              recoveryAttempts: 0,
+            );
+      final recorded = internalRecordServiceFailure(
+        error,
+        operation,
+        stack,
+        latency: elapsed.elapsed,
+        relatedIssueId: original?.issueId,
+        recoveryAttempts: recoveryAttempts,
+      );
       internalRecordServiceOutcome(operation, error: recorded);
       // 恢复失败仍保留本次已经成功的余额项，不把整组数据变成空白。
       if (partial case final value?) return value;

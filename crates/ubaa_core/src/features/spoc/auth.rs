@@ -184,6 +184,7 @@ fn resolve_login_redirect(
     }
 }
 
+#[track_caller]
 fn spoc_business_authentication_error() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamUnavailable,

@@ -30,7 +30,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Judge))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let plan = client
                 .begin_judge_details(
@@ -66,7 +66,7 @@ impl BridgeClient {
                 .inner
                 .read(Some(crate::api::read_pool::ReadGroup::Judge))
                 .await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let value = client
                 .next_judge_details(&mut plan)

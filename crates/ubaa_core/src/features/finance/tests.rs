@@ -31,6 +31,7 @@ struct Scenario {
     unauthorized: usize,
     logins: usize,
     redirect: Option<(&'static str, &'static str)>,
+    response: Option<(&'static str, u16, &'static str)>,
 }
 struct Transport(Arc<Mutex<Scenario>>);
 #[async_trait::async_trait]
@@ -46,6 +47,13 @@ impl HttpTransport for Transport {
             body: vec![],
             final_url: r.url.clone(),
         };
+        if let Some((path, status, body)) = s.response
+            && u.path() == path
+        {
+            response.status = status;
+            response.body = body.as_bytes().to_vec();
+            return Ok(response);
+        }
         if let Some((path, location)) = s.redirect
             && u.path() == path
         {
@@ -256,6 +264,155 @@ fn finance_登录跳转拒绝外站且失效后不可回写() {
     ));
 }
 
+#[tokio::test]
+async fn finance_诊断区分门户票据登录和收入响应失败() {
+    for (path, status, body, step, reason) in [
+        (
+            "/jump.aspx",
+            200,
+            "private-ticket",
+            "query_jump",
+            "jump_status_invalid",
+        ),
+        (
+            "/api-zhcx/login",
+            503,
+            "private-login",
+            "query_login",
+            "login_http_status_invalid",
+        ),
+        (
+            "/api-zhcx/login",
+            200,
+            r#"{"code":200,"data":{"token":null,"name":"private-login"}}"#,
+            "query_login",
+            "token_null",
+        ),
+        (
+            "/api-zhcx/getStudentSRCX",
+            503,
+            "private-http",
+            "income_page",
+            "http_status_invalid",
+        ),
+        (
+            "/api-zhcx/getStudentSRCX",
+            200,
+            "<html>统一身份认证 private-login</html>",
+            "income_page",
+            "json_invalid",
+        ),
+        (
+            "/api-zhcx/getStudentSRCX",
+            200,
+            r#"{"code":500,"data":"private-business"}"#,
+            "income_page",
+            "business_rejected",
+        ),
+        (
+            "/api-zhcx/getStudentSRCX",
+            200,
+            r#"{"code":200,"data":[]}"#,
+            "income_page",
+            "data_type_invalid",
+        ),
+    ] {
+        for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            let (mut runtime, _, _root) = fixture(
+                mode,
+                Scenario {
+                    response: Some((path, status, body)),
+                    ..Default::default()
+                },
+            );
+            let error = super::incomes(&mut runtime).await.unwrap_err();
+            let diagnostic = error.diagnostic();
+            assert_eq!(diagnostic.reason.as_deref(), Some(reason));
+            assert_eq!(diagnostic.status, Some(status));
+            assert!(
+                diagnostic
+                    .stage
+                    .as_deref()
+                    .is_some_and(|stage| stage.starts_with(step))
+            );
+            assert_eq!(diagnostic.response_bytes, Some(body.len() as u64));
+            let exported = diagnostic.to_json().unwrap();
+            assert!(!exported.contains("private-"));
+            assert!(!exported.contains("fixture-token"));
+            assert!(!exported.contains("SYNTHETIC"));
+        }
+    }
+}
+
+#[test]
+fn finance_诊断区分字段和金额的具体条件() {
+    for (value, reason) in [
+        (
+            json!({"lsh":"private-id","je":"private-money"}),
+            "je_type_invalid",
+        ),
+        (json!({"lsh":"private-id","se":0.001}), "se_format_invalid"),
+        (
+            json!({"lsh":"private-id","sfje":"private-money"}),
+            "sfje_type_invalid",
+        ),
+        (
+            json!({"lsh":"private-id","ffxmmc":false}),
+            "ffxmmc_type_invalid",
+        ),
+        (json!({"je":1}), "lsh_missing"),
+        (json!({"lsh":null,"je":1}), "lsh_null"),
+        (json!({"lsh":"","je":1}), "lsh_empty"),
+    ] {
+        let error = parser::income(&value).unwrap_err();
+        let diagnostic = error.diagnostic();
+        assert_eq!(diagnostic.stage.as_deref(), Some("income_fields"));
+        assert_eq!(diagnostic.reason.as_deref(), Some(reason));
+        let exported = diagnostic.to_json().unwrap();
+        assert!(!exported.contains("private-"));
+        assert!(
+            diagnostic
+                .source
+                .starts_with("crates/ubaa_core/src/features/finance/parser.rs:")
+        );
+    }
+}
+
+#[tokio::test]
+async fn finance_诊断区分分页缺页与重复记录() {
+    for (scenario, reason) in [
+        (
+            Scenario {
+                empty_second: true,
+                ..Default::default()
+            },
+            "page_incomplete",
+        ),
+        (
+            Scenario {
+                duplicate: true,
+                ..Default::default()
+            },
+            "record_duplicate",
+        ),
+    ] {
+        let (mut runtime, _, _root) = fixture(ConnectionMode::Direct, scenario);
+        let error = super::incomes(&mut runtime).await.unwrap_err();
+        assert_eq!(
+            error.diagnostic().stage.as_deref(),
+            Some("income_pagination")
+        );
+        assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
+        assert!(
+            error
+                .diagnostic()
+                .source
+                .starts_with("crates/ubaa_core/src/features/finance/mod.rs:")
+        );
+        assert!(error.diagnostic().to_json().is_some());
+    }
+}
+
 #[test]
 fn finance_加密快照跨路线复用且失败保留旧值() {
     use crate::cache::{
@@ -308,5 +465,36 @@ fn finance_加密快照跨路线复用且失败保留旧值() {
                     .contains("synthetic-finance-id")
             );
         }
+    }
+}
+
+#[test]
+fn finance_诊断区分包络字段金额和分页失败() {
+    let malformed = parser::envelope(b"<html>private</html>", "income_response").unwrap_err();
+    assert_eq!(
+        malformed.diagnostic().reason.as_deref(),
+        Some("json_invalid")
+    );
+    assert_eq!(
+        malformed.diagnostic().response_kind.as_deref(),
+        Some("html")
+    );
+    let code = parser::envelope(br#"{"code":503,"data":null}"#, "income_response").unwrap_err();
+    assert_eq!(code.diagnostic().upstream_code, Some(503));
+    assert_eq!(
+        code.diagnostic().reason.as_deref(),
+        Some("business_rejected")
+    );
+    let rows = parser::page(&json!({"mx":null,"total":0})).unwrap_err();
+    let total = parser::page(&json!({"mx":[],"total":"PRIVATE"})).unwrap_err();
+    assert_ne!(rows.diagnostic().reason, total.diagnostic().reason);
+    assert_ne!(rows.diagnostic().source, total.diagnostic().source);
+    let amount = parser::income(&json!({"lsh":"PRIVATE","je":"PRIVATE"})).unwrap_err();
+    let tax = parser::income(&json!({"lsh":"PRIVATE","se":"PRIVATE"})).unwrap_err();
+    assert_ne!(amount.diagnostic().reason, tax.diagnostic().reason);
+    for error in [malformed, code, rows, total, amount, tax] {
+        let text = error.diagnostic().to_json().unwrap();
+        assert!(!text.contains("PRIVATE"));
+        assert!(!text.contains("private"));
     }
 }

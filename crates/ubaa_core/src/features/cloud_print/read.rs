@@ -336,23 +336,25 @@ fn rows(value: &Value) -> Result<&[Value]> {
     }
 }
 
-fn text(value: &Value, field: &str) -> Result<String> {
+fn text(value: &Value, field: &'static str) -> Result<String> {
     value[field]
         .as_str()
         .filter(|s| !s.is_empty())
         .map(str::to_owned)
-        .ok_or_else(|| invalid())
+        .ok_or_else(|| invalid().with_json_field(field, "text", value.get(field)))
 }
 
-fn number(value: &Value, field: &str) -> Result<i64> {
-    integer(&value[field]).ok_or_else(|| invalid())
+fn number(value: &Value, field: &'static str) -> Result<i64> {
+    integer(&value[field])
+        .ok_or_else(|| invalid().with_json_field(field, "integer", value.get(field)))
 }
 
-fn natural(value: &Value, field: &str) -> Result<u64> {
-    u64::try_from(number(value, field)?).map_err(|_| invalid())
+fn natural(value: &Value, field: &'static str) -> Result<u64> {
+    u64::try_from(number(value, field)?)
+        .map_err(|_| invalid().with_diagnostic("parse", "negative_integer"))
 }
 
-fn field(value: &Value, field: &str) -> Result<String> {
+fn field(value: &Value, field: &'static str) -> Result<String> {
     if let Some(text) = value[field]
         .as_str()
         .filter(|s| !s.is_empty() && s.len() <= 24 && s.bytes().all(|b| b.is_ascii_digit()))

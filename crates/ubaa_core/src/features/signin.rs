@@ -53,7 +53,8 @@ struct Row {
 
 /// 解析旧版 iClass 今日课程响应，不向调用方暴露上游包装字段。
 pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
-    let response: Response = serde_json::from_str(body).map_err(|_| parse_error())?;
+    let response: Response = serde_json::from_str(body)
+        .map_err(|cause| parse_error().with_json_error(&cause, body.as_bytes()))?;
     if empty_result(&response.status) {
         return Ok(Vec::new());
     }
@@ -196,19 +197,20 @@ async fn submit_signin(
 }
 
 fn parse_action_response(body: &[u8]) -> Result<SigninActionResult> {
-    let value: Value = serde_json::from_slice(body).map_err(|_| write_outcome_unknown())?;
-    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let value: Value = serde_json::from_slice(body)
+        .map_err(|cause| write_outcome_unknown().with_json_error(&cause, body))?;
+    let object = value.as_object().ok_or_else(|| write_outcome_unknown())?;
     let status = object
         .get("STATUS")
         .and_then(action_status)
-        .ok_or_else(write_outcome_unknown)?;
+        .ok_or_else(|| write_outcome_unknown())?;
     let success = if matches!(status, 0 | 200) {
         match object
             .get("result")
             .and_then(Value::as_object)
             .and_then(|result| result.get("stuSignStatus"))
             .and_then(integer_value)
-            .ok_or_else(write_outcome_unknown)?
+            .ok_or_else(|| write_outcome_unknown())?
         {
             1 => true,
             0 => false,
@@ -251,8 +253,8 @@ fn final_url_is_authentication(value: &str) -> bool {
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
-    let value: Value =
-        serde_json::from_slice(body).map_err(|_| upstream_error("签到时间戳响应格式无效"))?;
+    let value: Value = serde_json::from_slice(body)
+        .map_err(|cause| upstream_error("签到时间戳响应格式无效").with_json_error(&cause, body))?;
     value
         .get("timestamp")
         .and_then(|value| match value {
@@ -357,8 +359,8 @@ async fn login(runtime: &mut crate::runtime::ClientRuntime) -> Result<SigninCred
 }
 
 fn parse_login_credential(body: &[u8]) -> Result<SigninCredential> {
-    let response: LoginResponse =
-        serde_json::from_slice(body).map_err(|_| upstream_error("签到登录响应格式无效"))?;
+    let response: LoginResponse = serde_json::from_slice(body)
+        .map_err(|cause| upstream_error("签到登录响应格式无效").with_json_error(&cause, body))?;
     let result = response
         .result
         .filter(|_| success(&response.status))
@@ -418,10 +420,12 @@ fn ensure_login_host(url: &url::Url) -> Result<()> {
     }
 }
 
+#[track_caller]
 fn invalid_url() -> UbaaError {
     upstream_error("签到服务地址无效")
 }
 
+#[track_caller]
 fn upstream_error(message: &'static str) -> UbaaError {
     UbaaError::upstream_changed(message)
 }
@@ -438,10 +442,12 @@ fn validate_course_id(course_id: &str) -> Result<()> {
     Ok(())
 }
 
+#[track_caller]
 fn unavailable(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
 }
 
+#[track_caller]
 fn write_outcome_unknown() -> UbaaError {
     UbaaError::new(
         ErrorCode::OutcomeUnknown,
@@ -491,6 +497,7 @@ fn map_row(row: Row) -> SigninClass {
     }
 }
 
+#[track_caller]
 fn parse_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::ParseError,

@@ -105,7 +105,7 @@ void main() {
     );
     expect(backend.loginRoutes, isEmpty);
     expect(backend.appeals.reads, 1);
-    final error = controller.diagnostics.records.single;
+    final error = controller.diagnostics.records.last;
     expect(error.code, UbaaErrorCode.authenticationRequired);
     expect(error.route, ConnectionMode.webvpn);
   });
@@ -139,7 +139,7 @@ void main() {
     expect(backend.appeals.reads, 4);
     expect(controller.diagnostics.records, isEmpty);
   });
-  test('iHome 恢复后仍失效只记录一次最终错误', () async {
+  test('iHome 恢复后仍失效保留原始与最终错误', () async {
     final backend = _Backend()
       ..route = ConnectionMode.webvpn
       ..alwaysExpired = true;
@@ -150,7 +150,7 @@ void main() {
     );
     expect(backend.loginRoutes, [ConnectionMode.webvpn]);
     expect(backend.appeals.reads, 2);
-    expect(controller.diagnostics.records.single.route, ConnectionMode.webvpn);
+    expect(controller.diagnostics.records.last.route, ConnectionMode.webvpn);
   });
   test('iHome 网络失败直接记录诊断且不触发认证', () async {
     final backend = _Backend()
@@ -258,7 +258,7 @@ void main() {
     expect(backend.targets, [RecoveryTarget.finance]);
     expect(backend.loginRoutes, isEmpty);
     expect(backend.incomes.reads, 1);
-    final error = controller.diagnostics.records.single;
+    final error = controller.diagnostics.records.last;
     expect(error.code, UbaaErrorCode.authenticationRequired);
     expect(error.route, ConnectionMode.webvpn);
   });
@@ -293,7 +293,17 @@ void main() {
         ),
       ),
     );
-    expect(controller.diagnostics.records.single.code, UbaaErrorCode.timeout);
+    expect(controller.diagnostics.records.last.code, UbaaErrorCode.timeout);
+    final records = controller.diagnostics.records;
+    expect(records, hasLength(2));
+    expect(records.first.code, UbaaErrorCode.authenticationRequired);
+    expect(records.last.relatedIssueId, records.first.issueId);
+    expect(records.last.recoveryAttempts, 1);
+    expect(records.last.latency, isNotNull);
+    final report = jsonDecode(
+      controller.exportDiagnostics(issueId: records.last.issueId),
+    );
+    expect(report['events'], hasLength(2));
   });
 
   test('云盘明确不支持当前路线时不尝试另一条路线', () async {
@@ -369,7 +379,7 @@ void main() {
     expect(metrics.networkBalance, isA<CampusMetricFailure<CampusAmount>>());
     expect(backend.loginRoutes, isEmpty);
     expect(
-      controller.diagnostics.records.single.code,
+      controller.diagnostics.records.last.code,
       UbaaErrorCode.authenticationRequired,
     );
   });
@@ -391,7 +401,7 @@ void main() {
       throwsA(isA<UiError>()),
     );
     expect(backend.loginRoutes, isEmpty);
-    final error = controller.diagnostics.records.single;
+    final error = controller.diagnostics.records.last;
     expect(error.code, UbaaErrorCode.authenticationRequired);
     expect(error.route, ConnectionMode.direct);
   });

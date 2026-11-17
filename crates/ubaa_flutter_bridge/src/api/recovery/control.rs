@@ -51,7 +51,7 @@ impl BridgeClient {
                 guard = self.inner.lock() => guard,
             };
             self.check_required_control(control, None)?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             tokio::select! {
                 biased;
                 error = control.inner.interrupted() => return Err(control_error(control, error, None)),
@@ -101,7 +101,7 @@ impl BridgeClient {
                 guard = self.inner.lock() => guard,
             };
             self.check_required_control(control, Some(route))?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             tokio::select! {
                 biased;
                 error = control.inner.interrupted() => return Err(control_error(control, error, Some(route))),
@@ -143,10 +143,12 @@ fn claim(
                 false,
                 "恢复控制柄已经使用",
             )
+            .with_diagnostic("recovery_control", "control_already_claimed")
         }
     })
 }
 
+#[track_caller]
 fn control_error(
     control: &BridgeRequiredRecoveryControl,
     error: core::UbaaError,
@@ -158,7 +160,8 @@ fn control_error(
             BridgeErrorKind::Input,
             false,
             "恢复已取消",
-        ),
+        )
+        .with_diagnostic("recovery_control", "recovery_cancelled"),
         Some(core::RequiredRecoveryInterruption::Deadline) => BridgeError::local(
             BridgeErrorCode::Timeout,
             BridgeErrorKind::Network,

@@ -86,7 +86,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let p = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_download_preparation(&handles, &name)
                 .await
                 .map_err(error)?;
@@ -118,7 +118,7 @@ impl BridgeClient {
             };
             let p = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_prepare_fast_upload(
                     &parent,
                     std::path::PathBuf::from(path),
@@ -140,7 +140,7 @@ impl BridgeClient {
             let guard = self.inner.lock().await;
             let c = guard
                 .as_ref()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_capabilities();
             Ok(BridgeBhpanCapabilities {
                 direct_metadata: c.direct_metadata.into(),
@@ -157,7 +157,7 @@ impl BridgeClient {
         self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .network_control()
                 .run_read(c::ConnectionMode::Direct, false, client.bhpan_login())
@@ -172,7 +172,7 @@ impl BridgeClient {
     ) -> Result<BridgeBhpanPage, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             let network = client.network_control();
             let p = network
                 .run_read(
@@ -221,7 +221,7 @@ impl BridgeClient {
     pub async fn bhpan_size(&self, item: String) -> Result<BridgeBhpanSize, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             let s = client
                 .network_control()
                 .run_read(
@@ -246,7 +246,7 @@ impl BridgeClient {
     ) -> Result<String, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .network_control()
                 .run_read(
@@ -265,7 +265,7 @@ impl BridgeClient {
     ) -> Result<Vec<BridgeBhpanShare>, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let c = g.as_mut().ok_or_else(disposed_error)?;
+            let c = g.as_mut().ok_or_else(|| disposed_error())?;
             let network = c.network_control();
             let s = network
                 .run_read(
@@ -287,7 +287,7 @@ impl BridgeClient {
     pub async fn bhpan_share_link(&self, share: String) -> Result<String, BridgeError> {
         catch_panic(async {
             let mut g = self.inner.lock().await;
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             client
                 .network_control()
                 .run_read(
@@ -308,7 +308,7 @@ impl BridgeClient {
             let mut g = self.inner.lock().await;
             let p = g
                 .as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_prepare_write(request.try_into().map_err(error)?)
                 .await
                 .map_err(error)?;
@@ -327,7 +327,7 @@ impl BridgeClient {
             if self.is_disposed.load(std::sync::atomic::Ordering::Acquire) {
                 return Err(disposed_error());
             }
-            let client = g.as_mut().ok_or_else(disposed_error)?;
+            let client = g.as_mut().ok_or_else(|| disposed_error())?;
             observation = Some(client.observe_write_boundary());
             let r = client.bhpan_commit_write(&handle).await.map_err(error)?;
             Ok(BridgeBhpanReceipt {
@@ -352,7 +352,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut g = self.inner.lock().await;
             g.as_mut()
-                .ok_or_else(disposed_error)?
+                .ok_or_else(|| disposed_error())?
                 .bhpan_discard_write(&handle);
             Ok(())
         })

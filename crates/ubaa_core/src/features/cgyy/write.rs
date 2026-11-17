@@ -539,10 +539,12 @@ fn strict_i32_value(value: &Value) -> Option<i32> {
     }
 }
 
+#[track_caller]
 fn invalid_input(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }
 
+#[track_caller]
 fn unavailable(message: &'static str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
 }

@@ -63,10 +63,12 @@ pub(super) fn validate_photo(photo: &YgdkPhotoUpload) -> Result<()> {
     Ok(())
 }
 
+#[track_caller]
 fn invalid_photo(message: &str) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }
 
+#[track_caller]
 fn upload_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamUnavailable,

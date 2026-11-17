@@ -13,6 +13,7 @@ pub(super) fn check_generation(runtime: &ClientRuntime, generation: u64) -> Resu
     }
     Ok(())
 }
+#[track_caller]
 fn auth_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamUnavailable,
@@ -118,7 +119,9 @@ pub(super) async fn ensure_token(runtime: &mut ClientRuntime) -> Result<String> 
         if !(300..400).contains(&response.status) {
             return Err(auth_error());
         }
-        let location = response.header_first("location").ok_or_else(auth_error)?;
+        let location = response
+            .header_first("location")
+            .ok_or_else(|| auth_error())?;
         next = url::Url::parse(&response.final_url)
             .map_err(|_| invalid())?
             .join(location)
