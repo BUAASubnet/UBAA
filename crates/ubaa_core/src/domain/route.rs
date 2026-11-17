@@ -35,6 +35,9 @@ pub enum ReadonlyFeature {
     Finance,
     /// iHome 校园诉求。
     Ihome,
+    /// 健康云体测成绩。
+    #[serde(rename = "health_cloud")]
+    HealthCloud,
     /// 博雅课程只读查询。
     Bykc,
     /// 研讨室预约只读查询。
@@ -70,6 +73,7 @@ impl ReadonlyFeature {
             Self::Network => "network",
             Self::Finance => "finance",
             Self::Ihome => "ihome",
+            Self::HealthCloud => "health_cloud",
             Self::Bykc => "bykc",
             Self::Cgyy => "cgyy",
             Self::LibBook => "libbook",

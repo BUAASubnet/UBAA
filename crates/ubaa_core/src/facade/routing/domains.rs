@@ -13,6 +13,7 @@ const OFF_CAMPUS_WEBVPN_DOMAINS: &[&str] = &[
     "judge.buaa.edu.cn",
     "iclass.buaa.edu.cn",
     "i.buaa.edu.cn",
+    crate::features::health_cloud::HOST,
     "icw.buaa.edu.cn",
     "chaxun.icw.buaa.edu.cn",
 ];
@@ -141,6 +142,7 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
             | "judge.buaa.edu.cn"
             | "iclass.buaa.edu.cn"
             | "i.buaa.edu.cn"
+            | crate::features::health_cloud::HOST
             | "ygdk.buaa.edu.cn"
             | "booking.lib.buaa.edu.cn"
             | crate::features::cloud_print::HOST
@@ -165,6 +167,7 @@ fn domains(operation: Operation) -> &'static [&'static str] {
             ReadonlyFeature::Judge => &["judge.buaa.edu.cn"],
             ReadonlyFeature::Signin => &["iclass.buaa.edu.cn"],
             ReadonlyFeature::Ihome => &["i.buaa.edu.cn"],
+            ReadonlyFeature::HealthCloud => &[crate::features::health_cloud::HOST],
             ReadonlyFeature::Ygdk => &["ygdk.buaa.edu.cn", "app.buaa.edu.cn"],
             ReadonlyFeature::LibBook => &["booking.lib.buaa.edu.cn"],
             ReadonlyFeature::Bykc => &["bykc.buaa.edu.cn"],

@@ -82,6 +82,10 @@ abstract interface class IhomeBackend {
   IhomeService get ihome;
 }
 
+abstract interface class HealthCloudBackend {
+  ReadHealthCloud? get healthCloud;
+}
+
 /// 门户资料、校园账户指标与网费流量的在线只读能力。
 abstract interface class CampusAccountBackend {
   CampusAccountService get campusAccount;

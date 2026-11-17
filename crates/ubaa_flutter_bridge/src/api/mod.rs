@@ -31,6 +31,7 @@ pub mod schedule_import;
 
 pub mod sensitive;
 
+pub mod health_cloud;
 pub mod ihome;
 
 pub mod campus;

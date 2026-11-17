@@ -51,6 +51,7 @@ export 'src/rust/api/sensitive.dart';
 export 'src/rust/api/initialization.dart';
 
 export 'src/rust/api/ihome.dart';
+export 'src/rust/api/health_cloud.dart';
 export 'src/rust/api/campus.dart';
 
 export 'src/rust/api/agenda.dart';

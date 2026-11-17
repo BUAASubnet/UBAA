@@ -416,6 +416,7 @@ class FeatureGridView extends StatelessWidget {
     required this.features,
     this.homeState,
     this.onOpenIhome,
+    this.onOpenHealthCloud,
     this.onOpenBhpan,
     this.onOpenFinance,
     this.onOpenCloudPrint,
@@ -428,6 +429,7 @@ class FeatureGridView extends StatelessWidget {
   /// 首页已读到的课表与待办；有内容时入口副标题显示实时摘要，否则显示功能说明。
   final HomeState? homeState;
   final VoidCallback? onOpenIhome;
+  final VoidCallback? onOpenHealthCloud;
   final VoidCallback? onOpenBhpan;
   final VoidCallback? onOpenFinance;
   final VoidCallback? onOpenCloudPrint;
@@ -501,7 +503,7 @@ class FeatureGridView extends StatelessWidget {
           subtitle: '酬金、助学金等收入发放记录',
           onTap: onOpenFinance!,
         ),
-      for (final feature in features)
+      for (final feature in features) ...[
         Semantics(
           container: true,
           button: true,
@@ -516,6 +518,14 @@ class FeatureGridView extends StatelessWidget {
             onTap: () => onFeatureTap(feature),
           ),
         ),
+        if (feature == FeatureId.ygdk && onOpenHealthCloud != null)
+          UiEntryCard(
+            title: '健康云',
+            subtitle: '查看体测成绩',
+            icon: Icons.monitor_heart_outlined,
+            onTap: onOpenHealthCloud!,
+          ),
+      ],
     ],
   );
 }

@@ -69,6 +69,7 @@ pub enum BridgeRecoveryFeature {
     Ygdk,
     Evaluation,
     Connection,
+    HealthCloud,
 }
 impl BridgeRecoveryFeature {
     pub(crate) fn feature(self) -> Option<ReadonlyFeature> {
@@ -78,6 +79,7 @@ impl BridgeRecoveryFeature {
             Self::Network => ReadonlyFeature::Network,
             Self::Finance => ReadonlyFeature::Finance,
             Self::Ihome => ReadonlyFeature::Ihome,
+            Self::HealthCloud => ReadonlyFeature::HealthCloud,
             BridgeRecoveryFeature::Schedule => ReadonlyFeature::Schedule,
             BridgeRecoveryFeature::Exam => ReadonlyFeature::Exam,
             BridgeRecoveryFeature::Grades => ReadonlyFeature::Grades,

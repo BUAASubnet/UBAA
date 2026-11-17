@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 73;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 74;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -767,7 +767,11 @@ mod tests {
         let second =
             ubaa_core::facade::ErrorDiagnostic::from_json(other.diagnostic_json.as_ref().unwrap())
                 .unwrap();
-        assert!(first.source.starts_with(file!()));
+        let expected_path = file!().replace('\\', "/");
+        assert_eq!(
+            first.source.rsplit_once(':').map(|(path, _)| path),
+            Some(expected_path.as_str())
+        );
         assert_ne!(first.source, second.source);
         assert!(!error.diagnostic_json.unwrap().contains("PRIVATE"));
     }
