@@ -33,17 +33,20 @@ final class BridgeAgendaBackend
       return result;
     } on LocalAccountConflict {
       throw const AgendaException(AgendaFailure.superseded);
-    } on BridgeAgendaError catch (e) {
-      throw AgendaException(switch (e.failure) {
-        BridgeAgendaFailure.unavailable => AgendaFailure.unavailable,
-        BridgeAgendaFailure.invalidInput => AgendaFailure.invalidInput,
-        BridgeAgendaFailure.corrupt => AgendaFailure.corrupt,
-        BridgeAgendaFailure.unsupportedVersion =>
-          AgendaFailure.unsupportedVersion,
-        BridgeAgendaFailure.inactive => AgendaFailure.inactive,
-        BridgeAgendaFailure.superseded => AgendaFailure.superseded,
-        BridgeAgendaFailure.capacity => AgendaFailure.capacity,
-      });
+    } on BridgeAgendaError catch (e, stack) {
+      Error.throwWithStackTrace(
+        AgendaException(switch (e.failure) {
+          BridgeAgendaFailure.unavailable => AgendaFailure.unavailable,
+          BridgeAgendaFailure.invalidInput => AgendaFailure.invalidInput,
+          BridgeAgendaFailure.corrupt => AgendaFailure.corrupt,
+          BridgeAgendaFailure.unsupportedVersion =>
+            AgendaFailure.unsupportedVersion,
+          BridgeAgendaFailure.inactive => AgendaFailure.inactive,
+          BridgeAgendaFailure.superseded => AgendaFailure.superseded,
+          BridgeAgendaFailure.capacity => AgendaFailure.capacity,
+        }),
+        stack,
+      );
     }
   }
 

@@ -56,6 +56,9 @@ abstract interface class AgendaBackend {
 /// 排队的旧写入与迟到结果不能流入新账号，挂起读取不阻塞关闭。
 final class AgendaService {
   AgendaService(this._backend);
+
+  /// 当前账号操作失败时交给宿主记录，回调不接收业务参数。
+  void Function(Object error, StackTrace stack)? onFailure;
   final AgendaBackend _backend;
   AgendaSyncState _syncState = const AgendaSyncState();
   AgendaSyncState get syncState => _syncState;
@@ -280,8 +283,13 @@ final class AgendaService {
         check();
         if (syncNow != null) _syncAfterWrite(syncNow);
         return value;
-      } on Object {
+      } on Object catch (error, stack) {
         check();
+        try {
+          onFailure?.call(error, stack);
+        } on Object {
+          // 诊断记录失败不能改变已完成的本地操作结果。
+        }
         rethrow;
       }
     }

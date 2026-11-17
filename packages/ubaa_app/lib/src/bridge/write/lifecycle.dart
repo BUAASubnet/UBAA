@@ -10,7 +10,7 @@ Future<void> bridgeDiscardWriteIntent(
       return;
     }
     await backend.client.discardWriteIntent(intentId: intentId);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }

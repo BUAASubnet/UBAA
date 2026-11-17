@@ -171,8 +171,8 @@ class BridgeBackend
           timeoutMillis: budget.inMilliseconds,
         ),
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 
@@ -186,8 +186,8 @@ class BridgeBackend
         client,
         await client.openCgyyLockDisplay(),
       );
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 

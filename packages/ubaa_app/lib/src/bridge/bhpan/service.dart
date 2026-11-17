@@ -57,19 +57,22 @@ final class BridgeBhpanService implements BhpanService {
   Future<T> _run<T>(Future<T> Function() call) async {
     try {
       return await call();
-    } on BridgeError catch (e) {
+    } on BridgeError catch (e, stack) {
       final mapped = UbaaErrorMapper.fromException(bridgeMapError(e));
       // 透传错误类别，界面据此区分「会话过期」与真正的权限不足。
-      throw UiError(
-        code: mapped.code,
-        title: mapped.title,
-        message: e.message,
-        kind: mapped.kind,
-        resolvedRoute: mapped.resolvedRoute,
-        retryable: mapped.retryable,
-        authStage: mapped.authStage,
-        authReason: mapped.authReason,
-        diagnostic: mapped.diagnostic,
+      Error.throwWithStackTrace(
+        UiError(
+          code: mapped.code,
+          title: mapped.title,
+          message: e.message,
+          kind: mapped.kind,
+          resolvedRoute: mapped.resolvedRoute,
+          retryable: mapped.retryable,
+          authStage: mapped.authStage,
+          authReason: mapped.authReason,
+          diagnostic: mapped.diagnostic,
+        ),
+        stack,
       );
     }
   }
@@ -214,8 +217,8 @@ Future<WriteCommitResult> bridgeBhpanCommit(
         share: receipt.share == null ? null : bhpanShare(receipt.share!),
       ),
     );
-  } on BridgeError catch (e) {
-    throw bridgeMapError(e);
+  } on BridgeError catch (e, stack) {
+    Error.throwWithStackTrace(bridgeMapError(e), stack);
   } on Object {
     throw const BackendException(UbaaErrorCode.outcomeUnknown);
   }

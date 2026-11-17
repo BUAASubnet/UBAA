@@ -15,10 +15,13 @@ class BridgeFinanceService implements FinanceService {
   Future<T> _call<T>(Future<T> Function() call) async {
     try {
       return await call();
-    } on BridgeError catch (e) {
-      throw UbaaErrorMapper.fromException(bridgeMapError(e));
-    } on BackendException catch (e) {
-      throw UbaaErrorMapper.fromException(e);
+    } on BridgeError catch (e, stack) {
+      Error.throwWithStackTrace(
+        UbaaErrorMapper.fromException(bridgeMapError(e)),
+        stack,
+      );
+    } on BackendException catch (e, stack) {
+      Error.throwWithStackTrace(UbaaErrorMapper.fromException(e), stack);
     }
   }
 

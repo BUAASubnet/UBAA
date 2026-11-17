@@ -58,9 +58,9 @@ Future<FeatureReadTask> _beginOnlineJudgeRead(
         );
       },
     );
-  } on BridgeError catch (error) {
+  } on BridgeError catch (error, stack) {
     bridgeCheckOfflineGeneration(backend, generation);
-    throw bridgeMapError(error);
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 

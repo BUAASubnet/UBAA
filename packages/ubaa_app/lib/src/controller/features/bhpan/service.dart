@@ -57,6 +57,7 @@ final class GuardedBhpanService implements BhpanService {
     DiagnosticOperation? operation,
   }) async {
     _check();
+    final elapsed = Stopwatch()..start();
     try {
       final value = await call();
       _check();
@@ -71,7 +72,12 @@ final class GuardedBhpanService implements BhpanService {
       if (current()) {
         onRejected?.call(error);
         if (operation != null) {
-          final recorded = recordFailure?.call(error, operation, stack);
+          final recorded = recordFailure?.call(
+            error,
+            operation,
+            stack,
+            latency: elapsed.elapsed,
+          );
           if (recorded != null) {
             recordOutcome?.call(operation, error: recorded);
             throw recorded;

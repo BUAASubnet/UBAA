@@ -10,8 +10,11 @@ class BridgeIhomeService implements IhomeService {
   Future<T> _call<T>(Future<T> Function() call) async {
     try {
       return await call();
-    } on BridgeError catch (e) {
-      throw UbaaErrorMapper.fromException(bridgeMapError(e));
+    } on BridgeError catch (e, stack) {
+      Error.throwWithStackTrace(
+        UbaaErrorMapper.fromException(bridgeMapError(e)),
+        stack,
+      );
     }
   }
 

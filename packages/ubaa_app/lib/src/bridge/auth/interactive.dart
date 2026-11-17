@@ -25,8 +25,8 @@ Future<LoginVerificationState> bridgeBeginInteractiveLogin(
     );
     _checkInteractiveGeneration(backend, generation);
     return _acceptInteractiveOutcome(backend, completed);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -48,8 +48,8 @@ Future<LoginVerificationState> bridgeResumeRequiredCaptcha(
     );
     _checkInteractiveGeneration(backend, generation);
     return _acceptInteractiveOutcome(backend, outcome);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -81,8 +81,8 @@ Future<LoginVerificationState> bridgeSubmitInteractiveLogin(
     );
     _checkInteractiveGeneration(backend, generation);
     return _acceptInteractiveOutcome(backend, result);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -101,8 +101,8 @@ Future<LoginVerificationState> bridgeRefreshInteractiveCaptcha(
     );
     _checkInteractiveGeneration(backend, generation);
     return _acceptInteractiveOutcome(backend, result);
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -135,8 +135,8 @@ Future<InteractiveLoginCompletion> bridgeContinueInteractiveLogin(
     );
     _releaseInteractiveReferences(backend);
     return result;
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 

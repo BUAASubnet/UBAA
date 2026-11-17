@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../../contracts/app_service.dart';
+import '../../contracts/backend.dart';
 import '../error_mapper.dart';
 import '../state/state.dart';
 
@@ -30,6 +31,7 @@ mixin ControllerDiagnostics on ControllerState {
     DiagnosticInitializationStage? initializationStage,
     Duration? latency,
     String? relatedIssueId,
+    int? recoveryAttempts,
   }) {
     final error = UbaaErrorMapper.fromObject(cause);
     if (internalDisposed) return error;
@@ -43,8 +45,10 @@ mixin ControllerDiagnostics on ControllerState {
         fileIndex: fileIndex,
         initializationStage: initializationStage,
         latency: latency,
-        cause: cause,
+        cause: cause is BackendException ? error : cause,
         relatedIssueId: relatedIssueId,
+        requestedPolicy: internalLoginForm.routePolicy,
+        recoveryAttempts: recoveryAttempts,
         stackTrace: stackTrace,
       );
       if (telemetrySource(stackTrace) case final source?

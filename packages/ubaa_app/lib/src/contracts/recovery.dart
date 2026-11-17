@@ -79,6 +79,7 @@ typedef ServiceFailureRecorder =
       DiagnosticOperation operation,
       StackTrace stackTrace, {
       int? fileIndex,
+      Duration? latency,
     });
 
 typedef ServiceOutcomeRecorder =

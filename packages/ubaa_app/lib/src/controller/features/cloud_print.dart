@@ -38,6 +38,7 @@ final class ScopedCloudPrintService implements CloudPrintService {
     Future<T> Function() call,
   ) async {
     _check();
+    final elapsed = Stopwatch()..start();
     try {
       final result = await call();
       _check();
@@ -45,7 +46,12 @@ final class ScopedCloudPrintService implements CloudPrintService {
       return result;
     } on Object catch (error, stack) {
       if (!current()) rethrow;
-      final recorded = recordFailure(error, operation, stack);
+      final recorded = recordFailure(
+        error,
+        operation,
+        stack,
+        latency: elapsed.elapsed,
+      );
       recordOutcome(operation, error: recorded);
       throw recorded;
     }
@@ -56,6 +62,7 @@ final class ScopedCloudPrintService implements CloudPrintService {
     Future<List<UiError?>> Function() call,
   ) => writer.runConfirmedBatch(() async {
     _check();
+    final elapsed = Stopwatch()..start();
     try {
       final result = await call();
       if (!current()) {
@@ -74,6 +81,7 @@ final class ScopedCloudPrintService implements CloudPrintService {
                   operation,
                   StackTrace.current,
                   fileIndex: index + 1,
+                  latency: elapsed.elapsed,
                 ),
       ];
       recordOutcome(
@@ -84,7 +92,12 @@ final class ScopedCloudPrintService implements CloudPrintService {
       return recorded;
     } on Object catch (error, stack) {
       if (!current()) rethrow;
-      final recorded = recordFailure(error, operation, stack);
+      final recorded = recordFailure(
+        error,
+        operation,
+        stack,
+        latency: elapsed.elapsed,
+      );
       recordOutcome(operation, write: true, error: recorded);
       throw recorded;
     }

@@ -38,8 +38,8 @@ Future<FeatureReadTask?> bridgeBeginSpocRead(
       task,
       generation,
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -100,8 +100,8 @@ final class _SpocFeatureTask implements FeatureReadTask {
       );
       _validate();
       return FeatureReadBatch(result, finished: batch.finished);
-    } on BridgeError catch (error) {
-      throw bridgeMapError(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
     }
   }
 }

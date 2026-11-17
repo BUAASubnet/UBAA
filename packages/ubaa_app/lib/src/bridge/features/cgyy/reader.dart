@@ -42,8 +42,8 @@ Future<FeatureResult> bridgeLoadCgyyOrdersOnRoute(
       result.data,
       bridgeToConnectionMode(result.pinnedRoute),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 
@@ -64,8 +64,8 @@ Future<FeatureResult> bridgeLoadCgyyOrderDetailOnRoute(
       result.data,
       bridgeToConnectionMode(result.pinnedRoute),
     );
-  } on BridgeError catch (error) {
-    throw bridgeMapError(error);
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
 

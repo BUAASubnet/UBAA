@@ -32,8 +32,8 @@ final class BridgeCloudPrintService implements CloudPrintService {
   Future<T> _run<T>(Future<T> Function() run) async {
     try {
       return await run();
-    } on BridgeError catch (error) {
-      throw _error(error);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(_error(error), stack);
     }
   }
 

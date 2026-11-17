@@ -350,6 +350,7 @@ abstract class ControllerOperations extends ChangeNotifier {
     DiagnosticInitializationStage? initializationStage,
     Duration? latency,
     String? relatedIssueId,
+    int? recoveryAttempts,
   });
   @internal
   Future<void> internalRecordAppOpen();

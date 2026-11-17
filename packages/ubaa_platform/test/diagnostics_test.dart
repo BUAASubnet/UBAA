@@ -5,6 +5,137 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('权限拒绝与认证失败分别归类', () {
+    final diagnostics = LocalDiagnostics();
+    for (final code in ['permission_denied', 'authentication_required']) {
+      final error = mapCoreError(code: code);
+      diagnostics.record(
+        operation: DiagnosticOperation.read,
+        error: error,
+        cause: error,
+      );
+    }
+    expect(diagnostics.records.map((r) => r.cause.name), [
+      'permission',
+      'authentication',
+    ]);
+  });
+
+  test('原生权限和凭据失败保留固定原因并跨重启导出', () async {
+    final storage = MemoryPreferenceValues();
+    final diagnostics = LocalDiagnostics(storage: storage);
+    for (final cause in [
+      const PlatformCapabilityException(
+        PlatformPermission.camera,
+        PlatformPermissionStatus.denied,
+      ),
+      const CredentialVaultException(CredentialVaultErrorCode.storageFailure),
+      const SecureMaterialCoordinationException(true),
+    ]) {
+      diagnostics.record(
+        operation: DiagnosticOperation.initialization,
+        error: const UiErrorMapper().fromException(cause),
+        cause: cause,
+      );
+    }
+    await diagnostics.flushed;
+    final restarted = LocalDiagnostics(storage: storage);
+    await restarted.flushed;
+    final events =
+        jsonDecode(restarted.exportText())['previous_events'] as List;
+    expect(events.map((e) => e['local_reason']), [
+      'permission_camera_denied',
+      'credential_storageFailure',
+      'material_transaction_uncertain',
+    ]);
+  });
+
+  test('已映射的业务错误保留分类和去重后的完整项目调用链', () {
+    final diagnostics = LocalDiagnostics();
+    const error = UiError(
+      code: UbaaErrorCode.operationConflict,
+      title: '冲突',
+      message: 'PRIVATE',
+    );
+    diagnostics.record(
+      operation: DiagnosticOperation.read,
+      error: error,
+      cause: error,
+      stackTrace: StackTrace.fromString(
+        [
+          'package:ubaa_app/src/bridge/read.dart:1',
+          'package:ubaa_app/src/bridge/read.dart:1',
+          'package:ubaa_app/src/cache.dart:2',
+          'package:ubaa_app/src/controller.dart:3',
+          'package:ubaa_ui/src/grades.dart:4',
+        ].join('\n'),
+      ),
+    );
+    final event =
+        (jsonDecode(diagnostics.exportText())['events'] as List).single;
+    expect(event['cause'], 'operationConflict');
+    expect(event['source'], contains('package:ubaa_ui/src/grades.dart:4'));
+    expect(
+      event['source'].where(
+        (v) => v == 'package:ubaa_app/src/bridge/read.dart:1',
+      ),
+      hasLength(1),
+    );
+    expect(diagnostics.exportText(), isNot(contains('PRIVATE')));
+  });
+
+  test('业务错误保留类型来源和最深业务调用点', () {
+    final diagnostics = LocalDiagnostics();
+    diagnostics.record(
+      operation: DiagnosticOperation.read,
+      error: mapCoreError(code: 'operation_conflict'),
+      cause: mapCoreError(code: 'operation_conflict'),
+      stackTrace: StackTrace.fromString(
+        '#0 dispatch (package:ubaa_app/src/bridge/read/dispatch.dart:56:7)\n'
+        '#1 cache (package:ubaa_app/src/bridge/cache/lifecycle.dart:41:9)\n'
+        '#2 run (package:ubaa_app/src/controller/read_scheduler.dart:122:3)\n'
+        '#3 grades (package:ubaa_app/src/bridge/features/academic/reader.dart:97:2)',
+      ),
+    );
+    final event = (jsonDecode(diagnostics.exportText()) as Map)['events'][0];
+    expect(event['cause'], 'operationConflict');
+    expect(
+      event['source'],
+      contains(
+        'package:ubaa_app/src/bridge/features/academic/reader.dart:97:2',
+      ),
+    );
+  });
+
+  test('重启后的单项报告包含完整关联链', () async {
+    final storage = MemoryPreferenceValues();
+    final first = LocalDiagnostics(storage: storage);
+    final original = first.record(
+      operation: DiagnosticOperation.read,
+      error: mapCoreError(code: 'authentication_required'),
+    );
+    final recovery = first.record(
+      operation: DiagnosticOperation.login,
+      error: mapCoreError(code: 'timeout'),
+      relatedIssueId: original.issueId,
+    );
+    final retry = first.record(
+      operation: DiagnosticOperation.read,
+      error: mapCoreError(code: 'parse_error'),
+      relatedIssueId: recovery.issueId,
+    );
+    await first.flushed;
+    final restarted = LocalDiagnostics(storage: storage);
+    await restarted.flushed;
+    final report =
+        jsonDecode(restarted.exportText(issueId: retry.issueId)) as Map;
+    expect((report['events'] as List).map((e) => e['code']), [
+      'authentication_required',
+      'timeout',
+      'parse_error',
+    ]);
+  });
+
   test('重启后保留云打印文件序号和写操作归属', () async {
     final storage = MemoryPreferenceValues();
     final diagnostics = LocalDiagnostics(storage: storage);
