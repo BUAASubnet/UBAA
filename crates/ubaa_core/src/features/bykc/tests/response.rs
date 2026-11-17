@@ -2,13 +2,13 @@
 
 use super::super::{catalog, parser};
 use crate::{domain::*, error::Result};
-use chrono::{Local, NaiveDateTime};
+use chrono::NaiveDateTime;
 
 pub(super) fn parse_profile(body: &str) -> Result<BykcUserProfile> {
     parser::parse_profile(&parser::envelope(body)?)
 }
 pub(super) fn parse_courses(body: &str) -> Result<BykcCoursePage> {
-    parse_courses_at(body, true, Local::now().naive_local())
+    parse_courses_at(body, true, crate::features::bykc::campus_now())
 }
 pub(super) fn parse_courses_at(
     body: &str,

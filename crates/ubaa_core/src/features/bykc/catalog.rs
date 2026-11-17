@@ -1,6 +1,6 @@
 //! 博雅目录与完整详情的独立显示投影。
 
-use chrono::{Local, NaiveDateTime};
+use chrono::NaiveDateTime;
 use regex::Regex;
 use serde_json::{Map, Value};
 use std::sync::OnceLock;
@@ -99,7 +99,7 @@ pub(super) fn parse_full_detail(value: &Value, id: i64) -> Result<BykcCourseFull
         .as_object()
         .ok_or_else(|| error("博雅课程详情结构无效"))?;
     let sign_config = display_config(value);
-    let course = catalog_item(value, Local::now().naive_local(), sign_config.as_ref())?;
+    let course = catalog_item(value, super::campus_now(), sign_config.as_ref())?;
     if course.course.id != id {
         return Err(error("博雅课程详情标识与请求不一致"));
     }

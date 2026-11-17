@@ -3,7 +3,6 @@
 
 use std::f64::consts::PI;
 
-use chrono::Local;
 use rand::RngExt;
 use rand::seq::IndexedRandom;
 use serde::Deserialize;
@@ -136,7 +135,7 @@ pub(crate) async fn preflight_sign_course(
         chosen.checkin,
         chosen.pass,
         config.as_ref(),
-        Local::now().naive_local(),
+        super::campus_now(),
     );
     let eligibility = if request.sign_type == 1 {
         sign

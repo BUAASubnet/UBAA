@@ -1,7 +1,7 @@
 //! 博雅响应信封、课程、选课记录和统计解析。
 #![allow(clippy::missing_errors_doc)]
 
-use chrono::{Local, NaiveDateTime};
+use chrono::NaiveDateTime;
 use serde_json::{Map, Value};
 
 use super::error;
@@ -285,7 +285,7 @@ pub(super) fn parse_courses_at(
 
 /// 解析课程详情。
 pub(crate) fn parse_course_detail(value: &Value) -> Result<BykcCourse> {
-    course(value, Local::now().naive_local())
+    course(value, super::campus_now())
 }
 
 pub(super) fn parse_course_detail_for_write(value: &Value) -> Result<BykcCourse> {
@@ -294,16 +294,16 @@ pub(super) fn parse_course_detail_for_write(value: &Value) -> Result<BykcCourse>
         .ok_or_else(|| error("博雅课程详情结构无效"))?;
     ensure_optional_i32(map, "courseCurrentCount")?;
     ensure_optional_i32(map, "courseMaxCount")?;
-    course(value, Local::now().naive_local())
+    course(value, super::campus_now())
 }
 
 /// 解析已选课程列表。
 pub(crate) fn parse_chosen_courses(payload: &Value) -> Result<Vec<BykcChosenCourse>> {
-    parse_chosen_courses_at(payload, Local::now().naive_local())
+    parse_chosen_courses_at(payload, super::campus_now())
 }
 
 pub(super) fn parse_chosen_courses_for_write(payload: &Value) -> Result<Vec<BykcChosenCourse>> {
-    parse_chosen_courses_at_for_purpose(payload, Local::now().naive_local(), true)
+    parse_chosen_courses_at_for_purpose(payload, super::campus_now(), true)
 }
 
 pub(super) fn parse_chosen_courses_at(
