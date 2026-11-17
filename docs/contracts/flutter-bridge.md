@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `73`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `74`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
