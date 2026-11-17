@@ -28,7 +28,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   StreamSubscription<void>? _updatePromptSubscription;
   bool _updatePromptOpen = false;
   bool _appServicePopupOpen = false;
-  String? _shownUpdateVersion;
+  bool _updateReminderLoaded = false;
+  String? _snoozedUpdateVersion;
+  DateTime? _updateReminderAt;
+  Timer? _updateReminderTimer;
   ModalRoute<dynamic>? _loginSheetRoute;
   bool _captchaDialogScheduled = false;
   UiError? _scheduledHomeFeedback;
@@ -278,6 +281,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
     _controller.addListener(_syncAppServicePopup);
+    unawaited(_loadUpdateReminder());
     _updatePromptSubscription = _controller.updatePromptRequests.listen(
       (_) => unawaited(_showUpdatePrompt()),
     );
@@ -318,6 +322,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void dispose() {
     _disposed = true;
     _appServiceTimer?.cancel();
+    _updateReminderTimer?.cancel();
     _crashHandlers?.dispose();
     _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
@@ -362,6 +367,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (_readyController == null) return;
       _listenNetworkChanges();
       _controller.setAppForeground(true);
+      _syncAppServicePopup();
       unawaited(_attemptAppService(force: false));
       unawaited(_controller.refreshAppBootstrap());
       if (_recoveryInFlight) return;

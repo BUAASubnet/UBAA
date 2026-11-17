@@ -94,7 +94,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('新版本先弹窗，关闭后依次显示公告且重启不重复提示', (tester) async {
+  testWidgets('新版本先弹窗，关闭后依次显示公告且一小时内重启不重复提示', (tester) async {
     final backend = _GateBackend(
       gate: false,
       available: true,
@@ -109,7 +109,10 @@ void main() {
     );
     await tester.tap(find.text('稍后'));
     await tester.pumpAndSettle();
-    expect(backend.dismissed, ['2.0.0+20']);
+    expect(
+      await backend.preferences.read('flutter.ubaa.update_reminder'),
+      startsWith('2.0.0+20\n'),
+    );
     expect(
       find.byKey(const ValueKey('announcement-dialog-banner-1')),
       findsOneWidget,
@@ -123,14 +126,17 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('新版本弹窗可以前往下载且再次启动不重复弹出', (tester) async {
+  testWidgets('新版本弹窗可以前往下载且一小时内再次启动不重复弹出', (tester) async {
     final backend = _GateBackend(gate: false, available: true);
     final opened = <Uri>[];
     await _mount(tester, backend, opened);
     await tester.tap(find.widgetWithText(FilledButton, '前往更新'));
     await tester.pumpAndSettle();
     expect(opened, [_updateUrl]);
-    expect(backend.dismissed, ['2.0.0+20']);
+    expect(
+      await backend.preferences.read('flutter.ubaa.update_reminder'),
+      startsWith('2.0.0+20\n'),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await _mount(tester, backend, opened);
     expect(find.text('新版本 2.0.0+20'), findsNothing);
@@ -174,6 +180,7 @@ Future<void> _mount(
   await tester.pumpWidget(
     UbaaAppHost(
       backend: backend,
+      preferenceValues: backend.preferences,
       urlOpener: (url) async {
         opened.add(url);
         return true;
@@ -187,6 +194,7 @@ Future<void> _mount(
 class _GateBackend extends DemoBackend implements AppBootstrapBackend {
   _GateBackend({this.gate = true, this.available = false});
   final bool available;
+  final preferences = MemoryPreferenceValues();
   String latestVersion = '2.0.0+20';
   final dismissed = <String>[];
   final bool gate;

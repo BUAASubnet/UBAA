@@ -85,10 +85,55 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
     }
   }
 
-  /// 新版本优先，公告逐条显示，关闭后保存对应版本或公告的已读状态。
+  static const _updateReminderKey = 'flutter.ubaa.update_reminder';
+
+  Future<void> _loadUpdateReminder() async {
+    try {
+      final saved = await _preferences.read(_updateReminderKey);
+      final parts = saved?.split('\n');
+      if (parts != null && parts.length == 2) {
+        _snoozedUpdateVersion = parts[0];
+        _updateReminderAt = DateTime.tryParse(parts[1]);
+      }
+    } on Object {
+      // 普通偏好读取失败时仍允许显示更新提示。
+    }
+    if (_disposed) return;
+    _updateReminderLoaded = true;
+    _scheduleUpdateReminder();
+    _syncAppServicePopup();
+  }
+
+  void _scheduleUpdateReminder() {
+    _updateReminderTimer?.cancel();
+    final at = _updateReminderAt;
+    if (_disposed || at == null || !DateTime.now().isBefore(at)) return;
+    _updateReminderTimer = Timer(
+      at.difference(DateTime.now()),
+      _syncAppServicePopup,
+    );
+  }
+
+  Future<void> _snoozeUpdate(String version) async {
+    _snoozedUpdateVersion = version;
+    _updateReminderAt = DateTime.now().add(const Duration(hours: 1));
+    _scheduleUpdateReminder();
+    try {
+      await _preferences.write(
+        _updateReminderKey,
+        '$version\n${_updateReminderAt!.toIso8601String()}',
+      );
+    } on Object {
+      // 保存失败时，本次运行仍保持一小时的提醒间隔。
+    }
+  }
+
+  /// 新版本优先，公告逐条显示，更新关闭后一小时再提醒，公告确认后保存已读状态。
   void _syncAppServicePopup() {
     if (_disposed ||
         _readyController == null ||
+        !_updateReminderLoaded ||
+        _wasBackgrounded ||
         _appServicePopupOpen ||
         _updatePromptOpen)
       return;
@@ -98,9 +143,10 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
         update != null &&
         !update.gateActive &&
         update.status == AppUpdateStatus.updateAvailable &&
-        !update.availableDismissed &&
         version != null &&
-        version != _shownUpdateVersion;
+        !(version == _snoozedUpdateVersion &&
+            _updateReminderAt != null &&
+            DateTime.now().isBefore(_updateReminderAt!));
     final next = _controller.pendingAnnouncements.firstOrNull;
     if (!showUpdate && next == null) return;
     _appServicePopupOpen = true;
@@ -113,12 +159,10 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
           final current = _controller.appUpdate;
           if (current?.latestVersion != version ||
               current?.status != AppUpdateStatus.updateAvailable ||
-              current!.availableDismissed ||
-              current.gateActive) {
+              current!.gateActive) {
             continueQueue = true;
             return;
           }
-          _shownUpdateVersion = version;
           final go = await uiShowReleaseNotes(
             context,
             version: version,
@@ -126,9 +170,7 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
             canUpdate: current.url != null,
           );
           if (_disposed) return;
-          if (_controller.appUpdate?.latestVersion == version) {
-            await _controller.dismissUpdateAvailable();
-          }
+          await _snoozeUpdate(version);
           if (go && current.url != null) await _openAppServiceUrl(current.url!);
           continueQueue = true;
         } else if (next != null) {
@@ -157,5 +199,6 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
         if (!_disposed && continueQueue) _syncAppServicePopup();
       }
     });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 }
