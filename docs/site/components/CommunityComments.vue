@@ -2,9 +2,11 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useData } from 'vitepress'
 import 'artalk/Artalk.css'
+import { prepareGuest } from './comment_identity.js'
 
 const container = ref(null)
 const failed = ref(false)
+const management = ref(false)
 const { isDark } = useData()
 let comments
 let disposed = false
@@ -14,6 +16,7 @@ async function load() {
   try {
     const { default: Artalk } = await import('artalk')
     if (disposed) return
+    management.value = new URLSearchParams(location.search).get('manage') === '1'
     comments = Artalk.init({
       el: container.value,
       server: 'https://www.ubaa.top/comments-api/',
@@ -28,7 +31,17 @@ async function load() {
       emoticons: false,
       imgUpload: false,
       avatarURLBuilder: () => '/favicon.png',
+      beforeSubmit: (editor, next) => {
+        if (!management.value) prepareGuest(comments.ctx.getUser(), localStorage)
+        next()
+      },
     })
+    if (!management.value) {
+      prepareGuest(comments.ctx.getUser(), localStorage)
+      const fields = comments.ctx.editor.getHeaderInputEls()
+      fields.email.value = comments.ctx.getUser().getData().email
+      fields.link.value = ''
+    }
   } catch {
     failed.value = true
   }
@@ -43,7 +56,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section aria-label="留言区" class="community-comments">
+  <section aria-label="留言区" class="community-comments" :class="{ 'guest-comments': !management }">
     <p v-if="failed" role="alert">
       留言区暂时无法加载。<button type="button" @click="load">重新加载</button>
     </p>
@@ -56,6 +69,10 @@ onBeforeUnmount(() => {
   margin: 28px 0;
   --at-color-main: var(--vp-c-brand-1);
   --at-color-bg: var(--vp-c-bg);
+}
+.guest-comments :deep(.atk-header input[name="email"]),
+.guest-comments :deep(.atk-header input[name="link"]) {
+  display: none;
 }
 button {
   color: var(--vp-c-brand-1);
