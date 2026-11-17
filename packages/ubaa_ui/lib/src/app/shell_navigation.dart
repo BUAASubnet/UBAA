@@ -1,6 +1,5 @@
 part of 'shell.dart';
 
-/// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
   void _goBack() {
     if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
@@ -67,7 +66,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     _openHomeNavigation(target);
   }
 
-  /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == '图书馆云打印'
             ? CloudPrintView(
@@ -102,10 +100,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 service: widget.ihomeService,
               )
             : _utilityPage == healthCloudTitle
-            ? HealthCloudView(
-                key: ValueKey(_pageContentScope),
-                read: widget.healthCloudRead,
-              )
+            ? HealthCloudView(read: widget.healthCloudRead)
             : _utilityPage == '财务查询'
             ? FinanceView(
                 key: ValueKey(_pageContentScope),
@@ -124,7 +119,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       : MediaQuery.sizeOf(context).width >= 600
       ? _buildTabPage(context, _selectedIndex)
       : _buildTabPager(context);
-
   Widget _buildTabPager(BuildContext context) {
     _tabPager = currentTabPager(_tabPager, _selectedIndex);
     return TabPager(
@@ -275,7 +269,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     ),
     _ => _buildProfile(),
   };
-
   Widget _buildProfile() => ProfileView(
     cacheAccountId: widget.cacheAccountId,
     canClearBusinessCache: widget.canClearBusinessCache,
@@ -297,7 +290,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onReadDiagnostics: widget.onReadDiagnostics,
     appearance: widget.appearance,
   );
-
   Widget _buildRailContent(BuildContext context) {
     final extended = MediaQuery.sizeOf(context).width >= 1000;
     final colors = Theme.of(context).colorScheme;
@@ -438,7 +430,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onTap: onTap ?? () => _selectTab(UiDestination.me.index),
   );
 
-  /// 写操作进行中不退出；侧栏不再放退出入口，统一在设置页的「账号」分组。
   Future<void> _logout() async {
     if (widget.writeState.intent != null) return;
     await widget.onLogout();
