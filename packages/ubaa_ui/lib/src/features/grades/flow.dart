@@ -112,8 +112,8 @@ class _GradesFlowState extends State<GradesFlow> {
     final value = snapshot.overview;
     final aggregate = _aggregate;
     final terms = aggregate?.terms ?? const <GradeTermRead>[];
-    final savedTerm = terms.where((term) => term.overview != null).firstOrNull;
-    final current = value is GradesTermOverview ? value : savedTerm?.overview;
+    // 总览缓存不提供当前学期，等待页面的学期读取确定后再显示学期内容。
+    final current = value is GradesTermOverview ? value : null;
     if (current == null) {
       if (aggregate == null || aggregate.error != null) return widget.fallback;
       return ListView(
@@ -128,23 +128,21 @@ class _GradesFlowState extends State<GradesFlow> {
         ],
       );
     }
-    final currentDetails = value is GradesTermOverview
-        ? snapshot.details
-        : savedTerm!.result.details;
-    final selectedCode = _selectedTermCode ?? current.termCode;
-    var termIndex = terms.indexWhere((t) => t.code == selectedCode);
-    if (termIndex == -1) termIndex = 0;
+    final selectedCode = terms.any((term) => term.code == _selectedTermCode)
+        ? _selectedTermCode!
+        : current.termCode;
+    final termIndex = terms.indexWhere((t) => t.code == selectedCode);
     final hasTerms = terms.length > 1;
-    final activeTerm = hasTerms ? terms[termIndex] : null;
+    final activeTerm = termIndex >= 0 ? terms[termIndex] : null;
     final isCurrentTerm =
         activeTerm == null || activeTerm.code == current.termCode;
     final currentSuffix = current.statistics == null ? '（本学期）' : '';
     final activeOverview = isCurrentTerm ? current : activeTerm.overview;
     final activeDetails = isCurrentTerm
-        ? currentDetails
+        ? snapshot.details
         : activeTerm.result.details;
     final canPrev = hasTerms && termIndex > 0;
-    final canNext = hasTerms && termIndex < terms.length - 1;
+    final canNext = hasTerms && termIndex >= 0 && termIndex < terms.length - 1;
 
     final theme = Theme.of(context);
     final localQ = _localSearch.trim().toLowerCase();
