@@ -46,6 +46,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void _preferencesChanged() => setState(() => _preferenceRevision++);
   int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
+  int _accentRevision = 0;
+  UbaaAccent _accent = UbaaAccent.blue;
 
   late final _nativeTheme = widget.nativeThemeSync ?? NativeThemeSync();
 
@@ -54,6 +56,22 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     setState(() => _themeMode = value);
     unawaited(_themeStore.write(value.name).catchError((Object _) {}));
     unawaited(_nativeTheme.apply(value.name));
+  }
+
+  void _setAccent(UbaaAccent value) {
+    if (value == _accent) return;
+    _accentRevision++;
+    setState(() => _accent = value);
+    unawaited(_themeStore.writeAccent(value.name).catchError((Object _) {}));
+  }
+
+  Future<void> _restoreAccent() async {
+    final revision = _accentRevision;
+    final value = UbaaAccent.parse(await _themeStore.readAccent());
+    // 本次打开后用户已选择的主题色优先于迟到的读取结果。
+    if (mounted && revision == _accentRevision && value != _accent) {
+      setState(() => _accent = value);
+    }
   }
 
   Future<void> _restoreTheme() async {
@@ -188,6 +206,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _themeMode = widget.initialThemeMode;
+    _accent = widget.initialAccent;
     _wasBackgrounded = switch (WidgetsBinding.instance.lifecycleState) {
       AppLifecycleState.paused ||
       AppLifecycleState.hidden ||
@@ -227,6 +246,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
           );
     _themeStore = ThemePreferenceStore(values: preferences);
     unawaited(_restoreTheme());
+    unawaited(_restoreAccent());
     _reminderStore =
         widget.reminderStore ??
         (backend != null || widget.backendFactory != null

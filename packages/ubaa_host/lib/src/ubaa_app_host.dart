@@ -35,6 +35,7 @@ Future<void> bootstrapUbaaHost({
   required Future<PlatformCapabilities> Function() createCapabilities,
   required void Function(Widget app) runApplication,
   Future<ThemeMode> Function()? readThemeMode,
+  Future<UbaaAccent> Function()? readAccent,
   PreferenceValues? preferenceValues,
   PlatformAppInformation? appInformation,
   DiagnosticReportExporter reportExporter = const DiagnosticReportExporter(),
@@ -45,14 +46,20 @@ Future<void> bootstrapUbaaHost({
   final diagnostics = _newStartupDiagnostics(preferences);
   unawaited(_readDiagnosticVersion(diagnostics, information));
   // 首帧前有限等待保存的主题，启动页与宿主使用同一初值。
-  final themeMode = await _readStartupThemeMode(
-    readThemeMode ??
-        () async => ThemeMode.values.byName(
-          await ThemePreferenceStore(values: preferences).read(),
-        ),
-  );
+  final themeStore = ThemePreferenceStore(values: preferences);
+  final (themeMode, accent) = await (
+    _readStartupPreference(
+      readThemeMode ??
+          () async => ThemeMode.values.byName(await themeStore.read()),
+      ThemeMode.system,
+    ),
+    _readStartupPreference(
+      readAccent ?? () async => UbaaAccent.parse(await themeStore.readAccent()),
+      UbaaAccent.blue,
+    ),
+  ).wait;
   // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
-  runApplication(UbaaBootSplash(themeMode: themeMode));
+  runApplication(UbaaBootSplash(themeMode: themeMode, accent: accent));
   var stage = DiagnosticInitializationStage.sdk;
   try {
     await initializeSdk();
@@ -70,6 +77,7 @@ Future<void> bootstrapUbaaHost({
         permissionGateway: capabilities.permissionGateway,
         locationProvider: capabilities.locationProvider,
         initialThemeMode: themeMode,
+        initialAccent: accent,
         preferenceValues: preferences,
         appInformation: information,
         diagnosticReportExporter: reportExporter,
@@ -81,6 +89,7 @@ Future<void> bootstrapUbaaHost({
     runApplication(
       _startupApplication(
         themeMode: themeMode,
+        accent: accent,
         reportExporter: reportExporter,
         openLink: information.open,
         home: _StartupFailure(
@@ -94,28 +103,36 @@ Future<void> bootstrapUbaaHost({
   }
 }
 
-/// 有限等待偏好读取；超时或失败时跟随系统，继续启动首帧。
-Future<ThemeMode> _readStartupThemeMode(
-  Future<ThemeMode> Function() read,
+/// 有限等待偏好读取；超时或失败时使用默认外观，继续启动首帧。
+Future<T> _readStartupPreference<T>(
+  Future<T> Function() read,
+  T fallback,
 ) async {
   try {
-    return await Future<ThemeMode>.sync(read).timeout(
-      const Duration(milliseconds: 300),
-      onTimeout: () => ThemeMode.system,
-    );
+    return await Future<T>.sync(
+      read,
+    ).timeout(const Duration(milliseconds: 300), onTimeout: () => fallback);
   } on Object {
-    return ThemeMode.system;
+    return fallback;
   }
 }
 
 /// 启动页使用首帧前读出的主题，与宿主保持一致。
 class UbaaBootSplash extends StatelessWidget {
-  const UbaaBootSplash({super.key, this.themeMode = ThemeMode.system});
+  const UbaaBootSplash({
+    super.key,
+    this.themeMode = ThemeMode.system,
+    this.accent = UbaaAccent.blue,
+  });
   final ThemeMode themeMode;
+  final UbaaAccent accent;
 
   @override
-  Widget build(BuildContext context) =>
-      _startupApplication(themeMode: themeMode, home: const UbaaSplashView());
+  Widget build(BuildContext context) => _startupApplication(
+    themeMode: themeMode,
+    accent: accent,
+    home: const UbaaSplashView(),
+  );
 }
 
 /// Flutter 与 HarmonyOS 共用的应用组合根。
@@ -139,6 +156,7 @@ class UbaaAppHost extends StatefulWidget {
     this.bhpanFileSaver = const SystemBhpanFileSaver(),
     this.bhpanFilePreviewer = const SystemBhpanFilePreviewer(),
     this.initialThemeMode = ThemeMode.system,
+    this.initialAccent = UbaaAccent.blue,
     this.nativeThemeSync,
     this.telemetry,
     this.reminderStore,
@@ -179,6 +197,7 @@ class UbaaAppHost extends StatefulWidget {
 
   /// 启动时已读出的主题；宿主随后仍会从偏好复核。
   final ThemeMode initialThemeMode;
+  final UbaaAccent initialAccent;
   final NativeThemeSync? nativeThemeSync;
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;

@@ -55,4 +55,17 @@ void main() {
     values.fail = true;
     expect(await store.read(), 'system');
   });
+  test('主题色跨实例恢复，缺失、损坏或失败时交给宿主回落默认', () async {
+    final values = FakePreferences();
+    final store = ThemePreferenceStore(values: values);
+    expect(await store.readAccent(), isNull);
+    await store.writeAccent('teal');
+    expect(await ThemePreferenceStore(values: values).readAccent(), 'teal');
+    expect(await store.read(), 'system');
+    await expectLater(store.writeAccent('Teal!'), throwsArgumentError);
+    values.values.updateAll((_, _) => '损坏');
+    expect(await store.readAccent(), isNull);
+    values.fail = true;
+    expect(await store.readAccent(), isNull);
+  });
 }

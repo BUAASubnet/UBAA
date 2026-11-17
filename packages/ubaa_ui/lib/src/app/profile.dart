@@ -27,8 +27,7 @@ class ProfileView extends StatelessWidget {
     this.canClearBusinessCache = true,
     this.onReadCacheUsage,
     this.onClearBusinessCache,
-    this.themeMode = ThemeMode.system,
-    this.onThemeModeChanged,
+    this.appearance = const UiAppearanceSettings(),
   });
 
   final bool settingsOnly;
@@ -37,8 +36,7 @@ class ProfileView extends StatelessWidget {
   final bool canClearBusinessCache;
   final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
   final Future<CacheClearOutcome> Function(String)? onClearBusinessCache;
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final UiAppearanceSettings appearance;
   final UserSummary? user;
   final RoutePolicy routePolicy;
 
@@ -55,6 +53,44 @@ class ProfileView extends StatelessWidget {
       onReadCacheUsage != null &&
       onClearBusinessCache != null;
 
+  Widget _themeModeTile() => LayoutBuilder(
+    builder: (context, constraints) {
+      final picker = SegmentedButton<ThemeMode>(
+        key: const ValueKey('theme-mode'),
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: ThemeMode.system, label: Text('跟随系统')),
+          ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
+          ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
+        ],
+        selected: {appearance.themeMode},
+        onSelectionChanged: switch (appearance.onThemeModeChanged) {
+          null => null,
+          final changed => (value) => changed(value.single),
+        },
+      );
+      // 宽屏把选择放在行尾，不把三个选项拉成整行宽。
+      final inline =
+          constraints.maxWidth >= MediaQuery.textScalerOf(context).scale(600);
+      return ListTile(
+        leading: const Icon(Icons.palette_outlined),
+        title: const Text('外观主题'),
+        trailing: inline
+            ? SizedBox(
+                width: MediaQuery.textScalerOf(context).scale(300),
+                child: picker,
+              )
+            : null,
+        subtitle: inline
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SizedBox(width: double.infinity, child: picker),
+              ),
+      );
+    },
+  );
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: UbaaTheme.pageInsets(context, top: 8),
@@ -63,42 +99,15 @@ class ProfileView extends StatelessWidget {
       if (settingsOnly) ...[
         const UiSectionTitle('个性化'),
         Card(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final picker = SegmentedButton<ThemeMode>(
-                key: const ValueKey('theme-mode'),
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: ThemeMode.system, label: Text('跟随系统')),
-                  ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
-                  ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
-                ],
-                selected: {themeMode},
-                onSelectionChanged: onThemeModeChanged == null
-                    ? null
-                    : (value) => onThemeModeChanged!(value.single),
-              );
-              // 宽屏把选择放在行尾，不把三个选项拉成整行宽。
-              final inline =
-                  constraints.maxWidth >=
-                  MediaQuery.textScalerOf(context).scale(600);
-              return ListTile(
-                leading: const Icon(Icons.palette_outlined),
-                title: const Text('外观主题'),
-                trailing: inline
-                    ? SizedBox(
-                        width: MediaQuery.textScalerOf(context).scale(300),
-                        child: picker,
-                      )
-                    : null,
-                subtitle: inline
-                    ? null
-                    : Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: SizedBox(width: double.infinity, child: picker),
-                      ),
-              );
-            },
+          child: Column(
+            children: [
+              _themeModeTile(),
+              const Divider(height: 1),
+              _AccentTile(
+                selected: appearance.accent,
+                onChanged: appearance.onAccentChanged,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -242,5 +251,97 @@ class ProfileView extends StatelessWidget {
         }
       }
     }
+  }
+}
+
+/// 主题色预设：色块展示当前明暗下的实际主色，宽屏放在行尾。
+class _AccentTile extends StatelessWidget {
+  const _AccentTile({required this.selected, required this.onChanged});
+  final UbaaAccent selected;
+  final ValueChanged<UbaaAccent>? onChanged;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scale = MediaQuery.textScalerOf(context);
+      // 触控区已含圆点间距，窄屏六个色块排成一行。
+      final swatches = Wrap(
+        children: [
+          for (final accent in UbaaAccent.values)
+            _AccentSwatch(
+              key: ValueKey('accent-${accent.name}'),
+              accent: accent,
+              selected: accent == selected,
+              onTap: onChanged == null ? null : () => onChanged!(accent),
+            ),
+        ],
+      );
+      final inline = constraints.maxWidth >= scale.scale(600);
+      return ListTile(
+        leading: const Icon(Icons.format_color_fill_outlined),
+        title: const Text('主题色'),
+        subtitle: inline
+            ? Text(selected.label)
+            : Padding(padding: const EdgeInsets.only(top: 8), child: swatches),
+        trailing: inline ? swatches : null,
+      );
+    },
+  );
+}
+
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    super.key,
+    required this.accent,
+    required this.selected,
+    required this.onTap,
+  });
+  final UbaaAccent accent;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final fill = UbaaTheme.accentPrimary(accent, colors.brightness);
+    final mark = ThemeData.estimateBrightnessForColor(fill) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: accent.label,
+      child: Tooltip(
+        message: accent.label,
+        excludeFromSemantics: true,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 24,
+          child: SizedBox.square(
+            dimension: 44,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: fill,
+                  shape: BoxShape.circle,
+                  // 选中项外加一圈正文色描边，不只靠对钩区分。
+                  border: Border.all(
+                    color: selected ? colors.onSurface : Colors.transparent,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignOutside,
+                  ),
+                ),
+                child: selected
+                    ? Icon(Icons.check, size: 18, color: mark)
+                    : null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

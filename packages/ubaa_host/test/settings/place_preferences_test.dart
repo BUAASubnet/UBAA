@@ -26,7 +26,7 @@ void main() {
       await tester.pumpAndSettle();
       final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
       expect(shell.placePreferences, {UiPlaceKeys.libbookLibrary: '合成馆'});
-      expect(shell.themeMode, ThemeMode.dark);
+      expect(shell.appearance.themeMode, ThemeMode.dark);
       await shell.onSavePlacePreference!(UiPlaceKeys.libbookArea, '合成分区');
       expect((await places.read('fixture'))[UiPlaceKeys.libbookArea], '合成分区');
       await shell.onSavePlacePreference!('未知键', '拒绝值');

@@ -163,6 +163,61 @@ void main() {
       expect(modes, ['dark']);
     }
   });
+
+  testWidgets('个人页主题色即时生效、写入设备偏好并在新宿主恢复', (tester) async {
+    _setSize(tester);
+    final preferences = MemoryPreferenceValues();
+    Future<void> mount(String key) async {
+      await tester.pumpWidget(
+        UbaaAppHost(
+          key: ValueKey<String>(key),
+          preferenceValues: preferences,
+          backend: _CountingBackend(),
+          credentialVault: MemoryCredentialVault(),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await mount('first');
+    await _login(tester);
+    await _profile(tester);
+    Color primary() => Theme.of(
+      tester.element(find.byType(UbaaMainShell)),
+    ).colorScheme.primary;
+    expect(primary(), UbaaTheme.light().colorScheme.primary);
+    final swatch = find.byKey(const ValueKey('accent-teal'));
+    await tester.ensureVisible(swatch);
+    await tester.tap(swatch);
+    await tester.pumpAndSettle();
+    expect(
+      primary(),
+      UbaaTheme.light(accent: UbaaAccent.teal).colorScheme.primary,
+    );
+    expect(
+      tester.getSemantics(swatch),
+      matchesSemantics(
+        label: '青碧',
+        isSelected: true,
+        isButton: true,
+        hasTapAction: true,
+        hasSelectedState: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+    expect(
+      await ThemePreferenceStore(values: preferences).readAccent(),
+      'teal',
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await mount('second');
+    expect(
+      Theme.of(tester.element(find.byType(UbaaLoginView))).colorScheme.primary,
+      UbaaTheme.light(accent: UbaaAccent.teal).colorScheme.primary,
+    );
+  });
 }
 
 class _CountingBackend extends DemoBackend {

@@ -83,8 +83,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onRefreshWriteReadbacks,
     this.onReconnect,
     this.onCompleteLogin,
-    this.themeMode = ThemeMode.system,
-    this.onThemeModeChanged,
+    this.appearance = const UiAppearanceSettings(),
     this.readCacheEpoch = 0,
     this.businessCacheEpoch = 0,
     this.localPreferencesRevision = 0,
@@ -212,8 +211,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function()? onRefreshWriteReadbacks;
   final VoidCallback? onReconnect;
   final ValueChanged<BuildContext>? onCompleteLogin;
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final UiAppearanceSettings appearance;
 
   final int readCacheEpoch;
   final int businessCacheEpoch;

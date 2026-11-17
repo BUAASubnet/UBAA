@@ -74,7 +74,10 @@ final class ThemePreferenceStore {
     : _values = values ?? PluginPreferenceValues();
   final PreferenceValues _values;
   static const _key = 'flutter.ubaa.preferences.theme';
+  static const _accentKey = 'flutter.ubaa.preferences.accent';
   static const _modes = {'system', 'light', 'dark'};
+  // 平台层不认识具体预设，只校验标识形状；未知预设由界面回落默认。
+  static final _accentName = RegExp(r'^[a-z]{1,32}$');
   Future<void> _tail = Future.value();
   Future<String> read() async {
     try {
@@ -87,7 +90,28 @@ final class ThemePreferenceStore {
 
   Future<void> write(String mode) {
     if (!_modes.contains(mode)) return Future.error(ArgumentError('未知主题'));
-    final next = _tail.then((_) => _values.write(_key, mode));
+    return _enqueue(_key, mode);
+  }
+
+  /// 保存的主题色标识；缺失、损坏或读取失败时为 null。
+  Future<String?> readAccent() async {
+    try {
+      final value = await _values.read(_accentKey);
+      return value != null && _accentName.hasMatch(value) ? value : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> writeAccent(String name) {
+    if (!_accentName.hasMatch(name)) {
+      return Future.error(ArgumentError('未知主题色'));
+    }
+    return _enqueue(_accentKey, name);
+  }
+
+  Future<void> _enqueue(String key, String value) {
+    final next = _tail.then((_) => _values.write(key, value));
     _tail = next.then<void>((_) {}, onError: (Object _) {});
     return next;
   }

@@ -1,8 +1,63 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'shared/monday_first_localizations.dart';
 
-/// 共享 Material 3 设计变量；宿主只选择亮度，不持久化偏好。
+/// 用户可选的主题色预设；持久化时只保存 [name]，色值可随版本调整。
+///
+/// 色相避开成功（绿）、警告（橙）和错误（红）的语义色，石墨为低饱和中性预设。
+enum UbaaAccent {
+  blue('默认蓝', Color(0xFF1976D2)),
+  indigo('靛蓝', Color(0xFF3F51B5)),
+  teal('青碧', Color(0xFF00838F)),
+  purple('紫罗兰', Color(0xFF7B4FC2)),
+  rose('玫红', Color(0xFFB82E8A)),
+  graphite('石墨', Color(0xFF5B6B78));
+
+  const UbaaAccent(this.label, this.seed);
+  final String label;
+
+  /// 色块展示色，也是重新着色时的色相与饱和度来源。
+  final Color seed;
+
+  static UbaaAccent parse(String? name) =>
+      values.asNameMap()[name] ?? UbaaAccent.blue;
+
+  /// 把默认蓝里手调的颜色换成本预设的色相，并保持相对亮度不变；
+  /// 对比度只取决于相对亮度，因此各预设沿用默认蓝已核对过的对比度。
+  Color retint(Color color) {
+    if (this == UbaaAccent.blue) return color;
+    final source = HSLColor.fromColor(color);
+    if (source.saturation == 0) return color;
+    final from = HSLColor.fromColor(UbaaAccent.blue.seed);
+    final to = HSLColor.fromColor(seed);
+    // 只降不升：低饱和预设（石墨）随之变灰，高饱和预设不把浅底调得刺眼。
+    final saturation =
+        source.saturation * math.min(1.0, to.saturation / from.saturation);
+    return UbaaTheme.atLuminance(
+      source.withHue(to.hue).withSaturation(saturation).toColor(),
+      color.computeLuminance(),
+    );
+  }
+}
+
+/// 设备外观偏好与修改回调：宿主持有并保存，设置页只展示和回调。
+@immutable
+class UiAppearanceSettings {
+  const UiAppearanceSettings({
+    this.themeMode = ThemeMode.system,
+    this.onThemeModeChanged,
+    this.accent = UbaaAccent.blue,
+    this.onAccentChanged,
+  });
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final UbaaAccent accent;
+  final ValueChanged<UbaaAccent>? onAccentChanged;
+}
+
+/// 共享 Material 3 设计变量；宿主选择亮度与主题色，不在此持久化偏好。
 class UbaaTheme {
   const UbaaTheme._();
 
@@ -22,6 +77,11 @@ class UbaaTheme {
   static String? debugFontFamily;
 
   static const Color seedColor = Color(0xFF1976D2);
+  static const Color _darkPrimary = Color(0xFF83BEF7);
+
+  /// 预设在指定明暗下的主色，供色块预览，与主题实际主色一致。
+  static Color accentPrimary(UbaaAccent accent, Brightness brightness) =>
+      accent.retint(brightness == Brightness.dark ? _darkPrimary : seedColor);
   static const double pageMaxWidth = 1040;
   static const double cardRadius = 16;
   static const double controlRadius = 12;
@@ -77,27 +137,30 @@ class UbaaTheme {
     return EdgeInsets.fromLTRB(gutter, top ?? gutter, gutter, bottom ?? gutter);
   }
 
-  static ThemeData light() => _build(Brightness.light);
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData light({UbaaAccent accent = UbaaAccent.blue}) =>
+      _build(Brightness.light, accent);
+  static ThemeData dark({UbaaAccent accent = UbaaAccent.blue}) =>
+      _build(Brightness.dark, accent);
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData _build(Brightness brightness, UbaaAccent accent) {
     final dark = brightness == Brightness.dark;
+    final tint = accent.retint;
     // 浅底与正文建立层次，图标蓝串联导航、来源和操作。
     // 明暗主题按角色配对，区分品牌强调与普通状态。
-    final accentContainer = dark
-        ? const Color(0xFF183F64)
-        : const Color(0xFFE3F0FC);
-    final onAccentContainer = dark
-        ? const Color(0xFFB8DAFC)
-        : const Color(0xFF125EA7);
+    final accentContainer = tint(
+      dark ? const Color(0xFF183F64) : const Color(0xFFE3F0FC),
+    );
+    final onAccentContainer = tint(
+      dark ? const Color(0xFFB8DAFC) : const Color(0xFF125EA7),
+    );
     final colors =
         ColorScheme.fromSeed(
           seedColor: seedColor,
           brightness: brightness,
           dynamicSchemeVariant: DynamicSchemeVariant.neutral,
         ).copyWith(
-          primary: dark ? const Color(0xFF83BEF7) : seedColor,
-          onPrimary: dark ? const Color(0xFF082F49) : Colors.white,
+          primary: accentPrimary(accent, brightness),
+          onPrimary: tint(dark ? const Color(0xFF082F49) : Colors.white),
           primaryContainer: accentContainer,
           onPrimaryContainer: onAccentContainer,
           secondary: dark ? const Color(0xFFBEC5CD) : const Color(0xFF596B7E),
@@ -110,9 +173,10 @@ class UbaaTheme {
           surfaceBright: dark ? const Color(0xFF3F444A) : null,
           surfaceContainerLowest: dark ? const Color(0xFF07080B) : Colors.white,
           surfaceContainerLow: dark ? const Color(0xFF1F2226) : Colors.white,
+          // 浅色导航底带一点主题色，深色保持中性灰。
           surfaceContainer: dark
               ? const Color(0xFF24282D)
-              : const Color(0xFFEAF3FC),
+              : tint(const Color(0xFFEAF3FC)),
           surfaceContainerHigh: dark
               ? const Color(0xFF2D3136)
               : const Color(0xFFF1F4F7),
@@ -126,15 +190,15 @@ class UbaaTheme {
           outline: dark ? const Color(0xFF858D97) : const Color(0xFF757575),
           outlineVariant: dark
               ? const Color(0xFF3F444B)
-              : const Color(0xFFDBE5EF),
+              : tint(const Color(0xFFDBE5EF)),
           inverseSurface: dark
               ? const Color(0xFFE7EAED)
               : const Color(0xFF303030),
           onInverseSurface: dark
               ? const Color(0xFF24282D)
               : const Color(0xFFF5F5F5),
-          inversePrimary: dark ? seedColor : const Color(0xFF83BEF7),
-          surfaceTint: dark ? const Color(0xFF83BEF7) : seedColor,
+          inversePrimary: tint(dark ? seedColor : _darkPrimary),
+          surfaceTint: accentPrimary(accent, brightness),
         );
     final controlShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(controlRadius),

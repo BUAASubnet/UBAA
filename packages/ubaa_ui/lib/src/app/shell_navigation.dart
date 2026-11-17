@@ -286,8 +286,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
     activeRoutes: widget.activeRoutes,
     onReadDiagnostics: widget.onReadDiagnostics,
-    themeMode: widget.themeMode,
-    onThemeModeChanged: widget.onThemeModeChanged,
+    appearance: widget.appearance,
   );
 
   Widget _buildRailContent(BuildContext context) {

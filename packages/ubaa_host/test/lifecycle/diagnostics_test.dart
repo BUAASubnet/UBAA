@@ -50,6 +50,9 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('诊断信息'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('诊断信息'));
     await tester.pumpAndSettle();
     expect(backend.exports, 0);
