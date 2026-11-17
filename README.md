@@ -80,7 +80,7 @@ ubaa-cli --json grades list --term 2025-2026-1
 | 跨语言桥接 | [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) |
 | 界面 | Flutter + Dart，HarmonyOS 使用 OpenHarmony Flutter |
 | 本地存储 | SQLite、系统安全存储 |
-| 应用服务（更新与公告） | Cloudflare Workers（TypeScript）、D1、KV |
+| 应用服务（更新、公告与匿名统计） | Node.js（TypeScript）、PostgreSQL |
 | 文档站 | [VitePress](https://vitepress.dev) |
 
 ## 参与开发
