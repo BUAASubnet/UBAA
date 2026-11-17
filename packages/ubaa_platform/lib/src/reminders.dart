@@ -37,6 +37,7 @@ final class PreferencesYgdkReminderStore
          decode: _decode,
          encode: (value) => {
            'enabled': value.enabled,
+           'manualEnabled': value.manualEnabled,
            'weekDoneKey': value.weekDoneKey,
            'termDoneKey': value.termDoneKey,
          },
@@ -44,7 +45,8 @@ final class PreferencesYgdkReminderStore
   final AccountPreferences<YgdkReminderSettings> _store;
   static YgdkReminderSettings _decode(Object? value) {
     if (value is! Map<String, dynamic> ||
-        value.length != 3 ||
+        (value.length != 3 && value.length != 4) ||
+        (value['manualEnabled'] != null && value['manualEnabled'] is! bool) ||
         value['enabled'] is! bool ||
         (value['weekDoneKey'] != null && value['weekDoneKey'] is! String) ||
         (value['termDoneKey'] != null && value['termDoneKey'] is! String)) {
@@ -52,6 +54,11 @@ final class PreferencesYgdkReminderStore
     }
     return YgdkReminderSettings(
       enabled: value['enabled'] as bool,
+      manualEnabled: value.containsKey('manualEnabled')
+          ? value['manualEnabled'] as bool?
+          : value['enabled'] == false
+          ? false
+          : null,
       weekDoneKey: value['weekDoneKey'] as String?,
       termDoneKey: value['termDoneKey'] as String?,
     );

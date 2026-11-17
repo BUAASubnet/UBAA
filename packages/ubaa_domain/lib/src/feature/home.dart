@@ -87,17 +87,23 @@ String _homeRange(DateTime? start, DateTime? end, DateTime now) {
 final class YgdkReminderSettings {
   const YgdkReminderSettings({
     this.enabled = true,
+    this.manualEnabled,
     this.weekDoneKey,
     this.termDoneKey,
   });
   final bool enabled;
+
+  /// 用户手动选择优先于课表决定的默认值。
+  final bool? manualEnabled;
   final String? weekDoneKey, termDoneKey;
   YgdkReminderSettings copyWith({
     bool? enabled,
+    bool? manualEnabled,
     String? weekDoneKey,
     String? termDoneKey,
   }) => YgdkReminderSettings(
     enabled: enabled ?? this.enabled,
+    manualEnabled: manualEnabled ?? this.manualEnabled,
     weekDoneKey: weekDoneKey ?? this.weekDoneKey,
     termDoneKey: termDoneKey ?? this.termDoneKey,
   );

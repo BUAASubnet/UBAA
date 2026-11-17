@@ -2,24 +2,6 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
-  Widget _withRefreshShortcuts(
-    Widget shell,
-    Future<void> Function()? refreshPage,
-  ) {
-    // 桌面快捷键的父层级保持稳定，切页时只调整可用的绑定。
-    void refresh() => unawaited(refreshPage?.call());
-    return CallbackShortcuts(
-      bindings: {
-        if (refreshPage != null)
-          const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
-        if (refreshPage != null)
-          const SingleActivator(LogicalKeyboardKey.keyR, control: true):
-              refresh,
-      },
-      child: Focus(autofocus: true, child: shell),
-    );
-  }
-
   void _goBack() {
     if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {
@@ -235,7 +217,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       now: widget.homeClock == null
           ? null
           : campusDate(widget.homeClock!.now()),
-      reminder: _reminderSettings,
+      reminder:
+          _effectiveReminder ?? const YgdkReminderSettings(enabled: false),
       onOpenSchool: _openHomeNavigation,
       onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
       onImportSchedule: _importAgendaSchedule,
@@ -307,31 +290,11 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     onThemeModeChanged: widget.onThemeModeChanged,
   );
 
-  Widget _buildRail(BuildContext context) => ScrollConfiguration(
-    behavior: ScrollConfiguration.of(context).copyWith(
-      // 导航只在内容溢出时滚动，边界不随触摸板回弹。
-      physics: const ClampingScrollPhysics(),
-    ),
-    child: _buildRailContent(context),
-  );
-
   Widget _buildRailContent(BuildContext context) {
     final extended = MediaQuery.sizeOf(context).width >= 1000;
     final colors = Theme.of(context).colorScheme;
     if (!extended) {
-      final railButtonStyle =
-          IconButton.styleFrom(minimumSize: const Size(56, 48)).copyWith(
-            backgroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? colors.secondaryContainer
-                  : null,
-            ),
-            foregroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? colors.onSecondaryContainer
-                  : null,
-            ),
-          );
+      final railButtonStyle = homeRailButtonStyle(colors);
       // 矮窗口收紧间距、设置紧跟分组、省去“关于”（在“我的”页），不再遮住分组。
       return LayoutBuilder(
         builder: (context, constraints) {
