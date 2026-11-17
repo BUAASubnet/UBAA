@@ -14,6 +14,58 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../support/host/fakes.dart' show fixtureCapabilities;
 
 void main() {
+  testWidgets('设置分享完整诊断保留学校原文且不自动打开反馈', (tester) async {
+    const channel = MethodChannel('cn.edu.buaa.ubaa/agenda-file');
+    Map? shared;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method == 'shareReport') shared = call.arguments as Map;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    final backend = _RawDiagnosticBackend();
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backend: backend,
+        diagnosticReportExporter: const DiagnosticReportExporter(
+          operatingSystem: 'android',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(backend.exports, 0);
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('诊断信息'),
+      250,
+      scrollable: find.descendant(
+        of: find.byType(ProfileView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(find.text('诊断信息'));
+    await tester.pumpAndSettle();
+    expect(backend.exports, 0);
+    await tester.tap(find.text('分享完整诊断'));
+    await tester.pumpAndSettle();
+    expect(backend.exports, 1);
+    final report =
+        jsonDecode(utf8.decode((shared!['bytes'] as List).cast<int>())) as Map;
+    expect(report['schema_version'], 4);
+    expect(report['contains_sensitive_data'], true);
+    expect(
+      report['raw_http']['records'][0]['response']['body'],
+      'fixture-private-token',
+    );
+  });
+
   testWidgets('后端创建失败可分享对应报告，保留阶段、原始原因与构建版本', (tester) async {
     const channel = MethodChannel('cn.edu.buaa.ubaa/agenda-file');
     Map? shared;
@@ -214,4 +266,14 @@ class _SignedInBackend extends DemoBackend {
     username: 'fixture-private-account',
     displayName: 'fixture-private-name',
   );
+}
+
+class _RawDiagnosticBackend extends _SignedInBackend
+    implements RawDiagnosticsBackend {
+  int exports = 0;
+  @override
+  String exportRawDiagnostics() {
+    exports++;
+    return '{"records":[{"response":{"body":"fixture-private-token"}}]}';
+  }
 }

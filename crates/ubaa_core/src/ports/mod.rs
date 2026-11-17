@@ -1,5 +1,6 @@
 //! 协议和会话代码使用的可注入宿主端口。
 
+pub(crate) mod diagnostics;
 mod object_transfer;
 mod reqwest_transport;
 pub use object_transfer::{HttpFileRange, HttpTransferObserver};

@@ -280,7 +280,9 @@ Future<void> uiShowDiagnosticsDialog(
       // 诊断内容是 JSON：等宽字体放在浅色底框里，便于阅读和复制。
       children: [
         if (scope?.openFeedback case final openFeedback?) ...[
-          const Text('请先保存或复制报告，再到反馈页面手动附上。打开分享面板或保存文件不会提交反馈。'),
+          const Text(
+            '完整诊断包含学校原始响应，可能含个人数据和登录凭据，请仅发送给可信任的维护者。复制诊断信息仅包含错误摘要。打开分享面板或保存文件不会提交反馈。',
+          ),
           TextButton.icon(
             onPressed: () => unawaited(_openFeedback(context, openFeedback)),
             icon: const Icon(Icons.open_in_new, size: 18),

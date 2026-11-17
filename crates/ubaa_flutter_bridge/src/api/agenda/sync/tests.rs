@@ -6,10 +6,7 @@ use crate::api::{
     shared_account::BridgeSharedAccount,
 };
 use async_trait::async_trait;
-use std::{
-    path::{Path, PathBuf},
-    sync::{RwLock, atomic::AtomicBool},
-};
+use std::path::{Path, PathBuf};
 use ubaa_core::facade::testing::{
     FileSessionStore, GatewayProbe, HttpRequest, HttpResponse, HttpTransport, RouteConfig,
 };
@@ -50,15 +47,7 @@ fn bridge_client(directory: &Path, policy: core::RoutePolicy) -> BridgeClient {
         NeverProbe,
     )
     .unwrap();
-    BridgeClient {
-        network_control: client.network_control(),
-        close_control: client.close_control(),
-        auth_control: RwLock::new(client.interactive_login_cancellation()),
-        is_disposed: AtomicBool::new(false),
-        bhpan_transfers: std::sync::Mutex::new(Vec::new()),
-        inner: crate::api::read_pool::ClientPool::new(client),
-        write_intents: tokio::sync::Mutex::new(std::collections::HashMap::new()),
-    }
+    BridgeClient::from_core(client)
 }
 fn shared_owner(root: &Path) -> BridgeSharedAccount {
     for (name, value) in [

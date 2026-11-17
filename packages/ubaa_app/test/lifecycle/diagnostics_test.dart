@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -7,6 +8,24 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('主动导出保留原始响应，普通报告和遥测不读取原文', () {
+    final backend = _RawBackend();
+    final telemetry = MockTelemetryClient();
+    final controller = AppController(backend: backend, telemetry: telemetry);
+    addTearDown(controller.dispose);
+    expect(controller.exportDiagnostics(), isNot(contains('fixture-secret')));
+    expect(backend.exports, 0);
+    final full = jsonDecode(controller.exportFullDiagnostics()) as Map;
+    expect(full['schema_version'], 4);
+    expect(
+      full['raw_http']['records'][0]['response']['body'],
+      'fixture-secret',
+    );
+    expect(backend.exports, 1);
+    expect(controller.exportDiagnostics(), isNot(contains('fixture-secret')));
+    expect(telemetry.records, isEmpty);
+  });
+
   test('无统计客户端时不能把开关显示为启用', () async {
     final controller = AppController(backend: _SuccessfulReadBackend());
     addTearDown(controller.dispose);
@@ -279,5 +298,14 @@ class _AuthBackend extends DemoBackend {
       );
     }
     await super.login(input);
+  }
+}
+
+class _RawBackend extends DemoBackend implements RawDiagnosticsBackend {
+  int exports = 0;
+  @override
+  String exportRawDiagnostics() {
+    exports++;
+    return '{"records":[{"response":{"body":"fixture-secret"}}]}';
   }
 }

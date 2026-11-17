@@ -64,7 +64,9 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
             ErrorKind::Upstream,
             false,
             "签到响应返回了非成功状态",
-        ));
+        )
+        .with_diagnostic("today_courses", "business_status_rejected")
+        .with_business_response(body.as_bytes(), None, "STATUS"));
     }
     Ok(response.result.into_iter().map(map_row).collect())
 }
@@ -305,7 +307,9 @@ async fn get_today_once(
     if response.status != 200 {
         return Err(upstream_error("签到查询服务暂时不可用"));
     }
-    match parse_today(&super::body(&response)) {
+    match parse_today(&super::body(&response))
+        .map_err(|error| error.with_http_status(response.status))
+    {
         Ok(classes) => Ok(classes),
         Err(error) if allow_retry && error.code == ErrorCode::UpstreamChanged => {
             runtime.feature_state().signin.clear_credential();
@@ -663,5 +667,15 @@ mod tests {
     fn 签到写响应的数字字符串状态保持兼容() {
         assert_eq!(integer_value(&serde_json::json!("200")), Some(200));
         assert_eq!(integer_value(&serde_json::json!("1")), Some(1));
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    #[test]
+    fn 签到业务失败保留状态和阶段() {
+        let error = super::parse_today(r#"{"STATUS":"401","message":"合成会话失效"}"#).unwrap_err();
+        assert_eq!(error.diagnostic().upstream_code, Some(401));
+        assert_eq!(error.diagnostic().stage.as_deref(), Some("today_courses"));
     }
 }

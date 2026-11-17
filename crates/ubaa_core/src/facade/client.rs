@@ -15,6 +15,7 @@ use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
+    pub(super) raw_diagnostics: super::RawDiagnostics,
     pub(super) network: super::ClientNetworkControl,
     pub(super) read_recovery_batch: super::required_recovery::ReadRecoveryBatch,
     pub(super) domain_routes: Arc<std::sync::Mutex<super::routing::domains::DomainRoutes>>,
@@ -35,6 +36,12 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// 返回仅供用户主动导出的原始响应缓冲。
+    #[must_use]
+    pub fn raw_diagnostics(&self) -> super::RawDiagnostics {
+        self.raw_diagnostics.clone()
+    }
+
     /// 网络检测和只读取消不占用业务客户端锁。
     #[must_use]
     pub fn network_control(&self) -> super::ClientNetworkControl {
@@ -82,7 +89,7 @@ impl UbaaClient {
                 "客户端没有持久配置目录",
             )
         })?;
-        let mut reopened = Self::open(directory)?;
+        let mut reopened = Self::open_with_diagnostics(directory, self.raw_diagnostics.clone())?;
         reopened.probe = self.probe.clone();
         reopened.network = self.network.clone();
         reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
@@ -102,7 +109,13 @@ impl UbaaClient {
     ///
     /// 路线配置、HTTP 传输、会话存储或任一路线运行时无法初始化时返回错误。
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
-        let config_dir = config_dir.as_ref();
+        Self::open_with_diagnostics(config_dir.as_ref(), super::RawDiagnostics::default())
+    }
+
+    fn open_with_diagnostics(
+        config_dir: &Path,
+        diagnostics: super::RawDiagnostics,
+    ) -> Result<Self> {
         let config = RouteConfig::load(config_dir).map_err(|error| {
             error.with_initialization_failure(InitializationFailure::Configuration)
         })?;
@@ -119,6 +132,7 @@ impl UbaaClient {
             })?,
             config,
             SystemGatewayProbe,
+            diagnostics,
         )
         .map_err(|error| error.with_initialization_failure(InitializationFailure::Session))?;
         client.config_dir = Some(config_dir.to_path_buf());
@@ -150,6 +164,7 @@ impl UbaaClient {
             store,
             RouteConfig::default(),
             SystemGatewayProbe,
+            super::RawDiagnostics::default(),
         )
     }
 
@@ -172,7 +187,14 @@ impl UbaaClient {
         TWebVpn: HttpTransport + 'static,
         P: GatewayProbe + 'static,
     {
-        Self::build_with_routing(direct_transport, webvpn_transport, store, config, probe)
+        Self::build_with_routing(
+            direct_transport,
+            webvpn_transport,
+            store,
+            config,
+            probe,
+            super::RawDiagnostics::default(),
+        )
     }
 
     /// 使用可注入传输、路由输入与探测缓存 TTL 构造测试客户端。
@@ -201,6 +223,7 @@ impl UbaaClient {
             store,
             config,
             CachingGatewayProbe::new(Box::new(probe), probe_ttl),
+            super::RawDiagnostics::default(),
         )
     }
 
@@ -210,6 +233,7 @@ impl UbaaClient {
         store: FileSessionStore,
         config: RouteConfig,
         probe: P,
+        diagnostics: super::RawDiagnostics,
     ) -> Result<Self>
     where
         TDirect: HttpTransport + 'static,
@@ -222,6 +246,7 @@ impl UbaaClient {
             store,
             config,
             CachingGatewayProbe::with_default_ttl(Box::new(probe)),
+            diagnostics,
         )
     }
 
@@ -231,6 +256,7 @@ impl UbaaClient {
         store: FileSessionStore,
         config: RouteConfig,
         probe: CachingGatewayProbe<Box<dyn GatewayProbe>>,
+        diagnostics: super::RawDiagnostics,
     ) -> Result<Self>
     where
         TDirect: HttpTransport + 'static,
@@ -241,6 +267,7 @@ impl UbaaClient {
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         let probe = Arc::new(probe);
         Ok(Self {
+            raw_diagnostics: diagnostics.clone(),
             network: super::ClientNetworkControl::new(probe.clone()),
             read_recovery_batch: super::required_recovery::ReadRecoveryBatch::default(),
             domain_routes: Arc::default(),
@@ -252,12 +279,20 @@ impl UbaaClient {
             probe,
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
-                direct_transport,
+                crate::ports::diagnostics::RecordingTransport {
+                    inner: direct_transport,
+                    diagnostics: diagnostics.clone(),
+                    route: ConnectionMode::Direct,
+                },
                 direct_store,
             )?,
             webvpn_runtime: ClientRuntime::new(
                 ConnectionMode::WebVpn,
-                webvpn_transport,
+                crate::ports::diagnostics::RecordingTransport {
+                    inner: webvpn_transport,
+                    diagnostics,
+                    route: ConnectionMode::WebVpn,
+                },
                 webvpn_store,
             )?,
             direct_auth: AuthWorkflow::default(),

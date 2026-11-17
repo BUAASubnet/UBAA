@@ -628,6 +628,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeSharedAccount scope,
   });
 
+  /// 用户主动分享完整诊断时读取原始响应；不得用于遥测或普通错误展示。
+  String exportRawDiagnostics();
+
   Future<BridgeFinanceRefresh> financeCached({
     required BridgeOfflineCache cache,
   });

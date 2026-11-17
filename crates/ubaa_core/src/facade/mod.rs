@@ -29,6 +29,7 @@ pub use operation_control::with_operation_control;
 mod shared_account;
 pub use shared_account::{ClientCloseControl, SharedAccountGuard};
 mod diagnostic;
+pub use crate::ports::diagnostics::RawDiagnostics;
 mod judge_refresh;
 mod judge_scan;
 #[path = "client/readonly.rs"]

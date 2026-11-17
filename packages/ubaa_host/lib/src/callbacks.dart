@@ -53,10 +53,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       builder: (context, child) => UiDiagnosticsScope(
         openFeedback: () => (widget.appInformation ?? SystemAppInformation())
             .open(AppLink.feedback),
-        exportReport: widget.diagnosticReportExporter.export,
+        exportReport: (summary) => widget.diagnosticReportExporter.export(
+          _controller.exportFullDiagnostics(summary: summary),
+        ),
         exportLabel: widget.diagnosticReportExporter.supportsSharing
-            ? '分享报告文件'
-            : '保存报告文件',
+            ? '分享完整诊断'
+            : '保存完整诊断',
         readRecord: (issueId) =>
             _controller.diagnostics.records.any(
               (record) =>

@@ -83,7 +83,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 71;
+const _supportedBridgeContractVersion = 72;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -94,6 +94,7 @@ const _previousBridgeContractVersion = 54;
 class BridgeBackend
     implements
         UbaaBackend,
+        RawDiagnosticsBackend,
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,
@@ -158,6 +159,9 @@ class BridgeBackend
       );
     }
   }
+
+  @override
+  String exportRawDiagnostics() => _context.client.exportRawDiagnostics();
 
   @override
   NetworkChangeOperation beginNetworkChange({

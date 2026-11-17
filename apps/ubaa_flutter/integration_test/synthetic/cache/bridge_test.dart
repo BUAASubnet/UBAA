@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -37,7 +38,10 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 71);
+      expect(client.contractVersion(), 72);
+      final raw = jsonDecode(client.exportRawDiagnostics()) as Map;
+      expect(raw['enabled'], true);
+      expect(raw['records'], isEmpty);
       final offline = client.beginNetworkChange(
         online: false,
         timeoutMillis: 30000,

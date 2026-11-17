@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "cn.edu.ubaa",
     "vendor": "BUAASubnet",
-    "versionCode": 2010,
+    "versionCode": 2011,
     "versionName": "2.0.1",
     "icon": "$media:app_icon",
     "label": "$string:app_name"

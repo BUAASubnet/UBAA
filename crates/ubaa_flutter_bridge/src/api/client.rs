@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 71;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 72;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -327,6 +327,7 @@ pub struct BridgeRoutedUserProfile {
 
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
+    raw_diagnostics: ubaa_core::facade::RawDiagnostics,
     pub(crate) network_control: ubaa_core::facade::ClientNetworkControl,
     pub(super) close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
@@ -363,7 +364,10 @@ impl BridgeClient {
     }
 
     pub(crate) fn from_core(client: ubaa_core::facade::UbaaClient) -> Self {
+        let raw_diagnostics = client.raw_diagnostics();
+        raw_diagnostics.enable();
         Self {
+            raw_diagnostics,
             network_control: client.network_control(),
             close_control: client.close_control(),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
@@ -372,6 +376,13 @@ impl BridgeClient {
             inner: super::read_pool::ClientPool::new(client),
             write_intents: tokio::sync::Mutex::new(HashMap::new()),
         }
+    }
+
+    /// 用户主动分享完整诊断时读取原始响应；不得用于遥测或普通错误展示。
+    #[flutter_rust_bridge::frb(sync)]
+    #[must_use]
+    pub fn export_raw_diagnostics(&self) -> String {
+        self.raw_diagnostics.export_json()
     }
 
     /// 返回 bridge 合同版本。

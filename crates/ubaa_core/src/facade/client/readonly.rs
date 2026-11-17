@@ -15,6 +15,7 @@ impl UbaaClient {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
         Ok(Self {
+            raw_diagnostics: self.raw_diagnostics.clone(),
             network: self.network.clone(),
             read_recovery_batch: crate::facade::required_recovery::ReadRecoveryBatch::default(),
             domain_routes: Arc::clone(&self.domain_routes),

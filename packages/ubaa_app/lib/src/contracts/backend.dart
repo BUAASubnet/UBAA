@@ -90,3 +90,8 @@ abstract interface class CampusAccountBackend {
 abstract interface class FinanceBackend {
   FinanceService get finance;
 }
+
+/// 仅由用户主动导出的完整学校响应，不用于错误摘要或自动统计。
+abstract interface class RawDiagnosticsBackend {
+  String exportRawDiagnostics();
+}
