@@ -327,7 +327,17 @@ impl From<core::AppServiceError> for BridgeError {
             }
             _ => (BridgeErrorCode::InternalError, BridgeErrorKind::Internal),
         };
-        Self::local(code, kind, false, error.to_string())
+        Self::local(code, kind, false, error.to_string()).with_diagnostic(
+            "app_service",
+            match error {
+                core::AppServiceError::StorageUnavailable => "storage_unavailable",
+                core::AppServiceError::UnsupportedSchema => "storage_version_unsupported",
+                core::AppServiceError::InvalidPolicy => "policy_invalid",
+                core::AppServiceError::GuiRequired => "gui_required",
+                core::AppServiceError::InvalidPayload => "payload_invalid",
+                core::AppServiceError::TransportUnavailable => "transport_unavailable",
+            },
+        )
     }
 }
 

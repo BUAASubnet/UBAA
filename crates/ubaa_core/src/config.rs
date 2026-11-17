@@ -456,6 +456,7 @@ impl FeatureRouteConfig {
     }
 }
 
+#[track_caller]
 fn invalid_config() -> UbaaError {
     UbaaError::new(
         ErrorCode::InvalidInput,

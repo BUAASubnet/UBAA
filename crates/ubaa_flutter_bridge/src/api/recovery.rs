@@ -18,7 +18,7 @@ impl BridgeClient {
         self.ensure_recovery_allowed().await?;
         Ok(guard
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .begin_read_recovery_batch())
     }
 
@@ -29,7 +29,7 @@ impl BridgeClient {
         let mut guard = self.inner.lock().await;
         guard
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .end_read_recovery_batch(batch);
         Ok(())
     }
@@ -41,7 +41,7 @@ impl BridgeClient {
         let mut guard = self.inner.lock().await;
         guard
             .as_mut()
-            .ok_or_else(disposed_error)?
+            .ok_or_else(|| disposed_error())?
             .invalidate_read_recovery_batch();
         Ok(())
     }
@@ -112,7 +112,7 @@ impl BridgeClient {
     ) -> Result<BridgeRequiredSession, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let recovered = match feature {
                 BridgeRecoveryFeature::Bhpan => client.recover_bhpan_session().await,
@@ -152,7 +152,7 @@ impl BridgeClient {
         self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let recovered = client
                 .login_required_route(
@@ -181,7 +181,8 @@ impl BridgeClient {
                 BridgeErrorKind::Input,
                 true,
                 "请先完成当前操作",
-            ))
+            )
+            .with_diagnostic("read_preflight", "write_confirmation_pending"))
         }
     }
 }
@@ -274,13 +275,23 @@ mod tests {
                 conflict_key: "synthetic".into(),
             },
         );
+        let pending = client
+            .recover_required_session(BridgeRecoveryFeature::Signin)
+            .await
+            .unwrap_err();
+        assert_eq!(pending.code, BridgeErrorCode::OperationConflict);
+        let diagnostic =
+            core::ErrorDiagnostic::from_json(pending.diagnostic_json.as_deref().unwrap())
+                .expect("待确认操作阻止读取时保留实际拒绝原因");
+        assert_eq!(diagnostic.stage.as_deref(), Some("read_preflight"));
         assert_eq!(
-            client
-                .recover_required_session(BridgeRecoveryFeature::Signin)
-                .await
-                .unwrap_err()
-                .code,
-            BridgeErrorCode::OperationConflict
+            diagnostic.reason.as_deref(),
+            Some("write_confirmation_pending")
+        );
+        assert!(
+            diagnostic
+                .source
+                .starts_with("crates/ubaa_flutter_bridge/src/api/recovery.rs:")
         );
         assert_eq!(
             client

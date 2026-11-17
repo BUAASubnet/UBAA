@@ -94,7 +94,7 @@ impl BridgeClient {
     ) -> Result<BridgeEvaluationRefresh, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let value = client
                 .refresh_cached_evaluation(&cache.cache)

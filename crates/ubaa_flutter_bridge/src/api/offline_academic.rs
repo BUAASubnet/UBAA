@@ -29,7 +29,7 @@ impl BridgeClient {
                 _ => crate::api::read_pool::ReadGroup::Academic,
             };
             let mut guard = self.inner.read(Some(group)).await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             client
                 .refresh_cached_academic(&cache.cache, query)

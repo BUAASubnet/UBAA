@@ -266,4 +266,13 @@ fn caller_pinned读取拒绝core返回不同路线() {
     assert_eq!(error.code, BridgeErrorCode::OperationConflict);
     assert_eq!(error.resolved_route, Some(BridgeConnectionMode::WebVpn));
     assert!(!error.message.contains("http"));
+    let diagnostic = domain::ErrorDiagnostic::from_json(error.diagnostic_json.as_deref().unwrap())
+        .expect("路线不匹配保留安全诊断");
+    assert_eq!(diagnostic.stage.as_deref(), Some("read_result"));
+    assert_eq!(diagnostic.reason.as_deref(), Some("pinned_route_mismatch"));
+    assert!(
+        diagnostic
+            .source
+            .starts_with("crates/ubaa_flutter_bridge/src/api/read/methods.rs:")
+    );
 }

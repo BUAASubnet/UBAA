@@ -96,6 +96,7 @@ pub(super) fn login_identity(profile: &UserProfile, requested: &str) -> Option<S
     }
     Some(identity.to_owned())
 }
+#[track_caller]
 fn unverified() -> UbaaError {
     UbaaError::new(
         ErrorCode::PermissionDenied,

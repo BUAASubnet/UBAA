@@ -32,7 +32,7 @@ impl BridgeClient {
     ) -> Result<BridgeEvaluationScan, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let plan = client
                 .begin_evaluation_scan(
@@ -80,7 +80,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut plan = task.plan.lock().await;
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
             let batch = client
                 .next_evaluation_scan(&mut plan)

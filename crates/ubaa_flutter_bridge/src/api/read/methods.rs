@@ -53,7 +53,7 @@ impl BridgeClient {
     {
         catch_panic(async {
             let mut guard = self.inner.read(group).await?;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let routed = call(client).await.map_err(BridgeError::from_routed)?;
             Ok((mapper(routed.data), map_route(routed.resolution)))
         })
@@ -74,7 +74,7 @@ impl BridgeClient {
     {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let pinned = call(client)
                 .await
                 .map_err(|error| BridgeError::from_core(error, None))?;
@@ -645,15 +645,13 @@ pub(super) fn ensure_caller_pinned_route(
     if expected == actual {
         return Ok(());
     }
-    Err(BridgeError {
-        auth_stage: None,
-        auth_reason: None,
-        diagnostic_json: None,
-        cache_failure: None,
-        code: crate::api::client::BridgeErrorCode::OperationConflict,
-        kind: crate::api::client::BridgeErrorKind::Input,
-        retryable: false,
-        message: "调用方固定路线与 Core 返回路线不一致".to_owned(),
-        resolved_route: Some(actual),
-    })
+    let mut error = BridgeError::local(
+        crate::api::client::BridgeErrorCode::OperationConflict,
+        crate::api::client::BridgeErrorKind::Input,
+        false,
+        "调用方固定路线与 Core 返回路线不一致",
+    )
+    .with_diagnostic("read_result", "pinned_route_mismatch");
+    error.resolved_route = Some(actual);
+    Err(error)
 }

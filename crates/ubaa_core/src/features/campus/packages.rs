@@ -26,7 +26,7 @@ pub(super) fn free_remaining(product: ElementRef<'_>, base: CampusAmount) -> Res
         let sequence = stats
             .next()
             .and_then(|cell| cell.value().attr("data-col-seq"))
-            .ok_or_else(invalid)?;
+            .ok_or_else(|| invalid())?;
         if stats.next().is_some() {
             return Err(invalid());
         }
@@ -44,7 +44,7 @@ pub(super) fn free_remaining(product: ElementRef<'_>, base: CampusAmount) -> Res
             let mut matches = cells
                 .into_iter()
                 .filter(|cell| cell.value().attr("data-col-seq") == Some(sequence));
-            let cell = matches.next().ok_or_else(invalid)?;
+            let cell = matches.next().ok_or_else(|| invalid())?;
             if matches.next().is_some() {
                 return Err(invalid());
             }
@@ -70,7 +70,7 @@ pub(super) fn free_remaining(product: ElementRef<'_>, base: CampusAmount) -> Res
             let rank = UNITS
                 .iter()
                 .position(|unit| *unit == amount.unit)
-                .ok_or_else(invalid)?;
+                .ok_or_else(|| invalid())?;
             let value = amount.value.parse::<f64>().map_err(|_| invalid())?;
             Ok((rank, value))
         })
@@ -79,7 +79,7 @@ pub(super) fn free_remaining(product: ElementRef<'_>, base: CampusAmount) -> Res
         .iter()
         .map(|(rank, _)| *rank)
         .max()
-        .ok_or_else(invalid)?;
+        .ok_or_else(|| invalid())?;
     let sum: f64 = ranked
         .iter()
         .map(|(source, value)| value / 1024_f64.powi(i32::try_from(rank - source).unwrap()))

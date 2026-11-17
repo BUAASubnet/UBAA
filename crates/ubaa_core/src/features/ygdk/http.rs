@@ -152,6 +152,7 @@ pub(super) fn ensure_active_generation(runtime: &ClientRuntime, generation: u64)
     Ok(())
 }
 
+#[track_caller]
 fn generation_guard_error() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,

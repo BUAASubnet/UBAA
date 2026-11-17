@@ -1,5 +1,5 @@
 //! 财务门户与查询系统的路线内认证。
-use super::parser::invalid;
+use super::parser::failure;
 use crate::domain::{ConnectionMode, SecretValue};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::FinanceCredential;
@@ -23,7 +23,7 @@ pub(super) fn check_response(
 ) -> Result<()> {
     check(runtime, generation)?;
     if response.final_url != expected {
-        return Err(invalid());
+        return Err(failure("redirect", "final_url_unexpected"));
     }
     // 网关缺少会话时会用自己的登录页拦截业务请求；不向登录页转发原请求。
     if runtime.mode() == ConnectionMode::WebVpn
@@ -39,11 +39,14 @@ pub(super) fn check_response(
                 })
         })
     {
-        return Err(required());
+        return Err(
+            required().with_diagnostic_default("authentication", "gateway_session_required")
+        );
     }
     Ok(())
 }
 
+#[track_caller]
 fn required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -53,12 +56,13 @@ fn required() -> UbaaError {
     )
 }
 pub(super) fn target(raw: &str, mode: ConnectionMode) -> Result<Url> {
-    let parsed = Url::parse(raw).map_err(|_| invalid())?;
+    let parsed = Url::parse(raw).map_err(|_| failure("redirect", "url_invalid"))?;
     if parsed.host_str() == Some("d.buaa.edu.cn") && mode != ConnectionMode::WebVpn {
-        return Err(invalid());
+        return Err(failure("redirect", "webvpn_route_unexpected"));
     }
-    let direct = crate::connection::from_webvpn_url(raw)?;
-    let mut url = Url::parse(&direct).map_err(|_| invalid())?;
+    let direct = crate::connection::from_webvpn_url(raw)
+        .map_err(|e| e.with_diagnostic("redirect", "webvpn_url_invalid"))?;
+    let mut url = Url::parse(&direct).map_err(|_| failure("redirect", "url_invalid"))?;
     if !crate::connection::is_valid_auth_target(
         &url,
         &[
@@ -70,7 +74,7 @@ pub(super) fn target(raw: &str, mode: ConnectionMode) -> Result<Url> {
         &[],
     ) || url.fragment().is_some()
     {
-        return Err(invalid());
+        return Err(failure("redirect", "target_not_allowed"));
     }
     let allowed = match url.host_str() {
         Some("sso.buaa.edu.cn") => url.path() == "/login",
@@ -82,11 +86,13 @@ pub(super) fn target(raw: &str, mode: ConnectionMode) -> Result<Url> {
         _ => false,
     };
     if !allowed {
-        return Err(invalid());
+        return Err(failure("redirect", "target_path_unexpected"));
     }
     // Direct 已观察到同路径 HTTP→HTTPS 跳转；CAS service 字符串保持原值。
-    url.set_scheme("https").map_err(|()| invalid())?;
-    url.set_port(None).map_err(|()| invalid())?;
+    url.set_scheme("https")
+        .map_err(|()| failure("redirect", "scheme_invalid"))?;
+    url.set_port(None)
+        .map_err(|()| failure("redirect", "port_invalid"))?;
     Ok(url)
 }
 async fn get(runtime: &mut ClientRuntime, url: &Url, generation: u64) -> Result<HttpResponse> {
@@ -112,25 +118,30 @@ pub(super) async fn ensure(runtime: &mut ClientRuntime) -> Result<FinanceCredent
     )?;
     let response = get(runtime, &jump, generation).await?;
     if response.status != 302 {
-        return Err(invalid());
+        return Err(failure("query_jump", "jump_status_invalid")
+            .with_response(&response.body, Some(response.status)));
     }
     let location = target(
         Url::parse(&response.final_url)
-            .map_err(|_| invalid())?
-            .join(response.header_first("location").ok_or_else(invalid)?)
-            .map_err(|_| invalid())?
+            .map_err(|_| failure("redirect", "final_url_invalid"))?
+            .join(
+                response
+                    .header_first("location")
+                    .ok_or_else(|| failure("redirect", "location_missing"))?,
+            )
+            .map_err(|_| failure("redirect", "location_invalid"))?
             .as_str(),
         runtime.mode(),
     )?;
     if location.host_str() != Some("chaxun.icw.buaa.edu.cn")
         || location.path() != "/gxzhcxzhb/login"
     {
-        return Err(invalid());
+        return Err(failure("redirect", "query_target_unexpected"));
     }
     let field = |name: &str| -> Result<String> {
         let values: Vec<_> = location.query_pairs().filter(|(k, _)| k == name).collect();
         if values.len() != 1 || values[0].1.is_empty() {
-            return Err(invalid());
+            return Err(failure("authentication", "login_parameter_missing"));
         }
         Ok(values[0].1.to_string())
     };
@@ -150,14 +161,21 @@ pub(super) async fn ensure(runtime: &mut ClientRuntime) -> Result<FinanceCredent
         .await?;
     check_response(runtime, &response, &expected, generation)?;
     if response.status != 200 {
-        return Err(invalid());
+        return Err(failure("query_login", "login_http_status_invalid")
+            .with_response(&response.body, Some(response.status)));
     }
-    let value = super::parser::envelope(&response.body)?;
-    let token = value
-        .get("token")
-        .and_then(serde_json::Value::as_str)
-        .filter(|s| !s.is_empty())
-        .ok_or_else(invalid)?;
+    let value = super::parser::envelope(&response.body, "query_login")
+        .map_err(|error| error.with_http_status(response.status))?;
+    let token = match value.get("token") {
+        None => Err(failure("query_login", "token_missing")),
+        Some(serde_json::Value::Null) => Err(failure("query_login", "token_null")),
+        Some(serde_json::Value::String(token)) if token.is_empty() => {
+            Err(failure("query_login", "token_empty"))
+        }
+        Some(serde_json::Value::String(token)) => Ok(token.as_str()),
+        Some(_) => Err(failure("query_login", "token_type_invalid")),
+    }
+    .map_err(|e| e.with_business_response(&response.body, Some(response.status), "code"))?;
     let credential = FinanceCredential {
         user,
         token: SecretValue::new(token),
@@ -166,7 +184,9 @@ pub(super) async fn ensure(runtime: &mut ClientRuntime) -> Result<FinanceCredent
         .finance
         .store_credential(generation, credential.clone())
     {
-        return Err(required());
+        return Err(
+            required().with_diagnostic_default("authentication", "session_generation_changed")
+        );
     }
     Ok(credential)
 }
@@ -181,26 +201,31 @@ async fn portal(runtime: &mut ClientRuntime, generation: u64) -> Result<()> {
         let response = get(runtime, &next, generation).await?;
         if response.status == 200 {
             if next.host_str() == Some("sso.buaa.edu.cn") {
-                return Err(required());
+                return Err(
+                    required().with_diagnostic_default("authentication", "portal_login_required")
+                );
             }
             ready = next.host_str() == Some("icw.buaa.edu.cn") && next.path() == "/Newindex.aspx";
             break;
         }
         if !matches!(response.status, 301 | 302 | 303 | 307 | 308) {
-            return Err(invalid());
+            return Err(failure("portal_login", "portal_status_invalid")
+                .with_response(&response.body, Some(response.status)));
         }
-        let location = response.header_first("location").ok_or_else(invalid)?;
+        let location = response
+            .header_first("location")
+            .ok_or_else(|| failure("redirect", "portal_location_missing"))?;
         next = target(
             Url::parse(&response.final_url)
-                .map_err(|_| invalid())?
+                .map_err(|_| failure("redirect", "portal_final_url_invalid"))?
                 .join(location)
-                .map_err(|_| invalid())?
+                .map_err(|_| failure("redirect", "portal_location_invalid"))?
                 .as_str(),
             runtime.mode(),
         )?;
     }
     if !ready {
-        return Err(invalid());
+        return Err(failure("redirect", "portal_target_missing"));
     }
     Ok(())
 }

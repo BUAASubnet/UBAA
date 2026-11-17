@@ -509,6 +509,7 @@ fn now_seconds_at(now: SystemTime) -> Result<i64> {
         })
 }
 
+#[track_caller]
 fn session_conflict() -> UbaaError {
     UbaaError::session_conflict()
 }
@@ -520,6 +521,7 @@ fn write_outcome_unknown() -> UbaaError {
     UbaaError::outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }
 
+#[track_caller]
 fn unknown_after_send(error: UbaaError) -> UbaaError {
     error.with_write_outcome_unknown(WRITE_OUTCOME_MESSAGE)
 }

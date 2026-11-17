@@ -205,6 +205,7 @@ pub(super) fn parse_optional_envelope<T: for<'de> Deserialize<'de>>(
         .transpose()
 }
 
+#[track_caller]
 fn classify_envelope_error<T>(envelope: &Envelope<T>, body: &str) -> UbaaError {
     let messages = envelope
         .msg
@@ -265,6 +266,7 @@ pub(super) fn merge_detail(
     Ok(detail)
 }
 
+#[track_caller]
 pub(super) fn detail_id_mismatch() -> crate::error::UbaaError {
     crate::error::UbaaError::new(
         crate::error::ErrorCode::UpstreamChanged,

@@ -24,7 +24,7 @@ const LABELS: [&str; 4] = [
 
 pub(super) fn profile(payload: &Value, fetched_at: i64) -> Result<PortalProfile> {
     let data = envelope(payload)?;
-    let info = data.get("info").ok_or_else(invalid)?;
+    let info = data.get("info").ok_or_else(|| invalid())?;
     Ok(PortalProfile {
         identity: nonblank(&info["identity"])?.into(),
         department: nonblank(&info["depart"])?.into(),
@@ -37,13 +37,14 @@ pub(super) fn envelope(payload: &Value) -> Result<&Value> {
         Some(0) => payload
             .get("d")
             .filter(|v| v.is_object())
-            .ok_or_else(invalid),
+            .ok_or_else(|| invalid()),
         Some(10013) => Err(business_login_required()),
         Some(_) => Err(UbaaError::upstream_unavailable("校园账户服务暂时不可用")),
         None => Err(invalid()),
     }
 }
 
+#[track_caller]
 pub(super) fn business_login_required() -> UbaaError {
     UbaaError::new(
         crate::error::ErrorCode::UpstreamUnavailable,
@@ -58,7 +59,7 @@ pub(super) fn nonblank(value: &Value) -> Result<&str> {
         .as_str()
         .map(str::trim)
         .filter(|v| !v.is_empty() && v.len() <= 512 && !v.chars().any(char::is_control))
-        .ok_or_else(invalid)
+        .ok_or_else(|| invalid())
 }
 
 fn decimal(value: &Value) -> Result<String> {
@@ -78,7 +79,7 @@ pub(super) fn amount(data: &Value) -> Result<CampusAmount> {
     let unit = data["unit"]
         .as_str()
         .filter(|s| s.len() <= 16 && !s.chars().any(char::is_control))
-        .ok_or_else(invalid)?;
+        .ok_or_else(|| invalid())?;
     Ok(CampusAmount {
         value,
         unit: unit.into(),
@@ -104,7 +105,7 @@ pub(super) fn text(element: scraper::ElementRef<'_>) -> String {
 }
 
 pub(super) fn traffic_amount(value: &str) -> Result<CampusAmount> {
-    let captures = TRAFFIC.captures(value).ok_or_else(invalid)?;
+    let captures = TRAFFIC.captures(value).ok_or_else(|| invalid())?;
     Ok(CampusAmount {
         value: decimal(&Value::String(captures[1].into()))?,
         unit: captures[2].into(),
@@ -142,7 +143,7 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
                     .value()
                     .attr("data-col-seq")
                     .filter(|v| !v.is_empty())
-                    .ok_or_else(invalid)?;
+                    .ok_or_else(|| invalid())?;
                 if columns.insert(label, seq.to_owned()).is_some()
                     || !sequences.insert(seq.to_owned())
                 {
@@ -161,7 +162,7 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
             // 套餐子表有独立的列编号，只处理当前流量表的产品行。
             let mut cells = BTreeMap::new();
             for cell in row.select(&CELL).filter(|cell| cell.parent() == Some(*row)) {
-                let seq = cell.value().attr("data-col-seq").ok_or_else(invalid)?;
+                let seq = cell.value().attr("data-col-seq").ok_or_else(|| invalid())?;
                 if cells.insert(seq, text(cell)).is_some() {
                     return Err(invalid());
                 }
@@ -171,9 +172,9 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
             }
             let get = |label: &str| -> Result<&str> {
                 cells
-                    .get(columns.get(label).ok_or_else(invalid)?.as_str())
+                    .get(columns.get(label).ok_or_else(|| invalid())?.as_str())
                     .map(String::as_str)
-                    .ok_or_else(invalid)
+                    .ok_or_else(|| invalid())
             };
             let name = get(LABELS[0])?;
             if name.is_empty() || name.len() > 512 {

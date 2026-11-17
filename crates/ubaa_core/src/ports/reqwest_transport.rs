@@ -256,7 +256,7 @@ fn append_bounded(body: &mut Vec<u8>, chunk: &[u8], limit: usize) -> Result<()> 
     let new_len = body
         .len()
         .checked_add(chunk.len())
-        .ok_or_else(response_too_large)?;
+        .ok_or_else(|| response_too_large())?;
     if new_len > limit {
         return Err(response_too_large());
     }
@@ -264,6 +264,7 @@ fn append_bounded(body: &mut Vec<u8>, chunk: &[u8], limit: usize) -> Result<()> 
     Ok(())
 }
 
+#[track_caller]
 fn response_too_large() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
@@ -273,6 +274,7 @@ fn response_too_large() -> UbaaError {
     )
 }
 
+#[track_caller]
 fn transport_error(error: &reqwest::Error) -> crate::error::UbaaError {
     if error.is_timeout() {
         return crate::error::UbaaError::new(

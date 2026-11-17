@@ -76,7 +76,7 @@ impl GraduateSchedule {
             .terms
             .iter()
             .find(|t| t.item_code == self.term)
-            .ok_or_else(error)?;
+            .ok_or_else(|| error())?;
         Ok(WeeklySchedule {
             arranged_list: classes,
             code: term.item_code.clone(),
@@ -89,14 +89,14 @@ impl GraduateSchedule {
             return Ok(Vec::new());
         }
         let today = NaiveDate::parse_from_str(today, "%Y-%m-%d").map_err(|_| error())?;
-        let start = self.monday.ok_or_else(error)?;
+        let start = self.monday.ok_or_else(|| error())?;
         let count = self.rows.iter().map(|r| r.mask.len()).max().unwrap_or(0);
         (0..count)
             .map(|index| {
                 let from = start
                     .checked_add_days(Days::new(u64::try_from(index).map_err(|_| error())? * 7))
-                    .ok_or_else(error)?;
-                let to = from.checked_add_days(Days::new(6)).ok_or_else(error)?;
+                    .ok_or_else(|| error())?;
+                let to = from.checked_add_days(Days::new(6)).ok_or_else(|| error())?;
                 let number = i32::try_from(index + 1).map_err(|_| error())?;
                 Ok(Week {
                     start_date: from.to_string(),

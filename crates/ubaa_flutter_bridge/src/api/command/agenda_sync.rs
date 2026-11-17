@@ -45,7 +45,7 @@ impl BridgeCommand {
         if client.is_disposed.load(Ordering::SeqCst) {
             return Err(disposed_error());
         }
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
+        let client = guard.as_mut().ok_or_else(|| disposed_error())?;
         *self.close.write().unwrap() = Some(client.close_control());
         let capabilities = client.bhpan_capabilities();
         if capabilities.direct_metadata == core::BhpanCapability::Available

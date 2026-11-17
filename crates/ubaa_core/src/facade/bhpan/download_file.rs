@@ -65,6 +65,7 @@ impl Drop for PendingFile {
         let _ = std::fs::remove_file(&self.path);
     }
 }
+#[track_caller]
 fn local() -> UbaaError {
     UbaaError::invalid_input("本机下载文件无法交付，请检查所选位置")
 }

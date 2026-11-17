@@ -252,7 +252,7 @@ impl BridgeClient {
     ) -> Result<BridgeIhomePageResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .ihome_page(query.into())
                 .await
@@ -278,7 +278,7 @@ impl BridgeClient {
     ) -> Result<BridgeIhomeDetailResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .ihome_detail(id, mine)
                 .await
@@ -300,7 +300,7 @@ impl BridgeClient {
     pub async fn ihome_config(&self) -> Result<BridgeIhomeConfigResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .ihome_config()
                 .await
@@ -322,7 +322,7 @@ impl BridgeClient {
     pub async fn ihome_notices(&self) -> Result<BridgeIhomeNoticesResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .ihome_notices()
                 .await
@@ -344,7 +344,7 @@ impl BridgeClient {
     pub async fn ihome_notice(&self, id: i64) -> Result<BridgeIhomeNoticeResult, BridgeError> {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .ihome_notice(id)
                 .await
@@ -373,7 +373,7 @@ impl BridgeClient {
         let mut observation = None;
         let result = catch_panic(async {
             let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             observation = Some(client.observe_write_boundary());
             let value = client
                 .ihome_set_reaction(id, reaction.into(), enabled, expected_route.into())

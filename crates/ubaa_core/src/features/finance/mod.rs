@@ -8,7 +8,7 @@ use crate::error::{ErrorCode, Result};
 use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
 
-use parser::invalid;
+use parser::failure;
 
 pub(crate) async fn incomes(runtime: &mut ClientRuntime) -> Result<FinanceIncomes> {
     for attempt in 0..2 {
@@ -24,7 +24,7 @@ pub(crate) async fn incomes(runtime: &mut ClientRuntime) -> Result<FinanceIncome
         }
         return result;
     }
-    Err(invalid())
+    Err(failure("finance_login", "recovery_exhausted"))
 }
 async fn read_all(runtime: &mut ClientRuntime) -> Result<FinanceIncomes> {
     let credential = auth::ensure(runtime).await?;
@@ -57,30 +57,41 @@ async fn read_all(runtime: &mut ClientRuntime) -> Result<FinanceIncomes> {
             ));
         }
         if response.status != 200 {
-            return Err(invalid());
+            return Err(failure("income_page", "http_status_invalid")
+                .with_response(&response.body, Some(response.status)));
         }
-        let (rows, total) = parser::page(&parser::envelope(&response.body)?)?;
+        let (rows, total) = parser::envelope(&response.body, "income_page")
+            .and_then(|v| parser::page(&v))
+            .map_err(|e| e.with_business_response(&response.body, Some(response.status), "code"))?;
         if expected_total.is_some_and(|previous| previous != total) || rows.len() > 100 {
-            return Err(invalid());
+            return Err(failure(
+                "income_pagination",
+                "total_changed_or_page_oversized",
+            ));
         }
         expected_total = Some(total);
         let empty = rows.is_empty();
         for row in rows {
-            let entry = parser::income(&row)?;
+            let entry = parser::income(&row).map_err(|e| {
+                e.with_business_response(&response.body, Some(response.status), "code")
+            })?;
             if !ids.insert(entry.id.clone()) {
-                return Err(invalid());
+                return Err(failure("income_pagination", "record_duplicate"));
             }
             entries.push(entry);
         }
         if entries.len() == total {
             return Ok(FinanceIncomes {
                 entries,
-                total: u32::try_from(total).map_err(|_| invalid())?,
+                total: u32::try_from(total)
+                    .map_err(|_| failure("income_pagination", "total_out_of_range"))?,
             });
         }
         if empty || entries.len() > total {
-            return Err(invalid());
+            return Err(failure("income_pagination", "page_incomplete"));
         }
-        page = page.checked_add(1).ok_or_else(invalid)?;
+        page = page
+            .checked_add(1)
+            .ok_or_else(|| failure("income_pagination", "page_overflow"))?;
     }
 }

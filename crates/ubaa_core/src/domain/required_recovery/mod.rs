@@ -122,10 +122,12 @@ impl RequiredRecoveryControl {
     }
 }
 
+#[track_caller]
 fn conflict(message: &str) -> UbaaError {
     UbaaError::new(ErrorCode::InternalError, ErrorKind::Input, false, message)
 }
 
+#[track_caller]
 fn expired() -> UbaaError {
     UbaaError::new(
         ErrorCode::Timeout,
