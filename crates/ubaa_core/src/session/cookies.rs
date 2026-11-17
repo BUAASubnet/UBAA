@@ -197,6 +197,23 @@ impl CookieJar {
         &self.cookies
     }
 
+    /// 比较会话保存所需的 Cookie 状态，同时保留请求头的顺序。
+    pub(crate) fn matches_persisted(&self, saved: &[StoredCookie]) -> bool {
+        self.cookies.len() == saved.len()
+            && self.cookies.iter().zip(saved).all(|(current, previous)| {
+                // 只有 Max-Age 依赖接收时间。等价 Cookie 重发不应仅因此推进修订。
+                current.name == previous.name
+                    && current.value == previous.value
+                    && current.domain == previous.domain
+                    && current.host_only == previous.host_only
+                    && current.path == previous.path
+                    && current.secure == previous.secure
+                    && current.expires_at == previous.expires_at
+                    && current.max_age == previous.max_age
+                    && (current.max_age.is_none() || current.created_at == previous.created_at)
+            })
+    }
+
     /// 使用持久化会话替换容器内容。
     pub fn replace(&mut self, cookies: Vec<StoredCookie>) {
         self.cookies = cookies;
