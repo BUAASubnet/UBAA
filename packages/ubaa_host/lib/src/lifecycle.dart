@@ -27,7 +27,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   DialogRoute<void>? _captchaDialogRoute;
   StreamSubscription<void>? _updatePromptSubscription;
   bool _updatePromptOpen = false;
-  bool _announcementOpen = false;
+  bool _appServicePopupOpen = false;
+  String? _shownUpdateVersion;
   ModalRoute<dynamic>? _loginSheetRoute;
   bool _captchaDialogScheduled = false;
   UiError? _scheduledHomeFeedback;
@@ -276,7 +277,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
-    _controller.addListener(_syncAnnouncementPopup);
+    _controller.addListener(_syncAppServicePopup);
     _updatePromptSubscription = _controller.updatePromptRequests.listen(
       (_) => unawaited(_showUpdatePrompt()),
     );
@@ -329,7 +330,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncCaptchaDialog);
-    _controller.removeListener(_syncAnnouncementPopup);
+    _controller.removeListener(_syncAppServicePopup);
     unawaited(_updatePromptSubscription?.cancel());
     _controller.removeListener(_syncScheduleWidgets);
     _scheduleWidgetPublisher?.dispose();

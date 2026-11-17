@@ -63,7 +63,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('弹窗公告确认后记为已读，横幅公告关闭后记为已读', (tester) async {
+  testWidgets('两种级别公告依次弹窗并在确认后记为已读', (tester) async {
     final backend = _GateBackend(gate: false)
       ..announcements = [
         _announcement('popup-1', AppAnnouncementLevel.popup),
@@ -85,12 +85,68 @@ void main() {
     expect(backend.read, ['popup-1']);
     expect(dialog, findsNothing);
 
-    final banner = find.byKey(const ValueKey('home-announcement-banner-1'));
+    final banner = find.byKey(const ValueKey('announcement-dialog-banner-1'));
     expect(banner, findsOneWidget);
-    await tester.tap(find.descendant(of: banner, matching: find.text('关闭')));
+    await tester.tap(find.descendant(of: banner, matching: find.text('知道了')));
     await tester.pumpAndSettle();
     expect(backend.read, ['popup-1', 'banner-1']);
     expect(banner, findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('新版本先弹窗，关闭后依次显示公告且重启不重复提示', (tester) async {
+    final backend = _GateBackend(
+      gate: false,
+      available: true,
+    )..announcements = [_announcement('banner-1', AppAnnouncementLevel.banner)];
+    final opened = <Uri>[];
+    await _mount(tester, backend, opened);
+    expect(find.text('新版本 2.0.0+20'), findsOneWidget);
+    expect(find.text('合成更新说明'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('announcement-dialog-banner-1')),
+      findsNothing,
+    );
+    await tester.tap(find.text('稍后'));
+    await tester.pumpAndSettle();
+    expect(backend.dismissed, ['2.0.0+20']);
+    expect(
+      find.byKey(const ValueKey('announcement-dialog-banner-1')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('知道了'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _mount(tester, backend, opened);
+    expect(find.text('新版本 2.0.0+20'), findsNothing);
+    expect(backend.read, ['banner-1']);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('新版本弹窗可以前往下载且再次启动不重复弹出', (tester) async {
+    final backend = _GateBackend(gate: false, available: true);
+    final opened = <Uri>[];
+    await _mount(tester, backend, opened);
+    await tester.tap(find.widgetWithText(FilledButton, '前往更新'));
+    await tester.pumpAndSettle();
+    expect(opened, [_updateUrl]);
+    expect(backend.dismissed, ['2.0.0+20']);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _mount(tester, backend, opened);
+    expect(find.text('新版本 2.0.0+20'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('关闭旧版本提示后仍会提示后续新版本', (tester) async {
+    final backend = _GateBackend(gate: false, available: true);
+    final opened = <Uri>[];
+    await _mount(tester, backend, opened);
+    await tester.tap(find.text('稍后'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+    backend.latestVersion = '2.0.1+21';
+    await _mount(tester, backend, opened);
+    expect(find.text('新版本 2.0.1+21'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -129,7 +185,10 @@ Future<void> _mount(
 
 /// 已同意且取得启动配置的合成后端；学校读取一律被门控拒绝。
 class _GateBackend extends DemoBackend implements AppBootstrapBackend {
-  _GateBackend({this.gate = true});
+  _GateBackend({this.gate = true, this.available = false});
+  final bool available;
+  String latestVersion = '2.0.0+20';
+  final dismissed = <String>[];
   final bool gate;
   var announcements = <AppAnnouncement>[];
   final read = <String>[];
@@ -154,13 +213,17 @@ class _GateBackend extends DemoBackend implements AppBootstrapBackend {
     canErase: true,
     erase: AppServiceEraseStatus.idle,
     update: AppUpdateView(
-      status: gate ? AppUpdateStatus.updateRequired : AppUpdateStatus.upToDate,
-      latestVersion: '2.0.0+20',
+      status: gate
+          ? AppUpdateStatus.updateRequired
+          : available
+          ? AppUpdateStatus.updateAvailable
+          : AppUpdateStatus.upToDate,
+      latestVersion: latestVersion,
       minSupportedVersion: gate ? '2.0.0' : null,
       url: _updateUrl,
-      releaseNotes: null,
+      releaseNotes: '合成更新说明',
       gateActive: gate,
-      availableDismissed: false,
+      availableDismissed: dismissed.contains(latestVersion),
     ),
     announcements: [
       for (final item in announcements)
@@ -179,9 +242,11 @@ class _GateBackend extends DemoBackend implements AppBootstrapBackend {
   }
 
   @override
-  Future<AppServiceView> dismissAppUpdateAvailable(
-    String latestVersion,
-  ) async => _view;
+  Future<AppServiceView> dismissAppUpdateAvailable(String latestVersion) async {
+    dismissed.add(latestVersion);
+    return _view;
+  }
+
   @override
   Future<AppServiceView> agreeAppService() async => _view;
   @override

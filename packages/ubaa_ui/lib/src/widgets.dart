@@ -1,6 +1,10 @@
 /// 共享 UI 的稳定公开组件；实现分别归属独立 library。
 export 'app/app_service/notices.dart'
-    show AppServiceNotices, uiShowAnnouncement, uiShowUpdateRequired;
+    show
+        AppServiceNotices,
+        uiShowAnnouncement,
+        uiShowReleaseNotes,
+        uiShowUpdateRequired;
 export 'app/app_service/privacy.dart'
     show PrivacyConsentDialog, PrivacyPolicyPage, uiPrivacyConsentRoute;
 export 'app/app_service/settings.dart' show AppServiceControls;

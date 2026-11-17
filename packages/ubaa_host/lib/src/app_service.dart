@@ -38,14 +38,9 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
 
   AppServiceNotices? get _appServiceNotices {
     final update = _controller.appUpdate;
-    final banners = [
-      for (final announcement in _controller.pendingAnnouncements)
-        if (announcement.level == AppAnnouncementLevel.banner) announcement,
-    ];
-    if (update == null && banners.isEmpty) return null;
+    if (update == null || !update.gateActive) return null;
     return AppServiceNotices(
       update: update,
-      banners: banners,
       onOpenUrl: _openAppServiceUrl,
       onDismissUpdate: _controller.dismissUpdateAvailable,
       onDismissAnnouncement: _controller.markAnnouncementRead,
@@ -71,7 +66,7 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
 
   /// 用户主动访问学校被门控拒绝时提示更新；自动任务不会发出这个信号。
   Future<void> _showUpdatePrompt() async {
-    if (_disposed || _updatePromptOpen) return;
+    if (_disposed || _updatePromptOpen || _appServicePopupOpen) return;
     _updatePromptOpen = true;
     try {
       // 链接与门控以共享存储为准，另一进程可能刚刚刷新过配置。
@@ -86,38 +81,80 @@ extension _UbaaAppHostAppService on _UbaaAppHostState {
       if (update && url != null) await _openAppServiceUrl(url);
     } finally {
       _updatePromptOpen = false;
+      _syncAppServicePopup();
     }
   }
 
-  /// 弹窗级公告逐条显示；确认后记为已读，再显示下一条。
-  void _syncAnnouncementPopup() {
-    if (_disposed || _readyController == null || _announcementOpen) return;
-    final next = _controller.pendingAnnouncements
-        .where((item) => item.level == AppAnnouncementLevel.popup)
-        .firstOrNull;
-    if (next == null) return;
-    _announcementOpen = true;
+  /// 新版本优先，公告逐条显示，关闭后保存对应版本或公告的已读状态。
+  void _syncAppServicePopup() {
+    if (_disposed ||
+        _readyController == null ||
+        _appServicePopupOpen ||
+        _updatePromptOpen)
+      return;
+    final update = _controller.appUpdate;
+    final version = update?.latestVersion;
+    final showUpdate =
+        update != null &&
+        !update.gateActive &&
+        update.status == AppUpdateStatus.updateAvailable &&
+        !update.availableDismissed &&
+        version != null &&
+        version != _shownUpdateVersion;
+    final next = _controller.pendingAnnouncements.firstOrNull;
+    if (!showUpdate && next == null) return;
+    _appServicePopupOpen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      var continueQueue = false;
       try {
         final context = _navigatorKey.currentContext;
         if (_disposed || context == null || !context.mounted) return;
-        // 帧间状态可能已经变化，确认这条公告仍然待显示。
-        if (!_controller.pendingAnnouncements.any((a) => a.id == next.id))
-          return;
-        final link = next.linkUrl;
-        final confirmed = await uiShowAnnouncement(
-          context,
-          next,
-          onOpenLink: link == null
-              ? null
-              : () => unawaited(_openAppServiceUrl(link)),
-        );
-        if (confirmed && !_disposed) {
-          await _controller.markAnnouncementRead(next.id);
+        if (showUpdate) {
+          final current = _controller.appUpdate;
+          if (current?.latestVersion != version ||
+              current?.status != AppUpdateStatus.updateAvailable ||
+              current!.availableDismissed ||
+              current.gateActive) {
+            continueQueue = true;
+            return;
+          }
+          _shownUpdateVersion = version;
+          final go = await uiShowReleaseNotes(
+            context,
+            version: version,
+            notes: current.releaseNotes,
+            canUpdate: current.url != null,
+          );
+          if (_disposed) return;
+          if (_controller.appUpdate?.latestVersion == version) {
+            await _controller.dismissUpdateAvailable();
+          }
+          if (go && current.url != null) await _openAppServiceUrl(current.url!);
+          continueQueue = true;
+        } else if (next != null) {
+          // 帧间状态可能已经变化，只显示仍然未读且有效的公告。
+          if (!_controller.pendingAnnouncements.any((a) => a.id == next.id)) {
+            continueQueue = true;
+            return;
+          }
+          final link = next.linkUrl;
+          final confirmed = await uiShowAnnouncement(
+            context,
+            next,
+            onOpenLink: link == null
+                ? null
+                : () => unawaited(_openAppServiceUrl(link)),
+          );
+          if (confirmed && !_disposed) {
+            await _controller.markAnnouncementRead(next.id);
+            continueQueue = !_controller.pendingAnnouncements.any(
+              (a) => a.id == next.id,
+            );
+          }
         }
       } finally {
-        _announcementOpen = false;
-        if (!_disposed) _syncAnnouncementPopup();
+        _appServicePopupOpen = false;
+        if (!_disposed && continueQueue) _syncAppServicePopup();
       }
     });
   }
