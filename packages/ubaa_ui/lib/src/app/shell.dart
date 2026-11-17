@@ -30,6 +30,7 @@ import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
+import 'navigation/rail.dart' show uiShellRail;
 import '../features/home/shell_helpers.dart';
 import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
