@@ -258,6 +258,8 @@ fn judge_summary_cache_keeps_expired_scope_and_persists_across_reopen() {
 enum LateCacheChange {
     Logout,
     NewerRead,
+    NewerComplete,
+    ClearThenNewerRead,
 }
 
 #[derive(Clone)]
@@ -302,22 +304,34 @@ impl HttpTransport for LateCacheTransport {
             None
         };
         if let Some(query) = query {
-            match self.change {
-                LateCacheChange::Logout => self.cache.deactivate().unwrap(),
-                LateCacheChange::NewerRead => {
-                    // 第二个连接模拟另一个宿主/进程开始同范围读取。
-                    let mut repository = ubaa_core::facade::OfflineRepository::open(
-                        &self.root,
-                        "0123456789abcdef0123456789abcdef",
-                        CacheKey::new([9; 32]),
-                        CacheLimits::default(),
-                    )
+            if matches!(self.change, LateCacheChange::Logout) {
+                self.cache.deactivate().unwrap();
+            } else {
+                // 第二个连接模拟另一个宿主/进程开始同范围读取。
+                let mut repository = ubaa_core::facade::OfflineRepository::open(
+                    &self.root,
+                    "0123456789abcdef0123456789abcdef",
+                    CacheKey::new([9; 32]),
+                    CacheLimits::default(),
+                )
+                .unwrap();
+                if matches!(self.change, LateCacheChange::ClearThenNewerRead) {
+                    repository.clear().unwrap();
+                }
+                let ticket = repository
+                    .begin_read(ubaa_core::facade::CacheScope {
+                        route: ConnectionMode::Direct,
+                        query,
+                    })
                     .unwrap();
+                if matches!(self.change, LateCacheChange::NewerComplete) {
                     repository
-                        .begin_read(ubaa_core::facade::CacheScope {
-                            route: ConnectionMode::Direct,
-                            query,
-                        })
+                        .publish(
+                            &ticket,
+                            CachePayload::Today(Vec::new()),
+                            100,
+                            ubaa_core::facade::CacheCompleteness::Complete,
+                        )
                         .unwrap();
                 }
             }
@@ -327,7 +341,9 @@ impl HttpTransport for LateCacheTransport {
 }
 
 fn assert_late_cache_change_is_rejected(judge: bool, change: LateCacheChange) {
-    let root = test_root("offline-late-change");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/shared_profile_phase2")
+        .join(test_root("offline-late-change").file_name().unwrap());
     std::fs::create_dir_all(&root).unwrap();
     let cache = OfflineCache::open(
         &root,
@@ -363,7 +379,7 @@ fn assert_late_cache_change_is_rejected(judge: bool, change: LateCacheChange) {
     .expect_err("退出或较新读取后，旧在线结果必须停止交付");
     let expected = match change {
         LateCacheChange::Logout => ubaa_core::facade::CacheError::Inactive,
-        LateCacheChange::NewerRead => ubaa_core::facade::CacheError::Superseded,
+        _ => ubaa_core::facade::CacheError::Superseded,
     };
     assert!(matches!(error, OfflineReadError::Cache(value) if value == expected));
     drop((client, cache));
@@ -375,9 +391,72 @@ fn 今日读取期间退出后拒绝迟到结果() {
     assert_late_cache_change_is_rejected(false, LateCacheChange::Logout);
 }
 
+fn assert_shared_today_recovery(change: LateCacheChange, expected_classes: usize) {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/shared_profile_phase2")
+        .join(test_root("offline-today-recovery").file_name().unwrap());
+    std::fs::create_dir_all(&root).unwrap();
+    let cache = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut client = cached_client_transport(
+        &root,
+        LateCacheTransport {
+            inner: OfflineTransport(requests.clone()),
+            cache: cache.clone(),
+            root: root.clone(),
+            change,
+            judge: false,
+        },
+    );
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime
+        .block_on(client.refresh_cached_today(&cache))
+        .expect("同查询竞争可在本地收尾");
+    assert_eq!(result.save_error, None);
+    assert_eq!(result.data.len(), expected_classes);
+    if expected_classes == 0 {
+        assert_eq!(result.fetched_at, 100);
+    }
+    assert_eq!(
+        cache.read(&result.scope, 101).unwrap().unwrap().payload,
+        CachePayload::Today(result.data)
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|request| request.url.contains("teachingSchedule/detail.do"))
+            .count(),
+        1
+    );
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
-fn 今日读取被另一连接取代后拒绝迟到结果() {
-    assert_late_cache_change_is_rejected(false, LateCacheChange::NewerRead);
+fn shared_profile_today_reuses_completed_result() {
+    assert_shared_today_recovery(LateCacheChange::NewerComplete, 0);
+}
+
+#[test]
+fn shared_profile_today_retries_only_local_save() {
+    assert_shared_today_recovery(LateCacheChange::NewerRead, 1);
+}
+
+#[test]
+fn shared_profile_today_rejects_epoch_change_even_when_newer_read_exists() {
+    assert_late_cache_change_is_rejected(false, LateCacheChange::ClearThenNewerRead);
 }
 
 #[test]
@@ -386,8 +465,57 @@ fn 希冀读取期间退出后拒绝迟到结果() {
 }
 
 #[test]
-fn 希冀读取被另一连接取代后拒绝迟到结果() {
-    assert_late_cache_change_is_rejected(true, LateCacheChange::NewerRead);
+fn 希冀普通摘要被另一连接取代后只重试保存() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/shared_profile_phase2")
+        .join(test_root("offline-judge-recovery").file_name().unwrap());
+    std::fs::create_dir_all(&root).unwrap();
+    let cache = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut client = cached_client_transport(
+        &root,
+        LateCacheTransport {
+            inner: OfflineTransport(requests.clone()),
+            cache: cache.clone(),
+            root: root.clone(),
+            change: LateCacheChange::NewerRead,
+            judge: true,
+        },
+    );
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let value = runtime
+        .block_on(client.refresh_cached_judge(&cache, true))
+        .unwrap();
+    assert_eq!(value.save_error, None);
+    assert_eq!(
+        cache
+            .read(&value.scope, value.fetched_at)
+            .unwrap()
+            .unwrap()
+            .payload,
+        CachePayload::JudgeSummaries(value.data)
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|req| req.url.ends_with("assignment/index.jsp"))
+            .count(),
+        1
+    );
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[derive(Clone)]

@@ -20,6 +20,7 @@ import '../schedule/projection.dart' show bridgeScheduleOverview;
 import '../schedule/reader.dart' show bridgeLoadTodayWithCache;
 import '../../support/mapping.dart'
     show
+        bridgeCacheMaintenanceFailure,
         bridgeCacheTime,
         bridgeCompactFields,
         bridgeCountResult,

@@ -67,6 +67,24 @@ final class _SpocDetailTask implements FeatureReadTask {
       _validate();
       final value = batch.result;
       if (value == null) {
+        if (batch.finished &&
+            batch.state.saveError == BridgeCacheFailure.superseded) {
+          return FeatureReadBatch(
+            FeatureResult.success(
+              evidence: account == null
+                  ? null
+                  : DataEvidence(
+                      accountId: account!.id,
+                      origin: DataOrigin.online,
+                      fetchedAt: bridgeCacheTime(batch.state.fetchedAt.toInt()),
+                      complete: false,
+                      savedForOffline: false,
+                      cacheFailure: CacheMaintenanceFailure.superseded,
+                    ),
+            ),
+            finished: true,
+          );
+        }
         if (batch.finished)
           throw const BackendException(UbaaErrorCode.upstreamChanged);
         return const FeatureReadBatch(

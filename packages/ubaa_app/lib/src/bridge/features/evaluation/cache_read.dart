@@ -24,9 +24,13 @@ Future<FeatureResult> _finishEvaluationRefresh(
     route,
     pendingOnly: query.view == FeatureQueryView.evaluationPending,
   );
-  var origin = DataOrigin.online;
+  final superseded = value.saveError == BridgeCacheFailure.superseded;
+  var origin = superseded && value.preservedPrevious
+      ? DataOrigin.persisted
+      : DataOrigin.online;
   var fetchedAt = bridgeCacheTime(value.fetchedAt.toInt());
-  if (!value.complete &&
+  if (!superseded &&
+      !value.complete &&
       cache != null &&
       account != null &&
       (value.preservedPrevious || !value.savedForOffline)) {
@@ -78,10 +82,14 @@ Future<FeatureResult> _finishEvaluationRefresh(
               ),
             )
             .toList();
+  final hasData =
+      !superseded || value.preservedPrevious || value.data.courses.isNotEmpty;
   return FeatureResult.success(
-    summary: selected.summary,
+    summary: hasData ? selected.summary : null,
     details: details,
-    overview: value.complete || account != null ? selected.overview : null,
+    overview: hasData && (value.complete || account != null)
+        ? selected.overview
+        : null,
     resolvedRoute: route,
     evidence: account == null
         ? null
@@ -90,7 +98,10 @@ Future<FeatureResult> _finishEvaluationRefresh(
             origin: origin,
             fetchedAt: fetchedAt,
             complete: value.complete,
-            savedForOffline: value.savedForOffline,
+            savedForOffline:
+                value.savedForOffline ||
+                (superseded && value.preservedPrevious),
+            cacheFailure: bridgeCacheMaintenanceFailure(value.saveError),
           ),
   );
 }

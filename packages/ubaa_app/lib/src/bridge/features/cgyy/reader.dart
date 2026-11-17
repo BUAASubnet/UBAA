@@ -16,6 +16,7 @@ import 'projection.dart'
         bridgeProjectCgyySites;
 import '../../support/mapping.dart'
     show
+        bridgeCacheMaintenanceFailure,
         bridgeCacheTime,
         bridgeMapError,
         bridgeRequiredPositiveInt,

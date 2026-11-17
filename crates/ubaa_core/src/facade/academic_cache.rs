@@ -50,7 +50,7 @@ impl UbaaClient {
     /// 核对账号后沿原读取实现取得完整结果，成功才替换精确范围。
     ///
     /// # Errors
-    /// 参数、身份、认证或学校读取失败保持原边界；退出/替代票据不可降级。
+    /// 参数、身份、认证或学校读取失败保持原边界；账号退出和代次改变仍使票据失效。
     pub async fn refresh_cached_academic(
         &mut self,
         cache: &OfflineCache,
@@ -101,7 +101,7 @@ impl UbaaClient {
         });
         let data = refresh.read_result(self.finish_routed(resolution, result))?;
         refresh
-            .finish(data, true, Clone::clone)
+            .finish_shared(data, true, Clone::clone, Ok)
             .map(|value| value.result)
     }
 }

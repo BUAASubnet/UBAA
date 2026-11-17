@@ -30,6 +30,7 @@ Future<FeatureResult> bridgeLoadTodayWithCache(BridgeContext backend) async {
       complete: true,
       savedForOffline: refreshed.saveError == null,
       scopeDate: refreshed.date,
+      cacheFailure: bridgeCacheMaintenanceFailure(refreshed.saveError),
     );
   } else {
     result = await backend.client.scheduleToday();

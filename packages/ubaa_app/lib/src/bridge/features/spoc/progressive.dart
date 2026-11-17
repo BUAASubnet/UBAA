@@ -86,10 +86,13 @@ final class _SpocFeatureTask implements FeatureReadTask {
           publish: false,
         );
       }
-      final online = bridgeMapSpocHome(
-        batch.result.data,
-        bridgeToConnectionMode(batch.result.route.resolvedRoute),
-      );
+      final route = bridgeToConnectionMode(batch.result.route.resolvedRoute);
+      final online =
+          batch.state.saveError == BridgeCacheFailure.superseded &&
+              !batch.state.preservedPrevious &&
+              batch.result.data.assignments.isEmpty
+          ? FeatureResult.success(resolvedRoute: route)
+          : bridgeMapSpocHome(batch.result.data, route);
       final result = await _finishSpocBatch(
         backend,
         cache,

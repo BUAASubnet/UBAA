@@ -93,8 +93,50 @@ impl UbaaClient {
             query.clone().read(self.runtime_for(resolution.mode)).await
         );
         let (data, complete) = refresh.read_result(self.finish_routed(resolution, read))?;
+        if matches!(query, CgyyCacheQuery::Orders { .. }) {
+            return refresh.finish_shared(
+                data,
+                complete,
+                CgyyReadData::readonly_payload,
+                orders_from_cache,
+            );
+        }
         refresh.finish(data, complete, CgyyReadData::readonly_payload)
     }
+}
+
+fn orders_from_cache(payload: CachePayload) -> super::CacheResult<CgyyReadData> {
+    let CachePayload::CgyyOrders(value) = payload else {
+        return Err(super::CacheError::Corrupt);
+    };
+    Ok(CgyyReadData::Orders(CgyyOrdersPage {
+        content: value
+            .content
+            .into_iter()
+            .map(|order| CgyyOrder {
+                id: order.id,
+                venue_site_id: order.venue_site_id,
+                reservation_date: order.reservation_date,
+                reservation_date_detail: order.reservation_date_detail,
+                venue_space_name: order.venue_space_name,
+                campus_name: order.campus_name,
+                venue_name: order.venue_name,
+                site_name: order.site_name,
+                reservation_start_date: order.reservation_start_date,
+                reservation_end_date: order.reservation_end_date,
+                order_status: order.order_status,
+                check_status: order.check_status,
+                theme: order.theme,
+                purpose_type_name: order.purpose_type_name,
+                joiner_num: order.joiner_num,
+                ..CgyyOrder::default()
+            })
+            .collect(),
+        total_elements: value.total_elements,
+        total_pages: value.total_pages,
+        size: value.size,
+        number: value.number,
+    }))
 }
 
 impl CgyyCacheQuery {

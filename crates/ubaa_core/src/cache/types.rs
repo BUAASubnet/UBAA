@@ -314,6 +314,9 @@ pub struct CacheReadTicket {
     pub(super) epoch: u64,
     pub(super) database_id: [u8; 16],
     pub(super) revision: i64,
+    pub(super) generation: u64,
+    pub(super) lineage: Option<i64>,
+    pub(super) local: Option<std::sync::Arc<()>>,
 }
 
 impl CacheReadTicket {

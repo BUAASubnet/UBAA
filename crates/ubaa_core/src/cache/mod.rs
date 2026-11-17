@@ -17,6 +17,7 @@ mod store;
 mod types;
 
 pub use crypto::CacheKey;
+pub(crate) use store::SharedReadRecovery;
 pub use store::{
     CacheClearReport, CacheInvalidation, CacheInvalidationReport, CacheRecovery, CacheUsage,
     OfflineRepository, WriteReadbackHint, WriteReadbackOperation, WriteReadbackTicket,

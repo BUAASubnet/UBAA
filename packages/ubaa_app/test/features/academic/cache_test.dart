@@ -142,6 +142,29 @@ void main() {
     expect(result.evidence!.savedForOffline, isFalse);
     expect(result.evidence!.fetchedAt.millisecondsSinceEpoch, 200000);
   });
+
+  test('课表刷新被较新请求替代时保留内容和状态，不返回读取错误', () async {
+    final value = await backend();
+    const requests = [
+      (FeatureQuery(view: FeatureQueryView.scheduleToday), '已保存的今日课程'),
+      (
+        FeatureQuery(
+          view: FeatureQueryView.scheduleWeek,
+          term: '2025-2026-1',
+          week: 3,
+        ),
+        '已保存的本周课程',
+      ),
+    ];
+    for (final (query, course) in requests) {
+      final result = await value.loadFeatureQuery(FeatureId.schedule, query);
+      expect(result.error, isNull);
+      expect(result.details.single.title, course);
+      expect(result.resolvedRoute, ConnectionMode.webvpn);
+      expect(result.evidence!.fetchedAt.millisecondsSinceEpoch, 100000);
+      expect(result.evidence!.cacheFailure, CacheMaintenanceFailure.superseded);
+    }
+  });
 }
 
 const grades = BridgeGradeData(
@@ -316,8 +339,51 @@ class _Cache implements BridgeOfflineCache {
 }
 
 class _Client implements BridgeClient {
+  static const _cacheRoute = BridgeRouteDecision(
+    policy: BridgeRoutePolicy.webVpn,
+    resolvedRoute: BridgeConnectionMode.webVpn,
+    network: BridgeNetworkState.unknown,
+    initialRoute: BridgeConnectionMode.webVpn,
+    usedFallback: false,
+  );
+
   @override
   int contractVersion() => 73;
+
+  @override
+  Future<BridgeTodayRefresh> scheduleTodayCached({
+    required BridgeOfflineCache cache,
+  }) async => const BridgeTodayRefresh(
+    result: BridgeRoutedTodayClasses(
+      data: [BridgeTodayClass(bizName: '已保存的今日课程')],
+      route: _cacheRoute,
+    ),
+    date: '2026-09-22',
+    fetchedAt: 100,
+    saveError: BridgeCacheFailure.superseded,
+  );
+
+  @override
+  Future<BridgeAcademicWeekRefresh> academicWeekCached({
+    required BridgeOfflineCache cache,
+    required String term,
+    required int week,
+  }) async => const BridgeAcademicWeekRefresh(
+    result: BridgeRoutedWeeklySchedule(
+      data: BridgeWeeklySchedule(
+        arrangedList: [
+          BridgeCourseClass(courseCode: 'C', courseName: '已保存的本周课程'),
+        ],
+        sectionTimes: [],
+        code: '3',
+        name: '第三周',
+      ),
+      route: _cacheRoute,
+    ),
+    fetchedAt: 100,
+    complete: true,
+    saveError: BridgeCacheFailure.superseded,
+  );
   @override
   Future<BridgeRoutedGradeOverview> gradesOverview() async =>
       const BridgeRoutedGradeOverview(

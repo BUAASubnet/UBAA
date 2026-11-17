@@ -400,9 +400,13 @@ class HomeViewState extends State<HomeView> {
   }
 }
 
-/// 只有存储空间不足时学生能自行处理；其他保存失败不影响已显示内容，不提示。
+/// 提示存储空间不足或刷新已被替代，其他保存失败不影响已显示内容。
 String? uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
-    failure == CacheMaintenanceFailure.capacity ? '手机存储空间不足，本次内容未能保存。' : null;
+    switch (failure) {
+      CacheMaintenanceFailure.capacity => '手机存储空间不足，本次内容未能保存。',
+      CacheMaintenanceFailure.superseded => '本次刷新已被较新的请求替代。',
+      _ => null,
+    };
 
 class FeatureGridView extends StatelessWidget {
   const FeatureGridView({

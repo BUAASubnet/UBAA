@@ -155,7 +155,14 @@ final class _JudgeFeatureTask implements FeatureReadTask {
       }
       if (progress.batch.detail case final item?)
         _pending.remove((item.courseId, item.assignmentId));
-      if (progress.batch.finished && progress.batch.complete) _pending.clear();
+      final superseded = progress.saveError == BridgeCacheFailure.superseded;
+      final retained =
+          progress.reused &&
+          progress.summaryHasCached &&
+          progress.batch.kind == BridgeJudgeScanKind.finished;
+      if (progress.batch.finished && (progress.batch.complete || superseded)) {
+        _pending.clear();
+      }
       final details = <FeatureDetail>[
         ...bridgeJudgeSummaryDetails(
           progress.summaries,
@@ -181,11 +188,14 @@ final class _JudgeFeatureTask implements FeatureReadTask {
           ? null
           : DataEvidence(
               accountId: account!.id,
-              origin: progress.summaryHasCached
+              origin: retained
+                  ? DataOrigin.persisted
+                  : progress.summaryHasCached
                   ? DataOrigin.mixed
                   : DataOrigin.online,
               fetchedAt: bridgeCacheTime(
-                _listFetchedAt ?? progress.summaryFetchedAt.toInt(),
+                (retained ? null : _listFetchedAt) ??
+                    progress.summaryFetchedAt.toInt(),
               ),
               complete: progress.batch.complete,
               cacheFailure:
@@ -193,11 +203,11 @@ final class _JudgeFeatureTask implements FeatureReadTask {
                   bridgeCacheMaintenanceFailure(progress.saveError),
               savedForOffline:
                   persistent &&
-                  progress.batch.complete &&
-                  progress.saveError == null,
+                  (retained ||
+                      (progress.batch.complete && progress.saveError == null)),
             );
       final route = bridgeToConnectionMode(progress.batch.route.resolvedRoute);
-      final warning = _warning;
+      final warning = superseded ? null : _warning;
       final result = warning != null && details.isEmpty
           ? FeatureResult.failure(warning)
           : warning != null
@@ -250,7 +260,27 @@ final class _JudgeFeatureTask implements FeatureReadTask {
                   cacheFailure:
                       cacheFailure ??
                       bridgeCacheMaintenanceFailure(progress.saveError),
-                  savedForOffline: persistent && progress.saveError == null,
+                  savedForOffline:
+                      persistent &&
+                      (progress.reused || progress.saveError == null),
+                ),
+        ),
+        finished: true,
+      );
+    }
+    if (progress.batch.finished &&
+        progress.saveError == BridgeCacheFailure.superseded) {
+      return FeatureReadBatch(
+        FeatureResult.success(
+          evidence: account == null
+              ? null
+              : DataEvidence(
+                  accountId: account!.id,
+                  origin: DataOrigin.online,
+                  fetchedAt: bridgeCacheTime(progress.summaryFetchedAt.toInt()),
+                  complete: false,
+                  savedForOffline: false,
+                  cacheFailure: CacheMaintenanceFailure.superseded,
                 ),
         ),
         finished: true,

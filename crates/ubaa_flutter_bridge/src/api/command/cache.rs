@@ -9,6 +9,13 @@ pub(super) fn project<T, D>(
         Some(core::CacheError::Busy) => {
             tracing::warn!(reason = "cache_busy", "本次在线结果未写入本机缓存");
         }
+        Some(core::CacheError::Superseded) => {
+            tracing::warn!(
+                target: "ubaa::command::cache",
+                reason = "cache_read_superseded",
+                "缓存读取已被较新的请求替代"
+            );
+        }
         Some(_) => {
             tracing::warn!("本次在线结果未写入本机缓存");
         }

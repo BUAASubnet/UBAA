@@ -16,6 +16,7 @@ use std::{
 mod grade_baseline;
 mod refresh;
 pub use refresh::CachedRefresh;
+pub(super) use refresh::SharedProjection;
 
 /// 开始一次可降级保存的缓存读取。
 ///
@@ -389,9 +390,15 @@ impl UbaaClient {
         );
         let data = refresh.read_result(self.finish_routed(resolution, read))?;
         refresh
-            .finish(data, true, |data| {
-                CachePayload::JudgeSummaries(data.clone())
-            })
+            .finish_shared(
+                data,
+                true,
+                |data| CachePayload::JudgeSummaries(data.clone()),
+                |payload| match payload {
+                    CachePayload::JudgeSummaries(items) => Ok(items),
+                    _ => Err(CacheError::Corrupt),
+                },
+            )
             .map(|value| value.result)
     }
 
@@ -425,7 +432,15 @@ impl UbaaClient {
         );
         let data = refresh.read_result(self.finish_routed(resolution, read))?;
         refresh
-            .finish(data, true, |data| CachePayload::Today(data.clone()))
+            .finish_shared(
+                data,
+                true,
+                |data| CachePayload::Today(data.clone()),
+                |payload| match payload {
+                    CachePayload::Today(items) => Ok(items),
+                    _ => Err(CacheError::Corrupt),
+                },
+            )
             .map(|value| value.result)
     }
 }

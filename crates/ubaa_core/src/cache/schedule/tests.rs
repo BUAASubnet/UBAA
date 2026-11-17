@@ -1,6 +1,7 @@
 use super::*;
 use crate::cache::{
-    CacheError, CacheKey, CacheLimits, CachePayload, CacheQuery, CacheScope, OfflineRepository,
+    CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload, CacheQuery, CacheScope,
+    OfflineRepository,
 };
 use crate::domain::{ConnectionMode, CourseClass, Term, Week, WeeklySchedule};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -57,6 +58,72 @@ fn scope() -> CacheScope {
         query: CacheQuery::ImportedSchedules,
     }
 }
+
+#[test]
+fn 普通学业读取复用同查询的较新完整导入投影() {
+    let root = root();
+    let open = || {
+        OfflineRepository::open(
+            &root,
+            ACCOUNT,
+            CacheKey::new([7; 32]),
+            CacheLimits::default(),
+        )
+        .unwrap()
+    };
+    let (mut first, mut importer) = (open(), open());
+    let scopes = [
+        CacheQuery::ScheduleTerms,
+        CacheQuery::ScheduleWeeks { term: "a".into() },
+        CacheQuery::ScheduleWeek {
+            term: "a".into(),
+            week: 1,
+        },
+    ]
+    .map(|query| CacheScope {
+        route: ConnectionMode::Direct,
+        query,
+    });
+    let stale = scopes
+        .each_ref()
+        .map(|scope| first.begin_read(scope.clone()).unwrap());
+    let import = importer
+        .begin_read(CacheScope {
+            route: ConnectionMode::Direct,
+            query: CacheQuery::ScheduleImport { term: "a".into() },
+        })
+        .unwrap();
+    let observed = scopes
+        .clone()
+        .map(|scope| importer.begin_read(scope).unwrap().request_revision());
+    let value = semester("a", "2026-09-22", "已导入课程", 103)
+        .with_observations((101, observed[1]), [(1, (102, observed[2]))].into())
+        .unwrap()
+        .with_terms_observation((100, observed[0]))
+        .unwrap();
+    importer.publish_imported_semester(&import, value).unwrap();
+
+    for (((ticket, scope), revision), fetched_at) in stale
+        .into_iter()
+        .zip(scopes)
+        .zip(observed)
+        .zip([100, 101, 102])
+    {
+        assert_eq!(first.validate_read(&ticket), Err(CacheError::Superseded));
+        let SharedReadRecovery::Reuse(record) = first.recover_shared_read(&ticket, true).unwrap()
+        else {
+            panic!("已完成的精确投影应优先于补发票据");
+        };
+        assert!(record.payload.matches(&scope.query));
+        assert_eq!(record.scope, scope);
+        assert_eq!(record.revision, revision);
+        assert_eq!(record.fetched_at, fetched_at);
+        assert!(first.read(&scope, 103).unwrap().is_none());
+    }
+    drop((first, importer));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn 完整导入重开保留各学期与原时间_普通周查询不能成为整学期() {
     let root = root();

@@ -4,6 +4,7 @@ use super::{
     OfflineReadError, ReadonlyFeature, RouteResolution, Routed, Term, UbaaClient, Week,
     WeeklySchedule,
 };
+use crate::cache::{CachePayload, CacheRecord, SharedReadRecovery};
 use crate::internal::route_state::RouteFeatureState;
 use std::{
     collections::BTreeMap,
@@ -68,13 +69,16 @@ impl ScheduleImport {
     pub fn cancellation(&self) -> ScheduleImportCancellation {
         self.cancellation.clone()
     }
-    fn finish(&mut self) -> Result<ScheduleImportBatch, OfflineReadError> {
-        let value = CachedSemesterSchedule::new(
+    fn completed_semester(
+        &self,
+        fetched_at: i64,
+    ) -> Result<CachedSemesterSchedule, OfflineReadError> {
+        CachedSemesterSchedule::new(
             self.term.clone(),
-            std::mem::take(&mut self.terms),
+            self.terms.clone(),
             self.weeks.clone(),
             self.schedules.clone(),
-            chrono::Utc::now().timestamp(),
+            fetched_at,
         )
         .and_then(|value| {
             value.with_observations(
@@ -85,12 +89,88 @@ impl ScheduleImport {
         .and_then(|value| {
             value.with_terms_observation(self.terms_observation.ok_or(CacheError::InvalidInput)?)
         })
-        .map_err(OfflineReadError::Cache)?;
-        let saved = self
+        .map_err(OfflineReadError::Cache)
+    }
+    fn recover(&self, retry: bool) -> Result<SharedReadRecovery, OfflineReadError> {
+        if self.cancellation.0.load(Ordering::Acquire) {
+            return Err(OfflineReadError::Cache(CacheError::Superseded));
+        }
+        self.cache
+            .repository(|repo| repo.recover_schedule_import(&self.ticket, retry))
+            .map_err(OfflineReadError::Cache)
+    }
+    fn replacement_batch(
+        &mut self,
+        record: Option<CacheRecord>,
+        superseded: bool,
+    ) -> ScheduleImportBatch {
+        self.finished = true;
+        let mut batch = self.batch(superseded.then_some(CacheError::Superseded));
+        if let Some(CachePayload::ImportedSchedules(values)) = record.map(|record| record.payload)
+            && let Some(value) = values.first()
+        {
+            batch.completed_weeks = value.schedules.len();
+            batch.total_weeks = Some(value.weeks.len());
+        }
+        batch
+    }
+    fn settle_replacement(
+        &mut self,
+        retry_spent: bool,
+    ) -> Result<ScheduleImportBatch, OfflineReadError> {
+        match self.recover(false)? {
+            SharedReadRecovery::Reuse(record) => {
+                Ok(self.replacement_batch(Some(record), retry_spent))
+            }
+            SharedReadRecovery::Superseded(record) => Ok(self.replacement_batch(record, true)),
+            SharedReadRecovery::Retry(_) => Err(OfflineReadError::Cache(CacheError::Superseded)),
+        }
+    }
+    fn check_ticket(
+        &mut self,
+        renew: bool,
+    ) -> Result<Option<ScheduleImportBatch>, OfflineReadError> {
+        let validated = if renew {
+            self.cache
+                .repository(|repo| repo.renew_read(&mut self.ticket))
+        } else {
+            self.cache.validate_read(&self.ticket)
+        };
+        match validated {
+            Ok(()) => Ok(None),
+            Err(CacheError::Superseded) => self.settle_replacement(false).map(Some),
+            Err(error) => Err(OfflineReadError::Cache(error)),
+        }
+    }
+    fn finish(&mut self) -> Result<ScheduleImportBatch, OfflineReadError> {
+        let fetched_at = chrono::Utc::now().timestamp();
+        let value = self.completed_semester(fetched_at)?;
+        let mut saved = self
             .cache
             .repository(|repo| repo.publish_imported_semester(&self.ticket, value));
-        if let Err(error @ (CacheError::Inactive | CacheError::Superseded)) = saved {
-            return Err(OfflineReadError::Cache(error));
+        if saved == Err(CacheError::Superseded) {
+            match self.recover(true)? {
+                SharedReadRecovery::Reuse(record) => {
+                    return Ok(self.replacement_batch(Some(record), false));
+                }
+                SharedReadRecovery::Superseded(record) => {
+                    return Ok(self.replacement_batch(record, true));
+                }
+                SharedReadRecovery::Retry(ticket) => self.ticket = ticket,
+            }
+            if self.cancellation.0.load(Ordering::Acquire) {
+                return Err(OfflineReadError::Cache(CacheError::Superseded));
+            }
+            let value = self.completed_semester(fetched_at)?;
+            saved = self
+                .cache
+                .repository(|repo| repo.publish_imported_semester(&self.ticket, value));
+            if saved == Err(CacheError::Superseded) {
+                return self.settle_replacement(true);
+            }
+        }
+        if saved == Err(CacheError::Inactive) {
+            return Err(OfflineReadError::Cache(CacheError::Inactive));
         }
         let save_error = saved.err();
         if save_error.is_some() {
@@ -188,14 +268,13 @@ impl UbaaClient {
         {
             return Err(OfflineReadError::Cache(CacheError::Superseded));
         }
-        plan.cache
-            .validate_read(&plan.ticket)
-            .map_err(OfflineReadError::Cache)
+        Ok(())
     }
     /// 推进学期索引、周次索引或单周读取；每批含原激活/会话维护的完整收尾。
     ///
     /// # Errors
-    /// 取消、较新请求、路线/会话替换、学校失败或不完整元数据终止计划；不自动重发。
+    /// 取消、同仓库请求替代、路线或会话变化、学校失败或元数据不完整时终止计划。
+    /// 共享仓库竞争只复用已完成的快照，或补发一次已收齐的本地保存。
     pub async fn next_schedule_import(
         &mut self,
         plan: &mut ScheduleImport,
@@ -213,9 +292,12 @@ impl UbaaClient {
         plan: &mut ScheduleImport,
     ) -> Result<Routed<ScheduleImportBatch>, OfflineReadError> {
         self.validate_schedule_import(plan)?;
-        plan.cache
-            .repository(|repo| repo.renew_read(&mut plan.ticket))
-            .map_err(OfflineReadError::Cache)?;
+        if let Some(data) = plan.check_ticket(true)? {
+            return Ok(Routed {
+                data,
+                resolution: plan.resolution,
+            });
+        }
         match plan.stage {
             Stage::Terms => {
                 let ticket = plan.begin_query(CacheQuery::ScheduleTerms)?;
@@ -230,6 +312,12 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?;
                 self.validate_schedule_import(plan)?;
+                if let Some(data) = plan.check_ticket(false)? {
+                    return Ok(Routed {
+                        data,
+                        resolution: plan.resolution,
+                    });
+                }
                 if result
                     .data
                     .iter()
@@ -263,6 +351,12 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?;
                 self.validate_schedule_import(plan)?;
+                if let Some(data) = plan.check_ticket(false)? {
+                    return Ok(Routed {
+                        data,
+                        resolution: plan.resolution,
+                    });
+                }
                 plan.weeks = CachedSemesterSchedule::normalized_weeks(&plan.term, result.data)
                     .map_err(OfflineReadError::Cache)?;
                 plan.weeks_observation =
@@ -305,6 +399,14 @@ impl UbaaClient {
             .finish_routed(plan.resolution, result)
             .map_err(OfflineReadError::Read)?;
         self.validate_schedule_import(plan)?;
+        if plan.schedules.len() + 1 < plan.weeks.len()
+            && let Some(data) = plan.check_ticket(false)?
+        {
+            return Ok(Routed {
+                data,
+                resolution: plan.resolution,
+            });
+        }
         plan.schedules.insert(week, result.data);
         plan.observations.insert(
             week,

@@ -60,6 +60,45 @@ impl HomeReadData {
         }
     }
 }
+impl HomeReadData {
+    fn from_shared_cache(payload: CachePayload) -> super::CacheResult<Self> {
+        match payload {
+            CachePayload::SigninToday(values) => Ok(Self::Signin(
+                values
+                    .into_iter()
+                    .map(|value| SigninClass {
+                        course_id: value.course_id,
+                        course_name: value.course_name,
+                        class_begin_time: value.class_begin_time,
+                        class_end_time: value.class_end_time,
+                        sign_status: value.sign_status,
+                        ..SigninClass::default()
+                    })
+                    .collect(),
+            )),
+            CachePayload::YgdkOverview(value) => Ok(Self::YgdkOverview(YgdkOverview {
+                summary: value.summary,
+                classify_id: value.classify_id,
+                classify_name: value.classify_name,
+                default_item_id: value.default_item_id,
+                default_item_name: value.default_item_name,
+                items: value
+                    .items
+                    .into_iter()
+                    .map(|item| crate::domain::YgdkItem {
+                        item_id: item.item_id,
+                        name: item.name,
+                        kind: item.kind,
+                        sort: item.sort,
+                        ..crate::domain::YgdkItem::default()
+                    })
+                    .collect(),
+            })),
+            _ => Err(super::CacheError::Corrupt),
+        }
+    }
+}
+
 pub type HomeRefresh = super::CachedRefresh<HomeReadData>;
 impl OfflineCache {
     /// 读取当前日期/视图的精确缓存，不获取网络锁或恢复学校写资格。
@@ -127,9 +166,21 @@ impl UbaaClient {
         if let HomeReadData::YgdkOverview(value) = &data {
             complete &= value.summary.term_id.is_some_and(|id| id > 0);
         }
-        refresh.finish_with(data, complete, |ticket, data, fetched_at| {
-            publish_home(cache, ticket, data, began_at, fetched_at, complete)
-        })
+        let fetched_at = chrono::Utc::now().timestamp();
+        let recover = !matches!(data, HomeReadData::YgdkOverview(_))
+            || ygdk::same_campus_day(began_at, fetched_at).map_err(OfflineReadError::Cache)?;
+        refresh.finish_with(
+            data,
+            complete,
+            fetched_at,
+            |ticket, data, fetched_at| {
+                publish_home(cache, ticket, data, began_at, fetched_at, complete)
+            },
+            recover.then_some(super::offline::SharedProjection {
+                encode: HomeReadData::readonly_payload,
+                decode: HomeReadData::from_shared_cache,
+            }),
+        )
     }
 }
 

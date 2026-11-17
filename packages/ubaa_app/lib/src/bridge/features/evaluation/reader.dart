@@ -12,6 +12,7 @@ import 'projection.dart'
     show bridgeIsEvaluationCacheQuery, bridgeMapEvaluationResult;
 import '../../support/mapping.dart'
     show
+        bridgeCacheMaintenanceFailure,
         bridgeCacheTime,
         bridgeMapError,
         bridgeToBridgeConnectionMode,

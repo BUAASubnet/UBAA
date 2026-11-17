@@ -102,7 +102,10 @@ impl BridgeClient {
                     fetched_at: batch.fetched_at,
                     complete: batch.complete,
                     saved_for_offline: batch.publication == Some(core::CachePublication::Stored),
-                    preserved_previous: !batch.complete,
+                    preserved_previous: batch.publication
+                        == Some(core::CachePublication::Preserved)
+                        || (!batch.complete
+                            && batch.save_error != Some(core::CacheError::Superseded)),
                     save_error: batch.save_error.map(Into::into),
                     scope_date: None,
                 },

@@ -31,9 +31,13 @@ Future<FeatureResult> bridgeFinishHomeRefresh(
     throw const BackendException(UbaaErrorCode.operationConflict);
   var details = online.details;
   var overview = online.overview;
-  var origin = DataOrigin.online;
+  final superseded = state.saveError == BridgeCacheFailure.superseded;
+  var origin = superseded && state.preservedPrevious
+      ? DataOrigin.persisted
+      : DataOrigin.online;
   var fetched = bridgeCacheTime(state.fetchedAt.toInt());
-  if (!state.complete &&
+  if (!superseded &&
+      !state.complete &&
       state.preservedPrevious &&
       online.resolvedRoute != null) {
     CachedFeatureProjection? old;
@@ -119,7 +123,9 @@ Future<FeatureResult> bridgeFinishHomeRefresh(
     origin: origin,
     fetchedAt: fetched,
     complete: complete,
-    savedForOffline: state.savedForOffline,
+    savedForOffline:
+        state.savedForOffline || (superseded && state.preservedPrevious),
+    cacheFailure: bridgeCacheMaintenanceFailure(state.saveError),
     scopeDate: state.scopeDate == null
         ? null
         : bridgeSigninCacheDate(state.scopeDate!),

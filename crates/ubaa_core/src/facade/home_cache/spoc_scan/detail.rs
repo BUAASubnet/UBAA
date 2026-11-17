@@ -5,11 +5,13 @@ use super::{
     OfflineRefresh, RouteResolution, SpocScan, SpocScanCancellation, UbaaClient,
 };
 use crate::facade::{ErrorCode, RoutedError, SpocAssignmentDetail, UbaaError};
+mod recovery;
 pub struct SpocDetailScan {
     list: SpocScan,
     assignment_id: String,
     ticket: Option<CacheReadTicket>,
     save_error: Option<CacheError>,
+    pending: Option<(SpocAssignmentDetail, bool)>,
     finished: bool,
 }
 pub struct SpocDetailScanBatch {
@@ -94,6 +96,7 @@ impl UbaaClient {
             assignment_id: assignment_id.into(),
             ticket: None,
             save_error: None,
+            pending: None,
             finished: false,
         };
         if let Some(cache) = cache {
@@ -124,7 +127,12 @@ impl UbaaClient {
         &mut self,
         plan: &mut SpocDetailScan,
     ) -> Result<SpocDetailScanBatch, OfflineReadError> {
-        let result = self.advance_spoc_detail(plan).await;
+        let result = match self.advance_spoc_detail(plan).await {
+            Err(OfflineReadError::Cache(CacheError::Superseded)) if !plan.finished => {
+                self.recover_spoc_detail(plan)
+            }
+            result => result,
+        };
         if result.is_err() {
             plan.cancellation().cancel();
             if let (Some(cache), Some(ticket)) = (&plan.list.cache, &plan.ticket) {
@@ -143,7 +151,10 @@ impl UbaaClient {
             plan.storage(result)?;
         }
         if !plan.list.finished {
-            self.next_spoc_scan(&mut plan.list).await?;
+            let batch = self.next_spoc_scan(&mut plan.list).await?;
+            if batch.save_error == Some(CacheError::Superseded) {
+                return Err(OfflineReadError::Cache(CacheError::Superseded));
+            }
             self.validate_spoc_detail(plan)?;
             return Ok(plan.batch(None, false, None));
         }
@@ -182,26 +193,17 @@ impl UbaaClient {
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?
             .data;
-        self.validate_spoc_detail(plan)?;
         let complete = plan.list.complete && detail_complete;
+        plan.pending = Some((data, complete));
+        self.validate_spoc_detail(plan)?;
         let mut publication = None;
         if let (Some(cache), Some(ticket)) = (&plan.list.cache, &plan.ticket) {
-            let result = cache.repository(|repo| {
-                repo.publish(
-                    ticket,
-                    CachePayload::SpocDetail(Box::new(data.clone())),
-                    plan.list.fetched_at,
-                    if complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
-                    },
-                )
-            });
+            let result = plan.publish(cache, ticket);
             publication = plan.storage(result)?;
         }
         plan.finished = true;
-        Ok(plan.batch(Some(data), complete, publication))
+        let data = plan.pending.take().map(|(data, _)| data);
+        Ok(plan.batch(data, complete, publication))
     }
     pub(in crate::facade) async fn refresh_spoc_detail_scan(
         &mut self,
@@ -225,6 +227,9 @@ impl UbaaClient {
                     complete: value.complete,
                     publication: value.publication,
                 });
+            }
+            if value.finished {
+                return Err(OfflineReadError::Cache(CacheError::Superseded));
             }
         }
     }

@@ -70,6 +70,39 @@ void main() {
     );
   });
 
+  test('同查询被替代且没有可交付内容时保留原课表，完整空结果仍可清除', () async {
+    final backend = _Backend();
+    final controller = await setup(backend);
+    await controller.refreshFeatureQuery(FeatureId.schedule, _week);
+    for (final complete in [false, true]) {
+      backend.nextOnlineResult = FeatureResult.empty(
+        evidence: DataEvidence(
+          accountId: backend.accountId,
+          origin: DataOrigin.online,
+          fetchedAt: backend.fetched.add(const Duration(hours: 1)),
+          complete: complete,
+          savedForOffline: false,
+          cacheFailure: CacheMaintenanceFailure.superseded,
+        ),
+      );
+      await controller.refreshFeatureQuery(FeatureId.schedule, _week);
+      final snapshot = controller.snapshots[FeatureId.schedule]!;
+      expect(snapshot.error, isNull);
+      expect(
+        snapshot.evidence!.cacheFailure,
+        CacheMaintenanceFailure.superseded,
+      );
+      if (complete) {
+        expect(snapshot.status, FeatureLoadStatus.empty);
+        expect(snapshot.details, isEmpty);
+      } else {
+        expect(snapshot.status, FeatureLoadStatus.stale);
+        expect(snapshot.details.single.title, '缓存第1周');
+        expect(snapshot.updatedAt, backend.fetched);
+      }
+    }
+  });
+
   for (final missing in ['缺失', '不完整', '账号', '查询']) {
     test('$missing缓存继续在线读取', () async {
       final backend = _Backend()..invalid = missing;
@@ -136,6 +169,7 @@ class _Backend extends support.FakeRecoveryBackend
   final online = <FeatureQuery>[];
   final reads = <FeatureQuery>[];
   Completer<OfflineQueryRead>? pending;
+  FeatureResult? nextOnlineResult;
 
   CachedFeatureProjection projection(FeatureQuery query) =>
       CachedFeatureProjection(
@@ -181,9 +215,10 @@ class _Backend extends support.FakeRecoveryBackend
     FeatureQuery query,
   ) async {
     online.add(query);
-    return const FeatureResult.success(
-      details: [FeatureDetail(title: '在线课表')],
-      resolvedRoute: ConnectionMode.direct,
-    );
+    return nextOnlineResult ??
+        const FeatureResult.success(
+          details: [FeatureDetail(title: '在线课表')],
+          resolvedRoute: ConnectionMode.direct,
+        );
   }
 }

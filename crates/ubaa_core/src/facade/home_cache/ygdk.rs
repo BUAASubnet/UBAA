@@ -12,6 +12,10 @@ fn campus_day(now: i64) -> CacheResult<NaiveDate> {
         })
         .ok_or(CacheError::InvalidInput)
 }
+pub(super) fn same_campus_day(start: i64, end: i64) -> CacheResult<bool> {
+    Ok(campus_day(start)? == campus_day(end)?)
+}
+
 pub(super) fn selection_scope(route: ConnectionMode, now: i64) -> CacheResult<CacheScope> {
     let day = campus_day(now)?;
     let monday = day
@@ -53,7 +57,7 @@ pub(super) fn publish(
     complete: bool,
 ) -> CacheResult<(CacheScope, CachePublication)> {
     // 组合网络请求跨校园日期时无法证明统计属于同一天，不混入周期缓存。
-    if campus_day(began_at)? != campus_day(fetched_at)?
+    if !same_campus_day(began_at, fetched_at)?
         || parent.scope() != &selection_scope(parent.scope().route, began_at)?
     {
         return Err(CacheError::Superseded);
@@ -118,13 +122,6 @@ pub(in crate::facade) fn read(
     let CachePayload::YgdkOverview(data) = &mut record.payload else {
         return Err(CacheError::Corrupt);
     };
-    let today = campus_day(now)?;
-    let source = campus_day(record.fetched_at)?;
-    if source != today {
-        data.summary.day_count = None;
-    }
-    if (source.year(), source.month()) != (today.year(), today.month()) {
-        data.summary.month_count = None;
-    }
+    data.trim_to_source_date(record.fetched_at, now)?;
     Ok(Some(record))
 }

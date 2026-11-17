@@ -44,6 +44,7 @@ pub struct SpocScan {
     next_page: u32,
     complete: bool,
     fetched_at: i64,
+    last_page_read: bool,
     finished: bool,
 }
 pub struct SpocScanBatch {
@@ -87,39 +88,14 @@ impl SpocScan {
             }
         }
         self.complete &= page.complete;
-        if let (Some(cache), Some(ticket)) = (&self.cache, &self.ticket) {
-            let result = cache.repository(|repo| {
-                let child = repo.begin_read_guarded(
-                    CacheScope {
-                        route: self.resolution.mode,
-                        query: CacheQuery::SpocPage {
-                            term: self.data.term_code.clone(),
-                            page: self.next_page,
-                            size: 15,
-                        },
-                    },
-                    ticket,
-                )?;
-                repo.publish_guarded(
-                    &child,
-                    ticket,
-                    CachePayload::SpocPage {
-                        data: page.data.clone(),
-                        page: self.next_page,
-                        size: 15,
-                        has_next: page.has_next,
-                        pages: page.pages,
-                    },
-                    chrono::Utc::now().timestamp(),
-                    if page.complete && self.complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
-                    },
-                )
-            });
-            self.storage(result)?;
-        }
+        let page_number = self.next_page;
+        let page_payload = self.ticket.as_ref().map(|_| CachePayload::SpocPage {
+            data: page.data.clone(),
+            page: page_number,
+            size: 15,
+            has_next: page.has_next,
+            pages: page.pages,
+        });
         let mut present: HashSet<_> = self
             .data
             .assignments
@@ -137,6 +113,36 @@ impl SpocScan {
             .next_page
             .checked_add(1)
             .ok_or(OfflineReadError::Cache(CacheError::InvalidInput))?;
+        self.last_page_read = page.finished;
+        if let (Some(cache), Some(ticket), Some(payload)) =
+            (&self.cache, &self.ticket, page_payload)
+        {
+            let result = cache.repository(|repo| {
+                let child = repo.begin_read_guarded(
+                    CacheScope {
+                        route: self.resolution.mode,
+                        query: CacheQuery::SpocPage {
+                            term: self.data.term_code.clone(),
+                            page: page_number,
+                            size: 15,
+                        },
+                    },
+                    ticket,
+                )?;
+                repo.publish_guarded(
+                    &child,
+                    ticket,
+                    payload,
+                    chrono::Utc::now().timestamp(),
+                    if page.complete && self.complete {
+                        CacheCompleteness::Complete
+                    } else {
+                        CacheCompleteness::Partial
+                    },
+                )
+            });
+            self.storage(result)?;
+        }
         if page.finished {
             if let (Some(cache), Some(ticket)) = (&self.cache, &self.ticket) {
                 let result =
@@ -260,6 +266,7 @@ impl UbaaClient {
             next_page: 1,
             complete: true,
             fetched_at: 0,
+            last_page_read: false,
             finished: false,
         };
         if save_error.is_none()
@@ -405,7 +412,12 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
                     .data;
-                self.validate_spoc_scan(plan)?;
+                if plan.ticket.is_some() {
+                    // 已取得的末页先纳入聚合，后续本地发布仍核对父票据。
+                    self.validate_spoc_owner(plan)?;
+                } else {
+                    self.validate_spoc_scan(plan)?;
+                }
                 publication = plan.apply_page(page)?;
             }
         }

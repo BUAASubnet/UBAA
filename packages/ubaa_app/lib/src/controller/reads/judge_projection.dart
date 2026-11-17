@@ -8,6 +8,7 @@ FeatureResult controllerRetainJudgePartial(
   bool pending = false,
 }) {
   if (feature != FeatureId.judge ||
+      result.evidence?.cacheFailure == CacheMaintenanceFailure.superseded ||
       previous.details.isEmpty ||
       (!pending && result.evidence?.complete != false) ||
       previous.resolvedRoute == null ||

@@ -46,6 +46,7 @@ Future<FeatureResult> bridgeLoadJudgeWithCache(
       fetchedAt: bridgeCacheTime(refreshed.fetchedAt.toInt()),
       complete: true,
       savedForOffline: refreshed.saveError == null,
+      cacheFailure: bridgeCacheMaintenanceFailure(refreshed.saveError),
     );
   } else {
     result = await backend.client.judgeAssignments(

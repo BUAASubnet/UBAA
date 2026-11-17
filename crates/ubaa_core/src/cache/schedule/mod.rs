@@ -1,7 +1,7 @@
 //! 完整导入单独保存；不能将零散周缓存拼接成学期覆盖证明。
 use super::{
-    CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheReadTicket,
-    CacheRecord, CacheResult, CacheScope, OfflineRepository,
+    CacheError, CachePayload, CacheQuery, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
+    OfflineRepository, SharedReadRecovery,
 };
 use crate::domain::{ConnectionMode, Term, TodayClass, Week, WeeklySchedule};
 use chrono::{Datelike, NaiveDate};
@@ -19,6 +19,8 @@ pub struct CachedSemesterSchedule {
     pub fetched_at: i64,
     #[serde(default)]
     observations: Option<ScheduleObservations>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) import_revision: Option<i64>,
 }
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct ScheduleObservations {
@@ -48,6 +50,7 @@ impl CachedSemesterSchedule {
             schedules,
             fetched_at,
             observations: None,
+            import_revision: None,
         };
         if !value.is_valid() {
             return Err(CacheError::InvalidInput);
@@ -276,50 +279,33 @@ pub(super) fn valid_collection(values: &[CachedSemesterSchedule]) -> bool {
         .all(|value| value.is_valid() && terms.insert(&value.term_code))
 }
 impl OfflineRepository {
-    /// 合并完整学期后原子替换导入集合，失败保留所有既有学期。
-    ///
-    /// # Errors
-    /// 旧票据、错误范围、不完整学期、容量或存储错误不发布新版本。
-    pub fn publish_imported_semester(
+    /// 用所选学期的发布修订判断是否可以复用；其他学期更新集合不推进本学期修订。
+    pub(crate) fn recover_schedule_import(
         &mut self,
         ticket: &CacheReadTicket,
-        value: CachedSemesterSchedule,
-    ) -> CacheResult<CachePublication> {
-        self.validate_read(ticket)?;
-        let matches = match &ticket.scope.query {
-            CacheQuery::ImportedSchedules => true,
-            CacheQuery::ScheduleImport { term } => *term == value.term_code,
-            _ => false,
-        };
-        if !matches || !value.is_valid() {
+        retry: bool,
+    ) -> CacheResult<SharedReadRecovery> {
+        let CacheQuery::ScheduleImport { term } = &ticket.scope.query else {
             return Err(CacheError::InvalidInput);
-        }
-        let target = if ticket.scope.query == CacheQuery::ImportedSchedules {
-            ticket.clone()
-        } else {
-            self.begin_read(CacheScope {
-                route: ticket.scope.route,
-                query: CacheQuery::ImportedSchedules,
-            })?
         };
-        let mut values = match self.read(&target.scope, value.fetched_at)? {
-            Some(CacheRecord {
-                payload: CachePayload::ImportedSchedules(values),
-                ..
-            }) => values,
-            None => Vec::new(),
-            Some(_) => return Err(CacheError::Corrupt),
-        };
-        values.retain(|existing| existing.term_code != value.term_code);
-        let fetched_at = value.fetched_at;
-        values.push(value);
-        // publish事务再验证票据，跨连接竞争不能覆盖更新的集合。
-        self.publish_guarded(
-            &target,
+        self.recover_shared_read_with(
             ticket,
-            CachePayload::ImportedSchedules(values),
-            fetched_at,
-            CacheCompleteness::Complete,
+            retry,
+            &CacheQuery::ImportedSchedules,
+            |mut record| {
+                let CachePayload::ImportedSchedules(values) = &mut record.payload else {
+                    return Err(CacheError::Corrupt);
+                };
+                values.retain(|value| value.term_code == *term);
+                let Some(value) = values.first() else {
+                    return Ok(None);
+                };
+                record.revision = value
+                    .import_revision
+                    .unwrap_or_else(|| value.observation(&CacheQuery::ScheduleTerms).1);
+                record.fetched_at = value.fetched_at;
+                Ok(Some(record))
+            },
         )
     }
     /// 按明确学期/周次或日期投影；返回的时间仍属于原完整导入。
@@ -343,7 +329,7 @@ impl OfflineRepository {
         ) {
             return Err(CacheError::InvalidInput);
         }
-        let Some(mut record) = self.read(
+        let Some(record) = self.read(
             &CacheScope {
                 route,
                 query: CacheQuery::ImportedSchedules,
@@ -353,51 +339,60 @@ impl OfflineRepository {
         else {
             return Ok(None);
         };
-        let CachePayload::ImportedSchedules(values) = &record.payload else {
-            return Err(CacheError::Corrupt);
-        };
-        let value = match &scope.query {
-            CacheQuery::ScheduleTerms => values.iter().max_by_key(|value| {
-                let (time, revision) = value.observation(&scope.query);
-                (revision, time)
-            }),
-            CacheQuery::ScheduleWeek { term, .. } | CacheQuery::ScheduleWeeks { term } => {
-                values.iter().find(|value| value.term_code == *term)
-            }
-            CacheQuery::ScheduleToday { date: requested } => {
-                let requested = date(requested).ok_or(CacheError::InvalidInput)?;
-                values
-                    .iter()
-                    .filter(|value| value.covering_week(requested).is_some())
-                    .max_by_key(|value| value.first_day())
-            }
-            _ => None,
-        };
-        let Some(value) = value else {
-            return Ok(None);
-        };
-        let payload = match &scope.query {
-            CacheQuery::ScheduleTerms => Some(CachePayload::Terms(value.terms.clone())),
-            CacheQuery::ScheduleWeek { week, .. } => {
-                value.schedules.get(week).cloned().map(CachePayload::Week)
-            }
-            CacheQuery::ScheduleWeeks { .. } => Some(CachePayload::Weeks(value.weeks_at(now)?)),
-            CacheQuery::ScheduleToday { date } => value.today(date)?.map(CachePayload::Today),
-            _ => None,
-        };
-        let Some(payload) = payload else {
-            return Ok(None);
-        };
-        let (source_at, revision) = value.observation(&scope.query);
-        record.fetched_at = source_at;
-        record.last_attempt_at = source_at;
-        record.last_verified_at = source_at;
-        record.revision = revision;
-        record.last_attempt_succeeded = true;
-        record.scope = scope;
-        record.payload = payload;
-        Ok(Some(record))
+        project_imported_schedule(record, scope, now)
     }
+}
+
+/// 用精确查询自己的观察修订与时间投影完整导入，可供已持有事务的调用者使用。
+pub(super) fn project_imported_schedule(
+    mut record: CacheRecord,
+    scope: CacheScope,
+    now: i64,
+) -> CacheResult<Option<CacheRecord>> {
+    let CachePayload::ImportedSchedules(values) = &record.payload else {
+        return Err(CacheError::Corrupt);
+    };
+    let value = match &scope.query {
+        CacheQuery::ScheduleTerms => values.iter().max_by_key(|value| {
+            let (time, revision) = value.observation(&scope.query);
+            (revision, time)
+        }),
+        CacheQuery::ScheduleWeek { term, .. } | CacheQuery::ScheduleWeeks { term } => {
+            values.iter().find(|value| value.term_code == *term)
+        }
+        CacheQuery::ScheduleToday { date: requested } => {
+            let requested = date(requested).ok_or(CacheError::InvalidInput)?;
+            values
+                .iter()
+                .filter(|value| value.covering_week(requested).is_some())
+                .max_by_key(|value| value.first_day())
+        }
+        _ => None,
+    };
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let payload = match &scope.query {
+        CacheQuery::ScheduleTerms => Some(CachePayload::Terms(value.terms.clone())),
+        CacheQuery::ScheduleWeek { week, .. } => {
+            value.schedules.get(week).cloned().map(CachePayload::Week)
+        }
+        CacheQuery::ScheduleWeeks { .. } => Some(CachePayload::Weeks(value.weeks_at(now)?)),
+        CacheQuery::ScheduleToday { date } => value.today(date)?.map(CachePayload::Today),
+        _ => None,
+    };
+    let Some(payload) = payload else {
+        return Ok(None);
+    };
+    let (source_at, revision) = value.observation(&scope.query);
+    record.fetched_at = source_at;
+    record.last_attempt_at = source_at;
+    record.last_verified_at = source_at;
+    record.revision = revision;
+    record.last_attempt_succeeded = true;
+    record.scope = scope;
+    record.payload = payload;
+    Ok(Some(record))
 }
 #[cfg(test)]
 mod tests;
