@@ -1,6 +1,6 @@
 PODS:
   - Flutter (1.0.0)
-  - ubaa_bindings (2.0.1):
+  - ubaa_bindings (2.0.2):
     - Flutter
 
 DEPENDENCIES:
@@ -15,7 +15,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  ubaa_bindings: 0705465fe50e5aa168805ee52782ab5e631ca6a3
+  ubaa_bindings: 828393fa1664af494f6e0c1c51ccd9dcc7916bda
 
 PODFILE CHECKSUM: db004619a67c57db80fa00ba2dde45687fafad13
 
