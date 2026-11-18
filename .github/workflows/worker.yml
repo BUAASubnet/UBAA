@@ -16,7 +16,6 @@ on:
       - scripts/lib/toolchain.py
       - scripts/lib/environment.py
       - docs/contracts/app-service*
-      - docs/site/announcements/**
       - package.json
       - package-lock.json
       - .github/workflows/worker.yml

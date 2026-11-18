@@ -189,7 +189,8 @@ APP_SERVICE_CONTENT_INPUTS = SITE_INPUTS | {
     'scripts/tests/app_service/release_test.mjs',
     'justfile', 'scripts/lib/recipe.py',
     'scripts/check/changed_checks.py', 'scripts/tests/checks/changed_checks_test.py',
-    '.github/workflows/ci.yml', '.github/workflows/docs.yml',
+    '.github/workflows/ci.yml', '.github/workflows/docs.yml', '.github/workflows/app-content.yml',
+    'scripts/server/content.mjs',
 }
 APP_SERVICE_CONTENT_PATHS = (
     'docs/site/announcements/', 'docs/site/.vitepress/',
