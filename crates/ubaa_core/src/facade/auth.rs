@@ -7,7 +7,6 @@ use crate::domain::{
 use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::session::DualSessionCoordinator;
-use crate::session::business_cache::Invalidation;
 
 use super::client::UbaaClient;
 use super::types::{Operation, RoutedResult};
@@ -165,6 +164,15 @@ impl UbaaClient {
     pub async fn logout(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
+        {
+            let _permit = self
+                .shared_account_guard()
+                .as_ref()
+                .map(super::SharedAccountGuard::acquire)
+                .transpose()?;
+            self.sessions.revoke_business_for_logout()?;
+            self.business_sessions.discard_seeds();
+        }
         self.cloud_print = None;
         self.clear_interactive_context();
         self.direct_auth
@@ -183,9 +191,8 @@ impl UbaaClient {
             .as_ref()
             .map(super::SharedAccountGuard::acquire)
             .transpose()?;
-        let revisions = self.sessions.clear_both();
-        self.business_sessions.invalidate(Invalidation::RevokeAll);
-        let revisions = revisions?;
+        let revisions = self.sessions.clear_both()?;
+        self.business_sessions.discard_seeds();
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         Ok(())

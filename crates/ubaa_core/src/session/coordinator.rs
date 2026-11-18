@@ -78,10 +78,9 @@ impl DualSessionCoordinator {
 
     fn lose_ownership(&self, mut state: MutexGuard<'_, DualSessionState>) {
         state.lose_ownership();
-        // 旁车等待后台任务前先释放协调器；后台任务可能仍在做只读修订预检。
         drop(state);
         if let Some(cache) = self.business_cache.upgrade() {
-            cache.revoke_on_conflict();
+            cache.discard_on_conflict();
         }
     }
 
@@ -118,6 +117,22 @@ impl DualSessionCoordinator {
 
     pub(crate) fn conflict_error() -> UbaaError {
         dual_session_conflict()
+    }
+
+    /// 在第一次远端注销前撤销两条路线的旁车，不改变主会话修订。
+    pub(crate) fn revoke_business_for_logout(&self) -> Result<()> {
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| session_error("dual session coordinator is unavailable"))?;
+        if state.conflicted {
+            return Err(dual_session_conflict());
+        }
+        if !state.store.revoke_business_if_current(state.revision)? {
+            self.lose_ownership(state);
+            return Err(dual_session_conflict());
+        }
+        Ok(())
     }
 
     pub(crate) fn is_revision_current(
@@ -164,8 +179,7 @@ impl DualSessionCoordinator {
         let mutation = match state.store.compare_exchange_dual(state.revision, None) {
             Ok(mutation) => mutation,
             Err(error) => {
-                // 双槽清理由主动撤销入口调用，调用方无条件清理旁车。
-                state.lose_ownership();
+                self.lose_ownership(state);
                 return Err(error);
             }
         };
@@ -181,7 +195,7 @@ impl DualSessionCoordinator {
                 })
             }
             DualSessionMutation::Conflict => {
-                state.lose_ownership();
+                self.lose_ownership(state);
                 Err(dual_session_conflict())
             }
         }
@@ -249,6 +263,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
             .ok_or_else(|| session_error("session revision is exhausted"))?;
         let mut candidate = state.snapshot.clone();
         let slot = replacement.map(RouteSessionSnapshot::from_legacy);
+        let revoked_route = slot.is_none().then_some(self.mode);
         match self.mode {
             ConnectionMode::Direct => candidate.sessions.direct = slot,
             ConnectionMode::WebVpn => candidate.sessions.webvpn = slot,
@@ -259,10 +274,11 @@ impl SessionStore for CoordinatedRouteSessionStore {
             } else {
                 Some(&candidate)
             };
-        let mutation = match state
-            .store
-            .compare_exchange_dual(state.revision, replacement)
-        {
+        let mutation = match state.store.compare_exchange_dual_with_revocation(
+            state.revision,
+            replacement,
+            revoked_route,
+        ) {
             Ok(mutation) => mutation,
             Err(error) => {
                 self.coordinator.lose_ownership(state);

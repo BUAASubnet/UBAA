@@ -11,7 +11,7 @@ use crate::internal::route_state::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{
-    Arc, Mutex, MutexGuard, Weak,
+    Arc, Mutex, MutexGuard, OnceLock, Weak,
     atomic::{AtomicU64, Ordering},
 };
 
@@ -148,25 +148,53 @@ pub(crate) enum Invalidation {
     SameAccountLogin(ConnectionMode),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub(crate) struct BusinessCacheStamp {
     generation: u64,
-    nonce: Option<ClearNonce>,
+    nonce: CacheNonce,
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
-enum NonceObservation {
-    #[default]
-    Unobserved,
-    // 无文件或旧 schema 2 的条目同样可以有明确的观察结果。
-    Observed(Option<ClearNonce>),
+#[derive(Clone)]
+enum CacheNonce {
+    Disk(Option<ClearNonce>),
+    Rejection(Arc<RejectionNonce>),
+}
+
+struct RejectionNonce {
+    proposed: ClearNonce,
+    completed: OnceLock<Option<ClearNonce>>,
+}
+
+#[derive(PartialEq)]
+enum ResolvedNonce {
+    Pending,
+    Ready(Option<ClearNonce>),
+}
+
+impl CacheNonce {
+    fn resolved(&self) -> ResolvedNonce {
+        match self {
+            Self::Disk(nonce) => ResolvedNonce::Ready(*nonce),
+            Self::Rejection(pending) => pending
+                .completed
+                .get()
+                .map_or(ResolvedNonce::Pending, |nonce| ResolvedNonce::Ready(*nonce)),
+        }
+    }
+}
+
+impl PartialEq for CacheNonce {
+    fn eq(&self, other: &Self) -> bool {
+        matches!((self, other), (Self::Rejection(a), Self::Rejection(b)) if Arc::ptr_eq(a, b))
+            || matches!(self.resolved(), ResolvedNonce::Ready(nonce) if other.resolved() == ResolvedNonce::Ready(nonce))
+    }
 }
 
 #[derive(Default)]
 struct RouteSeeds {
     entries: BusinessSeeds,
-    observed_nonce: NonceObservation,
-    loaded: bool,
+    nonce: Option<CacheNonce>,
+    disk_nonce: Option<ClearNonce>,
 }
 
 #[derive(Default)]
@@ -176,6 +204,7 @@ struct State {
     webvpn: RouteSeeds,
     generation: Arc<AtomicU64>,
     writer: writer::Writer,
+    conflicted: bool,
     #[cfg(test)]
     before_file_job: Option<Box<dyn FnOnce() + Send>>,
 }
@@ -193,7 +222,7 @@ impl State {
         for entry in &mut seeds.entries {
             entry.invalidate();
         }
-        seeds.loaded = false;
+        seeds.nonce = None;
     }
 
     fn invalidate_all(&mut self) {
@@ -202,11 +231,16 @@ impl State {
         self.invalidate(ConnectionMode::WebVpn);
     }
 
-    fn accepts(&mut self, account: &str, route: ConnectionMode, stamp: BusinessCacheStamp) -> bool {
-        self.generation.load(Ordering::Acquire) == stamp.generation
+    fn accepts(
+        &mut self,
+        account: &str,
+        route: ConnectionMode,
+        stamp: &BusinessCacheStamp,
+    ) -> bool {
+        !self.conflicted
+            && self.generation.load(Ordering::Acquire) == stamp.generation
             && self.account.as_deref() == Some(account)
-            && self.route(route).loaded
-            && self.route(route).observed_nonce == NonceObservation::Observed(stamp.nonce)
+            && self.route(route).nonce.as_ref() == Some(&stamp.nonce)
     }
 }
 
@@ -236,18 +270,28 @@ impl BusinessSessionCache {
         now: i64,
     ) -> (BusinessCacheStamp, BusinessSeeds) {
         let mut state = self.lock();
+        if state.conflicted {
+            return (
+                BusinessCacheStamp {
+                    generation: state.generation.load(Ordering::Acquire),
+                    nonce: CacheNonce::Disk(None),
+                },
+                state.route(route).entries.clone(),
+            );
+        }
         if state.account.as_deref() != Some(account) {
             state.invalidate_all();
             state.account = Some(account.to_owned());
         }
         let generation = state.generation.load(Ordering::Acquire);
+        let previous = state.route(route).nonce.as_ref().map(CacheNonce::resolved);
         let Ok(mut document) = self.file.read() else {
             tracing::warn!("业务会话缓存读取失败");
             state.invalidate(route);
             return (
                 BusinessCacheStamp {
                     generation,
-                    nonce: None,
+                    nonce: CacheNonce::Disk(None),
                 },
                 state.route(route).entries.clone(),
             );
@@ -255,13 +299,20 @@ impl BusinessSessionCache {
         // 旧 schema 2 与尚未写过旁车的路线都没有清理令牌，普通写入可以互相合并。
         let nonce = document.as_ref().and_then(|document| document.nonce(route));
         let seeds = state.route(route);
-        let observed = NonceObservation::Observed(nonce);
-        if !seeds.loaded || seeds.observed_nonce != observed {
+        let matches_disk = match previous {
+            Some(ResolvedNonce::Ready(resolved)) => resolved == nonce,
+            // 文件读取可能与本进程的原子替换重叠。无论读到哪一版，都保留已清除的内存条目。
+            Some(ResolvedNonce::Pending) => {
+                matches!(&seeds.nonce, Some(CacheNonce::Rejection(pending))
+                if seeds.disk_nonce == nonce || Some(pending.proposed) == nonce)
+            }
+            None => false,
+        };
+        if !matches_disk {
             for entry in &mut seeds.entries {
                 entry.invalidate();
             }
-            seeds.observed_nonce = observed;
-            seeds.loaded = true;
+            seeds.nonce = Some(CacheNonce::Disk(nonce));
             if let Some(document) = document
                 .as_mut()
                 .filter(|document| document.account.as_deref() == Some(account))
@@ -273,6 +324,7 @@ impl BusinessSessionCache {
                 }
             }
         }
+        seeds.disk_nonce = nonce;
         for (scope, seed) in BusinessScope::ALL.into_iter().zip(&mut seeds.entries) {
             if seed.material.is_some()
                 && (scope.is_expired(seed.saved_at, now)
@@ -285,7 +337,10 @@ impl BusinessSessionCache {
             }
         }
         (
-            BusinessCacheStamp { generation, nonce },
+            BusinessCacheStamp {
+                generation,
+                nonce: seeds.nonce.clone().expect("已加载路线"),
+            },
             seeds.entries.clone(),
         )
     }
@@ -324,7 +379,7 @@ impl BusinessSessionCache {
         ),
     ) -> Option<BusinessSeeds> {
         let mut state = self.lock();
-        if !state.accepts(account, route, stamp) {
+        if !state.accepts(account, route, &stamp) {
             return None;
         }
         let account = account.to_owned();
@@ -341,8 +396,12 @@ impl BusinessSessionCache {
             if let Some(pause) = before_file_job {
                 pause();
             }
+            // 同一路线拒绝与重新激活后的写回按队列顺序执行。
+            let ResolvedNonce::Ready(nonce) = stamp.nonce.resolved() else {
+                return;
+            };
             if file
-                .write(&account, route, stamp.nonce, &pending, saved_at, || {
+                .write(&account, route, nonce, &pending, saved_at, || {
                     generation.load(Ordering::Acquire) == stamp.generation && lifecycle_current()
                 })
                 .is_err()
@@ -371,15 +430,22 @@ impl BusinessSessionCache {
         route: ConnectionMode,
         scope: BusinessScope,
         rejected: BusinessMaterial,
-    ) {
+    ) -> Option<BusinessCacheStamp> {
         let mut state = self.lock();
-        if !state.accepts(account, route, stamp) {
-            return;
+        if !state.accepts(account, route, &stamp) {
+            return None;
         }
         let entry = &mut state.route(route).entries[scope as usize];
         if same_material(entry.material.as_ref(), Some(&rejected)) {
             entry.invalidate();
         }
+        let pending = Arc::new(RejectionNonce {
+            proposed: rand::random(),
+            completed: OnceLock::new(),
+        });
+        let completion = Arc::clone(&pending);
+        let generation = Arc::clone(&state.generation);
+        let epoch = stamp.generation;
         let account = account.to_owned();
         #[cfg(test)]
         let before_file_job = state.before_file_job.take();
@@ -388,61 +454,82 @@ impl BusinessSessionCache {
             if let Some(pause) = before_file_job {
                 pause();
             }
-            if file
-                .reject(&account, route, stamp.nonce, scope, &rejected)
-                .is_err()
-            {
-                tracing::warn!("业务会话缓存失效写回失败");
-            }
+            let ResolvedNonce::Ready(prior) = stamp.nonce.resolved() else {
+                return;
+            };
+            let nonce = match file.reject(
+                &account,
+                route,
+                prior,
+                completion.proposed,
+                (scope, &rejected),
+                || generation.load(Ordering::Acquire) == epoch,
+            ) {
+                Ok(true) => Some(completion.proposed),
+                Ok(false) => prior,
+                Err(_) => {
+                    tracing::warn!("业务会话缓存失效写回失败");
+                    prior
+                }
+            };
+            let _ = completion.completed.set(nonce);
         }) {
             tracing::warn!("业务会话缓存失效写回失败");
+            return None;
         }
+        let nonce = CacheNonce::Rejection(pending);
+        state.route(route).nonce = Some(nonce.clone());
+        Some(BusinessCacheStamp {
+            generation: epoch,
+            nonce,
+        })
     }
 
     pub(crate) fn invalidate(&self, event: Invalidation) {
         let mut state = self.lock();
+        if state.conflicted {
+            return;
+        }
         match event {
             Invalidation::SameAccountLogin(route) => {
                 state.invalidate(route);
                 state.writer.drain();
-                if let Ok(nonce) = self.file.clear_route(route) {
-                    state.route(route).observed_nonce = NonceObservation::Observed(Some(nonce));
-                } else {
+                if self.file.clear_route(route).is_err() {
                     tracing::warn!("业务会话缓存单路线登录清理失败");
                 }
             }
             Invalidation::RevokeAll | Invalidation::AccountChanged => {
                 state.invalidate_all();
                 state.writer.drain();
-                if let Ok([direct, webvpn]) = self.file.clear() {
-                    state.direct.observed_nonce = NonceObservation::Observed(Some(direct));
-                    state.webvpn.observed_nonce = NonceObservation::Observed(Some(webvpn));
-                } else {
+                if self.file.clear().is_err() {
                     tracing::warn!("业务会话缓存全量清理失败");
                 }
             }
         }
     }
 
-    pub(crate) fn revoke_on_conflict(&self) {
+    pub(crate) fn discard_seeds(&self) {
+        self.lock().invalidate_all();
+    }
+
+    pub(crate) fn discard_on_conflict(&self) {
         let mut state = self.lock();
-        let observed = [
-            (ConnectionMode::Direct, state.direct.observed_nonce),
-            (ConnectionMode::WebVpn, state.webvpn.observed_nonce),
-        ]
-        .into_iter()
-        .filter_map(|(route, observed)| match observed {
-            NonceObservation::Unobserved => None,
-            NonceObservation::Observed(nonce) => Some((route, nonce)),
-        });
         state.invalidate_all();
-        state.writer.drain();
-        if self.file.clear_if_observed(observed).is_err() {
-            tracing::warn!("业务会话缓存冲突清理失败");
-        }
+        state.account = None;
+        state.conflicted = true;
     }
 }
 
+pub(super) fn revoke_disk(store: &FileSessionStore, route: Option<ConnectionMode>) {
+    let file = file::BusinessSessionFile::new(store.directory());
+    let result = match route {
+        Some(route) => file.clear_route(route),
+        None => file.clear(),
+    };
+    if result.is_err() {
+        tracing::warn!("业务会话缓存会话撤销失败");
+    }
+}
 #[cfg(test)]
 #[path = "business_cache_p2_tests.rs"]
 mod p2_tests;

@@ -82,21 +82,24 @@ impl Document {
     }
 
     fn advance_nonce(&mut self, route: ConnectionMode) -> ClearNonce {
-        let slot = match route {
-            ConnectionMode::Direct => &mut self.clear_nonces.direct,
-            ConnectionMode::WebVpn => &mut self.clear_nonces.webvpn,
-        };
         let nonce = rand::random();
-        *slot = Some(nonce);
+        self.set_nonce(route, nonce);
         nonce
     }
 
-    fn clear_route(&mut self, route: ConnectionMode) -> ClearNonce {
+    fn set_nonce(&mut self, route: ConnectionMode, nonce: ClearNonce) {
+        match route {
+            ConnectionMode::Direct => self.clear_nonces.direct = Some(nonce),
+            ConnectionMode::WebVpn => self.clear_nonces.webvpn = Some(nonce),
+        }
+    }
+
+    fn clear_route(&mut self, route: ConnectionMode) {
         self.route(route).clear();
         if self.routes.is_empty() {
             self.account = None;
         }
-        self.advance_nonce(route)
+        self.advance_nonce(route);
     }
 
     pub(super) fn route(&mut self, route: ConnectionMode) -> &mut BTreeMap<BusinessScope, Entry> {
@@ -187,10 +190,14 @@ impl BusinessSessionFile {
         account: &str,
         route: ConnectionMode,
         nonce: Option<ClearNonce>,
-        scope: BusinessScope,
-        rejected: &BusinessMaterial,
-    ) -> Result<()> {
+        replacement_nonce: ClearNonce,
+        (scope, rejected): (BusinessScope, &BusinessMaterial),
+        current: impl Fn() -> bool,
+    ) -> Result<bool> {
         let _lock = self.lock()?;
+        if !current() {
+            return Ok(false);
+        }
         if let Some(mut document) = self.read()?.filter(|document| {
             document.account.as_deref() == Some(account) && document.nonce(route) == nonce
         }) {
@@ -200,50 +207,30 @@ impl BusinessSessionFile {
                 .is_some_and(|entry| entry.material.matches(rejected))
             {
                 entries.remove(&scope);
-                self.replace(&document, || true)?;
+                if document.routes.is_empty() {
+                    document.account = None;
+                }
+                document.set_nonce(route, replacement_nonce);
+                self.replace(&document, current)?;
+                return Ok(true);
             }
         }
-        Ok(())
+        Ok(false)
     }
 
-    pub(super) fn clear_route(&self, route: ConnectionMode) -> Result<ClearNonce> {
+    pub(super) fn clear_route(&self, route: ConnectionMode) -> Result<()> {
         let _lock = self.lock()?;
         let mut document = self.read()?.unwrap_or_default();
-        let nonce = document.clear_route(route);
-        self.replace(&document, || true)?;
-        Ok(nonce)
+        document.clear_route(route);
+        self.replace(&document, || true)
     }
 
-    pub(super) fn clear(&self) -> Result<[ClearNonce; 2]> {
+    pub(super) fn clear(&self) -> Result<()> {
         let _lock = self.lock()?;
         let mut document = Document::default();
-        let direct = document.advance_nonce(ConnectionMode::Direct);
-        let webvpn = document.advance_nonce(ConnectionMode::WebVpn);
-        self.replace(&document, || true)?;
-        Ok([direct, webvpn])
-    }
-
-    pub(super) fn clear_if_observed(
-        &self,
-        observed: impl Iterator<Item = (ConnectionMode, Option<ClearNonce>)>,
-    ) -> Result<()> {
-        let mut observed = observed.peekable();
-        if observed.peek().is_none() {
-            return Ok(());
-        }
-        let _lock = self.lock()?;
-        let mut document = self.read()?.unwrap_or_default();
-        let mut changed = false;
-        for (route, nonce) in observed {
-            if document.nonce(route) == nonce {
-                document.clear_route(route);
-                changed = true;
-            }
-        }
-        if changed {
-            self.replace(&document, || true)?;
-        }
-        Ok(())
+        document.advance_nonce(ConnectionMode::Direct);
+        document.advance_nonce(ConnectionMode::WebVpn);
+        self.replace(&document, || true)
     }
 
     fn lock(&self) -> Result<File> {

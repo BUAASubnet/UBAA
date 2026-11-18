@@ -342,9 +342,9 @@ impl UbaaClient {
                 "route configuration directory is unavailable",
             ));
         };
-        let policy_changed = self.config.default != policy;
         let mut replacement = self.config.clone();
         replacement.replace_default_policy(policy);
+        let policy_changed = !self.config.has_same_effective_routes(&replacement);
         let generation = self.route_generation.checked_add(1).ok_or_else(|| {
             UbaaError::new(
                 ErrorCode::InternalError,

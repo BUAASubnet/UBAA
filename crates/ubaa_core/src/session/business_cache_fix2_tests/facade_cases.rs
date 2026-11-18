@@ -56,7 +56,7 @@ async fn 修复二_交互准备后取消时两条路线已清空() {
 }
 
 #[tokio::test]
-async fn 修复二_首次冲突仅轮换此前观察且仍匹配的路线并只清理一次() {
+async fn 修复三_发现冲突和冲突终态不修改旁车() {
     let path = root("conflict-once");
     let store = signed_in(&path);
     let b = cache(&path);
@@ -65,12 +65,10 @@ async fn 修复二_首次冲突仅轮换此前观察且仍匹配的路线并只�
     let mut a = client(&store, transport(ACCOUNT));
     a.auth_status().await.unwrap();
     drop(a.fork_parallel_readonly().unwrap());
-    let before = document(&path);
-    b.invalidate(Invalidation::SameAccountLogin(ConnectionMode::WebVpn));
-    write_route(&b, ConnectionMode::WebVpn);
-    let fresh = document(&path);
     let snapshot = store.load_dual_versioned().unwrap().snapshot.unwrap();
     store.save_dual(&snapshot).unwrap();
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
 
     assert!(
         a.fork_parallel_readonly()
@@ -78,41 +76,93 @@ async fn 修复二_首次冲突仅轮换此前观察且仍匹配的路线并只�
             .unwrap()
             .is_session_conflict()
     );
-    let after = document(&path);
-    assert_ne!(
-        after["clear_nonces"]["direct"],
-        before["clear_nonces"]["direct"]
-    );
-    assert_eq!(
-        after["clear_nonces"]["webvpn"],
-        fresh["clear_nonces"]["webvpn"]
-    );
-    assert!(after["routes"]["direct"]["spoc"].is_null());
-    assert!(after["routes"]["webvpn"]["spoc"].is_object());
-    write_route(&b, ConnectionMode::Direct);
-    let repopulated = document(&path);
+    assert_eq!(std::fs::read(&file).unwrap(), before);
+    write_route(&b, ConnectionMode::WebVpn);
+    let repopulated = std::fs::read(&file).unwrap();
     assert!(a.auth_status().await.unwrap_err().is_session_conflict());
-    assert_eq!(document(&path), repopulated);
+    assert_eq!(std::fs::read(&file).unwrap(), repopulated);
     std::fs::remove_dir_all(path).unwrap();
 }
 
 #[tokio::test]
-async fn 修复二_注销中的双槽比较交换冲突仍无条件清空旁车() {
+async fn 修复三_注销发出后才产生的双槽冲突不再次清理旁车() {
     let path = root("logout-cas-conflict");
     let store = signed_in(&path);
     let b = cache(&path);
     b.invalidate(Invalidation::RevokeAll);
     write_route(&b, ConnectionMode::Direct);
     write_route(&b, ConnectionMode::WebVpn);
+    let before = document(&path);
+    let replacement = {
+        let store = store.clone();
+        let path = path.clone();
+        Arc::new(move || {
+            let saved = store.load_dual_versioned()?;
+            store.save_dual(saved.snapshot.as_ref().unwrap())?;
+            let fresh = cache(&path);
+            write_route(&fresh, ConnectionMode::Direct);
+            Ok(())
+        })
+    };
     let mut a = client(
         &store,
         Sso {
-            replace_on_logout: Some(store.clone()),
+            replace_on_logout: Some(replacement),
             ..transport(ACCOUNT)
         },
     );
-    let before = document(&path);
     assert!(a.logout().await.unwrap_err().is_session_conflict());
+    let after = document(&path);
+    assert!(after["routes"]["direct"]["spoc"].is_object());
+    assert!(after["routes"]["webvpn"]["spoc"].is_null());
+    for route in ["direct", "webvpn"] {
+        assert_ne!(after["clear_nonces"][route], before["clear_nonces"][route]);
+    }
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[tokio::test]
+async fn 修复三_注销在入口发现冲突时保持旁车原样() {
+    let path = root("logout-entry-conflict");
+    let store = signed_in(&path);
+    let mut a = client(&store, transport(ACCOUNT));
+    a.auth_status().await.unwrap();
+    let b = cache(&path);
+    write_route(&b, ConnectionMode::Direct);
+    drop(a.fork_parallel_readonly().unwrap());
+    let snapshot = store.load_dual_versioned().unwrap().snapshot.unwrap();
+    store.save_dual(&snapshot).unwrap();
+    write_route(&b, ConnectionMode::WebVpn);
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
+    assert!(a.logout().await.unwrap_err().is_session_conflict());
+    assert_eq!(std::fs::read(file).unwrap(), before);
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[tokio::test]
+async fn 修复三_首个远端注销请求处取消时墓碑已生效() {
+    let path = root("logout-cancel");
+    let store = signed_in(&path);
+    let b = cache(&path);
+    write_route(&b, ConnectionMode::Direct);
+    write_route(&b, ConnectionMode::WebVpn);
+    let before = document(&path);
+    let entered = Arc::new(tokio::sync::Notify::new());
+    let mut a = client(
+        &store,
+        Sso {
+            logout_entered: Some(Arc::clone(&entered)),
+            ..transport(ACCOUNT)
+        },
+    );
+    {
+        let request = std::pin::pin!(a.logout());
+        tokio::select! {
+            result = request => panic!("注销不应先结束：{result:?}"),
+            result = tokio::time::timeout(std::time::Duration::from_secs(5), entered.notified()) => result.unwrap(),
+        }
+    }
     let after = document(&path);
     assert!(after["account"].is_null() && after["routes"].is_null());
     for route in ["direct", "webvpn"] {

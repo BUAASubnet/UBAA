@@ -611,7 +611,7 @@ async fn 业务会话_登录注销换号路线策略与设置均清理新范围(
 }
 
 #[tokio::test]
-async fn 业务会话_阳光提交不读写旁车且被拒不重登() {
+async fn 业务会话_阳光提交不复用或保存旁车材料且被拒不重登() {
     for rejected in [false, true] {
         let fixture = Fixture::in_task(TASK);
         let bridge = restored(fixture.1.clone(), "direct", &Transport::default()).await;
@@ -664,7 +664,27 @@ async fn 业务会话_阳光提交不读写旁车且被拒不重登() {
             write.calls.ygdk_submissions.load(SeqCst),
             usize::from(!rejected)
         );
-        assert!(prior == fixture.contents(), "主客户端不得写回旁车");
+        if rejected {
+            // 原提交收尾会撤销 Direct 主会话槽，旁车随之只保留清理令牌。
+            let before: Value = serde_json::from_str(&prior).unwrap();
+            let after: Value = serde_json::from_str(&fixture.contents()).unwrap();
+            assert_eq!(after["schema"], 2);
+            assert!(after.get("account").is_none() && after.get("routes").is_none());
+            assert_eq!(
+                after["clear_nonces"]["direct"].as_array().unwrap().len(),
+                16
+            );
+            assert_ne!(
+                before["clear_nonces"]["direct"],
+                after["clear_nonces"]["direct"]
+            );
+            assert_eq!(
+                before["clear_nonces"]["webvpn"],
+                after["clear_nonces"]["webvpn"]
+            );
+        } else {
+            assert!(prior == fixture.contents(), "主客户端不得写回业务材料");
+        }
     }
 }
 

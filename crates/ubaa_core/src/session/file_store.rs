@@ -151,6 +151,15 @@ impl FileSessionStore {
         expected_revision: u64,
         replacement: Option<&DualSessionSnapshot>,
     ) -> Result<DualSessionMutation> {
+        self.compare_exchange_dual_with_revocation(expected_revision, replacement, None)
+    }
+
+    pub(super) fn compare_exchange_dual_with_revocation(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&DualSessionSnapshot>,
+        revoked_route: Option<ConnectionMode>,
+    ) -> Result<DualSessionMutation> {
         if replacement.is_some_and(|snapshot| snapshot.schema_version != 2) {
             return Err(session_error("session format is invalid"));
         }
@@ -168,7 +177,20 @@ impl FileSessionStore {
             Some(body) => self.save_unlocked(&body)?,
             None => self.clear_unlocked()?,
         }
+        // 先锁主会话再锁旁车，确保轮换仍属于本次成功的 CAS；不等待后台队列。
+        if revoked_route.is_some() || replacement.is_none() {
+            super::business_cache::revoke_disk(self, revoked_route);
+        }
         Ok(DualSessionMutation::Applied { revision })
+    }
+
+    pub(super) fn revoke_business_if_current(&self, expected_revision: u64) -> Result<bool> {
+        let mut lock = self.acquire_lock()?;
+        if read_revision(&mut lock.file)? != expected_revision {
+            return Ok(false);
+        }
+        super::business_cache::revoke_disk(self, None);
+        Ok(true)
     }
 }
 

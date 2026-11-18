@@ -148,7 +148,7 @@ fn 迟到拒绝只删除仍匹配的材料() {
     reader
         .write(
             ACCOUNT,
-            generation,
+            generation.clone(),
             ConnectionMode::Direct,
             vec![(BusinessScope::Spoc, Some(renewed_spoc.clone()))],
             NOW + 1,
@@ -169,11 +169,14 @@ fn 迟到拒绝只删除仍匹配的材料() {
     .unwrap();
     drop(peer);
 
+    let mut stamp = generation;
     for (scope, rejected) in [
         (BusinessScope::Spoc, old_spoc),
         (BusinessScope::Ygdk, old_ygdk),
     ] {
-        reader.reject(ACCOUNT, generation, ConnectionMode::Direct, scope, rejected);
+        stamp = reader
+            .reject(ACCOUNT, stamp, ConnectionMode::Direct, scope, rejected)
+            .unwrap();
     }
     let (_, seeds) = reader.seeds(ACCOUNT, ConnectionMode::Direct, NOW + 3);
     assert!(

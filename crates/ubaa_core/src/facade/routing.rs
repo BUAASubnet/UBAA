@@ -87,8 +87,10 @@ impl<'a> RouteExecution<'a> {
             return self.runtime.sync_empty_session_revision();
         }
         if let Err(error) = self.runtime.ensure_session_revision() {
-            self.runtime.clear_memory();
-            self.auth.clear();
+            if self.runtime.ensure_primary_client().is_ok() {
+                self.runtime.clear_memory();
+                self.auth.clear();
+            }
             return Err(error);
         }
         Ok(())
@@ -393,11 +395,19 @@ impl UbaaClient {
 
     pub(super) fn guard_latest_session_ownership(&mut self) -> Result<()> {
         self.clear_on_session_conflict()?;
+        // 过期读组由读取池重新派生，不能通过清理运行时推进其他读组的父路线代次。
+        self.direct_runtime.ensure_readonly_generation()?;
+        self.webvpn_runtime.ensure_readonly_generation()?;
+        let primary = self.direct_runtime.ensure_primary_client().is_ok();
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
             let (runtime, auth) = self.route_parts_for(route);
             if let Err(error) = RouteExecution::new(runtime, auth).guard_session_ownership() {
-                if self.clear_on_session_conflict().is_ok() {
-                    self.clear_all_memory();
+                if self.clear_on_session_conflict().is_ok() && primary {
+                    if error.is_shared_account_conflict() {
+                        self.clear_runtime_memory();
+                    } else {
+                        self.clear_all_memory();
+                    }
                 }
                 return Err(error);
             }
@@ -541,6 +551,9 @@ const fn alternate_route(route: ConnectionMode) -> ConnectionMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "test-contract")]
+    mod business_revocation;
 
     #[test]
     fn explicit_invalidation_clears_but_timeout_and_server_errors_preserve_session() {

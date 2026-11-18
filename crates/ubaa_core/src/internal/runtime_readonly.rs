@@ -118,7 +118,8 @@ impl ClientRuntime {
         let (stamp, seeds) = cache.seeds(account, mode, now);
         if owner
             .business_cache_stamp
-            .is_some_and(|prior| prior != stamp)
+            .as_ref()
+            .is_some_and(|prior| prior != &stamp)
         {
             for scope in BusinessScope::ALL {
                 apply_business_seed(&mut self.jar, &self.feature_state, mode, scope, None);
@@ -155,7 +156,7 @@ impl ClientRuntime {
         };
         let (Some(account), Some(stamp), Some(parent)) = (
             owner.business_cache_account.as_deref(),
-            owner.business_cache_stamp,
+            owner.business_cache_stamp.clone(),
             owner.state.upgrade(),
         ) else {
             return;
@@ -243,10 +244,11 @@ impl ClientRuntime {
         let Some(account) = owner.business_cache_account.as_deref() else {
             return;
         };
-        if let Some(stamp) = owner.business_cache_stamp
+        if let Some(stamp) = owner.business_cache_stamp.clone()
             && !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty())
+            && let Some(next_stamp) = cache.reject(account, stamp, mode, scope, rejected)
         {
-            cache.reject(account, stamp, mode, scope, rejected);
+            owner.business_cache_stamp = Some(next_stamp);
         }
         if matches!(scope, BusinessScope::Byxt | BusinessScope::Portal) {
             self.jar.retain(|cookie| !scope.owns(mode, cookie));
@@ -254,7 +256,7 @@ impl ClientRuntime {
         owner.business_seeds[scope as usize].material = None;
     }
 
-    pub(super) fn ensure_readonly_generation(&self) -> Result<()> {
+    pub(crate) fn ensure_readonly_generation(&self) -> Result<()> {
         if self
             .readonly_generation
             .as_ref()
