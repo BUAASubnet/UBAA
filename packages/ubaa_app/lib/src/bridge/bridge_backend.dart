@@ -87,7 +87,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 75;
+const _supportedBridgeContractVersion = 76;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -345,6 +345,7 @@ class BridgeBackend
     final native = await BridgeSharedAccount.capture(
       directory: binding.directory,
       generation: BigInt.from(binding.generation),
+      retainSession: binding.snapshot.state.canRestore,
     );
     var adopted = false;
     try {

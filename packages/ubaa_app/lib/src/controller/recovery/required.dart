@@ -115,6 +115,17 @@ mixin ControllerRequiredRecovery on ControllerState {
             : null,
       ),
     );
+    final store = internalLocalAccountStore;
+    final grant = internalCurrentSessionGrant;
+    final snapshot = internalSharedAccountSnapshot;
+    final useGrant =
+        store is SecureLocalAccountStore &&
+        grant != null &&
+        identical(grant.backend, session.backend) &&
+        account?.id == grant.binding.account.id &&
+        snapshot != null &&
+        snapshot.state.generation == grant.binding.generation &&
+        !snapshot.state.canRestore;
     bool current() =>
         session.isCurrent &&
         networkRevision == internalNetworkRevision &&
@@ -123,9 +134,19 @@ mixin ControllerRequiredRecovery on ControllerState {
         internalLocalAccount?.id == account?.id &&
         routeGeneration == internalRoutePolicyGeneration &&
         credentials == internalLoginCredentialRevision &&
-        !internalRoutePolicyInFlight;
-    final store = internalLocalAccountStore;
-    final scope = store is SecureLocalAccountStore
+        !internalRoutePolicyInFlight &&
+        (!useGrant || identical(internalCurrentSessionGrant, grant));
+    final scope = useGrant
+        ? RecoveryScope.currentSession(
+            binding: grant.binding,
+            routeGeneration: routeGeneration,
+            backendGeneration: epoch,
+            credentialGeneration: credentials,
+            routePolicy: internalLoginForm.routePolicy,
+            publishReusedSession: publishReusedSession,
+            isCurrent: current,
+          )
+        : store is SecureLocalAccountStore
         ? await RecoveryScope.capture(
             accounts: store,
             snapshot: internalSharedAccountSnapshot,

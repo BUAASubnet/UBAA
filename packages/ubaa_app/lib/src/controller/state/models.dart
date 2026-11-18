@@ -5,6 +5,14 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/progressive.dart';
 import 'package:ubaa_app/src/contracts/schedule_import.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
+import 'package:ubaa_platform/shared_accounts.dart';
+
+/// 只随显式登录保存在控制器内存中。
+final class CurrentSessionGrant {
+  const CurrentSessionGrant(this.binding, this.backend);
+  final SharedAccountBinding binding;
+  final UbaaBackend backend;
+}
 
 class GuardedLockDisplaySession implements CgyyLockDisplaySession {
   GuardedLockDisplaySession(this.inner, this.isCurrent);

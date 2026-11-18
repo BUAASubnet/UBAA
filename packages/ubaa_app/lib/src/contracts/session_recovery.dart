@@ -20,7 +20,8 @@ final class RecoveryScope {
     PersistentRecoveryScope? persistent,
   }) : _accountGeneration = accountGeneration,
        _isCurrent = isCurrent,
-       _persistent = persistent;
+       _persistent = persistent,
+       _currentBinding = null;
 
   /// 只能从安全索引捕获身份和许可，调用者不能用裸 alias 构造持久作用域。
   static Future<RecoveryScope> capture({
@@ -57,10 +58,69 @@ final class RecoveryScope {
     );
   }
 
+  /// 只采用显式登录取得的绑定，不能开启持久恢复。
+  static RecoveryScope currentSession({
+    required SharedAccountBinding binding,
+    required int routeGeneration,
+    required int backendGeneration,
+    required int credentialGeneration,
+    required RoutePolicy routePolicy,
+    required bool publishReusedSession,
+    required bool Function() isCurrent,
+  }) {
+    if (binding.isRevocation ||
+        binding.snapshot.state.canRestore ||
+        !isCurrent()) {
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    }
+    return RecoveryScope._currentSession(
+      binding,
+      routeGeneration: routeGeneration,
+      backendGeneration: backendGeneration,
+      credentialGeneration: credentialGeneration,
+      routePolicy: routePolicy,
+      publishReusedSession: publishReusedSession,
+      isCurrent: isCurrent,
+    );
+  }
+
+  RecoveryScope._currentSession(
+    SharedAccountBinding binding, {
+    required this.routeGeneration,
+    required this.backendGeneration,
+    required this.credentialGeneration,
+    required this.routePolicy,
+    required this.publishReusedSession,
+    required bool Function() isCurrent,
+  }) : accountAlias = binding.account.id,
+       expectedUsername = binding.account.username,
+       _accountGeneration = binding.generation,
+       allowAutomaticLogin = false,
+       _isCurrent = isCurrent,
+       _persistent = null,
+       _currentBinding = binding;
+
+  final SharedAccountBinding? _currentBinding;
+
+  Future<void> _validateCurrentBinding(SharedAccountBinding binding) async {
+    if (!isCurrent)
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    try {
+      await binding.validate();
+    } on LocalAccountConflict {
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    }
+    if (!isCurrent)
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+  }
+
   final PersistentRecoveryScope? _persistent;
   bool get isShared => _persistent != null;
-  LocalAccountSnapshot? get sharedSnapshot => _persistent?.snapshot;
+  LocalAccountSnapshot? get sharedSnapshot =>
+      _currentBinding?.snapshot ?? _persistent?.snapshot;
   Future<void> validateSharedState() async {
+    if (_currentBinding case final binding?)
+      return _validateCurrentBinding(binding);
     final persistent = _persistent;
     if (persistent != null &&
         !await persistent.accounts.validate(persistent.snapshot)) {
@@ -69,6 +129,8 @@ final class RecoveryScope {
   }
 
   Future<void> validatePersistent() async {
+    if (_currentBinding case final binding?)
+      return _validateCurrentBinding(binding);
     if (!isCurrent ||
         (_persistent != null &&
             !await _persistent.accounts.validate(_persistent.snapshot))) {
@@ -131,6 +193,18 @@ final class RecoveryScope {
   }
 
   Future<void> commitDelivery(void Function() deliver) async {
+    if (_currentBinding case final binding?) {
+      try {
+        await binding.commit(() {
+          if (!isCurrent)
+            throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+          deliver();
+        });
+      } on LocalAccountConflict {
+        throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+      }
+      return;
+    }
     final persistent = _persistent;
     if (persistent == null) {
       if (isCurrent)
@@ -172,6 +246,7 @@ final class RecoveryScope {
     routePolicy,
     allowAutomaticLogin,
     publishReusedSession,
+    _currentBinding != null,
   );
   Object get credentialKey =>
       (accountAlias, _accountGeneration, credentialGeneration);

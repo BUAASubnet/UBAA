@@ -12,7 +12,7 @@ import 'package:ubaa_app/src/contracts/recovery.dart';
 import '../../contracts/session_recovery.dart';
 import 'retry.dart' show controllerTemporaryRecoveryFailure;
 import '../state/recovery_result.dart';
-import '../state/models.dart' show RecoveryRequest;
+import '../state/models.dart' show CurrentSessionGrant, RecoveryRequest;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -71,6 +71,7 @@ mixin ControllerOfflineStartup on ControllerState {
             epoch != internalLifecycleEpoch) {
           throw const RecoveryInterrupted(RecoveryStopReason.superseded);
         }
+        internalCurrentSessionGrant = null;
         internalSharedAccountSnapshot = shared;
         if (internalBackend case final SharedAccountBackend backend) {
           await backend.bindSharedAccount(await store.bindSnapshot(shared));
@@ -428,6 +429,7 @@ mixin ControllerOfflineStartup on ControllerState {
     required String username,
     required bool retainSession,
   }) async {
+    internalCurrentSessionGrant = null;
     final store = internalLocalAccountStore;
     if (store == null || internalUser == null) return;
     final scope = internalCaptureSessionScope();
@@ -442,10 +444,20 @@ mixin ControllerOfflineStartup on ControllerState {
           throw const RecoveryInterrupted(RecoveryStopReason.superseded);
         }
         internalSharedAccountSnapshot = shared;
-        if (internalBackend case final SharedAccountBackend backend) {
-          await backend.bindSharedAccount(
-            await store.bindSnapshot(shared, requireRestore: false),
+        final backend = scope.backend;
+        if (!retainSession || backend is SharedAccountBackend) {
+          final binding = await store.bindSnapshot(
+            shared,
+            requireRestore: false,
           );
+          if (!scope.isCurrent) return;
+          if (backend case final SharedAccountBackend sharedBackend) {
+            await sharedBackend.bindSharedAccount(binding);
+            if (!scope.isCurrent) return;
+          }
+          if (!retainSession) {
+            internalCurrentSessionGrant = CurrentSessionGrant(binding, backend);
+          }
         }
       }
       internalLocalAccount = index.account;

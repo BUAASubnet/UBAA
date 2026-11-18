@@ -348,7 +348,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 75;
+  int contractVersion() => 76;
 
   @override
   Future<BridgeTodayRefresh> scheduleTodayCached({

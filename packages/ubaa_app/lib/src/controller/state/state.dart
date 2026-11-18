@@ -18,6 +18,7 @@ import 'package:ubaa_app/src/write/coordinator.dart';
 import 'models.dart'
     show
         BusinessRetry,
+        CurrentSessionGrant,
         GuardedLockDisplaySession,
         ProfileRequest,
         ProgressiveScope,
@@ -107,6 +108,8 @@ abstract class ControllerState extends ControllerOperations {
   LocalAccount? internalLocalAccount;
   @internal
   LocalAccountSnapshot? internalSharedAccountSnapshot;
+  @internal
+  CurrentSessionGrant? internalCurrentSessionGrant;
   @internal
   RecoveryScope? internalSharedRecoveryScope;
 

@@ -855,6 +855,7 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   @override
   void dispose() {
     if (internalDisposed) return;
+    internalCurrentSessionGrant = null;
     internalCancelNetworkChange();
     internalDisposeHome();
     internalDisposeAppService();
