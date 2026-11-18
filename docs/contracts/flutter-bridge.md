@@ -843,7 +843,7 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 合同 v50 增加 `BridgeAgendaSyncService` 与 `BridgeClient.sync_agenda`，统一 App 命令的 `execute_agenda_sync` 使用同一个 Core 服务。日程本机句柄保持独立，只有显式同步调用才取得网络客户端锁。同步报告包含状态、待同步数量和合并变化数量，错误分别投影本机日程类别与原云盘 typed 错误。Bridge 不接收同步正文、对象授权或第二份凭据。
 
-账号明确启用后，打开页拉取一次，本机保存后触发一次上传。未启用时只更新本机待同步数量，unknown 只读核对当前 metadata 与正文。首次创建调用 `create_agenda_sync_confirmed`，并提交由 `capture_agenda_sync_scope` 在打开确认前取得的 opaque 作用域。Bridge 取得实际执行客户端后核对原作用域，并在 Core 采用云盘路线时核对确认路线。Auto 捕获只读取未过期的网关观察。无法取得创建路线时重新拉取，客户端忙时立即反馈。切号、关闭或同路线重开均不能延续旧确认。服务内各次等待仍核对共享账号和路线。发送前持久快照与读回确认由 Core 的同一 SQLite 事务维护，完整规则见[日程合同](agenda.md#跨设备同步)。
+账号明确启用后，打开页拉取一次，本机保存后触发一次上传。未启用时只更新本机待同步数量，unknown 只读核对当前 metadata 与正文。首次创建调用 `create_agenda_sync_confirmed`，并提交由 `capture_agenda_sync_scope` 在打开确认前取得的 opaque 作用域。Auto 和 Direct 下均绑定云盘直连，不依赖网关探测缓存；显式 WebVPN 不允许创建，客户端忙时立即反馈。Bridge 取得实际执行客户端后核对原作用域，Core 在发送云盘请求前核对实际路线。切号、关闭或同路线重开均不能延续旧确认。服务内各次等待仍核对共享账号和路线。发送前持久快照与读回确认由 Core 的同一 SQLite 事务维护，完整规则见[日程合同](agenda.md#跨设备同步)。
 
 合同 v51 增加本机日程账号的 `BridgeAgendaStore.sync_enabled`。读取启用许可只访问独立日程库，账号或共享代次失效时拒绝。许可在用户确认后的同一账号作用域保存，页面打开和本机修改仅在许可有效时触发自动同步。只读拉取与 CLI 单次发送不打开许可。
 
