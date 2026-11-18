@@ -28,6 +28,7 @@ pub enum CacheInvalidation {
         classify_id: i32,
     },
     Evaluation,
+    Library,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CacheInvalidationReport {
@@ -67,7 +68,7 @@ impl CacheInvalidation {
                     && date.as_deref().is_none_or(|d| day(d, "%Y-%m-%d"))
             }
             Self::Ygdk { classify_id } => *classify_id > 0,
-            Self::Evaluation => true,
+            Self::Evaluation | Self::Library => true,
         };
         if valid {
             Ok(())

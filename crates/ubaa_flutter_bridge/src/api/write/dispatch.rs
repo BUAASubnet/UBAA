@@ -10,6 +10,7 @@ pub(crate) enum WriteReceipt {
     Signin(core::SigninActionResult),
     LibbookReserve(core::LibBookReserveResult),
     LibbookCancel(core::LibBookCancelResult),
+    LibraryLoanRenew(core::LibraryLoanRenewResult),
     Ygdk(core::YgdkClockinSubmitResult),
     CgyyReserve(core::CgyyReservationResult),
     CgyyCancel(core::CgyyCancelOrderResult),
@@ -69,6 +70,13 @@ pub(crate) async fn dispatch(
                 route
             ),
             LibbookReserve
+        ),
+        PendingWrite::LibraryLoanRenew(v) => receipt!(
+            client.library_loan_renew_if_route_matches(
+                core::LibraryLoanRenewRequest { loan_id: v.loan_id },
+                route
+            ),
+            LibraryLoanRenew
         ),
         PendingWrite::LibbookCancel(v) => receipt!(
             client.libbook_cancel_booking_if_route_matches(
@@ -164,6 +172,17 @@ pub(crate) fn project(
                 "已取消预约"
             } else {
                 "取消失败"
+            }),
+            None,
+            None,
+            None,
+        ),
+        WriteReceipt::LibraryLoanRenew(v) => (
+            v.success,
+            safe_message(if v.success {
+                "续借成功"
+            } else {
+                "续借失败"
             }),
             None,
             None,

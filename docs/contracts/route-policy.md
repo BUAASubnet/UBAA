@@ -85,7 +85,7 @@ judge = "auto"
 | WebVPN | `i.buaa.edu.cn` | 两个公共 DNS 服务均返回 NXDOMAIN，AAAA 查询也无记录 |
 | WebVPN | `uc.buaa.edu.cn` | TLS 校验通过后无有效 HTTP 响应；HTTP/2 异常关闭，HTTP/1.1 用户信息入口与根页面均返回空响应 |
 | WebVPN | `icw.buaa.edu.cn`、`chaxun.icw.buaa.edu.cn` | 用户明确确认财务必须走 WebVPN。[PR #124](https://github.com/BUAASubnet/UBAA/pull/124) 已记录真实 WebVPN 收入读取通过，并修复网关登录失效后的恢复 |
-| Direct 优先 | `byxt.buaa.edu.cn`、`gsmis.buaa.edu.cn`、`booking.lib.buaa.edu.cn`、`bykc.buaa.edu.cn` | 入口返回正常的 SSO 登录跳转 |
+| Direct 优先 | `byxt.buaa.edu.cn`、`gsmis.buaa.edu.cn`、`booking.lib.buaa.edu.cn`、`space.lib.buaa.edu.cn`、`bykc.buaa.edu.cn` | 入口返回正常的 SSO 登录跳转；`space.lib` 的 WebVPN 路线尚未真实验证 |
 | Direct 优先 | `app.buaa.edu.cn`、`spoc.buaa.edu.cn`、`ygdk.buaa.edu.cn`、`cgyy.buaa.edu.cn`、`it.buaa.edu.cn` | 公开入口返回 HTTP 200 |
 | Direct 优先 | `zfw.buaa.edu.cn`、`bhpan.buaa.edu.cn` | 返回各自登录入口；云盘继续只使用已支持的 Direct 协议 |
 | 原认证流程 | `sso.buaa.edu.cn`、`d.buaa.edu.cn` | SSO 登录页 HTTP 200，WebVPN 网关返回登录跳转，不列入业务域名名单 |

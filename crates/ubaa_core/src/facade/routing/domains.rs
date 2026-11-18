@@ -145,6 +145,7 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
             | crate::features::health_cloud::HOST
             | "ygdk.buaa.edu.cn"
             | "booking.lib.buaa.edu.cn"
+            | "space.lib.buaa.edu.cn"
             | crate::features::cloud_print::HOST
             | "bykc.buaa.edu.cn"
             | "cgyy.buaa.edu.cn"
@@ -170,6 +171,7 @@ fn domains(operation: Operation) -> &'static [&'static str] {
             ReadonlyFeature::HealthCloud => &[crate::features::health_cloud::HOST],
             ReadonlyFeature::Ygdk => &["ygdk.buaa.edu.cn", "app.buaa.edu.cn"],
             ReadonlyFeature::LibBook => &["booking.lib.buaa.edu.cn"],
+            ReadonlyFeature::Library => &["space.lib.buaa.edu.cn"],
             ReadonlyFeature::Bykc => &["bykc.buaa.edu.cn"],
             ReadonlyFeature::Cgyy => &["cgyy.buaa.edu.cn"],
             ReadonlyFeature::Portal => &["it.buaa.edu.cn"],

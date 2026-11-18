@@ -96,3 +96,22 @@ abstract interface class CgyyReservationReadbackBackend {
 abstract interface class LibbookReadbackBackend {
   Future<FeatureResult> readLibbookAfterWrite(FeatureQuery query);
 }
+
+/// 单本续借后的只读核对结果；路线必须是 Core 实际使用的固定路线。
+@immutable
+class LibraryLoanRouteRead {
+  const LibraryLoanRouteRead({
+    required this.loans,
+    required this.resolvedRoute,
+  });
+
+  final List<LibraryLoan> loans;
+  final ConnectionMode resolvedRoute;
+}
+
+/// 续借核对只读取 intent 的原路线，不能按当前 Auto 策略重新选路。
+abstract interface class LibraryLoanReadbackBackend {
+  Future<LibraryLoanRouteRead> readLibraryLoansOnRoute({
+    required ConnectionMode route,
+  });
+}

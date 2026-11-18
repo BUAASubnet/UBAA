@@ -48,6 +48,16 @@ Future<WriteIntent> bridgePrepareSigninPerform(
   ),
 );
 
+Future<WriteIntent> bridgePrepareLibraryLoanRenew(
+  BridgeContext backend, {
+  required String loanId,
+}) => _prepareIntent(
+  backend,
+  backend.client.prepareLibraryLoanRenew(
+    request: BridgeLibraryLoanRenewRequest(loanId: loanId),
+  ),
+);
+
 Future<WriteIntent> bridgePrepareLibbookReserve(
   BridgeContext backend, {
   required String areaId,

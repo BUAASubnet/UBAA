@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `74`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `75`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=74` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=75` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 | `healthCloudPage` | 可选站点年份键 | `BridgeHealthCloudPage` | 体测年份、该年度的成绩与实际路线；不提交修改 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
@@ -168,6 +168,8 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 | `libbookAreaSchedule` | `areaId: String` | `LibBookAreaSchedule` |
 | `libbookSeats` | `areaId: String, day: String, startTime: String, endTime: String` | `List<LibBookSeat>` |
 | `libbookBookings` | `page: i32, limit: i32` | `LibBookBookingsPage` |
+| `currentLibraryLoans` | 无 | `LibraryLoans`；`entries` 含公开记录标识、书名、作者、借还日期、续借次数、可续借次数、状态与馆藏地 |
+| `currentLibraryLoansOnRoute` | `route: ConnectionMode` | `CallerPinnedLibraryLoans`；只按调用方路线读取，不执行 Auto 探测或回退，用于续借写后核对 |
 | `ygdkOverview` | 无 | `YgdkOverview` |
 | `ygdkRecords` | `page: i32, size: i32` | `YgdkRecordsPage` |
 | `ygdkOverviewOnRoute` | `route: ConnectionMode` | `CallerPinnedYgdkOverview` |
@@ -346,6 +348,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `prepareSigninPerform` | `{courseId}` | `signinAction` |
 | `prepareLibbookReserve` | `{areaId,seatId,day,segment,startTime,endTime}` | `libbookReserve` |
 | `prepareLibbookCancelBooking` | `{id,page,limit}` | `libbookCancel` |
+| `prepareLibraryLoanRenew` | `{loanId}` | `libraryLoanRenew` |
 | `prepareYgdkSubmit` | `{target:{classifyId,itemId},startTime,endTime,place?,shareToSquare,photo:{bytes,fileName,mimeType}}` | `ygdkSubmit` |
 | `prepareCgyySubmitReservation` | 由 1–2 个 `CgyyReserveAction` 唯一派生的目标与表单字段；不含 challenge 内部材料 | `cgyyReservation` |
 | `prepareCgyyCancelOrder` | `{orderId}` | `cgyyCancelOrder` |
@@ -372,6 +375,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `warnings` | `List<String>` | 固定产品提示，不拼上游正文 |
 | `expiresAt` | `i64` | Unix 秒，默认 prepare 后 120 秒 |
 | `requestDigest` | `String` | 规范化非秘密请求的 SHA-256 十六进制指纹；只随 intent 返回，不是 commit 入参或写入授权依据 |
+| `libraryLoanRenewTarget` | `BridgeLibraryLoanRenewTarget?` | 单本续借的预检记录，供写后核对使用 |
 
 opaque `intentId` 只在当前 client 内绑定内存中的 typed 请求、过期时间、prepare 路线和冲突键；不得保存
 密码、Cookie、challenge 图片或外部验证码三元组。`commitWrite` 只接收该 ID，原子取出 typed 请求后再执行，
@@ -419,6 +423,19 @@ typed 资格为 `allowed`。commit 消费 intent 后执行同一 fresh 预检，
 `libbookBookings(page,limit)` 页用于核对，禁止自动重放取消。
 同页 authority 查询自身的失败也属于该边界：`/v4/member/seat` 非成功 envelope 的原始 message 不得进入
 BridgeError，统一投影为 `upstreamChanged` 与固定安全文案。
+
+图书馆续借 prepare 只接受当前借阅读取结果中的 `loanId`，由 Core 重读完整当前借阅范围，要求该记录唯一存在；
+Bridge 在返回的 intent 中投影预检记录的 `loanId`、`dueDate` 和 `renewTimes`，Dart 用作核对基线；
+已知可续借次数为零时拒绝签发意图。目标摘要只含书名和应还日期，不含借书证号、条码号或原始上游原因。
+commit 消费 intent 后核对原路线，最终只发送 `{loanIds:[loanId],source:1}` 一次；学校返回非零整数 `code` 或
+`code=0` 的失败映射包含目标 `loanId` 时返回确定业务拒绝。HTTP 非 200、正文不可解析、`code` 缺失或类型异常、
+非空失败映射缺少当前目标、发送后断开均保持 `outcome_unknown` 且禁止自动重放。
+续借提交的 `businessRejected` 可通过 Bridge 的展示文案携带 Core 已筛选的学校说明。Dart 只在当前续借反馈中显示说明，
+诊断 JSON 仅携带固定原因标记，通用错误详情与遥测继续使用应用模板。
+借阅明细不进入首页自动读取或业务缓存；确定成功和结果未知后，统一写入生命周期在 intent 的
+`resolvedRoute` 上调用 `currentLibraryLoansOnRoute` 一次。只有同一记录在预检和核对时已知的应还日期发生变化，
+或续借次数确实增加，才把未知结果标记为已核对。普通浏览和手动刷新继续使用 `currentLibraryLoans` 的
+正常 Auto 策略。回读失败、路线不一致或记录不唯一时保留未知，不重发写请求。
 
 阳光打卡 prepare 只接受当前 `YgdkOverview.items` 中 eligibility 为 `allowed` 的完整
 `YgdkSubmitTarget {classifyId,itemId}`，不得把 primitive `itemId`、默认项目或展示名称兑换为写权限。
@@ -533,8 +550,9 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v74）
+### 近期版本摘要（v55–v75）
 
+- v75 增加图书馆当前借阅、单本续借和固定意图路线的写后核对。续借复用统一写意图与单次发送，核对以 Core 预检读取的记录为基线。
 - v74 增加健康云只读接口，返回可选学年学期及所选学年学期的体测成绩。
 - v73 在 `BridgeCacheFailure` 和 `BridgeAgendaFailure` 增加 `Busy`，区分 SQLite 锁忙与存储不可用。业务缓存锁忙异常使用 `timeout`、`internal`、`retryable=true` 和诊断 `stage=cache`、`reason=cache_busy`。在线读取成功后的缓存保存失败仍单独返回 `saveError`。CLI JSON schema 保持 v18。
 - v72 增加 `exportRawDiagnostics`：用户主动导出当前客户端及派生请求的原始响应，独立于错误摘要和自动遥测。
@@ -825,7 +843,7 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 
 `BridgeCommand` 从完整 argv 产生一次不透明计划。`requirements` 只投影所需能力，`input_request` 逐次请求行、隐藏密码或正文。help、解析错误、登录参数冲突、无效资料路径和缺少写入确认在材料初始化前交付。准备后的输入快照由公共 Rust 命令库持有，Dart 不解析业务参数。
 
-只读尝试返回最终结果、明确过期路线或真实共享会话冲突。宿主使用共同恢复服务核对持久身份，并且至多完整重跑一次。User、Portal、Network、Ihome 和原十二个恢复目标均有明确映射。User 使用 `Operation::User`。剩余期限传入每一次受控校验或登录，不为恢复重新开始两分钟预算。
+只读尝试返回最终结果、明确过期路线或真实共享会话冲突。宿主使用共同恢复服务核对持久身份，并且至多完整重跑一次。User、Portal、Network、Ihome 和原十三个恢复目标均有明确映射。User 使用 `Operation::User`。剩余期限传入每一次受控校验或登录，不为恢复重新开始两分钟预算。
 
 学校写 backend 复用 GUI 的准备意图、一次性消费、固定路线 fresh commit、发送观察和缓存影响处理。取消、期限或 Future 丢弃发生在发送后时，保留 `outcome_unknown`、原路线和本机核对提示，并使关联旧缓存失效。确定结果完整交付后才清除本次提示，断管保留提示。普通退出仅关闭本进程 Core/缓存/日程资源。
 

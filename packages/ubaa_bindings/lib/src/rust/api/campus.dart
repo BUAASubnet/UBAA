@@ -8,8 +8,8 @@ import 'client.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `cached_amount`, `cached_count`, `merged_metrics`, `metrics`, `network_usage`, `profile`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `cached_amount`, `cached_count`, `map_library_loans`, `merged_metrics`, `metrics`, `network_usage`, `profile`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 class BridgeCachedCampusSection {
   final BridgeCampusSection data;
@@ -233,6 +233,97 @@ class BridgeCampusSection {
           profile == other.profile &&
           metrics == other.metrics &&
           networkUsage == other.networkUsage;
+}
+
+/// 一条当前借阅记录；标识只作为当前账号内的续借目标。
+class BridgeLibraryLoan {
+  final String id;
+  final String title;
+  final String? author;
+  final String? loanDate;
+  final String? dueDate;
+  final int? renewTimes;
+  final int? canRenewTimes;
+  final BridgeLibraryLoanStatus status;
+  final String? location;
+
+  const BridgeLibraryLoan({
+    required this.id,
+    required this.title,
+    this.author,
+    this.loanDate,
+    this.dueDate,
+    this.renewTimes,
+    this.canRenewTimes,
+    required this.status,
+    this.location,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      author.hashCode ^
+      loanDate.hashCode ^
+      dueDate.hashCode ^
+      renewTimes.hashCode ^
+      canRenewTimes.hashCode ^
+      status.hashCode ^
+      location.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeLibraryLoan &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          author == other.author &&
+          loanDate == other.loanDate &&
+          dueDate == other.dueDate &&
+          renewTimes == other.renewTimes &&
+          canRenewTimes == other.canRenewTimes &&
+          status == other.status &&
+          location == other.location;
+}
+
+/// 图书馆借阅状态；上游未识别的值保持为“其他”。
+enum BridgeLibraryLoanStatus { normal, soon, overdue, other }
+
+class BridgeLibraryLoans {
+  final List<BridgeLibraryLoan> entries;
+  final int total;
+
+  const BridgeLibraryLoans({required this.entries, required this.total});
+
+  @override
+  int get hashCode => entries.hashCode ^ total.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeLibraryLoans &&
+          runtimeType == other.runtimeType &&
+          entries == other.entries &&
+          total == other.total;
+}
+
+class BridgeLibraryLoansResult {
+  final BridgeLibraryLoans data;
+  final BridgeRouteDecision route;
+
+  const BridgeLibraryLoansResult({required this.data, required this.route});
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeLibraryLoansResult &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
 }
 
 /// 一个网络产品的流量；免费剩余是否包含套餐由结果标志说明。

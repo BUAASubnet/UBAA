@@ -55,6 +55,9 @@ CLI 只通过 Core facade 访问下列标准和扩展只读方法：
 `evaluation pending` 是 CLI 对 `evaluation_all` 返回的 `is_evaluated=false` 课程进行的本地
 派生视图，不存在独立的 `evaluation_pending` facade 或 bridge 方法。
 
+图书馆当前借阅目前提供 Core facade `current_library_loans()` 和 Flutter GUI 读取，暂未提供 CLI 命令；
+图书馆使用独立 `library` 路线键，协议和续借写入口见[当前借阅与续借](../protocol/parity/campus.md#当前借阅与续借)。
+
 LibBook booking 的公开 `status` 为 nullable int，并由 Core 派生 `cancelEligibility/cancelTarget`；`statusName` 只用于展示，宿主只从 typed 资格判断能否取消，不从文案或原始状态反推。取消 action 保存当前 `page/limit`，prepare、commit 与写后读取核对都使用同一页；这些本地 authority 字段不进入最终取消 wire，最终正文仍只有预约 `id`。
 
 扩展写命令（包括 Cgyy 预约/取消）不属于只读合同。它们虽然有 Core/CLI 协议实现，仍必须经过显式确认；真实验证入口永久阻止这些命令，只有 Mock、Fixture 和向量证据可以证明。

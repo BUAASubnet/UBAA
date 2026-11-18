@@ -44,6 +44,8 @@ pub enum ReadonlyFeature {
     Cgyy,
     /// 图书馆座位只读查询。
     LibBook,
+    /// 图书馆当前借阅与续借。
+    Library,
     /// 阳光打卡只读查询。
     Ygdk,
     /// 课堂签到状态查询。
@@ -77,6 +79,7 @@ impl ReadonlyFeature {
             Self::Bykc => "bykc",
             Self::Cgyy => "cgyy",
             Self::LibBook => "libbook",
+            Self::Library => "library",
             Self::Ygdk => "ygdk",
             Self::Signin => "signin",
             Self::Schedule => "schedule",

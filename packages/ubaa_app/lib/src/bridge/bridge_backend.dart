@@ -66,7 +66,12 @@ import 'features/ygdk/reader.dart'
 import 'home/reader.dart' show bridgeReadCachedHome;
 import 'read/cache_query.dart' show bridgeReadCachedQuery;
 import 'read/dispatch.dart' show bridgeLoadFeatureQuery;
-import 'support/mapping.dart' show bridgeDateOnly, bridgeMapError;
+import 'support/mapping.dart'
+    show
+        bridgeDateOnly,
+        bridgeMapError,
+        bridgeToBridgeConnectionMode,
+        bridgeToConnectionMode;
 import 'write/operations.dart'
     show
         bridgeCommitWrite,
@@ -80,11 +85,12 @@ import 'write/operations.dart'
         bridgePrepareEvaluationSubmitCourses,
         bridgePrepareLibbookCancelBooking,
         bridgePrepareLibbookReserve,
+        bridgePrepareLibraryLoanRenew,
         bridgePrepareSigninPerform,
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 74;
+const _supportedBridgeContractVersion = 75;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -102,6 +108,9 @@ class BridgeBackend
         HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,
+        LibraryLoansBackend,
+        LibraryLoanWriteBackend,
+        LibraryLoanReadbackBackend,
         BhpanProvider,
         CloudPrintProvider,
         PinnedWriteReadbackBackend,
@@ -428,6 +437,52 @@ class BridgeBackend
     required ConnectionMode route,
     FeatureQuery? query,
   }) => bridgePinnedWriteReadback(_context, operation, route, query);
+  List<LibraryLoan> _mapLibraryLoans(BridgeLibraryLoans data) => [
+    for (final loan in data.entries)
+      LibraryLoan(
+        id: loan.id,
+        title: loan.title,
+        author: loan.author,
+        loanDate: loan.loanDate,
+        dueDate: loan.dueDate,
+        renewTimes: loan.renewTimes,
+        canRenewTimes: loan.canRenewTimes,
+        status: LibraryLoanStatus.values.byName(loan.status.name),
+        location: loan.location,
+      ),
+  ];
+
+  @override
+  Future<List<LibraryLoan>> readLibraryLoans() async {
+    try {
+      final result = await client.currentLibraryLoans();
+      return _mapLibraryLoans(result.data);
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
+  }
+
+  @override
+  Future<LibraryLoanRouteRead> readLibraryLoansOnRoute({
+    required ConnectionMode route,
+  }) async {
+    try {
+      final result = await client.currentLibraryLoansOnRoute(
+        route: bridgeToBridgeConnectionMode(route),
+      );
+      return LibraryLoanRouteRead(
+        loans: _mapLibraryLoans(result.data),
+        resolvedRoute: bridgeToConnectionMode(result.pinnedRoute),
+      );
+    } on BridgeError catch (error) {
+      throw bridgeMapError(error);
+    }
+  }
+
+  @override
+  Future<WriteIntent> prepareLibraryLoanRenew({required String loanId}) =>
+      bridgePrepareLibraryLoanRenew(_context, loanId: loanId);
+
   BridgeClient get client => _context.client;
   String? get configDirectory => _context.configDirectory;
 

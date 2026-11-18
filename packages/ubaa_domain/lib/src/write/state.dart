@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../common/error.dart';
 import 'intent.dart';
+import '../feature/library/loans.dart';
 
 /// 写流程对 Host 与 UI 公开的封闭阶段。
 enum WritePhase {
@@ -46,6 +47,7 @@ class WriteOutcome {
     this.cgyyReceiptVerified,
     this.cgyyCancellationVerified,
     this.ygdkReadbackAttempted = false,
+    this.libraryLoanRenewReadback,
   }) : assert((result == null) != (error == null));
 
   final WriteOperation operation;
@@ -58,4 +60,7 @@ class WriteOutcome {
   final bool? cgyyReceiptVerified;
   final bool? cgyyCancellationVerified;
   final bool ygdkReadbackAttempted;
+
+  /// 续借后在意图原路线读取的借阅范围；为空表示未取得可用证据。
+  final LibraryLoanRenewReadback? libraryLoanRenewReadback;
 }

@@ -137,6 +137,7 @@ pub(super) fn assert_shared_write_route_boundary(facade_dir: &std::path::Path) -
         ("write/reservations.rs", "libbook_reserve"),
         ("write/reservations.rs", "libbook_cancel_booking"),
         ("write/reservations.rs", "cgyy_submit_reservation"),
+        ("write/library.rs", "library_loan_renew"),
     ];
     for (file, operation) in helpers {
         let tokens = rust_tokens(&source(&facade_dir.join(file)));

@@ -2,4 +2,5 @@
 
 mod campus;
 mod evaluation;
+mod library;
 mod reservations;

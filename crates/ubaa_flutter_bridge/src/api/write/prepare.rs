@@ -3,18 +3,20 @@
 use super::preparation_error::{PreparationError, catch_preparation_panic};
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
-    ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, map_bykc_sign_preflight_error,
-    map_cgyy_cancel_preflight_error, map_cgyy_preflight_error, map_cgyy_request,
-    map_evaluation_preflight_error, map_evaluation_request, map_libbook_cancel_preflight_error,
-    map_libbook_preflight_error, map_ygdk_preflight_error, map_ygdk_request, now_seconds,
-    random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
-    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
+    ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
+    map_bykc_sign_preflight_error, map_cgyy_cancel_preflight_error, map_cgyy_preflight_error,
+    map_cgyy_request, map_evaluation_preflight_error, map_evaluation_request,
+    map_libbook_cancel_preflight_error, map_libbook_preflight_error, map_ygdk_preflight_error,
+    map_ygdk_request, now_seconds, random_id, safe_summary_label, validate_bykc_sign_request,
+    validate_cgyy_request, validate_id, validate_id_i32, validate_text, validate_ygdk_request,
+    ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
     BridgeCgyySubmitReservationRequest, BridgeEvaluationSubmitCoursesRequest,
-    BridgeLibbookCancelBookingRequest, BridgeLibbookReserveRequest, BridgeSigninPerformRequest,
-    BridgeWriteIntent, BridgeWriteOperation, BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
+    BridgeLibbookCancelBookingRequest, BridgeLibbookReserveRequest, BridgeLibraryLoanRenewRequest,
+    BridgeLibraryLoanRenewTarget, BridgeSigninPerformRequest, BridgeWriteIntent,
+    BridgeWriteOperation, BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
 };
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeError, disposed_error};
 use ubaa_core::facade as domain;
@@ -66,6 +68,7 @@ impl BridgeClient {
             warnings,
             expires_at,
             request_digest,
+            library_loan_renew_target: None,
         })
     }
 
@@ -236,6 +239,72 @@ impl BridgeClient {
             )
             .await
             .map_err(PreparationError::from)
+        })
+        .await
+    }
+    pub async fn prepare_library_loan_renew(
+        &self,
+        request: BridgeLibraryLoanRenewRequest,
+    ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_library_loan_renew_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_library_loan_renew_scoped(
+        &self,
+        mut request: BridgeLibraryLoanRenewRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
+        request.loan_id = request.loan_id.trim().to_owned();
+        if request.loan_id.is_empty()
+            || request.loan_id.len() > 256
+            || request
+                .loan_id
+                .chars()
+                .any(|value| value.is_control() || value.is_whitespace())
+        {
+            return Err(invalid_input("loan id is invalid").into());
+        }
+        let canonical = format!("loan_id={}", request.loan_id);
+        catch_preparation_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_library_loan_renew(&request.loan_id)
+                .await
+                .map_err(PreparationError::from_routed)?;
+            if current.data.id != request.loan_id {
+                return Err((BridgeError::local(
+                    crate::api::client::BridgeErrorCode::UpstreamChanged,
+                    crate::api::client::BridgeErrorKind::Upstream,
+                    false,
+                    "借阅记录目标与请求不一致",
+                ))
+                .into());
+            }
+            let title = safe_summary_label(&current.data.title, "在借图书");
+            let due_date = safe_summary_label(
+                current.data.due_date.as_deref().unwrap_or_default(),
+                "应还日期未知",
+            );
+            let mut intent = self
+                .store_write_intent(
+                    BridgeWriteOperation::LibraryLoanRenew,
+                    canonical,
+                    format!("《{title}》·应还日期 {due_date}"),
+                    vec![
+                        "续借成功后会重新读取借阅记录".to_owned(),
+                        "请勿重复提交续借".to_owned(),
+                    ],
+                    PendingWrite::LibraryLoanRenew(request),
+                    current.resolution,
+                )
+                .await?;
+            intent.library_loan_renew_target = Some(BridgeLibraryLoanRenewTarget {
+                loan_id: current.data.id,
+                due_date: current.data.due_date,
+                renew_times: current.data.renew_times,
+            });
+            Ok(intent)
         })
         .await
     }
