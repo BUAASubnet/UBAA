@@ -173,3 +173,6 @@ async fn 修复三_首个远端注销请求处取消时墓碑已生效() {
 
 #[path = "facade_cases/fix4.rs"]
 mod fix4;
+
+#[path = "facade_cases/fix5.rs"]
+mod fix5;

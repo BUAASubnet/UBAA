@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::error::Result;
-use crate::session::business_cache::{Invalidation, revoke_disk};
+use crate::session::business_cache::Invalidation;
 use crate::session::{SessionMutation, SessionSnapshot};
 
 use super::{ClientRuntime, now_seconds_at, session_conflict};
@@ -52,13 +52,15 @@ impl ClientRuntime {
                 && now.saturating_sub(saved.last_activity) < SESSION_ACTIVITY_SAVE_INTERVAL_SECS
                 && self.jar.matches_persisted(&saved.cookies)
         }) {
-            // 即使无需保存，也必须拒绝外部修订，不能把旧核验结果当作成功。
-            if let Err(error) = self.ensure_session_revision() {
+            #[cfg(test)]
+            if let Some(before_revocation) = self.before_login_revocation.take() {
+                before_revocation();
+            }
+            if let Err(error) = self.check_revision_without_save(revocation) {
                 self.clear_memory();
                 clear_workflow();
                 return Err(error);
             }
-            self.revoke_business_after_login(revocation);
             return Ok((authenticated_at, now));
         }
         let snapshot = SessionSnapshot {
@@ -72,10 +74,17 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
-        let mutation = match self
-            .store
-            .compare_exchange(self.session_revision, Some(&snapshot))
-        {
+        let mutation = match &self.coordinated_store {
+            Some(store) => store.compare_exchange_with_revocation(
+                self.session_revision,
+                Some(&snapshot),
+                revocation,
+            ),
+            None => self
+                .store
+                .compare_exchange(self.session_revision, Some(&snapshot)),
+        };
+        let mutation = match mutation {
             Ok(mutation) => mutation,
             Err(error) => {
                 self.clear_memory();
@@ -87,7 +96,6 @@ impl ClientRuntime {
             SessionMutation::Applied { revision } => {
                 self.set_session_revision(revision);
                 self.persisted_authentication = Some(Arc::new(snapshot));
-                self.revoke_business_after_login(revocation);
                 Ok((authenticated_at, now))
             }
             SessionMutation::Conflict => {
@@ -106,16 +114,22 @@ impl ClientRuntime {
         }
     }
 
-    fn revoke_business_after_login(&self, event: Option<Invalidation>) {
-        let Some(event) = event else { return };
-        let result = match (&self.business_sessions, &self.business_session_store) {
-            (Some(cache), _) => cache.invalidate(event),
-            (None, Some(store)) => revoke_disk(store, event),
-            (None, None) => return,
+    fn check_revision_without_save(&self, event: Option<Invalidation>) -> Result<()> {
+        let (Some(event), Some(store)) = (event, &self.coordinated_store) else {
+            return self.ensure_session_revision();
         };
-        if result.is_err() {
-            tracing::warn!("登录后轮换业务会话缓存撤销令牌失败");
+        let _permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
+        if store
+            .revoke_business_for_login(self.session_revision, event)?
+            .is_err()
+        {
+            tracing::warn!("登录准备轮换业务会话缓存撤销令牌失败");
         }
+        Ok(())
     }
 
     pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {

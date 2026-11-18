@@ -153,6 +153,23 @@ pub(crate) enum Invalidation {
     SameAccountLogin(ConnectionMode),
 }
 
+impl Invalidation {
+    fn routes(self) -> RevocationRoutes {
+        match self {
+            Self::RevokeRoute(route) | Self::SameAccountLogin(route) => {
+                RevocationRoutes::One(route)
+            }
+            Self::RevokeAll | Self::AccountChanged => RevocationRoutes::Both,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RevocationRoutes {
+    One(ConnectionMode),
+    Both,
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct BusinessCacheStamp {
     generation: u64,
@@ -173,7 +190,9 @@ struct State {
     generation: Arc<AtomicU64>,
     writer: writer::Writer,
     conflicted: bool,
-    untrusted: bool,
+    pending_revocation: Option<RevocationRoutes>,
+    #[cfg(test)]
+    before_revocation: Option<Box<dyn FnOnce() + Send>>,
     #[cfg(test)]
     before_file_job: Option<Box<dyn FnOnce() + Send>>,
 }
@@ -207,7 +226,7 @@ impl State {
         stamp: &BusinessCacheStamp,
     ) -> bool {
         !self.conflicted
-            && !self.untrusted
+            && self.pending_revocation.is_none()
             && self.generation.load(Ordering::Acquire) == stamp.generation
             && self.account.as_deref() == Some(account)
             && self
@@ -243,7 +262,7 @@ impl BusinessSessionCache {
         now: i64,
     ) -> (BusinessCacheStamp, BusinessSeeds) {
         let mut state = self.lock();
-        if state.conflicted || state.untrusted {
+        if state.conflicted || state.pending_revocation.is_some() {
             return (
                 BusinessCacheStamp {
                     generation: state.generation.load(Ordering::Acquire),
@@ -445,27 +464,34 @@ impl BusinessSessionCache {
         if state.conflicted {
             return Err(crate::error::UbaaError::session_conflict());
         }
-        let result = revoke(&self.file, event);
-        if result.is_err() || state.untrusted {
+        #[cfg(test)]
+        if let Some(before_revocation) = state.before_revocation.take() {
+            before_revocation();
+        }
+        let requested = event.routes();
+        let routes = match state.pending_revocation {
+            Some(pending) if pending != requested => RevocationRoutes::Both,
+            _ => requested,
+        };
+        let result = revoke(&self.file, routes);
+        if result.is_err() || state.pending_revocation.is_some() {
             state.invalidate_all();
         } else {
-            match event {
-                Invalidation::SameAccountLogin(route) | Invalidation::RevokeRoute(route) => {
-                    state.invalidate(route);
-                }
-                Invalidation::RevokeAll | Invalidation::AccountChanged => state.invalidate_all(),
+            match routes {
+                RevocationRoutes::One(route) => state.invalidate(route),
+                RevocationRoutes::Both => state.invalidate_all(),
             }
         }
-        state.untrusted = result.is_err();
+        state.pending_revocation = result.is_err().then_some(routes);
         result
     }
 
     pub(crate) fn inherit_revocation_failure(&self, previous: &Self) {
-        let untrusted = previous.lock().untrusted;
-        if untrusted {
+        let pending = previous.lock().pending_revocation;
+        if let Some(routes) = pending {
             let mut state = self.lock();
             state.invalidate_all();
-            state.untrusted = true;
+            state.pending_revocation = Some(routes);
         }
     }
 
@@ -482,15 +508,16 @@ impl BusinessSessionCache {
 }
 
 pub(crate) fn revoke_disk(store: &FileSessionStore, event: Invalidation) -> Result<()> {
-    revoke(&file::BusinessSessionFile::new(store.directory()), event)
+    revoke(
+        &file::BusinessSessionFile::new(store.directory()),
+        event.routes(),
+    )
 }
 
-fn revoke(file: &file::BusinessSessionFile, event: Invalidation) -> Result<()> {
-    match event {
-        Invalidation::RevokeRoute(route) | Invalidation::SameAccountLogin(route) => {
-            file.clear_route(route)
-        }
-        Invalidation::RevokeAll | Invalidation::AccountChanged => file.clear(),
+fn revoke(file: &file::BusinessSessionFile, routes: RevocationRoutes) -> Result<()> {
+    match routes {
+        RevocationRoutes::One(route) => file.clear_route(route),
+        RevocationRoutes::Both => file.clear(),
     }
 }
 #[cfg(test)]

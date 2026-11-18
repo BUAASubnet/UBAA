@@ -105,6 +105,21 @@ fn main_runtime(store: &FileSessionStore, account: &'static str) -> ClientRuntim
     .unwrap()
 }
 
+fn main_runtime_with_cache(
+    store: &FileSessionStore,
+    account: &'static str,
+    cache: Arc<BusinessSessionCache>,
+) -> ClientRuntime {
+    let sessions = DualSessionCoordinator::new(store.clone())
+        .unwrap()
+        .with_business_cache(&cache);
+    let mut runtime =
+        ClientRuntime::new_coordinated(ConnectionMode::Direct, transport(account), &sessions)
+            .unwrap();
+    runtime.business_sessions = Some(cache);
+    runtime
+}
+
 fn document(path: &Path) -> serde_json::Value {
     serde_json::from_slice(&std::fs::read(path.join("business_session.json")).unwrap()).unwrap()
 }
@@ -200,8 +215,7 @@ async fn after_precheck(event: Event, route: ConnectionMode, tombstone: bool, ac
     } else {
         ACCOUNT
     };
-    let mut second = main_runtime(&store, account);
-    second.business_sessions = Some(Arc::clone(&b));
+    let mut second = main_runtime_with_cache(&store, account, Arc::clone(&b));
     if !matches!(event, Event::ChangeAccount) {
         second.remember_account_name(Some(ACCOUNT));
     }

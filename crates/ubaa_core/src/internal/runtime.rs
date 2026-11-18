@@ -46,7 +46,9 @@ pub(crate) struct ClientRuntime {
     required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
     pub(crate) business_sessions: Option<Arc<crate::session::business_cache::BusinessSessionCache>>,
-    pub(crate) business_session_store: Option<crate::session::FileSessionStore>,
+    #[cfg(test)]
+    pub(crate) before_login_revocation: Option<Box<dyn FnOnce() + Send + Sync>>,
+    coordinated_store: Option<crate::session::CoordinatedRouteSessionStore>,
     pub(crate) consumer_closed: Arc<AtomicBool>,
     pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
@@ -61,6 +63,17 @@ impl ClientRuntime {
         let store: Arc<dyn SessionStore> = Arc::new(store);
         let persisted = store.load_versioned()?;
         Self::from_versioned(mode, transport, store, persisted, Arc::new(SystemTime::now))
+    }
+
+    pub(crate) fn new_coordinated(
+        mode: ConnectionMode,
+        transport: impl HttpTransport + 'static,
+        sessions: &crate::session::DualSessionCoordinator,
+    ) -> Result<Self> {
+        let store = sessions.route_store(mode);
+        let mut runtime = Self::new(mode, transport, store.clone())?;
+        runtime.coordinated_store = Some(store);
+        Ok(runtime)
     }
 
     #[cfg(feature = "test-contract")]
@@ -129,7 +142,9 @@ impl ClientRuntime {
             required_recovery_scope: None,
             readonly_generation: None,
             business_sessions: None,
-            business_session_store: None,
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: None,
             consumer_closed: Arc::new(AtomicBool::new(false)),
         })
@@ -190,7 +205,9 @@ impl ClientRuntime {
             required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
             business_sessions: self.business_sessions.clone(),
-            business_session_store: None,
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: self.shared_account.clone(),
             consumer_closed: self.consumer_closed.clone(),
         }

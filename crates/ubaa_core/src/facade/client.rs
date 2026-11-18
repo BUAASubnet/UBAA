@@ -279,8 +279,6 @@ impl UbaaClient {
             crate::session::business_cache::BusinessSessionCache::new(&store),
         );
         let sessions = DualSessionCoordinator::new(store)?.with_business_cache(&business_sessions);
-        let direct_store = sessions.route_store(ConnectionMode::Direct);
-        let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         let probe = Arc::new(probe);
         let mut client = Self {
             raw_diagnostics: diagnostics.clone(),
@@ -293,23 +291,23 @@ impl UbaaClient {
             route_generation: 0,
             config,
             probe,
-            direct_runtime: ClientRuntime::new(
+            direct_runtime: ClientRuntime::new_coordinated(
                 ConnectionMode::Direct,
                 crate::ports::diagnostics::RecordingTransport {
                     inner: direct_transport,
                     diagnostics: diagnostics.clone(),
                     route: ConnectionMode::Direct,
                 },
-                direct_store,
+                &sessions,
             )?,
-            webvpn_runtime: ClientRuntime::new(
+            webvpn_runtime: ClientRuntime::new_coordinated(
                 ConnectionMode::WebVpn,
                 crate::ports::diagnostics::RecordingTransport {
                     inner: webvpn_transport,
                     diagnostics,
                     route: ConnectionMode::WebVpn,
                 },
-                webvpn_store,
+                &sessions,
             )?,
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),

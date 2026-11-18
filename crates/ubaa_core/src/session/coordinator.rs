@@ -34,6 +34,13 @@ struct DualSessionState {
 }
 
 impl DualSessionState {
+    fn route_revision(&self, mode: ConnectionMode) -> u64 {
+        match mode {
+            ConnectionMode::Direct => self.direct_revision,
+            ConnectionMode::WebVpn => self.webvpn_revision,
+        }
+    }
+
     fn lose_ownership(&mut self) {
         self.snapshot = DualSessionSnapshot::new(None, None);
         self.conflicted = true;
@@ -121,11 +128,23 @@ impl DualSessionCoordinator {
 
     /// 在首次远端注销前撤销指定范围的旁车，旁车 I/O 错误与主会话权属错误分开返回。
     pub(crate) fn revoke_business_for_logout(&self, event: Invalidation) -> Result<Result<()>> {
+        self.revoke_business_if_current(None, event)
+    }
+
+    fn revoke_business_if_current(
+        &self,
+        route_revision: Option<(ConnectionMode, u64)>,
+        event: Invalidation,
+    ) -> Result<Result<()>> {
         let state = self
             .state
             .lock()
             .map_err(|_| session_error("dual session coordinator is unavailable"))?;
         if state.conflicted {
+            return Err(dual_session_conflict());
+        }
+        if route_revision.is_some_and(|(mode, expected)| state.route_revision(mode) != expected) {
+            self.lose_ownership(state);
             return Err(dual_session_conflict());
         }
         let cache = self.business_cache.upgrade();
@@ -138,13 +157,6 @@ impl DualSessionCoordinator {
             return Err(dual_session_conflict());
         };
         Ok(result)
-    }
-
-    pub(crate) fn file_store(&self) -> Result<FileSessionStore> {
-        self.state
-            .lock()
-            .map(|state| state.store.clone())
-            .map_err(|_| session_error("dual session coordinator is unavailable"))
     }
 
     pub(crate) fn is_revision_current(
@@ -160,10 +172,7 @@ impl DualSessionCoordinator {
             return Ok(false);
         }
         let current = state.store.load_dual_versioned()?;
-        let route_revision = match mode {
-            ConnectionMode::Direct => state.direct_revision,
-            ConnectionMode::WebVpn => state.webvpn_revision,
-        };
+        let route_revision = state.route_revision(mode);
         if current.revision != state.revision || expected_revision != route_revision {
             // 只进入终态并丢弃内存快照，绝不采用外部快照继续写入。
             self.lose_ownership(state);
@@ -228,34 +237,21 @@ impl std::fmt::Debug for CoordinatedRouteSessionStore {
     }
 }
 
-impl SessionStore for CoordinatedRouteSessionStore {
-    fn load_versioned(&self) -> Result<VersionedSession> {
-        let state = self
-            .coordinator
-            .state
-            .lock()
-            .map_err(|_| session_error("dual session coordinator is unavailable"))?;
-        if state.conflicted {
-            return Err(dual_session_conflict());
-        }
-        let snapshot = match self.mode {
-            ConnectionMode::Direct => state.snapshot.sessions.direct.clone(),
-            ConnectionMode::WebVpn => state.snapshot.sessions.webvpn.clone(),
-        };
-        let revision = match self.mode {
-            ConnectionMode::Direct => state.direct_revision,
-            ConnectionMode::WebVpn => state.webvpn_revision,
-        };
-        Ok(VersionedSession {
-            revision,
-            snapshot: snapshot.map(|slot| slot.into_legacy(self.mode)),
-        })
+impl CoordinatedRouteSessionStore {
+    pub(crate) fn revoke_business_for_login(
+        &self,
+        expected_revision: u64,
+        event: Invalidation,
+    ) -> Result<Result<()>> {
+        self.coordinator
+            .revoke_business_if_current(Some((self.mode, expected_revision)), event)
     }
 
-    fn compare_exchange(
+    pub(crate) fn compare_exchange_with_revocation(
         &self,
         expected_revision: u64,
         replacement: Option<&SessionSnapshot>,
+        revocation: Option<Invalidation>,
     ) -> Result<SessionMutation> {
         let mut state = self
             .coordinator
@@ -267,10 +263,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
         if state.conflicted {
             return Err(dual_session_conflict());
         }
-        let route_revision = match self.mode {
-            ConnectionMode::Direct => state.direct_revision,
-            ConnectionMode::WebVpn => state.webvpn_revision,
-        };
+        let route_revision = state.route_revision(self.mode);
         if expected_revision != route_revision {
             self.coordinator.lose_ownership(state);
             return Ok(SessionMutation::Conflict);
@@ -280,9 +273,10 @@ impl SessionStore for CoordinatedRouteSessionStore {
             .ok_or_else(|| session_error("session revision is exhausted"))?;
         let mut candidate = state.snapshot.clone();
         let slot = replacement.map(RouteSessionSnapshot::from_legacy);
-        let revocation = slot
-            .is_none()
-            .then_some(Invalidation::RevokeRoute(self.mode));
+        let revocation = revocation.or_else(|| {
+            slot.is_none()
+                .then_some(Invalidation::RevokeRoute(self.mode))
+        });
         match self.mode {
             ConnectionMode::Direct => candidate.sessions.direct = slot,
             ConnectionMode::WebVpn => candidate.sessions.webvpn = slot,
@@ -322,6 +316,39 @@ impl SessionStore for CoordinatedRouteSessionStore {
                 Ok(SessionMutation::Conflict)
             }
         }
+    }
+}
+
+impl SessionStore for CoordinatedRouteSessionStore {
+    fn load_versioned(&self) -> Result<VersionedSession> {
+        let state = self
+            .coordinator
+            .state
+            .lock()
+            .map_err(|_| session_error("dual session coordinator is unavailable"))?;
+        if state.conflicted {
+            return Err(dual_session_conflict());
+        }
+        let snapshot = match self.mode {
+            ConnectionMode::Direct => state.snapshot.sessions.direct.clone(),
+            ConnectionMode::WebVpn => state.snapshot.sessions.webvpn.clone(),
+        };
+        let revision = match self.mode {
+            ConnectionMode::Direct => state.direct_revision,
+            ConnectionMode::WebVpn => state.webvpn_revision,
+        };
+        Ok(VersionedSession {
+            revision,
+            snapshot: snapshot.map(|slot| slot.into_legacy(self.mode)),
+        })
+    }
+
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation> {
+        self.compare_exchange_with_revocation(expected_revision, replacement, None)
     }
 
     fn revision_matches_for_cache(&self, expected_revision: u64) -> Result<bool> {

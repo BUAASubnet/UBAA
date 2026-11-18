@@ -1,7 +1,7 @@
 use super::*;
 use crate::facade::RouteClient;
 
-fn prepared(path: &Path) -> (FileSessionStore, BusinessSessionCache) {
+pub(super) fn prepared(path: &Path) -> (FileSessionStore, BusinessSessionCache) {
     let store = signed_in(path);
     let observer = cache(path);
     observer.invalidate(Invalidation::RevokeAll).unwrap();
@@ -121,7 +121,7 @@ fn 修复四_跨实例拒绝重载时保留本地未提交条目() {
     std::fs::remove_dir_all(path).unwrap();
 }
 
-fn block_sidecar_write(path: &Path) {
+pub(super) fn block_sidecar_write(path: &Path) {
     let lock = path.join(".business_session.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(lock).unwrap();
@@ -209,9 +209,8 @@ async fn 修复四_登录轮换失败后正常登录并停止使用旁车() {
     let path = root("failed-login-revocation");
     let (store, owner) = prepared(&path);
     let owner = Arc::new(owner);
-    let mut runtime = main_runtime(&store, ACCOUNT);
+    let mut runtime = main_runtime_with_cache(&store, ACCOUNT, Arc::clone(&owner));
     runtime.remember_account_name(Some(ACCOUNT));
-    runtime.business_sessions = Some(Arc::clone(&owner));
     let before = store.load_dual_versioned().unwrap().revision;
     block_sidecar_write(&path);
     let profile = AuthWorkflow::default()
@@ -316,9 +315,8 @@ async fn 修复四_固定路线登录轮换未知和同账号的撤销令牌() {
 async fn 修复四_登录准备已保存核验结果时即轮换令牌() {
     let path = root("prepare-login-revocation");
     let (store, owner) = prepared(&path);
-    let mut runtime = main_runtime(&store, ACCOUNT);
+    let mut runtime = main_runtime_with_cache(&store, ACCOUNT, Arc::new(owner));
     runtime.remember_account_name(Some(ACCOUNT));
-    runtime.business_sessions = Some(Arc::new(owner));
     let mut auth = AuthWorkflow::default();
     let before = document(&path);
     auth.prepare_login(&mut runtime).await.unwrap();

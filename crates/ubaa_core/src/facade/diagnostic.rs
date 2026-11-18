@@ -21,7 +21,9 @@ use crate::error::Result;
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
-use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
+#[cfg(feature = "test-contract")]
+use crate::session::SessionStore;
+use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 use super::routing::{RouteExecution, invalid_input};
 
@@ -56,8 +58,7 @@ impl RouteClient {
         let Some(mode) = mode.or_else(|| sessions.active_routes().into_iter().next()) else {
             return Ok(None);
         };
-        let route_store = sessions.route_store(mode);
-        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions)).map(Some)
+        Self::build_coordinated(mode, ReqwestTransport::new()?, sessions).map(Some)
     }
 
     /// 在宿主选定的配置目录下构造生产客户端。
@@ -68,8 +69,7 @@ impl RouteClient {
     pub fn new(mode: ConnectionMode, config_dir: impl AsRef<Path>) -> Result<Self> {
         let store = FileSessionStore::new(config_dir)?;
         let sessions = DualSessionCoordinator::new(store)?;
-        let route_store = sessions.route_store(mode);
-        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions))
+        Self::build_coordinated(mode, ReqwestTransport::new()?, sessions)
     }
 
     /// 使用注入的传输和持久化端口构造客户端。
@@ -84,7 +84,11 @@ impl RouteClient {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
-        Self::build(mode, transport, store, None)
+        Ok(Self {
+            runtime: ClientRuntime::new(mode, transport, store)?,
+            auth: AuthWorkflow::default(),
+            sessions: None,
+        })
     }
 
     /// 使用注入的固定时钟构造测试客户端。
@@ -118,28 +122,18 @@ impl RouteClient {
         store: FileSessionStore,
     ) -> Result<Self> {
         let sessions = DualSessionCoordinator::new(store)?;
-        Self::build(mode, transport, sessions.route_store(mode), Some(sessions))
+        Self::build_coordinated(mode, transport, sessions)
     }
 
-    fn build<T, S>(
+    fn build_coordinated(
         mode: ConnectionMode,
-        transport: T,
-        store: S,
-        sessions: Option<DualSessionCoordinator>,
-    ) -> Result<Self>
-    where
-        T: HttpTransport + 'static,
-        S: SessionStore + 'static,
-    {
-        let mut runtime = ClientRuntime::new(mode, transport, store)?;
-        runtime.business_session_store = sessions
-            .as_ref()
-            .map(DualSessionCoordinator::file_store)
-            .transpose()?;
+        transport: impl HttpTransport + 'static,
+        sessions: DualSessionCoordinator,
+    ) -> Result<Self> {
         Ok(Self {
-            runtime,
+            runtime: ClientRuntime::new_coordinated(mode, transport, &sessions)?,
             auth: AuthWorkflow::default(),
-            sessions,
+            sessions: Some(sessions),
         })
     }
 
@@ -884,8 +878,10 @@ mod tests {
             std::thread::current().id()
         ));
         let store = FileSessionStore::new(&directory).unwrap();
+        let sessions = DualSessionCoordinator::new(store).unwrap();
         let mut client =
-            RouteClient::build(ConnectionMode::Direct, PartialLoginTransport, store, None).unwrap();
+            RouteClient::build_coordinated(ConnectionMode::Direct, PartialLoginTransport, sessions)
+                .unwrap();
         let url = "https://sso.buaa.edu.cn/login";
         tokio::runtime::Builder::new_current_thread()
             .build()

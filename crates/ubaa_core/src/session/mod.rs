@@ -10,7 +10,7 @@ mod storage;
 mod types;
 
 pub use cookies::{CookieJar, StoredCookie};
-pub(crate) use coordinator::DualSessionCoordinator;
+pub(crate) use coordinator::{CoordinatedRouteSessionStore, DualSessionCoordinator};
 pub use file_store::FileSessionStore;
 pub use ports::SessionStore;
 #[cfg(feature = "test-contract")]

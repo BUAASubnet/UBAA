@@ -183,7 +183,7 @@ impl FileSessionStore {
         if let Some((event, cache)) = revocation
             && self.revoke_business(event, cache).is_err()
         {
-            tracing::warn!("主会话清除前撤销业务会话缓存失败");
+            tracing::warn!("提交主会话变更前撤销业务会话缓存失败");
         }
         write_revision(&mut lock.file, revision)?;
         match body {
