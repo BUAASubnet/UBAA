@@ -57,14 +57,27 @@ Cookie 值是敏感 runtime 状态，虽然会话文件需要保存它们，但�
 
 ### 业务会话缓存
 
-只读 worker 共用 `<config-dir>/business_session.json`。文件使用 schema 1，按经 SSO 核验的账号名、实际路线及业务范围索引条目。每条保存 Unix 时间戳和对应 Cookie。核验账号前，worker 跳过播种、写回和缓存拒绝处理。坏 JSON、未知 schema、超过 256 KiB 或账号不符按空缓存处理，下次写入时覆盖。`session.json`、双槽 CAS 与会话修订号独立于这份缓存。
+只读 worker 共用 `<config-dir>/business_session.json`，按经 SSO 核验的账号名、实际路线和业务范围保存 schema 2 条目。每条保存 Unix 时间戳 `saved_at` 和一种材料：
 
-Direct 按精确域名识别 Byxt 和 Portal。WebVPN 仅接收 `d.buaa.edu.cn` 中路径包装为对应业务主机 HTTPS 默认端口的 Cookie。SSO、用户中心、网关通用 Cookie 和业务 Token 沿用各自原存储规则。Portal 范围限于课表、考试、成绩等只读 worker 的学业身份查询。主客户端的门户资料、校园指标和校园账户缓存刷新沿用原会话。
+| 范围 | 材料 | 可复用时间 |
+|---|---|---|
+| Byxt、Portal | 过滤后的业务 Cookie | 沿用 Cookie 的过期规则 |
+| 学生身份 | `StudentKind`：`undergraduate` 或 `graduate` | 7 天 |
+| SPOC | `SpocCredential { token, role }` | 3 小时 |
+| 阳光打卡 | `YgdkCredential { uid, token }` | 12 小时 |
 
-worker 派生和同步时采用同一账号、同一路线的材料。如果 worker 已修改某个范围，下一批继续使用该 worker 的材料。上游要求业务认证时，移除本 worker 对应 Cookie，并仅丢弃仍与被拒绝材料匹配的缓存条目。原业务流程最多重新激活一次。
+核验账号前，worker 跳过播种、写回和缓存拒绝处理。条目自 `saved_at` 起超过可复用时间即不再播种。坏 JSON、未知 schema、超过 256 KiB 或账号不符按空缓存处理。读到 schema 1 同样按空缓存处理，下次成功写入时以 schema 2 覆盖。旁车不改变 `session.json`、双槽 CAS 或会话修订号。
 
-每次成功读取可提交变化的材料供下一批 worker 使用，并按顺序后台落盘。`.business_session.lock` 保护跨进程的最新文件合并，写入前再次核对主会话修订，并只替换写入范围。磁盘写入失败记录脱敏诊断，在线结果继续返回。文件及锁拒绝符号链接和非普通文件。Unix 目录权限为 `0700`，缓存文件及锁为 `0600`。写入使用同目录独占临时文件，同步完成后原子替换。
+Direct 按精确域名识别 Byxt 和 Portal。WebVPN 仅接收 `d.buaa.edu.cn` 中路径包装为对应业务主机 HTTPS 默认端口的 Cookie。SSO、用户中心及网关通用 Cookie 不进入旁车。Portal Cookie 只从课表、考试、成绩等只读 worker 的学业身份查询复用，无法识别的学生身份不写回。签到和博雅的业务凭据不进入旁车。
+
+主客户端不播种、不写回业务会话缓存。主客户端的门户资料、校园指标、校园账户刷新、调用方固定路线的读取及阳光打卡提交沿用原会话，阳光打卡提交不因业务认证拒绝而重登或重放。
+
+worker 派生和同步时采用同一账号、同一路线的材料。如果 worker 已修改某个范围，下一批继续使用该 worker 的材料。学生身份播种使用 worker 当前的生命周期代次；SPOC 和阳光打卡播种使用各自 `CredentialState` 的设置路径和代次检查。上游要求业务认证时，仅丢弃仍与被拒绝材料匹配的缓存条目，并清理本 worker 对应的 Cookie 或业务凭据。SPOC 和阳光打卡概览沿原有边界最多重新激活一次；阳光打卡记录页 `/Clockin/getList` 被拒时清理缓存和内存凭据，原样返回错误，不新增重试。
+
+每次成功读取可提交变化的材料供下一批 worker 使用，并按顺序后台落盘。`.business_session.lock` 保护跨进程的最新文件合并，写入前再次核对主会话修订，并只替换写入范围。首页在线记录、SPOC 分批读取、SPOC 详情分批读取和阳光打卡记录读取等只读 worker 入口与通用读取入口使用相同的成功写回规则。磁盘写入失败记录脱敏诊断，在线结果继续返回。文件及锁拒绝符号链接和非普通文件。Unix 目录权限为 `0700`，缓存文件及锁为 `0600`。写入使用同目录独占临时文件，同步完成后原子替换。
 
 登录成功清除对应路线。注销、切换账号、全量内存失效、会话冲突、改变全局路线策略以及设置清理均清除两条路线。设置清理同时弃用派生读组。本机旁车清理的 I/O 失败由诊断记录。
 
-业务协议沿[来源对照](../protocol/parity/auth-session.md#只读-worker-的-byxt-与-portal-cookie)。
+业务令牌在 Debug 输出、tracing 日志和普通诊断报告中隐藏。用户主动导出的完整诊断沿既有合同保存原始响应正文，但任何诊断导出都不收集 `business_session.json`。
+
+业务协议沿[第一阶段来源对照](../protocol/parity/auth-session.md#只读-worker-的-byxt-与-portal-cookie)和[学生身份与业务令牌来源对照](../protocol/parity/auth-session.md#学生身份与业务令牌准入)。
