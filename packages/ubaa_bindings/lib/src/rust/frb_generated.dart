@@ -1971,6 +1971,7 @@ abstract class RustLibApi extends BaseApi {
   Future<BridgeSharedAccount> crateApiSharedAccountBridgeSharedAccountCapture({
     required String directory,
     required BigInt generation,
+    required bool retainSession,
   });
 
   void crateApiOfflineHomeSpocScanDetailBridgeSpocDetailScanCancel({
@@ -15488,6 +15489,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<BridgeSharedAccount> crateApiSharedAccountBridgeSharedAccountCapture({
     required String directory,
     required BigInt generation,
+    required bool retainSession,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -15495,6 +15497,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(directory, serializer);
           sse_encode_u_64(generation, serializer);
+          sse_encode_bool(retainSession, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -15508,7 +15511,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_bridge_error,
         ),
         constMeta: kCrateApiSharedAccountBridgeSharedAccountCaptureConstMeta,
-        argValues: [directory, generation],
+        argValues: [directory, generation, retainSession],
         apiImpl: this,
       ),
     );
@@ -15517,7 +15520,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSharedAccountBridgeSharedAccountCaptureConstMeta =>
       const TaskConstMeta(
         debugName: "BridgeSharedAccount_capture",
-        argNames: ["directory", "generation"],
+        argNames: ["directory", "generation", "retainSession"],
       );
 
   @override

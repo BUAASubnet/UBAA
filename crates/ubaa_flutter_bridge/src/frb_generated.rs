@@ -20716,12 +20716,14 @@ fn wire__crate__api__shared_account__BridgeSharedAccount_capture_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_directory = <String>::sse_decode(&mut deserializer);
             let api_generation = <u64>::sse_decode(&mut deserializer);
+            let api_retain_session = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::api::client::BridgeError>((move || {
                     let output_ok = crate::api::shared_account::BridgeSharedAccount::capture(
                         api_directory,
                         api_generation,
+                        api_retain_session,
                     )?;
                     std::result::Result::Ok(output_ok)
                 })())

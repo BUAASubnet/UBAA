@@ -20,8 +20,10 @@ abstract class BridgeSharedAccount implements RustOpaqueInterface {
   static Future<BridgeSharedAccount> capture({
     required String directory,
     required BigInt generation,
+    required bool retainSession,
   }) => RustLib.instance.api.crateApiSharedAccountBridgeSharedAccountCapture(
     directory: directory,
     generation: generation,
+    retainSession: retainSession,
   );
 }
