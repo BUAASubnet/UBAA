@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `74`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `75`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -29,7 +29,8 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=74` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=75` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `clearBusinessSessionCache` | 无 | `Future<void>` | 等待读取结束后清理两条路线的业务会话缓存，并弃用派生读组 |
 | `healthCloudPage` | 可选站点年份键 | `BridgeHealthCloudPage` | 体测年份、该年度的成绩与实际路线；不提交修改 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
@@ -533,7 +534,9 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v74）
+### 近期版本摘要（v55–v75）
+
+- v75 增加 `BridgeClient.clearBusinessSessionCache`，供设置清理业务会话缓存及派生读组。
 
 - v74 增加健康云只读接口，返回可选学年学期及所选学年学期的体测成绩。
 - v73 在 `BridgeCacheFailure` 和 `BridgeAgendaFailure` 增加 `Busy`，区分 SQLite 锁忙与存储不可用。业务缓存锁忙异常使用 `timeout`、`internal`、`retryable=true` 和诊断 `stage=cache`、`reason=cache_busy`。在线读取成功后的缓存保存失败仍单独返回 `saveError`。CLI JSON schema 保持 v18。

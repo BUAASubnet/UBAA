@@ -756,3 +756,7 @@ CLI 与 GUI 共用账号缓存。缓存索引按精确查询区分范围，实�
 | 博雅已选 | 旧版 `LocalBykcApi.kt` 在取得实际学期起止日期后读已选课程；buaa-api `api/boya/opt.rs` 的查询也有日期参数，但学期选择不同。保持[离线业务对照](parity/offline-cache.md)的原学期、字段及资格边界。 |
 | 场馆个人订单 | 旧版 `LocalCgyyApi.kt` 使用有签名的 `orders/mine` 读取订单页；buaa-api 无等价场馆预约协议，不适用。保持[场馆对照](parity/cgyy.md)的精确分页与只读订单投影。 |
 | 评教激活、任务、问卷、课程与进度 | 旧版 `LocalEvaluationService.kt` 用 `Mutex` 串行保护业务激活，按已取得任务和问卷依次读取；buaa-api `api/tes/{auth,opt,data}.rs` 采用凭据过期检查、首任务及并行问卷课程读取。保持[评教逐操作对照](parity/write-actions.md#phase-11j-evaluation-提交逐操作九列2026-09-05)的既有请求、完整度、错误及退出规则。复用缓存只返回课程展示字段与原进度。 |
+
+## 2026-11-18 Byxt 和 Portal 材料按缓存管理
+
+已核验的学业只读 worker 共享 Byxt、Portal Cookie。材料只加速现有业务读取。上游拒绝后，worker 丢弃对应材料并沿现有入口激活一次。后台写回采用独立旁车和文件锁，主会话继续用双槽 CAS 管理认证所有权。账号切换、路线策略变化和设置清理会使缓存失效。范围、文件格式与失效规则见[连接与会话合同](../contracts/connection-and-session.md#业务会话缓存)。

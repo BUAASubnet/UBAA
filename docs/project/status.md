@@ -2,11 +2,13 @@
 
 本页写给维护者和贡献者，回答三个问题：现在实现了什么，在哪里验证过，发布前还差什么。这里只记录当前事实。每次验证用的命令和结果写在对应提交说明里，旧的逐日记录见[状态流水归档](../archive/history/2026-11-11-status-log.md)。
 
-更新：2026-11-17
+更新：2026-11-18
 
 2026-11-17：图书馆预约页按分区返回的预约窗口和北京时间判断开放状态。窗口外整页提示“不在预约时间”，停止座位和地图加载；到达开放时间后重新读取日程。开放期间点击座位直接弹出预约面板。Core 在准备和提交时分别核对最新窗口，窗口缺失时禁止预约。Direct/WebVPN 图书馆只读验证通过；未提交真实预约。
 
 设置中的“诊断信息”只保留“分享完整诊断”，不再展示或复制报告内容，并提示不得公开分享；错误现场只显示编号并指引到设置分享。主动导出学校原始响应、重复响应头及请求时间顺序。原始记录仅保留当前客户端内存，最多 256 条、32 MiB，报告标记淘汰和未完成请求；普通摘要、持久历史和自动遥测继续使用安全字段。签到业务失败补充实际状态、阶段及 HTTP 状态。Android 测试包构建与设备验证分别记录。
+
+已连接的学业只读 worker 可在账号和路线内复用 Byxt、Portal Cookie。连接恢复后可从独立旁车加载材料。Direct、WebVPN 的跨进程性能与 App 冷启动对比待真实验证。
 
 ## 版本与合同
 
@@ -16,7 +18,7 @@
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v18 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v74 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v75 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v5，隐私政策 v6 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |

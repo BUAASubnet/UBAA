@@ -525,6 +525,24 @@ await 后匹配 backend、认证代次、凭据修订和最新请求；原准备
 网络错误后重新探测可以推翻旧的校内判断。返回校园网的新请求优先 Direct，正常在途 WebVPN 读取可完成。每次换网按共同恢复服务合并目标路线登录；验证码、凭据拒绝与缺少许可继续交给现有人工入口。
 
 
+### 只读 worker 的 Byxt 与 Portal Cookie
+
+来源固定为 ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版核对 `ScheduleApi.kt`、`LocalScheduleApi.kt`、`Schedule.kt`、`LocalScheduleApiBackendTest.kt`，以及 `LocalConnectionAuth.kt` 和 `LocalCookieStoreTest.kt`。buaa-api 核对 `api/aas/{core,opt,data}.rs`、`api/sso/auth.rs`、`context.rs`、`request.rs` 和 `store/cookies.rs`。表中的 Portal 指 `it.buaa.edu.cn`，Byxt 指 `byxt.buaa.edu.cn`。
+
+| 操作 | 引导与 service | 重定向与最终 URL | Cookie、Session、Token 作用域 | 方法与参数 | 请求头与正文 | 加密与签名 | DTO 与解析 | 缓存、并发、重试 | 错误与退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| Byxt 能力探测 | 旧版与 buaa-api 均请求 `currentUser.do`。旧版先检查本地认证，buaa-api 在 AAS 凭据过期时走专用 CAS service | 旧版区分 SSO 落点、研究生门户和本科 JSON，buaa-api 直接解析响应 | 旧版按路线使用 `LocalCookieStore`，buaa-api 使用共享域名 Cookie 容器及独立 AAS 有效期 | 两源均 GET，无参数 | 旧版探测未设置课表 AJAX 头，buaa-api 沿通用客户端头，无正文 | 无业务加密或签名 | 旧版按响应形态分类，buaa-api 解析 `code`、`datas.welcomeInfo.classWeek` 与 `xnxqdm` | 旧版先探测，buaa-api 按有效期先登录。本版命中缓存仍探测，确认 SSO 要求时沿原有流程重激活一次 | 旧版区分 SSO 过期、不支持及不可用，buaa-api 使用 AAS 解析或服务错误 |
+| Byxt CAS 激活 | 旧版没有同构的独立 AAS 激活函数。buaa-api 的 service 是 Byxt `/jwapp/sys/homeapp/index.do?contextPath=/jwapp` | buaa-api 跟随 SSO，检查该 Byxt 落点前缀。本版继续校验最终 origin 与路径 | 通用 SSO 和 Byxt Cookie 留在各自域，本地旁车仅纳入 Byxt 业务范围 | buaa-api GET SSO `/login` 并传 `service`，本版沿用现有请求 | 常规导航，无正文 | 沿既有 CAS 和 WebVPN 封装，无新增常量 | 检查响应状态和落点，无业务 DTO | buaa-api 在 AAS 凭据过期时激活。本版探测识别到拒绝后按旧有次数激活和复查 | buaa-api 对非预期落点报 AAS 登录失败。本版保留现有错误分类 |
+| 今日课表 | 旧版沿本科探测。buaa-api 无同构今日接口，九列不适用 | 旧版使用共享重定向客户端至 Byxt `teachingSchedule/detail.do` | 旧版按路线附 Byxt Cookie | 旧版 GET，`rq` 为日期，`lxdm=student` | 旧版 JSON Accept、XHR、课表 Referer，无正文 | 无 | 旧版 `datas` 中的 `TodayClass` 列表 | 旧版探测后读取。本版在学业 worker 成功后保存活跃路线材料 | 旧版按 `schedule_error` 处理非本科响应与异常。本版保留既有分类 |
+| 学期、教学周与考试安排 | 旧版沿本科探测。buaa-api 无这三个同构接口，九列不适用 | 旧版在 Byxt 访问 `schoolCalendars.do`、`getTermWeeks.do`、`exams.do` | 旧版按路线附 Byxt Cookie | 旧版分别 GET 无参数、GET `termCode`、GET `termCode` | 旧版使用 XHR。考试用 `Accept: */*` 和考试 Referer，其余采用课表 Referer 与 JSON Accept | 无 | 旧版 `datas` 分别为学期、教学周与考试，具体字段沿学业来源表 | 旧版探测后读取。学业 worker 与考试 worker 同路线共享缓存材料 | 旧版保留非本科、上游与解析错误。本版沿用现有分类 |
+| 周课表与导入 | 旧版沿本科探测，buaa-api 沿 AAS 凭据有效期 | 两源访问 `getMyScheduleDetail.do`。本版落点及整学期导入流程沿学业来源表 | 各来源沿上述 Byxt 容器 | 两源均 POST。旧版表单 `termCode`、`type=week`、`week`，buaa-api 通过 query 再传 `campusCode` 且另有 `type=term` | 旧版课表 AJAX 头及表单正文，buaa-api 通用头及 URL query。本版保持原表单 | 无 | 旧版 `WeeklySchedule`，buaa-api `Schedules`，本版沿原导入完整度规则 | 旧版和本版逐周请求。buaa-api 另有一次学期查询。本版导入完成后才回写业务材料 | 沿原解析、完整度、取消与错误分类 |
+| Portal 引导与学业身份 | 两冻结来源均无 `it.buaa.edu.cn` 同源业务，九列不适用。本版依据校园账户既有证据，使用原 Portal CAS service | 原重定向校验至 `/home/`，身份 GET 精确落在 `/personal/frontend/data/info` | Portal Cookie 按业务域和实际路线隔离，SSO 与网关通用 Cookie 沿用主会话 | 原导航和身份请求均为 GET，身份无参数 | 导航 HTML，身份 JSON Accept、XHR、门户 Referer，无正文 | 无业务加密或签名 | `d.info.identity`、`d.info.depart` 为非空字符串。本科与研究生分流沿现有规则 | worker 在原 `e=10013` 或门户业务认证拒绝时重新激活一次，后续成功才写回。成绩读取的自身协议见学业来源表 | 原网络和解析分类保留，主客户端继续使用原门户流程 |
+| 本机加载、写回与失效 | 本机操作，无 CAS 地址 | 本机操作，无重定向 | 旧版设置项按路线持久化 Cookie，buaa-api `cookies.json` 按域序列化 Cookie。本版按主客户端核验的账号、实际路线和业务范围索引 | 本机操作，无 HTTP 参数 | 本版旁车使用 JSON schema 1 | 无新增算法或签名 | 旧版 `StoredCookieRecord` 包含 Cookie 和创建时间，本版复用 `StoredCookie` | 旧版存储按路线读写并过滤过期。buaa-api 上下文文件保存 Cookie。本版锁内合并不同范围，worker 只在成功读取后更新 | 损坏、账号不同按空缓存处理。写回失败保留读取结果。退出和账号变化沿合同清理 |
+
+旧版 `LocalCookieStore` 的同路线 Cookie 可跨重启保留。`LocalSpocApi.kt` 和 `LocalBykcApi.kt` 的业务 Token 留在运行时。本阶段的存储范围为 Byxt 与 Portal Cookie。
+
+本科业务请求、导入与成绩字段详见[学业来源对照](academic.md)，Portal 路径和字段详见[校园账户逐操作协议](campus.md#逐操作协议)。两条真实路线的跨进程复核由总指挥在获授权后执行。
+
 ### Live 验证与客户端认证入口统一（2026-11-13）
 
 冻结来源为 ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版核对 `LocalConnectionAuth.kt` 的预加载、验证码图片、表单和用户中心校验，以及 `AuthApi.kt`、`Auth.kt`、`LocalAuthServiceBackendTest.kt`；另一来源核对 `api/sso/auth.rs`、`request.rs`、`store/cred.rs`、`store/cookies.rs`、`error.rs`。沿用本页验证码逐操作依据，不修改学校协议。
