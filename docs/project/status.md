@@ -18,7 +18,7 @@
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | CLI JSON schema v18 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v75 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| Rust 与 Dart 之间的接口 | Flutter bridge contract v76 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v5，隐私政策 v6 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |
@@ -66,6 +66,8 @@
 Auto 校外按[域名名单](../contracts/route-policy.md#校外域名配置)直接为用户中心、希冀、课堂签到、iHome 和财务选择 WebVPN，名单外业务继续直连优先。2026-11-13 已在非校园网环境检查公开入口与 DNS，并通过 Core 路线合成回归；财务按用户确认采用 WebVPN，PR #124 已有真实 WebVPN 查询证据。本次没有执行账号登录、完整业务读取或设备换网验收。
 
 应用操作占用和会话恢复结果已集中管理，专用服务恢复继续阻塞并发操作。日程同步的未决发布状态、希冀扫描的网络读取与缓存复用也由专用类型管理，公开接口与本机存储格式保持兼容，见[内部状态所有权](../adr/0008-internal-state-ownership.md)。
+
+不记住密码时，显式登录取得的会话可用于当前控制器的首页读取，退出或后端替换后失效。只读 worker 复用业务材料时不新增旁车条目。已覆盖合成登录、索引变动与缓存写回，真实账号双路线验证待执行。
 
 恢复本机首页会保留同账号的记住密码和自动登录选项，同账号重新认证继续沿用原选择。自动恢复遇到上游解析异常时，只暂停当前运行中的自动提交，保留已保存凭据与下次启动的恢复许可。两项行为已通过合成重启回归，真实设备与学校账号尚未验证。
 

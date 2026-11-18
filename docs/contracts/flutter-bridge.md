@@ -11,7 +11,7 @@
 
 ## 1. 版本与命名
 
-- 合同版本为 `75`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `76`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=75` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=76` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 | `clearBusinessSessionCache` | 无 | `Future<void>` | 等待读取结束后清理两条路线的业务会话缓存，并弃用派生读组 |
 | `healthCloudPage` | 可选站点年份键 | `BridgeHealthCloudPage` | 体测年份、该年度的成绩与实际路线；不提交修改 |
 
@@ -536,6 +536,7 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 ### 近期版本摘要（v55–v75）
 
+- v76 为 `BridgeSharedAccount.capture` 增加 `retainSession`。宿主传入安全索引绑定快照的 `canRestore`，Core 用它决定只读 worker 是否提交业务会话旁车写回。
 - v75 增加 `BridgeClient.clearBusinessSessionCache`，供设置清理业务会话缓存及派生读组。
 
 - v74 增加健康云只读接口，返回可选学年学期及所选学年学期的体测成绩。
