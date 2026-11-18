@@ -1,4 +1,4 @@
-use super::{BusinessMaterial, BusinessScope, BusinessSessionCache};
+use super::{BusinessMaterial, BusinessScope, BusinessSessionCache, Invalidation};
 use crate::domain::ConnectionMode;
 use crate::internal::route_state::{SpocCredential, StudentKind, YgdkCredential};
 use crate::session::FileSessionStore;
@@ -6,6 +6,26 @@ use std::path::{Path, PathBuf};
 
 const ACCOUNT: &str = "fixture-user";
 const NOW: i64 = 1_700_000_000;
+
+#[path = "business_cache_fix2_tests.rs"]
+mod fix2;
+
+fn pause_file_job(
+    cache: &BusinessSessionCache,
+) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+    let (arrived, wait) = std::sync::mpsc::channel();
+    let (resume, paused) = std::sync::mpsc::channel();
+    cache.lock().before_file_job = Some(Box::new(move || {
+        arrived.send(()).unwrap();
+        let _ = paused.recv();
+    }));
+    (wait, resume)
+}
+
+fn wait_for_file_job(wait: &std::sync::mpsc::Receiver<()>) {
+    wait.recv_timeout(std::time::Duration::from_secs(5))
+        .expect("任务必须在取得旁车锁之前到达同步点");
+}
 
 fn root(name: &str) -> PathBuf {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -186,7 +206,7 @@ fn 第二阶段整体清理删除新业务范围() {
     let path = root("clear");
     write_materials(&path, NOW);
     let cache = cache(&path);
-    cache.clear_login(Some(ACCOUNT), ConnectionMode::Direct);
+    cache.invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct));
     let (_, seeds) = cache.seeds(ACCOUNT, ConnectionMode::Direct, NOW + 1);
     assert!(seeds.iter().all(|seed| seed.material.is_none()));
     std::fs::remove_dir_all(path).unwrap();
@@ -299,20 +319,25 @@ fn 修复_f2_跨实例清理阻止旧材料回填() {
         }
         let first = cache(&path);
         let (generation, _) = first.seeds(ACCOUNT, ConnectionMode::Direct, NOW);
+        let (wait, resume) = pause_file_job(&first);
+        first
+            .write(
+                ACCOUNT,
+                generation,
+                ConnectionMode::Direct,
+                materials(),
+                NOW,
+                || true,
+            )
+            .unwrap();
+        wait_for_file_job(&wait);
         let second = cache(&path);
         if operation == "login" {
-            second.clear_login(Some(ACCOUNT), ConnectionMode::Direct);
+            second.invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct));
         } else {
-            second.clear();
+            second.invalidate(Invalidation::RevokeAll);
         }
-        let _ = first.write(
-            ACCOUNT,
-            generation,
-            ConnectionMode::Direct,
-            materials(),
-            NOW,
-            || true,
-        );
+        drop(resume);
         drop(first);
         let (_, seeds) = cache(&path).seeds(ACCOUNT, ConnectionMode::Direct, NOW);
         assert!(
@@ -394,31 +419,34 @@ mod queued {
         (store, coordinator, parent, cache)
     }
 
-    fn queue(path: &Path, parent: &mut ClientRuntime) -> (std::fs::File, ClientRuntime) {
-        let lock = std::fs::File::create(path.join(".business_session.lock")).unwrap();
-        lock.lock().unwrap();
+    fn queue(
+        parent: &mut ClientRuntime,
+        cache: &BusinessSessionCache,
+    ) -> (std::sync::mpsc::Sender<()>, ClientRuntime) {
+        let (wait, resume) = pause_file_job(cache);
         let mut worker = parent.fork_parallel_readonly();
         worker
             .feature_state()
             .seed_academic_identity(Some(StudentKind::Graduate));
         worker.persist_business_session();
-        (lock, worker)
+        wait_for_file_job(&wait);
+        (resume, worker)
     }
 
     #[tokio::test]
-    async fn 修复_f1_正常核验保存后旧写回不污染协调器() {
+    async fn 修复_f1_预检后正常核验保存仍可写回且不污染协调器() {
         let path = root("queued-refresh");
         let (store, coordinator, mut parent, cache) = setup(&path);
         parent.refresh_authentication(&mut || {}).unwrap();
         let revision = store.load_dual_versioned().unwrap().revision;
-        let (held, _worker) = queue(&path, &mut parent);
+        let (held, _worker) = queue(&mut parent, &cache);
         crate::auth::sso_identity::validate_status(&mut parent, &mut || {})
             .await
             .unwrap();
         assert!(store.load_dual_versioned().unwrap().revision > revision);
         drop(held);
         cache.lock().writer.drain();
-        assert!(!path.join("business_session.json").exists());
+        assert!(path.join("business_session.json").exists());
         assert!(!coordinator.is_conflicted());
         parent.ensure_session_revision().unwrap();
         std::fs::remove_dir_all(path).unwrap();
@@ -429,11 +457,11 @@ mod queued {
         let path = root("queued-logout");
         let (_, coordinator, mut parent, cache) = setup(&path);
         parent.refresh_authentication(&mut || {}).unwrap();
-        let (held, _worker) = queue(&path, &mut parent);
+        let (held, _worker) = queue(&mut parent, &cache);
         parent.clear_memory();
         let revisions = coordinator.clear_both().unwrap();
         drop(held);
-        cache.clear();
+        cache.invalidate(Invalidation::RevokeAll);
         parent.set_session_revision(revisions.direct);
         assert!(!coordinator.is_conflicted());
         parent.refresh_authentication(&mut || {}).unwrap();
@@ -448,17 +476,24 @@ mod queued {
     }
 
     #[test]
-    fn 修复_f3_路线生命周期变化丢弃排队写回() {
+    fn 修复_f3_路线生命周期变化丢弃排队写回且新读组不播种() {
         let path = root("queued-lifecycle");
         let (store, _, mut parent, cache) = setup(&path);
-        let (held, _worker) = queue(&path, &mut parent);
+        let (held, _worker) = queue(&mut parent, &cache);
         let revision = store.load_dual_versioned().unwrap().revision;
         let mut rejected_group = parent.fork_parallel_readonly();
         rejected_group.clear_with(|| {}).unwrap();
         assert_eq!(store.load_dual_versioned().unwrap().revision, revision);
+        let fresh_group = parent.fork_parallel_readonly();
         drop(held);
         cache.lock().writer.drain();
         assert!(!path.join("business_session.json").exists());
+        assert!(
+            fresh_group
+                .feature_state()
+                .cached_academic_identity()
+                .is_none()
+        );
         std::fs::remove_dir_all(path).unwrap();
     }
 }

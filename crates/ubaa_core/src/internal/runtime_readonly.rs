@@ -3,11 +3,11 @@ use super::ClientRuntime;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use crate::session::business_cache::{
-    BusinessCacheStamp, BusinessMaterial, BusinessScope, BusinessSeeds, reusable_cookie_scope,
-    same_material,
+    BusinessCacheStamp, BusinessMaterial, BusinessScope, BusinessSeeds, SeedSource,
+    reusable_cookie_scope, same_material,
 };
 use crate::session::{CookieJar, StoredCookie};
-use std::sync::{Arc, Weak, atomic::Ordering};
+use std::sync::{Arc, Weak};
 
 #[derive(Clone)]
 pub(super) struct ReadonlyOwner {
@@ -68,9 +68,6 @@ impl ClientRuntime {
 
     pub(crate) fn set_session_revision(&mut self, revision: u64) {
         self.session_revision = revision;
-        if self.readonly_generation.is_none() {
-            self.primary_revision.store(revision, Ordering::Release);
-        }
     }
 
     pub(crate) fn synchronize_readonly(&mut self, parent: &Self) -> bool {
@@ -192,20 +189,17 @@ impl ClientRuntime {
             BusinessScope::ALL.map(|scope| changes.iter().any(|(key, _)| scope == *key));
         let store = Arc::clone(&self.store);
         let revision = self.session_revision;
-        let primary_revision = Arc::clone(&self.primary_revision);
         let lifecycle_generation = owner.generation;
+        let source = SeedSource(Weak::clone(&owner.state), lifecycle_generation);
         let revision_current = move || store.revision_matches_for_cache(revision).unwrap_or(false);
-        let lifecycle_current = move || {
-            parent.lifecycle_generation() == lifecycle_generation
-                && primary_revision.load(Ordering::Acquire) == revision
-        };
+        let lifecycle_current = move || parent.lifecycle_generation() == lifecycle_generation;
         if let Some(seeds) = cache.write_after_revision_check(
             account,
             stamp,
             mode,
             changes,
             saved_at,
-            (revision_current, lifecycle_current),
+            (revision_current, lifecycle_current, Some(source)),
         ) {
             let owner = self.readonly_generation.as_mut().expect("已验证读组归属");
             for (index, seed) in seeds.into_iter().enumerate() {

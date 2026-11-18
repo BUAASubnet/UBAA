@@ -2,6 +2,7 @@
 use super::UbaaClient;
 use crate::auth::AuthWorkflow;
 use crate::error::Result;
+use crate::session::business_cache::Invalidation;
 use std::sync::Arc;
 
 impl UbaaClient {
@@ -30,6 +31,7 @@ impl UbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions: self.sessions.clone(),
+            session_conflict_seen: false,
             business_sessions: Arc::clone(&self.business_sessions),
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
@@ -60,7 +62,7 @@ impl UbaaClient {
     /// 清除主客户端共享的两条路线业务会话缓存。
     pub fn clear_business_session_cache(&self) {
         if self.direct_runtime.ensure_primary_client().is_ok() {
-            self.business_sessions.clear();
+            self.business_sessions.invalidate(Invalidation::RevokeAll);
         }
     }
 }

@@ -12,6 +12,7 @@ use crate::domain::{ConnectionMode, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, InitializationFailure, Result, UbaaError};
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::Invalidation;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
@@ -30,6 +31,7 @@ pub struct UbaaClient {
     pub(super) direct_auth: AuthWorkflow,
     pub(super) webvpn_auth: AuthWorkflow,
     pub(super) sessions: DualSessionCoordinator,
+    pub(super) session_conflict_seen: bool,
     pub(super) business_sessions: Arc<crate::session::business_cache::BusinessSessionCache>,
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
     pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
@@ -266,7 +268,7 @@ impl UbaaClient {
         let business_sessions = Arc::new(
             crate::session::business_cache::BusinessSessionCache::new(&store),
         );
-        let sessions = DualSessionCoordinator::new(store)?;
+        let sessions = DualSessionCoordinator::new(store)?.with_business_cache(&business_sessions);
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         let probe = Arc::new(probe);
@@ -302,6 +304,7 @@ impl UbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions,
+            session_conflict_seen: false,
             business_sessions,
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
@@ -356,7 +359,7 @@ impl UbaaClient {
         self.cloud_print = None;
         self.config = replacement;
         if policy_changed {
-            self.business_sessions.clear();
+            self.business_sessions.invalidate(Invalidation::RevokeAll);
         }
         self.clear_interactive_context();
         Ok(())

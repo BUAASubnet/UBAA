@@ -48,6 +48,7 @@ impl UbaaClient {
                         fetched_at: batch.fetched_at,
                         save_error: batch.save_error,
                     },
+                    online_routes: Vec::new(),
                     complete: batch.complete,
                     publication: batch.publication,
                 });

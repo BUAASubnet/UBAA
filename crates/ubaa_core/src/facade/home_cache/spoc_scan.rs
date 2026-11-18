@@ -32,6 +32,7 @@ enum Stage {
 pub struct SpocScan {
     resolution: RouteResolution,
     online_route: Option<ConnectionMode>,
+    online_routes: Vec<ConnectionMode>,
     owner: Weak<RouteFeatureState>,
     generation: u64,
     route_generation: u64,
@@ -61,7 +62,7 @@ pub struct SpocScanBatch {
     pub save_error: Option<CacheError>,
 }
 impl SpocScanBatch {
-    pub(super) fn into_home(self) -> HomeRefresh {
+    fn into_home(self, online_routes: Vec<ConnectionMode>) -> HomeRefresh {
         HomeRefresh {
             result: OfflineRefresh {
                 scope: super::spoc::term_scope(self.resolution.mode, &self.data.term_code),
@@ -71,12 +72,20 @@ impl SpocScanBatch {
                 fetched_at: self.fetched_at,
                 save_error: self.save_error,
             },
+            online_routes,
             complete: self.complete,
             publication: self.publication,
         }
     }
 }
 impl SpocScan {
+    fn record_online_route(&mut self, route: ConnectionMode) {
+        self.online_route = Some(route);
+        if !self.online_routes.contains(&route) {
+            self.online_routes.push(route);
+        }
+    }
+
     #[must_use]
     pub fn cancellation(&self) -> SpocScanCancellation {
         self.cancellation.clone()
@@ -196,7 +205,7 @@ impl UbaaClient {
         loop {
             let batch = self.next_spoc_scan(&mut plan).await?;
             if batch.finished {
-                return Ok(batch.into_home());
+                return Ok(batch.into_home(plan.online_routes));
             }
         }
     }
@@ -258,6 +267,7 @@ impl UbaaClient {
         let mut plan = SpocScan {
             resolution,
             online_route: None,
+            online_routes: Vec::new(),
             owner: Arc::downgrade(&owner),
             generation: owner.lifecycle_generation(),
             route_generation: self.route_generation,
@@ -376,7 +386,7 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
                     .data;
-                plan.online_route = Some(resolution.mode);
+                plan.record_online_route(resolution.mode);
                 plan.fetched_at = chrono::Utc::now().timestamp();
                 plan.stage = Stage::Courses;
             }
@@ -390,7 +400,7 @@ impl UbaaClient {
                 self.rebind_spoc_route(plan, resolution);
                 match self.finish_routed(plan.resolution, result) {
                     Ok(value) => {
-                        plan.online_route = Some(resolution.mode);
+                        plan.record_online_route(resolution.mode);
                         plan.courses = value.data;
                     }
                     Err(error)
@@ -423,7 +433,7 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
                     .data;
-                plan.online_route = Some(resolution.mode);
+                plan.record_online_route(resolution.mode);
                 if plan.ticket.is_some() {
                     // 已取得的末页先纳入聚合，后续本地发布仍核对父票据。
                     self.validate_spoc_owner(plan)?;

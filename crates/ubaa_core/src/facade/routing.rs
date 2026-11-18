@@ -6,6 +6,7 @@ use crate::connection::{RouteResolution, resolve_route};
 use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::Invalidation;
 
 use super::client::UbaaClient;
 use super::types::{CallerPinned, Operation, Routed, RoutedError, RoutedResult};
@@ -395,7 +396,9 @@ impl UbaaClient {
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
             let (runtime, auth) = self.route_parts_for(route);
             if let Err(error) = RouteExecution::new(runtime, auth).guard_session_ownership() {
-                self.clear_all_memory();
+                if self.clear_on_session_conflict().is_ok() {
+                    self.clear_all_memory();
+                }
                 return Err(error);
             }
         }
@@ -485,7 +488,11 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_all_memory(&mut self) {
-        self.business_sessions.clear();
+        self.business_sessions.invalidate(Invalidation::RevokeAll);
+        self.clear_runtime_memory();
+    }
+
+    pub(super) fn clear_runtime_memory(&mut self) {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.clear_interactive_context();

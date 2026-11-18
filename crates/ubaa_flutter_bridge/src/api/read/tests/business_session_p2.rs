@@ -48,6 +48,7 @@ struct Transport {
     reject_page: Option<u16>,
     reject_spoc_submission: bool,
     renew_spoc_at: Option<&'static str>,
+    spoc_courses_pause: Option<Arc<(tokio::sync::Notify, tokio::sync::Notify)>>,
     ygdk_pause: Option<Arc<(tokio::sync::Notify, tokio::sync::Notify)>>,
 }
 
@@ -55,6 +56,7 @@ struct Transport {
 struct Calls {
     spoc_logins: AtomicUsize,
     spoc_terms: AtomicUsize,
+    spoc_pages: AtomicUsize,
     spoc_old: AtomicUsize,
     spoc_submissions: AtomicUsize,
     spoc_new: AtomicUsize,
@@ -120,6 +122,7 @@ impl Transport {
                     }
                     "/spocnewht/jxkj/queryKclb" => r#"{"code":200,"content":[]}"#,
                     "/spocnewht/inco/ht/queryListByPage" => {
+                        self.calls.spoc_pages.fetch_add(1, SeqCst);
                         r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","zymc":"合成作业"}]}}"#
                     }
                     "/spocnewht/kczy/queryKczyInfoByid" => {
@@ -218,7 +221,16 @@ impl HttpTransport for Transport {
         let path = path.split('?').next().unwrap();
         let path = format!("/{path}");
         match host {
-            "spoc.buaa.edu.cn" => Ok(self.spoc(&call, &path)),
+            "spoc.buaa.edu.cn" => {
+                if path == "/spocnewht/jxkj/queryKclb"
+                    && let Some(pause) = &self.spoc_courses_pause
+                {
+                    pause.0.notify_one();
+                    pause.1.notified().await;
+                    return Ok(call.respond(200, "无效响应"));
+                }
+                Ok(self.spoc(&call, &path))
+            }
             "app.buaa.edu.cn" | "ygdk.buaa.edu.cn" => {
                 if path == "/api/Front/Clockin/Classify/getList"
                     && let Some(pause) = &self.ygdk_pause
@@ -827,4 +839,112 @@ async fn 修复_f5_仅接收其他任务的离线记录时不写回() {
         !first.cache().exists(),
         "没有在线执行的批次不应提交该 worker 的材料"
     );
+}
+
+#[tokio::test]
+async fn 修复二_f5_spoc首页整次刷新保留前批在线路线() {
+    Box::pin(spoc_refresh_reuses_offline_last_batch(false)).await;
+}
+
+#[tokio::test]
+async fn 修复二_f5_spoc详情整次刷新保留前批在线路线() {
+    Box::pin(spoc_refresh_reuses_offline_last_batch(true)).await;
+}
+
+async fn spoc_refresh_reuses_offline_last_batch(detail: bool) {
+    use ubaa_core::facade as core;
+
+    let direct = Fixture::in_task(TASK);
+    let webvpn = Fixture::in_task(TASK);
+    let pause = Arc::new((tokio::sync::Notify::new(), tokio::sync::Notify::new()));
+    let slow = Transport {
+        spoc_courses_pause: Some(Arc::clone(&pause)),
+        ..Transport::default()
+    };
+    let a = Arc::new(restored(direct.1.clone(), "direct", &slow).await);
+    let b = restored(webvpn.1.clone(), "webvpn", &Transport::default()).await;
+    let cache = offline(&direct.0).await;
+    let competing_cache = offline(&direct.0).await;
+    let competing_detail = if detail {
+        assert!(
+            b.home_spoc_detail_cached(&competing_cache, "a1".into())
+                .await
+                .unwrap()
+                .state
+                .complete
+        );
+        let mut repo = core::OfflineRepository::open(
+            &direct.0,
+            "0123456789abcdef0123456789abcdef",
+            core::CacheKey::new([4; 32]),
+            core::CacheLimits::default(),
+        )
+        .unwrap();
+        let scope = core::CacheScope {
+            route: core::ConnectionMode::WebVpn,
+            query: core::CacheQuery::SpocDetail {
+                assignment_id: "a1".into(),
+            },
+        };
+        let record = repo
+            .read(&scope, chrono::Utc::now().timestamp())
+            .unwrap()
+            .unwrap();
+        Some((repo, scope, record.payload))
+    } else {
+        None
+    };
+    let read = tokio::spawn({
+        let a = Arc::clone(&a);
+        async move {
+            if detail {
+                let value = a
+                    .home_spoc_detail_cached(&cache, "a1".into())
+                    .await
+                    .unwrap();
+                (value.result.route.resolved_route, value.state)
+            } else {
+                let value = a.home_spoc_cached(&cache).await.unwrap();
+                (value.result.route.resolved_route, value.state)
+            }
+        }
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(5), pause.0.notified())
+        .await
+        .unwrap();
+    assert_eq!(slow.calls.spoc_terms.load(SeqCst), 1);
+    assert_eq!(slow.calls.spoc_logins.load(SeqCst), 1);
+    if let Some((mut repo, scope, payload)) = competing_detail {
+        // 只替换详情票据，列表前置仍属于原来的读取者。
+        let ticket = repo.begin_read(scope).unwrap();
+        repo.publish(
+            &ticket,
+            payload,
+            chrono::Utc::now().timestamp(),
+            core::CacheCompleteness::Complete,
+        )
+        .unwrap();
+    } else {
+        assert!(
+            b.home_spoc_cached(&competing_cache)
+                .await
+                .unwrap()
+                .state
+                .complete
+        );
+    }
+    pause.1.notify_one();
+    let (route, state) = read.await.unwrap();
+    assert_eq!(route, BridgeConnectionMode::WebVpn);
+    assert!(state.complete);
+    assert_eq!(slow.calls.spoc_pages.load(SeqCst), 0);
+    drop(a);
+    let content =
+        std::fs::read_to_string(direct.cache()).expect("整次刷新应写回前批成功所在的 Direct 路线");
+    let document: Value = serde_json::from_str(&content).unwrap();
+    assert_eq!(
+        document["routes"]["direct"]["spoc"]["material"]["spoc"]["token"],
+        SPOC_OLD
+    );
+    assert!(document["routes"]["webvpn"]["spoc"].is_null());
 }

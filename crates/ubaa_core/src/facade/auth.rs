@@ -7,6 +7,7 @@ use crate::domain::{
 use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::session::DualSessionCoordinator;
+use crate::session::business_cache::Invalidation;
 
 use super::client::UbaaClient;
 use super::types::{Operation, RoutedResult};
@@ -182,8 +183,9 @@ impl UbaaClient {
             .as_ref()
             .map(super::SharedAccountGuard::acquire)
             .transpose()?;
-        let revisions = self.sessions.clear_both()?;
-        self.business_sessions.clear();
+        let revisions = self.sessions.clear_both();
+        self.business_sessions.invalidate(Invalidation::RevokeAll);
+        let revisions = revisions?;
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         Ok(())
@@ -285,7 +287,9 @@ impl UbaaClient {
 
     pub(super) fn clear_on_session_conflict(&mut self) -> Result<()> {
         if self.sessions.is_conflicted() {
-            self.clear_all_memory();
+            if !std::mem::replace(&mut self.session_conflict_seen, true) {
+                self.clear_runtime_memory();
+            }
             Err(DualSessionCoordinator::conflict_error())
         } else {
             Ok(())

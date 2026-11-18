@@ -196,7 +196,7 @@ impl UbaaClient {
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?
             .data;
-        plan.list.online_route = Some(resolution.mode);
+        plan.list.record_online_route(resolution.mode);
         let complete = plan.list.complete && detail_complete;
         plan.pending = Some((data, complete));
         self.validate_spoc_detail(plan)?;
@@ -229,6 +229,7 @@ impl UbaaClient {
                         fetched_at: value.fetched_at,
                         save_error: value.save_error,
                     },
+                    online_routes: plan.list.online_routes,
                     complete: value.complete,
                     publication: value.publication,
                 });

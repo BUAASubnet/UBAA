@@ -94,6 +94,7 @@ impl UbaaClient {
             .await?;
         self.validate_spoc_owner(plan)?;
         replacement.cancellation = cancellation;
+        replacement.online_routes = std::mem::take(&mut plan.online_routes);
         *plan = replacement;
         // 一次调用内完成这次重读，避免两个正常调度的读取在批次间反复互相替代。
         loop {

@@ -81,12 +81,22 @@ impl Document {
         }
     }
 
-    fn advance_nonce(&mut self, route: ConnectionMode) {
+    fn advance_nonce(&mut self, route: ConnectionMode) -> ClearNonce {
         let slot = match route {
             ConnectionMode::Direct => &mut self.clear_nonces.direct,
             ConnectionMode::WebVpn => &mut self.clear_nonces.webvpn,
         };
-        *slot = Some(rand::random());
+        let nonce = rand::random();
+        *slot = Some(nonce);
+        nonce
+    }
+
+    fn clear_route(&mut self, route: ConnectionMode) -> ClearNonce {
+        self.route(route).clear();
+        if self.routes.is_empty() {
+            self.account = None;
+        }
+        self.advance_nonce(route)
     }
 
     pub(super) fn route(&mut self, route: ConnectionMode) -> &mut BTreeMap<BusinessScope, Entry> {
@@ -196,30 +206,44 @@ impl BusinessSessionFile {
         Ok(())
     }
 
-    pub(super) fn clear_login(&self, account: Option<&str>, route: ConnectionMode) -> Result<()> {
+    pub(super) fn clear_route(&self, route: ConnectionMode) -> Result<ClearNonce> {
         let _lock = self.lock()?;
         let mut document = self.read()?.unwrap_or_default();
-        if document.account.is_some() && document.account.as_deref() != account {
-            return self.write_tombstone();
-        }
-        document.route(route).clear();
-        document.advance_nonce(route);
-        if document.routes.is_empty() {
-            document.account = None;
-        }
-        self.replace(&document, || true)
+        let nonce = document.clear_route(route);
+        self.replace(&document, || true)?;
+        Ok(nonce)
     }
 
-    pub(super) fn clear(&self) -> Result<()> {
+    pub(super) fn clear(&self) -> Result<[ClearNonce; 2]> {
         let _lock = self.lock()?;
-        self.write_tombstone()
+        let mut document = Document::default();
+        let direct = document.advance_nonce(ConnectionMode::Direct);
+        let webvpn = document.advance_nonce(ConnectionMode::WebVpn);
+        self.replace(&document, || true)?;
+        Ok([direct, webvpn])
     }
 
-    fn write_tombstone(&self) -> Result<()> {
-        let mut document = Document::default();
-        document.advance_nonce(ConnectionMode::Direct);
-        document.advance_nonce(ConnectionMode::WebVpn);
-        self.replace(&document, || true)
+    pub(super) fn clear_if_observed(
+        &self,
+        observed: impl Iterator<Item = (ConnectionMode, Option<ClearNonce>)>,
+    ) -> Result<()> {
+        let mut observed = observed.peekable();
+        if observed.peek().is_none() {
+            return Ok(());
+        }
+        let _lock = self.lock()?;
+        let mut document = self.read()?.unwrap_or_default();
+        let mut changed = false;
+        for (route, nonce) in observed {
+            if document.nonce(route) == nonce {
+                document.clear_route(route);
+                changed = true;
+            }
+        }
+        if changed {
+            self.replace(&document, || true)?;
+        }
+        Ok(())
     }
 
     fn lock(&self) -> Result<File> {

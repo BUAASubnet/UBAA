@@ -34,10 +34,13 @@ impl AuthWorkflow {
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
             .await?;
         if is_redirect(response.status) {
+            let previous = runtime.account_name().map(str::to_owned);
             let profile = self.validate_status(runtime).await?;
-            return Ok(InteractivePreparation::Ready(
-                self.finish_successful_login(runtime, profile),
-            ));
+            return Ok(InteractivePreparation::Ready(self.finish_successful_login(
+                runtime,
+                profile,
+                previous.as_deref(),
+            )));
         }
         if response.status != 200 {
             return Err(status_error(response.status, "SSO 登录页不可用"));
@@ -112,9 +115,10 @@ impl AuthWorkflow {
                     error
                 }
             })?;
+        let previous = runtime.account_name().map(str::to_owned);
         let profile = self.validate_status(runtime).await?;
         Ok(InteractiveSubmission::Complete(
-            self.finish_successful_login(runtime, profile),
+            self.finish_successful_login(runtime, profile, previous.as_deref()),
         ))
     }
 }

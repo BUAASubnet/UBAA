@@ -13,6 +13,7 @@ use crate::domain::{
     RoutePolicy, UserProfile, invalid_interaction,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::session::business_cache::Invalidation;
 use state::{
     InteractiveContext, PendingCaptcha, StoredRoute, route_at, route_index, safe_interactive_error,
 };
@@ -69,7 +70,9 @@ impl UbaaClient {
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();
         self.webvpn_auth.clear();
-        let revisions = self.sessions.clear_both()?;
+        let revisions = self.sessions.clear_both();
+        self.business_sessions.invalidate(Invalidation::RevokeAll);
+        let revisions = revisions?;
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         self.interactive.current_login = Some(login.clone());

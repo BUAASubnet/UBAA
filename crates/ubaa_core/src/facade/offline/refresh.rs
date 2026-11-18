@@ -11,6 +11,8 @@ use crate::facade::{RouteResolution, RoutedResult, UbaaClient};
 #[derive(Debug)]
 pub struct CachedRefresh<T> {
     pub result: OfflineRefresh<T>,
+    /// 整次刷新内在线成功的路线，每条路线最多出现一次。
+    pub online_routes: Vec<ConnectionMode>,
     pub complete: bool,
     pub publication: Option<CachePublication>,
 }
@@ -243,6 +245,7 @@ impl CacheRefresh<'_> {
                 fetched_at,
                 save_error: self.save_error,
             },
+            online_routes: online_route.into_iter().collect(),
             complete,
             publication,
         })

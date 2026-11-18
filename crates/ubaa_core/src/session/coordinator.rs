@@ -1,10 +1,11 @@
 //! 客户端拥有的双路线会话协调器。
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use crate::domain::ConnectionMode;
 use crate::error::{Result, UbaaError};
 
+use super::business_cache::BusinessSessionCache;
 use super::file_safety::session_error;
 use super::file_store::FileSessionStore;
 use super::ports::SessionStore;
@@ -20,6 +21,7 @@ use super::types::{
 #[derive(Clone)]
 pub(crate) struct DualSessionCoordinator {
     state: Arc<Mutex<DualSessionState>>,
+    business_cache: Weak<BusinessSessionCache>,
 }
 
 struct DualSessionState {
@@ -29,6 +31,13 @@ struct DualSessionState {
     direct_revision: u64,
     webvpn_revision: u64,
     conflicted: bool,
+}
+
+impl DualSessionState {
+    fn lose_ownership(&mut self) {
+        self.snapshot = DualSessionSnapshot::new(None, None);
+        self.conflicted = true;
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -58,7 +67,22 @@ impl DualSessionCoordinator {
                 webvpn_revision: current.revision,
                 conflicted: false,
             })),
+            business_cache: Weak::new(),
         })
+    }
+
+    pub(crate) fn with_business_cache(mut self, cache: &Arc<BusinessSessionCache>) -> Self {
+        self.business_cache = Arc::downgrade(cache);
+        self
+    }
+
+    fn lose_ownership(&self, mut state: MutexGuard<'_, DualSessionState>) {
+        state.lose_ownership();
+        // 旁车等待后台任务前先释放协调器；后台任务可能仍在做只读修订预检。
+        drop(state);
+        if let Some(cache) = self.business_cache.upgrade() {
+            cache.revoke_on_conflict();
+        }
     }
 
     pub(crate) fn route_store(&self, mode: ConnectionMode) -> CoordinatedRouteSessionStore {
@@ -101,7 +125,7 @@ impl DualSessionCoordinator {
         mode: ConnectionMode,
         expected_revision: u64,
     ) -> Result<bool> {
-        let mut state = self
+        let state = self
             .state
             .lock()
             .map_err(|_| session_error("dual session coordinator is unavailable"))?;
@@ -115,8 +139,7 @@ impl DualSessionCoordinator {
         };
         if current.revision != state.revision || expected_revision != route_revision {
             // 只进入终态并丢弃内存快照，绝不采用外部快照继续写入。
-            state.snapshot = DualSessionSnapshot::new(None, None);
-            state.conflicted = true;
+            self.lose_ownership(state);
             return Ok(false);
         }
         Ok(true)
@@ -141,8 +164,8 @@ impl DualSessionCoordinator {
         let mutation = match state.store.compare_exchange_dual(state.revision, None) {
             Ok(mutation) => mutation,
             Err(error) => {
-                state.snapshot = DualSessionSnapshot::new(None, None);
-                state.conflicted = true;
+                // 双槽清理由主动撤销入口调用，调用方无条件清理旁车。
+                state.lose_ownership();
                 return Err(error);
             }
         };
@@ -158,8 +181,7 @@ impl DualSessionCoordinator {
                 })
             }
             DualSessionMutation::Conflict => {
-                state.snapshot = DualSessionSnapshot::new(None, None);
-                state.conflicted = true;
+                state.lose_ownership();
                 Err(dual_session_conflict())
             }
         }
@@ -219,8 +241,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
             ConnectionMode::WebVpn => state.webvpn_revision,
         };
         if expected_revision != route_revision {
-            state.snapshot = DualSessionSnapshot::new(None, None);
-            state.conflicted = true;
+            self.coordinator.lose_ownership(state);
             return Ok(SessionMutation::Conflict);
         }
         let next_route_revision = route_revision
@@ -244,8 +265,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
         {
             Ok(mutation) => mutation,
             Err(error) => {
-                state.snapshot = DualSessionSnapshot::new(None, None);
-                state.conflicted = true;
+                self.coordinator.lose_ownership(state);
                 return Err(error);
             }
         };
@@ -262,8 +282,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
                 })
             }
             DualSessionMutation::Conflict => {
-                state.snapshot = DualSessionSnapshot::new(None, None);
-                state.conflicted = true;
+                self.coordinator.lose_ownership(state);
                 Ok(SessionMutation::Conflict)
             }
         }
