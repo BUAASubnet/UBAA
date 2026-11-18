@@ -96,6 +96,21 @@ impl std::fmt::Debug for StoredCookie {
 }
 
 impl StoredCookie {
+    pub(crate) fn same_key(&self, other: &Self) -> bool {
+        self.name == other.name && self.domain == other.domain && self.path == other.path
+    }
+
+    pub(crate) fn same_for_persistence(&self, other: &Self) -> bool {
+        self.same_key(other)
+            && self.value == other.value
+            && self.host_only == other.host_only
+            && self.secure == other.secure
+            && self.expires_at == other.expires_at
+            && self.max_age == other.max_age
+            // 只有 Max-Age 依赖接收时间。
+            && (self.max_age.is_none() || self.created_at == other.created_at)
+    }
+
     /// 构造确定性测试使用的 Cookie fixture。
     #[cfg(any(test, feature = "test-contract"))]
     pub fn fixture(name: impl Into<String>, value: impl Into<String>) -> Self {
@@ -217,6 +232,10 @@ impl CookieJar {
     /// 使用持久化会话替换容器内容。
     pub fn replace(&mut self, cookies: Vec<StoredCookie>) {
         self.cookies = cookies;
+    }
+
+    pub(crate) fn retain(&mut self, retain: impl FnMut(&StoredCookie) -> bool) {
+        self.cookies.retain(retain);
     }
 
     fn purge_expired(&mut self, now: i64) {

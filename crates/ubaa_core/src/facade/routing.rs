@@ -485,6 +485,7 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_all_memory(&mut self) {
+        self.business_sessions.clear();
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.clear_interactive_context();

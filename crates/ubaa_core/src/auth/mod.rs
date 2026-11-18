@@ -202,6 +202,9 @@ impl AuthWorkflow {
         runtime.renew_authentication_generation();
         runtime.clear_feature_state();
         runtime.remember_account_name(profile.school_id.as_deref().or(profile.username.as_deref()));
+        if let Some(cache) = &runtime.business_sessions {
+            cache.clear_login(runtime.account_name(), runtime.mode());
+        }
         self.state.clear();
         profile
     }

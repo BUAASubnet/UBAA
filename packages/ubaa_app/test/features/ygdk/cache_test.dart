@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
@@ -255,6 +256,9 @@ class _Cache implements BridgeOfflineCache {
 }
 
 class _Client implements BridgeClient {
+  @override
+  Future<void> clearBusinessSessionCache() async {}
+
   bool failRecords = false;
   Completer<void>? homeGate;
   final homeStarted = Completer<void>();

@@ -55,6 +55,7 @@ impl BridgeClient {
             let mut guard = self.inner.read(group).await?;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let routed = call(client).await.map_err(BridgeError::from_routed)?;
+            client.persist_business_session(routed.resolution.mode);
             Ok((mapper(routed.data), map_route(routed.resolution)))
         })
         .await

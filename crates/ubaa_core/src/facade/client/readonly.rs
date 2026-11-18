@@ -30,6 +30,7 @@ impl UbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions: self.sessions.clone(),
+            business_sessions: Arc::clone(&self.business_sessions),
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
             cloud_print: None,
@@ -49,5 +50,17 @@ impl UbaaClient {
             && self
                 .webvpn_runtime
                 .synchronize_readonly(&parent.webvpn_runtime))
+    }
+
+    /// 尝试保存实际路线只读 worker 在成功读取后更新的业务 Cookie。
+    pub fn persist_business_session(&mut self, route: crate::domain::ConnectionMode) {
+        self.runtime_for(route).persist_business_session();
+    }
+
+    /// 清除主客户端共享的两条路线业务会话缓存。
+    pub fn clear_business_session_cache(&self) {
+        if self.direct_runtime.ensure_primary_client().is_ok() {
+            self.business_sessions.clear();
+        }
     }
 }

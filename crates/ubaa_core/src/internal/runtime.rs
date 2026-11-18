@@ -47,6 +47,7 @@ pub(crate) struct ClientRuntime {
     interactive_login_scope: Option<InteractiveLoginHandle>,
     required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
+    pub(crate) business_sessions: Option<Arc<crate::session::business_cache::BusinessSessionCache>>,
     pub(crate) consumer_closed: Arc<AtomicBool>,
     pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
@@ -128,6 +129,7 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: None,
+            business_sessions: None,
             shared_account: None,
             consumer_closed: Arc::new(AtomicBool::new(false)),
         })
@@ -187,6 +189,7 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
+            business_sessions: self.business_sessions.clone(),
             shared_account: self.shared_account.clone(),
             consumer_closed: self.consumer_closed.clone(),
         }

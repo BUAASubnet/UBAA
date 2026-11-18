@@ -7,6 +7,9 @@ use ubaa_core::facade as domain;
 #[path = "tests/bykc_catalog.rs"]
 mod bykc_catalog;
 
+#[path = "tests/business_session.rs"]
+mod business_session;
+
 #[path = "tests/concurrency.rs"]
 mod concurrency;
 

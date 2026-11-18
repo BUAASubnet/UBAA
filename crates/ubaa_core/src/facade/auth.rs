@@ -183,6 +183,7 @@ impl UbaaClient {
             .map(super::SharedAccountGuard::acquire)
             .transpose()?;
         let revisions = self.sessions.clear_both()?;
+        self.business_sessions.clear();
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         Ok(())

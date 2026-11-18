@@ -31,10 +31,12 @@ impl BridgeClient {
             let mut guard = self.inner.read(Some(group)).await?;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
-            client
+            let value = client
                 .refresh_cached_academic(&cache.cache, query)
                 .await
-                .map_err(offline_read_error)
+                .map_err(offline_read_error)?;
+            client.persist_business_session(value.resolution.mode);
+            Ok(value)
         })
         .await
     }

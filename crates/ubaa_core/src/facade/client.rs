@@ -30,6 +30,7 @@ pub struct UbaaClient {
     pub(super) direct_auth: AuthWorkflow,
     pub(super) webvpn_auth: AuthWorkflow,
     pub(super) sessions: DualSessionCoordinator,
+    pub(super) business_sessions: Arc<crate::session::business_cache::BusinessSessionCache>,
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
     pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
     pub(super) cloud_print: Option<Box<ClientRuntime>>,
@@ -262,11 +263,14 @@ impl UbaaClient {
         TDirect: HttpTransport + 'static,
         TWebVpn: HttpTransport + 'static,
     {
+        let business_sessions = Arc::new(
+            crate::session::business_cache::BusinessSessionCache::new(&store),
+        );
         let sessions = DualSessionCoordinator::new(store)?;
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         let probe = Arc::new(probe);
-        Ok(Self {
+        let mut client = Self {
             raw_diagnostics: diagnostics.clone(),
             network: super::ClientNetworkControl::new(probe.clone()),
             read_recovery_batch: super::required_recovery::ReadRecoveryBatch::default(),
@@ -298,10 +302,14 @@ impl UbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions,
+            business_sessions,
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
             cloud_print: None,
-        })
+        };
+        client.direct_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
+        client.webvpn_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
+        Ok(client)
     }
 
     /// 返回当前客户端拥有的路线槽位。
@@ -331,6 +339,7 @@ impl UbaaClient {
                 "route configuration directory is unavailable",
             ));
         };
+        let policy_changed = self.config.default != policy;
         let mut replacement = self.config.clone();
         replacement.replace_default_policy(policy);
         let generation = self.route_generation.checked_add(1).ok_or_else(|| {
@@ -346,6 +355,9 @@ impl UbaaClient {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.config = replacement;
+        if policy_changed {
+            self.business_sessions.clear();
+        }
         self.clear_interactive_context();
         Ok(())
     }

@@ -294,6 +294,7 @@ impl BridgeClient {
             let CacheQuery::ScheduleToday { date } = value.scope.query else {
                 return Err(cache_error(core::CacheError::Corrupt));
             };
+            client.persist_business_session(value.resolution.mode);
             Ok(BridgeTodayRefresh {
                 result: BridgeRoutedTodayClasses {
                     data: map_today(value.data),

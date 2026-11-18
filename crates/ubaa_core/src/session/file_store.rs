@@ -63,6 +63,10 @@ impl FileSessionStore {
         Ok(store)
     }
 
+    pub(super) fn directory(&self) -> &Path {
+        self.path.parent().expect("会话文件位于配置目录内")
+    }
+
     /// 返回用于诊断和测试的准确会话路径。
     #[must_use]
     #[cfg(any(test, feature = "test-contract"))]
@@ -229,7 +233,7 @@ impl FileSessionStore {
             .path
             .parent()
             .ok_or_else(|| session_error("session path has no parent directory"))?;
-        let (temporary, mut file) = create_temporary_file(parent)?;
+        let (temporary, mut file) = create_temporary_file(parent, "session.json")?;
         let mut cleanup = TemporaryFile::new(temporary);
         restrict_open_file(&file, "could not restrict session file")?;
         file.write_all(body)
@@ -314,7 +318,7 @@ impl FileSessionStore {
     }
 }
 
-fn wait_for_lock(deadline: Instant) -> Result<()> {
+pub(super) fn wait_for_lock(deadline: Instant) -> Result<()> {
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
         return Err(crate::error::UbaaError::resource_busy());
@@ -323,7 +327,7 @@ fn wait_for_lock(deadline: Instant) -> Result<()> {
     Ok(())
 }
 
-fn try_file_lock(file: &File) -> Result<bool> {
+pub(super) fn try_file_lock(file: &File) -> Result<bool> {
     // Android 继续使用实际内核文件锁；其余平台使用 Rust 标准库。
     #[cfg(target_os = "android")]
     match fs2::FileExt::try_lock_exclusive(file) {

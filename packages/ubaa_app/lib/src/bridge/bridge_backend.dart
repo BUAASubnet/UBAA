@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
@@ -9,11 +10,13 @@ import 'campus/service.dart';
 import 'bhpan/service.dart';
 import 'cloud_print.dart';
 import 'write/pinned_readback.dart';
+
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
+
 import '../../runtime.dart'
     show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
 import 'auth/required_session.dart';
@@ -84,7 +87,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 74;
+const _supportedBridgeContractVersion = 75;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。

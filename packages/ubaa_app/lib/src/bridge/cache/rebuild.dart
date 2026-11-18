@@ -47,6 +47,7 @@ Future<CacheClearOutcome> bridgeClearOrRebuildBusinessCache(
       // 即使初始化失败，清空已提交；不能继续沿用原句柄或声称可离线保存。
       backend.cache.handle = result.cache;
       backend.cache.account = account;
+      await backend.client.clearBusinessSessionCache();
       await bridgeCommitSharedBinding(binding);
       checkOwner();
       return bridgeCacheClearOutcome(

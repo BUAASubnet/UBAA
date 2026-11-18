@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 74;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 75;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -548,6 +548,15 @@ impl BridgeClient {
             })
         })
         .await
+    }
+
+    /// 清除设置中的业务会话缓存和派生读组。
+    pub async fn clear_business_session_cache(&self) {
+        let guard = self.inner.lock().await;
+        if let Some(client) = guard.as_ref() {
+            client.clear_business_session_cache();
+            self.inner.clear_readers().await;
+        }
     }
 
     /// 等待在途操作收尾后保存全局策略、清除 feature override 并重开 Core client。
