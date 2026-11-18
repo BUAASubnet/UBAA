@@ -57,7 +57,7 @@ impl ClientRuntime {
         });
         // Token 可能依赖业务 Cookie；两者一起留在同组，主写客户端独立激活。
         child.feature_state = Arc::new(RouteFeatureState::default());
-        child.synchronize_business_sessions(self.account_name());
+        child.synchronize_business_sessions(self.business_session_account());
         child
     }
 
@@ -76,7 +76,7 @@ impl ClientRuntime {
         }
         // 调用方持有认证与写入的排他边界。
         self.session_revision = parent.session_revision;
-        self.synchronize_business_sessions(parent.account_name());
+        self.synchronize_business_sessions(parent.business_session_account());
         true
     }
 
@@ -88,6 +88,12 @@ impl ClientRuntime {
                 Weak::ptr_eq(&owner.state, &Arc::downgrade(&parent.feature_state))
                     && owner.current()
             })
+    }
+
+    fn business_session_account(&self) -> Option<&str> {
+        self.has_local_session()
+            .then(|| self.account_name())
+            .flatten()
     }
 
     fn synchronize_business_sessions(&mut self, account: Option<&str>) {
@@ -156,7 +162,7 @@ impl ClientRuntime {
         };
         let (Some(account), Some(stamp), Some(parent)) = (
             owner.business_cache_account.as_deref(),
-            owner.business_cache_stamp.clone(),
+            owner.business_cache_stamp,
             owner.state.upgrade(),
         ) else {
             return;
@@ -244,11 +250,10 @@ impl ClientRuntime {
         let Some(account) = owner.business_cache_account.as_deref() else {
             return;
         };
-        if let Some(stamp) = owner.business_cache_stamp.clone()
+        if let Some(stamp) = owner.business_cache_stamp
             && !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty())
-            && let Some(next_stamp) = cache.reject(account, stamp, mode, scope, rejected)
         {
-            owner.business_cache_stamp = Some(next_stamp);
+            cache.reject(account, stamp, mode, scope, rejected);
         }
         if matches!(scope, BusinessScope::Byxt | BusinessScope::Portal) {
             self.jar.retain(|cookie| !scope.owns(mode, cookie));

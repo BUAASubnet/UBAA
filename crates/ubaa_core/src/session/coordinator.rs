@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use crate::domain::ConnectionMode;
 use crate::error::{Result, UbaaError};
 
-use super::business_cache::BusinessSessionCache;
+use super::business_cache::{BusinessSessionCache, Invalidation};
 use super::file_safety::session_error;
 use super::file_store::FileSessionStore;
 use super::ports::SessionStore;
@@ -119,8 +119,8 @@ impl DualSessionCoordinator {
         dual_session_conflict()
     }
 
-    /// 在第一次远端注销前撤销两条路线的旁车，不改变主会话修订。
-    pub(crate) fn revoke_business_for_logout(&self) -> Result<()> {
+    /// 在首次远端注销前撤销指定范围的旁车，旁车 I/O 错误与主会话权属错误分开返回。
+    pub(crate) fn revoke_business_for_logout(&self, event: Invalidation) -> Result<Result<()>> {
         let state = self
             .state
             .lock()
@@ -128,11 +128,23 @@ impl DualSessionCoordinator {
         if state.conflicted {
             return Err(dual_session_conflict());
         }
-        if !state.store.revoke_business_if_current(state.revision)? {
+        let cache = self.business_cache.upgrade();
+        let Some(result) =
+            state
+                .store
+                .revoke_business_if_current(state.revision, event, cache.as_deref())?
+        else {
             self.lose_ownership(state);
             return Err(dual_session_conflict());
-        }
-        Ok(())
+        };
+        Ok(result)
+    }
+
+    pub(crate) fn file_store(&self) -> Result<FileSessionStore> {
+        self.state
+            .lock()
+            .map(|state| state.store.clone())
+            .map_err(|_| session_error("dual session coordinator is unavailable"))
     }
 
     pub(crate) fn is_revision_current(
@@ -176,7 +188,12 @@ impl DualSessionCoordinator {
             .webvpn_revision
             .checked_add(1)
             .ok_or_else(|| session_error("session revision is exhausted"))?;
-        let mutation = match state.store.compare_exchange_dual(state.revision, None) {
+        let cache = self.business_cache.upgrade();
+        let mutation = match state.store.compare_exchange_dual_with_revocation(
+            state.revision,
+            None,
+            Some((Invalidation::RevokeAll, cache.as_deref())),
+        ) {
             Ok(mutation) => mutation,
             Err(error) => {
                 self.lose_ownership(state);
@@ -263,7 +280,9 @@ impl SessionStore for CoordinatedRouteSessionStore {
             .ok_or_else(|| session_error("session revision is exhausted"))?;
         let mut candidate = state.snapshot.clone();
         let slot = replacement.map(RouteSessionSnapshot::from_legacy);
-        let revoked_route = slot.is_none().then_some(self.mode);
+        let revocation = slot
+            .is_none()
+            .then_some(Invalidation::RevokeRoute(self.mode));
         match self.mode {
             ConnectionMode::Direct => candidate.sessions.direct = slot,
             ConnectionMode::WebVpn => candidate.sessions.webvpn = slot,
@@ -274,10 +293,11 @@ impl SessionStore for CoordinatedRouteSessionStore {
             } else {
                 Some(&candidate)
             };
+        let cache = self.coordinator.business_cache.upgrade();
         let mutation = match state.store.compare_exchange_dual_with_revocation(
             state.revision,
             replacement,
-            revoked_route,
+            revocation.map(|event| (event, cache.as_deref())),
         ) {
             Ok(mutation) => mutation,
             Err(error) => {

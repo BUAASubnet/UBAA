@@ -15,6 +15,21 @@ pub(crate) async fn validate_status(
     runtime: &mut ClientRuntime,
     clear_workflow: &mut (dyn FnMut() + Send),
 ) -> Result<AuthStatus> {
+    validate(runtime, clear_workflow, false).await
+}
+
+pub(super) async fn validate_login(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+) -> Result<AuthStatus> {
+    validate(runtime, clear_workflow, true).await
+}
+
+async fn validate(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+    login: bool,
+) -> Result<AuthStatus> {
     let result = identity(runtime).await;
     let user = match result {
         Err(error) if error.code == ErrorCode::AuthenticationRequired => {
@@ -31,7 +46,14 @@ pub(crate) async fn validate_status(
             "SSO 身份已变化，请重新登录",
         ));
     }
-    let (authenticated_at, last_activity) = runtime.refresh_authentication(clear_workflow)?;
+    let (authenticated_at, last_activity) = if login {
+        runtime.refresh_authentication_for_login(
+            clear_workflow,
+            user.school_id.as_deref().or(user.username.as_deref()),
+        )?
+    } else {
+        runtime.refresh_authentication(clear_workflow)?
+    };
     runtime.remember_account_name(user.school_id.as_deref());
     Ok(AuthStatus {
         user,

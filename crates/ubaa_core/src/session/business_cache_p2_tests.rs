@@ -148,7 +148,7 @@ fn 迟到拒绝只删除仍匹配的材料() {
     reader
         .write(
             ACCOUNT,
-            generation.clone(),
+            generation,
             ConnectionMode::Direct,
             vec![(BusinessScope::Spoc, Some(renewed_spoc.clone()))],
             NOW + 1,
@@ -169,14 +169,11 @@ fn 迟到拒绝只删除仍匹配的材料() {
     .unwrap();
     drop(peer);
 
-    let mut stamp = generation;
     for (scope, rejected) in [
         (BusinessScope::Spoc, old_spoc),
         (BusinessScope::Ygdk, old_ygdk),
     ] {
-        stamp = reader
-            .reject(ACCOUNT, stamp, ConnectionMode::Direct, scope, rejected)
-            .unwrap();
+        assert!(reader.reject(ACCOUNT, generation, ConnectionMode::Direct, scope, rejected));
     }
     let (_, seeds) = reader.seeds(ACCOUNT, ConnectionMode::Direct, NOW + 3);
     assert!(
@@ -185,7 +182,12 @@ fn 迟到拒绝只删除仍匹配的材料() {
             .as_ref()
             .is_some_and(|value| value.matches(&renewed_spoc))
     );
-    assert!(seeds[BusinessScope::Ygdk as usize].material.is_none());
+    assert!(
+        seeds[BusinessScope::Ygdk as usize]
+            .material
+            .as_ref()
+            .is_some_and(|material| material.matches(&renewed_ygdk))
+    );
     drop(reader);
 
     let (_, seeds) = cache(&path).seeds(ACCOUNT, ConnectionMode::Direct, NOW + 3);
@@ -209,7 +211,9 @@ fn 第二阶段整体清理删除新业务范围() {
     let path = root("clear");
     write_materials(&path, NOW);
     let cache = cache(&path);
-    cache.invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct));
+    cache
+        .invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct))
+        .unwrap();
     let (_, seeds) = cache.seeds(ACCOUNT, ConnectionMode::Direct, NOW + 1);
     assert!(seeds.iter().all(|seed| seed.material.is_none()));
     std::fs::remove_dir_all(path).unwrap();
@@ -278,6 +282,8 @@ fn 签到与博雅读组凭据不进入旁车或主会话() {
     let path = root("excluded");
     let store = FileSessionStore::new(&path).unwrap();
     let mut main = ClientRuntime::new(ConnectionMode::Direct, NoRequests, store.clone()).unwrap();
+    main.refresh_authentication(&mut || {}).unwrap();
+    let saved_session = std::fs::read(store.path()).unwrap();
     main.remember_account_name(Some(ACCOUNT));
     main.business_sessions = Some(Arc::new(BusinessSessionCache::new(&store)));
     let mut worker = main.fork_parallel_readonly();
@@ -309,7 +315,7 @@ fn 签到与博雅读组凭据不进入旁车或主会话() {
     ] {
         assert!(!content.contains(excluded));
     }
-    assert!(!store.path().exists());
+    assert_eq!(std::fs::read(store.path()).unwrap(), saved_session);
     std::fs::remove_dir_all(path).unwrap();
 }
 
@@ -336,9 +342,11 @@ fn 修复_f2_跨实例清理阻止旧材料回填() {
         wait_for_file_job(&wait);
         let second = cache(&path);
         if operation == "login" {
-            second.invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct));
+            second
+                .invalidate(Invalidation::SameAccountLogin(ConnectionMode::Direct))
+                .unwrap();
         } else {
-            second.invalidate(Invalidation::RevokeAll);
+            second.invalidate(Invalidation::RevokeAll).unwrap();
         }
         drop(resume);
         drop(first);
@@ -416,6 +424,7 @@ mod queued {
             coordinator.route_store(ConnectionMode::Direct),
         )
         .unwrap();
+        parent.refresh_authentication(&mut || {}).unwrap();
         parent.remember_account_name(Some(ACCOUNT));
         let cache = Arc::new(BusinessSessionCache::new(&store));
         parent.business_sessions = Some(Arc::clone(&cache));
@@ -464,7 +473,7 @@ mod queued {
         parent.clear_memory();
         let revisions = coordinator.clear_both().unwrap();
         drop(held);
-        cache.invalidate(Invalidation::RevokeAll);
+        cache.invalidate(Invalidation::RevokeAll).unwrap();
         parent.set_session_revision(revisions.direct);
         assert!(!coordinator.is_conflicted());
         parent.refresh_authentication(&mut || {}).unwrap();

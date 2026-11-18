@@ -498,7 +498,13 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_all_memory(&mut self) {
-        self.business_sessions.invalidate(Invalidation::RevokeAll);
+        if self
+            .business_sessions
+            .invalidate(Invalidation::RevokeAll)
+            .is_err()
+        {
+            tracing::warn!("全量撤销业务会话缓存失败");
+        }
         self.clear_runtime_memory();
     }
 

@@ -111,6 +111,16 @@ impl RouteClient {
         })
     }
 
+    #[cfg(all(test, feature = "test-contract"))]
+    pub(crate) fn with_coordinated_transport_for_test(
+        mode: ConnectionMode,
+        transport: impl HttpTransport + 'static,
+        store: FileSessionStore,
+    ) -> Result<Self> {
+        let sessions = DualSessionCoordinator::new(store)?;
+        Self::build(mode, transport, sessions.route_store(mode), Some(sessions))
+    }
+
     fn build<T, S>(
         mode: ConnectionMode,
         transport: T,
@@ -121,8 +131,13 @@ impl RouteClient {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
+        let mut runtime = ClientRuntime::new(mode, transport, store)?;
+        runtime.business_session_store = sessions
+            .as_ref()
+            .map(DualSessionCoordinator::file_store)
+            .transpose()?;
         Ok(Self {
-            runtime: ClientRuntime::new(mode, transport, store)?,
+            runtime,
             auth: AuthWorkflow::default(),
             sessions,
         })
@@ -188,6 +203,15 @@ impl RouteClient {
     /// 返回持久化或修订版本错误；远程注销失败会被有意忽略。
     pub async fn logout(&mut self) -> Result<()> {
         self.guard_latest_session_ownership()?;
+        if let Some(sessions) = &self.sessions
+            && sessions
+                .revoke_business_for_logout(
+                    crate::session::business_cache::Invalidation::RevokeRoute(self.mode()),
+                )?
+                .is_err()
+        {
+            tracing::warn!("固定路线注销前撤销业务会话缓存失败");
+        }
         let result = self.auth.logout(&mut self.runtime).await;
         self.finish_session_operation(result)
     }

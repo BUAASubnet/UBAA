@@ -170,8 +170,15 @@ impl UbaaClient {
                 .as_ref()
                 .map(super::SharedAccountGuard::acquire)
                 .transpose()?;
-            self.sessions.revoke_business_for_logout()?;
-            self.business_sessions.discard_seeds();
+            if self
+                .sessions
+                .revoke_business_for_logout(
+                    crate::session::business_cache::Invalidation::RevokeAll,
+                )?
+                .is_err()
+            {
+                tracing::warn!("注销前撤销业务会话缓存失败");
+            }
         }
         self.cloud_print = None;
         self.clear_interactive_context();

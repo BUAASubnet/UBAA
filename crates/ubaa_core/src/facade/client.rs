@@ -39,6 +39,13 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    #[cfg(all(test, feature = "test-contract"))]
+    pub(crate) fn business_cache_for_test(
+        &self,
+    ) -> Arc<crate::session::business_cache::BusinessSessionCache> {
+        Arc::clone(&self.business_sessions)
+    }
+
     /// 返回仅供用户主动导出的原始响应缓冲。
     #[must_use]
     pub fn raw_diagnostics(&self) -> super::RawDiagnostics {
@@ -93,6 +100,9 @@ impl UbaaClient {
             )
         })?;
         let mut reopened = Self::open_with_diagnostics(directory, self.raw_diagnostics.clone())?;
+        reopened
+            .business_sessions
+            .inherit_revocation_failure(&self.business_sessions);
         reopened.probe = self.probe.clone();
         reopened.network = self.network.clone();
         reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
@@ -358,8 +368,13 @@ impl UbaaClient {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.config = replacement;
-        if policy_changed {
-            self.business_sessions.invalidate(Invalidation::RevokeAll);
+        if policy_changed
+            && self
+                .business_sessions
+                .invalidate(Invalidation::RevokeAll)
+                .is_err()
+        {
+            tracing::warn!("全量撤销业务会话缓存失败");
         }
         self.clear_interactive_context();
         Ok(())

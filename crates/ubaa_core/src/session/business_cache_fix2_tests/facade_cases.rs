@@ -21,7 +21,7 @@ async fn 修复二_交互准备后取消时两条路线已清空() {
     let path = root("interactive-cancel");
     let store = signed_in(&path);
     let observer = cache(&path);
-    observer.invalidate(Invalidation::RevokeAll);
+    observer.invalidate(Invalidation::RevokeAll).unwrap();
     for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
         write_route(&observer, route);
     }
@@ -60,7 +60,7 @@ async fn 修复三_发现冲突和冲突终态不修改旁车() {
     let path = root("conflict-once");
     let store = signed_in(&path);
     let b = cache(&path);
-    b.invalidate(Invalidation::RevokeAll);
+    b.invalidate(Invalidation::RevokeAll).unwrap();
     write_route(&b, ConnectionMode::Direct);
     let mut a = client(&store, transport(ACCOUNT));
     a.auth_status().await.unwrap();
@@ -89,7 +89,7 @@ async fn 修复三_注销发出后才产生的双槽冲突不再次清理旁车(
     let path = root("logout-cas-conflict");
     let store = signed_in(&path);
     let b = cache(&path);
-    b.invalidate(Invalidation::RevokeAll);
+    b.invalidate(Invalidation::RevokeAll).unwrap();
     write_route(&b, ConnectionMode::Direct);
     write_route(&b, ConnectionMode::WebVpn);
     let before = document(&path);
@@ -170,3 +170,6 @@ async fn 修复三_首个远端注销请求处取消时墓碑已生效() {
     }
     std::fs::remove_dir_all(path).unwrap();
 }
+
+#[path = "facade_cases/fix4.rs"]
+mod fix4;

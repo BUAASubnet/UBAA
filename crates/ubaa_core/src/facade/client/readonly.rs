@@ -61,8 +61,13 @@ impl UbaaClient {
 
     /// 清除主客户端共享的两条路线业务会话缓存。
     pub fn clear_business_session_cache(&self) {
-        if self.direct_runtime.ensure_primary_client().is_ok() {
-            self.business_sessions.invalidate(Invalidation::RevokeAll);
+        if self.direct_runtime.ensure_primary_client().is_ok()
+            && self
+                .business_sessions
+                .invalidate(Invalidation::RevokeAll)
+                .is_err()
+        {
+            tracing::warn!("全量撤销业务会话缓存失败");
         }
     }
 }

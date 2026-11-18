@@ -8,7 +8,6 @@ use crate::domain::{ConnectionMode, LoginInput, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
-use crate::session::business_cache::Invalidation;
 use crate::upstream::{
     SSO_LOGIN_URL, SSO_LOGOUT_URL, UC_ACTIVATE_URL, build_login_form, encode_form,
     extract_execution, find_login_error, has_unsupported_login_step, is_password_risk_page,
@@ -28,7 +27,7 @@ pub(crate) mod sso_identity;
 pub(crate) struct LoginState {
     page: Option<String>,
     execution: Option<String>,
-    authenticated_profile: Option<(UserProfile, Option<String>)>,
+    authenticated_profile: Option<UserProfile>,
 }
 
 impl std::fmt::Debug for LoginState {
@@ -52,9 +51,9 @@ impl LoginState {
         self.authenticated_profile = None;
     }
 
-    fn remember_authenticated(&mut self, profile: UserProfile, previous_account: Option<String>) {
+    fn remember_authenticated(&mut self, profile: UserProfile) {
         self.clear();
-        self.authenticated_profile = Some((profile, previous_account));
+        self.authenticated_profile = Some(profile);
     }
 
     pub(crate) fn page(&self) -> Option<&str> {
@@ -94,9 +93,8 @@ impl AuthWorkflow {
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
             .await?;
         if is_redirect(response.status) {
-            let previous_account = runtime.account_name().map(str::to_owned);
             let profile = self.validate_status(runtime).await?;
-            self.state.remember_authenticated(profile, previous_account);
+            self.state.remember_authenticated(profile);
             return Ok(());
         }
         if response.status != 200 {
@@ -157,15 +155,15 @@ impl AuthWorkflow {
                 "用户名和密码不能为空",
             ));
         }
-        if let Some((profile, previous)) = self.state.authenticated_profile.take() {
-            return Ok(self.finish_successful_login(runtime, profile, previous.as_deref()));
+        if let Some(profile) = self.state.authenticated_profile.take() {
+            return Ok(self.finish_successful_login(runtime, profile));
         }
         if self.state.page().is_none() {
             self.prepare_login(runtime)
                 .await
                 .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage))?;
-            if let Some((profile, previous)) = self.state.authenticated_profile.take() {
-                return Ok(self.finish_successful_login(runtime, profile, previous.as_deref()));
+            if let Some(profile) = self.state.authenticated_profile.take() {
+                return Ok(self.finish_successful_login(runtime, profile));
             }
         }
         let page = self
@@ -189,30 +187,19 @@ impl AuthWorkflow {
             .with_header("Content-Type", "application/x-www-form-urlencoded");
         let response = runtime.request(request).await?;
         follow_login_response(runtime, response).await?;
-        let previous = runtime.account_name().map(str::to_owned);
         let profile = self.validate_status(runtime).await?;
-        Ok(self.finish_successful_login(runtime, profile, previous.as_deref()))
+        Ok(self.finish_successful_login(runtime, profile))
     }
 
     fn finish_successful_login(
         &mut self,
         runtime: &mut ClientRuntime,
         profile: UserProfile,
-        previous_account: Option<&str>,
     ) -> UserProfile {
         self.manual_captcha = None;
         runtime.renew_authentication_generation();
         runtime.clear_feature_state();
         runtime.remember_account_name(profile.school_id.as_deref().or(profile.username.as_deref()));
-        if let Some(cache) = &runtime.business_sessions {
-            let event = if previous_account.is_some() && previous_account == runtime.account_name()
-            {
-                Invalidation::SameAccountLogin(runtime.mode())
-            } else {
-                Invalidation::AccountChanged
-            };
-            cache.invalidate(event);
-        }
         self.state.clear();
         profile
     }
@@ -243,7 +230,7 @@ impl AuthWorkflow {
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Redirect))?;
         let mut clear_workflow = || self.state.clear();
-        let status = sso_identity::validate_status(runtime, &mut clear_workflow)
+        let status = sso_identity::validate_login(runtime, &mut clear_workflow)
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::IdentityValidation))?;
         runtime.clear_feature_state();

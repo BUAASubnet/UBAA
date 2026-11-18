@@ -6,7 +6,7 @@ use super::super::file_safety::{
 };
 use super::super::file_store::{try_file_lock, wait_for_lock};
 use super::super::storage::TemporaryFile;
-use super::{BusinessMaterial, BusinessScope, ClearNonce};
+use super::{BusinessMaterial, BusinessScope, ClearNonce, ContentVersion};
 use crate::domain::ConnectionMode;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,8 @@ pub(super) struct Document {
     routes: Routes,
     #[serde(default, skip_serializing_if = "ClearNonces::is_empty")]
     clear_nonces: ClearNonces,
+    #[serde(default)]
+    content_versions: ContentVersions,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -57,6 +59,23 @@ impl ClearNonces {
 }
 
 #[derive(Deserialize, Serialize)]
+struct ContentVersions {
+    #[serde(default = "rand::random")]
+    direct: ContentVersion,
+    #[serde(default = "rand::random")]
+    webvpn: ContentVersion,
+}
+
+impl Default for ContentVersions {
+    fn default() -> Self {
+        Self {
+            direct: rand::random(),
+            webvpn: rand::random(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 pub(super) struct Entry {
     pub(super) saved_at: i64,
     pub(super) material: BusinessMaterial,
@@ -69,6 +88,7 @@ impl Default for Document {
             account: None,
             routes: Routes::default(),
             clear_nonces: ClearNonces::default(),
+            content_versions: ContentVersions::default(),
         }
     }
 }
@@ -81,17 +101,27 @@ impl Document {
         }
     }
 
-    fn advance_nonce(&mut self, route: ConnectionMode) -> ClearNonce {
-        let nonce = rand::random();
-        self.set_nonce(route, nonce);
-        nonce
+    fn advance_nonce(&mut self, route: ConnectionMode) {
+        let slot = match route {
+            ConnectionMode::Direct => &mut self.clear_nonces.direct,
+            ConnectionMode::WebVpn => &mut self.clear_nonces.webvpn,
+        };
+        *slot = Some(rand::random());
     }
 
-    fn set_nonce(&mut self, route: ConnectionMode, nonce: ClearNonce) {
+    pub(super) fn content_version(&self, route: ConnectionMode) -> ContentVersion {
         match route {
-            ConnectionMode::Direct => self.clear_nonces.direct = Some(nonce),
-            ConnectionMode::WebVpn => self.clear_nonces.webvpn = Some(nonce),
+            ConnectionMode::Direct => self.content_versions.direct,
+            ConnectionMode::WebVpn => self.content_versions.webvpn,
         }
+    }
+
+    fn advance_content_version(&mut self, route: ConnectionMode) {
+        let slot = match route {
+            ConnectionMode::Direct => &mut self.content_versions.direct,
+            ConnectionMode::WebVpn => &mut self.content_versions.webvpn,
+        };
+        *slot = rand::random();
     }
 
     fn clear_route(&mut self, route: ConnectionMode) {
@@ -100,6 +130,7 @@ impl Document {
             self.account = None;
         }
         self.advance_nonce(route);
+        self.advance_content_version(route);
     }
 
     pub(super) fn route(&mut self, route: ConnectionMode) -> &mut BTreeMap<BusinessScope, Entry> {
@@ -160,13 +191,17 @@ impl BusinessSessionFile {
         }
         if document.account.as_deref() != Some(account) {
             document.routes = Routes::default();
+            document.content_versions = ContentVersions::default();
             document.account = Some(account.to_owned());
         }
         let now = chrono::Utc::now().timestamp();
         for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
-            document
-                .route(mode)
-                .retain(|_, entry| entry.saved_at <= now);
+            let entries = document.route(mode);
+            let before = entries.len();
+            entries.retain(|_, entry| entry.saved_at <= now);
+            if entries.len() != before {
+                document.advance_content_version(mode);
+            }
         }
         let entries = document.route(route);
         for (scope, material) in changes {
@@ -182,6 +217,7 @@ impl BusinessSessionFile {
                 entries.remove(scope);
             }
         }
+        document.advance_content_version(route);
         self.replace(&document, current)
     }
 
@@ -190,13 +226,13 @@ impl BusinessSessionFile {
         account: &str,
         route: ConnectionMode,
         nonce: Option<ClearNonce>,
-        replacement_nonce: ClearNonce,
-        (scope, rejected): (BusinessScope, &BusinessMaterial),
+        scope: BusinessScope,
+        rejected: &BusinessMaterial,
         current: impl Fn() -> bool,
-    ) -> Result<bool> {
+    ) -> Result<()> {
         let _lock = self.lock()?;
         if !current() {
-            return Ok(false);
+            return Ok(());
         }
         if let Some(mut document) = self.read()?.filter(|document| {
             document.account.as_deref() == Some(account) && document.nonce(route) == nonce
@@ -210,12 +246,11 @@ impl BusinessSessionFile {
                 if document.routes.is_empty() {
                     document.account = None;
                 }
-                document.set_nonce(route, replacement_nonce);
+                document.advance_content_version(route);
                 self.replace(&document, current)?;
-                return Ok(true);
             }
         }
-        Ok(false)
+        Ok(())
     }
 
     pub(super) fn clear_route(&self, route: ConnectionMode) -> Result<()> {

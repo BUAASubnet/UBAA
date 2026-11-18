@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use crate::domain::ConnectionMode;
 use crate::error::Result;
 
+use super::business_cache::{BusinessSessionCache, Invalidation, revoke_disk};
 use super::file_safety::{
     create_temporary_file, open_existing_session_file, prevent_symlink_following,
     restrict_directory, restrict_file_creation, restrict_open_file, session_error, sync_directory,
@@ -151,14 +152,20 @@ impl FileSessionStore {
         expected_revision: u64,
         replacement: Option<&DualSessionSnapshot>,
     ) -> Result<DualSessionMutation> {
-        self.compare_exchange_dual_with_revocation(expected_revision, replacement, None)
+        self.compare_exchange_dual_with_revocation(
+            expected_revision,
+            replacement,
+            replacement
+                .is_none()
+                .then_some((Invalidation::RevokeAll, None)),
+        )
     }
 
     pub(super) fn compare_exchange_dual_with_revocation(
         &self,
         expected_revision: u64,
         replacement: Option<&DualSessionSnapshot>,
-        revoked_route: Option<ConnectionMode>,
+        revocation: Option<(Invalidation, Option<&BusinessSessionCache>)>,
     ) -> Result<DualSessionMutation> {
         if replacement.is_some_and(|snapshot| snapshot.schema_version != 2) {
             return Err(session_error("session format is invalid"));
@@ -172,25 +179,42 @@ impl FileSessionStore {
         let revision = current_revision
             .checked_add(1)
             .ok_or_else(|| session_error("session revision is exhausted"))?;
+        // 权属匹配后先撤销旁车，再发布主会话变更。后台任务不在旁车锁内读取主会话。
+        if let Some((event, cache)) = revocation
+            && self.revoke_business(event, cache).is_err()
+        {
+            tracing::warn!("主会话清除前撤销业务会话缓存失败");
+        }
         write_revision(&mut lock.file, revision)?;
         match body {
             Some(body) => self.save_unlocked(&body)?,
             None => self.clear_unlocked()?,
         }
-        // 先锁主会话再锁旁车，确保轮换仍属于本次成功的 CAS；不等待后台队列。
-        if revoked_route.is_some() || replacement.is_none() {
-            super::business_cache::revoke_disk(self, revoked_route);
-        }
         Ok(DualSessionMutation::Applied { revision })
     }
 
-    pub(super) fn revoke_business_if_current(&self, expected_revision: u64) -> Result<bool> {
+    pub(super) fn revoke_business_if_current(
+        &self,
+        expected_revision: u64,
+        event: Invalidation,
+        cache: Option<&BusinessSessionCache>,
+    ) -> Result<Option<Result<()>>> {
         let mut lock = self.acquire_lock()?;
         if read_revision(&mut lock.file)? != expected_revision {
-            return Ok(false);
+            return Ok(None);
         }
-        super::business_cache::revoke_disk(self, None);
-        Ok(true)
+        Ok(Some(self.revoke_business(event, cache)))
+    }
+
+    fn revoke_business(
+        &self,
+        event: Invalidation,
+        cache: Option<&BusinessSessionCache>,
+    ) -> Result<()> {
+        match cache {
+            Some(cache) => cache.invalidate(event),
+            None => revoke_disk(self, event),
+        }
     }
 }
 

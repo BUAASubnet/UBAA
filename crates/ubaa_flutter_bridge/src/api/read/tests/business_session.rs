@@ -302,12 +302,14 @@ impl Fixture {
     fn assert_tombstone(&self) {
         let document: serde_json::Value = serde_json::from_str(&self.contents()).unwrap();
         let fields = document.as_object().unwrap();
-        assert_eq!(fields.len(), 2);
+        assert_eq!(fields.len(), 3);
         assert_eq!(document["schema"], 2);
-        let clear_nonces = document["clear_nonces"].as_object().unwrap();
-        assert_eq!(clear_nonces.len(), 2);
-        for route in ["direct", "webvpn"] {
-            assert_eq!(clear_nonces[route].as_array().unwrap().len(), 16);
+        for key in ["clear_nonces", "content_versions"] {
+            let routes = document[key].as_object().unwrap();
+            assert_eq!(routes.len(), 2);
+            for route in ["direct", "webvpn"] {
+                assert_eq!(routes[route].as_array().unwrap().len(), 16);
+            }
         }
         #[cfg(unix)]
         {

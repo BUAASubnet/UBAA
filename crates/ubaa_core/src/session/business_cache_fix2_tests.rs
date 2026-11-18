@@ -173,7 +173,7 @@ async fn after_precheck(event: Event, route: ConnectionMode, tombstone: bool, ac
     let a = cache(&path);
     let b = Arc::new(cache(&path));
     if tombstone {
-        b.invalidate(Invalidation::RevokeAll);
+        b.invalidate(Invalidation::RevokeAll).unwrap();
         assert!(document(&path)["account"].is_null());
     } else {
         assert!(!path.join("business_session.json").exists());
@@ -228,7 +228,7 @@ async fn after_precheck(event: Event, route: ConnectionMode, tombstone: bool, ac
                 Some(account)
             );
         }
-        Event::Revoke => b.invalidate(Invalidation::RevokeAll),
+        Event::Revoke => b.invalidate(Invalidation::RevokeAll).unwrap(),
         Event::SsoRevoked => revoke_via_sso(&store).await,
     }
     if !matches!(event, Event::Revoke) {
@@ -290,6 +290,9 @@ async fn 修复三_业务拒绝使另一实例重载且保留同路线其他范�
         .write(ACCOUNT, stamp, route, materials(), now, || true)
         .unwrap();
     persisted.lock().writer.drain();
+    main_runtime(&store, ACCOUNT)
+        .refresh_authentication(&mut || {})
+        .unwrap();
     let mut a = main_runtime(&store, ACCOUNT);
     let sessions = DualSessionCoordinator::new(store).unwrap();
     let mut b = ClientRuntime::new(
@@ -330,7 +333,7 @@ async fn 修复三_业务拒绝使另一实例重载且保留同路线其他范�
 }
 
 #[test]
-fn 修复三_同实例拒绝排队期间仍可用新清理令牌写回() {
+fn 修复四_同实例拒绝排队期间用原撤销令牌写回() {
     let path = root("reject-then-write");
     let route = ConnectionMode::Direct;
     let owner = cache(&path);
@@ -341,9 +344,7 @@ fn 修复三_同实例拒绝排队期间仍可用新清理令牌写回() {
         .clone()
         .unwrap();
     let (wait, resume) = pause_file_job(&owner);
-    let next = owner
-        .reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old)
-        .unwrap();
+    assert!(owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old));
     wait_for_file_job(&wait);
     assert!(
         owner.seeds(ACCOUNT, route, NOW).1[BusinessScope::Spoc as usize]
@@ -355,7 +356,7 @@ fn 修复三_同实例拒绝排队期间仍可用新清理令牌写回() {
     owner
         .write(
             ACCOUNT,
-            next,
+            stamp,
             route,
             vec![(BusinessScope::Spoc, Some(renewed.clone()))],
             NOW,
@@ -388,7 +389,7 @@ fn 修复二_f2_迟到拒绝不删除清理后写入的同值条目() {
         old.clone(),
     );
     wait_for_file_job(&wait);
-    b.invalidate(Invalidation::RevokeAll);
+    b.invalidate(Invalidation::RevokeAll).unwrap();
     write_route(&b, ConnectionMode::Direct);
     drop(resume);
     a.lock().writer.drain();
