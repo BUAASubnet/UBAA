@@ -11,11 +11,70 @@ import '../support/bridge/fixtures.dart'
         FixtureFakeCgyyDayClient,
         FixtureFakeClassroomClient,
         FixtureFakeComplexWriteClient,
-        FixtureFakeYgdkRecordsClient;
+        FixtureFakeYgdkRecordsClient,
+        fixtureWriteIntent;
+
+class _LibraryLoansClient implements BridgeClient {
+  BridgeLibraryLoanRenewRequest? prepared;
+
+  @override
+  int contractVersion() => 75;
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #currentLibraryLoans) {
+      return Future<BridgeLibraryLoansResult>.value(
+        const BridgeLibraryLoansResult(
+          data: BridgeLibraryLoans(
+            total: 1,
+            entries: <BridgeLibraryLoan>[
+              BridgeLibraryLoan(
+                id: 'loan-1',
+                title: '合成书目',
+                author: '合成作者',
+                loanDate: '2026-11-01',
+                dueDate: '2026-12-01',
+                renewTimes: 1,
+                canRenewTimes: 2,
+                status: BridgeLibraryLoanStatus.soon,
+                location: '合成馆藏地',
+              ),
+            ],
+          ),
+          route: BridgeRouteDecision(
+            policy: BridgeRoutePolicy.auto,
+            resolvedRoute: BridgeConnectionMode.direct,
+            network: BridgeNetworkState.unknown,
+            initialRoute: BridgeConnectionMode.direct,
+            usedFallback: false,
+          ),
+        ),
+      );
+    }
+    if (invocation.memberName == #prepareLibraryLoanRenew) {
+      prepared =
+          invocation.namedArguments[#request] as BridgeLibraryLoanRenewRequest;
+      return Future<BridgeWriteIntent>.value(
+        fixtureWriteIntent(
+          BridgeWriteOperation.libraryLoanRenew,
+          libraryLoanRenewTarget: const BridgeLibraryLoanRenewTarget(
+            loanId: 'loan-1',
+            dueDate: '2027-01-05',
+            renewTimes: 2,
+          ),
+        ),
+      );
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(74);
+    final client = FixtureContractVersionClient(75);
 
     final backend = BridgeBackend(client);
 
@@ -638,5 +697,29 @@ void main() {
       result.details.single.fields.any((field) => field.value.contains('http')),
       isFalse,
     );
+  });
+
+  test('BridgeBackend 投影当前借阅并准备单本续借', () async {
+    final client = _LibraryLoansClient();
+    final backend = BridgeBackend(client);
+
+    final loans = await backend.readLibraryLoans();
+    expect(loans.single.id, 'loan-1');
+    expect(loans.single.title, '合成书目');
+    expect(loans.single.author, '合成作者');
+    expect(loans.single.dueDate, '2026-12-01');
+    expect(loans.single.renewTimes, 1);
+    expect(loans.single.canRenewTimes, 2);
+    expect(loans.single.status, LibraryLoanStatus.soon);
+    expect(loans.single.location, '合成馆藏地');
+
+    final intent = await backend.prepareLibraryLoanRenew(
+      loanId: loans.single.id,
+    );
+    expect(intent.operation, WriteOperation.libraryLoanRenew);
+    expect(client.prepared?.loanId, 'loan-1');
+    expect(intent.libraryLoanRenewTarget?.loanId, 'loan-1');
+    expect(intent.libraryLoanRenewTarget?.dueDate, '2027-01-05');
+    expect(intent.libraryLoanRenewTarget?.renewTimes, 2);
   });
 }

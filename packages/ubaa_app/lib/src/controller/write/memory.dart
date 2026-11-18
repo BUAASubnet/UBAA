@@ -89,6 +89,7 @@ mixin ControllerWriteCache on ControllerState {
       WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
       WriteOperation.ygdkSubmit => FeatureId.ygdk,
       WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+      WriteOperation.libraryLoanRenew => null,
       WriteOperation.bhpan => null,
     };
     if (feature == null) return;

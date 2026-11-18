@@ -8,6 +8,71 @@
 
 身份、学院、五项账户指标和三项流量的接入方案、双来源适用性及逐操作协议见[校园账户查询](#门户资料账户指标与网费流量接入)。云盘指标按用户确认表示剩余空间。
 
+### 当前借阅与续借
+
+旧版冻结参考的 `LocalLibBookApi.kt`、`LibBook.kt` 和 `LocalLibBookApiBackendTest.kt` 对应座位预约，固定 buaa-api 只提供通用 SSO，两者对借阅明细和续借的业务协议均不适用。门户的 `book.bookNum` 继续只作为数量指标。借阅明细沿用门户和财务功能的分层，由 Core 复用当前路线的 SSO 会话并建立图书馆业务会话，通过 facade 和 Bridge 交给 UBAA 的 Flutter 页面。图书馆使用独立的 `library` 路线键，默认沿用全局策略并登记 `space.lib.buaa.edu.cn`。
+
+公开移动端脚本和 Direct 只读观察共同确定以下证据；原始材料和公开脚本副本只保存在忽略目录 `.ubaa_local/library_loans/`：
+
+- 公开配置 `GET /meta-local/opac/search/search_confs/m` 和同一前端资源的移动端入口 `https://space.lib.buaa.edu.cn:443/meta-local/opac/cas/rosetta`。未认证时入口 302 到学校 SSO，`service` 为该入口且显式包含 `:443`；认证后 SSO 302 回到入口，图书馆再 302，最终在入口路径返回 200。
+- Direct 先完成学校 SSO 登录，再用同一 Cookie 容器访问入口；入口、SSO 回调和图书馆落地依次 302，最终 200。业务域观察到 `meta-opac.session` 和 `_zte_sid_`，未记录 Cookie 值。无业务会话时借阅列表返回 HTTP 401。
+- 当前借阅页面从第 1 页开始，以 `page` 和 `pageSize=20` 请求 `GET /meta-local/opac/users/loans`，无请求正文。请求拦截器设置 `X-Hw-Lang`（本次取 `chi`）、`X-Hw-explorer: m` 和 `X-CSRF-TOKEN`；该值来自前端本地存储，缺失时为空。Direct 以空值请求列表得到 HTTP 200。
+- 列表响应外层为 `code`（整数，成功 0）、`msg` 和 `data`；`data` 含 `currentPage`、`pageSize`、`total`、`totalPage`、`items`。条目观察到的字段包括 `title`、`author`、`bibAttrs`、`loanDate`、`dueDate`、`renewTimes`、`loanId`、`item.barCode`、`location`、`loanStatus`、`loanType`；条码位于嵌套 `item.barCode`，不使用顶层同名字段。字段类型、可空性和 `loanId` 的编码没有跨会话样本，Core 只接受字符串或非负整数标识，缺失视为协议异常。
+- 公开脚本 `ReaderLendList` 还请求 `GET /meta-local/opac/users/loan_max_renew_times`，使用与列表相同的 `page/pageSize`，按列表的 `item.barCode` 匹配上限条目的顶层 `barCode`，并以 `maxRenewTimes - renewTimes` 展示可续借次数。该请求没有 Direct 会话样本，属于未真实验证的公开代码证据。
+- 公开脚本的续借按钮收集选中记录的 `loanId`，构造 `{loanIds: [...], source: 1}` 并调用 `POST /meta-local/opac/users/batch_renew`；`source=2` 只用于前端检测到第三方 `openId` 的登录方式。页面随后重新读取列表。成功响应的 `data` 为空；拒绝映射以 `loanId` 为键携带失败原因。公开脚本与用户提供的脱敏页面反馈支持下述原因投影。
+
+| 操作 | 引导与 service | 重定向及最终 URL | Cookie/Session 作用域 | 方法、精确参数 | 头与编码 | 加密/签名 | DTO/解析 | 缓存、并发、重试 | 错误与产品含义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 借阅认证 | 入口为 `/meta-local/opac/cas/rosetta`；SSO 登录页的 `service` 必须恰好解码为该入口 | 入口 302 → SSO → 入口 `?ticket` → 入口 302 → 入口 200；只接受这四类落点 | 复用当前路线 SSO Cookie；图书馆 Cookie 只留在业务域 | 全部 GET，无正文 | 浏览器 HTML 导航；`Accept: text/html,*/*` | 无新增 | 入口路径 200 表示业务会话就绪；SSO 登录页 200 表示需要恢复 | 列表 401 时才引导一次；不跟随未知跳转；串行 | 认证缺失返回 `authentication_required`；其他落点为协议错误 |
+| 借阅列表 | 借阅认证 | 精确 `GET /meta-local/opac/users/loans?page=N&pageSize=20` | 图书馆业务 Cookie（`meta-opac.session` 等） | 从 1 开始，每页 20；无正文 | `X-Hw-Lang: chi`、`X-Hw-explorer: m`、空 `X-CSRF-TOKEN`，JSON Accept | 无 | `code=0`；分页 `currentPage/pageSize/total/totalPage/items`；条目读取 `loanId/title/author/loanDate/dueDate/renewTimes/item.barCode/location/loanStatus`；条码缺失时只保留可续借次数未知 | 完整分页成功才返回；`total` 最多 10000；重复标识、页大小或总数矛盾报错；无离线缓存 | 401/403 触发一次认证；5xx 为上游不可用；结构异常为 `upstream_changed` |
+| 续借条件 | 借阅认证 | 精确 `GET /meta-local/opac/users/loan_max_renew_times?page=N&pageSize=20` | 同列表 | 每页一次，无正文 | 同列表 | 无 | `code=0`、`data.items[]` 的 `barCode` 和非负整数 `maxRenewTimes`；可续借次数为 `maxRenewTimes - renewTimes`，负值按零 | 只在列表页有记录时读取；响应无有效条件数据或请求可重试超时时，在会话仍有效的情况下保留已读列表，可续借次数为未知 | 401/403 按认证失败；会话、取消、请求安全及来源校验错误终止读取；未知资格仍可由用户发起续借 |
+| 续借提交 | 借阅认证 | 精确 `POST /meta-local/opac/users/batch_renew` | 同列表；提交前 Core 复核会话所有权和原路线 | JSON `{loanIds:[loanId],source:1}`，只提交当前借阅记录中的一个标识 | `Content-Type: application/json`，其余头同列表 | 无 | `code=0` 且 `data=null` 或空对象为成功；`code=0` 且失败映射包含目标 `loanId`，或 `code` 为非零整数时业务拒绝；非 200、正文不可解析、`code` 缺失或类型异常、失败映射没有当前目标均为结果未知 | 单次发送，不自动重试；同记录未确认意图冲突；账号或路线变化在发送前拒绝 | 成功、确定拒绝、结果未知分别返回；确定拒绝只将筛选后的业务说明交给当前续借反馈 |
+| 续借核对 | 借阅认证 | 重新 `GET /meta-local/opac/users/loans?page=1&pageSize=20`，固定 intent 的 `resolvedRoute` | 同列表；不按当前 Auto 重新选路 | 同借阅列表 | 同列表 | 无 | 按同一 `loanId` 匹配，与 prepare 读到的记录比较；两次均已知的应还日期不同或 `renewTimes` 增加表示已生效 | 成功和未知结果后最多重读一次列表；读取失败、路线不一致或记录不唯一不升级未知结果 | 变化提示已核对成功；未变化保留“结果未确认，勿重复提交” |
+
+Core 以 `current_library_loans()` 返回完整范围，以 `library_loans_on_route()` 在 intent 原路线执行写后核对，以 `preflight_library_loan_renew()` 只读复核目标，以 `library_loan_renew_if_route_matches()` 提交单本续借。Bridge 只投影公开记录标识、书名、作者、借还日期、续借次数、可续借次数、状态和馆藏地；续借写意图统一经过 prepare/commit、`outcome_unknown` 和原路线核对。Flutter 页面从「我的 → 待还图书」进入，复用 `library` 恢复目标，账号或路线变化后丢弃旧读取。图书馆明细不写本机业务缓存。
+
+本次确定性验证覆盖：已有 SSO 会话建立业务会话、列表分页/空列表/异常/重复标识、`item.barCode` 关联续借上限、顶层同名字段不构成资格、续借上限失败保留未知、续借目标已用尽或消失、提交正文与请求头、确定业务拒绝、非 200 与不可解析正文的结果未知、意图原路线核对（含 WebVPN 固定路线与 Auto 不重选）、确认弹窗期间切换路线使旧操作失效、页面空/错误/重试、续借后应还日期和次数更新、未知结果只读核对。真实 Direct/WebVPN 续借提交未执行，需要具体图书、路线和执行时间的授权；真实续借前不得把公开脚本证据当作线上通过。
+
+真实只读验收待补。历史 Direct HTTP 样本只覆盖入口会话和借阅列表，WebVPN 借阅读取和最终候选的生产 Core 双路线仍待验证。
+取得当前会话对借阅和对应路线的授权并具备网络条件后，分别运行 `just verify-live feature=library_loans route=direct` 和
+`just verify-live feature=library_loans route=webvpn`，记录各自的安全摘要。两条命令均只读。
+
+#### 本次续借结果提示（2026-11-18）
+
+学校公开脚本 `lend-e7733bf7.js` 的 `ReaderLendList.relendClick` 按当前选中记录的 `loanId` 匹配
+`data` 中的键，将对应值作为该记录的失败原因。`mspace.js` 的 `$analyzeResponse` 在业务失败时以外层
+`msg` 拒绝请求，在成功时只交付 `data`。续借调用未配置成功提示键，学校页面自行显示成功状态。
+用户提供的学校页面反馈确认了未到续借窗口的真实业务提示，未提供原始响应、路线或通过文案。
+两份冻结来源对该操作各协议列均不适用，原因投影未变更认证、请求、会话或重试行为。
+
+先在 Bridge 合成提交与 Dart 确认流程中复现通用提示覆盖目标拒绝原因。Core 对 `code=0` 的响应只读取目标
+`data[loanId]`，对非零整数码读取 `msg`。单本提交收到只有其他记录的失败映射时保留结果未知，按原路线只读核对。
+成功显示续借状态和已核对的应还日期。确定拒绝时，当前页面展示通过长度、单行、标记与敏感标识检查的说明；
+缺少可展示说明时使用通用拒绝提示。说明不进入 Core 序列化、诊断、遥测、本地缓存或通用错误导出。
+
+#### 条码字段形状与固定路线核对（2026-11-18）
+
+复核公开脚本 `ReaderLendList` 和 Direct 列表样本：列表条码只出现在 `item.barCode`，`getMaxLoanTimes` 也用
+`e.item.barCode === t.barCode` 关联续借上限；续借上限响应条目则使用顶层 `barCode`。此前 Core 合成样本和
+解析器把列表条码当成顶层 `barCode`，嵌套形状只能得到空的条码关联，无法计算可续借次数，已用尽的目标也可能
+被当成“未知”而进入预检。
+
+先增加的失败回归使用真实嵌套形状，预期 `canRenewTimes` 为可续借次数，实际得到 `None`；修复后只读取
+`item.barCode`，顶层同名字段不构成资格证据，缺失时保持“次数未知”而不是 0。另一个回归用同一形状把
+`maxRenewTimes` 设为已续借次数，要求预检返回输入错误且不发送 `batch_renew`。
+
+同期将续借写后核对接回统一写入生命周期：Core 新增 `library_loans_on_route()`，Bridge 新增
+`current_library_loans_on_route`；App 在校验原账号、原会话作用域和原记录标识后，只按
+`WriteIntent.resolvedRoute` 读取并判断应还日期或续借次数变化。普通浏览和手动刷新仍走 `current_library_loans()`
+的 Auto 策略；核对失败、路线不一致或记录不唯一保留未知，不重发写请求。合成测试固定 WebVPN 读取并断言
+普通读取次数为零，确认弹窗等待期间切换路线时旧意图不会继续准备或提交。
+
+续借预检和写后核对均使用同一借阅列表记录的 `dueDate` 和 `renewTimes`。旧版冻结参考的 `LibBookApi.kt`、`LibBook.kt`、
+`LocalLibBookApi.kt` 和 `LocalLibBookApiBackendTest.kt` 是座位预约协议。固定 buaa-api 的 `src/api/sso/auth.rs`、
+`src/request.rs`、`src/store/{cookies,cred}.rs` 仅覆盖通用 SSO 与请求存储。对预检、续借提交和写后核对，上表各列均无适用的冻结业务协议。
+本次以表中的 Direct 列表与公开脚本为依据。预检和核对均取得应还日期时才比较日期。
+缺失 `code` 或类型异常的续借响应无法确认写入结果，按既有未知结果流程在原路线只读核对。
+
 ### 门户资料、账户指标与网费流量接入
 
 本次提供 Core 与 CLI 在线只读查询。协议依据为用户提供的门户、网费 HAR 及本会话全新 Direct 会话验证。原始材料保留在私有本地目录，仓库只保存合成 Fixture 和脱敏说明。

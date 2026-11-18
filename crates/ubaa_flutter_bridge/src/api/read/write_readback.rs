@@ -1,8 +1,9 @@
 //! 提交后的 caller-pinned 读取，复用原 DTO 映射，不重新解析路线。
 use super::{
-    BridgePinnedBykcChosen, BridgePinnedLibbookBookings, BridgePinnedSigninClasses,
-    map_bykc_chosen_courses, map_libbook_bookings, map_signin_classes,
+    BridgePinnedBykcChosen, BridgePinnedLibbookBookings, BridgePinnedLibraryLoans,
+    BridgePinnedSigninClasses, map_bykc_chosen_courses, map_libbook_bookings, map_signin_classes,
 };
+use crate::api::campus::map_library_loans;
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeError};
 
 impl BridgeClient {
@@ -39,6 +40,20 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgePinnedLibbookBookings { data, pinned_route })
+    }
+    pub async fn current_library_loans_on_route(
+        &self,
+        route: BridgeConnectionMode,
+    ) -> Result<BridgePinnedLibraryLoans, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(async move { client.library_loans_on_route(route.into()).await })
+                },
+                map_library_loans,
+            )
+            .await?;
+        Ok(BridgePinnedLibraryLoans { data, pinned_route })
     }
     pub async fn signin_today_on_route(
         &self,

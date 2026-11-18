@@ -34,6 +34,7 @@ enum RecoveryTarget {
   judge,
   signin,
   libbook,
+  library,
   bykc,
   cgyy,
   ygdk,
@@ -50,6 +51,7 @@ enum RecoveryTarget {
     ihome ||
     healthCloud ||
     bhpan ||
+    library ||
     connection => null,
     _ => FeatureId.values.byName(name),
   };

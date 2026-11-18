@@ -561,6 +561,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeAgendaSyncScope scope,
   });
 
+  /// 在线读取当前账号、当前路线的完整当前借阅范围。
+  Future<BridgeLibraryLoansResult> currentLibraryLoans();
+
+  Future<BridgePinnedLibraryLoans> currentLibraryLoansOnRoute({
+    required BridgeConnectionMode route,
+  });
+
   /// 放弃一个尚未提交的写入意图。
   ///
   /// 已不存在的标识按幂等成功处理；已经进入 commit 的请求不会被异步中断。
@@ -996,6 +1003,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeWriteIntent> prepareLibbookReserve({
     required BridgeLibbookReserveRequest request,
+  });
+
+  Future<BridgeWriteIntent> prepareLibraryLoanRenew({
+    required BridgeLibraryLoanRenewRequest request,
   });
 
   /// 准备两条路线的登录页状态。

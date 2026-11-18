@@ -126,7 +126,9 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
     expect(
       intents.map((intent) => intent.operation).toList(growable: false),
       WriteOperation.values.where(
-        (operation) => operation != WriteOperation.bhpan,
+        (operation) =>
+            operation != WriteOperation.bhpan &&
+            operation != WriteOperation.libraryLoanRenew,
       ),
     );
     final course =

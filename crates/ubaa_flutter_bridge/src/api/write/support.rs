@@ -207,6 +207,19 @@ pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
 ) -> BridgeError {
+    if matches!(operation, BridgeWriteOperation::LibraryLoanRenew)
+        && error.error.code == domain::ErrorCode::BusinessRejected
+        && error.error.diagnostic().is_valid()
+        && let Some(message) = error.error.private_display_message()
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::BusinessRejected,
+            BridgeErrorKind::Upstream,
+            false,
+            message,
+        );
+    }
     if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
@@ -225,6 +238,7 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::LibbookCancelBooking => {
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
+            BridgeWriteOperation::LibraryLoanRenew => "续借资格已变化，请刷新借阅记录后重新准备",
             BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyySubmitReservation => "研讨室预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyyCancelOrder => "研讨室订单取消资格已变化，请刷新后重新准备",

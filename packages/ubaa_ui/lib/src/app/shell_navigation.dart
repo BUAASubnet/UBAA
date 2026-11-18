@@ -111,6 +111,16 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 connecting: widget.connecting,
                 service: widget.financeService,
               )
+            : _utilityPage == '当前借阅' && widget.readLibraryLoans != null
+            ? LibraryLoansView(
+                key: ValueKey(_pageContentScope),
+                read: widget.readLibraryLoans!,
+                renew:
+                    widget.onPrepareLibraryLoanRenewWrite == null ||
+                        !_hasWriteCommands
+                    ? null
+                    : _startLibraryLoanRenewWrite,
+              )
             : _utilityPage == '关于'
             ? AboutView(
                 loadVersion: widget.onLoadAppVersion,
@@ -261,6 +271,9 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           widget.writeState.intent == null,
       child: MeView(
         onOpenBhpan: () => _openUtility('北航云盘'),
+        onOpenLibraryLoans: widget.readLibraryLoans == null
+            ? null
+            : () => _openUtility('当前借阅'),
         user: widget.user,
         overview: _campusOverview,
         showShortcuts: MediaQuery.sizeOf(context).width < 600,

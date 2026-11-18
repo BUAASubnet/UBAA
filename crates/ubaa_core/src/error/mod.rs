@@ -83,6 +83,8 @@ pub struct UbaaError {
     diagnostic: Box<ErrorDiagnostic>,
     #[serde(skip)]
     auth_diagnostic: Option<AuthDiagnostic>,
+    #[serde(skip)]
+    private_display_message: Option<String>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -139,6 +141,17 @@ impl UbaaError {
     #[must_use]
     pub fn diagnostic(&self) -> &ErrorDiagnostic {
         &self.diagnostic
+    }
+
+    /// 仅提供给当前操作页面；不得放入通用错误、诊断或导出。
+    #[must_use]
+    pub fn private_display_message(&self) -> Option<&str> {
+        self.private_display_message.as_deref()
+    }
+
+    pub(crate) fn with_private_display_message(mut self, message: String) -> Self {
+        self.private_display_message = Some(message);
+        self
     }
 
     pub(crate) fn with_diagnostic(mut self, stage: &'static str, reason: &'static str) -> Self {
@@ -451,6 +464,7 @@ impl UbaaError {
             diagnostic: Box::new(ErrorDiagnostic::at(std::panic::Location::caller())),
             cause: None,
             auth_diagnostic: None,
+            private_display_message: None,
         }
     }
 

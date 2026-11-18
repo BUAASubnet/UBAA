@@ -1,5 +1,7 @@
 //! 用户提供的 HAR 所证明的门户与网费只读协议。
 
+mod library_loans;
+pub(crate) use library_loans::{current_loans, renew, renew_preflight};
 mod network;
 mod packages;
 mod parser;

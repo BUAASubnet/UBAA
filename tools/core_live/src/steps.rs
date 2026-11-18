@@ -96,6 +96,12 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
     if args.feature == "all" || args.feature == "finance" {
         run_finance(&mut client, &mut evidence).await;
     }
+    if args.feature == "all" || args.feature == "library_loans" {
+        match client.current_library_loans().await {
+            Ok(loans) => evidence.pass("library_loans", "current", Some(loans.data.entries.len())),
+            Err(error) => evidence.fail("library_loans", "current", error.error.code),
+        }
+    }
     if args.feature == "all" || args.feature == "ihome" {
         run_ihome(&mut client, &mut evidence).await;
     }
@@ -177,6 +183,7 @@ fn authentication_dependencies(
         ("portal", "cloud_storage_remaining"),
         ("network", "usage"),
         ("finance", "incomes"),
+        ("library_loans", "current"),
         ("ihome", "public"),
         ("ihome", "mine"),
         ("ihome", "followed"),

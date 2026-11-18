@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'pinned_readback.dart';
+import 'library_readback.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
@@ -19,7 +20,9 @@ mixin ControllerWriteLifecycle on ControllerState {
         diagnostics: internalDiagnostics,
         observeResult: (operation, {required error, required route}) =>
             internalRecordOperationOutcome(
-              operation.feature?.wireName ?? 'bhpan',
+              operation == WriteOperation.libraryLoanRenew
+                  ? 'library_loans'
+                  : operation.feature?.wireName ?? 'bhpan',
               write: true,
               error: error,
               route: route,
@@ -53,6 +56,8 @@ mixin ControllerWriteLifecycle on ControllerState {
           verifyCgyyCancellation: verifyCgyyCancellation,
           refreshYgdkAfterWrite: refreshYgdkAfterWrite,
           refreshEvaluationAfterWrite: refreshEvaluationAfterWrite,
+          verifyLibraryLoanRenew: (intent) =>
+              controllerVerifyLibraryLoanRenew(this, intent),
         ),
       );
 

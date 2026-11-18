@@ -1,5 +1,7 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+import 'write.dart';
+
 /// Core 当前认证状态的最小表示。
 enum AuthStatus { signedOut, signedIn }
 
@@ -8,6 +10,7 @@ class BackendException implements Exception {
   const BackendException(
     this.code, {
     this.detail,
+    this.libraryLoanRejectionReason,
     this.kind,
     this.retryable,
     this.resolvedRoute,
@@ -35,6 +38,9 @@ class BackendException implements Exception {
 
   final UbaaErrorCode code;
   final String? detail;
+
+  /// 只在本次续借反馈里显示，通用错误和诊断沿用安全提示。
+  final String? libraryLoanRejectionReason;
   final UbaaErrorKind? kind;
   final bool? retryable;
   final ConnectionMode? resolvedRoute;
@@ -98,4 +104,13 @@ abstract interface class FinanceBackend {
 /// 仅由用户主动导出的完整学校响应，不用于错误摘要或自动统计。
 abstract interface class RawDiagnosticsBackend {
   String exportRawDiagnostics();
+}
+
+abstract interface class LibraryLoansBackend {
+  Future<List<LibraryLoan>> readLibraryLoans();
+}
+
+/// 当前借阅的 typed 续借能力；提交仍通过统一写入协调器。
+abstract interface class LibraryLoanWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareLibraryLoanRenew({required String loanId});
 }
