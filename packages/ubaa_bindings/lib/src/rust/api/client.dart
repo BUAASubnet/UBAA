@@ -484,6 +484,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String date,
   });
 
+  /// 清除设置中的业务会话缓存和派生读组。
+  Future<void> clearBusinessSessionCache();
+
   Future<List<BridgeError?>> cloudPrintDelete({
     required bool scans,
     required List<String> ids,
