@@ -244,9 +244,13 @@ final class HomeCoordinator {
       todos: _todos,
       projected: _projected,
       projectionFailure: _projectionFailure,
+      // 考试保留独立的来源状态，首页加载指示由其余来源决定。
       busy:
-          sources.values.any(
-            (s) => s.status == FeatureLoadStatus.loading && !s.refining,
+          sources.entries.any(
+            (entry) =>
+                entry.key != FeatureId.exam &&
+                entry.value.status == FeatureLoadStatus.loading &&
+                !entry.value.refining,
           ) ||
           _supplementTasks.isNotEmpty ||
           _dayTasks.containsKey(schedule.date),
