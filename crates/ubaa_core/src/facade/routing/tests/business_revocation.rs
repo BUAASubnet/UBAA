@@ -17,7 +17,12 @@ impl HttpTransport for NoRequests {
 
 fn setup(name: &str, config: RouteConfig) -> (std::path::PathBuf, UbaaClient) {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/biz_cache_p2")
+        .join("../../.ubaa_local")
+        .join(if name.starts_with("session-only-") {
+            "session_only_login"
+        } else {
+            "biz_cache_p2"
+        })
         .join(format!("{name}-{}", uuid::Uuid::new_v4()));
     let store = FileSessionStore::new(&path).unwrap();
     let client =
@@ -123,5 +128,116 @@ fn 修复三_冲突客户端不再提供内存种子() {
             .is_none()
     );
     drop((group, client));
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+fn session_only_guard(path: &std::path::Path) -> crate::facade::SharedAccountGuard {
+    for (name, value) in [
+        ("materials.lock", ""),
+        ("transaction.v1", "UBAA1:C"),
+        ("account-generation.v1", "UBAA1:1"),
+    ] {
+        std::fs::write(path.join(name), value).unwrap();
+    }
+    crate::facade::SharedAccountGuard::new(path, 1)
+        .unwrap()
+        .with_session_retention(false)
+}
+
+fn prepare_identity_read(client: &mut UbaaClient) {
+    client
+        .direct_runtime
+        .refresh_authentication(&mut || {})
+        .unwrap();
+    client
+        .direct_runtime
+        .remember_account_name(Some("fixture-user"));
+}
+
+fn persist_identity(client: &mut UbaaClient) {
+    let route = ConnectionMode::Direct;
+    let mut group = client.fork_parallel_readonly().unwrap();
+    group
+        .runtime_for(route)
+        .feature_state()
+        .seed_academic_identity(Some(StudentKind::Graduate));
+    group.persist_business_session(route);
+}
+
+#[test]
+fn 保留标记_r3_路线策略重开后的读组不写盘() {
+    let (path, mut client) = setup("session-only-reopen", RouteConfig::default());
+    client.config_dir = Some(path.clone());
+    client.bind_shared_account(Some(session_only_guard(&path)));
+    let mut reopened = client.reopen_for_route_policy().unwrap();
+    prepare_identity_read(&mut reopened);
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
+    persist_identity(&mut reopened);
+    drop((reopened, client));
+    assert!(
+        std::fs::read(file).unwrap() == before,
+        "只读写回不得改写旁车"
+    );
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[test]
+fn 保留标记_r4_派生读组只更新内存() {
+    let (path, mut client) = setup("session-only-worker", RouteConfig::default());
+    prepare_identity_read(&mut client);
+    client.bind_shared_account(Some(session_only_guard(&path)));
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
+    persist_identity(&mut client);
+    let mut next = client.fork_parallel_readonly().unwrap();
+    assert_eq!(
+        next.runtime_for(ConnectionMode::Direct)
+            .feature_state()
+            .cached_academic_identity(),
+        Some(StudentKind::Graduate)
+    );
+    drop((next, client));
+    assert!(
+        std::fs::read(file).unwrap() == before,
+        "只读写回不得改写旁车"
+    );
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[test]
+fn 保留标记_r5_拒绝旧材料只更新内存() {
+    use crate::session::business_cache::{BusinessMaterial, BusinessScope};
+
+    let (path, mut client) = setup("session-only-reject", RouteConfig::default());
+    prepare_identity_read(&mut client);
+    persist_identity(&mut client);
+    drop(client);
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
+
+    let mut client = UbaaClient::open(&path).unwrap();
+    prepare_identity_read(&mut client);
+    client.bind_shared_account(Some(session_only_guard(&path)));
+    let route = ConnectionMode::Direct;
+    let mut group = client.fork_parallel_readonly().unwrap();
+    let runtime = group.runtime_for(route);
+    assert_eq!(
+        runtime.feature_state().cached_academic_identity(),
+        Some(StudentKind::Graduate)
+    );
+    runtime.reject_business_material(
+        BusinessScope::Identity,
+        BusinessMaterial::Identity(StudentKind::Graduate),
+    );
+    let mut next = client.fork_parallel_readonly().unwrap();
+    assert_eq!(
+        next.runtime_for(route)
+            .feature_state()
+            .cached_academic_identity(),
+        None
+    );
+    drop((next, group, client));
+    assert!(std::fs::read(file).unwrap() == before, "拒绝不得改写旁车");
     std::fs::remove_dir_all(path).unwrap();
 }

@@ -968,3 +968,6 @@ async fn spoc_refresh_reuses_offline_last_batch(detail: bool) {
     );
     assert!(document["routes"]["webvpn"]["spoc"].is_null());
 }
+
+#[path = "session_retention.rs"]
+mod session_retention;

@@ -357,7 +357,7 @@ impl BusinessSessionCache {
             route,
             changes,
             saved_at,
-            (|| true, current, None),
+            (true, || true, current, None),
         )
     }
 
@@ -368,7 +368,8 @@ impl BusinessSessionCache {
         route: ConnectionMode,
         changes: Vec<(BusinessScope, Option<BusinessMaterial>)>,
         saved_at: i64,
-        checks: (
+        persistence: (
+            bool,
             impl FnOnce() -> bool + Send + 'static,
             impl FnOnce() -> bool + Send + 'static,
             Option<SeedSource>,
@@ -378,35 +379,40 @@ impl BusinessSessionCache {
         if !state.accepts(account, route, &stamp) {
             return None;
         }
-        let account = account.to_owned();
-        let pending = changes.clone();
-        let generation = Arc::clone(&state.generation);
-        let (revision_current, lifecycle_current, source) = checks;
-        #[cfg(test)]
-        let before_file_job = state.before_file_job.take();
-        let job = Arc::new(AtomicBool::new(false));
-        let completed = Arc::clone(&job);
-        if !state.writer.submit(&self.file, move |file| {
-            if revision_current() {
-                #[cfg(test)]
-                if let Some(pause) = before_file_job {
-                    pause();
+        let (persist, revision_current, lifecycle_current, source) = persistence;
+        let pending_job = if persist {
+            let account = account.to_owned();
+            let pending = changes.clone();
+            let generation = Arc::clone(&state.generation);
+            #[cfg(test)]
+            let before_file_job = state.before_file_job.take();
+            let job = Arc::new(AtomicBool::new(false));
+            let completed = Arc::clone(&job);
+            if !state.writer.submit(&self.file, move |file| {
+                if revision_current() {
+                    #[cfg(test)]
+                    if let Some(pause) = before_file_job {
+                        pause();
+                    }
+                    if file
+                        .write(&account, route, stamp.nonce, &pending, saved_at, || {
+                            generation.load(Ordering::Acquire) == stamp.generation
+                                && lifecycle_current()
+                        })
+                        .is_err()
+                    {
+                        tracing::warn!("业务会话缓存写回失败");
+                    }
                 }
-                if file
-                    .write(&account, route, stamp.nonce, &pending, saved_at, || {
-                        generation.load(Ordering::Acquire) == stamp.generation
-                            && lifecycle_current()
-                    })
-                    .is_err()
-                {
-                    tracing::warn!("业务会话缓存写回失败");
-                }
+                completed.store(true, Ordering::Release);
+            }) {
+                tracing::warn!("业务会话缓存写回失败");
+                return None;
             }
-            completed.store(true, Ordering::Release);
-        }) {
-            tracing::warn!("业务会话缓存写回失败");
-            return None;
-        }
+            Some(job)
+        } else {
+            None
+        };
         let entries = &mut state.route(route).entries;
         for (scope, material) in changes {
             let slot = &mut entries[scope as usize];
@@ -414,7 +420,7 @@ impl BusinessSessionCache {
             slot.saved_at = saved_at;
             slot.material = material;
             slot.source.clone_from(&source);
-            slot.pending = Some(Arc::clone(&job));
+            slot.pending.clone_from(&pending_job);
         }
         Some(entries.clone())
     }
@@ -426,6 +432,7 @@ impl BusinessSessionCache {
         route: ConnectionMode,
         scope: BusinessScope,
         rejected: BusinessMaterial,
+        persist: bool,
     ) -> bool {
         let mut state = self.lock();
         if !state.accepts(account, route, &stamp) {
@@ -434,6 +441,9 @@ impl BusinessSessionCache {
         let entry = &mut state.route(route).entries[scope as usize];
         if same_material(entry.material.as_ref(), Some(&rejected)) {
             entry.invalidate();
+        }
+        if !persist {
+            return true;
         }
         let generation = Arc::clone(&state.generation);
         let account = account.to_owned();

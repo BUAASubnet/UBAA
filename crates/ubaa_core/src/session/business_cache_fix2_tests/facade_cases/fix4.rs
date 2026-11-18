@@ -28,6 +28,7 @@ fn 修复四_同一路线两个读组分别拒绝不同范围() {
             route,
             scope,
             seeds[scope as usize].material.clone().unwrap(),
+            true,
         );
         owner.lock().writer.drain();
     }
@@ -51,7 +52,7 @@ fn 修复四_拒绝不阻止同路线上另一范围已排队的写回() {
         .clone()
         .unwrap();
     let (wait, resume) = pause_file_job(&owner);
-    owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old);
+    owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old, true);
     wait_for_file_job(&wait);
     let updated = BusinessMaterial::Ygdk(YgdkCredential {
         uid: 43,
@@ -108,6 +109,7 @@ fn 修复四_跨实例拒绝重载时保留本地未提交条目() {
         route,
         spoc,
         seeds[spoc as usize].material.clone().unwrap(),
+        true,
     );
     b.lock().writer.drain();
     let seeds = a.seeds(ACCOUNT, route, NOW).1;
@@ -141,7 +143,7 @@ fn assert_untrusted_then_recovers(path: &Path, owner: &BusinessSessionCache) {
         NOW,
         || true,
     );
-    owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old);
+    owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old, true);
     owner.lock().writer.drain();
     assert!(
         seeds.iter().all(|seed| seed.material.is_none()),

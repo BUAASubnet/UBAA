@@ -202,6 +202,7 @@ async fn after_precheck(event: Event, route: ConnectionMode, tombstone: bool, ac
         materials(),
         NOW,
         (
+            true,
             move || route_store.revision_matches_for_cache(revision).unwrap(),
             || true,
             None,
@@ -358,7 +359,7 @@ fn 修复四_同实例拒绝排队期间用原撤销令牌写回() {
         .clone()
         .unwrap();
     let (wait, resume) = pause_file_job(&owner);
-    assert!(owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old));
+    assert!(owner.reject(ACCOUNT, stamp, route, BusinessScope::Spoc, old, true));
     wait_for_file_job(&wait);
     assert!(
         owner.seeds(ACCOUNT, route, NOW).1[BusinessScope::Spoc as usize]
@@ -401,6 +402,7 @@ fn 修复二_f2_迟到拒绝不删除清理后写入的同值条目() {
         ConnectionMode::Direct,
         BusinessScope::Spoc,
         old.clone(),
+        true,
     );
     wait_for_file_job(&wait);
     b.invalidate(Invalidation::RevokeAll).unwrap();

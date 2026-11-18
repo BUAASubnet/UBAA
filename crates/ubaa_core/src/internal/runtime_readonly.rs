@@ -154,6 +154,12 @@ impl ClientRuntime {
         }
     }
 
+    fn retains_business_session(&self) -> bool {
+        self.shared_account
+            .as_ref()
+            .is_none_or(crate::facade::SharedAccountGuard::retains_session)
+    }
+
     pub(crate) fn persist_business_session(&mut self) {
         let mode = self.mode();
         let (Some(cache), Some(owner)) = (&self.business_sessions, &self.readonly_generation)
@@ -206,7 +212,12 @@ impl ClientRuntime {
             mode,
             changes,
             saved_at,
-            (revision_current, lifecycle_current, Some(source)),
+            (
+                self.retains_business_session(),
+                revision_current,
+                lifecycle_current,
+                Some(source),
+            ),
         ) {
             let owner = self.readonly_generation.as_mut().expect("已验证读组归属");
             for (index, seed) in seeds.into_iter().enumerate() {
@@ -243,6 +254,7 @@ impl ClientRuntime {
         rejected: BusinessMaterial,
     ) {
         let mode = self.mode();
+        let persist = self.retains_business_session();
         let (Some(cache), Some(owner)) = (&self.business_sessions, &mut self.readonly_generation)
         else {
             return;
@@ -253,7 +265,7 @@ impl ClientRuntime {
         if let Some(stamp) = owner.business_cache_stamp
             && !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty())
         {
-            cache.reject(account, stamp, mode, scope, rejected);
+            cache.reject(account, stamp, mode, scope, rejected, persist);
         }
         if matches!(scope, BusinessScope::Byxt | BusinessScope::Portal) {
             self.jar.retain(|cookie| !scope.owns(mode, cookie));

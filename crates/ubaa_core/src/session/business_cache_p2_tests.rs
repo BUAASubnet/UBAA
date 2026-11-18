@@ -173,7 +173,14 @@ fn 迟到拒绝只删除仍匹配的材料() {
         (BusinessScope::Spoc, old_spoc),
         (BusinessScope::Ygdk, old_ygdk),
     ] {
-        assert!(reader.reject(ACCOUNT, generation, ConnectionMode::Direct, scope, rejected));
+        assert!(reader.reject(
+            ACCOUNT,
+            generation,
+            ConnectionMode::Direct,
+            scope,
+            rejected,
+            true
+        ));
     }
     let (_, seeds) = reader.seeds(ACCOUNT, ConnectionMode::Direct, NOW + 3);
     assert!(

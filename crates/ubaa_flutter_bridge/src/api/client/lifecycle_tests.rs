@@ -102,7 +102,7 @@ async fn 等待路线切换时关闭客户端不再保存策略() {
 async fn 路线重开保持原共享归属且外部撤销仍拒绝派生() {
     let root = fixture();
     let bridge = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
-    let scope = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1).unwrap();
+    let scope = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
     bridge.bind_shared_account(&scope).await.unwrap();
     bridge
         .set_default_route_policy(BridgeRoutePolicy::Direct)
