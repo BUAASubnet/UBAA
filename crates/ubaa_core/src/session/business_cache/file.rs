@@ -6,7 +6,7 @@ use super::super::file_safety::{
 };
 use super::super::file_store::{try_file_lock, wait_for_lock};
 use super::super::storage::TemporaryFile;
-use super::{BusinessMaterial, BusinessScope};
+use super::{BusinessMaterial, BusinessScope, ClearNonce};
 use crate::domain::ConnectionMode;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
@@ -24,8 +24,12 @@ const SCHEMA: u32 = 2;
 #[derive(Deserialize, Serialize)]
 pub(super) struct Document {
     schema: u32,
-    pub(super) account: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) account: Option<String>,
+    #[serde(default, skip_serializing_if = "Routes::is_empty")]
     routes: Routes,
+    #[serde(default, skip_serializing_if = "ClearNonces::is_empty")]
+    clear_nonces: ClearNonces,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -34,13 +38,57 @@ struct Routes {
     webvpn: BTreeMap<BusinessScope, Entry>,
 }
 
+impl Routes {
+    fn is_empty(&self) -> bool {
+        self.direct.is_empty() && self.webvpn.is_empty()
+    }
+}
+
+#[derive(Default, Deserialize, Serialize)]
+struct ClearNonces {
+    direct: Option<ClearNonce>,
+    webvpn: Option<ClearNonce>,
+}
+
+impl ClearNonces {
+    fn is_empty(&self) -> bool {
+        self.direct.is_none() && self.webvpn.is_none()
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub(super) struct Entry {
     pub(super) saved_at: i64,
     pub(super) material: BusinessMaterial,
 }
 
+impl Default for Document {
+    fn default() -> Self {
+        Self {
+            schema: SCHEMA,
+            account: None,
+            routes: Routes::default(),
+            clear_nonces: ClearNonces::default(),
+        }
+    }
+}
+
 impl Document {
+    pub(super) fn nonce(&self, route: ConnectionMode) -> Option<ClearNonce> {
+        match route {
+            ConnectionMode::Direct => self.clear_nonces.direct,
+            ConnectionMode::WebVpn => self.clear_nonces.webvpn,
+        }
+    }
+
+    fn advance_nonce(&mut self, route: ConnectionMode) {
+        let slot = match route {
+            ConnectionMode::Direct => &mut self.clear_nonces.direct,
+            ConnectionMode::WebVpn => &mut self.clear_nonces.webvpn,
+        };
+        *slot = Some(rand::random());
+    }
+
     pub(super) fn route(&mut self, route: ConnectionMode) -> &mut BTreeMap<BusinessScope, Entry> {
         match route {
             ConnectionMode::Direct => &mut self.routes.direct,
@@ -87,22 +135,26 @@ impl BusinessSessionFile {
         &self,
         account: &str,
         route: ConnectionMode,
+        nonce: Option<ClearNonce>,
         changes: &[(BusinessScope, Option<BusinessMaterial>)],
         saved_at: i64,
         current: impl FnOnce() -> bool,
     ) -> Result<()> {
         let _lock = self.lock()?;
-        if !current() {
+        let mut document = self.read()?.unwrap_or_default();
+        if document.nonce(route) != nonce {
             return Ok(());
         }
-        let mut document = self
-            .read()?
-            .filter(|document| document.account == account)
-            .unwrap_or_else(|| Document {
-                schema: SCHEMA,
-                account: account.to_owned(),
-                routes: Routes::default(),
-            });
+        if document.account.as_deref() != Some(account) {
+            document.routes = Routes::default();
+            document.account = Some(account.to_owned());
+        }
+        let now = chrono::Utc::now().timestamp();
+        for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            document
+                .route(mode)
+                .retain(|_, entry| entry.saved_at <= now);
+        }
         let entries = document.route(route);
         for (scope, material) in changes {
             if let Some(material) = material {
@@ -117,63 +169,57 @@ impl BusinessSessionFile {
                 entries.remove(scope);
             }
         }
-        self.replace(&document)
+        self.replace(&document, current)
     }
 
     pub(super) fn reject(
         &self,
         account: &str,
         route: ConnectionMode,
+        nonce: Option<ClearNonce>,
         scope: BusinessScope,
         rejected: &BusinessMaterial,
     ) -> Result<()> {
         let _lock = self.lock()?;
-        if let Some(mut document) = self.read()?.filter(|document| document.account == account) {
+        if let Some(mut document) = self.read()?.filter(|document| {
+            document.account.as_deref() == Some(account) && document.nonce(route) == nonce
+        }) {
             let entries = document.route(route);
             if entries
                 .get(&scope)
                 .is_some_and(|entry| entry.material.matches(rejected))
             {
                 entries.remove(&scope);
-                self.replace(&document)?;
+                self.replace(&document, || true)?;
             }
         }
         Ok(())
     }
 
     pub(super) fn clear_login(&self, account: Option<&str>, route: ConnectionMode) -> Result<()> {
-        if !validate_regular_file(&self.path, "业务会话缓存要求普通文件")? {
-            return Ok(());
-        }
         let _lock = self.lock()?;
-        if let Some(mut document) = self
-            .read()?
-            .filter(|document| Some(document.account.as_str()) == account)
-        {
-            let entries = document.route(route);
-            if !entries.is_empty() {
-                entries.clear();
-                self.replace(&document)?;
-            }
-            return Ok(());
+        let mut document = self.read()?.unwrap_or_default();
+        if document.account.is_some() && document.account.as_deref() != account {
+            return self.write_tombstone();
         }
-        self.remove()
+        document.route(route).clear();
+        document.advance_nonce(route);
+        if document.routes.is_empty() {
+            document.account = None;
+        }
+        self.replace(&document, || true)
     }
 
     pub(super) fn clear(&self) -> Result<()> {
-        if !validate_regular_file(&self.path, "业务会话缓存要求普通文件")? {
-            return Ok(());
-        }
         let _lock = self.lock()?;
-        self.remove()
+        self.write_tombstone()
     }
 
-    fn remove(&self) -> Result<()> {
-        if validate_regular_file(&self.path, "业务会话缓存要求普通文件")? {
-            fs::remove_file(&self.path).map_err(|_| session_error("业务会话缓存清理失败"))?;
-            sync_directory(&self.directory)?;
-        }
-        Ok(())
+    fn write_tombstone(&self) -> Result<()> {
+        let mut document = Document::default();
+        document.advance_nonce(ConnectionMode::Direct);
+        document.advance_nonce(ConnectionMode::WebVpn);
+        self.replace(&document, || true)
     }
 
     fn lock(&self) -> Result<File> {
@@ -197,7 +243,7 @@ impl BusinessSessionFile {
         Ok(file)
     }
 
-    fn replace(&self, document: &Document) -> Result<()> {
+    fn replace(&self, document: &Document, current: impl FnOnce() -> bool) -> Result<()> {
         let contents =
             serde_json::to_vec(document).map_err(|_| session_error("业务会话缓存编码失败"))?;
         if contents.len() as u64 > MAX_BYTES {
@@ -211,6 +257,9 @@ impl BusinessSessionFile {
             .map_err(|_| session_error("业务会话缓存写入失败"))?;
         drop(file);
         validate_regular_file(&self.path, "业务会话缓存要求普通文件")?;
+        if !current() {
+            return Ok(());
+        }
         fs::rename(cleanup.path(), &self.path)
             .map_err(|_| session_error("业务会话缓存替换失败"))?;
         cleanup.persisted();

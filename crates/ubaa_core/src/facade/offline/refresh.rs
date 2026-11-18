@@ -164,6 +164,7 @@ impl CacheRefresh<'_> {
         ) -> CacheResult<(CacheScope, CachePublication)>,
         shared: Option<SharedProjection<T>>,
     ) -> Result<CachedRefresh<T>, OfflineReadError> {
+        let online_route = Some(self.resolution.mode);
         let mut publication = None;
         if let Some(ticket) = self.ticket.take() {
             let mut saved = publish(&ticket, &data, fetched_at);
@@ -237,6 +238,7 @@ impl CacheRefresh<'_> {
             result: OfflineRefresh {
                 data,
                 resolution: self.resolution,
+                online_route,
                 scope: self.scope,
                 fetched_at,
                 save_error: self.save_error,

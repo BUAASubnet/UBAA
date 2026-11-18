@@ -163,7 +163,9 @@ impl BridgeClient {
                 .refresh_cached_ygdk_records(&cache.cache, page, size)
                 .await
                 .map_err(offline_read_error)?;
-            client.persist_business_session(value.result.resolution.mode);
+            if let Some(route) = value.result.online_route {
+                client.persist_business_session(route);
+            }
             Ok(map_refresh(value))
         })
         .await
@@ -197,7 +199,9 @@ impl BridgeClient {
                 )
                 .await
                 .map_err(offline_read_error)?;
-            client.persist_business_session(value.result.resolution.mode);
+            if let Some(route) = value.result.online_route {
+                client.persist_business_session(route);
+            }
             Ok(map_refresh(value))
         })
         .await

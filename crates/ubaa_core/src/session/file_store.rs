@@ -84,6 +84,11 @@ impl FileSessionStore {
         self.load_dual_versioned().map(|current| current.snapshot)
     }
 
+    pub(super) fn read_current_revision(&self) -> Result<u64> {
+        let mut lock = self.acquire_lock()?;
+        read_revision(&mut lock.file)
+    }
+
     /// 加载双路线快照及其同步版本号。
     ///
     /// # Errors

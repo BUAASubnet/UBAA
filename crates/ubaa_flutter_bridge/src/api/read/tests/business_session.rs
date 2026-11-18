@@ -299,6 +299,30 @@ impl Fixture {
         std::fs::read_to_string(self.cache()).expect("成功读取应写入业务会话缓存")
     }
 
+    fn assert_tombstone(&self) {
+        let document: serde_json::Value = serde_json::from_str(&self.contents()).unwrap();
+        let fields = document.as_object().unwrap();
+        assert_eq!(fields.len(), 2);
+        assert_eq!(document["schema"], 2);
+        let clear_nonces = document["clear_nonces"].as_object().unwrap();
+        assert_eq!(clear_nonces.len(), 2);
+        for route in ["direct", "webvpn"] {
+            assert_eq!(clear_nonces[route].as_array().unwrap().len(), 16);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(self.cache())
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+    }
+
     fn revision(&self) -> u64 {
         self.1.load_dual_versioned().unwrap().revision
     }
@@ -468,7 +492,7 @@ async fn 业务会话_登录切换账号和注销分别失效() {
     other_bridge.schedule_today().await.unwrap();
     assert_eq!(other.activations(), (3, 3));
     other_bridge.logout().await.unwrap();
-    assert!(!fixture.cache().exists());
+    fixture.assert_tombstone();
     assert!(other_bridge.schedule_today().await.is_err());
 }
 
@@ -480,7 +504,7 @@ async fn 业务会话_设置清除后弃用旧读取组() {
     bridge.schedule_today().await.unwrap();
     let revision = fixture.revision();
     bridge.clear_business_session_cache().await;
-    assert!(!fixture.cache().exists());
+    fixture.assert_tombstone();
     bridge.schedule_today().await.unwrap();
     assert_eq!(transport.activations(), (2, 2));
     assert_eq!(fixture.revision(), revision);
@@ -577,20 +601,21 @@ async fn 业务会话_旁车锁繁忙时在线结果先返回() {
     assert!(fixture.cache().is_file());
 }
 
-#[cfg(unix)]
 #[tokio::test]
-async fn 业务会话_外部替换会话后丢弃排队的写回() {
+async fn 业务会话_外部替换会话后丢弃旧读取的写回() {
     let fixture = Fixture::new();
     let transport = PortalTransport::default();
-    let bridge = restored(fixture.1.clone(), "direct", &transport).await;
-    let held = std::fs::File::create(fixture.0.join(LOCK)).unwrap();
-    held.lock().unwrap();
-    bridge.schedule_today().await.unwrap();
+    let mut primary = core(fixture.1.clone(), "direct", &transport);
+    primary.recover_connection_session().await.unwrap();
+    let mut worker = primary.fork_parallel_readonly().unwrap();
+    let result = worker.schedule_today().await.unwrap();
     let newer = fixture.1.load_dual().unwrap().unwrap();
     fixture.1.save_dual(&newer).unwrap();
     let revision = fixture.revision();
-    drop(held);
-    drop(bridge);
+    // 先替换主会话，再提交旧读取结果，固定在写回预检之前发生修订变化。
+    worker.persist_business_session(result.resolution.mode);
+    drop(worker);
+    drop(primary);
     assert!(!fixture.cache().exists());
     assert_eq!(fixture.revision(), revision);
 }

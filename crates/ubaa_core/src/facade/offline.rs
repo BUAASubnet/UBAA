@@ -345,6 +345,8 @@ impl OfflineCache {
 pub struct OfflineRefresh<T> {
     pub data: T,
     pub resolution: RouteResolution,
+    /// 用于业务会话写回的实际在线路线；未接入写回或本轮未在线读取时为空。
+    pub online_route: Option<ConnectionMode>,
     pub scope: CacheScope,
     pub fetched_at: i64,
     pub save_error: Option<CacheError>,

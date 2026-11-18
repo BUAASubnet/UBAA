@@ -16,6 +16,7 @@ pub struct SpocDetailScan {
 }
 pub struct SpocDetailScanBatch {
     pub resolution: RouteResolution,
+    pub online_route: Option<crate::facade::ConnectionMode>,
     pub data: Option<SpocAssignmentDetail>,
     pub completed_pages: u32,
     pub fetched_at: i64,
@@ -61,6 +62,7 @@ impl SpocDetailScan {
     ) -> SpocDetailScanBatch {
         SpocDetailScanBatch {
             resolution: self.list.resolution,
+            online_route: self.list.online_route,
             data,
             completed_pages: self.list.next_page - 1,
             fetched_at: self.list.fetched_at,
@@ -127,6 +129,7 @@ impl UbaaClient {
         &mut self,
         plan: &mut SpocDetailScan,
     ) -> Result<SpocDetailScanBatch, OfflineReadError> {
+        plan.list.online_route = None;
         let result = match self.advance_spoc_detail(plan).await {
             Err(OfflineReadError::Cache(CacheError::Superseded)) if !plan.finished => {
                 self.recover_spoc_detail(plan)
@@ -193,6 +196,7 @@ impl UbaaClient {
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?
             .data;
+        plan.list.online_route = Some(resolution.mode);
         let complete = plan.list.complete && detail_complete;
         plan.pending = Some((data, complete));
         self.validate_spoc_detail(plan)?;
@@ -221,6 +225,7 @@ impl UbaaClient {
                         data: HomeReadData::SpocDetail(data),
                         scope: plan.scope(),
                         resolution: value.resolution,
+                        online_route: value.online_route,
                         fetched_at: value.fetched_at,
                         save_error: value.save_error,
                     },

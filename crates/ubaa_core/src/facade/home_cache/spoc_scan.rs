@@ -1,8 +1,9 @@
 //! SPOC 页读取绑定原客户端与生命周期；宿主在 next 调用之间释放原客户端锁。
 use crate::facade::{
     CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheReadTicket,
-    CacheScope, ErrorKind, HomeReadData, HomeRefresh, OfflineCache, OfflineReadError,
-    OfflineRefresh, ReadonlyFeature, RouteResolution, SpocAssignments, UbaaClient,
+    CacheScope, ConnectionMode, ErrorKind, HomeReadData, HomeRefresh, OfflineCache,
+    OfflineReadError, OfflineRefresh, ReadonlyFeature, RouteResolution, SpocAssignments,
+    UbaaClient,
 };
 use crate::{features::spoc::scan, internal::route_state::RouteFeatureState};
 use std::{
@@ -30,6 +31,7 @@ enum Stage {
 /// 仅含只读领域数据及弱客户端标识，不包含会话凭据。
 pub struct SpocScan {
     resolution: RouteResolution,
+    online_route: Option<ConnectionMode>,
     owner: Weak<RouteFeatureState>,
     generation: u64,
     route_generation: u64,
@@ -49,6 +51,7 @@ pub struct SpocScan {
 }
 pub struct SpocScanBatch {
     pub resolution: RouteResolution,
+    pub online_route: Option<ConnectionMode>,
     pub data: SpocAssignments,
     pub fetched_at: i64,
     pub completed_pages: u32,
@@ -64,6 +67,7 @@ impl SpocScanBatch {
                 scope: super::spoc::term_scope(self.resolution.mode, &self.data.term_code),
                 data: HomeReadData::SpocAssignments(self.data),
                 resolution: self.resolution,
+                online_route: self.online_route,
                 fetched_at: self.fetched_at,
                 save_error: self.save_error,
             },
@@ -172,6 +176,7 @@ impl SpocScan {
     fn batch(&self, publication: Option<CachePublication>) -> SpocScanBatch {
         SpocScanBatch {
             resolution: self.resolution,
+            online_route: self.online_route,
             data: self.data.clone(),
             fetched_at: self.fetched_at,
             completed_pages: self.next_page - 1,
@@ -252,6 +257,7 @@ impl UbaaClient {
         let owner = self.runtime_for(resolution.mode).feature_state();
         let mut plan = SpocScan {
             resolution,
+            online_route: None,
             owner: Arc::downgrade(&owner),
             generation: owner.lifecycle_generation(),
             route_generation: self.route_generation,
@@ -321,6 +327,7 @@ impl UbaaClient {
         &mut self,
         plan: &mut SpocScan,
     ) -> Result<SpocScanBatch, OfflineReadError> {
+        plan.online_route = None;
         let result = match self.advance_spoc_scan(plan).await {
             Err(OfflineReadError::Cache(CacheError::Superseded)) if !plan.finished => {
                 self.recover_spoc_scan(plan).await
@@ -369,6 +376,7 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
                     .data;
+                plan.online_route = Some(resolution.mode);
                 plan.fetched_at = chrono::Utc::now().timestamp();
                 plan.stage = Stage::Courses;
             }
@@ -381,7 +389,10 @@ impl UbaaClient {
                 );
                 self.rebind_spoc_route(plan, resolution);
                 match self.finish_routed(plan.resolution, result) {
-                    Ok(value) => plan.courses = value.data,
+                    Ok(value) => {
+                        plan.online_route = Some(resolution.mode);
+                        plan.courses = value.data;
+                    }
                     Err(error)
                         if matches!(
                             error.error.kind,
@@ -412,6 +423,7 @@ impl UbaaClient {
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
                     .data;
+                plan.online_route = Some(resolution.mode);
                 if plan.ticket.is_some() {
                     // 已取得的末页先纳入聚合，后续本地发布仍核对父票据。
                     self.validate_spoc_owner(plan)?;

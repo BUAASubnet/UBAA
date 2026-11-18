@@ -269,6 +269,21 @@ impl SessionStore for CoordinatedRouteSessionStore {
         }
     }
 
+    fn revision_matches_for_cache(&self, expected_revision: u64) -> Result<bool> {
+        let state = self
+            .coordinator
+            .state
+            .lock()
+            .map_err(|_| session_error("dual session coordinator is unavailable"))?;
+        let route_revision = match self.mode {
+            ConnectionMode::Direct => state.direct_revision,
+            ConnectionMode::WebVpn => state.webvpn_revision,
+        };
+        Ok(!state.conflicted
+            && route_revision == expected_revision
+            && state.store.read_current_revision()? == state.revision)
+    }
+
     fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
         self.coordinator
             .is_revision_current(self.mode, expected_revision)

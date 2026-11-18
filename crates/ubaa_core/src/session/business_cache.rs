@@ -8,7 +8,10 @@ use super::{FileSessionStore, StoredCookie};
 use crate::domain::ConnectionMode;
 use crate::internal::route_state::{SpocCredential, StudentKind, YgdkCredential};
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{
+    Arc, Mutex, MutexGuard,
+    atomic::{AtomicU64, Ordering},
+};
 
 #[derive(Clone, Copy, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,6 +33,9 @@ impl BusinessScope {
     ];
 
     fn is_expired(self, saved_at: i64, now: i64) -> bool {
+        if saved_at > now {
+            return true;
+        }
         let ttl = match self {
             Self::Byxt | Self::Portal => return false,
             Self::Identity => 7 * 24 * 60 * 60,
@@ -118,17 +124,32 @@ impl BusinessSeed {
 
 pub(crate) type BusinessSeeds = [BusinessSeed; BusinessScope::ALL.len()];
 
+type ClearNonce = [u8; 16];
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) struct BusinessCacheStamp {
+    generation: u64,
+    nonce: Option<ClearNonce>,
+}
+
+#[derive(Default)]
+struct RouteSeeds {
+    entries: BusinessSeeds,
+    nonce: Option<ClearNonce>,
+    loaded: bool,
+}
+
 #[derive(Default)]
 struct State {
     account: Option<String>,
-    direct: BusinessSeeds,
-    webvpn: BusinessSeeds,
-    generation: u64,
+    direct: RouteSeeds,
+    webvpn: RouteSeeds,
+    generation: Arc<AtomicU64>,
     writer: writer::Writer,
 }
 
 impl State {
-    fn route(&mut self, route: ConnectionMode) -> &mut BusinessSeeds {
+    fn route(&mut self, route: ConnectionMode) -> &mut RouteSeeds {
         match route {
             ConnectionMode::Direct => &mut self.direct,
             ConnectionMode::WebVpn => &mut self.webvpn,
@@ -136,15 +157,24 @@ impl State {
     }
 
     fn invalidate(&mut self, route: ConnectionMode) {
-        for entry in self.route(route) {
+        let seeds = self.route(route);
+        for entry in &mut seeds.entries {
             entry.invalidate();
         }
+        seeds.loaded = false;
     }
 
     fn invalidate_all(&mut self) {
+        self.generation.fetch_add(1, Ordering::AcqRel);
         self.invalidate(ConnectionMode::Direct);
         self.invalidate(ConnectionMode::WebVpn);
-        self.generation = self.generation.saturating_add(1);
+    }
+
+    fn accepts(&mut self, account: &str, route: ConnectionMode, stamp: BusinessCacheStamp) -> bool {
+        self.generation.load(Ordering::Acquire) == stamp.generation
+            && self.account.as_deref() == Some(account)
+            && self.route(route).loaded
+            && self.route(route).nonce == stamp.nonce
     }
 }
 
@@ -172,51 +202,103 @@ impl BusinessSessionCache {
         account: &str,
         route: ConnectionMode,
         now: i64,
-    ) -> (u64, BusinessSeeds) {
+    ) -> (BusinessCacheStamp, BusinessSeeds) {
         let mut state = self.lock();
         if state.account.as_deref() != Some(account) {
             state.invalidate_all();
             state.account = Some(account.to_owned());
-            match self.file.read() {
-                Ok(Some(mut stored)) if stored.account == account => {
-                    for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
-                        for (scope, entry) in std::mem::take(stored.route(route)) {
-                            let slot = &mut state.route(route)[scope as usize];
-                            slot.saved_at = entry.saved_at;
-                            slot.material = entry.material.for_scope(route, scope);
-                        }
-                    }
+        }
+        let generation = state.generation.load(Ordering::Acquire);
+        let Ok(mut document) = self.file.read() else {
+            tracing::warn!("业务会话缓存读取失败");
+            state.invalidate(route);
+            return (
+                BusinessCacheStamp {
+                    generation,
+                    nonce: None,
+                },
+                state.route(route).entries.clone(),
+            );
+        };
+        // 旧 schema 2 与尚未写过旁车的路线都没有清理令牌，普通写入可以互相合并。
+        let nonce = document.as_ref().and_then(|document| document.nonce(route));
+        let seeds = state.route(route);
+        if !seeds.loaded || seeds.nonce != nonce {
+            for entry in &mut seeds.entries {
+                entry.invalidate();
+            }
+            seeds.nonce = nonce;
+            seeds.loaded = true;
+            if let Some(document) = document
+                .as_mut()
+                .filter(|document| document.account.as_deref() == Some(account))
+            {
+                for (scope, entry) in std::mem::take(document.route(route)) {
+                    let slot = &mut seeds.entries[scope as usize];
+                    slot.saved_at = entry.saved_at;
+                    slot.material = entry.material.for_scope(route, scope);
                 }
-                Ok(_) => {}
-                Err(_) => tracing::warn!("业务会话缓存读取失败"),
             }
         }
-        for (scope, seed) in BusinessScope::ALL.into_iter().zip(state.route(route)) {
+        for (scope, seed) in BusinessScope::ALL.into_iter().zip(&mut seeds.entries) {
             if seed.material.is_some() && scope.is_expired(seed.saved_at, now) {
                 seed.invalidate();
             }
         }
-        (state.generation, state.route(route).clone())
+        (
+            BusinessCacheStamp { generation, nonce },
+            seeds.entries.clone(),
+        )
     }
 
-    pub(crate) fn write(
+    #[cfg(test)]
+    fn write(
         &self,
         account: &str,
-        generation: u64,
+        stamp: BusinessCacheStamp,
         route: ConnectionMode,
         changes: Vec<(BusinessScope, Option<BusinessMaterial>)>,
         saved_at: i64,
         current: impl FnOnce() -> bool + Send + 'static,
     ) -> Option<BusinessSeeds> {
+        self.write_after_revision_check(
+            account,
+            stamp,
+            route,
+            changes,
+            saved_at,
+            (|| true, current),
+        )
+    }
+
+    pub(crate) fn write_after_revision_check(
+        &self,
+        account: &str,
+        stamp: BusinessCacheStamp,
+        route: ConnectionMode,
+        changes: Vec<(BusinessScope, Option<BusinessMaterial>)>,
+        saved_at: i64,
+        checks: (
+            impl FnOnce() -> bool + Send + 'static,
+            impl FnOnce() -> bool + Send + 'static,
+        ),
+    ) -> Option<BusinessSeeds> {
         let mut state = self.lock();
-        if state.generation != generation || state.account.as_deref() != Some(account) {
+        if !state.accepts(account, route, stamp) {
             return None;
         }
         let account = account.to_owned();
         let pending = changes.clone();
+        let generation = Arc::clone(&state.generation);
+        let (revision_current, lifecycle_current) = checks;
         if !state.writer.submit(&self.file, move |file| {
+            if !revision_current() {
+                return;
+            }
             if file
-                .write(&account, route, &pending, saved_at, current)
+                .write(&account, route, stamp.nonce, &pending, saved_at, || {
+                    generation.load(Ordering::Acquire) == stamp.generation && lifecycle_current()
+                })
                 .is_err()
             {
                 tracing::warn!("业务会话缓存写回失败");
@@ -225,7 +307,7 @@ impl BusinessSessionCache {
             tracing::warn!("业务会话缓存写回失败");
             return None;
         }
-        let entries = state.route(route);
+        let entries = &mut state.route(route).entries;
         for (scope, material) in changes {
             let slot = &mut entries[scope as usize];
             slot.version = slot.version.saturating_add(1);
@@ -238,22 +320,25 @@ impl BusinessSessionCache {
     pub(crate) fn reject(
         &self,
         account: &str,
-        generation: u64,
+        stamp: BusinessCacheStamp,
         route: ConnectionMode,
         scope: BusinessScope,
         rejected: BusinessMaterial,
     ) {
         let mut state = self.lock();
-        if state.generation != generation || state.account.as_deref() != Some(account) {
+        if !state.accepts(account, route, stamp) {
             return;
         }
-        let entry = &mut state.route(route)[scope as usize];
+        let entry = &mut state.route(route).entries[scope as usize];
         if same_material(entry.material.as_ref(), Some(&rejected)) {
             entry.invalidate();
         }
         let account = account.to_owned();
         if !state.writer.submit(&self.file, move |file| {
-            if file.reject(&account, route, scope, &rejected).is_err() {
+            if file
+                .reject(&account, route, stamp.nonce, scope, &rejected)
+                .is_err()
+            {
                 tracing::warn!("业务会话缓存失效写回失败");
             }
         }) {

@@ -81,7 +81,15 @@ where
             runtime
                 .reject_business_material(BusinessScope::Spoc, BusinessMaterial::Spoc(credential));
             let credential = ensure_credential(runtime, true).await?;
-            operation(runtime, &credential).await
+            let result = operation(runtime, &credential).await;
+            if result.as_ref().is_err_and(is_authentication_error) {
+                runtime.reject_business_material(
+                    BusinessScope::Spoc,
+                    BusinessMaterial::Spoc(credential),
+                );
+                runtime.feature_state().spoc.clear_credential();
+            }
+            result
         }
         result => result,
     }

@@ -46,6 +46,9 @@ struct Transport {
     renew_spoc: bool,
     renew_ygdk: bool,
     reject_page: Option<u16>,
+    reject_spoc_submission: bool,
+    renew_spoc_at: Option<&'static str>,
+    ygdk_pause: Option<Arc<(tokio::sync::Notify, tokio::sync::Notify)>>,
 }
 
 #[derive(Default)]
@@ -53,6 +56,8 @@ struct Calls {
     spoc_logins: AtomicUsize,
     spoc_terms: AtomicUsize,
     spoc_old: AtomicUsize,
+    spoc_submissions: AtomicUsize,
+    spoc_new: AtomicUsize,
     ygdk_logins: AtomicUsize,
     ygdk_overviews: AtomicUsize,
     ygdk_pages: AtomicUsize,
@@ -66,7 +71,14 @@ impl Transport {
     fn spoc(&self, call: &FixtureRequest, path: &str) -> HttpResponse {
         match path {
             "/spocnewht/cas" => {
-                let token = if self.renew_spoc { SPOC_NEW } else { SPOC_OLD };
+                let token = if self.renew_spoc
+                    || self.reject_spoc_submission
+                    || (self.renew_spoc_at.is_some() && self.calls.spoc_logins.load(SeqCst) > 0)
+                {
+                    SPOC_NEW
+                } else {
+                    SPOC_OLD
+                };
                 call.redirect(
                     &format!("https://spoc.buaa.edu.cn/spocnew/cas?token={token}"),
                     true,
@@ -89,6 +101,12 @@ impl Transport {
                         .get("RoleCode")
                         .is_some_and(|role| role == "01")
                 );
+                if header == Some(SPOC_NEW) {
+                    self.calls.spoc_new.fetch_add(1, SeqCst);
+                }
+                if self.renew_spoc_at == Some(path) && header == Some(SPOC_OLD) {
+                    return call.respond(401, "");
+                }
                 let body = match path {
                     "/spocnewht/inco/ht/queryOne" => {
                         self.calls.spoc_terms.fetch_add(1, SeqCst);
@@ -107,7 +125,13 @@ impl Transport {
                     "/spocnewht/kczy/queryKczyInfoByid" => {
                         r#"{"code":200,"content":{"id":"a1","zymc":"合成作业","zynr":"合成正文"}}"#
                     }
-                    "/spocnewht/kczy/queryXsSubmitKczyInfo" => r#"{"code":200,"content":null}"#,
+                    "/spocnewht/kczy/queryXsSubmitKczyInfo" => {
+                        self.calls.spoc_submissions.fetch_add(1, SeqCst);
+                        if self.reject_spoc_submission {
+                            return call.respond(401, "");
+                        }
+                        r#"{"code":200,"content":null}"#
+                    }
                     _ => panic!("收到未登记的合成 SPOC 请求"),
                 };
                 call.respond(200, body)
@@ -195,7 +219,15 @@ impl HttpTransport for Transport {
         let path = format!("/{path}");
         match host {
             "spoc.buaa.edu.cn" => Ok(self.spoc(&call, &path)),
-            "app.buaa.edu.cn" | "ygdk.buaa.edu.cn" => Ok(self.ygdk(&call, &path)),
+            "app.buaa.edu.cn" | "ygdk.buaa.edu.cn" => {
+                if path == "/api/Front/Clockin/Classify/getList"
+                    && let Some(pause) = &self.ygdk_pause
+                {
+                    pause.0.notify_one();
+                    pause.1.notified().await;
+                }
+                Ok(self.ygdk(&call, &path))
+            }
             _ => self.portal.execute(call.request).await,
         }
     }
@@ -218,7 +250,13 @@ async fn read_basics(bridge: &BridgeClient) {
     bridge.ygdk_overview().await.unwrap();
 }
 
-async fn read_entry(bridge: &BridgeClient, root: &std::path::Path, mode: &str, name: &str) {
+async fn read_entry(
+    bridge: &BridgeClient,
+    root: &std::path::Path,
+    mode: &str,
+    name: &str,
+    cold: bool,
+) {
     if name == "basic" {
         read_basics(bridge).await;
         return;
@@ -240,6 +278,9 @@ async fn read_entry(bridge: &BridgeClient, root: &std::path::Path, mode: &str, n
         "spoc-pages" => {
             let task = bridge.begin_spoc_scan(&cache).await.unwrap();
             assert!(!bridge.next_spoc_scan(&task).await.unwrap().finished);
+            if cold {
+                while !bridge.next_spoc_scan(&task).await.unwrap().finished {}
+            }
         }
         "spoc-detail-pages" => {
             let task = bridge
@@ -247,6 +288,9 @@ async fn read_entry(bridge: &BridgeClient, root: &std::path::Path, mode: &str, n
                 .await
                 .unwrap();
             assert!(!bridge.next_spoc_detail_scan(&task).await.unwrap().finished);
+            if cold {
+                while !bridge.next_spoc_detail_scan(&task).await.unwrap().finished {}
+            }
         }
         "ygdk-records" => {
             bridge.ygdk_records_cached(&cache, 1, 10).await.unwrap();
@@ -297,7 +341,15 @@ fn 业务会话二阶段合成子进程() {
     let name = std::env::var("UBAA_FIXTURE_CACHE_ENTRY").unwrap();
     let mode = std::env::var("UBAA_FIXTURE_CACHE_MODE").unwrap();
     let cold = std::env::var("UBAA_FIXTURE_CACHE_ROUND").unwrap() == "cold";
-    let transport = Transport::default();
+    let later = match name.as_str() {
+        "spoc-pages" => Some("/spocnewht/inco/ht/queryListByPage"),
+        "spoc-detail-pages" => Some("/spocnewht/kczy/queryKczyInfoByid"),
+        _ => None,
+    };
+    let transport = Transport {
+        renew_spoc_at: later.filter(|_| cold),
+        ..Transport::default()
+    };
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -305,7 +357,7 @@ fn 业务会话二阶段合成子进程() {
         .block_on(async {
             let store = FileSessionStore::new(&root).unwrap();
             let bridge = restored(store, &mode, &transport).await;
-            Box::pin(read_entry(&bridge, &root, &mode, &name)).await;
+            Box::pin(read_entry(&bridge, &root, &mode, &name, cold)).await;
         });
     let spoc = name == "basic" || name.contains("spoc");
     let ygdk = name == "basic" || name.contains("ygdk");
@@ -317,9 +369,18 @@ fn 业务会话二阶段合成子进程() {
         );
         assert_eq!(
             transport.calls.spoc_logins.load(SeqCst),
-            usize::from(cold),
+            usize::from(cold) + usize::from(cold && later.is_some()),
             "SPOC 登录次数"
         );
+    }
+    if later.is_some() {
+        assert!(
+            transport.calls.spoc_new.load(SeqCst) > 0,
+            "后续批次取得的新令牌应在重开后复用"
+        );
+        if !cold {
+            assert_eq!(transport.calls.spoc_old.load(SeqCst), 0);
+        }
     }
     if ygdk {
         assert_eq!(
@@ -486,7 +547,7 @@ async fn 业务会话_登录注销换号路线策略与设置均清理新范围(
             }
             "logout" => {
                 bridge.logout().await.unwrap();
-                assert!(!fixture.cache().exists());
+                fixture.assert_tombstone();
             }
             "account" => {
                 drop(bridge);
@@ -497,14 +558,23 @@ async fn 业务会话_登录注销换号路线策略与设置均清理新范围(
                     },
                     ..Transport::default()
                 };
-                let bridge = restored(fixture.1.clone(), "direct", &other).await;
-                read_basics(&bridge).await;
-                drop(bridge);
-                assert_eq!(other.calls.spoc_logins.load(SeqCst), 1);
-                assert_eq!(other.calls.ygdk_logins.load(SeqCst), 1);
-                let doc: Value = serde_json::from_str(&fixture.contents()).unwrap();
-                assert_eq!(doc["account"], "fixture-other");
-                assert!(doc["routes"]["webvpn"].as_object().unwrap().is_empty());
+                let bridge =
+                    BridgeClient::from_core(super::core(fixture.1.clone(), "direct", &other));
+                let logged_in = bridge
+                    .login_required_route(
+                        BridgeConnectionMode::Direct,
+                        "fixture-other".into(),
+                        "fixture-input".into(),
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(
+                    logged_in.profile.school_id.as_deref(),
+                    Some("fixture-other")
+                );
+                fixture.assert_tombstone();
+                assert_eq!(other.calls.spoc_logins.load(SeqCst), 0);
+                assert_eq!(other.calls.ygdk_logins.load(SeqCst), 0);
             }
             "policy" => {
                 // open 只读取本机配置；修改策略不请求学校。
@@ -512,13 +582,13 @@ async fn 业务会话_登录注销换号路线策略与设置均清理新范围(
                 primary
                     .set_default_route_policy(ubaa_core::facade::RoutePolicy::Direct)
                     .unwrap();
-                assert!(!fixture.cache().exists());
+                fixture.assert_tombstone();
             }
             "settings" => {
                 read_basics(&bridge).await;
                 assert_eq!(next.calls.ygdk_logins.load(SeqCst), 0);
                 bridge.clear_business_session_cache().await;
-                assert!(!fixture.cache().exists());
+                fixture.assert_tombstone();
                 read_basics(&bridge).await;
                 assert_eq!(next.calls.spoc_logins.load(SeqCst), 1);
                 assert_eq!(next.calls.ygdk_logins.load(SeqCst), 1);
@@ -663,4 +733,98 @@ async fn 业务会话_schema1旁车不播种并在成功读取后覆盖() {
     let current: Value = serde_json::from_str(&fixture.contents()).unwrap();
     assert_eq!(current["schema"], 2);
     assert!(current["routes"]["direct"]["identity"].is_object());
+}
+
+#[tokio::test]
+async fn 修复_f4_可选提交状态连续被拒不保存新令牌() {
+    let fixture = Fixture::in_task(TASK);
+    let initial = restored(fixture.1.clone(), "direct", &Transport::default()).await;
+    initial.spoc_assignments().await.unwrap();
+    drop(initial);
+    assert!(fixture.contents().contains(SPOC_OLD));
+    let transport = Transport {
+        reject_spoc_submission: true,
+        ..Transport::default()
+    };
+    let bridge = restored(fixture.1.clone(), "direct", &transport).await;
+    let cache = offline(&fixture.0).await;
+    let result = bridge
+        .home_spoc_detail_cached(&cache, "a1".into())
+        .await
+        .unwrap();
+    assert!(!result.state.complete);
+    assert_eq!(transport.calls.spoc_submissions.load(SeqCst), 2);
+    assert_eq!(transport.calls.spoc_logins.load(SeqCst), 1);
+    drop(bridge);
+    let content = fixture.contents();
+    assert!(!content.contains(SPOC_OLD));
+    assert!(!content.contains(SPOC_NEW), "第二枚被拒令牌仍被写回");
+}
+
+#[tokio::test]
+async fn 修复_f5_离线胜出路线不覆盖本次在线写回路线() {
+    let direct = Fixture::in_task(TASK);
+    let webvpn = Fixture::in_task(TASK);
+    let pause = Arc::new((tokio::sync::Notify::new(), tokio::sync::Notify::new()));
+    let slow = Transport {
+        ygdk_pause: Some(Arc::clone(&pause)),
+        ..Transport::default()
+    };
+    let a = restored(direct.1.clone(), "direct", &slow).await;
+    let b = restored(webvpn.1.clone(), "webvpn", &Transport::default()).await;
+    let cache = offline(&direct.0).await;
+    let competing_cache = offline(&direct.0).await;
+    let (first, second) = tokio::join!(a.home_ygdk_cached(&cache), async {
+        pause.0.notified().await;
+        let result = b.home_ygdk_cached(&competing_cache).await;
+        pause.1.notify_one();
+        result
+    });
+    assert!(second.unwrap().state.complete);
+    assert_eq!(
+        first.unwrap().result.route.resolved_route,
+        BridgeConnectionMode::WebVpn
+    );
+    assert_eq!(slow.calls.ygdk_logins.load(SeqCst), 1);
+    drop(a);
+    let document: Value = serde_json::from_str(&direct.contents()).unwrap();
+    assert!(document["routes"]["direct"]["ygdk"].is_object());
+    assert!(document["routes"]["webvpn"]["ygdk"].is_null());
+}
+
+#[tokio::test]
+async fn 修复_f5_仅接收其他任务的离线记录时不写回() {
+    let first = Fixture::in_task(TASK);
+    let second = Fixture::in_task(TASK);
+    let transport = Transport::default();
+    let a = restored(first.1.clone(), "direct", &transport).await;
+    let b = restored(second.1.clone(), "direct", &Transport::default()).await;
+    let cache = offline(&first.0).await;
+    let competing_cache = offline(&first.0).await;
+    let plan = a.begin_spoc_scan(&cache).await.unwrap();
+    {
+        let mut worker = a
+            .inner
+            .read(Some(crate::api::read_pool::ReadGroup::Spoc))
+            .await
+            .unwrap();
+        // 留下一个未提交的业务材料，确保本地恢复错误触发写回时能从磁盘观察到。
+        worker.as_mut().unwrap().ygdk_overview().await.unwrap();
+    }
+    assert!(
+        b.home_spoc_cached(&competing_cache)
+            .await
+            .unwrap()
+            .state
+            .complete
+    );
+    let batch = a.next_spoc_scan(&plan).await.unwrap();
+    assert!(batch.finished);
+    assert!(batch.state.complete);
+    assert_eq!(transport.calls.spoc_terms.load(SeqCst), 0);
+    drop(a);
+    assert!(
+        !first.cache().exists(),
+        "没有在线执行的批次不应提交该 worker 的材料"
+    );
 }

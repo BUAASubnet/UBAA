@@ -2,7 +2,7 @@
 
 use std::sync::{
     Arc, Weak,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -36,6 +36,8 @@ pub(crate) struct ClientRuntime {
     persisted_authentication: Option<Arc<SessionSnapshot>>,
     account_name: Option<String>,
     session_revision: u64,
+    /// 让已排队的旁车任务无需获取会话锁就能观察本客户端发布的新修订。
+    primary_revision: Arc<AtomicU64>,
     authentication_generation: uuid::Uuid,
     authentication_revoked: Arc<AtomicBool>,
     feature_state: Arc<RouteFeatureState>,
@@ -119,6 +121,7 @@ impl ClientRuntime {
             persisted_authentication,
             account_name: None,
             session_revision,
+            primary_revision: Arc::new(AtomicU64::new(session_revision)),
             authentication_generation: uuid::Uuid::new_v4(),
             authentication_revoked: Arc::new(AtomicBool::new(false)),
             feature_state: Arc::new(RouteFeatureState::default()),
@@ -179,6 +182,7 @@ impl ClientRuntime {
             persisted_authentication: self.persisted_authentication.clone(),
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
+            primary_revision: Arc::clone(&self.primary_revision),
             authentication_generation: self.authentication_generation,
             authentication_revoked: Arc::clone(&self.authentication_revoked),
             feature_state: Arc::clone(&self.feature_state),
@@ -301,7 +305,7 @@ impl ClientRuntime {
     /// 会话为空时同步最新修订，允许随后开始新的登录流程。
     pub(crate) fn sync_empty_session_revision(&mut self) -> Result<()> {
         if !self.has_local_session() {
-            self.session_revision = self.store.load_versioned()?.revision;
+            self.set_session_revision(self.store.load_versioned()?.revision);
         }
         Ok(())
     }
@@ -459,7 +463,7 @@ impl ClientRuntime {
         };
         match mutation {
             SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
+                self.set_session_revision(revision);
                 self.persisted_authentication = Some(Arc::new(snapshot));
                 Ok((authenticated_at, now))
             }
@@ -484,7 +488,7 @@ impl ClientRuntime {
             .transpose()?;
         match self.store.compare_exchange(self.session_revision, None)? {
             SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
+                self.set_session_revision(revision);
                 Ok(())
             }
             SessionMutation::Conflict => Err(session_conflict()),
@@ -518,10 +522,6 @@ impl ClientRuntime {
         if let Some(owner) = &self.readonly_generation {
             owner.invalidate();
         }
-    }
-
-    pub(crate) fn set_session_revision(&mut self, revision: u64) {
-        self.session_revision = revision;
     }
 }
 

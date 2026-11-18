@@ -5,7 +5,7 @@ use crate::session::FileSessionStore;
 use std::path::{Path, PathBuf};
 
 const ACCOUNT: &str = "fixture-user";
-const NOW: i64 = 1_800_000_000;
+const NOW: i64 = 1_700_000_000;
 
 fn root(name: &str) -> PathBuf {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -288,4 +288,177 @@ fn 签到与博雅读组凭据不进入旁车或主会话() {
     }
     assert!(!store.path().exists());
     std::fs::remove_dir_all(path).unwrap();
+}
+
+#[test]
+fn 修复_f2_跨实例清理阻止旧材料回填() {
+    for (operation, existing) in [("clear", true), ("login", true), ("clear", false)] {
+        let path = root("clear-fence");
+        if existing {
+            write_materials(&path, NOW);
+        }
+        let first = cache(&path);
+        let (generation, _) = first.seeds(ACCOUNT, ConnectionMode::Direct, NOW);
+        let second = cache(&path);
+        if operation == "login" {
+            second.clear_login(Some(ACCOUNT), ConnectionMode::Direct);
+        } else {
+            second.clear();
+        }
+        let _ = first.write(
+            ACCOUNT,
+            generation,
+            ConnectionMode::Direct,
+            materials(),
+            NOW,
+            || true,
+        );
+        drop(first);
+        let (_, seeds) = cache(&path).seeds(ACCOUNT, ConnectionMode::Direct, NOW);
+        assert!(
+            seeds.iter().all(|seed| seed.material.is_none()),
+            "{operation}/{existing} 回填了旧材料"
+        );
+        std::fs::remove_dir_all(path).unwrap();
+    }
+}
+
+#[test]
+fn 修复_f6_未来时间戳使内存种子失效() {
+    let path = root("future");
+    write_materials(&path, NOW);
+    let reader = cache(&path);
+    assert!(
+        reader.seeds(ACCOUNT, ConnectionMode::Direct, NOW).1[BusinessScope::Spoc as usize]
+            .material
+            .is_some()
+    );
+    for now in [NOW - 1, NOW] {
+        let (_, seeds) = reader.seeds(ACCOUNT, ConnectionMode::Direct, now);
+        assert!(seeds.iter().all(|seed| seed.material.is_none()));
+    }
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[cfg(unix)]
+mod queued {
+    use super::*;
+    use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
+    use crate::runtime::ClientRuntime;
+    use crate::session::DualSessionCoordinator;
+    use std::sync::Arc;
+
+    struct Sso;
+    #[async_trait::async_trait]
+    impl HttpTransport for Sso {
+        async fn execute(&self, request: HttpRequest) -> crate::error::Result<HttpResponse> {
+            if request.url.contains("/login?") {
+                let mut response = HttpResponse::new(302, request.url, Vec::new());
+                response.headers.insert("Location".into(), vec!["https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp&ticket=ST-fixture".into()]);
+                return Ok(response);
+            }
+            assert!(request.url.contains("/serviceValidate?"));
+            let mut response = HttpResponse::new(
+                200,
+                request.url,
+                br#"{"user":"fixture-user","attributes":{"employeeNumber":["fixture-user"]}}"#
+                    .to_vec(),
+            );
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["fixture_sso=refreshed; Path=/; Secure".into()],
+            );
+            Ok(response)
+        }
+    }
+
+    fn setup(
+        path: &Path,
+    ) -> (
+        FileSessionStore,
+        DualSessionCoordinator,
+        ClientRuntime,
+        Arc<BusinessSessionCache>,
+    ) {
+        let store = FileSessionStore::new(path).unwrap();
+        let coordinator = DualSessionCoordinator::new(store.clone()).unwrap();
+        let mut parent = ClientRuntime::new(
+            ConnectionMode::Direct,
+            Sso,
+            coordinator.route_store(ConnectionMode::Direct),
+        )
+        .unwrap();
+        parent.remember_account_name(Some(ACCOUNT));
+        let cache = Arc::new(BusinessSessionCache::new(&store));
+        parent.business_sessions = Some(Arc::clone(&cache));
+        (store, coordinator, parent, cache)
+    }
+
+    fn queue(path: &Path, parent: &mut ClientRuntime) -> (std::fs::File, ClientRuntime) {
+        let lock = std::fs::File::create(path.join(".business_session.lock")).unwrap();
+        lock.lock().unwrap();
+        let mut worker = parent.fork_parallel_readonly();
+        worker
+            .feature_state()
+            .seed_academic_identity(Some(StudentKind::Graduate));
+        worker.persist_business_session();
+        (lock, worker)
+    }
+
+    #[tokio::test]
+    async fn 修复_f1_正常核验保存后旧写回不污染协调器() {
+        let path = root("queued-refresh");
+        let (store, coordinator, mut parent, cache) = setup(&path);
+        parent.refresh_authentication(&mut || {}).unwrap();
+        let revision = store.load_dual_versioned().unwrap().revision;
+        let (held, _worker) = queue(&path, &mut parent);
+        crate::auth::sso_identity::validate_status(&mut parent, &mut || {})
+            .await
+            .unwrap();
+        assert!(store.load_dual_versioned().unwrap().revision > revision);
+        drop(held);
+        cache.lock().writer.drain();
+        assert!(!path.join("business_session.json").exists());
+        assert!(!coordinator.is_conflicted());
+        parent.ensure_session_revision().unwrap();
+        std::fs::remove_dir_all(path).unwrap();
+    }
+
+    #[test]
+    fn 修复_f1_注销推进修订时旧写回不污染协调器() {
+        let path = root("queued-logout");
+        let (_, coordinator, mut parent, cache) = setup(&path);
+        parent.refresh_authentication(&mut || {}).unwrap();
+        let (held, _worker) = queue(&path, &mut parent);
+        parent.clear_memory();
+        let revisions = coordinator.clear_both().unwrap();
+        drop(held);
+        cache.clear();
+        parent.set_session_revision(revisions.direct);
+        assert!(!coordinator.is_conflicted());
+        parent.refresh_authentication(&mut || {}).unwrap();
+        assert!(
+            cache
+                .seeds(ACCOUNT, ConnectionMode::Direct, NOW)
+                .1
+                .iter()
+                .all(|seed| seed.material.is_none())
+        );
+        std::fs::remove_dir_all(path).unwrap();
+    }
+
+    #[test]
+    fn 修复_f3_路线生命周期变化丢弃排队写回() {
+        let path = root("queued-lifecycle");
+        let (store, _, mut parent, cache) = setup(&path);
+        let (held, _worker) = queue(&path, &mut parent);
+        let revision = store.load_dual_versioned().unwrap().revision;
+        let mut rejected_group = parent.fork_parallel_readonly();
+        rejected_group.clear_with(|| {}).unwrap();
+        assert_eq!(store.load_dual_versioned().unwrap().revision, revision);
+        drop(held);
+        cache.lock().writer.drain();
+        assert!(!path.join("business_session.json").exists());
+        std::fs::remove_dir_all(path).unwrap();
+    }
 }

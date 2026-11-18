@@ -40,6 +40,7 @@ impl UbaaClient {
                     result: OfflineRefresh {
                         data: batch.data,
                         resolution: batch.resolution,
+                        online_route: None,
                         scope: CacheScope {
                             route: batch.resolution.mode,
                             query: CacheQuery::EvaluationCurrent,

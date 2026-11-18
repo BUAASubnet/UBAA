@@ -3,17 +3,18 @@ use super::ClientRuntime;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use crate::session::business_cache::{
-    BusinessMaterial, BusinessScope, BusinessSeeds, reusable_cookie_scope, same_material,
+    BusinessCacheStamp, BusinessMaterial, BusinessScope, BusinessSeeds, reusable_cookie_scope,
+    same_material,
 };
 use crate::session::{CookieJar, StoredCookie};
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, Weak, atomic::Ordering};
 
 #[derive(Clone)]
 pub(super) struct ReadonlyOwner {
     state: Weak<RouteFeatureState>,
     generation: u64,
     business_cache_account: Option<String>,
-    business_cache_generation: u64,
+    business_cache_stamp: Option<BusinessCacheStamp>,
     business_seeds: Box<BusinessSeeds>,
     #[cfg(test)]
     invalidate_hook: Option<Arc<dyn Fn() + Send + Sync>>,
@@ -49,7 +50,7 @@ impl ClientRuntime {
             state: Arc::downgrade(&self.feature_state),
             generation: self.feature_state.lifecycle_generation(),
             business_cache_account: None,
-            business_cache_generation: 0,
+            business_cache_stamp: None,
             business_seeds: Box::default(),
             #[cfg(test)]
             invalidate_hook: None,
@@ -63,6 +64,13 @@ impl ClientRuntime {
     #[cfg(test)]
     pub(crate) fn set_readonly_invalidate_hook(&mut self, hook: Arc<dyn Fn() + Send + Sync>) {
         self.readonly_generation.as_mut().unwrap().invalidate_hook = Some(hook);
+    }
+
+    pub(crate) fn set_session_revision(&mut self, revision: u64) {
+        self.session_revision = revision;
+        if self.readonly_generation.is_none() {
+            self.primary_revision.store(revision, Ordering::Release);
+        }
     }
 
     pub(crate) fn synchronize_readonly(&mut self, parent: &Self) -> bool {
@@ -110,8 +118,17 @@ impl ClientRuntime {
             tracing::warn!("业务会话缓存读取失败");
             return;
         };
-        let (generation, seeds) = cache.seeds(account, mode, now);
-        owner.business_cache_generation = generation;
+        let (stamp, seeds) = cache.seeds(account, mode, now);
+        if owner
+            .business_cache_stamp
+            .is_some_and(|prior| prior != stamp)
+        {
+            for scope in BusinessScope::ALL {
+                apply_business_seed(&mut self.jar, &self.feature_state, mode, scope, None);
+            }
+            *owner.business_seeds = Default::default();
+        }
+        owner.business_cache_stamp = Some(stamp);
         for (scope, mut latest) in BusinessScope::ALL.into_iter().zip(seeds) {
             let seed = &mut owner.business_seeds[scope as usize];
             if latest.version > seed.version
@@ -139,7 +156,11 @@ impl ClientRuntime {
         else {
             return;
         };
-        let Some(account) = owner.business_cache_account.as_deref() else {
+        let (Some(account), Some(stamp), Some(parent)) = (
+            owner.business_cache_account.as_deref(),
+            owner.business_cache_stamp,
+            owner.state.upgrade(),
+        ) else {
             return;
         };
         let changes: Vec<_> = BusinessScope::ALL
@@ -154,8 +175,12 @@ impl ClientRuntime {
             })
             .collect();
         if changes.is_empty()
-            || self.ensure_session_revision().is_err()
-            || self.check_authentication_scope().is_err()
+            || !owner.current()
+            || self.check_operation_controls().is_err()
+            || self
+                .shared_account
+                .as_ref()
+                .is_some_and(|scope| scope.check().is_err())
         {
             return;
         }
@@ -167,19 +192,20 @@ impl ClientRuntime {
             BusinessScope::ALL.map(|scope| changes.iter().any(|(key, _)| scope == *key));
         let store = Arc::clone(&self.store);
         let revision = self.session_revision;
-        // 排队过程中另一个进程可以替换主会话，持旁车锁时再次核对所有权。
-        let current = move || {
-            store
-                .is_revision_current(revision)
-                .is_ok_and(|current| current)
+        let primary_revision = Arc::clone(&self.primary_revision);
+        let lifecycle_generation = owner.generation;
+        let revision_current = move || store.revision_matches_for_cache(revision).unwrap_or(false);
+        let lifecycle_current = move || {
+            parent.lifecycle_generation() == lifecycle_generation
+                && primary_revision.load(Ordering::Acquire) == revision
         };
-        if let Some(seeds) = cache.write(
+        if let Some(seeds) = cache.write_after_revision_check(
             account,
-            owner.business_cache_generation,
+            stamp,
             mode,
             changes,
             saved_at,
-            current,
+            (revision_current, lifecycle_current),
         ) {
             let owner = self.readonly_generation.as_mut().expect("已验证读组归属");
             for (index, seed) in seeds.into_iter().enumerate() {
@@ -223,14 +249,10 @@ impl ClientRuntime {
         let Some(account) = owner.business_cache_account.as_deref() else {
             return;
         };
-        if !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty()) {
-            cache.reject(
-                account,
-                owner.business_cache_generation,
-                mode,
-                scope,
-                rejected,
-            );
+        if let Some(stamp) = owner.business_cache_stamp
+            && !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty())
+        {
+            cache.reject(account, stamp, mode, scope, rejected);
         }
         if matches!(scope, BusinessScope::Byxt | BusinessScope::Portal) {
             self.jar.retain(|cookie| !scope.owns(mode, cookie));

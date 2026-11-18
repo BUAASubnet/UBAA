@@ -112,7 +112,9 @@ impl BridgeClient {
                 .refresh_cached_home(&cache.cache, query)
                 .await
                 .map_err(offline_read_error)?;
-            client.persist_business_session(value.result.resolution.mode);
+            if let Some(route) = value.result.online_route {
+                client.persist_business_session(route);
+            }
             Ok(value)
         })
         .await
