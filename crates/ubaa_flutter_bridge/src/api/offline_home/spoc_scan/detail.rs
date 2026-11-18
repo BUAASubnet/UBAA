@@ -98,6 +98,7 @@ impl BridgeClient {
                 .next_spoc_detail_scan(&mut plan)
                 .await
                 .map_err(offline_read_error)?;
+            client.persist_business_session(batch.resolution.mode);
             Ok(BridgeSpocDetailScanBatch {
                 result: batch.data.map(|data| BridgeRoutedSpocAssignmentDetail {
                     data: map_spoc_detail(data),

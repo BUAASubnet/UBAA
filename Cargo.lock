@@ -4146,6 +4146,7 @@ dependencies = [
  "jni",
  "rand",
  "rustls-platform-verifier",
+ "serde_json",
  "sha2",
  "tokio",
  "tracing",

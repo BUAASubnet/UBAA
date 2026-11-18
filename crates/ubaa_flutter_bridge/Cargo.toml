@@ -29,6 +29,7 @@ jni.workspace = true
 rustls-platform-verifier.workspace = true
 
 [dev-dependencies]
+serde_json.workspace = true
 ubaa-test-support = { path = "../ubaa_test_support" }
 
 [lints.rust]

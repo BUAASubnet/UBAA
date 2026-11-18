@@ -52,7 +52,7 @@ impl UbaaClient {
                 .synchronize_readonly(&parent.webvpn_runtime))
     }
 
-    /// 尝试保存实际路线只读 worker 在成功读取后更新的业务 Cookie。
+    /// 尝试保存实际路线只读 worker 在成功读取后更新的业务会话材料。
     pub fn persist_business_session(&mut self, route: crate::domain::ConnectionMode) {
         self.runtime_for(route).persist_business_session();
     }

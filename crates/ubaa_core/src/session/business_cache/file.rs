@@ -6,7 +6,7 @@ use super::super::file_safety::{
 };
 use super::super::file_store::{try_file_lock, wait_for_lock};
 use super::super::storage::TemporaryFile;
-use super::{BusinessScope, StoredCookie, same_material};
+use super::{BusinessMaterial, BusinessScope};
 use crate::domain::ConnectionMode;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 const FILE: &str = "business_session.json";
 const LOCK: &str = ".business_session.lock";
 const MAX_BYTES: u64 = 256 * 1024;
-const SCHEMA: u32 = 1;
+const SCHEMA: u32 = 2;
 
 #[derive(Deserialize, Serialize)]
 pub(super) struct Document {
@@ -36,14 +36,8 @@ struct Routes {
 
 #[derive(Deserialize, Serialize)]
 pub(super) struct Entry {
-    saved_at: i64,
-    pub(super) material: Material,
-}
-
-#[derive(Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub(super) enum Material {
-    Cookies(Vec<StoredCookie>),
+    pub(super) saved_at: i64,
+    pub(super) material: BusinessMaterial,
 }
 
 impl Document {
@@ -93,7 +87,7 @@ impl BusinessSessionFile {
         &self,
         account: &str,
         route: ConnectionMode,
-        changes: &[(BusinessScope, Vec<StoredCookie>)],
+        changes: &[(BusinessScope, Option<BusinessMaterial>)],
         saved_at: i64,
         current: impl FnOnce() -> bool,
     ) -> Result<()> {
@@ -110,17 +104,17 @@ impl BusinessSessionFile {
                 routes: Routes::default(),
             });
         let entries = document.route(route);
-        for (scope, cookies) in changes {
-            if cookies.is_empty() {
-                entries.remove(scope);
-            } else {
+        for (scope, material) in changes {
+            if let Some(material) = material {
                 entries.insert(
                     *scope,
                     Entry {
                         saved_at,
-                        material: Material::Cookies(cookies.clone()),
+                        material: material.clone(),
                     },
                 );
+            } else {
+                entries.remove(scope);
             }
         }
         self.replace(&document)
@@ -131,15 +125,15 @@ impl BusinessSessionFile {
         account: &str,
         route: ConnectionMode,
         scope: BusinessScope,
-        rejected: &[StoredCookie],
+        rejected: &BusinessMaterial,
     ) -> Result<()> {
         let _lock = self.lock()?;
         if let Some(mut document) = self.read()?.filter(|document| document.account == account) {
             let entries = document.route(route);
-            if entries.get(&scope).is_some_and(|entry| {
-                let Material::Cookies(cookies) = &entry.material;
-                same_material(cookies, rejected)
-            }) {
+            if entries
+                .get(&scope)
+                .is_some_and(|entry| entry.material.matches(rejected))
+            {
                 entries.remove(&scope);
                 self.replace(&document)?;
             }

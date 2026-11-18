@@ -1,4 +1,4 @@
-//! 用合成 CAS 与业务响应验证只读 worker 的跨进程 Cookie 缓存。
+//! 用合成 CAS 与业务响应验证只读 worker 的跨进程业务会话缓存。
 use crate::api::client::{BridgeClient, BridgeConnectionMode};
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -39,6 +39,7 @@ struct PortalTransport {
 struct Requests {
     byxt: AtomicUsize,
     portal: AtomicUsize,
+    portal_info: AtomicUsize,
     reject_byxt: AtomicBool,
     reject_portal: AtomicBool,
     pause_old_byxt: AtomicBool,
@@ -112,6 +113,7 @@ impl PortalTransport {
     fn portal(&self, call: &FixtureRequest) -> HttpResponse {
         const HOME: &str = "https://it.buaa.edu.cn/home/";
         if call.direct.contains("/personal/frontend/data/info") {
+            self.state.portal_info.fetch_add(1, SeqCst);
             if self.anonymous_portal
                 || call.cookie("fixture_portal=renewed")
                 || (call.cookie("fixture_portal=valid") && !self.state.reject_portal.load(SeqCst))
@@ -248,8 +250,13 @@ fn wait_for_file(path: &Path) {
 struct Fixture(PathBuf, FileSessionStore);
 impl Fixture {
     fn new() -> Self {
+        Self::in_task("biz_cache")
+    }
+
+    fn in_task(task: &str) -> Self {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/biz_cache")
+            .join("../../.ubaa_local")
+            .join(task)
             .join(uuid::Uuid::new_v4().to_string());
         let store = FileSessionStore::new(&root).unwrap();
         let now = chrono::Utc::now().timestamp();
@@ -302,7 +309,11 @@ impl Drop for Fixture {
     }
 }
 
-fn core(store: FileSessionStore, policy: &str, transport: &PortalTransport) -> UbaaClient {
+fn core(
+    store: FileSessionStore,
+    policy: &str,
+    transport: &(impl HttpTransport + Clone + 'static),
+) -> UbaaClient {
     UbaaClient::with_routing(
         transport.clone(),
         transport.clone(),
@@ -316,7 +327,7 @@ fn core(store: FileSessionStore, policy: &str, transport: &PortalTransport) -> U
 async fn restored(
     store: FileSessionStore,
     policy: &str,
-    transport: &PortalTransport,
+    transport: &(impl HttpTransport + Clone + 'static),
 ) -> BridgeClient {
     let mut client = core(store, policy, transport);
     client
@@ -384,6 +395,10 @@ async fn 业务会话_被拒绝后只激活一次并保存新材料() {
         .schedule_today()
         .await
         .unwrap();
+    // 学生身份到期后必须再次读取门户，覆盖 Portal Cookie 被拒的路径。
+    let mut document: serde_json::Value = serde_json::from_str(&fixture.contents()).unwrap();
+    document["routes"]["direct"]["identity"]["saved_at"] = 0.into();
+    std::fs::write(fixture.cache(), document.to_string()).unwrap();
     transport.state.reject_byxt.store(true, SeqCst);
     transport.state.reject_portal.store(true, SeqCst);
     for _ in 0..2 {
@@ -511,7 +526,7 @@ async fn 业务会话_损坏超限版本与账号不符时重新生成() {
         let invalid = match variant {
             0 => "{".into(),
             1 => format!("{valid}{}", " ".repeat(256 * 1024)),
-            2 => valid.replace("\"schema\":1", "\"schema\":2"),
+            2 => valid.replace("\"schema\":2", "\"schema\":3"),
             _ => valid.replace(ACCOUNT, "fixture-other"),
         };
         assert_ne!(valid, invalid);
@@ -581,7 +596,7 @@ async fn 业务会话_外部替换会话后丢弃排队的写回() {
 }
 
 #[tokio::test]
-async fn 业务会话_路线隔离且排除身份与通用网关材料() {
+async fn 业务会话_路线隔离且排除主认证与通用网关材料() {
     let fixture = Fixture::new();
     let transport = PortalTransport::default();
     for mode in ["direct", "webvpn", "direct", "webvpn"] {
@@ -612,6 +627,7 @@ async fn 业务会话_读组写回不推进双槽修订() {
         .exam_arrangement("fixture-term".into())
         .await
         .unwrap();
+    drop(bridge);
     assert_eq!(fixture.revision(), revision);
     assert_eq!(std::fs::read(fixture.1.path()).unwrap(), main);
     assert!(fixture.cache().is_file());
@@ -725,3 +741,6 @@ fn 业务会话_两进程同时写入同路线不同范围() {
         assert!(content.contains(kept));
     }
 }
+
+#[path = "business_session_p2.rs"]
+mod p2;

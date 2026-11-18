@@ -1,9 +1,9 @@
-//! 并行读取只更新自身 Cookie，不竞争主客户端的持久会话修订。
+//! 并行读取只更新自身业务会话材料，不竞争主客户端的持久会话修订。
 use super::ClientRuntime;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use crate::session::business_cache::{
-    BusinessScope, BusinessSeed, reusable_cookie_scope, same_material,
+    BusinessMaterial, BusinessScope, BusinessSeeds, reusable_cookie_scope, same_material,
 };
 use crate::session::{CookieJar, StoredCookie};
 use std::sync::{Arc, Weak};
@@ -14,7 +14,7 @@ pub(super) struct ReadonlyOwner {
     generation: u64,
     business_cache_account: Option<String>,
     business_cache_generation: u64,
-    business_seeds: [BusinessSeed; 2],
+    business_seeds: Box<BusinessSeeds>,
     #[cfg(test)]
     invalidate_hook: Option<Arc<dyn Fn() + Send + Sync>>,
 }
@@ -50,7 +50,7 @@ impl ClientRuntime {
             generation: self.feature_state.lifecycle_generation(),
             business_cache_account: None,
             business_cache_generation: 0,
-            business_seeds: Default::default(),
+            business_seeds: Box::default(),
             #[cfg(test)]
             invalidate_hook: None,
         });
@@ -87,6 +87,7 @@ impl ClientRuntime {
 
     fn synchronize_business_sessions(&mut self, account: Option<&str>) {
         let mode = self.mode();
+        let now = super::now_seconds_at(self.now());
         let (Some(cache), Some(owner)) = (&self.business_sessions, &mut self.readonly_generation)
         else {
             return;
@@ -96,25 +97,38 @@ impl ClientRuntime {
             .as_deref()
             .is_some_and(|prior| Some(prior) != account)
         {
-            self.jar
-                .retain(|cookie| reusable_cookie_scope(mode, cookie).is_none());
-            owner.business_seeds = Default::default();
+            for scope in BusinessScope::ALL {
+                apply_business_seed(&mut self.jar, &self.feature_state, mode, scope, None);
+            }
+            *owner.business_seeds = Default::default();
         }
         owner.business_cache_account = account.map(str::to_owned);
-        if let Some(account) = account {
-            let (generation, seeds) = cache.seeds(account, mode);
-            owner.business_cache_generation = generation;
-            for (scope, latest) in BusinessScope::ALL.into_iter().zip(seeds) {
-                let seed = &mut owner.business_seeds[scope as usize];
-                if latest.version > seed.version
-                    && same_material(&scope_cookies(&self.jar, mode, scope), &seed.cookies)
-                {
-                    apply_seed(&mut self.jar, mode, scope, &latest.cookies);
-                    *seed = BusinessSeed {
-                        version: latest.version,
-                        cookies: scope_cookies(&self.jar, mode, scope),
-                    };
-                }
+        let Some(account) = account else {
+            return;
+        };
+        let Ok(now) = now else {
+            tracing::warn!("业务会话缓存读取失败");
+            return;
+        };
+        let (generation, seeds) = cache.seeds(account, mode, now);
+        owner.business_cache_generation = generation;
+        for (scope, mut latest) in BusinessScope::ALL.into_iter().zip(seeds) {
+            let seed = &mut owner.business_seeds[scope as usize];
+            if latest.version > seed.version
+                && same_material(
+                    business_material(&self.jar, &self.feature_state, mode, scope).as_ref(),
+                    seed.material.as_ref(),
+                )
+                && apply_business_seed(
+                    &mut self.jar,
+                    &self.feature_state,
+                    mode,
+                    scope,
+                    latest.material.as_ref(),
+                )
+            {
+                latest.material = business_material(&self.jar, &self.feature_state, mode, scope);
+                *seed = latest;
             }
         }
     }
@@ -131,9 +145,12 @@ impl ClientRuntime {
         let changes: Vec<_> = BusinessScope::ALL
             .into_iter()
             .filter_map(|scope| {
-                let cookies = scope_cookies(&self.jar, mode, scope);
-                (!same_material(&cookies, &owner.business_seeds[scope as usize].cookies))
-                    .then_some((scope, cookies))
+                let material = business_material(&self.jar, &self.feature_state, mode, scope);
+                (!same_material(
+                    material.as_ref(),
+                    owner.business_seeds[scope as usize].material.as_ref(),
+                ))
+                .then_some((scope, material))
             })
             .collect();
         if changes.is_empty()
@@ -189,6 +206,15 @@ impl ClientRuntime {
         scope: BusinessScope,
         rejected: &[StoredCookie],
     ) {
+        self.reject_business_material(scope, BusinessMaterial::Cookies(rejected.to_vec()));
+    }
+
+    /// 从只读业务缓存删除仍匹配的材料；凭据槽位由原业务失效分支清理。
+    pub(crate) fn reject_business_material(
+        &mut self,
+        scope: BusinessScope,
+        rejected: BusinessMaterial,
+    ) {
         let mode = self.mode();
         let (Some(cache), Some(owner)) = (&self.business_sessions, &mut self.readonly_generation)
         else {
@@ -197,7 +223,7 @@ impl ClientRuntime {
         let Some(account) = owner.business_cache_account.as_deref() else {
             return;
         };
-        if !rejected.is_empty() {
+        if !matches!(&rejected, BusinessMaterial::Cookies(cookies) if cookies.is_empty()) {
             cache.reject(
                 account,
                 owner.business_cache_generation,
@@ -206,8 +232,10 @@ impl ClientRuntime {
                 rejected,
             );
         }
-        self.jar.retain(|cookie| !scope.owns(mode, cookie));
-        owner.business_seeds[scope as usize].cookies.clear();
+        if matches!(scope, BusinessScope::Byxt | BusinessScope::Portal) {
+            self.jar.retain(|cookie| !scope.owns(mode, cookie));
+        }
+        owner.business_seeds[scope as usize].material = None;
     }
 
     pub(super) fn ensure_readonly_generation(&self) -> Result<()> {
@@ -239,6 +267,60 @@ impl ClientRuntime {
     }
 }
 
+fn business_material(
+    jar: &CookieJar,
+    state: &RouteFeatureState,
+    mode: crate::domain::ConnectionMode,
+    scope: BusinessScope,
+) -> Option<BusinessMaterial> {
+    match scope {
+        BusinessScope::Byxt | BusinessScope::Portal => {
+            let cookies = scope_cookies(jar, mode, scope);
+            (!cookies.is_empty()).then_some(BusinessMaterial::Cookies(cookies))
+        }
+        BusinessScope::Identity => state
+            .cached_academic_identity()
+            .map(BusinessMaterial::Identity),
+        BusinessScope::Spoc => state.spoc.credential().map(BusinessMaterial::Spoc),
+        BusinessScope::Ygdk => state.ygdk.credential().map(BusinessMaterial::Ygdk),
+    }
+}
+
+fn apply_business_seed(
+    jar: &mut CookieJar,
+    state: &RouteFeatureState,
+    mode: crate::domain::ConnectionMode,
+    scope: BusinessScope,
+    material: Option<&BusinessMaterial>,
+) -> bool {
+    match (scope, material) {
+        (BusinessScope::Byxt | BusinessScope::Portal, Some(BusinessMaterial::Cookies(cookies))) => {
+            apply_cookie_seed(jar, cookies);
+        }
+        (BusinessScope::Byxt | BusinessScope::Portal, None) => {
+            jar.retain(|cookie| !scope.owns(mode, cookie));
+        }
+        (BusinessScope::Identity, Some(BusinessMaterial::Identity(kind))) => {
+            state.seed_academic_identity(Some(*kind));
+        }
+        (BusinessScope::Identity, None) => state.seed_academic_identity(None),
+        (BusinessScope::Spoc, Some(BusinessMaterial::Spoc(credential))) => {
+            return state
+                .spoc
+                .store_credential(state.spoc.generation(), credential.clone());
+        }
+        (BusinessScope::Ygdk, Some(BusinessMaterial::Ygdk(credential))) => {
+            return state
+                .ygdk
+                .store_credential(state.ygdk.generation(), credential.clone());
+        }
+        (BusinessScope::Spoc, None) => state.spoc.clear(),
+        (BusinessScope::Ygdk, None) => state.ygdk.clear(),
+        _ => return false,
+    }
+    true
+}
+
 fn scope_cookies(
     jar: &CookieJar,
     mode: crate::domain::ConnectionMode,
@@ -251,16 +333,7 @@ fn scope_cookies(
         .collect()
 }
 
-fn apply_seed(
-    jar: &mut CookieJar,
-    mode: crate::domain::ConnectionMode,
-    scope: BusinessScope,
-    seed: &[StoredCookie],
-) {
-    if seed.is_empty() {
-        jar.retain(|cookie| !scope.owns(mode, cookie));
-        return;
-    }
+fn apply_cookie_seed(jar: &mut CookieJar, seed: &[StoredCookie]) {
     let mut cookies = jar.cookies().to_vec();
     for incoming in seed {
         if let Some(existing) = cookies.iter_mut().find(|cookie| cookie.same_key(incoming)) {

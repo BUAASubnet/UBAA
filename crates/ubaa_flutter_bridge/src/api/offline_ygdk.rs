@@ -159,11 +159,12 @@ impl BridgeClient {
                 .await?;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
-            client
+            let value = client
                 .refresh_cached_ygdk_records(&cache.cache, page, size)
                 .await
-                .map(map_refresh)
-                .map_err(offline_read_error)
+                .map_err(offline_read_error)?;
+            client.persist_business_session(value.result.resolution.mode);
+            Ok(map_refresh(value))
         })
         .await
     }
@@ -186,7 +187,7 @@ impl BridgeClient {
                 .await?;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             self.ensure_recovery_allowed().await?;
-            client
+            let value = client
                 .refresh_cached_ygdk_records_for_overview(
                     &cache.cache,
                     route.into(),
@@ -195,8 +196,9 @@ impl BridgeClient {
                     size,
                 )
                 .await
-                .map(map_refresh)
-                .map_err(offline_read_error)
+                .map_err(offline_read_error)?;
+            client.persist_business_session(value.result.resolution.mode);
+            Ok(map_refresh(value))
         })
         .await
     }
