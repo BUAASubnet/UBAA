@@ -543,6 +543,36 @@ await 后匹配 backend、认证代次、凭据修订和最新请求；原准备
 
 本科业务请求、导入与成绩字段详见[学业来源对照](academic.md)，Portal 路径和字段详见[校园账户逐操作协议](campus.md#逐操作协议)。两条真实路线的跨进程复核由总指挥在获授权后执行。
 
+### 第二阶段业务令牌准入来源对照（2026-11-18）
+
+本节只记录第二阶段纳入业务会话缓存的学生身份、SPOC 和阳光打卡，以及被排除的签到、博雅。冻结来源为 `examples/ubaa_old` 提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 `examples/buaa-api` 提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。Token 的落盘只服务只读 worker，不改变主客户端的写入路径。
+
+#### SPOC 读取与业务令牌
+
+旧版核对 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSpocApi.kt`、`LocalSpocSupport.kt`、`model/dto/Spoc.kt` 和 `LocalSpocApiBackendTest.kt`；示例核对 `src/api/spoc/{core,opt,data}.rs`、`src/store/cred.rs`、`src/request.rs`。当前 Core 对照 `crates/ubaa_core/src/features/spoc/{auth,list,detail,parser}.rs`。
+
+| 操作 | CAS/bootstrap/service | 重定向与最终 URL | Cookie、Session、Token 作用域 | HTTP 方法与精确参数 | 请求头与正文编码 | 加密与签名常量 | DTO 与解析字段 | 缓存、并发与重试 | 错误、退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| SPOC 业务登录 | 旧版访问 `https://spoc.buaa.edu.cn/spocnewht/cas` 取得登录跳转中的 `token`，再 POST `/spocnewht/sys/casLogin` 初始化角色；示例同样以 `/spocnewht/cas` 获取 token，再 POST `sys/casLogin`。 | 旧版在有限跳转中从最终地址提取 `token`；示例使用 `reqwest` 最终 URL，遇到 SSO 登录落点视为失败；当前 Core 保留有界跳转和路线内 URL 校验。 | 旧版 `LocalSpocClient` 按用户名在进程内缓存 `token` 与 `RoleCode`；示例 `CredentialStore` 按 `Spoc` 字段保存令牌；当前 Core 令牌位于路线 `SpocState`，WebVPN 与 Direct 不共用。 | CAS 为 GET、无业务参数；角色初始化为 POST JSON `{ "token": "<token>" }`；当前读取继续使用原课程学期、分页和作业参数。 | 角色初始化带 `X-Requested-With: XMLHttpRequest`、`Token: Inco-<token>`；读取继续带同一 `Token` 与 `RoleCode`，加密请求使用 JSON `{ "param": ... }`。 | 旧版与当前 Core 对需要加密的参数使用 AES-128-CBC 零填充，密钥 `inco12345678ocni`，IV `ocni12345678inco`；示例使用相同固定密钥和 IV；本阶段不新增算法。 | 角色初始化响应解析出 `RoleCode`；列表解析 `zyid/zymc` 等作业字段，详情解析 `id/zymc/zynr` 及提交状态等字段；缺失必需字段按既有解析错误处理。 | 旧版以 `Mutex` 保护按用户的业务客户端，业务令牌仅进程内复用；示例 `Spoc` TTL 固定 10800 秒，注释记录测得 5 小时内有效且不可刷新；当前 Core 使用路线内单飞登录，认证错误最多强制重登一次。 | 当前 Core `with_spoc_auth_retry` 在业务认证错误后清除旧凭据并只重登一次，仍失败时交给既有 UC/会话仲裁；读取失败不发布缓存，主客户端写入不使用本缓存。 |
+
+**纳入结论：**冻结示例明确持久化 SPOC 令牌，当前代码已有“认证拒绝 → 清除 → 强制重登一次”的读取路径，因此允许只读 worker 按 3 小时 TTL 保存 `SpocCredential { token, role }`。`session.json` 中的主认证材料权限更高，业务令牌不会扩大主会话权限。
+
+#### 阳光打卡读取与业务令牌
+
+旧版核对 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt`、`model/dto/Ygdk.kt` 和 `LocalYgdkApiBackendTest.kt`；固定 `buaa-api` 没有阳光打卡等价模块，以下对应列明确记为“不适用”。当前 Core 对照 `crates/ubaa_core/src/features/ygdk/{auth,read,http,parser}.rs`。
+
+| 操作 | CAS/bootstrap/service | 重定向与最终 URL | Cookie、Session、Token 作用域 | HTTP 方法与精确参数 | 请求头与正文编码 | 加密与签名常量 | DTO 与解析字段 | 缓存、并发与重试 | 错误、退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 阳光打卡业务登录与读取 | 旧版 OAuth 入口为 `https://app.buaa.edu.cn/uc/api/oauth/index`，授权码交换为 `https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin`；`buaa-api` 无等价协议，不适用。 | 旧版最多跟随 10 次跳转，从 query 或 fragment query 提取 `code`；当前 Core 保留十跳上限、Direct/WebVPN 路线校验，并只从 Ygdk 回调位置提取 code。 | 旧版按学生标识在 `sessionCache` 中缓存 `uid/token`，不依赖主认证 Cookie；当前 Core 令牌位于路线 `YgdkState`，按路线和业务代次隔离；`buaa-api` 不适用。 | 登录 GET 只追加 `code`；概览依次读取分类、项目、统计和学期；记录 POST `page`、`limit`、`classify_id`、`user_id`。 | 旧版和当前 Core 使用 `POST application/x-www-form-urlencoded; charset=UTF-8`，附加 `uid`、`token` 和 `X-Requested-With: XMLHttpRequest`；`buaa-api` 不适用。 | 两冻结来源中只有旧版有证据，阳光打卡无业务加密或签名；当前 Core 不新增加密。 | 概览解析学期汇总、体育分类、默认项目和项目列表；记录解析记录 ID、项目、时间、地点、图片、开放状态、状态和分页字段；时间按上海时区解释。 | 旧版用 `Mutex` 保护按学生标识的会话缓存，认证异常清除后由外层恢复；当前 Core 使用登录单飞，响应 `code=-98` 或等价认证错误时清除并重读一次；`buaa-api` 不适用。 | 当前 Core 仅将 `-98` 归为业务认证失效，其他非成功码保持业务错误；提交操作仍使用主客户端的现有凭据，不读取、不播种、不写回本缓存。 |
+
+**纳入结论：**旧版明确存在可清除、可重新激活的业务会话，当前 Core 已有 `-98/401` 认证失效分支和一次重登；虽然 `buaa-api` 不适用且没有上游 TTL 证据，本阶段仍按失效分支设置 12 小时 TTL，仅限制磁盘留存时间。
+
+#### 学生身份、签到与博雅的准入边界
+
+- **学生身份：**门户返回的 `本科生`、`研究生` 等结果只保存为 `StudentKind`，不是凭据。身份无法识别时不写回，TTL 为 7 天。
+- **签到：**冻结旧版 `LocalSigninApi.kt` 对非成功 `STATUS` 进行重试，但没有独立、明确的业务会话拒绝信号；当前协议文档记录的登录入口与实现入口仍存在差异，且 `buaa-api` 的 Class 凭据时效不能直接证明当前 iClass 协议可复用。因此本阶段不新增 `Signin` scope，保留原进程内状态。
+- **博雅：**当前读取收到 401 时会沿路线清理并向 facade 冒泡，没有“业务令牌被拒绝后仅重登一次”的稳定分支；冻结示例的短 TTL 也不能改变这一语义。持久化博雅令牌可能把过期业务令牌带入整条路线注销，因此本阶段不新增 `Bykc` scope。
+
 ### Live 验证与客户端认证入口统一（2026-11-13）
 
 冻结来源为 ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版核对 `LocalConnectionAuth.kt` 的预加载、验证码图片、表单和用户中心校验，以及 `AuthApi.kt`、`Auth.kt`、`LocalAuthServiceBackendTest.kt`；另一来源核对 `api/sso/auth.rs`、`request.rs`、`store/cred.rs`、`store/cookies.rs`、`error.rs`。沿用本页验证码逐操作依据，不修改学校协议。
