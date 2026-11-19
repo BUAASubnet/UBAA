@@ -280,6 +280,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
               )).content;
             }
           : null,
+      onCheckSigninStatus: _controller.canCheckSigninStatus
+          ? (courseId) {
+              localOwner.checkCurrent();
+              return _controller.checkSigninSigned(courseId);
+            }
+          : null,
       onSaveSigninQr: widget.galleryImageSaver.isAvailable
           ? (png, name) async {
               localOwner.checkCurrent();

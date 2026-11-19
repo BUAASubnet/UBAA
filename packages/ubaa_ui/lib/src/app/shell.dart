@@ -143,6 +143,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareSigninWrite,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
+    this.onCheckSigninStatus,
     this.onPrepareCgyyCancelWrite,
     this.onPrepareLibbookReserveWrite,
     this.onPrepareLibbookCancelWrite,
@@ -264,6 +265,7 @@ class UbaaMainShell extends StatefulWidget {
   final SigninPreparer? onPrepareSigninWrite;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
+  final SigninStatusChecker? onCheckSigninStatus;
   final CgyyCancelPreparer? onPrepareCgyyCancelWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
@@ -905,6 +907,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             : _startBykcSignWrite,
         onFetchSigninQr: widget.onFetchSigninQr,
         onSaveSigninQr: widget.onSaveSigninQr,
+        onCheckSigninStatus: widget.onCheckSigninStatus,
         onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
             ? null
             : _startSigninWrite,
