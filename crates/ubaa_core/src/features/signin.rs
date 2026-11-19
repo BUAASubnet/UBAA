@@ -118,9 +118,8 @@ pub(crate) async fn perform_signin(
 ) -> Result<SigninActionResult> {
     preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
-    let timestamp = parse_timestamp(&get_timestamp(runtime).await?)?;
-    let url = build_signin_url(runtime.mode(), course_id, &timestamp)?;
-    let response = submit_signin(runtime, url, &credential).await?;
+    let url = build_auto_signin_url(runtime.mode())?;
+    let response = submit_signin(runtime, url, &credential, course_id).await?;
     if response.status != 200 || final_url_is_authentication(&response.final_url) {
         return Err(write_outcome_unknown());
     }
@@ -210,19 +209,34 @@ fn build_signin_url(
     Ok(url.to_string())
 }
 
-#[must_use]
-fn build_signin_form(user_id: &str) -> Vec<(&'static str, String)> {
-    vec![("id", user_id.into())]
+fn build_auto_signin_url(mode: ConnectionMode) -> Result<String> {
+    let upstream = "https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action";
+    match mode {
+        ConnectionMode::Direct => Ok(upstream.to_owned()),
+        ConnectionMode::WebVpn => crate::connection::to_webvpn_url(upstream),
+    }
+}
+
+fn build_signin_form(user_id: &str, course_id: &str) -> Vec<(&'static str, String)> {
+    vec![
+        ("id", user_id.into()),
+        ("courseSchedId", course_id.into()),
+        ("routerInfo", "02:00:00:00:00:00".into()),
+        ("longitude", "0".into()),
+        ("latitude", "0".into()),
+        ("machineInfo", "Android".into()),
+    ]
 }
 
 async fn submit_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     url: String,
     credential: &SigninCredential,
+    course_id: &str,
 ) -> Result<crate::ports::HttpResponse> {
     super::require_session(runtime)?;
     let body = url::form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(build_signin_form(&credential.user_id))
+        .extend_pairs(build_signin_form(&credential.user_id, course_id))
         .finish()
         .into_bytes();
     let mut request = HttpRequest::post(url, body);
@@ -555,9 +569,9 @@ mod contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        SIGNIN_LOGIN_URL, build_signin_form, build_signin_url, build_today_request,
-        final_url_is_authentication, integer_value, parse_login_credential, parse_timestamp,
-        signin_checkin_url,
+        SIGNIN_LOGIN_URL, build_auto_signin_url, build_signin_form, build_signin_url,
+        build_today_request, final_url_is_authentication, integer_value, parse_login_credential,
+        parse_timestamp, signin_checkin_url,
     };
 
     #[test]
@@ -676,10 +690,34 @@ mod tests {
     }
 
     #[test]
-    fn 签到提交表单只发送冻结的用户标识字段() {
-        let form = build_signin_form("user-safe");
-        assert_eq!(form.len(), 1);
-        assert_eq!(form[0], ("id", "user-safe".to_owned()));
+    fn stu_auto_sign提交使用8181且不带查询串() {
+        let direct = build_auto_signin_url(crate::domain::ConnectionMode::Direct)
+            .expect("直连提交地址应可构造");
+        assert_eq!(
+            direct,
+            "https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action"
+        );
+        let webvpn = build_auto_signin_url(crate::domain::ConnectionMode::WebVpn)
+            .expect("WebVPN 提交地址应可构造");
+        assert_eq!(
+            crate::connection::from_webvpn_url(&webvpn).expect("WebVPN 地址应可反向解码"),
+            direct
+        );
+    }
+
+    #[test]
+    fn stu_auto_sign表单包含六个固定字段() {
+        assert_eq!(
+            build_signin_form("user-safe", "schedule-safe"),
+            vec![
+                ("id", "user-safe".to_owned()),
+                ("courseSchedId", "schedule-safe".to_owned()),
+                ("routerInfo", "02:00:00:00:00:00".to_owned()),
+                ("longitude", "0".to_owned()),
+                ("latitude", "0".to_owned()),
+                ("machineInfo", "Android".to_owned()),
+            ]
+        );
     }
 
     #[test]
