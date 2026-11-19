@@ -55,7 +55,7 @@ void main() {
     expect(controller.writeCoordinator.intent, isNull);
   });
 
-  test('共享恢复重绑后重新读取提示，旧本机读取迟到作废不覆盖新结果', () async {
+  test('共享恢复交付强制重读提示，绑定期间开始的普通读取不能覆盖新结果', () async {
     final evidence = Directory(
       '../../.ubaa_local/cold_start_superseded',
     ).absolute..createSync(recursive: true);
@@ -66,29 +66,47 @@ void main() {
     );
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
-    final backend = _SharedHintBackend()..firstReadGate = Completer<void>();
+    final backend = _SharedHintBackend();
     await accounts.retain(backend.username, retainSession: true);
     final controller = AppController(
       backend: backend,
       localAccountStore: accounts,
     );
+    final oldReadStarted = Completer<void>(),
+        oldReadRelease = Completer<void>();
     try {
       await base.cachedHome(controller, backend);
+      await controller.internalWriteReadbackRead?.completion.future;
       expect(backend.hintReads, 1);
-      final startup = controller.internalWriteReadbackRead!.completion.future;
-      await controller.recoverSession(refreshHomeAfter: false);
+      // 恢复先绑定当前索引，再绑定用于最终交付的新索引。等待最后一次，
+      // 避免第二次重绑提前作废普通读取，掩盖交付漏掉的强制刷新。
+      backend.pauseBindingAt = backend.bindingGeneration + 2;
+      final recovery = controller.recoverSession(refreshHomeAfter: false);
+      await backend.bindingStarted.future;
+      final oldHint = backend.hints.single;
+      backend.onHintRead = (number) async {
+        if (number != 2) return;
+        oldReadStarted.complete();
+        await oldReadRelease.future;
+      };
+      final oldRead = controller.internalLoadWriteReadbacks();
+      await oldReadStarted.future;
+      backend.hints.clear();
+      backend.bindingRelease.complete();
+      await recovery;
       expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
-      final refreshed = controller.internalWriteReadbackRead?.completion.future;
-      backend.firstReadGate!.complete();
-      await startup;
-      await refreshed;
-      expect(backend.hintReads, 2);
-      expect(controller.writeReadbacks, hasLength(1));
+      expect(backend.hintReads, 3);
+      await controller.internalWriteReadbackRead?.completion.future;
+      expect(controller.writeReadbacks, isEmpty);
+      oldReadRelease.complete();
+      await oldRead;
+      expect(controller.writeReadbacks, isNot(contains(oldHint)));
       expect(controller.writeReadbackError, isNull);
       expect(backend.commits, 0);
     } finally {
-      if (!backend.firstReadGate!.isCompleted)
-        backend.firstReadGate!.complete();
+      if (!oldReadRelease.isCompleted) oldReadRelease.complete();
+      if (!backend.bindingRelease.isCompleted)
+        backend.bindingRelease.complete();
       controller.dispose();
       await controller.internalDisposeBackendOnce(backend);
       await root.delete(recursive: true);
@@ -116,7 +134,7 @@ void main() {
       await base.cachedHome(controller, backend);
       expect(backend.hintReads, 1);
       final startup = controller.internalWriteReadbackRead!.completion.future;
-      backend.pauseBinding = true;
+      backend.pauseBindingAt = backend.bindingGeneration + 1;
       final recovery = controller.recoverSession(refreshHomeAfter: false);
       await backend.bindingStarted.future;
       backend.firstReadGate!.complete();
@@ -227,6 +245,7 @@ class HintBackend extends base.Backend
     implements WriteReadbackBackend, CacheWriteBackend, CacheManagementBackend {
   int hintReads = 0, commits = 0, dismissals = 0;
   Completer<void>? firstReadGate;
+  Future<void> Function(int)? onHintRead;
   BackendException? readError;
   bool deleteError = false;
   final hints = [
@@ -244,6 +263,7 @@ class HintBackend extends base.Backend
     hintReads++;
     final values = List.of(hints);
     if (hintReads == 1) await firstReadGate?.future;
+    await onHintRead?.call(hintReads);
     if (readError case final error?) throw error;
     return values;
   }
@@ -300,13 +320,13 @@ class HintBackend extends base.Backend
 class _SharedHintBackend extends HintBackend
     implements RequiredSessionBackend, SharedAccountBackend {
   int bindingGeneration = 0;
-  bool pauseBinding = false;
+  int? pauseBindingAt;
   final bindingStarted = Completer<void>(), bindingRelease = Completer<void>();
   @override
   Future<void> bindSharedAccount(SharedAccountBinding binding) async {
     await binding.validate();
     bindingGeneration++;
-    if (pauseBinding && !bindingStarted.isCompleted) {
+    if (bindingGeneration == pauseBindingAt) {
       bindingStarted.complete();
       await bindingRelease.future;
     }

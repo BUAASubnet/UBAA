@@ -127,6 +127,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     final beginning = !internalInteractiveEngaged;
     if (!beginning && !(internalLoginVerification?.canSubmit ?? false)) return;
     if (beginning) {
+      internalClearCurrentSessionGrant();
       internalBeginAuthTelemetry();
       internalCredentialRestoreAllowed = false;
       internalManualAuthenticationRequired = true;

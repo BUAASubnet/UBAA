@@ -8,13 +8,39 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import '../state/models.dart' show RecoveryRequest;
 import '../state/state.dart' show ControllerState;
+import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
 mixin ControllerBackendRecovery on ControllerState {
   @internal
-  Future<bool> internalRebuildDuringRecovery(
-    RecoveryRequest request, {
-    required bool forManualLogin,
-  }) async {
+  Future<bool> internalEndDisposedCurrentSession(
+    UbaaBackend backend,
+    bool Function() current,
+  ) async {
+    final grant = internalCurrentSessionGrantFor(backend);
+    if (grant == null || !current()) return false;
+    try {
+      await grant.binding.validate();
+    } on SecureMaterialException {
+      return false;
+    }
+    if (!current() ||
+        !identical(internalCurrentSessionGrantFor(backend), grant))
+      return false;
+
+    internalClearCurrentSessionGrant();
+    internalBackendNeedsRebuild = true;
+    internalUser = null;
+    internalLocalAccount = null;
+    internalActiveRoutes = const [];
+    internalManualAuthenticationRequired = true;
+    internalResetFeatureSnapshots();
+    internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+    internalSetPhase(AppPhase.login);
+    return true;
+  }
+
+  @internal
+  Future<bool> internalRebuildDuringRecovery(RecoveryRequest request) async {
     final factory = internalBackendFactory;
     if (factory == null ||
         !internalAppForeground ||
@@ -26,7 +52,7 @@ mixin ControllerBackendRecovery on ControllerState {
         !internalActivities.onlyRecovery ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
-    final shared = forManualLogin ? null : internalSharedRecoveryScope;
+    final shared = internalSharedRecoveryScope;
     await shared?.validateSharedState();
     if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut)
       return false;
@@ -102,21 +128,19 @@ mixin ControllerBackendRecovery on ControllerState {
         internalSharedAccountSnapshot = shared!.sharedSnapshot;
       internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
+      internalBackendNeedsRebuild = false;
       internalReplaceWriteCoordinator(replacement);
       internalProfileRefreshedEpoch = -1;
       internalProfileFailureEpoch = -1;
       internalProfileRequest = null;
       internalSessionLifecycle.endRebuild();
-      if (!forManualLogin) {
-        final account = internalLocalAccount;
-        if (account != null) unawaited(internalRestoreCachedHome(account));
-      }
+      final account = internalLocalAccount;
+      if (account != null) unawaited(internalRestoreCachedHome(account));
       return true;
     } finally {
       internalSessionLifecycle.endRebuild();
       // 工厂失败或返回原对象时，本地日程仍独立于网络客户端恢复。
-      if (!forManualLogin &&
-          previous is AgendaProvider &&
+      if (previous is AgendaProvider &&
           identical(previous, internalBackend) &&
           !internalDisposed &&
           !internalIsSigningOut &&

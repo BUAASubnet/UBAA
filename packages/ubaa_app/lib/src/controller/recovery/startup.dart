@@ -271,15 +271,17 @@ mixin ControllerOfflineStartup on ControllerState {
         );
       } else {
         if (allowRebuild && error is BackendException && error.clientDisposed) {
-          final forManualLogin =
-              internalSharedRecoveryScope?.isCurrentSession == true;
-          if (forManualLogin) internalClearCurrentSessionGrant();
+          if (await internalEndDisposedCurrentSession(
+            internalBackend,
+            current,
+          )) {
+            return const ControllerRecoveryStopped(
+              SessionRecoveryStatus.needsLogin,
+            );
+          }
+          if (!current()) return null;
           try {
-            if (await internalRebuildDuringRecovery(
-                  request,
-                  forManualLogin: forManualLogin,
-                ) &&
-                !forManualLogin) {
+            if (await internalRebuildDuringRecovery(request)) {
               return await internalPerformSessionRecovery(
                 request,
                 allowRebuild: false,
@@ -288,22 +290,6 @@ mixin ControllerOfflineStartup on ControllerState {
           } on Object catch (replacementError, replacementTrace) {
             error = replacementError;
             stackTrace = replacementTrace;
-          }
-          if (forManualLogin) {
-            // 后端已销毁，工厂不可用时也结束本次会话，不能调度下一次恢复。
-            if (!internalRecoveryIsCurrent(request.epoch) ||
-                internalIsSigningOut)
-              return null;
-            internalUser = null;
-            internalLocalAccount = null;
-            internalActiveRoutes = const [];
-            internalManualAuthenticationRequired = true;
-            internalResetFeatureSnapshots();
-            internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-            internalSetPhase(AppPhase.login);
-            return const ControllerRecoveryStopped(
-              SessionRecoveryStatus.needsLogin,
-            );
           }
           if (!current()) return null;
         }

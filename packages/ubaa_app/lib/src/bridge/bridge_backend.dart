@@ -201,16 +201,36 @@ class BridgeBackend
   }
 
   @override
-  Future<int> beginHomeRecoveryBatch() => client.contractVersion() < 55
-      ? Future.value(0)
-      : client.beginReadRecoveryBatch();
+  Future<int> beginHomeRecoveryBatch() async {
+    try {
+      return client.contractVersion() < 55
+          ? 0
+          : await client.beginReadRecoveryBatch();
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
+
   @override
-  Future<void> endHomeRecoveryBatch(int batch) =>
-      batch == 0 ? Future.value() : client.endReadRecoveryBatch(batch: batch);
+  Future<void> endHomeRecoveryBatch(int batch) async {
+    if (batch == 0) return;
+    try {
+      await client.endReadRecoveryBatch(batch: batch);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
+
   @override
-  Future<void> invalidateHomeRecoveryBatch() => client.contractVersion() < 55
-      ? Future.value()
-      : client.invalidateReadRecoveryBatch();
+  Future<void> invalidateHomeRecoveryBatch() async {
+    try {
+      if (client.contractVersion() >= 55) {
+        await client.invalidateReadRecoveryBatch();
+      }
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   static Future<BridgeBackend> open(

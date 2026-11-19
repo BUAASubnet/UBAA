@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_app/src/bridge/bridge_backend.dart';
 import 'package:ubaa_app/src/contracts/session_recovery.dart';
 import 'package:ubaa_app/src/controller/state/models.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/materials.dart';
@@ -232,6 +235,176 @@ void main() {
     expect(replacement.authCalls, 0);
   });
 
+  for (final entry in ['首页批次作废', '单功能路线设置', '专用服务目标校验']) {
+    for (final retain in [false, true]) {
+      test('第二轮 $entry 遇到已销毁后端，保留登录=$retain', () async {
+        final replacement = _Backend()..signedIn = false;
+        var created = 0;
+        final fixture = await _login(
+          rememberPassword: retain,
+          backendFactory: () {
+            created++;
+            return replacement;
+          },
+        );
+        final controller = fixture.controller;
+        final old = fixture.backend;
+        switch (entry) {
+          case '首页批次作废':
+            old.batchError = true;
+            await controller.recoverSession();
+            expect(old.targets, isEmpty);
+          case '单功能路线设置':
+            old.routeError = _disposed;
+            await controller.recoverSession(refreshHomeAfter: false);
+            expect(old.targets, isEmpty);
+          case '专用服务目标校验':
+            old.targetError = _disposed;
+            var reads = 0;
+            await expectLater(
+              controller.internalReadService<int>(
+                RecoveryTarget.bhpan,
+                DiagnosticOperation.bhpanList,
+                () async {
+                  reads++;
+                  throw const BackendException(
+                    UbaaErrorCode.authenticationRequired,
+                  );
+                },
+              ),
+              throwsA(isA<UiError>()),
+            );
+            expect(old.serviceTargets, [RecoveryTarget.bhpan]);
+            expect(reads, 1);
+        }
+        expect(created, 1);
+        expect(controller.internalBackend, same(replacement));
+        expect(controller.internalCurrentSessionGrant, isNull);
+        expect(controller.phase, retain ? AppPhase.home : AppPhase.login);
+        if (!retain) {
+          expect(
+            controller.sessionRecoveryStatus,
+            SessionRecoveryStatus.needsLogin,
+          );
+          expect(replacement.targets, isEmpty);
+          expect(replacement.authCalls, 0);
+        } else if (entry != '专用服务目标校验') {
+          expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+        }
+      });
+    }
+  }
+
+  test('第二轮 后台结束本次会话，回前台重建且不再调用旧后端', () async {
+    final replacement = _Backend()..signedIn = false;
+    final factoryStarted = Completer<void>();
+    final fixture = await _login(
+      backendFactory: () {
+        factoryStarted.complete();
+        return replacement;
+      },
+    );
+    final controller = fixture.controller;
+    fixture.backend.targetError = _disposed;
+    final recovery = controller.recoverSession(refreshHomeAfter: false);
+    controller.setAppForeground(false);
+    await recovery;
+    expect(controller.phase, AppPhase.login);
+    expect(controller.internalCurrentSessionGrant, isNull);
+    expect(factoryStarted.isCompleted, isFalse);
+    final oldCalls = fixture.backend.calls;
+    controller.setAppForeground(true);
+    await factoryStarted.future.timeout(const Duration(seconds: 2));
+    await controller.internalBackendRebuildCompletion?.future;
+    expect(controller.internalBackend, same(replacement));
+    expect(controller.phase, AppPhase.login);
+    expect(fixture.backend.calls, oldCalls);
+  });
+
+  for (final interactive in [false, true]) {
+    test('第二轮 工厂失败后重提登录使用新后端，交互式=$interactive', () async {
+      final replacement = interactive ? _InteractiveBackend() : _Backend();
+      replacement.signedIn = false;
+      final original = interactive ? _InteractiveBackend() : _Backend();
+      var attempts = 0;
+      final fixture = await _login(
+        original: original,
+        backendFactory: () {
+          if (++attempts <= 2) {
+            throw const BackendException(UbaaErrorCode.internalError);
+          }
+          return replacement;
+        },
+      );
+      final controller = fixture.controller;
+      fixture.backend.targetError = _disposed;
+      await controller.recoverSession(refreshHomeAfter: false);
+      expect(attempts, 1);
+      expect(controller.phase, AppPhase.login);
+      expect(controller.internalCurrentSessionGrant, isNull);
+      final oldCalls = fixture.backend.calls;
+      controller.setPassword('fixture-secret');
+      await controller.submitLogin();
+      expect(attempts, 2);
+      expect(controller.phase, AppPhase.login);
+      expect(controller.error?.code, UbaaErrorCode.internalError);
+      expect(fixture.backend.calls, oldCalls);
+      controller.setPassword('fixture-secret');
+      await controller.submitLogin();
+      expect(attempts, 3);
+      expect(controller.internalBackend, same(replacement));
+      expect(controller.phase, AppPhase.home);
+      expect(controller.user?.username, 'fixture-user');
+      expect(fixture.backend.calls, oldCalls);
+      expect(
+        interactive
+            ? (replacement as _InteractiveBackend).begins
+            : replacement.loginCalls,
+        1,
+      );
+    });
+  }
+
+  for (final cancel in [false, true]) {
+    test('第二轮 原位换号撤销旧授权与交付，取消=$cancel', () async {
+      final fixture = await _login(
+        original: cancel ? _InteractiveBackend() : null,
+      );
+      final controller = fixture.controller;
+      await controller.recoverSession(refreshHomeAfter: false);
+      final oldScope = controller.internalSharedRecoveryScope!;
+      final oldBinding = controller.internalCurrentSessionGrant!.binding;
+      final backend = fixture.backend;
+      controller.setUsername('other-fixture-user');
+      controller.setPassword('other-fixture-secret');
+      if (backend is _InteractiveBackend) {
+        backend.waitForVerification = true;
+      } else {
+        backend.loginError = const BackendException(
+          UbaaErrorCode.invalidCredentials,
+        );
+      }
+      await controller.submitLogin(preserveHome: true);
+      if (cancel) {
+        expect(controller.loginVerification?.hasCaptcha, isTrue);
+        controller.cancelLoginVerification();
+      } else {
+        expect(controller.error?.code, UbaaErrorCode.invalidCredentials);
+      }
+      expect(controller.phase, AppPhase.home);
+      expect(controller.internalCurrentSessionGrant, isNull);
+      expect(controller.internalSharedRecoveryScope, isNull);
+      await expectLater(
+        oldBinding.validate(),
+        throwsA(isA<LocalAccountConflict>()),
+      );
+      await expectLater(
+        oldScope.commitDelivery(() => fail('旧结果不得交付')),
+        throwsA(_superseded),
+      );
+    });
+  }
+
   test('复审 C 当前会话连续交付只读取一次本地写回提示', () async {
     final fixture = await _login();
     for (final feature in [FeatureId.spoc, FeatureId.signin]) {
@@ -274,12 +447,13 @@ Matcher get _superseded => isA<RecoveryInterrupted>().having(
 Future<_Fixture> _login({
   UbaaBackend Function()? backendFactory,
   bool rememberPassword = false,
+  _Backend? original,
 }) async {
   final materials = syntheticMaterials(MemoryMaterials());
   await materials.probe();
   final accounts = SecureLocalAccountStore(materials);
   final vault = _Vault();
-  final backend = _Backend()..signedIn = false;
+  final backend = (original ?? _Backend())..signedIn = false;
   final controller = _Controller(
     backend: backend,
     backendFactory: backendFactory,
@@ -353,18 +527,76 @@ class _Vault extends MemoryCredentialVault {
 
 class _Backend extends FakeRecoveryBackend
     implements
-        RequiredSessionBackend,
+        RequiredTargetSessionBackend,
+        HomeRecoveryBatchBackend,
+        RouteSettingsBackend,
         ProgressiveReadBackend,
         SharedAccountBackend,
         WriteReadbackBackend {
   final targets = <FeatureId>[];
+  final serviceTargets = <RecoveryTarget>[];
   final reads = <FeatureId>[];
   final started = Completer<void>();
   final release = Completer<void>();
   BackendException? targetError;
+  BackendException? routeError;
+  bool batchError = false;
+  int routeReads = 0;
+  int batchInvalidations = 0;
   int routeLogins = 0;
   int readbackReads = 0;
   bool paused = false;
+
+  int get calls =>
+      authCalls +
+      loginCalls +
+      readCalls +
+      routeReads +
+      batchInvalidations +
+      targets.length +
+      serviceTargets.length;
+
+  @override
+  Future<int> beginHomeRecoveryBatch() async => 0;
+
+  @override
+  Future<void> endHomeRecoveryBatch(int batch) async {}
+
+  @override
+  Future<void> invalidateHomeRecoveryBatch() async {
+    batchInvalidations++;
+    if (batchError) {
+      final bridge = BridgeBackend(_DisposedBatchClient());
+      await bridge.invalidateHomeRecoveryBatch();
+    }
+  }
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async {
+    routeReads++;
+    if (routeError case final error?) throw error;
+    return const BackendRouteSettings(
+      defaultPolicy: RoutePolicy.auto,
+      activeRoutes: [],
+    );
+  }
+
+  @override
+  Future<RecoveredRouteSession> recoverTargetSession(
+    RecoveryTarget target,
+  ) async {
+    if (target.feature case final feature?)
+      return recoverRequiredSession(feature);
+    if (target == RecoveryTarget.connection) {
+      return RecoveredRouteSession(
+        route: ConnectionMode.direct,
+        profile: UserSummary(username: username),
+      );
+    }
+    serviceTargets.add(target);
+    if (targetError case final error?) throw error;
+    throw StateError('专用服务用例需要设置目标校验失败');
+  }
 
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(
@@ -420,4 +652,74 @@ class _Backend extends FakeRecoveryBackend
     reads.add(feature);
     return super.loadFeature(feature);
   }
+}
+
+const _disposed = BackendException(
+  UbaaErrorCode.internalError,
+  clientDisposed: true,
+);
+
+class _DisposedBatchClient implements BridgeClient {
+  @override
+  int contractVersion() => 76;
+
+  @override
+  Future<void> invalidateReadRecoveryBatch() async => throw const BridgeError(
+    code: BridgeErrorCode.clientDisposed,
+    kind: BridgeErrorKind.internal,
+    retryable: false,
+    message: '合成的已销毁后端',
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _InteractiveBackend extends _Backend implements InteractiveLoginBackend {
+  int begins = 0;
+  bool waitForVerification = false;
+
+  @override
+  int get calls => super.calls + begins;
+
+  @override
+  Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) async {
+    begins++;
+    return LoginVerificationState(
+      routes: [
+        if (waitForVerification)
+          LoginRouteVerification(
+            route: ConnectionMode.direct,
+            status: LoginRouteVerificationStatus.captchaRequired,
+            frame: CaptchaPixelFrame(width: 1, height: 1, rgba: Uint8List(4)),
+            validFor: const Duration(minutes: 1),
+          )
+        else
+          const LoginRouteVerification(
+            route: ConnectionMode.direct,
+            status: LoginRouteVerificationStatus.ready,
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<InteractiveLoginCompletion> continueInteractiveLogin(
+    ConnectionMode selectedRoute, {
+    bool pinRoute = false,
+  }) async {
+    return InteractiveLoginCompletion(
+      user: UserSummary(username: username),
+      settings: await routeSettings(),
+    );
+  }
+
+  @override
+  void cancelInteractiveLogin() {}
+
+  @override
+  void discardInteractiveCaptcha(ConnectionMode route) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

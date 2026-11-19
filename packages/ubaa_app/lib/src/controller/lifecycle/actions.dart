@@ -94,10 +94,16 @@ mixin ControllerActions on ControllerState, ControllerAppService {
 
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
+    final becameForeground = foreground && !internalAppForeground;
     internalAppForeground = foreground;
     if (!foreground) {
       internalCancelLoginVerification();
       internalLockDisplay?.cancel();
+    }
+    if (becameForeground &&
+        internalPhase == AppPhase.login &&
+        internalBackendNeedsRebuild) {
+      unawaited(rebuildBackend());
     }
     if (foreground) internalDrainDeferredRecovery();
     internalSyncRecoveryRetries();
@@ -176,13 +182,14 @@ mixin ControllerActions on ControllerState, ControllerAppService {
 
   /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
   ///
-  /// 新 backend 成功创建后才 dispose 旧 backend；随后重新读取 Core 的路线和
-  ///认证状态。没有提供工厂、正在登录/重建或 controller 已销毁时返回 `false`，
-  ///不伪造恢复成功。
+  /// 新后端创建后才释放旧后端。待手动登录时保留表单，不启动会话恢复。
+  @override
   Future<bool> rebuildBackend() async {
     final factory = internalBackendFactory;
+    final forManualLogin = internalBackendNeedsRebuild;
     if (factory == null ||
         internalDisposed ||
+        (forManualLogin && !internalAppForeground) ||
         internalRebuildingBackend ||
         isLoggingIn ||
         internalSessionRecoveryFuture != null ||
@@ -203,12 +210,12 @@ mixin ControllerActions on ControllerState, ControllerAppService {
     final completion = Completer<void>();
     internalBackendRebuildCompletion = completion;
     internalCancelLoginVerification(notify: false);
-    internalReleaseLoginSecret();
+    if (!forManualLogin) internalReleaseLoginSecret();
     internalSessionLifecycle.beginRebuild();
     final activity = internalBeginOperationTransition(
       ControllerActivityKind.backendRebuild,
     );
-    internalSetPhase(AppPhase.checkingSession);
+    if (!forManualLogin) internalSetPhase(AppPhase.checkingSession);
     try {
       final replacement = await factory();
       if (replacement is UnavailableBackend) {
@@ -240,8 +247,10 @@ mixin ControllerActions on ControllerState, ControllerAppService {
       }
       internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
+      internalBackendNeedsRebuild = false;
       unawaited(refreshAppService());
       internalReplaceWriteCoordinator(replacement);
+      if (forManualLogin) return true;
       internalInitialized = false;
       internalUser = null;
       internalActiveRoutes = const <ConnectionMode>[];
@@ -253,18 +262,13 @@ mixin ControllerActions on ControllerState, ControllerAppService {
             : null,
       );
       return true;
-    } on BackendException catch (exception, stackTrace) {
-      internalError = internalRecordFailure(
-        exception,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      internalSetPhase(AppPhase.login);
-      return false;
     } on Object catch (error, stackTrace) {
+      if (internalDisposed) return false;
       internalError = internalRecordFailure(
         error,
-        DiagnosticOperation.initialization,
+        forManualLogin
+            ? DiagnosticOperation.login
+            : DiagnosticOperation.initialization,
         stackTrace: stackTrace,
       );
       internalSetPhase(AppPhase.login);
@@ -362,6 +366,30 @@ mixin ControllerActions on ControllerState, ControllerAppService {
             internalNotify();
             return;
           }
+        }
+        if (internalBackendNeedsRebuild) {
+          final rebuilding = internalBackendRebuildCompletion;
+          if (rebuilding != null) {
+            await rebuilding.future;
+          } else if (!await rebuildBackend()) {
+            if (!internalDisposed &&
+                !internalIsSigningOut &&
+                internalError == null) {
+              internalError = internalRecordFailure(
+                const BackendException(
+                  UbaaErrorCode.internalError,
+                  clientDisposed: true,
+                ),
+                DiagnosticOperation.login,
+              );
+              internalNotify();
+            }
+            return;
+          }
+          if (internalDisposed ||
+              internalIsSigningOut ||
+              internalBackendNeedsRebuild)
+            return;
         }
         if (internalBackend case final InteractiveLoginBackend backend) {
           if (internalDisposed ||

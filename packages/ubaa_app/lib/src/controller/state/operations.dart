@@ -28,6 +28,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<CacheUsageSummary> cacheUsage({required String accountId});
   Future<CacheClearOutcome> clearBusinessCache({required String accountId});
   SessionRecoveryStatus recoveryStatusFor(FeatureId feature);
+  Future<bool> rebuildBackend();
 
   Future<void> recoverSession({
     FeatureId feature = FeatureId.schedule,
@@ -401,6 +402,11 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   bool internalRecoveryIsCurrent(int epoch);
   @internal
+  Future<bool> internalEndDisposedCurrentSession(
+    UbaaBackend backend,
+    bool Function() current,
+  );
+  @internal
   Future<ControllerRecoveryResult?> internalPerformSessionRecovery(
     RecoveryRequest request, {
     bool allowRebuild = true,
@@ -486,10 +492,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalStartNextRecovery();
   @internal
-  Future<bool> internalRebuildDuringRecovery(
-    RecoveryRequest request, {
-    required bool forManualLogin,
-  });
+  Future<bool> internalRebuildDuringRecovery(RecoveryRequest request);
 
   @internal
   void internalClearRecoveryRetries();
