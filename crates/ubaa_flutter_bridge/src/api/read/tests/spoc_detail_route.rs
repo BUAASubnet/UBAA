@@ -83,7 +83,11 @@ async fn spoc_detail_reuses_competing_list(list_policy: &str, list_source: Conne
     assert!(result.complete);
     assert_eq!(result.publication, Some(CachePublication::Stored));
     assert_eq!(slow.calls.spoc_pages.load(SeqCst), 0, "应复用已发布列表");
-    assert_eq!(slow.calls.spoc_details[0].load(SeqCst), 1);
+    assert_eq!(
+        slow.calls.spoc_details[0].load(SeqCst),
+        1,
+        "详情正文必须凭 Direct 的 Token 和 RoleCode 通过夹具校验"
+    );
     assert_eq!(slow.calls.spoc_details[1].load(SeqCst), 0);
     drop(detail_client);
     let document: serde_json::Value = serde_json::from_str(&direct.contents()).unwrap();

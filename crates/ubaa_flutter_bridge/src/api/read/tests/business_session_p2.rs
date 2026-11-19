@@ -18,6 +18,8 @@ use ubaa_test_support::{
 const ACCOUNT: &str = super::ACCOUNT;
 const SPOC_OLD: &str = "fixture-spoc-old";
 const SPOC_NEW: &str = "fixture-spoc-new";
+const SPOC_WEBVPN_OLD: &str = "fixture-spoc-webvpn-old";
+const SPOC_WEBVPN_NEW: &str = "fixture-spoc-webvpn-new";
 const YGDK_OLD: &str = "fixture-ygdk-old";
 const YGDK_NEW: &str = "fixture-ygdk-new";
 const TASK: &str = "biz_cache_p2";
@@ -72,15 +74,20 @@ struct Calls {
 
 impl Transport {
     fn spoc(&self, call: &FixtureRequest, path: &str) -> HttpResponse {
+        let (old_token, new_token, role) = if call.via_vpn() {
+            (SPOC_WEBVPN_OLD, SPOC_WEBVPN_NEW, "04")
+        } else {
+            (SPOC_OLD, SPOC_NEW, "01")
+        };
         match path {
             "/spocnewht/cas" => {
                 let token = if self.renew_spoc
                     || self.reject_spoc_submission
                     || (self.renew_spoc_at.is_some() && self.calls.spoc_logins.load(SeqCst) > 0)
                 {
-                    SPOC_NEW
+                    new_token
                 } else {
-                    SPOC_OLD
+                    old_token
                 };
                 call.redirect(
                     &format!("https://spoc.buaa.edu.cn/spocnew/cas?token={token}"),
@@ -89,7 +96,10 @@ impl Transport {
             }
             "/spocnewht/sys/casLogin" => {
                 self.calls.spoc_logins.fetch_add(1, SeqCst);
-                call.respond(200, r#"{"code":200,"content":{"jsdm":"01"}}"#)
+                call.respond(
+                    200,
+                    &json!({"code": 200, "content": {"jsdm": role}}).to_string(),
+                )
             }
             _ => {
                 let header = call
@@ -97,23 +107,22 @@ impl Transport {
                     .headers
                     .get("Token")
                     .and_then(|s| s.strip_prefix("Inco-"));
-                assert!(matches!(header, Some(SPOC_OLD | SPOC_NEW)));
                 assert!(
-                    call.request
-                        .headers
-                        .get("RoleCode")
-                        .is_some_and(|role| role == "01")
+                    (header == Some(old_token) || header == Some(new_token))
+                        && call.request.headers.get("RoleCode").map(String::as_str) == Some(role),
+                    "SPOC 请求的 Token 或 RoleCode 与 URL 路线不匹配：{path}（WebVPN: {}）",
+                    call.via_vpn()
                 );
-                if header == Some(SPOC_NEW) {
+                if header == Some(new_token) {
                     self.calls.spoc_new.fetch_add(1, SeqCst);
                 }
-                if self.renew_spoc_at == Some(path) && header == Some(SPOC_OLD) {
+                if self.renew_spoc_at == Some(path) && header == Some(old_token) {
                     return call.respond(401, "");
                 }
                 let body = match path {
                     "/spocnewht/inco/ht/queryOne" => {
                         self.calls.spoc_terms.fetch_add(1, SeqCst);
-                        if header == Some(SPOC_OLD) {
+                        if header == Some(old_token) {
                             self.calls.spoc_old.fetch_add(1, SeqCst);
                             if self.renew_spoc {
                                 return call.respond(401, "");
@@ -224,6 +233,7 @@ impl HttpTransport for Transport {
         let path = format!("/{path}");
         match host {
             "spoc.buaa.edu.cn" => {
+                let response = self.spoc(&call, &path);
                 if path == "/spocnewht/jxkj/queryKclb"
                     && let Some(pause) = &self.spoc_courses_pause
                 {
@@ -231,7 +241,7 @@ impl HttpTransport for Transport {
                     pause.1.notified().await;
                     return Ok(call.respond(200, "无效响应"));
                 }
-                Ok(self.spoc(&call, &path))
+                Ok(response)
             }
             "app.buaa.edu.cn" | "ygdk.buaa.edu.cn" => {
                 if path == "/api/Front/Clockin/Classify/getList"
