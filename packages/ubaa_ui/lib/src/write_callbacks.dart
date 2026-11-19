@@ -1,5 +1,11 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+export 'features/coursework/signin_qr_sheet.dart' show SigninQrImageSaver;
+
+/// 按排课标识和时间偏移读取二维码内容。
+typedef SigninCourseQrFetcher =
+    Future<String> Function(String courseId, Duration offset);
+
 /// 把领域准备函数交给应用层唯一写入协调器。
 typedef WritePreparationRunner =
     Future<WriteIntent?> Function(

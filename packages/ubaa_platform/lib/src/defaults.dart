@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'credentials.dart';
 import 'local_accounts.dart';
 import 'secure_material.dart';
+import 'infrastructure/gallery_image_saver.dart';
 import 'location.dart';
 import 'media.dart';
 import 'paths.dart';
@@ -19,6 +20,7 @@ final class PlatformCapabilities {
     required this.permissionGateway,
     required this.locationProvider,
     this.secureMaterials,
+    this.galleryImageSaver = const UnavailableGalleryImageSaver(),
   });
 
   final CredentialVault credentialVault;
@@ -26,6 +28,7 @@ final class PlatformCapabilities {
   final PlatformPhotoPicker photoPicker;
   final PlatformPermissionGateway permissionGateway;
   final PlatformLocationProvider locationProvider;
+  final GalleryImageSaver galleryImageSaver;
 }
 
 /// 命令与 GUI 共用的最小账号能力，不初始化图片、位置或首页。
@@ -77,8 +80,16 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities({
     photoPicker: photos.picker,
     permissionGateway: photos.permissions,
     locationProvider: locationProvider,
+    galleryImageSaver: createDefaultGalleryImageSaver(),
   );
 }
+
+GalleryImageSaver createDefaultGalleryImageSaver({String? operatingSystem}) =>
+    switch (operatingSystem ?? Platform.operatingSystem) {
+      'android' || 'ios' => MobileGalleryImageSaver(),
+      'macos' || 'windows' || 'linux' => const DesktopGalleryImageSaver(),
+      _ => const UnavailableGalleryImageSaver(),
+    };
 
 /// 选图与权限需配对，避免桌面入口被不存在的移动相册权限挡住。
 final class PhotoCapabilities {

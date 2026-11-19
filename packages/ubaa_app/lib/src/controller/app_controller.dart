@@ -11,6 +11,7 @@ import 'error_mapper.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/signin/qr.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart' show RecoveryTarget;
@@ -373,6 +374,30 @@ class AppController extends ControllerState
          diagnostics: diagnostics,
          onReadSchedulerTrace: onReadSchedulerTrace,
        );
+}
+
+extension AppControllerSigninQr on AppController {
+  bool get canFetchSigninQr => internalBackend is SigninQrBackend;
+
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) async {
+    final scope = internalLocalDataOwnerScope;
+    scope.checkCurrent();
+    final backend = internalBackend;
+    if (backend is! SigninQrBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final route = internalRoutePolicyGeneration;
+    final value = await (backend as SigninQrBackend).fetchSigninQr(
+      courseId,
+      offset,
+    );
+    scope.checkCurrent();
+    if (!identical(internalBackend, backend) ||
+        route != internalRoutePolicyGeneration) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    return value;
+  }
 }
 
 extension AppControllerLockDisplay on AppController {

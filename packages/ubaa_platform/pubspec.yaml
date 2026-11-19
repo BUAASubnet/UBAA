@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   file_selector: 1.1.0
+  gal: ^3.0.1
   mime: 2.1.0
   ffi: 2.2.0
   win32: 6.4.0

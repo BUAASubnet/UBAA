@@ -27,12 +27,16 @@ class CourseParticipationContent extends StatelessWidget {
     required this.details,
     required this.evaluationRow,
     this.onSignin,
+    this.onFetchSigninQr,
+    this.onSaveSigninQr,
     this.writesEnabled = true,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
   final Widget Function(FeatureDetail) evaluationRow;
   final SigninStarter? onSignin;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
   final bool writesEnabled;
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
@@ -40,6 +44,8 @@ class CourseParticipationContent extends StatelessWidget {
       : _SigninList(
           details: details,
           onSignin: onSignin,
+          onFetchSigninQr: onFetchSigninQr,
+          onSaveSigninQr: onSaveSigninQr,
           writesEnabled: writesEnabled,
         );
 }
@@ -68,10 +74,14 @@ class _SigninList extends StatefulWidget {
   const _SigninList({
     required this.details,
     required this.onSignin,
+    required this.onFetchSigninQr,
+    required this.onSaveSigninQr,
     required this.writesEnabled,
   });
   final List<FeatureDetail> details;
   final SigninStarter? onSignin;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
   final bool writesEnabled;
   @override
   State<_SigninList> createState() => _SigninListState();
@@ -125,6 +135,8 @@ class _SigninListState extends State<_SigninList> {
         detail: ordered[index].$2,
         now: now,
         onSignin: widget.onSignin,
+        onFetchSigninQr: widget.onFetchSigninQr,
+        onSaveSigninQr: widget.onSaveSigninQr,
         writesEnabled: widget.writesEnabled,
       ),
     );
@@ -136,11 +148,15 @@ class _SigninCourseCard extends StatelessWidget {
     required this.detail,
     required this.now,
     required this.onSignin,
+    required this.onFetchSigninQr,
+    required this.onSaveSigninQr,
     required this.writesEnabled,
   });
   final FeatureDetail detail;
   final DateTime now;
   final SigninStarter? onSignin;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
   final bool writesEnabled;
 
   @override

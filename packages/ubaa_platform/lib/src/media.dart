@@ -16,7 +16,7 @@ const maxPhotoBytes = 10 * 1024 * 1024;
 
 /// 宿主可能需要向系统申请的能力；具体平台插件不得把令牌或原始路径
 /// 暴露给应用层。
-enum PlatformPermission { camera, photos, files, foregroundLocation }
+enum PlatformPermission { camera, photos, files, foregroundLocation, photoAdd }
 
 /// 系统能力申请的稳定结果。
 enum PlatformPermissionStatus { granted, denied, restricted, unavailable }
