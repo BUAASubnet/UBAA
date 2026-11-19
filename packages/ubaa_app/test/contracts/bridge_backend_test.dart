@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../support/bridge/fixtures.dart'
     show
         FixtureContractVersionClient,
@@ -15,7 +16,7 @@ import '../support/bridge/fixtures.dart'
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(74);
+    final client = FixtureContractVersionClient(77);
 
     final backend = BridgeBackend(client);
 

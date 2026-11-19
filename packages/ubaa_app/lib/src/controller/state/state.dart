@@ -18,6 +18,7 @@ import 'package:ubaa_app/src/write/coordinator.dart';
 import 'models.dart'
     show
         BusinessRetry,
+        CurrentSessionGrant,
         GuardedLockDisplaySession,
         ProfileRequest,
         ProgressiveScope,
@@ -108,7 +109,32 @@ abstract class ControllerState extends ControllerOperations {
   @internal
   LocalAccountSnapshot? internalSharedAccountSnapshot;
   @internal
+  CurrentSessionGrant? internalCurrentSessionGrant;
+  @internal
   RecoveryScope? internalSharedRecoveryScope;
+
+  @internal
+  CurrentSessionGrant? internalCurrentSessionGrantFor(UbaaBackend backend) {
+    final grant = internalCurrentSessionGrant;
+    final snapshot = internalSharedAccountSnapshot;
+    if (internalLocalAccountStore is! SecureLocalAccountStore ||
+        grant == null ||
+        !identical(grant.backend, backend) ||
+        grant.binding.isRevocation ||
+        internalLocalAccount?.id != grant.binding.account.id ||
+        snapshot == null ||
+        snapshot.state.generation != grant.binding.generation ||
+        snapshot.state.canRestore) {
+      return null;
+    }
+    return grant;
+  }
+
+  @internal
+  void internalClearCurrentSessionGrant() {
+    internalCurrentSessionGrant = null;
+    internalSharedRecoveryScope = null;
+  }
 
   @internal
   bool get internalIsSigningOut => internalSessionLifecycle.signingOut;
@@ -152,6 +178,9 @@ abstract class ControllerState extends ControllerOperations {
 
   @internal
   Completer<void>? internalBackendRebuildCompletion;
+
+  @internal
+  bool internalBackendNeedsRebuild = false;
 
   @internal
   Future<void>? internalCredentialMutation;

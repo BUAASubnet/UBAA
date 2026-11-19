@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../read_scheduler.dart';
 import 'read_scope.dart';
@@ -12,7 +11,7 @@ abstract interface class CurrentTermsReader {
 final class AcademicTermsOwner implements CurrentTermsReader {
   ReadScope? _scope;
   FeatureResult? _result;
-  Future<FeatureResult>? _pending;
+  final _pending = PendingFeatureRead();
   ReadDemand? _demand;
   int _serial = 0;
 
@@ -44,7 +43,7 @@ final class AcademicTermsOwner implements CurrentTermsReader {
       invalidate();
       _scope = scope;
     }
-    if (_pending case final pending?) {
+    if (_pending.current case final pending?) {
       if (_demand?.promote(priority) == true) pump();
       return pending;
     }
@@ -54,36 +53,25 @@ final class AcademicTermsOwner implements CurrentTermsReader {
     _result = null;
     final serial = ++_serial;
     final demand = _demand = ReadDemand(priority);
-    final completion = Completer<FeatureResult>();
-    _pending = completion.future;
     bool current() => scope.isCurrent && serial == _serial;
-    unawaited(() async {
+    return _pending.joinOrStart(() async {
       try {
         final result = await fetch(current, demand);
-        if (!current()) {
-          completion.complete(conflict());
-        } else {
-          if (result.error == null) _result = result;
-          completion.complete(result);
-        }
-      } on Object catch (error, stackTrace) {
-        if (!current()) {
-          completion.complete(conflict());
-        } else {
-          completion.completeError(error, stackTrace);
-        }
-      } finally {
-        if (serial == _serial) _pending = null;
+        if (!current()) return conflict();
+        if (result.error == null) _result = result;
+        return result;
+      } on Object {
+        if (!current()) return conflict();
+        rethrow;
       }
-    }());
-    return completion.future;
+    });
   }
 
   void invalidate() {
     _serial++;
     _scope = null;
     _result = null;
-    _pending = null;
+    _pending.clear();
     _demand = null;
   }
 }

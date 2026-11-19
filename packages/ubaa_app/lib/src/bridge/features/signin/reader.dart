@@ -8,6 +8,26 @@ import 'projection.dart' show bridgeMapSigninHome;
 import '../../home/reader.dart' show bridgeFinishHomeRefresh;
 import '../../support/mapping.dart' show bridgeMapError, bridgeToConnectionMode;
 
+Future<SigninQr> bridgeFetchSigninQr(
+  BridgeContext backend,
+  String courseId,
+  Duration offset,
+) async {
+  if (offset.isNegative || offset > const Duration(minutes: 1)) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  try {
+    final result = await backend.client.signinQr(
+      courseId: courseId,
+      offsetMs: offset.inMilliseconds,
+    );
+    final value = result.data;
+    return SigninQr(content: value.content, timestamp: value.timestamp.toInt());
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
+  }
+}
+
 Future<FeatureResult> bridgeLoadSigninHome(
   BridgeContext backend,
   FeatureQuery query, {

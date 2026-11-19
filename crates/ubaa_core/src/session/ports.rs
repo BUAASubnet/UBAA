@@ -33,6 +33,12 @@ pub trait SessionStore: Send + Sync {
         Ok(self.load_versioned()?.revision == expected_revision)
     }
 
+    /// 为旁车写回只读核对修订，旧任务不得改变主会话所有权。
+    #[doc(hidden)]
+    fn revision_matches_for_cache(&self, expected_revision: u64) -> Result<bool> {
+        Ok(self.load_versioned()?.revision == expected_revision)
+    }
+
     /// 加载会话快照（如果存在）。
     ///
     /// # Errors

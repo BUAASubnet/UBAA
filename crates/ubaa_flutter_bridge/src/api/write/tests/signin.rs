@@ -57,7 +57,6 @@ async fn signin_prepare_normalizes_public_target_before_preflight_and_storage() 
         signin_login_request(),
         signin_today_request(SCHEDULE_ID, Some(0)),
         signin_today_request(SCHEDULE_ID, Some(0)),
-        signin_timestamp_request(),
         signin_write_request(r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#),
     ]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
@@ -176,7 +175,6 @@ async fn signin_commit_rechecks_fresh_authority_and_preserves_business_false() {
         signin_login_request(),
         signin_today_request(SCHEDULE_ID, Some(0)),
         signin_today_request(SCHEDULE_ID, Some(0)),
-        signin_timestamp_request(),
         signin_write_request(
             r#"{"STATUS":0,"ERRMSG":"当前尚不可签到","result":{"stuSignStatus":0}}"#,
         ),
@@ -207,13 +205,13 @@ async fn signin_commit_rechecks_fresh_authority_and_preserves_business_false() {
     assert!(!result.message.contains("当前尚不可签到"));
     assert!(!result.outcome_unknown);
     direct.assert_exhausted().expect("最终写请求必须恰好一次");
-    assert_eq!(direct.requests().expect("读取请求").len(), 6);
+    assert_eq!(direct.requests().expect("读取请求").len(), 5);
     let reused = client
         .commit_write(intent.intent_id)
         .await
         .expect_err("业务拒绝也必须消费一次性意图");
     assert_eq!(reused.code, BridgeErrorCode::IntentExpired);
-    assert_eq!(direct.requests().expect("读取请求").len(), 6);
+    assert_eq!(direct.requests().expect("读取请求").len(), 5);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -325,23 +323,12 @@ fn json_escape(value: &str) -> String {
         .replace('\t', r"\t")
 }
 
-fn signin_timestamp_request() -> ExpectedRequest {
-    let url = "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action";
-    ExpectedRequest::new(
-        HttpMethod::Get,
-        url,
-        HttpResponse::new(200, url, br#"{"timestamp":1700000000000}"#.to_vec()),
-    )
-}
-
 fn signin_write_request(body: &'static str) -> ExpectedRequest {
-    let url = format!(
-        "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId={SCHEDULE_ID}&timestamp=1700000000000"
-    );
+    let url = "https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action";
     ExpectedRequest::new(
         HttpMethod::Post,
-        &url,
-        HttpResponse::new(200, &url, body.as_bytes().to_vec()),
+        url,
+        HttpResponse::new(200, url, body.as_bytes().to_vec()),
     )
 }
 

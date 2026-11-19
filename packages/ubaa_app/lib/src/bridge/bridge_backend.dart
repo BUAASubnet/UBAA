@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
@@ -9,11 +10,13 @@ import 'campus/service.dart';
 import 'bhpan/service.dart';
 import 'cloud_print.dart';
 import 'write/pinned_readback.dart';
+
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
+
 import '../../runtime.dart'
     show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
 import 'auth/required_session.dart';
@@ -59,7 +62,8 @@ import 'features/libbook/reader.dart' show bridgeLoadLibbookFeature;
 import 'features/profile/reader.dart'
     show bridgeReadCachedProfile, bridgeRefreshProfile;
 import 'features/schedule/reader.dart' show bridgeBeginScheduleImport;
-import 'features/signin/reader.dart' show bridgeLoadSigninHome;
+import 'features/signin/reader.dart'
+    show bridgeFetchSigninQr, bridgeLoadSigninHome;
 import 'read/progressive.dart' show bridgeBeginProgressiveRead;
 import 'features/ygdk/reader.dart'
     show bridgeLoadYgdkOverviewOnRoute, bridgeLoadYgdkRecordsOnRoute;
@@ -84,7 +88,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 74;
+const _supportedBridgeContractVersion = 77;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -109,6 +113,7 @@ class BridgeBackend
         ManualCaptchaBackend,
         CgyyLockDisplayBackend,
         FeatureQueryBackend,
+        SigninQrBackend,
         SigninReadbackBackend,
         BykcReadbackBackend,
         LibbookReadbackBackend,
@@ -163,6 +168,10 @@ class BridgeBackend
   }
 
   @override
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) =>
+      bridgeFetchSigninQr(_context, courseId, offset);
+
+  @override
   String exportRawDiagnostics() => _context.client.exportRawDiagnostics();
 
   @override
@@ -198,16 +207,36 @@ class BridgeBackend
   }
 
   @override
-  Future<int> beginHomeRecoveryBatch() => client.contractVersion() < 55
-      ? Future.value(0)
-      : client.beginReadRecoveryBatch();
+  Future<int> beginHomeRecoveryBatch() async {
+    try {
+      return client.contractVersion() < 55
+          ? 0
+          : await client.beginReadRecoveryBatch();
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
+
   @override
-  Future<void> endHomeRecoveryBatch(int batch) =>
-      batch == 0 ? Future.value() : client.endReadRecoveryBatch(batch: batch);
+  Future<void> endHomeRecoveryBatch(int batch) async {
+    if (batch == 0) return;
+    try {
+      await client.endReadRecoveryBatch(batch: batch);
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
+
   @override
-  Future<void> invalidateHomeRecoveryBatch() => client.contractVersion() < 55
-      ? Future.value()
-      : client.invalidateReadRecoveryBatch();
+  Future<void> invalidateHomeRecoveryBatch() async {
+    try {
+      if (client.contractVersion() >= 55) {
+        await client.invalidateReadRecoveryBatch();
+      }
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(bridgeMapError(error), stack);
+    }
+  }
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   static Future<BridgeBackend> open(
@@ -342,6 +371,7 @@ class BridgeBackend
     final native = await BridgeSharedAccount.capture(
       directory: binding.directory,
       generation: BigInt.from(binding.generation),
+      retainSession: binding.snapshot.state.canRestore,
     );
     var adopted = false;
     try {

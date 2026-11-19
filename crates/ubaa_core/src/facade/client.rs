@@ -12,6 +12,7 @@ use crate::domain::{ConnectionMode, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, InitializationFailure, Result, UbaaError};
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::Invalidation;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
@@ -30,12 +31,21 @@ pub struct UbaaClient {
     pub(super) direct_auth: AuthWorkflow,
     pub(super) webvpn_auth: AuthWorkflow,
     pub(super) sessions: DualSessionCoordinator,
+    pub(super) session_conflict_seen: bool,
+    pub(super) business_sessions: Arc<crate::session::business_cache::BusinessSessionCache>,
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
     pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
     pub(super) cloud_print: Option<Box<ClientRuntime>>,
 }
 
 impl UbaaClient {
+    #[cfg(all(test, feature = "test-contract"))]
+    pub(crate) fn business_cache_for_test(
+        &self,
+    ) -> Arc<crate::session::business_cache::BusinessSessionCache> {
+        Arc::clone(&self.business_sessions)
+    }
+
     /// 返回仅供用户主动导出的原始响应缓冲。
     #[must_use]
     pub fn raw_diagnostics(&self) -> super::RawDiagnostics {
@@ -90,6 +100,9 @@ impl UbaaClient {
             )
         })?;
         let mut reopened = Self::open_with_diagnostics(directory, self.raw_diagnostics.clone())?;
+        reopened
+            .business_sessions
+            .inherit_revocation_failure(&self.business_sessions);
         reopened.probe = self.probe.clone();
         reopened.network = self.network.clone();
         reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
@@ -262,11 +275,12 @@ impl UbaaClient {
         TDirect: HttpTransport + 'static,
         TWebVpn: HttpTransport + 'static,
     {
-        let sessions = DualSessionCoordinator::new(store)?;
-        let direct_store = sessions.route_store(ConnectionMode::Direct);
-        let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
+        let business_sessions = Arc::new(
+            crate::session::business_cache::BusinessSessionCache::new(&store),
+        );
+        let sessions = DualSessionCoordinator::new(store)?.with_business_cache(&business_sessions);
         let probe = Arc::new(probe);
-        Ok(Self {
+        let mut client = Self {
             raw_diagnostics: diagnostics.clone(),
             network: super::ClientNetworkControl::new(probe.clone()),
             read_recovery_batch: super::required_recovery::ReadRecoveryBatch::default(),
@@ -277,31 +291,36 @@ impl UbaaClient {
             route_generation: 0,
             config,
             probe,
-            direct_runtime: ClientRuntime::new(
+            direct_runtime: ClientRuntime::new_coordinated(
                 ConnectionMode::Direct,
                 crate::ports::diagnostics::RecordingTransport {
                     inner: direct_transport,
                     diagnostics: diagnostics.clone(),
                     route: ConnectionMode::Direct,
                 },
-                direct_store,
+                &sessions,
             )?,
-            webvpn_runtime: ClientRuntime::new(
+            webvpn_runtime: ClientRuntime::new_coordinated(
                 ConnectionMode::WebVpn,
                 crate::ports::diagnostics::RecordingTransport {
                     inner: webvpn_transport,
                     diagnostics,
                     route: ConnectionMode::WebVpn,
                 },
-                webvpn_store,
+                &sessions,
             )?,
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions,
+            session_conflict_seen: false,
+            business_sessions,
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
             cloud_print: None,
-        })
+        };
+        client.direct_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
+        client.webvpn_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
+        Ok(client)
     }
 
     /// 返回当前客户端拥有的路线槽位。
@@ -333,6 +352,7 @@ impl UbaaClient {
         };
         let mut replacement = self.config.clone();
         replacement.replace_default_policy(policy);
+        let policy_changed = !self.config.has_same_effective_routes(&replacement);
         let generation = self.route_generation.checked_add(1).ok_or_else(|| {
             UbaaError::new(
                 ErrorCode::InternalError,
@@ -346,6 +366,14 @@ impl UbaaClient {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.config = replacement;
+        if policy_changed
+            && self
+                .business_sessions
+                .invalidate(Invalidation::RevokeAll)
+                .is_err()
+        {
+            tracing::warn!("全量撤销业务会话缓存失败");
+        }
         self.clear_interactive_context();
         Ok(())
     }

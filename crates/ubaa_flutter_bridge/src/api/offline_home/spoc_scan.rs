@@ -93,6 +93,9 @@ impl BridgeClient {
                 .next_spoc_scan(&mut plan)
                 .await
                 .map_err(offline_read_error)?;
+            if let Some(route) = batch.online_route {
+                client.persist_business_session(route);
+            }
             Ok(BridgeSpocScanBatch {
                 result: BridgeRoutedSpocAssignments {
                     data: map_spoc_assignments(batch.data),

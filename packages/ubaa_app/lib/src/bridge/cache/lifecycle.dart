@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
+
 import '../support/mapping.dart'
     show bridgeCacheClearOutcome, bridgeCacheUsageSummary, bridgeMapError;
 part 'rebuild.dart';
@@ -104,6 +106,7 @@ Future<CacheClearOutcome> bridgeClearBusinessCache(
       final old = bridgeManagementCache(backend, accountId);
       final reset = await old.clearAndReopen();
       backend.cache.handle = reset.cache;
+      await backend.client.clearBusinessSessionCache();
       await bridgeCommitSharedBinding(backend.sharedAccount);
       return bridgeCacheClearOutcome(reset.report, accountId);
     } on BridgeError catch (error, stack) {

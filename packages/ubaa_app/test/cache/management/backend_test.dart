@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
@@ -210,6 +211,9 @@ class _Api implements RustLibApi {
 }
 
 class _Client implements BridgeClient {
+  @override
+  Future<void> clearBusinessSessionCache() async {}
+
   @override
   int contractVersion() => 54;
   @override

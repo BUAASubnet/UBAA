@@ -81,6 +81,9 @@ class FeatureDetailView extends StatefulWidget {
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
+    this.onFetchSigninQr,
+    this.onSaveSigninQr,
+    this.onCheckSigninStatus,
     this.onCgyyCancelWrite,
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
@@ -143,6 +146,9 @@ class FeatureDetailView extends StatefulWidget {
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
   final SigninStarter? onSigninWrite;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
+  final SigninStatusChecker? onCheckSigninStatus;
   final CgyyCancelStarter? onCgyyCancelWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
@@ -796,6 +802,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         onBykcWrite: onWrite,
         onBykcSignWrite: widget.onBykcSignWrite,
         onSigninWrite: widget.onSigninWrite,
+        onFetchSigninQr: widget.onFetchSigninQr,
+        onSaveSigninQr: widget.onSaveSigninQr,
+        onCheckSigninStatus: widget.onCheckSigninStatus,
         onCgyyCancelWrite: widget.onCgyyCancelWrite,
         onLibbookReserveWrite: widget.onLibbookReserveWrite,
         onLibbookCancelWrite: widget.onLibbookCancelWrite,

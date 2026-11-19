@@ -18,9 +18,14 @@ sealed class ControllerRecoveryResult {
 }
 
 final class ControllerRecoveredSession extends ControllerRecoveryResult {
-  const ControllerRecoveredSession(this.profile, this.deliveryScope);
+  const ControllerRecoveredSession(
+    this.profile,
+    this.deliveryScope, {
+    this.sharedBindingRebound = false,
+  });
   final UserSummary profile;
   final RecoveryScope? deliveryScope;
+  final bool sharedBindingRebound;
   @override
   SessionRecoveryStatus get status => SessionRecoveryStatus.ready;
   @override

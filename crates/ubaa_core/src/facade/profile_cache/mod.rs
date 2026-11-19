@@ -98,6 +98,7 @@ impl UbaaClient {
         Ok(OfflineRefresh {
             data: read.data,
             resolution,
+            online_route: None,
             scope,
             fetched_at,
             save_error,

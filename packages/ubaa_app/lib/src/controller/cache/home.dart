@@ -163,6 +163,7 @@ mixin ControllerOfflineCache on ControllerState {
 
   @internal
   Future<void> internalRejectMismatchedAccount() async {
+    internalClearCurrentSessionGrant();
     internalLocalDataGeneration++;
     internalSessionLifecycle.invalidate();
     internalCacheLifecycle.invalidateReads();

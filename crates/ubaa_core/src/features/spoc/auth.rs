@@ -1,5 +1,6 @@
 //! SPOC CAS 引导、路线约束与业务凭据重试。
 
+use crate::session::business_cache::{BusinessMaterial, BusinessScope};
 use std::future::Future;
 use std::pin::Pin;
 
@@ -77,8 +78,18 @@ where
     let credential = ensure_credential(runtime, false).await?;
     match operation(runtime, &credential).await {
         Err(error) if is_authentication_error(&error) => {
+            runtime
+                .reject_business_material(BusinessScope::Spoc, BusinessMaterial::Spoc(credential));
             let credential = ensure_credential(runtime, true).await?;
-            operation(runtime, &credential).await
+            let result = operation(runtime, &credential).await;
+            if result.as_ref().is_err_and(is_authentication_error) {
+                runtime.reject_business_material(
+                    BusinessScope::Spoc,
+                    BusinessMaterial::Spoc(credential),
+                );
+                runtime.feature_state().spoc.clear_credential();
+            }
+            result
         }
         result => result,
     }

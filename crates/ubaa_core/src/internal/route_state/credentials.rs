@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(test)]
 use std::sync::{Arc, Condvar, Mutex as TestMutex};
 
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 /// 财务查询系统令牌，只在当前路线的内存状态中保存。
@@ -50,8 +51,8 @@ impl std::fmt::Debug for LibBookCredential {
     }
 }
 
-/// 阳光打卡业务凭据，只在当前路线的内存状态中保存。
-#[derive(Clone, Eq, PartialEq)]
+/// 阳光打卡业务凭据，绑定当前路线，可由只读 worker 缓存。
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub(crate) struct YgdkCredential {
     pub(crate) uid: i32,
     pub(crate) token: String,
@@ -85,8 +86,8 @@ impl std::fmt::Debug for SigninCredential {
     }
 }
 
-/// SPOC 业务凭据，只在当前路线的内存状态中保存。
-#[derive(Clone, Eq, PartialEq)]
+/// SPOC 业务凭据，绑定当前路线，可由只读 worker 缓存。
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub(crate) struct SpocCredential {
     pub(crate) token: String,
     pub(crate) role: String,

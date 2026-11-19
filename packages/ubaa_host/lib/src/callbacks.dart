@@ -271,6 +271,31 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.prepareBykcWrite(operation, courseId),
       onPrepareBykcSignWrite: _prepareBykcSignWrite,
       onPrepareSigninWrite: _controller.prepareSigninWrite,
+      onFetchSigninQr: _controller.canFetchSigninQr
+          ? (courseId, offset) async {
+              localOwner.checkCurrent();
+              return (await _controller.fetchSigninQr(
+                courseId,
+                offset,
+              )).content;
+            }
+          : null,
+      onCheckSigninStatus: _controller.canCheckSigninStatus
+          ? (courseId) {
+              localOwner.checkCurrent();
+              return _controller.checkSigninSigned(courseId);
+            }
+          : null,
+      onSaveSigninQr: widget.galleryImageSaver.isAvailable
+          ? (png, name) async {
+              localOwner.checkCurrent();
+              final result = await widget.galleryImageSaver.save(
+                png,
+                name: name,
+              );
+              return result == GalleryImageSaveResult.saved;
+            }
+          : null,
       onPrepareCgyyCancelWrite: _controller.prepareCgyyCancelWrite,
       onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
       onPrepareLibbookCancelWrite: _controller.prepareLibbookCancelWrite,

@@ -96,6 +96,9 @@ class FeatureDetailList extends StatefulWidget {
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
+    this.onFetchSigninQr,
+    this.onSaveSigninQr,
+    this.onCheckSigninStatus,
     this.onCgyyCancelWrite,
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
@@ -135,6 +138,9 @@ class FeatureDetailList extends StatefulWidget {
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
   final SigninStarter? onSigninWrite;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
+  final SigninStatusChecker? onCheckSigninStatus;
   final CgyyCancelStarter? onCgyyCancelWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
@@ -375,6 +381,9 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                       feature: widget.feature,
                       details: visible,
                       onSignin: widget.onSigninWrite,
+                      onFetchSigninQr: widget.onFetchSigninQr,
+                      onSaveSigninQr: widget.onSaveSigninQr,
+                      onCheckSigninStatus: widget.onCheckSigninStatus,
                       writesEnabled: widget.writesEnabled,
                       evaluationRow: (detail) =>
                           _evaluationCourseRow(detail, setState),

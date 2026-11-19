@@ -462,7 +462,7 @@ confirm_text: 知道了
 
 ### 10.3 发布
 
-- 公告与渠道内容构建为 JSON，随应用服务版本部署。GitHub 正式发布事件只在服务器和云盘分发完整后更新公开版本。
+- 公告与渠道内容构建为 JSON，从 dev 单独发布，服务器只替换这两部分。应用服务版本从 main 部署，不改写已发布内容。GitHub 正式发布事件只在服务器和云盘分发完整后更新公开版本。
 - 部署先完成测试与构建，服务器通过临时 URL 直连下载本次运行产物，再初始化 PostgreSQL Schema、切换应用并检查健康状态。失败时恢复原应用版本。
 - `just app-service-deploy` 与 `just app-service-publish` 触发 main 部署。部署密钥仅交给受保护的生产作业，学校凭据仅保存在服务器。操作见[部署手册](../runbooks/app-service.md)。
 

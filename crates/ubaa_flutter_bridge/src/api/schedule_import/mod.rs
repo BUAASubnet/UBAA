@@ -78,14 +78,16 @@ impl BridgeClient {
             let count = |value| {
                 u32::try_from(value).map_err(|_| cache_error(core::CacheError::InvalidInput))
             };
-            Ok(BridgeScheduleImportProgress {
+            let progress = BridgeScheduleImportProgress {
                 term_code: data.term_code,
                 completed_weeks: count(data.completed_weeks)?,
                 total_weeks: data.total_weeks.map(count).transpose()?,
                 finished: data.finished,
                 save_error: data.save_error.map(Into::into),
                 route: map_route(result.resolution),
-            })
+            };
+            client.persist_business_session(result.resolution.mode);
+            Ok(progress)
         })
         .await
     }

@@ -32,6 +32,7 @@ def main():
     operation = sys.argv[1]
     run = os.environ.get('SOURCE_RUN', os.environ['GITHUB_RUN_ID'])
     repository = os.environ['GITHUB_REPOSITORY']
+    # 内容发布不跳过旧提交：后续提交可能不改内容，不会再次触发发布；同组运行按推送顺序执行。
     if operation in ('app', 'docs'):
         branch = 'main' if operation == 'app' else 'dev'
         head = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repository}/git/ref/heads/{branch}'], text=True))
@@ -41,6 +42,9 @@ def main():
     payload = {'operation': operation, 'run': run, 'sha': os.environ['GITHUB_SHA']}
     if operation == 'publish':
         payload['tag'] = os.environ['RELEASE_TAG']
+    elif operation == 'content':
+        # 渠道和公告体积很小，直接随运行描述传入，不经产物下载。
+        payload['content'] = json.loads(Path('.ubaa_local/app_content.json').read_text())
     else:
         pages = json.loads(subprocess.check_output([
             'gh', 'api', '--paginate', '--slurp',

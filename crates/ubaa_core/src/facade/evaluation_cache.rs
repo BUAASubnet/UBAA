@@ -40,6 +40,7 @@ impl UbaaClient {
                     result: OfflineRefresh {
                         data: batch.data,
                         resolution: batch.resolution,
+                        online_route: None,
                         scope: CacheScope {
                             route: batch.resolution.mode,
                             query: CacheQuery::EvaluationCurrent,
@@ -47,6 +48,7 @@ impl UbaaClient {
                         fetched_at: batch.fetched_at,
                         save_error: batch.save_error,
                     },
+                    online_routes: Vec::new(),
                     complete: batch.complete,
                     publication: batch.publication,
                 });

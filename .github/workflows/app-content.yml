@@ -1,0 +1,69 @@
+name: 应用服务内容发布
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - services/app_service/config/channels.json
+      - docs/site/announcements/**
+      - scripts/check/app_service/**
+      - scripts/server/content.mjs
+      - scripts/server/notify.py
+      - package.json
+      - package-lock.json
+      - .github/workflows/app-content.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+# 单独分组：共用分组时，排队中的内容发布会被后到的应用部署取消。服务器部署锁负责与应用部署串行。
+concurrency:
+  group: app-content-production
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: toolchain
+        uses: ./.github/actions/toolchain
+        with:
+          rust: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: 校验渠道配置与正式公告
+        run: just app-service-content-check
+  app-content-deploy:
+    name: 发布渠道与公告
+    needs:
+      - check
+    if: success() && github.repository == 'BUAASubnet/UBAA' && github.ref_name == 'dev' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.event.deleted == false)
+    runs-on: ubuntu-latest
+    # 与文档站共用只允许 dev 的环境和部署密钥；服务器只替换渠道和公告。
+    environment: docs-production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: toolchain
+        uses: ./.github/actions/toolchain
+        with:
+          rust: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: 生成服务器内容
+        run: |
+          npm ci --no-audit --no-fund
+          node scripts/server/content.mjs
+      - name: 通知服务器替换渠道与公告
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
+          UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
+        run: python3 scripts/server/notify.py content

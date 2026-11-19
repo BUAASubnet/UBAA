@@ -99,11 +99,16 @@ mixin ControllerDeferredRecovery on ControllerState {
           .then<void>((value) {
             result = value;
           })
-          .whenComplete(() {
+          .whenComplete(() async {
             activity.finish();
             internalActiveRecovery = null;
             internalSessionRecoveryFuture = null;
             internalFinishRecoveryRetry(request, result);
+            if (internalBackendNeedsRebuild &&
+                internalPhase == AppPhase.login &&
+                internalAppForeground) {
+              await rebuildBackend();
+            }
             request.completion.complete();
             if (!internalDisposed) internalNotify();
           }),

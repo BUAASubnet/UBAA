@@ -2,7 +2,7 @@
 
 use crate::domain::{
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    ReadonlyFeature, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    ReadonlyFeature, SigninClass, SigninQr, SpocAssignmentDetail, SpocAssignments,
     SpocAssignmentsDiagnostics,
 };
 
@@ -21,6 +21,25 @@ impl UbaaClient {
             self,
             resolution,
             crate::features::signin::get_today(self.runtime_for(resolution.mode)).await
+        );
+        self.finish_routed(resolution, result)
+    }
+
+    /// 通过签到功能路由获取课堂签到二维码内容，不提交签到。
+    ///
+    /// # Errors
+    /// 课程安排标识、时间偏移、路线、会话或上游响应无效时返回错误。
+    pub async fn signin_qr(&mut self, course_id: &str, offset_ms: u32) -> RoutedResult<SigninQr> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::signin::get_qr(
+                self.runtime_for(resolution.mode),
+                course_id,
+                offset_ms
+            )
+            .await
         );
         self.finish_routed(resolution, result)
     }

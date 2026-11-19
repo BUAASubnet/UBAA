@@ -359,6 +359,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  gal:
+    dependency: transitive
+    description:
+      name: gal
+      sha256: "5bd6542d6a387b76b50a803ad87573f3f505baea7c7153054f6d8fac7fc46d98"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   glob:
     dependency: transitive
     description:
@@ -740,6 +748,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.1"
+  qr:
+    dependency: transitive
+    description:
+      name: qr
+      sha256: "2c0189dca64a3ab08dda7acd7911c89af2374f08eb4eaded3e8ef4609f3b9c8b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.3"
+  qr_flutter:
+    dependency: transitive
+    description:
+      name: qr_flutter
+      sha256: "5095f0fc6e3f71d08adef8feccc8cea4f12eec18a2e31c2e8d82cb6019f4b097"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   record_use:
     dependency: transitive
     description:
