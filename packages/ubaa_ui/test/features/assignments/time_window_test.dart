@@ -10,11 +10,15 @@ import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
   for (final sample in [
-    (7, 49, false),
-    (7, 50, true),
-    (8, 30, true),
-    (9, 40, false),
-    (9, 41, false),
+    // (时, 分, 可扫码, 可直接签到)：二维码课前 10 分钟到下课，直接签到课前 5 分钟到上课后 30 分钟。
+    (7, 49, false, false),
+    (7, 50, true, false),
+    (7, 54, true, false),
+    (7, 55, true, true),
+    (8, 29, true, true),
+    (8, 30, true, false),
+    (9, 39, true, false),
+    (9, 40, false, false),
   ]) {
     for (final done in [false, true]) {
       testWidgets(
@@ -39,11 +43,17 @@ void main() {
             );
             final button = find.widgetWithText(FilledButton, '签到');
             final qrButton = find.byTooltip('签到二维码');
-            if (sample.$3 && !done) {
+            if (sample.$4 && !done) {
               expect(tester.widget<FilledButton>(button).enabled, isTrue);
             } else {
               expect(button, findsNothing);
             }
+            expect(
+              find.text('07:55 起可签'),
+              sample.$3 && sample.$1 == 7 && !sample.$4 && !done
+                  ? findsOneWidget
+                  : findsNothing,
+            );
             expect(qrButton, sample.$3 ? findsWidgets : findsNothing);
             if (done) {
               expect(
@@ -68,7 +78,7 @@ void main() {
   testWidgets(
     '缺少排课 ID 时二维码不可用且直接签到不可点',
     (tester) =>
-        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 30)), () async {
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
           await tester.pumpWidget(
             _signinCard(scheduleId: ' ', fetch: (_, _) async => '合成二维码'),
           );
@@ -81,7 +91,7 @@ void main() {
   testWidgets(
     '缺少二维码读取回调时仍提供直接签到',
     (tester) =>
-        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 30)), () async {
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
           await tester.pumpWidget(_signinCard());
           final button = find.widgetWithText(FilledButton, '签到');
           expect(tester.widget<FilledButton>(button).enabled, isTrue);
@@ -101,7 +111,7 @@ void main() {
     testWidgets(
       '写入禁用或资格未知时二维码仍可读（$writesEnabled, $eligibility）',
       (tester) =>
-          withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 30)), () async {
+          withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
             var reads = 0;
             await tester.pumpWidget(
               _signinCard(

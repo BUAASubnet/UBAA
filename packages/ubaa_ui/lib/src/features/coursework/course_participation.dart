@@ -53,24 +53,51 @@ class CourseParticipationContent extends StatelessWidget {
         );
 }
 
-/// 课前 10 分钟到下课前可以签到；其余时间只显示状态。
-const _signinLead = Duration(minutes: 10);
+/// 二维码：课前 10 分钟到下课。
+const _qrLead = Duration(minutes: 10);
+
+/// 直接签到：课前 5 分钟到上课后 30 分钟。
+const _submitLead = Duration(minutes: 5);
+const _submitAfterBegin = Duration(minutes: 30);
 
 enum _SigninPhase { open, upcoming, ended, unknown }
 
-({_SigninPhase phase, DateTime? opensAt}) _signinPhase(
-  SigninPresentation p,
-  DateTime now,
-) {
+/// [phase] 按二维码时间窗；[submitOpen] 为此刻能否直接签到，
+/// [submitOpensAt] 为直接签到开始时间。
+({
+  _SigninPhase phase,
+  DateTime? opensAt,
+  DateTime? submitOpensAt,
+  bool submitOpen,
+})
+_signinPhase(SigninPresentation p, DateTime now) {
   final begin = uiParseCampusTime(p.classBeginTime, day: now);
   final end = uiParseCampusTime(p.classEndTime, day: now);
-  if (begin == null || end == null)
-    return (phase: _SigninPhase.unknown, opensAt: null);
-  final opens = begin.subtract(_signinLead);
-  if (now.isBefore(opens))
-    return (phase: _SigninPhase.upcoming, opensAt: opens);
-  if (now.isBefore(end)) return (phase: _SigninPhase.open, opensAt: opens);
-  return (phase: _SigninPhase.ended, opensAt: opens);
+  if (begin == null || end == null) {
+    return (
+      phase: _SigninPhase.unknown,
+      opensAt: null,
+      submitOpensAt: null,
+      submitOpen: false,
+    );
+  }
+  final opens = begin.subtract(_qrLead);
+  final submitOpens = begin.subtract(_submitLead);
+  final submitCloses = begin.add(_submitAfterBegin);
+  final phase = now.isBefore(opens)
+      ? _SigninPhase.upcoming
+      : now.isBefore(end)
+      ? _SigninPhase.open
+      : _SigninPhase.ended;
+  return (
+    phase: phase,
+    opensAt: opens,
+    submitOpensAt: submitOpens,
+    submitOpen:
+        phase == _SigninPhase.open &&
+        !now.isBefore(submitOpens) &&
+        now.isBefore(submitCloses),
+  );
 }
 
 class _SigninList extends StatefulWidget {
@@ -202,14 +229,22 @@ class _SigninCourseCard extends StatelessWidget {
       tooltip: '签到二维码',
       icon: const Icon(Icons.qr_code_2_rounded),
     );
-    final signButton = onSignin != null && action != null
+    final signButton = onSignin == null || action == null
+        ? null
+        : window.submitOpen
         ? FilledButton(
             onPressed: writesEnabled && allowed
                 ? () => onSignin!(action)
                 : null,
             child: const Text('签到'),
           )
-        : null;
+        // 课前 10～5 分钟只能扫码，提示直接签到的开始时间；上课 30 分钟后只剩二维码。
+        : switch (window.submitOpensAt) {
+            final opens? when now.isBefore(opens) => UiTag(
+              '${uiClock(opens)} 起可签',
+            ),
+            _ => null,
+          };
     // 签到窗口内：二维码（给智慧教室扫码）与直接签到并列。
     final Widget? trailing = done && canShowQr
         ? Row(
