@@ -149,7 +149,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       campusAccountService: _controller.campusAccountService,
       campusRechargeService: _controller.campusRechargeService,
       onCheckCashierSupport: supportsCampusCashier,
-      onOpenCashier: openCampusCashier,
+      onOpenCashier: _controller.campusCashierOpener,
       bhpanService: _controller.bhpanService,
       cloudPrintService: _controller.cloudPrintService,
       onPickPrintFiles: const SystemCloudPrintFiles().pick,

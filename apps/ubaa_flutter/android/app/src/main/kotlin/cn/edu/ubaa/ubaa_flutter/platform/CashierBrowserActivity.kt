@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
@@ -12,11 +13,16 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import org.json.JSONObject
+import org.json.JSONTokener
 
 /** 应用管理导航的收银台，TLS 和安全浏览仍由 Android WebView 负责。 */
 class CashierBrowserActivity : Activity() {
     private var browser: WebView? = null
     private var alipayPrompt: AlertDialog? = null
+    private var loginRequest = 0L
+    private var pageGeneration = 0L
+    private var merchantLoginStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +31,7 @@ class CashierBrowserActivity : Activity() {
             finish()
             return
         }
+        loginRequest = intent.getLongExtra(LOGIN_REQUEST, 0)
         actionBar?.setDisplayHomeAsUpEnabled(true)
         val view = try {
             WebView(this)
@@ -44,6 +51,10 @@ class CashierBrowserActivity : Activity() {
         }
 
         view.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                pageGeneration++
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val target = request.url
                 if (target.scheme.equals("https", ignoreCase = true)) return false
@@ -58,6 +69,19 @@ class CashierBrowserActivity : Activity() {
                 actionBar?.subtitle = Uri.parse(url).host.orEmpty()
             }
             override fun onPageFinished(view: WebView, url: String) {
+                if (view.url != url) return
+                if (loginRequest != 0L) {
+                    if (CashierBrowserPolicy.isMerchantSsoPage(url)) {
+                        trySsoLogin(view, url)
+                    } else if (!merchantLoginStarted) {
+                        val login = CashierBrowserPolicy.merchantLoginUrl(url, order)
+                        if (login != null) {
+                            merchantLoginStarted = true
+                            view.loadUrl(login)
+                            return
+                        }
+                    }
+                }
                 if (CashierBrowserPolicy.shouldHideWechatMethod(url)) {
                     view.evaluateJavascript(HIDE_WECHAT_METHOD_SCRIPT, null)
                 }
@@ -65,6 +89,32 @@ class CashierBrowserActivity : Activity() {
         }
         setContentView(view)
         view.loadUrl(order)
+    }
+
+    private fun trySsoLogin(view: WebView, page: String) {
+        val request = loginRequest
+        val generation = pageGeneration
+        fun currentPage() = browser === view && !isFinishing &&
+            generation == pageGeneration && view.url == page
+
+        // 只读取本页挑战；账号密码不交给网页脚本、URL 或 Activity 参数。
+        view.evaluateJavascript("$SSO_EXECUTION_SCRIPT(${JSONObject.quote(page)})") { result ->
+            if (!currentPage() || request != loginRequest) return@evaluateJavascript
+            val execution = runCatching { JSONTokener(result).nextValue() as? String }.getOrNull()
+            loginRequest = 0
+            if (execution.isNullOrBlank()) {
+                CashierBrowserChannel.cancelLogin(request)
+                return@evaluateJavascript
+            }
+            CashierBrowserChannel.requestLogin(request) { username, password ->
+                if (currentPage()) {
+                    view.postUrl(
+                        CashierBrowserPolicy.merchantSsoLogin,
+                        CashierBrowserPolicy.ssoForm(username, password, execution)
+                    )
+                }
+            }
+        }
     }
 
     private fun confirmAlipay(url: Uri, paymentPackage: String) {
@@ -100,6 +150,8 @@ class CashierBrowserActivity : Activity() {
     }
 
     override fun onDestroy() {
+        CashierBrowserChannel.cancelLogin(loginRequest)
+        loginRequest = 0
         alipayPrompt?.dismiss()
         browser?.let { view ->
             view.stopLoading()
@@ -112,6 +164,35 @@ class CashierBrowserActivity : Activity() {
 
     companion object {
         internal const val ORDER_URL = "orderUrl"
+        internal const val LOGIN_REQUEST = "loginRequest"
+        private val SSO_EXECUTION_SCRIPT = """
+            (function(expectedPage) {
+                if (window !== window.top || location.href !== expectedPage) return null;
+                if (typeof config !== 'undefined' && config &&
+                    ['captcha', 'mfa', 'otp', 'verification', 'verify', 'challenge']
+                        .some(function(key) { return key in config; })) return null;
+                var error = document.querySelector('#errorDiv');
+                if (error && error.textContent.trim()) return null;
+                var form = document.querySelector('form#loginForm, form#fm1');
+                if (!form || form.method !== 'post' || document.querySelector('#continueForm')) return null;
+                var action = new URL(form.action);
+                if (action.origin !== location.origin || action.pathname !== '/login' ||
+                    (action.search && action.search !== location.search) || action.hash) return null;
+                var names = ['username', 'password', 'submit', 'type', 'execution', '_eventId'];
+                var fields = Object.create(null);
+                for (var field of form.elements) {
+                    if (field.tagName !== 'INPUT' || !names.includes(field.name) ||
+                        fields[field.name] || field.disabled) return null;
+                    fields[field.name] = field;
+                }
+                if (!names.every(function(name) { return fields[name]; }) ||
+                    fields.username.type !== 'text' || fields.username.value ||
+                    fields.password.type !== 'password' || fields.password.value ||
+                    fields.submit.value !== '登录' || fields.type.value !== 'username_password' ||
+                    fields._eventId.value !== 'submit') return null;
+                return fields.execution.value;
+            })
+        """.trimIndent()
         private val HIDE_WECHAT_METHOD_SCRIPT = """
             (function() {
                 if (location.protocol !== 'https:' ||

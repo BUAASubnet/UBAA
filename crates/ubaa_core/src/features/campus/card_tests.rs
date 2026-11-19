@@ -62,13 +62,13 @@ impl Step {
         }
     }
 
-    fn post_json(url: impl Into<String>, payload: serde_json::Value) -> Self {
+    fn post_json(url: impl Into<String>, payload: &serde_json::Value) -> Self {
         Self {
             method: HttpMethod::Post,
             url: url.into(),
             status: 200,
             body: serde_json::to_vec(
-                &json!({ "datajson": super::envelope::seal(&payload).unwrap() }),
+                &json!({ "datajson": super::envelope::seal(payload).unwrap() }),
             )
             .unwrap(),
             location: None,
@@ -189,7 +189,7 @@ fn 充值准备读取卡序号与余额且不公开openid() {
         for balance in ["1.73", "2.73"] {
             steps.push(Step::post_json(
                 format!("{CARD}/card/cardpay/openCardPay"),
-                json!({
+                &json!({
                     "success": true,
                     "data": {
                         "cardPay": {"idserial": "25375059", "cardbal": balance},
@@ -218,7 +218,7 @@ fn 下单只创建订单并交付同一商户收银台() {
             let mut steps = login_steps();
             steps.push(Step::post_json(
                 format!("{CARD}/card/recharge/rechargeByHct?openid={OPENID}"),
-                json!({
+                &json!({
                     "success": true,
                     "resultData": {
                         "orderno": ORDERNO,
@@ -283,7 +283,7 @@ fn 非收银台地址被拒绝() {
             let mut steps = login_steps();
             steps.push(Step::post_json(
                 format!("{CARD}/card/recharge/rechargeByHct?openid={OPENID}"),
-                json!({
+                &json!({
                     "success": true,
                     "resultData": {"orderno": ORDERNO, "mweb_url": url},
                 }),

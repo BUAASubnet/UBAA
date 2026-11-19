@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'credentials.dart';
 
 abstract interface class PlatformAppInformation {
   Future<String?> version();
@@ -40,6 +44,7 @@ Future<bool> openExternalUrl(Uri url) async {
 }
 
 const _cashierBrowser = MethodChannel('cn.edu.buaa.ubaa/cashier-browser');
+int _cashierLoginRequest = 0;
 
 /// Android 使用应用自有浏览器；不支持应用内浏览时不退回外部浏览器。
 Future<bool> supportsCampusCashier() async {
@@ -55,8 +60,11 @@ Future<bool> supportsCampusCashier() async {
 
 final _cashierOrderId = RegExp(r'[A-Za-z0-9]{1,64}');
 
-/// 在应用内打开航财通原订单；不注入会话或支付参数。
-Future<bool> openCampusCashier(Uri url) async {
+/// 在应用内打开航财通原订单。Android 只在已确认的 SSO 页按需取一次凭据。
+Future<bool> openCampusCashier(
+  Uri url, {
+  Future<Credential?> Function()? requestLogin,
+}) async {
   if (!url.isScheme('https') ||
       url.host != 'cashier.cc-pay.cn' ||
       url.port != 443 ||
@@ -73,11 +81,60 @@ Future<bool> openCampusCashier(Uri url) async {
     if (id.isEmpty || _cashierOrderId.stringMatch(id) != id) return false;
     if (!await supportsCampusCashier()) return false;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return await _cashierBrowser.invokeMethod<bool>('open', url.toString()) ??
-          false;
+      return await _openAndroidCashier(url, requestLogin);
     }
     return await launchUrl(url, mode: LaunchMode.inAppWebView);
   } on Object {
     return false;
+  }
+}
+
+Future<bool> _openAndroidCashier(
+  Uri url,
+  Future<Credential?> Function()? requestLogin,
+) async {
+  final id = ++_cashierLoginRequest;
+  void clear() {
+    if (_cashierLoginRequest == id) _cashierBrowser.setMethodCallHandler(null);
+  }
+
+  Timer? expiry;
+  if (requestLogin != null) {
+    expiry = Timer(const Duration(minutes: 1), clear);
+    _cashierBrowser.setMethodCallHandler((call) async {
+      if (call.arguments != id ||
+          _cashierLoginRequest != id ||
+          (call.method != 'requestLogin' && call.method != 'cancelLogin')) {
+        return null;
+      }
+      expiry?.cancel();
+      clear();
+      if (call.method != 'requestLogin') return null;
+      final credential = await requestLogin();
+      if (_cashierLoginRequest != id ||
+          credential == null ||
+          !credential.autoLogin ||
+          !credential.isUsable) {
+        return null;
+      }
+      return {'username': credential.username, 'password': credential.password};
+    });
+  } else {
+    clear();
+  }
+  var opened = false;
+  try {
+    opened =
+        await _cashierBrowser.invokeMethod<bool>('open', {
+          'url': url.toString(),
+          if (requestLogin != null) 'loginRequest': id,
+        }) ??
+        false;
+    return opened;
+  } finally {
+    if (!opened) {
+      expiry?.cancel();
+      clear();
+    }
   }
 }

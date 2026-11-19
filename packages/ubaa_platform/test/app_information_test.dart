@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,7 +102,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'isSupported') return supported;
       if (call.method != 'open') return null;
-      opened.add(call.arguments as String);
+      opened.add((call.arguments as Map)['url'] as String);
       return true;
     });
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -114,6 +116,60 @@ void main() {
     expect(await openCampusCashier(cashier), isTrue);
     expect(opened, [cashier.toString()]);
     expect(launcher.urls, isEmpty);
+  });
+
+  test('Android 只在当前收银台请求时读取一次自动登录材料', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    const channel = MethodChannel('cn.edu.buaa.ubaa/cashier-browser');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    int? request;
+    var reads = 0;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'isSupported') return true;
+      final args = call.arguments as Map;
+      request = args['loginRequest'] as int;
+      expect(args.keys, unorderedEquals(['url', 'loginRequest']));
+      return true;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    addTearDown(() => channel.setMethodCallHandler(null));
+    Future<Object?> askForLogin(int id) async {
+      final reply = Completer<ByteData?>();
+      await messenger.handlePlatformMessage(
+        channel.name,
+        channel.codec.encodeMethodCall(MethodCall('requestLogin', id)),
+        reply.complete,
+      );
+      final data = await reply.future;
+      return data == null ? null : channel.codec.decodeEnvelope(data);
+    }
+
+    final cashier = Uri.parse('https://cashier.cc-pay.cn/cashier?id=Order1');
+    expect(
+      await openCampusCashier(
+        cashier,
+        requestLogin: () async {
+          reads++;
+          return const Credential(
+            username: 'fixture-user',
+            password: 'fixture-pass',
+            autoLogin: true,
+          );
+        },
+      ),
+      isTrue,
+    );
+    expect(reads, 0);
+    expect(await askForLogin(request! + 1), isNull);
+    expect(reads, 0);
+    expect(await askForLogin(request!), {
+      'username': 'fixture-user',
+      'password': 'fixture-pass',
+    });
+    expect(await askForLogin(request!), isNull);
+    expect(reads, 1);
   });
 }
 

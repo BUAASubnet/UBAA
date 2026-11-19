@@ -331,6 +331,48 @@ class AppController extends ControllerState
     return _campusService;
   }
 
+  /// 收银台的打开动作与创建订单时的账号绑定。原生浏览器仅在 SSO 页请求凭据。
+  Future<bool> Function(Uri) get campusCashierOpener {
+    final session = internalCaptureSessionScope();
+    final account = internalLocalAccount?.id;
+    final user = internalUser;
+    final revision = internalLoginCredentialRevision;
+    bool current() =>
+        session.isCurrent &&
+        internalPhase == AppPhase.home &&
+        !internalInteractiveEngaged &&
+        user != null &&
+        user.username == internalUser?.username &&
+        user.schoolId == internalUser?.schoolId &&
+        account == internalLocalAccount?.id;
+    return (url) async {
+      if (!current()) return false;
+      return openCampusCashier(
+        url,
+        requestLogin: loginForm.autoLogin
+            ? () async {
+                bool allowed() =>
+                    current() && revision == internalLoginCredentialRevision;
+                if (!allowed()) return null;
+                try {
+                  final input = await internalApprovedRecoveryInput(
+                    session.lifecycle,
+                  );
+                  if (input == null || !allowed()) return null;
+                  return Credential(
+                    username: input.username,
+                    password: input.password,
+                    autoLogin: true,
+                  );
+                } on CredentialVaultException {
+                  return null;
+                }
+              }
+            : null,
+      );
+    };
+  }
+
   /// 校园卡充值；账号、会话或路线代次变化后旧绑定失效。
   CampusRechargeService? get campusRechargeService {
     final backend = internalBackend;

@@ -75,22 +75,31 @@
 
 ### 校园卡充值（2026-11-18）
 
-冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 与 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 都没有校园卡掌上服务大厅、openid、充值下单或收银台的任何实现；`recharge`、`openid` 在两个仓库均无匹配。九列对照对这两个来源**全部不适用**，不借用其 URL、字段、加密或错误码。
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 与 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 都没有校园卡掌上服务大厅、openid、充值下单或航财通收银台的同源协议；九列均不借用。
 
-协议依据为用户提供的 2026-11-18 抓包（`request(6)`–`request(13)`）与本会话实测，原始材料只保存在忽略目录。
+协议依据为用户提供的抓包与本会话实测，原始材料只保存在忽略目录。
 
 | 操作 | 引导与 service | 重定向及最终 URL | Cookie/Session 作用域 | 方法、精确参数 | 头与编码 | 加密/签名 | DTO/解析 | 缓存、并发、重试 | 错误与产品含义 |
 |---|---|---|---|---|---|---|---|---|---|
 | 卡站点 openid | SSO `/login?service=https://m.icw.buaa.edu.cn/card/home/sisUstbMiniReturnPage/112233/6/auth` | 已登录 SSO 直接 302 出带 `ticket` 的回调；回调 302 到 `/card/goIndex?openid=…&usertype=6` | 卡站点自身 `JSESSIONID`；SSO Cookie 按域发送 | 全部 GET | HTML 导航、正常 TLS | 无新增 | 仅取 `openid`，要求 64–128 位大写十六进制 | 路线内存复用；单飞；随路线状态清理 | 落到 SSO 登录页表示需重新认证；其余偏离视为协议变化 |
 | 卡信息 | 同上 | 精确 `POST /card/cardpay/openCardPay` | 卡站点 jar | JSON `{"datajson":信封}`，正文 `openid` | `content-type: application/json`、`x-requested-with`、`session-type: uniapp`、`isWechatApp`、`orgid=2`、Referer `/card/` | AES-128-ECB/PKCS7 + 16 位密钥置换前缀 | `data.cardPay.idserial`、`cardbal` | 每次在线读取 | `success=false` 为业务拒绝；缺失字段为协议错误 |
 | 充值下单 | 同上 | 精确 `POST /card/recharge/rechargeByHct?openid=…` | 卡站点 jar | JSON 信封：`idserial`、`txamt`（分）、`payway`（空）、`openid`、`payWay=10`、`tradetype=WAP`、`usertype=1`、`orgid=2` | 同上 | 同上 | `success=true` 时读取顶层 `resultData.orderno` 和 `resultData.mweb_url`，不读取 `data` | 非幂等，至多一次；结果未知不重试 | 金额限 1–100000 分；地址必须为 HTTPS 且主机精确匹配收银台，不含用户信息或非默认端口 |
-| 航财通收银台 | 使用下单响应中经 Core 校验的 `mweb_url`；页面需要登录时按原站链路进入 `pass.cc-pay.cn` 和学校 SSO | 从 `https://cashier.cc-pay.cn/cashier?id=<orderno>` 在应用内打开；Android 使用应用管理的轻量浏览器，HTTPS 正常导航 | 使用内嵌浏览器自己的会话，不注入 Core 的 Cookie 或学校凭据 | 宿主只打开商户订单页；不直接请求渠道列表、锁定渠道或提交支付表单 | 正常 HTTPS 导航，保留系统安全警告 | 应用不处理支付签名 | Core 核对商户主机、路径和订单号；不读取支付页源码或最终支付地址 | 打开失败可重开同一订单，不重复下单 | 支付方式及付款确认完全由用户在航财通页面操作；不支持内嵌浏览器时不开始下单 |
+| 航财通收银台 | 使用下单响应中经 Core 校验的 `mweb_url`；页面需要登录时按原站链路进入 `pass.cc-pay.cn` 和学校 SSO | 从 `https://cashier.cc-pay.cn/cashier?id=<orderno>` 在应用内打开；Android 使用应用管理的轻量浏览器 | 使用浏览器自己的会话，不复制 Core 的 Cookie；Android 普通 SSO 表单见下节 | 宿主不直接请求渠道列表、锁定渠道或提交支付表单 | 正常 HTTPS 导航，保留系统安全警告 | 应用不处理支付签名 | Core 核对商户主机、路径和订单号；不提取最终支付地址 | 打开失败可重开同一订单，不重复下单 | 支付方式及付款确认由用户操作；不支持内嵌浏览器时不开始下单 |
 
 `usertype` 有两处语义：回调路径段固定 `6`（企业微信容器），下单体实测为 `1`（普通浏览器 WebView），两者不可互换。
 
-收银台行为依据为既有航财通前端和 2026-11-18 的手工抓包。历史候选曾由 Core 选择 `alipay_web`、提交已签名的 `payWebForm` 并直接交付支付宝 H5；用户报告直接打开时出现钓鱼风险提示，现改为原始商户页面内的用户操作，不绕过或压制系统警告。两份冻结来源对展开的收银台协议均不适用；现行版本不在原生 Core 复刻这些支付操作。生产 Core 的 Direct/WebVPN 实测仍需分别授权。
+收银台行为依据为既有航财通前端和手工抓包。历史候选曾由 Core 选择 `alipay_web`、提交已签名的 `payWebForm` 并直接交付支付宝 H5；用户报告直接打开时出现钓鱼风险提示，现改为原始商户页面内的用户操作，不绕过或压制系统警告。两份冻结来源对展开的收银台协议均不适用；现行版本不在原生 Core 复刻这些支付操作。生产 Core 的 Direct/WebVPN 实测仍需分别授权。
 
 用户报告 Android 通用内嵌打开方式不能处理收银台发出的 `alipays://`。应用内轻量浏览器只从可信的 HTTPS 航财通或支付宝页面接收该协议，用户确认后将原地址交给支付宝 Android 包 `com.eg.android.AlipayGphone`。不构造支付 URL，不接受 `intent://` 等其他自定义协议，不关闭 WebView 的 TLS 或安全浏览保护。没有新增业务端点或请求；两份冻结来源也没有同源浏览器交付实现。
+
+#### Android 收银台 SSO 对照（2026-11-19）
+
+核对同一冻结提交的旧版 `LocalConnectionAuth.kt`、`LocalLibBookApi.kt` 和固定 buaa-api `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs`。普通登录的共同事实是 GET SSO 页面取得当前 `execution`，使用同一客户端 Cookie 和 URL 表单提交凭据。旧版的通用登录默认激活 UC，库预约另有独立的 CAS service；buaa-api 通用登录和 VPN 登录只为各自固定的落地页校验结果。两份来源均无航财通回调及嵌入式浏览器登录交付；不借用其业务端点、密码风险处理、Cookie 保存策略或 TLS 配置。
+
+| 操作 | CAS 与 service | 重定向与最终 URL | 会话作用域 | 方法与参数 | 请求头与编码 | 加密签名 | DTO 与解析 | 缓存并发重试 | 错误语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 航财通认证入口 | 原订单返回路径是 `backUrl`；实际 CAS service 是 `https://pass.cc-pay.cn/login`，不是订单页 | 原订单进入航财通登录页，选 `BUAASSO` 后 302 到 SSO，成功票据回到 pass，再回原订单 | 商户保留自己的浏览器会话；不复制 Core Cookie | 抓包见 `GET https://pass.cc-pay.cn/login`，参数 `backUrl` 为原订单地址，`channel=BUAASSO` | 浏览器 HTTPS 导航 | 无新增 | 只识别当前订单对应的回跳目标 | 不重下单、不自动付款 | 登录失败仍可走原页面，不把收银台登录当作付款成功 |
+| 普通 SSO 表单 | 仅 HTTPS `sso.buaa.edu.cn/login`，唯一 `service` 为上述 pass 回调 | 证据中登录提交后由 SSO 重定向到 pass 的 `/login?ticket=…`；商户自行消费票据 | 登录挑战及 Cookie 留在同一 WebView；一般恢复仍使用 Core 当前路线 | 真实浏览器证据为 `GET /login?service=…` 后 `POST` 同一 service 下的登录；六个普通字段沿两份冻结来源 | `application/x-www-form-urlencoded`、正常 TLS | 无额外密码加密或支付签名 | 只识别普通登录表单和本次 `execution`；丢弃额外字段，不猜交互挑战 | 一次自动尝试，不重试凭据、不导出或重放票据 | 仅当前账号明确启用的自动登录凭据可用；验证码、额外验证、风险提示或失败保留给原页面处理 |
 
 ### 财务错误诊断（2026-11-17）
 

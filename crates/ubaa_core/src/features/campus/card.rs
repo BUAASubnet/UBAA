@@ -16,7 +16,6 @@ const CASHIER_HOST: &str = "cashier.cc-pay.cn";
 const CARD_SERVICE_PATH: &str = "/card/home/sisUstbMiniReturnPage/112233/6/auth";
 /// `goIndex` 跳转的用户类型与授权回调路径段一致。
 const PATH_USERTYPE: &str = "6";
-/// `rechargeByHct` 请求体里的 usertype，抓包实测为 1，与路径段不同。
 const PAYLOAD_USERTYPE: &str = "1";
 const PAY_WAY_HCT: &str = "10";
 
