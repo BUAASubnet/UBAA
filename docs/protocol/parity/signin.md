@@ -64,3 +64,16 @@
 - 真实提交使用新建私有临时会话目录，凭据经stdin传入，原始响应只在内存处理，任务结束删除临时会话；不记录课程名称、排课标识、账号或会话字段。既有账户会话未改写。
 - 全量Core-live：`just verify-live mode=direct` 与 `mode=webvpn` 均退出0；WebVPN希冀详情和批量详情因当前列表为空为NOT_APPLICABLE，其余操作PASS。所有实时过程均保持TLS验证。
 - 完整门禁首次因工作区已有传输WARN日志导致3项CLI JSON stderr断言失败；将日志改为`ubaa::transport` DEBUG，仅保留方法、超时/连接分类、HTTP状态、字节数和耗时，不输出URL或原始错误。完整`just check`复跑退出0（包含CLI端到端16项、Core/Bridge测试、Clippy、构建及文档检查）；`just refs`、`just layout-check`、`just check-sensitive`均通过。
+
+### 2026-11-19 签到二维码展示
+
+冻结旧版（`1f4b8f8412272b6a423d4ad92b396e3db721e6f3`）对照 `LocalSigninApi.kt` 和 `LocalSigninApiBackendTest.kt`；buaa-api（`a63712fa2ae0a6c8066197063ddee98e3a6b5b81`）对照 `src/api/class/{core,opt,data}.rs`。时间戳沿用 2026-09-17 裁决，buaa-api 的 POST、`id` 和 `Sessionid` 差异已在该处记录。两份冻结来源的二维码生成均不适用：只实现提交。二维码内容依据非冻结参考 `zeroduhyy/iclass_buaa` 的 `80a90f8c1dc55513e3f180f2729cc01775d774f2`：`server/src/services/courseService.ts` 的 `generateSignQrForFrontend`、`client/src/pages/CalendarPage.tsx`。
+
+| 操作 | 业务 CAS/引导与 service | 重定向与最终 URL | Cookie、Session、Token | HTTP 方法与参数 | 请求头与正文 | 加密与签名 | 字段与类型 | 缓存、并发、重试 | 错误、退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 读取时间戳 | 要求主认证有效，不执行 iClass 业务登录，无新增 service | Direct 为 `http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action`；WebVPN 包装 `https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action`，沿用现有请求行为 | Cookie 按路线隔离，不读取 iClass 业务凭据 | GET，无业务参数 | 无业务会话头，无正文 | 无新增常量 | `timestamp` 为毫秒 epoch，接受 JSON 整数和数字字符串 | 每次读取，不缓存，沿用只读路线与重试策略 | 未认证返回认证错误；网络、HTTP 失败和解析错误按现有语义返回，不使用本机时间回退 |
+| 生成二维码内容 | 本地生成，无 CAS | 两条路线均生成 Direct 形式 `http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action` | 不拼接 Cookie、会话或令牌 | 不发送请求；查询串为 `courseSchedId` 和 `timestamp` | 查询参数经 URL 编码，无请求头或正文 | 无 | 返回 `content` 和加偏移后的整数 `timestamp`；偏移范围为 0 至 60,000 毫秒 | 实时面板每 2 秒读取；保存时独立读取一次 | 空课程安排 ID 或超限偏移返回参数错误；二维码交给 iClass App 或微信扫码 |
+
+参考仓库的实时二维码使用服务器原值，每 2 秒刷新。偏移和刷新间隔按用户指定的产品取舍实现，无冻结来源依据：实时偏移为 0，保存偏移为 2,000 毫秒。用户确认应用内 POST 提交不可用，签到界面改用二维码，原 Core 写路径及其时间戳行为保留。
+
+本轮不发真实账号请求。二维码内容及 Direct/WebVPN 时间戳路线用合成响应验证；两条路线的新操作均未实测，取得对应路线的只读授权后再验收。
