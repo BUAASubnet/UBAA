@@ -486,7 +486,10 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalStartNextRecovery();
   @internal
-  Future<bool> internalRebuildDuringRecovery(RecoveryRequest request);
+  Future<bool> internalRebuildDuringRecovery(
+    RecoveryRequest request, {
+    required bool forManualLogin,
+  });
 
   @internal
   void internalClearRecoveryRetries();
@@ -530,7 +533,7 @@ abstract class ControllerOperations extends ChangeNotifier {
     required bool publishReusedSession,
   });
   @internal
-  Future<UserSummary?> internalRecoverRequiredProfile(
+  Future<RecoveryResult?> internalRecoverRequiredProfile(
     RequiredSessionBackend backend,
     FeatureId feature,
     int epoch,

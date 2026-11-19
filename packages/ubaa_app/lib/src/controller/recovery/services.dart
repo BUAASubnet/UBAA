@@ -197,7 +197,9 @@ mixin ControllerServiceRecovery on ControllerState {
           await internalRefreshRouteSettings();
           if (!current())
             throw const RecoveryInterrupted(RecoveryStopReason.superseded);
-          unawaited(internalLoadWriteReadbacks(force: true));
+          unawaited(
+            internalLoadWriteReadbacks(force: result.sharedBindingRebound),
+          );
         } on BackendException catch (failure) {
           if (current() && failure.accountMismatch) {
             await internalRejectMismatchedAccount();

@@ -125,6 +125,7 @@ void main() {
     expect(fixture.backend.targets, [FeatureId.spoc]);
     expect(await controller.rebuildBackend(), isTrue);
     expect(controller.phase, AppPhase.login);
+    expect(controller.internalCurrentSessionGrant, isNull);
     await expectLater(
       controller.internalEnsureReadTarget(FeatureId.spoc, force: true),
       throwsA(
@@ -136,6 +137,116 @@ void main() {
       ),
     );
     expect(replacement.targets, isEmpty);
+  });
+
+  test('复审 B2 首页中的后端实例不匹配时拒绝当前会话授权', () async {
+    final fixture = await _login();
+    final controller = fixture.controller;
+    controller.internalCurrentSessionGrant = CurrentSessionGrant(
+      controller.internalCurrentSessionGrant!.binding,
+      _Backend(),
+    );
+    expect(controller.phase, AppPhase.home);
+    await expectLater(
+      controller.internalRecoverTargetSession(
+        fixture.backend,
+        RecoveryTarget.fromFeature(FeatureId.spoc),
+        controller.internalLifecycleEpoch,
+        publishReusedSession: false,
+      ),
+      throwsA(_superseded),
+    );
+    expect(fixture.backend.targets, isEmpty);
+  });
+
+  test('复审 B3 原位换账号先清空旧授权，再授予新账号', () async {
+    final fixture = await _login();
+    final controller = fixture.controller;
+    await controller.recoverSession(
+      feature: FeatureId.spoc,
+      refreshHomeAfter: false,
+    );
+    expect(controller.internalSharedRecoveryScope, isNotNull);
+    final observed = <(CurrentSessionGrant?, RecoveryScope?)>[];
+    controller.addListener(() {
+      if (controller.user == null && controller.phase == AppPhase.home) {
+        observed.add((
+          controller.internalCurrentSessionGrant,
+          controller.internalSharedRecoveryScope,
+        ));
+      }
+    });
+    fixture.backend.username = 'other-fixture-user';
+    controller.setUsername('other-fixture-user');
+    controller.setPassword('other-fixture-secret');
+    await controller.submitLogin(preserveHome: true);
+    expect(observed, isNotEmpty);
+    expect(observed, everyElement((null, null)));
+    expect(
+      controller.internalCurrentSessionGrant!.binding.account.username,
+      'other-fixture-user',
+    );
+  });
+
+  test('复审 B4 控制器销毁时清空当前会话授权', () async {
+    final fixture = await _login();
+    await fixture.controller.recoverSession(refreshHomeAfter: false);
+    expect(fixture.controller.internalCurrentSessionGrant, isNotNull);
+    expect(fixture.controller.internalSharedRecoveryScope, isNotNull);
+    fixture.controller.dispose();
+    expect(fixture.controller.internalCurrentSessionGrant, isNull);
+    expect(fixture.controller.internalSharedRecoveryScope, isNull);
+  });
+
+  test('复审 B1 当前会话后端销毁时清空授权并转到登录页', () async {
+    final replacement = _Backend()..signedIn = false;
+    var created = 0;
+    final fixture = await _login(
+      backendFactory: () {
+        created++;
+        return replacement;
+      },
+    );
+    fixture.backend.targetError = const BackendException(
+      UbaaErrorCode.internalError,
+      clientDisposed: true,
+    );
+    final controller = fixture.controller;
+    await controller.recoverSession(
+      feature: FeatureId.spoc,
+      refreshHomeAfter: false,
+    );
+    expect(controller.internalCurrentSessionGrant, isNull);
+    expect(controller.internalSharedRecoveryScope, isNull);
+    expect(controller.phase, AppPhase.login);
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.needsLogin);
+    expect(controller.internalBackend, same(replacement));
+    expect(created, 1);
+    await controller.recoverSession(
+      feature: FeatureId.spoc,
+      refreshHomeAfter: false,
+    );
+    expect(fixture.backend.targets, [FeatureId.spoc]);
+    expect(created, 1);
+    expect(replacement.targets, isEmpty);
+    expect(replacement.authCalls, 0);
+  });
+
+  test('复审 C 当前会话连续交付只读取一次本地写回提示', () async {
+    final fixture = await _login();
+    for (final feature in [FeatureId.spoc, FeatureId.signin]) {
+      await fixture.controller.recoverSession(
+        feature: feature,
+        refreshHomeAfter: false,
+      );
+      await fixture.controller.internalWriteReadbackRead?.completion.future;
+      expect(
+        fixture.controller.recoveryStatusFor(feature),
+        SessionRecoveryStatus.ready,
+      );
+    }
+    expect(fixture.backend.targets, [FeatureId.spoc, FeatureId.signin]);
+    expect(fixture.backend.readbackReads, 1);
   });
 
   test('D8 记住密码的手动登录沿用持久作用域', () async {
@@ -244,13 +355,15 @@ class _Backend extends FakeRecoveryBackend
     implements
         RequiredSessionBackend,
         ProgressiveReadBackend,
-        SharedAccountBackend {
+        SharedAccountBackend,
+        WriteReadbackBackend {
   final targets = <FeatureId>[];
   final reads = <FeatureId>[];
   final started = Completer<void>();
   final release = Completer<void>();
   BackendException? targetError;
   int routeLogins = 0;
+  int readbackReads = 0;
   bool paused = false;
 
   @override
@@ -281,6 +394,20 @@ class _Backend extends FakeRecoveryBackend
   @override
   Future<void> bindSharedAccount(SharedAccountBinding binding) =>
       binding.validate();
+
+  @override
+  Future<List<WriteReadbackHint>> readWriteReadbackHints({
+    required String accountId,
+  }) async {
+    readbackReads++;
+    return const [];
+  }
+
+  @override
+  Future<void> dismissWriteReadbackHint(
+    String id, {
+    required String accountId,
+  }) async {}
 
   @override
   Future<FeatureReadTask?> beginFeatureRead(

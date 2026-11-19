@@ -173,6 +173,7 @@ final class _RecoveryJob {
   Timer? watcher;
   bool started = false;
   bool revoked = false;
+  bool sharedBindingRebound = false;
   bool inBoundary = false;
   bool checking = false;
   Future<void>? validation;
@@ -285,6 +286,7 @@ final class _RecoveryJob {
             final binding = await scope.sharedBinding();
             if (binding != null) {
               owner.beforeSharedRebind?.call();
+              sharedBindingRebound = true;
               await backend.bindSharedAccount(binding);
             }
           }
@@ -416,6 +418,7 @@ final class _RecoveryJob {
           final binding = await scope.sharedBinding();
           if (binding != null) {
             owner.beforeSharedRebind?.call();
+            sharedBindingRebound = true;
             await backend.bindSharedAccount(binding);
           }
         }
@@ -446,6 +449,7 @@ final class _RecoveryJob {
                 disposition,
                 scope: consumer.scope,
                 backend: owner.backend,
+                sharedBindingRebound: sharedBindingRebound,
               ),
             );
             consumers.remove(consumer);

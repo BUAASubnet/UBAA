@@ -116,6 +116,7 @@ final class RecoveryScope {
 
   final PersistentRecoveryScope? _persistent;
   bool get isShared => _persistent != null;
+  bool get isCurrentSession => _currentBinding != null;
   LocalAccountSnapshot? get sharedSnapshot =>
       _currentBinding?.snapshot ?? _persistent?.snapshot;
   Future<void> validateSharedState() async {
@@ -270,11 +271,13 @@ final class RecoveryResult {
     this.disposition, {
     this.scope,
     this.backend,
+    this.sharedBindingRebound = false,
   });
   final RecoveryScope? scope;
   final RequiredSessionBackend? backend;
   final RecoveredRouteSession session;
   final RecoveryDisposition disposition;
+  final bool sharedBindingRebound;
 }
 
 enum RecoveryStopReason { cancelled, deadline, superseded, closed }

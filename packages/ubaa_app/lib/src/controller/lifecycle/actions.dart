@@ -238,6 +238,7 @@ mixin ControllerActions on ControllerState, ControllerAppService {
         }
         return false;
       }
+      internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
       unawaited(refreshAppService());
       internalReplaceWriteCoordinator(replacement);
@@ -855,7 +856,7 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   @override
   void dispose() {
     if (internalDisposed) return;
-    internalCurrentSessionGrant = null;
+    internalClearCurrentSessionGrant();
     internalCancelNetworkChange();
     internalDisposeHome();
     internalDisposeAppService();

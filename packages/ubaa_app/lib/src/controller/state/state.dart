@@ -114,6 +114,12 @@ abstract class ControllerState extends ControllerOperations {
   RecoveryScope? internalSharedRecoveryScope;
 
   @internal
+  void internalClearCurrentSessionGrant() {
+    internalCurrentSessionGrant = null;
+    internalSharedRecoveryScope = null;
+  }
+
+  @internal
   bool get internalIsSigningOut => internalSessionLifecycle.signingOut;
 
   @internal

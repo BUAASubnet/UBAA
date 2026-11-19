@@ -45,7 +45,7 @@ mixin ControllerRequiredRecovery on ControllerState {
   }
 
   @internal
-  Future<UserSummary?> internalRecoverRequiredProfile(
+  Future<RecoveryResult?> internalRecoverRequiredProfile(
     RequiredSessionBackend backend,
     FeatureId feature,
     int epoch,
@@ -64,12 +64,11 @@ mixin ControllerRequiredRecovery on ControllerState {
           internalActiveRecovery?.refreshHomeAfter == true,
     );
     if (result == null) return null;
-    internalSharedRecoveryScope = result.scope;
     if (result.disposition == RecoveryDisposition.reauthenticated) {
       internalActiveRecovery?.replacedRoute = result.session.route;
     }
     internalRecoveredRoute = result.session.route;
-    return result.session.profile;
+    return result;
   }
 
   @internal

@@ -11,7 +11,10 @@ import '../state/state.dart' show ControllerState;
 
 mixin ControllerBackendRecovery on ControllerState {
   @internal
-  Future<bool> internalRebuildDuringRecovery(RecoveryRequest request) async {
+  Future<bool> internalRebuildDuringRecovery(
+    RecoveryRequest request, {
+    required bool forManualLogin,
+  }) async {
     final factory = internalBackendFactory;
     if (factory == null ||
         !internalAppForeground ||
@@ -23,7 +26,7 @@ mixin ControllerBackendRecovery on ControllerState {
         !internalActivities.onlyRecovery ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
-    final shared = internalSharedRecoveryScope;
+    final shared = forManualLogin ? null : internalSharedRecoveryScope;
     await shared?.validateSharedState();
     if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut)
       return false;
@@ -97,19 +100,23 @@ mixin ControllerBackendRecovery on ControllerState {
       }
       if (shared?.sharedSnapshot != null)
         internalSharedAccountSnapshot = shared!.sharedSnapshot;
+      internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
       internalReplaceWriteCoordinator(replacement);
       internalProfileRefreshedEpoch = -1;
       internalProfileFailureEpoch = -1;
       internalProfileRequest = null;
       internalSessionLifecycle.endRebuild();
-      final account = internalLocalAccount;
-      if (account != null) unawaited(internalRestoreCachedHome(account));
+      if (!forManualLogin) {
+        final account = internalLocalAccount;
+        if (account != null) unawaited(internalRestoreCachedHome(account));
+      }
       return true;
     } finally {
       internalSessionLifecycle.endRebuild();
       // 工厂失败或返回原对象时，本地日程仍独立于网络客户端恢复。
-      if (previous is AgendaProvider &&
+      if (!forManualLogin &&
+          previous is AgendaProvider &&
           identical(previous, internalBackend) &&
           !internalDisposed &&
           !internalIsSigningOut &&

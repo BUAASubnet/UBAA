@@ -28,7 +28,7 @@ mixin ControllerLogout on ControllerState {
       }
       return;
     }
-    internalCurrentSessionGrant = null;
+    internalClearCurrentSessionGrant();
     internalCancelLoginVerification(notify: false);
     internalSessionLifecycle.beginSignOut();
     internalLocalDataGeneration++;
