@@ -209,7 +209,7 @@ class _SigninQrSheetState extends State<SigninQrSheet> {
   /// 手机存进相册；桌面端没有相册，是另存为图片。
   bool get _savesToAlbum => switch (defaultTargetPlatform) {
     TargetPlatform.iOS || TargetPlatform.android => true,
-    _ => false,
+    final platform => platform.name == 'ohos',
   };
 
   static Future<Uint8List> _renderPng(String content) async {

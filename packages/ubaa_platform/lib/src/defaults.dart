@@ -87,6 +87,7 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities({
 GalleryImageSaver createDefaultGalleryImageSaver({String? operatingSystem}) =>
     switch (operatingSystem ?? Platform.operatingSystem) {
       'android' || 'ios' => MobileGalleryImageSaver(),
+      'ohos' => const OhosGalleryImageSaver(),
       'macos' || 'windows' || 'linux' => const DesktopGalleryImageSaver(),
       _ => const UnavailableGalleryImageSaver(),
     };

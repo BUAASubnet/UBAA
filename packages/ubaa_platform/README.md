@@ -68,7 +68,7 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 
 ## 保存 PNG 图片
 
-`GalleryImageSaver` 保存调用方生成的 PNG。iOS 和 Android 使用 `gal` 3.0.1（BSD-3-Clause，无额外运行时依赖），只向系统照片库添加图片，不请求读取相册。macOS、Windows 和 Linux 复用 `file_selector` 另存为 PNG；取消返回 `cancelled`。OHOS 没有 `gal` 上游实现，宿主不提供保存按钮。平台保存失败只返回稳定分类，不返回本机路径或插件错误正文。
+`GalleryImageSaver` 保存调用方生成的 PNG。iOS 和 Android 使用 `gal` 3.0.1（BSD-3-Clause，无额外运行时依赖），只向系统照片库添加图片，不请求读取相册。macOS、Windows 和 Linux 复用 `file_selector` 另存为 PNG；取消返回 `cancelled`。OHOS 使用宿主原生通道打开系统相册确认弹窗。用户同意后写入系统授予的目标，用户取消时返回 `cancelled`。保存失败返回稳定的错误分类。
 
 ## 日历文件保存
 

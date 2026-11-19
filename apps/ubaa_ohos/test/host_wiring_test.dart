@@ -11,6 +11,9 @@ void main() {
       photoPicker: MemoryPhotoPicker(),
       permissionGateway: MemoryPermissionGateway(),
       locationProvider: const UnavailableLocationProvider(),
+      galleryImageSaver: createDefaultGalleryImageSaver(
+        operatingSystem: 'ohos',
+      ),
     );
     Widget? launchedApp;
 
@@ -48,5 +51,7 @@ void main() {
     expect(host.photoPicker, same(capabilities.photoPicker));
     expect(host.permissionGateway, same(capabilities.permissionGateway));
     expect(host.locationProvider, same(capabilities.locationProvider));
+    expect(host.galleryImageSaver, same(capabilities.galleryImageSaver));
+    expect(host.galleryImageSaver.isAvailable, isTrue);
   });
 }

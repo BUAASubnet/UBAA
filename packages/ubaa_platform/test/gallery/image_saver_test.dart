@@ -91,17 +91,46 @@ void main() {
     );
   });
 
-  test('OHOS 没有保存插件，返回不支持', () async {
+  test('OHOS 使用宿主通道保存图片，取消返回 cancelled', () async {
+    const gallery = MethodChannel('cn.edu.buaa.ubaa/gallery-image');
+    final calls = <MethodCall>[];
+    final results = [true, false];
+    messenger.setMockMethodCallHandler(gallery, (call) async {
+      calls.add(call);
+      return results.removeAt(0);
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(gallery, null));
     final saver = createDefaultGalleryImageSaver(operatingSystem: 'ohos');
-    expect(saver.isAvailable, isFalse);
+    expect(saver.isAvailable, isTrue);
+    expect(await saver.save(png, name: name), GalleryImageSaveResult.saved);
+    expect(await saver.save(png, name: name), GalleryImageSaveResult.cancelled);
+    expect(calls.map((call) => call.method), ['saveImage', 'saveImage']);
+    for (final call in calls) {
+      expect(call.arguments, {'bytes': png, 'name': name});
+    }
+  });
+
+  test('OHOS 通道故障映射为稳定错误，不带路径', () async {
+    const gallery = MethodChannel('cn.edu.buaa.ubaa/gallery-image');
+    messenger.setMockMethodCallHandler(gallery, (_) async {
+      throw PlatformException(code: 'save_failed', message: '/合成/私有目录');
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(gallery, null));
+    final saver = createDefaultGalleryImageSaver(operatingSystem: 'ohos');
     await expectLater(
       saver.save(png, name: name),
       throwsA(
-        isA<GalleryImageSaveException>().having(
-          (error) => error.failure,
-          'failure',
-          GalleryImageSaveFailure.unsupported,
-        ),
+        isA<GalleryImageSaveException>()
+            .having(
+              (error) => error.failure,
+              '错误分类',
+              GalleryImageSaveFailure.saveFailed,
+            )
+            .having(
+              (error) => error.toString(),
+              '安全摘要',
+              isNot(contains('/合成/私有目录')),
+            ),
       ),
     );
   });

@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart' as selector;
 import 'package:gal/gal.dart';
+import 'package:flutter/services.dart'
+    show MethodChannel, MissingPluginException, PlatformException;
 
 import '../media.dart';
 
@@ -37,6 +39,42 @@ final class UnavailableGalleryImageSaver implements GalleryImageSaver {
   }) async => throw const GalleryImageSaveException(
     GalleryImageSaveFailure.unsupported,
   );
+}
+
+/// HarmonyOS 通过宿主原生通道打开系统相册确认弹窗。
+final class OhosGalleryImageSaver implements GalleryImageSaver {
+  const OhosGalleryImageSaver();
+
+  static const _channel = MethodChannel('cn.edu.buaa.ubaa/gallery-image');
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  Future<GalleryImageSaveResult> save(
+    Uint8List png, {
+    required String name,
+  }) async {
+    try {
+      final saved = await _channel.invokeMethod<bool>('saveImage', {
+        'bytes': png,
+        'name': name,
+      });
+      return switch (saved) {
+        true => GalleryImageSaveResult.saved,
+        false => GalleryImageSaveResult.cancelled,
+        null => throw const GalleryImageSaveException(
+          GalleryImageSaveFailure.saveFailed,
+        ),
+      };
+    } on MissingPluginException {
+      throw const GalleryImageSaveException(
+        GalleryImageSaveFailure.unsupported,
+      );
+    } on PlatformException {
+      throw const GalleryImageSaveException(GalleryImageSaveFailure.saveFailed);
+    }
+  }
 }
 
 /// 只添加到系统照片库，不请求相册读取或指定相簿的权限。
