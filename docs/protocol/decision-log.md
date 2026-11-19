@@ -2,6 +2,14 @@
 
 本页记录会影响后续判断的取舍，如来源冲突、换钉、协议例外和产品语义选择，按日期从新到旧排列；长期架构决策升级为 [ADR](../adr/)。
 
+## 2026-11-19：课堂签到写入口改用 8082
+
+2026-11-19 起 iClass 的旧签到写入口（Direct 的 `8081/eschool/app/course/stu_scan_sign.action` 和 WebVPN 包装的 `8347/app/course/stu_scan_sign.action`）对提交只返回同一个笼统的业务失败，用户侧表现为 `business_rejected`。冻结旧版 `1f4b8f84` 的 `LocalSigninApi.kt` 和 buaa-api `a63712fa` 的 `api/class/opt.rs` 都仍指向旧入口，与当日的真实上游观察冲突。
+
+按“真实上游证据 → 冻结旧版 → buaa-api”的顺序，时间戳读取和签到提交改为两条路线共用 `http://iclass.buaa.edu.cn:8082/app/...`，WebVPN 包装为 `http-8082`，不带 `/eschool`。业务登录、今日查询、请求方法、参数载体、`sessionId` 头、响应解析、写前复核和“最终 POST 不重放”都不变。证据、逐操作对照和未验证项见[签到对照](parity/signin.md#2026-11-19-签到写入口迁移)。
+
+证据的边界：区分新旧入口的依据是 Direct 路线上用不存在的排课标识做的只读探测，WebVPN 路线只确认了网关放行 8082 的时间戳读取。两条路线都还没有真实课程的提交证据，取得写入授权后需要各补一次。
+
 ## 2026-11-17：chrono 与 chrono-tz 停止维护公告暂登记豁免
 
 RustSec 发布 RUSTSEC-2026-0543（chrono）与 RUSTSEC-2026-0555（chrono-tz），两者同批被标为停止维护（chronotope/chrono#1768），所有版本受影响且没有安全升级，发布 2.0.2 的合并验收因此在依赖审计失败。两个 crate 是 Core 时间处理和 `rrule = "=0.14.0"` 的基础依赖，公告类型为 unmaintained，不是已知漏洞。`deny.toml` 只按这两个 ID 精确豁免并写明原因，其余 advisories、yanked、bans、licenses 规则不变。迁移到仍在维护的时间库需要同步替换 rrule，另立任务处理；出现针对这两个 crate 的漏洞公告时不在豁免范围内，审计会重新失败。

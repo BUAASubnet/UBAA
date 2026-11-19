@@ -19,11 +19,46 @@
 当前实现与逐操作裁决见[2026-09-17 签到修正记录](#2026-09-17-课堂签到修复对照)。该记录保留当时的来源提交，不将后续引用更新冒充重新完成的协议对照。
 
 - 业务登录采用旧版 `8347/app/user/login.action`，必须返回有效业务 `id` 和 `sessionId`，不允许以 `loginName` 回退。
-- 时间戳采用 GET，接受 JSON 整数或字符串；Direct 使用 HTTP 8081，WebVPN 使用包装后的 HTTPS 8347。
-- 签到 POST 的 Direct 路径带 `/eschool`，WebVPN 8347 路径不带该前缀；`courseSchedId/timestamp` 在查询串，业务 `id` 在表单，业务 `sessionId` 在请求头。
+- 时间戳采用 GET，接受 JSON 整数或字符串；自 2026-11-19 起两条路线都取自 HTTP 8082，WebVPN 为包装后的 `http-8082`，依据见[2026-11-19 签到写入口迁移](#2026-11-19-签到写入口迁移)。
+- 签到 POST 同样发往 HTTP 8082 的 `app/course/stu_scan_sign.action`，两条路线都不带 `/eschool`；`courseSchedId/timestamp` 在查询串，业务 `id` 在表单，业务 `sessionId` 在请求头。此前“Direct 走 8081 并带 `/eschool`、WebVPN 走 8347 不带前缀”的裁决由该记录取代。
 - 两份来源的方法、参数载体及会话语义存在差异，按已记录的旧版权威裁决，不再称为“全面对齐两份来源”。
 
 ## 专项记录
+
+### 2026-11-19 签到写入口迁移
+
+2026-11-19 起用户报告签到提交全部返回 `business_rejected`（[#141](https://github.com/BUAASubnet/UBAA/issues/141)、[#142](https://github.com/BUAASubnet/UBAA/issues/142)），业务登录和今日查询不受影响。两个冻结来源都早于这次上游变化，按来源优先级以真实上游证据为准，取舍见[决策记录](../decision-log.md#2026-11-19课堂签到写入口改用-8082)。
+
+本次只改变时间戳读取和签到提交两个操作的服务 URL（端口和路径前缀）。CAS/引导、跳转与最终 URL、Cookie/业务会话范围、HTTP 方法与精确参数、请求头与正文编码、加密（无）、DTO/解析字段、缓存/并发/重试、错误与退出语义九列均沿用[2026-09-17 课堂签到修复对照](#2026-09-17-课堂签到修复对照)的裁决，没有新增字段、签名或重试。
+
+| 操作 | 冻结旧版 `1f4b8f84` | buaa-api `a63712fa` | 2026-11-19 真实上游观察 | 本轮裁决 |
+|---|---|---|---|---|
+| 时间戳 | GET；Direct `http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action`，WebVPN 包装 `https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action` | `api/class/opt.rs` 以 POST 访问 `checkin_port()` 下的同一路径 | 8081、8347、8082 三个入口的时间戳读取都返回可解析的整数 `timestamp` | 与提交使用同一入口：两条路线都 GET `http://iclass.buaa.edu.cn:8082/app/common/get_timestamp.action`，WebVPN 包装为 `http-8082` |
+| 提交 | POST；Direct `http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action`，WebVPN 包装 `https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action` | 同文件以 `checkin_port()` 提交 `app/course/stu_scan_sign.action`，校园网环境由该端口补 `eschool` 前缀 | 8347 和 8081（带或不带 `/eschool`）对不存在的排课标识只返回同一个笼统的业务失败；8082（带或不带 `/eschool`）返回另一个业务错误码，表明只有 8082 仍在按排课处理提交 | 两条路线都 POST `http://iclass.buaa.edu.cn:8082/app/course/stu_scan_sign.action`，不带 `/eschool`；query、表单和 `sessionId` 头不变 |
+
+#### 真实上游证据
+
+以下观察均为脱敏摘要，没有保存原始响应、账号、业务会话或课程信息。
+
+- **Direct 只读探测（2026-11-19 北京时间约 11:15，校园网内，用户授权）**：用真实账号完成 8347 业务登录并读取今日课程，两步都成功。随后用有效的业务用户 `id`、同入口当次时间戳和一个**不存在的排课标识**，向每个入口各提交一次。不存在的排课标识无法产生真实签到。结果：
+  - `https 8347 app/course/stu_scan_sign.action`、`http 8081 eschool/app/course/stu_scan_sign.action`、`http 8081 app/course/stu_scan_sign.action`：HTTP 200，`STATUS=1`、`ERRCODE=101`，文案是笼统的签到失败。
+  - `http 8082 app/course/stu_scan_sign.action`、`http 8082 eschool/app/course/stu_scan_sign.action`：HTTP 200，`STATUS=1`、`ERRCODE=1`，文案是操作异常。
+  - 改用无效的业务用户 `id` 时，三个端口都先返回用户不存在，无法区分入口；区分新旧入口必须使用有效用户 `id`。
+- **WebVPN 时间戳（同日约 11:30）**：一个基于冻结旧版的衍生客户端在已登录的 WebVPN 会话中 GET 包装后的 `http-8082` 时间戳入口，HTTP 200、`timestamp` 可解析，最终主机仍是 `d.buaa.edu.cn`。这说明网关放行 iClass 的 8082 端口。该观察不是用本仓库的 CLI 取得的。
+
+旧入口当前对提交只返回 `STATUS=1`，Core 按既有规则解析为确定的 `success=false`，Bridge 再映射为 `business_rejected`，与用户报告一致。
+
+#### 未验证与重跑条件
+
+- **真实提交**：没有在 8082 上对真实课程提交过签到。探测时不在任何课程的上课时段，也没有取得“具体操作、目标、路线和时间”的写入授权。重跑条件：上课时段内取得写入授权后，在 Direct 路线提交一次并只读回读 `signStatus`。
+- **WebVPN 提交**：WebVPN 路线只有时间戳读取的证据，没有经 `http-8082` 提交过任何请求。Direct 的探测结果不能算作 WebVPN 通过。重跑条件同上，路线换成 WebVPN。
+- **`just verify-live`**：本轮没有用本仓库的真实验证入口跑 Direct/WebVPN 只读验收。签到的业务登录和今日查询没有改动。
+- **上课时间窗**：本轮没有验证 8082 是否仍在服务端校验上课时间窗。界面只在课前 10 分钟到下课前提供签到按钮；Core 和 CLI 的写前复核只看 `signStatus`，不看时间。
+
+#### 验证记录
+
+- RED：先把 Core 单元测试、Core 双路线写入集成测试和 Bridge 签到测试的期望改为 8082 入口，旧入口的 Mock 改为返回合成的业务失败。未改实现时 Core 签到单元 1 项失败（21 项通过）、Core 签到集成 6 项失败（4 项通过）、Bridge 签到 2 项失败（4 项通过）。
+- GREEN：实现改为单一写入口常量后，Core 签到单元 22 项、Core 签到集成 10 项、Bridge 签到 6 项全部通过。Mock 中的合成值不来自真实响应。
 
 ### 2026-11-12 课堂签到展示筛选
 
