@@ -1,4 +1,3 @@
-import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -9,6 +8,7 @@ import '../../shared/when.dart'
     show uiCampusNow, uiClock, uiParseCampusTime, uiShortRange;
 import '../../theme.dart' show UbaaTheme;
 import '../../common/tag.dart';
+import 'signin_qr_sheet.dart' show showSigninQrSheet;
 
 bool uiSupportsParticipationContent(
   FeatureId feature,
@@ -27,26 +27,29 @@ class CourseParticipationContent extends StatelessWidget {
     required this.details,
     required this.evaluationRow,
     this.onSignin,
+    this.writesEnabled = true,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
-    this.writesEnabled = true,
+    this.onCheckSigninStatus,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
   final Widget Function(FeatureDetail) evaluationRow;
   final SigninStarter? onSignin;
+  final bool writesEnabled;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
-  final bool writesEnabled;
+  final SigninStatusChecker? onCheckSigninStatus;
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
       ? _EvaluationList(details: details, row: evaluationRow)
       : _SigninList(
           details: details,
           onSignin: onSignin,
+          writesEnabled: writesEnabled,
           onFetchSigninQr: onFetchSigninQr,
           onSaveSigninQr: onSaveSigninQr,
-          writesEnabled: writesEnabled,
+          onCheckSigninStatus: onCheckSigninStatus,
         );
 }
 
@@ -74,15 +77,17 @@ class _SigninList extends StatefulWidget {
   const _SigninList({
     required this.details,
     required this.onSignin,
+    required this.writesEnabled,
     required this.onFetchSigninQr,
     required this.onSaveSigninQr,
-    required this.writesEnabled,
+    required this.onCheckSigninStatus,
   });
   final List<FeatureDetail> details;
   final SigninStarter? onSignin;
+  final bool writesEnabled;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
-  final bool writesEnabled;
+  final SigninStatusChecker? onCheckSigninStatus;
   @override
   State<_SigninList> createState() => _SigninListState();
 }
@@ -135,9 +140,10 @@ class _SigninListState extends State<_SigninList> {
         detail: ordered[index].$2,
         now: now,
         onSignin: widget.onSignin,
+        writesEnabled: widget.writesEnabled,
         onFetchSigninQr: widget.onFetchSigninQr,
         onSaveSigninQr: widget.onSaveSigninQr,
-        writesEnabled: widget.writesEnabled,
+        onCheckSigninStatus: widget.onCheckSigninStatus,
       ),
     );
   }
@@ -148,37 +154,82 @@ class _SigninCourseCard extends StatelessWidget {
     required this.detail,
     required this.now,
     required this.onSignin,
+    required this.writesEnabled,
     required this.onFetchSigninQr,
     required this.onSaveSigninQr,
-    required this.writesEnabled,
+    required this.onCheckSigninStatus,
   });
   final FeatureDetail detail;
   final DateTime now;
   final SigninStarter? onSignin;
+  final bool writesEnabled;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
-  final bool writesEnabled;
+  final SigninStatusChecker? onCheckSigninStatus;
 
   @override
   Widget build(BuildContext context) {
     final p = detail.presentation! as SigninPresentation;
     final action = detail.action<SigninPerformAction>();
     final done = p.signStatus == 1;
+    final scheduleId = action?.scheduleId.trim() ?? '';
     final allowed =
         action?.eligibility == ActionEligibility.allowed &&
-        action!.scheduleId.trim().isNotEmpty;
+        scheduleId.isNotEmpty;
     final window = _signinPhase(p, now);
     final canSignNow = !done && window.phase == _SigninPhase.open;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final Widget? trailing = done
-        ? const UiTag('已签到', tone: UiTagTone.primary)
-        : canSignNow && onSignin != null && action != null
+    final fetchQr = onFetchSigninQr;
+    final inWindow = window.phase == _SigninPhase.open;
+    final canShowQr = inWindow && fetchQr != null && scheduleId.isNotEmpty;
+    void openQr() {
+      final check = onCheckSigninStatus;
+      showSigninQrSheet(
+        context,
+        courseTitle: detail.title,
+        fetch: (offset) => fetchQr!(scheduleId, offset),
+        save: onSaveSigninQr,
+        // 已签到再打开（如给同学扫）时不自动关闭。
+        closeWhenSigned: !done && check != null
+            ? () => check(scheduleId)
+            : null,
+      );
+    }
+
+    final qrButton = IconButton(
+      onPressed: openQr,
+      tooltip: '签到二维码',
+      icon: const Icon(Icons.qr_code_2_rounded),
+    );
+    final signButton = onSignin != null && action != null
         ? FilledButton(
             onPressed: writesEnabled && allowed
                 ? () => onSignin!(action)
                 : null,
             child: const Text('签到'),
+          )
+        : null;
+    // 签到窗口内：二维码（给智慧教室扫码）与直接签到并列。
+    final Widget? trailing = done && canShowQr
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const UiTag('已签到', tone: UiTagTone.primary),
+              const SizedBox(width: 4),
+              qrButton,
+            ],
+          )
+        : done
+        ? const UiTag('已签到', tone: UiTagTone.primary)
+        : canSignNow && (canShowQr || signButton != null)
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (canShowQr) qrButton,
+              if (canShowQr && signButton != null) const SizedBox(width: 4),
+              ?signButton,
+            ],
           )
         : switch (window.phase) {
             _SigninPhase.upcoming => UiTag('${uiClock(window.opensAt!)} 起可签'),

@@ -6,6 +6,9 @@ export 'features/coursework/signin_qr_sheet.dart' show SigninQrImageSaver;
 typedef SigninCourseQrFetcher =
     Future<String> Function(String courseId, Duration offset);
 
+/// 按排课标识读取最新签到状态，已签到返回 true；读取失败抛错。
+typedef SigninStatusChecker = Future<bool> Function(String courseId);
+
 /// 把领域准备函数交给应用层唯一写入协调器。
 typedef WritePreparationRunner =
     Future<WriteIntent?> Function(
