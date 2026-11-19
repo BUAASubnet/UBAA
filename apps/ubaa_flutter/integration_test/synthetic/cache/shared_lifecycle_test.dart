@@ -11,6 +11,21 @@ import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart
     as fixtures;
 import '../../support/rust_library.dart';
 
+// Windows may briefly deny recursive deletion while native file handles close.
+Future<void> _deleteTempRoot(Directory root) async {
+  for (var attempt = 0; ; attempt++) {
+    try {
+      await root.delete(recursive: true);
+      return;
+    } on FileSystemException catch (error) {
+      final sharingViolation =
+          Platform.isWindows && error.osError?.errorCode == 32;
+      if (!sharingViolation || attempt == 19) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+  }
+}
+
 AgendaTime get now =>
     AgendaTime(rfc3339: '2026-11-02T10:00:00+08:00', timezone: 'Asia/Shanghai');
 AgendaDraft draft(String title) => AgendaDraft(
@@ -83,7 +98,7 @@ void main() {
       two.dispose();
       await a.dispose();
       await b.dispose();
-      await root.delete(recursive: true);
+      await _deleteTempRoot(root);
     }
   });
   testWidgets('显式全局退出后本进程也不能读取或重新打开旧缓存', (tester) async {
@@ -157,7 +172,7 @@ void main() {
     } finally {
       controller.dispose();
       await backend.dispose();
-      await root.delete(recursive: true);
+      await _deleteTempRoot(root);
     }
   });
   testWidgets('Core事务已提交但共享身份随后撤销，交付拒绝且真实记录仍存在', (tester) async {
@@ -210,7 +225,7 @@ void main() {
       handle.dispose();
       inspect?.dispose();
       scope.dispose();
-      await root.delete(recursive: true);
+      await _deleteTempRoot(root);
     }
   });
   for (final action in ['退出', '切号', '退出重登', '撤销许可']) {
@@ -225,9 +240,9 @@ void main() {
         localAccountStore: accounts,
       );
       try {
+        final external = await fixtures.openAccounts(root);
         await controller.initialize();
         await backend.agenda.unsyncedCount();
-        final external = await fixtures.openAccounts(root);
         if (action == '撤销许可') {
           await external.revokeIfCurrent((await external.capture())!);
         } else {
@@ -244,7 +259,7 @@ void main() {
       } finally {
         controller.dispose();
         await backend.dispose();
-        await root.delete(recursive: true);
+        await _deleteTempRoot(root);
       }
     });
   }
