@@ -30,14 +30,21 @@ use super::{
     BridgeRoutedJudgeAssignmentDetails, BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail,
     BridgeRoutedLibBookAreaSchedule, BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings,
     BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses,
-    BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments, BridgeRoutedTerms,
-    BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
-    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
+    BridgeRoutedSigninQr, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
+    BridgeRoutedTerms, BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
+    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords, BridgeSigninQr,
 };
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
     disposed_error, map_route,
 };
+
+pub(super) fn map_signin_qr(value: domain::SigninQr) -> BridgeSigninQr {
+    BridgeSigninQr {
+        content: value.content,
+        timestamp: value.timestamp,
+    }
+}
 
 impl BridgeClient {
     async fn execute_read<T, O, F>(
@@ -194,6 +201,22 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgeRoutedSigninClasses { data, route })
+    }
+    pub async fn signin_qr(
+        &self,
+        course_id: String,
+        offset_ms: u32,
+    ) -> Result<BridgeRoutedSigninQr, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Signin),
+                move |client| {
+                    Box::pin(async move { client.signin_qr(&course_id, offset_ms).await })
+                },
+                map_signin_qr,
+            )
+            .await?;
+        Ok(BridgeRoutedSigninQr { data, route })
     }
     pub async fn spoc_assignments(&self) -> Result<BridgeRoutedSpocAssignments, BridgeError> {
         let (data, route) = self

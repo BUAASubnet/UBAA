@@ -14,6 +14,17 @@ mod business_session;
 mod concurrency;
 
 #[test]
+fn 签到二维码投影保留完整内容及毫秒整数() {
+    let content = "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course%2B1&timestamp=1700000002000";
+    let qr = super::methods::map_signin_qr(domain::SigninQr {
+        content: content.into(),
+        timestamp: 1_700_000_002_000,
+    });
+    assert_eq!(qr.content, content);
+    assert_eq!(qr.timestamp, 1_700_000_002_000);
+}
+
+#[test]
 fn 图书馆日程映射保持逐日原始关联() {
     let mapped = super::mappers::map_libbook_area_schedule(domain::LibBookAreaSchedule {
         id: "area-safe".to_owned(),

@@ -62,7 +62,8 @@ import 'features/libbook/reader.dart' show bridgeLoadLibbookFeature;
 import 'features/profile/reader.dart'
     show bridgeReadCachedProfile, bridgeRefreshProfile;
 import 'features/schedule/reader.dart' show bridgeBeginScheduleImport;
-import 'features/signin/reader.dart' show bridgeLoadSigninHome;
+import 'features/signin/reader.dart'
+    show bridgeFetchSigninQr, bridgeLoadSigninHome;
 import 'read/progressive.dart' show bridgeBeginProgressiveRead;
 import 'features/ygdk/reader.dart'
     show bridgeLoadYgdkOverviewOnRoute, bridgeLoadYgdkRecordsOnRoute;
@@ -87,7 +88,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 76;
+const _supportedBridgeContractVersion = 77;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -112,6 +113,7 @@ class BridgeBackend
         ManualCaptchaBackend,
         CgyyLockDisplayBackend,
         FeatureQueryBackend,
+        SigninQrBackend,
         SigninReadbackBackend,
         BykcReadbackBackend,
         LibbookReadbackBackend,
@@ -164,6 +166,10 @@ class BridgeBackend
       );
     }
   }
+
+  @override
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) =>
+      bridgeFetchSigninQr(_context, courseId, offset);
 
   @override
   String exportRawDiagnostics() => _context.client.exportRawDiagnostics();

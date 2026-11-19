@@ -661,7 +661,7 @@ const _disposed = BackendException(
 
 class _DisposedBatchClient implements BridgeClient {
   @override
-  int contractVersion() => 76;
+  int contractVersion() => 77;
 
   @override
   Future<void> invalidateReadRecoveryBatch() async => throw const BridgeError(

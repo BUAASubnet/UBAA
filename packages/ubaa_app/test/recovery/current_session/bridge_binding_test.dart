@@ -58,7 +58,7 @@ class _NativeSharedAccount implements BridgeSharedAccount {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 76;
+  int contractVersion() => 77;
 
   @override
   Future<void> bindSharedAccount({required BridgeSharedAccount scope}) async {}

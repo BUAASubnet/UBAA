@@ -4,7 +4,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::domain::{ActionEligibility, SigninActionResult, SigninClass};
+use crate::domain::{ActionEligibility, ConnectionMode, SigninActionResult, SigninClass, SigninQr};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
@@ -118,6 +118,37 @@ pub(crate) async fn perform_signin(
 ) -> Result<SigninActionResult> {
     preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
+    let timestamp = parse_timestamp(&get_timestamp(runtime).await?)?;
+    let url = build_signin_url(runtime.mode(), course_id, &timestamp)?;
+    let response = submit_signin(runtime, url, &credential).await?;
+    if response.status != 200 || final_url_is_authentication(&response.final_url) {
+        return Err(write_outcome_unknown());
+    }
+    parse_action_response(&response.body)
+}
+
+/// 使用当前路线取时，生成扫码客户端可直接打开的地址。
+pub(crate) async fn get_qr(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course_id: &str,
+    offset_ms: u32,
+) -> Result<SigninQr> {
+    validate_course_id(course_id)?;
+    if offset_ms > 60_000 {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "签到二维码时间偏移不能超过 60 秒",
+        ));
+    }
+    super::require_session(runtime)?;
+    let timestamp = qr_timestamp(&get_timestamp(runtime).await?, offset_ms)?;
+    let content = build_signin_url(ConnectionMode::Direct, course_id, &timestamp.to_string())?;
+    Ok(SigninQr { content, timestamp })
+}
+
+async fn get_timestamp(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<u8>> {
     let timestamp_url = signin_checkin_url(
         runtime.mode(),
         "app/common/get_timestamp.action",
@@ -127,13 +158,20 @@ pub(crate) async fn perform_signin(
     if timestamp.status != 200 {
         return Err(upstream_error("无法获取签到时间戳"));
     }
-    let timestamp = parse_timestamp(&timestamp.body)?;
-    let url = build_signin_url(runtime.mode(), course_id, &timestamp)?;
-    let response = submit_signin(runtime, url, &credential).await?;
-    if response.status != 200 || final_url_is_authentication(&response.final_url) {
-        return Err(write_outcome_unknown());
-    }
-    parse_action_response(&response.body)
+    Ok(timestamp.body)
+}
+
+fn qr_timestamp(body: &[u8], offset_ms: u32) -> Result<i64> {
+    parse_timestamp(body)
+        .map_err(|mut error| {
+            error.code = ErrorCode::ParseError;
+            error.kind = ErrorKind::Parse;
+            error
+        })?
+        .parse::<i64>()
+        .ok()
+        .and_then(|timestamp| timestamp.checked_add(i64::from(offset_ms)))
+        .ok_or_else(|| UbaaError::parse_error("签到二维码时间戳不是有效的毫秒整数"))
 }
 
 fn signin_checkin_url(
@@ -521,6 +559,26 @@ mod tests {
         final_url_is_authentication, integer_value, parse_login_credential, parse_timestamp,
         signin_checkin_url,
     };
+
+    #[test]
+    fn 签到二维码时间戳必须是可加偏移的整数() {
+        for body in [
+            br#"{"timestamp":1700000000000}"#.as_slice(),
+            br#"{"timestamp":" 1700000000000 "}"#,
+        ] {
+            assert_eq!(super::qr_timestamp(body, 2_000).unwrap(), 1_700_000_002_000);
+        }
+        for body in [
+            br#"{"timestamp":"invalid"}"#.as_slice(),
+            br#"{"timestamp":1.5}"#,
+            br#"{"timestamp":9223372036854775807}"#,
+        ] {
+            assert_eq!(
+                super::qr_timestamp(body, 1).unwrap_err().code,
+                crate::error::ErrorCode::ParseError,
+            );
+        }
+    }
 
     #[test]
     fn 直连与webvpn签到地址生成对齐冻结旧版() {

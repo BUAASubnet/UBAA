@@ -1100,6 +1100,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeRoutePolicy policy,
   });
 
+  Future<BridgeRoutedSigninQr> signinQr({
+    required String courseId,
+    required int offsetMs,
+  });
+
   Future<BridgeRoutedSigninClasses> signinToday();
 
   Future<BridgePinnedSigninClasses> signinTodayOnRoute({
