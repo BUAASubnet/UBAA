@@ -146,3 +146,54 @@ abstract interface class CampusAccountService {
   Future<CampusMetrics> metrics();
   Future<NetworkUsage> networkUsage();
 }
+
+/// 充值前的卡信息；不含任何凭据。
+@immutable
+class CampusRechargePreflight {
+  const CampusRechargePreflight({
+    required this.idserial,
+    required this.balance,
+    required this.fetchedAt,
+  });
+
+  /// 卡序号，下单必填。
+  final String idserial;
+
+  /// 上游十进制余额字符串，不换算。
+  final String balance;
+
+  final DateTime fetchedAt;
+}
+
+/// 已创建的充值订单，付款方式由商户收银台提供。
+@immutable
+class CampusRechargeOrder {
+  const CampusRechargeOrder({
+    required this.orderno,
+    required this.cashierUrl,
+    required this.amountFen,
+    required this.fetchedAt,
+  });
+
+  final String orderno;
+
+  /// 已验证的原商户收银台地址，用于应用内打开该订单。
+  final String cashierUrl;
+
+  /// 下单金额，单位分。
+  final String amountFen;
+
+  final DateTime fetchedAt;
+}
+
+/// 校园卡充值入口。下单是真实写操作，调用方必须已获得用户确认。
+abstract interface class CampusRechargeService {
+  /// 读取卡序号与余额，不产生订单。
+  Future<CampusRechargePreflight> preflight();
+
+  /// 创建订单；付款方式和付款确认由用户在商户收银台操作。
+  Future<CampusRechargeOrder> createOrder({
+    required String idserial,
+    required String amountFen,
+  });
+}

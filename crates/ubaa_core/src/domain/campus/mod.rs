@@ -62,3 +62,27 @@ pub struct NetworkUsage {
     pub remaining_excludes_packages: bool,
     pub fetched_at: i64,
 }
+
+/// 充值前的卡信息；不含 openid 等凭据。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampusRechargePreflight {
+    /// 卡序号，充值下单的必填参数。
+    pub idserial: String,
+    /// 上游十进制余额字符串，不换算。
+    pub balance: String,
+    pub fetched_at: i64,
+}
+
+/// 已创建的充值订单及由用户选择支付渠道的原商户收银台。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampusRechargeOrder {
+    /// 收银台订单号，同时用于查询支付状态。
+    pub orderno: String,
+    /// 已验证的商户收银台地址，与本订单号一致。
+    pub cashier_url: String,
+    /// 下单金额，单位分，十进制字符串。
+    pub amount_fen: String,
+    pub fetched_at: i64,
+}

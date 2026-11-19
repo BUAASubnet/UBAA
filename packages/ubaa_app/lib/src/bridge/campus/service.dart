@@ -217,3 +217,49 @@ CampusMetric<int>? _countMetric(
   }
   return null;
 }
+
+/// 校园卡充值的桥接投影：只做参数与错误映射，不缓存订单。
+class BridgeCampusRechargeService implements CampusRechargeService {
+  BridgeCampusRechargeService(this._context);
+  final BridgeContext _context;
+
+  BridgeClient get _client => _context.client;
+
+  Future<T> _call<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on BridgeError catch (error, stack) {
+      Error.throwWithStackTrace(
+        UbaaErrorMapper.fromException(bridgeMapError(error)),
+        stack,
+      );
+    }
+  }
+
+  @override
+  Future<CampusRechargePreflight> preflight() => _call(() async {
+    final value = (await _client.campusRechargePreflight()).data;
+    return CampusRechargePreflight(
+      idserial: value.idserial,
+      balance: value.balance,
+      fetchedAt: _time(value.fetchedAt),
+    );
+  });
+
+  @override
+  Future<CampusRechargeOrder> createOrder({
+    required String idserial,
+    required String amountFen,
+  }) => _call(() async {
+    final value = (await _client.campusRechargeOrder(
+      idserial: idserial,
+      amountFen: amountFen,
+    )).data;
+    return CampusRechargeOrder(
+      orderno: value.orderno,
+      cashierUrl: value.cashierUrl,
+      amountFen: value.amountFen,
+      fetchedAt: _time(value.fetchedAt),
+    );
+  });
+}

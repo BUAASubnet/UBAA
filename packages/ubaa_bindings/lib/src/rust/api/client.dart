@@ -392,6 +392,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 在线读取五项校园账户指标；单项失败保留在对应项中。
   Future<BridgeCampusMetricsResult> campusMetrics();
 
+  /// 仅创建充值订单并返回原商户收银台地址，不选择支付渠道。
+  Future<BridgeCampusRechargeOrderResult> campusRechargeOrder({
+    required String idserial,
+    required String amountFen,
+  });
+
+  /// 读取充值前的卡序号与余额，不产生订单。
+  Future<BridgeCampusRechargePreflightResult> campusRechargePreflight();
+
   /// 立即撤销当前交互，永不排队等待 Core 网络锁。
   void cancelInteractiveLogin();
 

@@ -5,13 +5,14 @@
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界：
 
 - 上游 URL、Cookie、Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
+- 校园卡下单结果只交付经过 Core 校验的 HTTPS 航财通原订单地址和收据字段，不传递登录凭据、支付渠道标识或签名表单。
 - 协议事实以[来源对照](../protocol/README.md)为准；本合同只定义已有稳定 facade 的产品投影，不新增或反推上游协议。
 - 业务缓存持久格式与 Bridge 版本相互独立，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 - 生成一致性按[开发命令](../development/commands.md#检查选择与完成条件)核验，原生与真实 App 的实际结果见[状态页](../project/status.md)。
 
 ## 1. 版本与命名
 
-- 合同版本为 `74`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
+- 合同版本为 `77`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。不能混用任一历史版本或候选的生成绑定；各版本新增内容见[版本历史](#版本历史)。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -29,7 +30,7 @@
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=74` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=77` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 | `healthCloudPage` | 可选站点年份键 | `BridgeHealthCloudPage` | 体测年份、该年度的成绩与实际路线；不提交修改 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
@@ -533,8 +534,11 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - 旧 macOS 专项曾以独立候选 v10 开发逐日日程和博雅完整目录；与离线分支整合后统一为 v37。
 - v38 增加专用交互验证码通路，v39 增加专用门锁显示，v40 增加周课表完整节次时间轴，v41 增加异步初始化、typed 初始化错误和提交结果接收确认。
 
-### 近期版本摘要（v55–v74）
+### 近期版本摘要（v55–v77）
 
+- v77 移除充值订单的 `alipayUrl`。Core 只创建订单并交付经校验的 `cashierUrl`，不选择支付渠道；宿主用系统内嵌浏览器打开原订单，用户自行选择渠道并确认付款。不支持内嵌浏览时不下单；打开失败时只重开同一订单。
+- v76 为充值订单增加可选的 `alipayUrl`。用户确认金额和支付宝后，Core 只创建一次订单、锁定支付宝并解析 H5 跳转。准备成功时宿主自动打开支付宝 H5；准备失败仍返回同一订单，`alipayUrl` 为空，`cashierUrl` 仅用于手动恢复或核对。宿主不重复创建订单，不自动确认付款。
+- v75 增加 `campusRechargePreflight()` 和 `campusRechargeOrder(idserial, amountFen)`。准备结果包含卡序号、十进制余额和读取时间，不包含登录凭据；下单结果包含订单号、分金额、收银台地址和时间。两者均返回实际路线。宿主确认金额后才提交非幂等订单，不自动重试，由用户在系统浏览器中选择支付方式。
 - v74 增加健康云只读接口，返回可选学年学期及所选学年学期的体测成绩。
 - v73 在 `BridgeCacheFailure` 和 `BridgeAgendaFailure` 增加 `Busy`，区分 SQLite 锁忙与存储不可用。业务缓存锁忙异常使用 `timeout`、`internal`、`retryable=true` 和诊断 `stage=cache`、`reason=cache_busy`。在线读取成功后的缓存保存失败仍单独返回 `saveError`。CLI JSON schema 保持 v18。
 - v72 增加 `exportRawDiagnostics`：用户主动导出当前客户端及派生请求的原始响应，独立于错误摘要和自动遥测。

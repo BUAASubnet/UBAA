@@ -40,6 +40,8 @@ pub(crate) struct RouteFeatureState {
     pub(crate) ygdk: YgdkState,
     pub(crate) ihome: IhomeState,
     pub(crate) finance: CredentialState<FinanceCredential>,
+    /// 校园卡站点 openid，只在当前路线内存中保存。
+    pub(crate) campus_card: CredentialState<String>,
 }
 
 impl RouteFeatureState {
@@ -78,6 +80,7 @@ impl RouteFeatureState {
         self.ygdk.clear();
         self.ihome.clear();
         self.finance.clear();
+        self.campus_card.clear();
     }
 }
 

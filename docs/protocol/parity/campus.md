@@ -66,14 +66,31 @@
 
 #### 验证与交付
 
-先运行失败 Fixture/请求测试，再实施最小修复。覆盖混合数字类型、零值、单项失败、校园卡回退、动态 ID、HTML 列重排和多产品、Cookie 隔离、嵌套跳转、登录 HTML、会话代次，以及 CLI JSON/人类输出与二进制入口。
-
 完成 Core/CLI 聚焦回归后，按[开发命令](../../development/commands.md#来源对照与真实验证)执行完整确定性检查与 Direct/WebVPN 真实只读验证，在[当前状态](../../project/status.md)记录实际结果。Python 成功不替代 Rust Core/CLI 成功，个人数据和原始响应不进入共享文档。
 
 
 验收结果：初始解析测试有 4 项失败，CLI 命令测试因未注册 `portal` 失败；实现后新增 14 项 Core 专项测试、路线配置回读、CLI 数据/中文输出/Schema 反例及二进制缺会话测试通过。Direct 与 WebVPN 各完成三个公开查询，五项指标分别成功，网络业务会话重开后复用成功。完整检查的实际结果见当前状态，真实数值及认证材料均未写入本记录。
 
 ## 专项记录
+
+### 校园卡充值（2026-11-18）
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 与 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 都没有校园卡掌上服务大厅、openid、充值下单或收银台的任何实现；`recharge`、`openid` 在两个仓库均无匹配。九列对照对这两个来源**全部不适用**，不借用其 URL、字段、加密或错误码。
+
+协议依据为用户提供的 2026-11-18 抓包（`request(6)`–`request(13)`）与本会话实测，原始材料只保存在忽略目录。
+
+| 操作 | 引导与 service | 重定向及最终 URL | Cookie/Session 作用域 | 方法、精确参数 | 头与编码 | 加密/签名 | DTO/解析 | 缓存、并发、重试 | 错误与产品含义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 卡站点 openid | SSO `/login?service=https://m.icw.buaa.edu.cn/card/home/sisUstbMiniReturnPage/112233/6/auth` | 已登录 SSO 直接 302 出带 `ticket` 的回调；回调 302 到 `/card/goIndex?openid=…&usertype=6` | 卡站点自身 `JSESSIONID`；SSO Cookie 按域发送 | 全部 GET | HTML 导航、正常 TLS | 无新增 | 仅取 `openid`，要求 64–128 位大写十六进制 | 路线内存复用；单飞；随路线状态清理 | 落到 SSO 登录页表示需重新认证；其余偏离视为协议变化 |
+| 卡信息 | 同上 | 精确 `POST /card/cardpay/openCardPay` | 卡站点 jar | JSON `{"datajson":信封}`，正文 `openid` | `content-type: application/json`、`x-requested-with`、`session-type: uniapp`、`isWechatApp`、`orgid=2`、Referer `/card/` | AES-128-ECB/PKCS7 + 16 位密钥置换前缀 | `data.cardPay.idserial`、`cardbal` | 每次在线读取 | `success=false` 为业务拒绝；缺失字段为协议错误 |
+| 充值下单 | 同上 | 精确 `POST /card/recharge/rechargeByHct?openid=…` | 卡站点 jar | JSON 信封：`idserial`、`txamt`（分）、`payway`（空）、`openid`、`payWay=10`、`tradetype=WAP`、`usertype=1`、`orgid=2` | 同上 | 同上 | `success=true` 时读取顶层 `resultData.orderno` 和 `resultData.mweb_url`，不读取 `data` | 非幂等，至多一次；结果未知不重试 | 金额限 1–100000 分；地址必须为 HTTPS 且主机精确匹配收银台，不含用户信息或非默认端口 |
+| 航财通收银台 | 使用下单响应中经 Core 校验的 `mweb_url`；页面需要登录时按原站链路进入 `pass.cc-pay.cn` 和学校 SSO | 从 `https://cashier.cc-pay.cn/cashier?id=<orderno>` 在应用内打开；Android 使用应用管理的轻量浏览器，HTTPS 正常导航 | 使用内嵌浏览器自己的会话，不注入 Core 的 Cookie 或学校凭据 | 宿主只打开商户订单页；不直接请求渠道列表、锁定渠道或提交支付表单 | 正常 HTTPS 导航，保留系统安全警告 | 应用不处理支付签名 | Core 核对商户主机、路径和订单号；不读取支付页源码或最终支付地址 | 打开失败可重开同一订单，不重复下单 | 支付方式及付款确认完全由用户在航财通页面操作；不支持内嵌浏览器时不开始下单 |
+
+`usertype` 有两处语义：回调路径段固定 `6`（企业微信容器），下单体实测为 `1`（普通浏览器 WebView），两者不可互换。
+
+收银台行为依据为既有航财通前端和 2026-11-18 的手工抓包。历史候选曾由 Core 选择 `alipay_web`、提交已签名的 `payWebForm` 并直接交付支付宝 H5；用户报告直接打开时出现钓鱼风险提示，现改为原始商户页面内的用户操作，不绕过或压制系统警告。两份冻结来源对展开的收银台协议均不适用；现行版本不在原生 Core 复刻这些支付操作。生产 Core 的 Direct/WebVPN 实测仍需分别授权。
+
+用户报告 Android 通用内嵌打开方式不能处理收银台发出的 `alipays://`。应用内轻量浏览器只从可信的 HTTPS 航财通或支付宝页面接收该协议，用户确认后将原地址交给支付宝 Android 包 `com.eg.android.AlipayGphone`。不构造支付 URL，不接受 `intent://` 等其他自定义协议，不关闭 WebView 的 TLS 或安全浏览保护。没有新增业务端点或请求；两份冻结来源也没有同源浏览器交付实现。
 
 ### 财务错误诊断（2026-11-17）
 

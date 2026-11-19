@@ -34,6 +34,7 @@ import 'navigation/rail.dart' show uiShellRail;
 import '../features/home/shell_helpers.dart';
 import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
+import 'account/campus_recharge.dart' show CampusRechargePage;
 import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
 import 'app_service/notices.dart' show AppServiceNotices;
@@ -67,6 +68,9 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRoutePolicyChanged,
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
+    this.campusRechargeService,
+    this.onCheckCashierSupport,
+    this.onOpenCashier,
     this.bhpanService,
     this.cloudPrintService,
     this.onPickPrintFiles,
@@ -191,6 +195,15 @@ class UbaaMainShell extends StatefulWidget {
   final UiDestination initialDestination;
 
   final CampusAccountService? campusAccountService;
+
+  /// 校园卡充值；服务或任一收银台回调为空时，不显示充值入口。
+  final CampusRechargeService? campusRechargeService;
+
+  /// 检查系统能否在应用内打开收银台。
+  final Future<bool> Function()? onCheckCashierSupport;
+
+  /// 在应用内通过系统 WebView 打开收银台。
+  final Future<bool> Function(Uri url)? onOpenCashier;
   final BhpanService? bhpanService;
   final CloudPrintService? cloudPrintService;
   final Future<List<PrintSource>> Function()? onPickPrintFiles;

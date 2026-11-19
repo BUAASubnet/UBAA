@@ -44,6 +44,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity
+            android:name=".platform.CashierBrowserActivity"
+            android:exported="false"
+            android:label="航财通收银台"
+            android:theme="@android:style/Theme.Material.Light"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".widgets.ScheduleWidgetActivity" android:exported="false" android:label="离线课表" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <receiver android:name=".widgets.ScheduleWidgetProvider" android:exported="false" android:label="UBAA 周课表">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>

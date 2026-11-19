@@ -261,6 +261,12 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           widget.writeState.intent == null,
       child: MeView(
         onOpenBhpan: () => _openUtility('北航云盘'),
+        onOpenRecharge:
+            widget.campusRechargeService != null &&
+                widget.onCheckCashierSupport != null &&
+                widget.onOpenCashier != null
+            ? _openRecharge
+            : null,
         user: widget.user,
         overview: _campusOverview,
         showShortcuts: MediaQuery.sizeOf(context).width < 600,
@@ -352,4 +358,28 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           await page?.refreshCurrent();
         }
       });
+}
+
+extension UbaaShellRecharge on _UbaaMainShellState {
+  /// 打开校园卡充值页，由页面检查系统 WebView 支持情况。
+  void _openRecharge() {
+    final service = widget.campusRechargeService;
+    final supports = widget.onCheckCashierSupport;
+    final open = widget.onOpenCashier;
+    if (service == null ||
+        supports == null ||
+        open == null ||
+        widget.writeState.intent != null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CampusRechargePage(
+          service: service,
+          supportsCashier: supports,
+          openCashier: open,
+        ),
+      ),
+    );
+  }
 }

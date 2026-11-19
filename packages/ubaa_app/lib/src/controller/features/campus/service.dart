@@ -73,3 +73,42 @@ class GuardedCampusAccountService implements CampusAccountService {
     delegate.networkUsage,
   );
 }
+
+/// 校园卡充值的代次守卫：下单是不可重放的写操作，必须绑定发起时的账号。
+class GuardedCampusRechargeService implements CampusRechargeService {
+  GuardedCampusRechargeService(this.delegate, this.current);
+  final CampusRechargeService delegate;
+  final bool Function() current;
+
+  void _check() {
+    if (!current()) {
+      throw const UiError(
+        code: UbaaErrorCode.operationConflict,
+        title: '登录状态已变化',
+        message: '登录状态已变化，请重新进入充值页面',
+      );
+    }
+  }
+
+  @override
+  Future<CampusRechargePreflight> preflight() async {
+    _check();
+    final value = await delegate.preflight();
+    _check();
+    return value;
+  }
+
+  @override
+  Future<CampusRechargeOrder> createOrder({
+    required String idserial,
+    required String amountFen,
+  }) async {
+    _check();
+    final value = await delegate.createOrder(
+      idserial: idserial,
+      amountFen: amountFen,
+    );
+    _check();
+    return value;
+  }
+}

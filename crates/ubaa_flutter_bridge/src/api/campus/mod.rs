@@ -186,6 +186,53 @@ pub struct BridgeNetworkUsageResult {
     pub route: BridgeRouteDecision,
 }
 
+/// 充值前的卡信息；不含 openid 等凭据。
+#[derive(Clone, Debug)]
+pub struct BridgeCampusRechargePreflight {
+    pub idserial: String,
+    pub balance: String,
+    pub fetched_at: i64,
+}
+impl From<domain::CampusRechargePreflight> for BridgeCampusRechargePreflight {
+    fn from(v: domain::CampusRechargePreflight) -> Self {
+        Self {
+            idserial: v.idserial,
+            balance: v.balance,
+            fetched_at: v.fetched_at,
+        }
+    }
+}
+
+/// 已创建的充值订单及已验证的原商户收银台地址。
+#[derive(Clone, Debug)]
+pub struct BridgeCampusRechargeOrder {
+    pub orderno: String,
+    pub cashier_url: String,
+    pub amount_fen: String,
+    pub fetched_at: i64,
+}
+impl From<domain::CampusRechargeOrder> for BridgeCampusRechargeOrder {
+    fn from(v: domain::CampusRechargeOrder) -> Self {
+        Self {
+            orderno: v.orderno,
+            cashier_url: v.cashier_url,
+            amount_fen: v.amount_fen,
+            fetched_at: v.fetched_at,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeCampusRechargePreflightResult {
+    pub data: BridgeCampusRechargePreflight,
+    pub route: BridgeRouteDecision,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeCampusRechargeOrderResult {
+    pub data: BridgeCampusRechargeOrder,
+    pub route: BridgeRouteDecision,
+}
+
 impl BridgeClient {
     /// 在线读取门户身份与学院，不写业务缓存。
     pub async fn portal_profile(&self) -> Result<BridgePortalProfileResult, BridgeError> {
@@ -231,6 +278,46 @@ impl BridgeClient {
                 .await
                 .map_err(BridgeError::from_routed)?;
             Ok(BridgeNetworkUsageResult {
+                data: value.data.into(),
+                route: map_route(value.resolution),
+            })
+        })
+        .await
+    }
+
+    /// 读取充值前的卡序号与余额，不产生订单。
+    pub async fn campus_recharge_preflight(
+        &self,
+    ) -> Result<BridgeCampusRechargePreflightResult, BridgeError> {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
+            let value = client
+                .campus_recharge_preflight()
+                .await
+                .map_err(BridgeError::from_routed)?;
+            Ok(BridgeCampusRechargePreflightResult {
+                data: value.data.into(),
+                route: map_route(value.resolution),
+            })
+        })
+        .await
+    }
+
+    /// 仅创建充值订单并返回原商户收银台地址，不选择支付渠道。
+    pub async fn campus_recharge_order(
+        &self,
+        idserial: String,
+        amount_fen: String,
+    ) -> Result<BridgeCampusRechargeOrderResult, BridgeError> {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
+            let value = client
+                .campus_recharge_order(&idserial, &amount_fen)
+                .await
+                .map_err(BridgeError::from_routed)?;
+            Ok(BridgeCampusRechargeOrderResult {
                 data: value.data.into(),
                 route: map_route(value.resolution),
             })

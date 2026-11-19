@@ -9,7 +9,7 @@ import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cached_amount`, `cached_count`, `merged_metrics`, `metrics`, `network_usage`, `profile`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 class BridgeCachedCampusSection {
   final BridgeCampusSection data;
@@ -173,6 +173,105 @@ class BridgeCampusMetricsResult {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeCampusMetricsResult &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+/// 已创建的充值订单及已验证的原商户收银台地址。
+class BridgeCampusRechargeOrder {
+  final String orderno;
+  final String cashierUrl;
+  final String amountFen;
+  final PlatformInt64 fetchedAt;
+
+  const BridgeCampusRechargeOrder({
+    required this.orderno,
+    required this.cashierUrl,
+    required this.amountFen,
+    required this.fetchedAt,
+  });
+
+  @override
+  int get hashCode =>
+      orderno.hashCode ^
+      cashierUrl.hashCode ^
+      amountFen.hashCode ^
+      fetchedAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCampusRechargeOrder &&
+          runtimeType == other.runtimeType &&
+          orderno == other.orderno &&
+          cashierUrl == other.cashierUrl &&
+          amountFen == other.amountFen &&
+          fetchedAt == other.fetchedAt;
+}
+
+class BridgeCampusRechargeOrderResult {
+  final BridgeCampusRechargeOrder data;
+  final BridgeRouteDecision route;
+
+  const BridgeCampusRechargeOrderResult({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCampusRechargeOrderResult &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+/// 充值前的卡信息；不含 openid 等凭据。
+class BridgeCampusRechargePreflight {
+  final String idserial;
+  final String balance;
+  final PlatformInt64 fetchedAt;
+
+  const BridgeCampusRechargePreflight({
+    required this.idserial,
+    required this.balance,
+    required this.fetchedAt,
+  });
+
+  @override
+  int get hashCode => idserial.hashCode ^ balance.hashCode ^ fetchedAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCampusRechargePreflight &&
+          runtimeType == other.runtimeType &&
+          idserial == other.idserial &&
+          balance == other.balance &&
+          fetchedAt == other.fetchedAt;
+}
+
+class BridgeCampusRechargePreflightResult {
+  final BridgeCampusRechargePreflight data;
+  final BridgeRouteDecision route;
+
+  const BridgeCampusRechargePreflightResult({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCampusRechargePreflightResult &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           route == other.route;

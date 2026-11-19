@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -51,6 +53,68 @@ void main() {
     launcher.result = false;
     expect(await openExternalUrl(safe), isFalse);
   });
+
+  test('其他平台保留原有应用内收银台启动方式', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final original = UrlLauncherPlatform.instance;
+    final launcher = _Launcher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = original);
+    final cashier = Uri.parse('https://cashier.cc-pay.cn/cashier?id=Ab123');
+
+    expect(await supportsCampusCashier(), isFalse);
+    expect(await openCampusCashier(cashier), isFalse);
+    expect(launcher.urls, isEmpty);
+
+    launcher.supportsWebView = true;
+    expect(await supportsCampusCashier(), isTrue);
+    for (final value in [
+      'http://cashier.cc-pay.cn/cashier?id=Ab123',
+      'https://cashier.cc-pay.cn.spoof.invalid/cashier?id=Ab123',
+      'https://user@cashier.cc-pay.cn/cashier?id=Ab123',
+      'https://cashier.cc-pay.cn:8443/cashier?id=Ab123',
+      'https://cashier.cc-pay.cn/login?id=Ab123',
+      'https://cashier.cc-pay.cn/cashier?id=Ab123&id=Other',
+      'https://excashier.alipay.com/standard/auth.htm?payOrderId=Ab123',
+    ]) {
+      expect(await openCampusCashier(Uri.parse(value)), isFalse);
+    }
+    expect(await openCampusCashier(cashier), isTrue);
+    expect(launcher.urls, [cashier.toString()]);
+    expect(launcher.modes, [PreferredLaunchMode.inAppWebView]);
+  });
+
+  test('Android 只把航财通原订单交给应用自有浏览器', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final original = UrlLauncherPlatform.instance;
+    final launcher = _Launcher()..supportsWebView = true;
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = original);
+    const channel = MethodChannel('cn.edu.buaa.ubaa/cashier-browser');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final opened = <String>[];
+    var supported = false;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'isSupported') return supported;
+      if (call.method != 'open') return null;
+      opened.add(call.arguments as String);
+      return true;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    final cashier = Uri.parse('https://cashier.cc-pay.cn/cashier?id=Order1');
+    expect(await supportsCampusCashier(), isFalse);
+    expect(await openCampusCashier(cashier), isFalse);
+    expect(opened, isEmpty);
+    supported = true;
+    expect(await supportsCampusCashier(), isTrue);
+    expect(await openCampusCashier(cashier), isTrue);
+    expect(opened, [cashier.toString()]);
+    expect(launcher.urls, isEmpty);
+  });
 }
 
 class _Launcher extends UrlLauncherPlatform {
@@ -59,6 +123,12 @@ class _Launcher extends UrlLauncherPlatform {
   final urls = <String>[];
   final modes = <PreferredLaunchMode>[];
   bool result = true;
+  bool supportsWebView = false;
+
+  @override
+  Future<bool> supportsMode(PreferredLaunchMode mode) async =>
+      mode == PreferredLaunchMode.inAppWebView && supportsWebView;
+
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     urls.add(url);

@@ -19,6 +19,7 @@ class MeView extends StatelessWidget {
     this.onOpenAbout,
     this.onLogout,
     this.onOpenBhpan,
+    this.onOpenRecharge,
   });
 
   final UserSummary? user;
@@ -28,6 +29,9 @@ class MeView extends StatelessWidget {
   final bool showShortcuts;
   final VoidCallback? onOpenProfile, onOpenSettings, onOpenAbout, onLogout;
   final VoidCallback? onOpenBhpan;
+
+  /// 校园卡充值入口；未接入时指标卡不可点。
+  final VoidCallback? onOpenRecharge;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +48,11 @@ class MeView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园账户'),
-        _MetricsPanel(section: overview.metrics, onOpenBhpan: onOpenBhpan),
+        _MetricsPanel(
+          section: overview.metrics,
+          onOpenBhpan: onOpenBhpan,
+          onOpenRecharge: onOpenRecharge,
+        ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园网流量'),
         _NetworkPanel(section: overview.network),
@@ -246,9 +254,14 @@ String _decimal(String raw, {bool fixed = false}) {
 }
 
 class _MetricsPanel extends StatelessWidget {
-  const _MetricsPanel({required this.section, this.onOpenBhpan});
+  const _MetricsPanel({
+    required this.section,
+    this.onOpenBhpan,
+    this.onOpenRecharge,
+  });
   final CampusSection<CampusMetrics> section;
   final VoidCallback? onOpenBhpan;
+  final VoidCallback? onOpenRecharge;
 
   _TileValue _amount(CampusMetric<CampusAmount>? metric, {bool money = false}) {
     return switch (metric) {
@@ -294,6 +307,7 @@ class _MetricsPanel extends StatelessWidget {
         label: '校园卡',
         value: _amount(metrics?.cardBalance, money: true),
         large: true,
+        onTap: onOpenRecharge,
       ),
       _MetricTile(
         key: const ValueKey('me-metric-network-fee'),

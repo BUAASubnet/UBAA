@@ -1,5 +1,9 @@
-//! 用户提供的 HAR 所证明的门户与网费只读协议。
+//! 用户提供的 HAR 所证明的门户、网费与校园卡协议。
 
+mod card;
+#[cfg(test)]
+mod card_tests;
+mod envelope;
 mod network;
 mod packages;
 mod parser;
@@ -14,11 +18,15 @@ use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 use url::Url;
 
+pub(crate) use card::{order as recharge_order, preflight as recharge_preflight};
 pub(crate) use network::get_usage;
 pub(crate) use portal::{get_metrics, get_profile};
 pub(super) const PORTAL_HOME: &str = "https://it.buaa.edu.cn/home/";
 pub(super) const NETWORK_HOME: &str = "https://zfw.buaa.edu.cn/home";
 pub(super) const NETWORK_LOGIN: &str = "https://zfw.buaa.edu.cn/sso/cas/index";
+/// 校园卡掌上服务大厅。
+pub(super) const CARD_BASE: &str = "https://m.icw.buaa.edu.cn";
+pub(super) const CARD_PREFIX: &str = "/card";
 
 #[derive(Clone, Copy)]
 pub(super) enum Service {

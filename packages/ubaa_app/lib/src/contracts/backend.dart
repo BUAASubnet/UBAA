@@ -91,6 +91,11 @@ abstract interface class CampusAccountBackend {
   CampusAccountService get campusAccount;
 }
 
+/// 校园卡充值入口；下单是真实写操作。
+abstract interface class CampusRechargeBackend {
+  CampusRechargeService? get campusRecharge;
+}
+
 abstract interface class FinanceBackend {
   FinanceService get finance;
 }

@@ -228,6 +228,9 @@ class AppController extends ControllerState
   }
 
   CampusAccountService? _campusService;
+  CampusRechargeService? _rechargeService;
+  UbaaBackend? _rechargeBackend;
+  int? _rechargeEpoch;
   ScopedCloudPrintService? _cloudPrintService;
   UbaaBackend? _cloudPrintBackend;
   int? _cloudPrintEpoch;
@@ -326,6 +329,30 @@ class AppController extends ControllerState
       );
     }
     return _campusService;
+  }
+
+  /// 校园卡充值；账号、会话或路线代次变化后旧绑定失效。
+  CampusRechargeService? get campusRechargeService {
+    final backend = internalBackend;
+    if (backend is! CampusRechargeBackend) return null;
+    final service = (backend as CampusRechargeBackend).campusRecharge;
+    if (service == null) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _rechargeBackend) || epoch != _rechargeEpoch) {
+      _rechargeBackend = backend;
+      _rechargeEpoch = epoch;
+      _rechargeService = GuardedCampusRechargeService(
+        service,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+      );
+    }
+    return _rechargeService;
   }
 
   FinanceService? _financeService;

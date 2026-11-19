@@ -1759,6 +1759,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCampusRechargeOrder dco_decode_bridge_campus_recharge_order(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusRechargeOrderResult
+  dco_decode_bridge_campus_recharge_order_result(dynamic raw);
+
+  @protected
+  BridgeCampusRechargePreflight dco_decode_bridge_campus_recharge_preflight(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusRechargePreflightResult
+  dco_decode_bridge_campus_recharge_preflight_result(dynamic raw);
+
+  @protected
   BridgeCampusRefresh dco_decode_bridge_campus_refresh(dynamic raw);
 
   @protected
@@ -5357,6 +5375,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCampusMetricsResult sse_decode_bridge_campus_metrics_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusRechargeOrder sse_decode_bridge_campus_recharge_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusRechargeOrderResult
+  sse_decode_bridge_campus_recharge_order_result(SseDeserializer deserializer);
+
+  @protected
+  BridgeCampusRechargePreflight sse_decode_bridge_campus_recharge_preflight(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusRechargePreflightResult
+  sse_decode_bridge_campus_recharge_preflight_result(
     SseDeserializer deserializer,
   );
 
@@ -9827,6 +9865,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_campus_metrics_result(
     BridgeCampusMetricsResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_recharge_order(
+    BridgeCampusRechargeOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_recharge_order_result(
+    BridgeCampusRechargeOrderResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_recharge_preflight(
+    BridgeCampusRechargePreflight self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_recharge_preflight_result(
+    BridgeCampusRechargePreflightResult self,
     SseSerializer serializer,
   );
 

@@ -4,6 +4,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import cn.edu.ubaa.ubaa_flutter.platform.AppearanceChannel
 import cn.edu.ubaa.ubaa_flutter.platform.AgendaFileChannel
+import cn.edu.ubaa.ubaa_flutter.platform.CashierBrowserChannel
 import cn.edu.ubaa.ubaa_flutter.platform.DefaultNetworkChannel
 import cn.edu.ubaa.ubaa_flutter.platform.PrivatePaths
 import cn.edu.ubaa.ubaa_flutter.widgets.WidgetChannel
@@ -15,6 +16,7 @@ class MainActivity : FlutterActivity() {
     private var scheduleWidgets: WidgetChannel? = null
     private var appearance: AppearanceChannel? = null
     private var agendaFiles: AgendaFileChannel? = null
+    private var cashierBrowser: CashierBrowserChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         System.loadLibrary("ubaa_flutter_bridge")
@@ -25,6 +27,7 @@ class MainActivity : FlutterActivity() {
         scheduleWidgets = WidgetChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         appearance = AppearanceChannel(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         agendaFiles = AgendaFileChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        cashierBrowser = CashierBrowserChannel(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
@@ -43,6 +46,8 @@ class MainActivity : FlutterActivity() {
         scheduleWidgets = null
         appearance?.dispose()
         appearance = null
+        cashierBrowser?.dispose()
+        cashierBrowser = null
         super.onDestroy()
     }
 }

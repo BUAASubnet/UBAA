@@ -84,7 +84,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 74;
+const _supportedBridgeContractVersion = 77;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -102,6 +102,7 @@ class BridgeBackend
         HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,
+        CampusRechargeBackend,
         BhpanProvider,
         CloudPrintProvider,
         PinnedWriteReadbackBackend,
@@ -422,6 +423,13 @@ class BridgeBackend
   late final CampusAccountService campusAccount = BridgeCampusAccountService(
     _context,
   );
+  @override
+  CampusRechargeService? get campusRecharge =>
+      client.contractVersion() == _supportedBridgeContractVersion
+      ? _campusRecharge
+      : null;
+
+  late final _campusRecharge = BridgeCampusRechargeService(_context);
   @override
   Future<FeatureResult> readAfterWriteOnRoute(
     WriteOperation operation, {
