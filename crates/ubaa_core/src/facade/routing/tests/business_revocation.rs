@@ -165,20 +165,70 @@ fn persist_identity(client: &mut UbaaClient) {
 }
 
 #[test]
-fn 保留标记_r3_路线策略重开后的读组不写盘() {
+fn 保留标记_r3_公开路线切换后的读组不写盘() {
     let (path, mut client) = setup("session-only-reopen", RouteConfig::default());
     client.config_dir = Some(path.clone());
+    prepare_identity_read(&mut client);
+    persist_identity(&mut client);
+    drop(client);
+
+    let file = path.join("business_session.json");
+    let old: serde_json::Value = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+    assert!(old["routes"]["direct"]["identity"].is_object());
+    let mut client = UbaaClient::open(&path).unwrap();
     client.bind_shared_account(Some(session_only_guard(&path)));
+    client
+        .set_default_route_policy(RoutePolicy::Direct)
+        .unwrap();
     let mut reopened = client.reopen_for_route_policy().unwrap();
     prepare_identity_read(&mut reopened);
-    let file = path.join("business_session.json");
     let before = std::fs::read(&file).unwrap();
+    let assert_no_business_entries = |bytes: &[u8]| {
+        let document: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+        for route in ["direct", "webvpn"] {
+            assert!(
+                document["routes"][route]
+                    .as_object()
+                    .is_none_or(serde_json::Map::is_empty)
+            );
+        }
+    };
+    assert_no_business_entries(&before);
     persist_identity(&mut reopened);
     drop((reopened, client));
-    assert!(
-        std::fs::read(file).unwrap() == before,
-        "只读写回不得改写旁车"
-    );
+    let after = std::fs::read(&file).unwrap();
+    assert_no_business_entries(&after);
+    assert!(after == before, "只读写回不得改写旁车");
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[test]
+fn 保留标记_a_同步前比较完整共享归属并重新派生() {
+    let (path, mut parent) = setup("session-only-sync-scope", RouteConfig::default());
+    prepare_identity_read(&mut parent);
+    let session_only = session_only_guard(&path);
+    let retained = crate::facade::SharedAccountGuard::new(&path, 1).unwrap();
+    parent.bind_shared_account(Some(retained));
+    let mut stale = parent.fork_parallel_readonly().unwrap();
+    // 同目录同代次重新捕获的保留归属也可以继续复用。
+    let retained = crate::facade::SharedAccountGuard::new(&path, 1).unwrap();
+    parent.bind_shared_account(Some(retained));
+    assert!(stale.synchronize_parallel_readonly(&mut parent).unwrap());
+
+    let file = path.join("business_session.json");
+    let before = std::fs::read(&file).unwrap();
+    parent.bind_shared_account(Some(session_only));
+    assert!(!stale.synchronize_parallel_readonly(&mut parent).unwrap());
+
+    let mut fresh = parent.fork_parallel_readonly().unwrap();
+    assert!(fresh.synchronize_parallel_readonly(&mut parent).unwrap());
+    fresh
+        .runtime_for(ConnectionMode::Direct)
+        .feature_state()
+        .seed_academic_identity(Some(StudentKind::Graduate));
+    fresh.persist_business_session(ConnectionMode::Direct);
+    drop((stale, fresh, parent));
+    assert_eq!(std::fs::read(file).unwrap(), before);
     std::fs::remove_dir_all(path).unwrap();
 }
 

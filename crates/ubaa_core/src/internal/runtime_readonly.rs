@@ -84,10 +84,25 @@ impl ClientRuntime {
         parent.readonly_generation.is_none()
             && self.mode == parent.mode
             && self.authentication_generation == parent.authentication_generation
+            && Self::same_shared_account_scope(
+                self.shared_account.as_ref(),
+                parent.shared_account.as_ref(),
+            )
             && self.readonly_generation.as_ref().is_some_and(|owner| {
                 Weak::ptr_eq(&owner.state, &Arc::downgrade(&parent.feature_state))
                     && owner.current()
             })
+    }
+
+    fn same_shared_account_scope(
+        child: Option<&crate::facade::SharedAccountGuard>,
+        parent: Option<&crate::facade::SharedAccountGuard>,
+    ) -> bool {
+        match (child, parent) {
+            (None, None) => true,
+            (Some(child), Some(parent)) => child.same_scope(parent),
+            _ => false,
+        }
     }
 
     fn business_session_account(&self) -> Option<&str> {
