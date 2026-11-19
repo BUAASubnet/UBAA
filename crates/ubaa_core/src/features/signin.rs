@@ -12,6 +12,11 @@ const SIGNIN_ENTRY_URL: &str = "https://iclass.buaa.edu.cn:8346/?type=jumpMyCent
 const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8347/app/user/login.action";
 const SIGNIN_TODAY_URL: &str =
     "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action";
+/// 时间戳读取与签到提交共用的写入口。2026-11-19 起旧入口（Direct 8081 `/eschool`、`WebVPN` 8347）
+/// 对提交只返回笼统的业务失败，只有 8082 仍按排课处理；两条路线都不带 `/eschool`。
+const SIGNIN_WRITE_ENTRY_URL: &str = "http://iclass.buaa.edu.cn:8082";
+const SIGNIN_TIMESTAMP_PATH: &str = "app/common/get_timestamp.action";
+const SIGNIN_SUBMIT_PATH: &str = "app/course/stu_scan_sign.action";
 const REDIRECT_LIMIT: usize = 8;
 
 pub(crate) use crate::internal::route_state::SigninCredential;
@@ -118,11 +123,7 @@ pub(crate) async fn perform_signin(
 ) -> Result<SigninActionResult> {
     preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
-    let timestamp_url = signin_checkin_url(
-        runtime.mode(),
-        "app/common/get_timestamp.action",
-        "app/common/get_timestamp.action",
-    )?;
+    let timestamp_url = signin_checkin_url(runtime.mode(), SIGNIN_TIMESTAMP_PATH)?;
     let timestamp = runtime.request(HttpRequest::get(timestamp_url)).await?;
     if timestamp.status != 200 {
         return Err(upstream_error("无法获取签到时间戳"));
@@ -136,19 +137,8 @@ pub(crate) async fn perform_signin(
     parse_action_response(&response.body)
 }
 
-fn signin_checkin_url(
-    mode: crate::domain::ConnectionMode,
-    direct_path: &str,
-    webvpn_path: &str,
-) -> Result<String> {
-    let upstream_url = match mode {
-        crate::domain::ConnectionMode::WebVpn => {
-            format!("https://iclass.buaa.edu.cn:8347/{webvpn_path}")
-        }
-        crate::domain::ConnectionMode::Direct => {
-            format!("http://iclass.buaa.edu.cn:8081/{direct_path}")
-        }
-    };
+fn signin_checkin_url(mode: crate::domain::ConnectionMode, path: &str) -> Result<String> {
+    let upstream_url = format!("{SIGNIN_WRITE_ENTRY_URL}/{path}");
     match mode {
         crate::domain::ConnectionMode::Direct => Ok(upstream_url),
         crate::domain::ConnectionMode::WebVpn => crate::connection::to_webvpn_url(&upstream_url),
@@ -160,11 +150,7 @@ fn build_signin_url(
     course_id: &str,
     timestamp: &str,
 ) -> Result<String> {
-    let base_url = signin_checkin_url(
-        mode,
-        "eschool/app/course/stu_scan_sign.action",
-        "app/course/stu_scan_sign.action",
-    )?;
+    let base_url = signin_checkin_url(mode, SIGNIN_SUBMIT_PATH)?;
     let mut url = url::Url::parse(&base_url).map_err(|_| invalid_url())?;
     url.query_pairs_mut()
         .append_pair("courseSchedId", course_id)
@@ -523,16 +509,15 @@ mod tests {
     };
 
     #[test]
-    fn 直连与webvpn签到地址生成对齐冻结旧版() {
+    fn 直连与webvpn签到写入地址统一指向8082入口() {
         let direct_ts = signin_checkin_url(
             crate::domain::ConnectionMode::Direct,
-            "app/common/get_timestamp.action",
             "app/common/get_timestamp.action",
         )
         .expect("直连时间戳地址应可构造");
         assert_eq!(
             direct_ts,
-            "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
+            "http://iclass.buaa.edu.cn:8082/app/common/get_timestamp.action"
         );
 
         let direct_sign = build_signin_url(
@@ -543,20 +528,21 @@ mod tests {
         .expect("直连签到提交地址应可构造");
         assert_eq!(
             direct_sign,
-            "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
+            "http://iclass.buaa.edu.cn:8082/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
         );
+        assert!(!direct_sign.contains("eschool"));
 
         let vpn_ts = signin_checkin_url(
             crate::domain::ConnectionMode::WebVpn,
             "app/common/get_timestamp.action",
-            "app/common/get_timestamp.action",
         )
         .expect("WebVPN 时间戳地址应可构造");
+        assert!(vpn_ts.starts_with("https://d.buaa.edu.cn/http-8082/"));
         let vpn_ts_direct =
             crate::connection::from_webvpn_url(&vpn_ts).expect("WebVPN 应可反向解码");
         assert_eq!(
             vpn_ts_direct,
-            "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action"
+            "http://iclass.buaa.edu.cn:8082/app/common/get_timestamp.action"
         );
 
         let vpn_sign = build_signin_url(
@@ -567,9 +553,10 @@ mod tests {
         .expect("WebVPN 签到提交地址应可构造");
         let vpn_sign_direct =
             crate::connection::from_webvpn_url(&vpn_sign).expect("WebVPN 应可反向解码");
+        assert!(vpn_sign.starts_with("https://d.buaa.edu.cn/http-8082/"));
         assert_eq!(
             vpn_sign_direct,
-            "https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
+            "http://iclass.buaa.edu.cn:8082/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
         );
         assert!(!vpn_sign_direct.contains("eschool"));
     }

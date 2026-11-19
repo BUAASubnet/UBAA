@@ -326,7 +326,7 @@ fn json_escape(value: &str) -> String {
 }
 
 fn signin_timestamp_request() -> ExpectedRequest {
-    let url = "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action";
+    let url = "http://iclass.buaa.edu.cn:8082/app/common/get_timestamp.action";
     ExpectedRequest::new(
         HttpMethod::Get,
         url,
@@ -336,7 +336,7 @@ fn signin_timestamp_request() -> ExpectedRequest {
 
 fn signin_write_request(body: &'static str) -> ExpectedRequest {
     let url = format!(
-        "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId={SCHEDULE_ID}&timestamp=1700000000000"
+        "http://iclass.buaa.edu.cn:8082/app/course/stu_scan_sign.action?courseSchedId={SCHEDULE_ID}&timestamp=1700000000000"
     );
     ExpectedRequest::new(
         HttpMethod::Post,

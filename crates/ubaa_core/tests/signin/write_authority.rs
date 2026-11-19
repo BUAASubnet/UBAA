@@ -33,18 +33,18 @@ pub(super) fn allowed_target_is_rechecked_and_submitted_once_with_separated_iden
             "/app/user/login.action",
             "/app/course/get_stu_course_sched.action",
             "/app/common/get_timestamp.action",
-            "/eschool/app/course/stu_scan_sign.action",
+            "/app/course/stu_scan_sign.action",
         ]
     );
     let ts_req = &requests[3];
     let ts_url = url::Url::parse(&ts_req.url).expect("时间戳 URL 有效");
     assert_eq!(ts_url.scheme(), "http");
-    assert_eq!(ts_url.port(), Some(8081));
+    assert_eq!(ts_url.port(), Some(8082));
 
     let submit = requests.last().expect("必须存在最终提交");
     let url = url::Url::parse(&submit.url).expect("提交 URL 有效");
     assert_eq!(url.scheme(), "http");
-    assert_eq!(url.port(), Some(8081));
+    assert_eq!(url.port(), Some(8082));
     assert_eq!(query(&url, "courseSchedId"), Some(SCHEDULE_ID.into()));
     assert_eq!(query(&url, "timestamp"), Some("1700000000000".into()));
     assert_eq!(String::from_utf8_lossy(&submit.body), "id=user-safe");
@@ -58,7 +58,7 @@ pub(super) fn allowed_target_is_rechecked_and_submitted_once_with_separated_iden
 }
 
 #[test]
-fn webvpn_mode_uses_8347_https_without_eschool_and_submits_once() {
+fn webvpn_mode_wraps_8082_http_without_eschool_and_submits_once() {
     let scenario = Scenario::new([today_row(SCHEDULE_ID, "signStatus", "0")]);
     let root = test_root("webvpn-allowed");
     let store = FileSessionStore::new(&root).expect("创建会话存储");
@@ -84,15 +84,17 @@ fn webvpn_mode_uses_8347_https_without_eschool_and_submits_once() {
     let ts_req = &requests[3];
     let ts_direct = from_webvpn_url(&ts_req.url).expect("反向解码时间戳 URL");
     let ts_url = url::Url::parse(&ts_direct).expect("时间戳直连 URL 有效");
-    assert_eq!(ts_url.scheme(), "https");
-    assert_eq!(ts_url.port(), Some(8347));
+    assert!(ts_req.url.starts_with("https://d.buaa.edu.cn/http-8082/"));
+    assert_eq!(ts_url.scheme(), "http");
+    assert_eq!(ts_url.port(), Some(8082));
     assert_eq!(ts_url.path(), "/app/common/get_timestamp.action");
 
     let submit = requests.last().expect("必须存在最终提交");
     let submit_direct = from_webvpn_url(&submit.url).expect("反向解码提交 URL");
     let submit_url = url::Url::parse(&submit_direct).expect("提交直连 URL 有效");
-    assert_eq!(submit_url.scheme(), "https");
-    assert_eq!(submit_url.port(), Some(8347));
+    assert!(submit.url.starts_with("https://d.buaa.edu.cn/http-8082/"));
+    assert_eq!(submit_url.scheme(), "http");
+    assert_eq!(submit_url.port(), Some(8082));
     assert_eq!(submit_url.path(), "/app/course/stu_scan_sign.action");
     assert!(!submit_url.path().contains("eschool"));
     assert_eq!(
@@ -610,7 +612,8 @@ impl HttpTransport for Scenario {
                 request.url,
                 br#"{"timestamp":1700000000000}"#.to_vec(),
             )),
-            "/eschool/app/course/stu_scan_sign.action" if port == Some(8081) => {
+            "/app/course/stu_scan_sign.action" if port == Some(8082) => {
+                assert_eq!(parsed_direct.scheme(), "http");
                 match state.submit.clone() {
                     Submit::Response(status, body) => {
                         Ok(HttpResponse::new(status, request.url, body.into_bytes()))
@@ -623,18 +626,11 @@ impl HttpTransport for Scenario {
                     }
                 }
             }
+            "/eschool/app/course/stu_scan_sign.action" if port == Some(8081) => {
+                Ok(legacy_write_entry_rejection(request.url))
+            }
             "/app/course/stu_scan_sign.action" if port == Some(8347) => {
-                match state.submit.clone() {
-                    Submit::Response(status, body) => {
-                        Ok(HttpResponse::new(status, request.url, body.into_bytes()))
-                    }
-                    Submit::FinalUrl(final_url, body) => {
-                        Ok(HttpResponse::new(200, final_url, body.into_bytes()))
-                    }
-                    Submit::TransportError => {
-                        Err(test_error(ErrorCode::NetworkError, "脱敏发送后网络失败"))
-                    }
-                }
+                Ok(legacy_write_entry_rejection(request.url))
             }
             "/eschool/app/course/stu_scan_sign.action" if port == Some(8347) => {
                 // 与真实上游一致，带有 /eschool 的 8347 请求返回 404
@@ -647,6 +643,15 @@ impl HttpTransport for Scenario {
             _ => Err(test_error(ErrorCode::InternalError, "未预期的签到测试路径")),
         }
     }
+}
+
+/// 2026-11-19 起旧写入口对任何提交都只回业务失败；合成响应用于拦住实现回退到旧入口。
+fn legacy_write_entry_rejection(url: String) -> HttpResponse {
+    HttpResponse::new(
+        200,
+        url,
+        r#"{"STATUS":"1","ERRMSG":"合成旧入口拒绝"}"#.as_bytes().to_vec(),
+    )
 }
 
 #[derive(Clone)]
