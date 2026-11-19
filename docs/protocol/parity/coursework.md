@@ -147,26 +147,6 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 ## 专项记录
 
-### WebVPN 批次内复用业务激活
-
-冻结旧版 `ubaa_old`：`1f4b8f8412272b6a423d4ad92b396e3db721e6f3`。以下路径以 `shared/src/commonMain/kotlin/cn/edu/ubaa/` 为根：`api/feature/JudgeApi.kt`、`model/dto/Judge.kt`、`api/local/LocalJudgeApi.kt:78-236,245-506,657-792,1037-1106`、`api/local/LocalConnectionAuth.kt:98-196,231-313,333-384`、`api/local/LocalWebVpnSupport.kt:8-83,98-102`。表中记录的是冻结版的本地 WebVPN 行为。
-
-| 操作 | CAS/service 与引导 | 重定向与最终地址 | Cookie、Session、Token 作用域 | 方法与精确参数 | 请求头与正文编码 | 加密与签名 | DTO 与解析 | 缓存、并发、重试 | 错误与退出 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 业务激活 | 同路线 SSO `/login`，冻结版 service 为 HTTP 的希冀根地址。 | Ktor 自动跟随包装后的跳转；激活助手再处理尚未跟随的一次 Location。历史实测支持 HTTPS 根地址回调，旧 HTTP service 可能落入原生登录页。 | 父客户端使用路线持久 Cookie；worker 继承非希冀 Cookie，业务 Cookie 留在 worker。无独立 Judge Token 或网关子会话。 | GET `/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F`；回调参数取自 Location，无 Judge 登录 POST。 | HTML `Accept`、`Accept-Language: zh-CN,zh;q=0.9`、固定 Chrome 58 UA；无正文。 | 无业务签名；WebVPN 包装以 `LocalWebVpnSupport.keyText` 作为 AES-CFB 的固定 key 和 IV。 | 无登录 DTO；检查状态、解包后地址和登录 HTML。 | 激活标志属于单个 `LocalJudgeClient`，新 worker 初始未激活。 | 401、SSO 地址或登录 HTML 表示需要认证，旧版未覆盖全部原生登录页标志；业务认证失败经 UC 仲裁。 |
-| 课程目录 | 沿用希冀激活。 | 同路线跟随目录请求跳转。 | 父客户端；缓存范围为路线和用户。 | GET `/courselist.jsp?courseID=0`。 | 同激活，无正文。 | 同一包装，无业务签名。 | 提取数字课程 ID（字符串）和非空名称，排除 `0` 并去重。 | 非空目录缓存 5 分钟；先读目录再分组；认证失效时有界重激活。 | 未登录立即失败；非 200 不作空目录处理。 |
-| 选课 | 先确保同一 worker 已激活。 | 同路线跳转；历史 Direct 样本落到 `/main.jsp`，不视为固定终点。 | 选课互斥属于 worker，不隔离其他 worker 继承的网关会话。 | GET `/courselist.jsp?courseID=<课程 ID>`，无选择 token。 | 同激活，无正文。 | 同一包装，无业务签名。 | 无选课 DTO；检查状态和认证标志。 | 每次索引或详情先选课，互斥覆盖选课及读取；冻结版不去重。 | 登录页触发有界重激活；错误向调用方传播。 |
-| 作业索引和摘要 | 已激活并选中课程。 | 同一路线读取索引。 | 与选课共用 worker；业务响应 Cookie 留在 worker。 | GET `/assignment/index.jsp`，无查询；`includeExpired` 仅参与本地筛选。 | 同激活，无正文。 | 同一包装，无业务签名。 | 解析数字 `assignID` 和非空标题，排除 `problemContent` 和 `judgeDetails`，按作业 ID 去重；课程标识由输入给出，摘要字段来自详情。 | 非空索引按路线、用户、课程缓存 5 分钟；冻结版两条路线均为 4 个课程 worker、课内串行；最多重激活 3 次，重试前未重选。 | 错误不作空索引；不沿用冻结版的六个月整课提前截断。 |
-| 单项和跨课程批量详情 | 沿用激活、目录和索引；无批量端点。 | 选课后访问详情，保持同路线。 | 同课程组共用 worker；局部保存业务 Cookie，继承相同网关会话。 | GET `/assignment/index.jsp?assignID=<作业 ID>`；批量键在本地去空、去重并分组。 | 同激活，无正文。 | 同一包装，无业务签名。 | `JudgeAssignmentDetailDto` 含字符串 ID 和标题、可空时间和成绩、整数题目数和提交数、提交状态、题目表及可空纯文本；ID 和标题由输入给出。 | 按路线、用户、课程、作业缓存 2 分钟；冻结版课内串行，最多重激活 3 次，重试前未重选。 | 缺课或缺作业返回未找到；非 200 和认证失败向上返回，最终认证失败由 UC 仲裁。 |
-
-`ForkedLocalJudgeCookieStorage` 从父罐读取非希冀 Cookie，在 worker 内按域、路径和名称保存业务 Cookie，不写回父罐；新建 HTTP 客户端不等于新建网关会话。冻结版 `LocalJudgeApiBackendTest.kt:693-769` 的 WebVPN 用例只有一门课，`LocalJudgeRealIntegrationTest.kt:25-36` 只覆盖 Direct，均不能证明 WebVPN 跨课隔离。
-
-冻结 `buaa-api`：`a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。`src/api.rs` 未暴露 Judge，以上五个操作的九列均不适用。`src/api/spoc/{core,opt,data}.rs` 的 SPOC CAS、Token、JSON DTO 和 AES-CBC 不适用于希冀；`src/api/class/core.rs` 的 Sessionid 和凭据属于课堂。`src/api/sso/auth.rs:18-29` 只覆盖常规网关会话，`src/{context,request,error}.rs` 和 `src/store/{cookies,cred}.rs` 不提供 Judge worker 的独立网关会话。
-
-同一网关会话内，选课可以改写后续索引和详情所用的课程。由历史[希冀获取修复](#希冀获取修复实施前来源对照)保留现行 HTTPS service、TLS、有界跳转、原生登录页识别及 UC 仲裁。两个 WebVPN 批量入口继续先读目录，课程侧改为复用一个内存 worker 和一次正常激活。每门实际联网的课程先选课；认证恢复后重选目标课程再重试。批量详情只并发同课未命中缓存的请求，一组最多四份并全部收尾后才处理下一门课，沿用[同课预取证据](#同课程详情预取与索引正文复用2026-11-13)。缓存、索引内嵌详情、返回顺序、错误选择及 Direct 四 worker 隔离保持不变。App 的在线扫描和缓存刷新已经在同一路线的计划内延续激活状态，不另建课程 worker。
-
-真实验收待另行授权：同一候选版本固定 Direct 和 WebVPN，冷目录读取至少两门课程，分别记录目录与课程批次的激活、失效恢复和耗时。对比默认和全历史作业集合、真实选中项、跨课程批量详情及同进程缓存命中，确认刷新后不串课或误清主会话。
-
 ### 希冀读取去重：实施前双来源核对
 
 冻结引用：ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，本轮 `just refs` 通过。
