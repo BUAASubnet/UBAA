@@ -92,7 +92,7 @@ fn home_state(value: &core::HomeRefresh) -> BridgeHomeRefreshState {
     }
 }
 impl BridgeClient {
-    async fn refresh_home_record(
+    pub(super) async fn refresh_home_record(
         &self,
         cache: &BridgeOfflineCache,
         query: core::HomeQuery,
@@ -324,7 +324,7 @@ impl BridgeClient {
             .refresh_home_record(cache, core::HomeQuery::SpocDetail { assignment_id })
             .await?;
         let state = home_state(&value);
-        let core::HomeReadData::SpocDetail(data) = value.result.data else {
+        let core::HomeReadData::SpocDetail { data, .. } = value.result.data else {
             return Err(cache_error(core::CacheError::Corrupt));
         };
         Ok(BridgeHomeSpocDetailRefresh {

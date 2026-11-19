@@ -45,7 +45,11 @@ impl HomeQuery {
 pub enum HomeReadData {
     Signin(Vec<SigninClass>),
     SpocAssignments(SpocAssignments),
-    SpocDetail(SpocAssignmentDetail),
+    SpocDetail {
+        data: SpocAssignmentDetail,
+        /// 本次前置采用的离线列表来源，与详情的在线路线独立。
+        offline_list_source_route: Option<ConnectionMode>,
+    },
     YgdkOverview(YgdkOverview),
 }
 impl HomeReadData {
@@ -55,7 +59,7 @@ impl HomeReadData {
                 CachePayload::SigninToday(classes.iter().cloned().map(Into::into).collect())
             }
             Self::SpocAssignments(value) => CachePayload::SpocAssignments(value.clone()),
-            Self::SpocDetail(value) => CachePayload::SpocDetail(Box::new(value.clone())),
+            Self::SpocDetail { data, .. } => CachePayload::SpocDetail(Box::new(data.clone())),
             Self::YgdkOverview(value) => CachePayload::YgdkOverview(value.clone().into()),
         }
     }

@@ -258,8 +258,8 @@ pub(in crate::api::command) fn spoc_assignments(
 pub(in crate::api::command) fn spoc_assignment(
     v: core::HomeReadData,
 ) -> Option<core::SpocAssignmentDetail> {
-    if let core::HomeReadData::SpocDetail(v) = v {
-        Some(v)
+    if let core::HomeReadData::SpocDetail { data, .. } = v {
+        Some(data)
     } else {
         None
     }

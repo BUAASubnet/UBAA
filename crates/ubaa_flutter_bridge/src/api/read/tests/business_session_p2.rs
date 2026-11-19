@@ -57,6 +57,7 @@ struct Calls {
     spoc_logins: AtomicUsize,
     spoc_terms: AtomicUsize,
     spoc_pages: AtomicUsize,
+    spoc_details: [AtomicUsize; 2],
     spoc_old: AtomicUsize,
     spoc_submissions: AtomicUsize,
     spoc_new: AtomicUsize,
@@ -126,6 +127,7 @@ impl Transport {
                         r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","zymc":"合成作业"}]}}"#
                     }
                     "/spocnewht/kczy/queryKczyInfoByid" => {
+                        self.calls.spoc_details[usize::from(call.via_vpn())].fetch_add(1, SeqCst);
                         r#"{"code":200,"content":{"id":"a1","zymc":"合成作业","zynr":"合成正文"}}"#
                     }
                     "/spocnewht/kczy/queryXsSubmitKczyInfo" => {
@@ -971,3 +973,6 @@ async fn spoc_refresh_reuses_offline_last_batch(detail: bool) {
 
 #[path = "session_retention.rs"]
 mod session_retention;
+
+#[path = "spoc_detail_route.rs"]
+mod spoc_detail_route;

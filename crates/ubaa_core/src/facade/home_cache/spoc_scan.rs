@@ -31,6 +31,7 @@ enum Stage {
 /// 仅含只读领域数据及弱客户端标识，不包含会话凭据。
 pub struct SpocScan {
     resolution: RouteResolution,
+    offline_list_source_route: Option<ConnectionMode>,
     online_route: Option<ConnectionMode>,
     online_routes: Vec<ConnectionMode>,
     owner: Weak<RouteFeatureState>,
@@ -183,8 +184,14 @@ impl SpocScan {
         }
     }
     fn batch(&self, publication: Option<CachePublication>) -> SpocScanBatch {
+        // 单独读取列表时，结果仍展示实际数据来源；执行绑定不随离线来源改变。
+        let mut resolution = self.resolution;
+        if let Some(source) = self.offline_list_source_route {
+            resolution.mode = source;
+            resolution.diagnostic.mode = source;
+        }
         SpocScanBatch {
-            resolution: self.resolution,
+            resolution,
             online_route: self.online_route,
             data: self.data.clone(),
             fetched_at: self.fetched_at,
@@ -266,6 +273,7 @@ impl UbaaClient {
         let owner = self.runtime_for(resolution.mode).feature_state();
         let mut plan = SpocScan {
             resolution,
+            offline_list_source_route: None,
             online_route: None,
             online_routes: Vec::new(),
             owner: Arc::downgrade(&owner),

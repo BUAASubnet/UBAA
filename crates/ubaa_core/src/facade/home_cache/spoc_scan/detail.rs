@@ -1,8 +1,8 @@
 //! 当前目标详情复用前置扫描；独立票据约束从开始到正文完成的整个读取。
 use super::{
     CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheReadTicket,
-    CacheScope, ErrorKind, HomeReadData, HomeRefresh, OfflineCache, OfflineReadError,
-    OfflineRefresh, RouteResolution, SpocScan, SpocScanCancellation, UbaaClient,
+    CacheScope, ConnectionMode, ErrorKind, HomeReadData, HomeRefresh, OfflineCache,
+    OfflineReadError, OfflineRefresh, RouteResolution, SpocScan, SpocScanCancellation, UbaaClient,
 };
 use crate::facade::{ErrorCode, RoutedError, SpocAssignmentDetail, UbaaError};
 mod recovery;
@@ -16,7 +16,9 @@ pub struct SpocDetailScan {
 }
 pub struct SpocDetailScanBatch {
     pub resolution: RouteResolution,
-    pub online_route: Option<crate::facade::ConnectionMode>,
+    /// 本次前置采用的离线列表来源；在线获取列表时为空。
+    pub offline_list_source_route: Option<ConnectionMode>,
+    pub online_route: Option<ConnectionMode>,
     pub data: Option<SpocAssignmentDetail>,
     pub completed_pages: u32,
     pub fetched_at: i64,
@@ -62,6 +64,7 @@ impl SpocDetailScan {
     ) -> SpocDetailScanBatch {
         SpocDetailScanBatch {
             resolution: self.list.resolution,
+            offline_list_source_route: self.list.offline_list_source_route,
             online_route: self.list.online_route,
             data,
             completed_pages: self.list.next_page - 1,
@@ -222,7 +225,10 @@ impl UbaaClient {
             if let Some(data) = value.data {
                 return Ok(HomeRefresh {
                     result: OfflineRefresh {
-                        data: HomeReadData::SpocDetail(data),
+                        data: HomeReadData::SpocDetail {
+                            data,
+                            offline_list_source_route: value.offline_list_source_route,
+                        },
                         scope: plan.scope(),
                         resolution: value.resolution,
                         online_route: value.online_route,
