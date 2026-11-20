@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB5C1D0100000000000000BB /* ScheduleTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000AB /* ScheduleTheme.swift */; };
+		AB5C1D0100000000000000B1 /* ScheduleWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A3 /* ScheduleWidgetPlugin.swift */; };
+		AB5C1D0100000000000000B2 /* ScheduleWidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */; };
+		AB5C1D0100000000000000B3 /* ScheduleWidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */; };
+		AB5C1D0100000000000000B4 /* ScheduleWidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */; };
+		AB5C1D0100000000000000B5 /* ScheduleWidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */; };
+		AB5C1D0100000000000000B6 /* ScheduleWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A4 /* ScheduleWidgetBundle.swift */; };
+		AB5C1D0100000000000000B7 /* ScheduleTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */; };
+		AB5C1D0100000000000000B8 /* ScheduleWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */; };
+		AB5C1D0100000000000000B9 /* WeekOffsetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */; };
+		AB5C1D0100000000000000BA /* ScheduleWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000AA /* ScheduleWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A24BFD311FD8A001E741B6C3 /* BhpanPreviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24BFD321FD8A001E741B6C3 /* BhpanPreviewPlugin.swift */; };
 		4A204F32B18C4B8D972C7361 /* AgendaFilePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F273312B41347A1AB62D27B /* AgendaFilePlugin.swift */; };
 		13DF9165673234A7597F9DF3 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DA29CA05753F5E16FB7B28C /* Pods_Runner.framework */; };
@@ -25,6 +36,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AB5C1D0100000000000000D6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB5C1D0100000000000000D5;
+			remoteInfo = ScheduleWidget;
+		};
 		331C8085294A63A400263BE5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -35,6 +53,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AB5C1D0100000000000000D4 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AB5C1D0100000000000000BA /* ScheduleWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -48,6 +77,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AB5C1D0100000000000000AB /* ScheduleTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTheme.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetModels.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetStore.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A3 /* ScheduleWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetPlugin.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A4 /* ScheduleWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetBundle.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTimelineProvider.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetViews.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekOffsetStore.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB5C1D0100000000000000A9 /* ScheduleWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ScheduleWidget.entitlements; sourceTree = "<group>"; };
+		AB5C1D0100000000000000AA /* ScheduleWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScheduleWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A24BFD321FD8A001E741B6C3 /* BhpanPreviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BhpanPreviewPlugin.swift; sourceTree = "<group>"; };
 		9F273312B41347A1AB62D27B /* AgendaFilePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaFilePlugin.swift; sourceTree = "<group>"; };
 		01D1922DC2947761B897426D /* RunnerRotationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerRotationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -81,6 +121,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AB5C1D0100000000000000D2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -109,6 +156,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AB5C1D0100000000000000C1 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */,
+				AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		AB5C1D0100000000000000C2 /* ScheduleWidget */ = {
+			isa = PBXGroup;
+			children = (
+				AB5C1D0100000000000000A4 /* ScheduleWidgetBundle.swift */,
+				AB5C1D0100000000000000AB /* ScheduleTheme.swift */,
+				AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */,
+				AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */,
+				AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */,
+				AB5C1D0100000000000000A8 /* Info.plist */,
+				AB5C1D0100000000000000A9 /* ScheduleWidget.entitlements */,
+			);
+			path = ScheduleWidget;
+			sourceTree = "<group>";
+		};
 		23999A2E914CE51E21563AD0 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -166,6 +236,8 @@
 			children = (
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
+				AB5C1D0100000000000000C1 /* Shared */,
+				AB5C1D0100000000000000C2 /* ScheduleWidget */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				6B4C7F847EB801C22371A544 /* Pods */,
@@ -178,6 +250,7 @@
 			isa = PBXGroup;
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
+				AB5C1D0100000000000000AA /* ScheduleWidget.appex */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				01D1922DC2947761B897426D /* RunnerRotationUITests.xctest */,
 			);
@@ -196,6 +269,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				A24BFD321FD8A001E741B6C3 /* BhpanPreviewPlugin.swift */,
 				9F273312B41347A1AB62D27B /* AgendaFilePlugin.swift */,
+				AB5C1D0100000000000000A3 /* ScheduleWidgetPlugin.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -214,6 +288,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AB5C1D0100000000000000D5 /* ScheduleWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB5C1D0100000000000000E4 /* Build configuration list for PBXNativeTarget "ScheduleWidget" */;
+			buildPhases = (
+				AB5C1D0100000000000000D1 /* Sources */,
+				AB5C1D0100000000000000D2 /* Frameworks */,
+				AB5C1D0100000000000000D3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScheduleWidget;
+			productName = ScheduleWidget;
+			productReference = AB5C1D0100000000000000AA /* ScheduleWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -246,12 +337,14 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				AB5C1D0100000000000000D4 /* Embed App Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				2907F1E8C77C9E5060EDF4BE /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AB5C1D0100000000000000D7 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -298,6 +391,9 @@
 					};
 					EA82CF8DED6B8C8334F8AE12 = {
 					};
+					AB5C1D0100000000000000D5 = {
+						CreatedOnToolsVersion = 15.0;
+					};
 				};
 			};
 			buildConfigurationList = 97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */;
@@ -314,6 +410,7 @@
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
+				AB5C1D0100000000000000D5 /* ScheduleWidget */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				EA82CF8DED6B8C8334F8AE12 /* RunnerRotationUITests */,
 			);
@@ -321,6 +418,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		AB5C1D0100000000000000D3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807F294A63A400263BE5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -444,6 +548,20 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AB5C1D0100000000000000D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB5C1D0100000000000000B4 /* ScheduleWidgetModels.swift in Sources */,
+				AB5C1D0100000000000000B5 /* ScheduleWidgetStore.swift in Sources */,
+				AB5C1D0100000000000000B6 /* ScheduleWidgetBundle.swift in Sources */,
+				AB5C1D0100000000000000BB /* ScheduleTheme.swift in Sources */,
+				AB5C1D0100000000000000B7 /* ScheduleTimelineProvider.swift in Sources */,
+				AB5C1D0100000000000000B8 /* ScheduleWidgetViews.swift in Sources */,
+				AB5C1D0100000000000000B9 /* WeekOffsetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807D294A63A400263BE5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -459,6 +577,9 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A24BFD311FD8A001E741B6C3 /* BhpanPreviewPlugin.swift in Sources */,
 				4A204F32B18C4B8D972C7361 /* AgendaFilePlugin.swift in Sources */,
+				AB5C1D0100000000000000B1 /* ScheduleWidgetPlugin.swift in Sources */,
+				AB5C1D0100000000000000B2 /* ScheduleWidgetModels.swift in Sources */,
+				AB5C1D0100000000000000B3 /* ScheduleWidgetStore.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);
@@ -475,6 +596,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AB5C1D0100000000000000D7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB5C1D0100000000000000D5 /* ScheduleWidget */;
+			targetProxy = AB5C1D0100000000000000D6 /* PBXContainerItemProxy */;
+		};
 		331C8086294A63A400263BE5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
@@ -502,6 +628,67 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		AB5C1D0100000000000000E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScheduleWidget/ScheduleWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ScheduleWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AB5C1D0100000000000000E2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScheduleWidget/ScheduleWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ScheduleWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AB5C1D0100000000000000E3 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScheduleWidget/ScheduleWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ScheduleWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
 		0BE21FA4FFC5CCA6D72D32EC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -835,6 +1022,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AB5C1D0100000000000000E4 /* Build configuration list for PBXNativeTarget "ScheduleWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB5C1D0100000000000000E1 /* Debug */,
+				AB5C1D0100000000000000E2 /* Release */,
+				AB5C1D0100000000000000E3 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
