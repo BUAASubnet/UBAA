@@ -277,6 +277,18 @@ class _FinanceViewState extends State<FinanceView> {
           children: [
             _FinanceHeadline(entry: entry),
             const SizedBox(height: 12),
+            DetailField(
+              label: '部门名称',
+              value: uiNonBlank(entry.department) ?? '—',
+            ),
+            DetailField(
+              label: '项目编号',
+              value: uiNonBlank(entry.projectCode) ?? '—',
+            ),
+            DetailField(
+              label: '项目名称',
+              value: uiNonBlank(entry.projectName) ?? '—',
+            ),
             DetailField(label: '应发金额', value: financeYuan(entry.amountCents)),
             DetailField(label: '扣税', value: financeYuan(entry.taxCents)),
             DetailField(label: '实发金额', value: financeYuan(entry.paidCents)),

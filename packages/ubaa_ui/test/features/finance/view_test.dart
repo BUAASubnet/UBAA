@@ -9,6 +9,9 @@ FinanceIncome income(
   String id, {
   String? project = '助学金',
   String? description = '国家助学金',
+  String? department,
+  String? projectCode,
+  String? projectName,
   int? amount = 100000,
   int? tax = 0,
   int? paid = 100000,
@@ -20,6 +23,9 @@ FinanceIncome income(
   id: id,
   project: project,
   description: description,
+  department: department,
+  projectCode: projectCode,
+  projectName: projectName,
   amountCents: amount,
   taxCents: tax,
   paidCents: paid,
@@ -197,7 +203,15 @@ void main() {
   testWidgets('搜索按项目和摘要筛选，合计跟随结果', (tester) async {
     final service = Service()
       ..onRefresh = () async => snapshot([
-        income('a', project: '劳务费', description: '助教酬金', paid: 80000),
+        income(
+          'a',
+          project: '劳务费',
+          description: '助教酬金',
+          department: '示例学院',
+          projectCode: 'SYNTH-PROJECT-01',
+          projectName: '合成项目名称',
+          paid: 80000,
+        ),
         income('b'),
       ]);
     await pump(tester, service);
@@ -208,6 +222,11 @@ void main() {
     expect(find.text('搜索结果实发合计'), findsOneWidget);
     expect(find.text('¥800.00'), findsWidgets);
 
+    await tester.enterText(find.byType(TextField), '示例学院');
+    await tester.pumpAndSettle();
+    expect(find.text('助教酬金'), findsOneWidget);
+    expect(find.text('国家助学金'), findsNothing);
+
     await tester.enterText(find.byType(TextField), '不存在');
     await tester.pumpAndSettle();
     expect(find.text('没有匹配的记录'), findsOneWidget);
@@ -215,10 +234,23 @@ void main() {
 
   testWidgets('详情区分零税额与缺失税率并说明不代表到账', (tester) async {
     final service = Service()
-      ..onRefresh = () async => snapshot([income('LS001')]);
+      ..onRefresh = () async => snapshot([
+        income(
+          'LS001',
+          department: '示例学院',
+          projectCode: 'SYNTH-PROJECT-01',
+          projectName: '合成项目名称',
+        ),
+      ]);
     await pump(tester, service);
     await tester.tap(find.text('国家助学金'));
     await tester.pumpAndSettle();
+    expect(find.text('部门名称'), findsOneWidget);
+    expect(find.text('示例学院'), findsOneWidget);
+    expect(find.text('项目编号'), findsOneWidget);
+    expect(find.text('SYNTH-PROJECT-01'), findsOneWidget);
+    expect(find.text('项目名称'), findsOneWidget);
+    expect(find.text('合成项目名称'), findsOneWidget);
     expect(find.text('应发金额'), findsOneWidget);
     expect(find.text('¥0.00'), findsOneWidget);
     expect(find.text('税率'), findsOneWidget);

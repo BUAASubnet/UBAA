@@ -6,6 +6,12 @@ pub struct FinanceIncome {
     pub id: String,
     pub project: Option<String>,
     pub description: Option<String>,
+    /// 上游部门名称，缺失保持未知。
+    pub department: Option<String>,
+    /// 上游项目编号，缺失保持未知。
+    pub project_code: Option<String>,
+    /// 上游项目名称，缺失保持未知。
+    pub project_name: Option<String>,
     pub amount_cents: Option<i64>,
     pub tax_cents: Option<i64>,
     pub paid_cents: Option<i64>,
