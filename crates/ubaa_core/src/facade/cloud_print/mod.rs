@@ -1,9 +1,11 @@
 //! 图书馆云打印的原生宿主合同。
 #![allow(clippy::missing_errors_doc)]
 
+use std::future::Future;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU16, Ordering};
 
-use futures_util::{StreamExt as _, stream};
+use futures_util::{StreamExt as _, stream, stream::FuturesUnordered};
 
 use crate::connection::RouteResolution;
 use crate::domain::ConnectionMode;
@@ -209,15 +211,7 @@ impl UbaaClient {
         let resolution = self.print_route()?;
         let result = async {
             let runtime = self.print_runtime(resolution.mode).await?;
-            let results =
-                run_four_ordered(files, |file| {
-                    let mut lane = runtime.fork_with_cookie_filter(|_| true);
-                    async move {
-                        cloud_print::send_upload(&mut lane, &file.path, &file.name, options).await
-                    }
-                })
-                .await;
-            Ok(results)
+            Ok(upload_batch(runtime, files, options).await)
         }
         .await;
         routed(resolution, result)
@@ -321,22 +315,73 @@ async fn delete_batch(
         .collect();
     let mut results = Vec::with_capacity(ids.len());
     for target in targets {
+        runtime.begin_non_idempotent_operation();
         let result = match target {
             Ok(job) => read::delete(runtime, job, scans).await,
             Err(error) => Err(error),
         };
-        let stop = result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::OutcomeUnknown);
+        let result = runtime.finish_non_idempotent_result(result);
+        let _ = runtime.take_non_idempotent_boundary_crossed();
+        let skipped = result.as_ref().err().and_then(|error| {
+            if error.is_campus_network_required() {
+                error
+                    .diagnostic()
+                    .status
+                    .map(UbaaError::campus_network_unattempted)
+            } else if error.code == ErrorCode::OutcomeUnknown {
+                Some(UbaaError::write_unattempted())
+            } else {
+                None
+            }
+        });
         results.push(result);
-        if stop {
-            results.resize_with(ids.len(), || {
-                Err(UbaaError::invalid_input("前一项结果待核对，未继续删除"))
-            });
+        if let Some(error) = skipped {
+            results.resize_with(ids.len(), || Err(error.clone()));
             break;
         }
     }
     results
+}
+
+async fn upload_batch(
+    runtime: &ClientRuntime,
+    files: Vec<PrintFile>,
+    options: PrintOptions,
+) -> Vec<Result<()>> {
+    let stop_status = std::sync::Arc::new(AtomicU16::new(0));
+    let send = |(index, file): (usize, PrintFile)| {
+        let mut lane = runtime.fork_with_cookie_filter(|_| true);
+        lane.observe_campus_network_writes_with(stop_status.clone());
+        let stop_status = stop_status.clone();
+        async move {
+            let result =
+                cloud_print::send_upload(&mut lane, &file.path, &file.name, options, || {
+                    match stop_status.load(Ordering::Acquire) {
+                        0 => Ok(()),
+                        status => Err(UbaaError::campus_network_unattempted(status)),
+                    }
+                })
+                .await;
+            (index, lane.finish_non_idempotent_result(result))
+        }
+    };
+    let mut pending = files.into_iter().enumerate();
+    let mut results = Vec::with_capacity(pending.len());
+    let mut active: FuturesUnordered<_> = pending.by_ref().take(4).map(send).collect();
+    while let Some(result) = active.next().await {
+        results.push(result);
+        if stop_status.load(Ordering::Acquire) == 0
+            && let Some(file) = pending.next()
+        {
+            active.push(send(file));
+        }
+    }
+    let status = stop_status.load(Ordering::Acquire);
+    results.extend(
+        pending.map(|(index, _)| (index, Err(UbaaError::campus_network_unattempted(status)))),
+    );
+    results.sort_unstable_by_key(|(index, _)| *index);
+    results.into_iter().map(|(_, result)| result).collect()
 }
 
 fn valid_count(count: usize) -> Result<()> {

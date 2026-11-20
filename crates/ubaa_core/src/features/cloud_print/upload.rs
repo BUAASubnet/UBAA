@@ -20,6 +20,7 @@ pub(crate) async fn send_upload(
     path: &Path,
     name: &str,
     options: PrintOptions,
+    pre_send_check: impl FnOnce() -> Result<()>,
 ) -> Result<()> {
     let (mut mime, image) = file_type(name)?;
     let mut bytes = Vec::new();
@@ -100,7 +101,7 @@ pub(crate) async fn send_upload(
         .origin()
         .ascii_serialization();
     let reply = runtime
-        .request_non_idempotent(
+        .request_non_idempotent_with_pre_send_check(
             HttpRequest::post(&url, body)
                 .with_header(
                     "Content-Type",
@@ -108,6 +109,7 @@ pub(crate) async fn send_upload(
                 )
                 .with_header("Origin", origin)
                 .with_header("Referer", referer),
+            |_| pre_send_check(),
         )
         .await?;
     runtime.ensure_session_revision().map_err(|_| unknown())?;

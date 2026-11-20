@@ -1,5 +1,6 @@
 //! 同一运行时的只读小批次，所有请求完成后统一处理响应 Cookie。
 use super::{ClientRuntime, ErrorCode, HttpRequest, HttpResponse, Result, SystemTime};
+use crate::error::UbaaError;
 
 impl ClientRuntime {
     pub(super) fn prepare_request_cookie(
@@ -43,20 +44,11 @@ impl ClientRuntime {
         request_url: &str,
         now: SystemTime,
     ) -> Result<HttpResponse> {
-        let domain = crate::connection::from_webvpn_url(request_url)
-            .ok()
-            .and_then(|url| url::Url::parse(&url).ok())
-            .and_then(|url| url.host_str().map(str::to_owned));
-        match (&result, domain) {
-            (Err(error), Some(domain))
-                if matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout) =>
-            {
-                self.network_failure_domain = Some(domain);
-            }
-            (Ok(_), Some(domain)) => {
-                self.reached_domains.insert(domain);
-            }
-            _ => {}
+        if let Err(error) = &result
+            && matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
+            && let Some(domain) = request_domain(request_url)
+        {
+            self.network_failure_domain = Some(domain);
         }
         let response = result?;
         if let Some(scope) = &self.shared_account {
@@ -66,8 +58,54 @@ impl ClientRuntime {
             self.ensure_session_revision()?;
         }
         self.check_authentication_scope()?;
+        let response = self.check_campus_network_page(response, request_url)?;
+        if let Some(domain) = request_domain(request_url) {
+            self.reached_domains.insert(domain);
+        }
         self.jar.store_response(&response, request_url, now)?;
         Ok(response)
+    }
+
+    pub(super) fn check_campus_network_page(
+        &mut self,
+        response: HttpResponse,
+        request_url: &str,
+    ) -> Result<HttpResponse> {
+        if self.is_campus_network_page(&response) {
+            self.network_failure_domain = request_domain(request_url);
+            return Err(UbaaError::campus_network_required(response.status));
+        }
+        Ok(response)
+    }
+
+    pub(super) fn observe_campus_network_page(
+        &mut self,
+        response: &HttpResponse,
+        request_url: &str,
+    ) {
+        if self.is_campus_network_page(response) {
+            self.network_failure_domain = request_domain(request_url);
+            self.campus_network_write_status = Some(response.status);
+            if let Some(observer) = &self.campus_network_write_observer {
+                observer.store(response.status, std::sync::atomic::Ordering::Release);
+            }
+        }
+    }
+
+    fn is_campus_network_page(&self, response: &HttpResponse) -> bool {
+        self.mode() == crate::domain::ConnectionMode::Direct
+            && (200..300).contains(&response.status)
+            && response.body.len() <= 1024
+            && std::str::from_utf8(&response.body).is_ok_and(|html| {
+                html.trim_start().starts_with('<')
+                    && html
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<String>()
+                        .eq_ignore_ascii_case(
+                            "<html><body><h1>请在校园网环境下访问</h1></body></html>",
+                        )
+            })
     }
 
     /// 仅供已选定课程的详情 GET 使用；返回前没有在途请求。
@@ -98,4 +136,11 @@ impl ClientRuntime {
             .map(|(response, url)| self.finish_request_response(response, &url, now))
             .collect())
     }
+}
+
+fn request_domain(request_url: &str) -> Option<String> {
+    crate::connection::from_webvpn_url(request_url)
+        .ok()
+        .and_then(|url| url::Url::parse(&url).ok())
+        .and_then(|url| url.host_str().map(str::to_owned))
 }

@@ -196,6 +196,52 @@ fn 门控拒绝首门时保留错误而在提交一门后保留已确认结果()
     }
 }
 
+#[test]
+fn 校园网提示按每门课程的最终提交边界停止批次() {
+    use EvaluationCourseOutcome::{OutcomeUnknown, Success, Unattempted};
+    for (topic, expected, topic_count, sent) in [
+        (
+            Some("course-1"),
+            [Unattempted, Unattempted, Unattempted],
+            1,
+            0,
+        ),
+        (Some("course-2"), [Success, Unattempted, Unattempted], 2, 1),
+        (None, [Success, OutcomeUnknown, Unattempted], 2, 2),
+    ] {
+        let mut scenario = two_courses();
+        scenario.course_rounds[0].push(course_row("course-3", Some("teacher-3"), &json!(0)));
+        scenario.campus_topic = topic.map(str::to_owned);
+        scenario.final_replies = vec![FinalReply::Success, FinalReply::CampusOnly];
+        let transport = EvaluationMock::new(scenario);
+        let (mut client, root) = route_client("campus-batch", transport.clone());
+        let mut request = two_course_request();
+        request.targets.push(target("course-3", Some("teacher-3")));
+        let result = runtime()
+            .block_on(client.evaluation_submit_courses(request.clone()))
+            .unwrap()
+            .data;
+        assert_eq!(
+            result
+                .items
+                .iter()
+                .map(|item| item.outcome)
+                .collect::<Vec<_>>(),
+            expected
+        );
+        for (item, target) in result.items.iter().zip(request.targets) {
+            assert_eq!(item.target, target);
+            if item.outcome != Success {
+                assert!(item.message.contains("未尝试") || item.message.contains("结果未知"));
+            }
+        }
+        assert_eq!(result.outcome_unknown, topic.is_none());
+        assert_eq!(count_path(&transport, "getQuestionnaireTopic"), topic_count);
+        assert_eq!(count_path(&transport, "submitSaveEvaluation"), sent);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
 fn two_courses() -> Scenario {
     let mut scenario = Scenario::one_course();
     scenario.course_rounds = vec![vec![

@@ -18,6 +18,8 @@ mod bootstrap;
 mod bykc_cache;
 #[path = "facade/cache/campus.rs"]
 mod campus;
+#[path = "facade/campus_network_required/mod.rs"]
+mod campus_network_required;
 #[path = "facade/cgyy.rs"]
 mod cgyy;
 #[path = "facade/cgyy_cache.rs"]

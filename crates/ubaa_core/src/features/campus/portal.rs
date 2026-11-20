@@ -109,6 +109,7 @@ async fn card(runtime: &mut ClientRuntime, items: &[Value]) -> Result<CampusMetr
     let result = match result {
         Err(error)
             if !error.is_session_conflict()
+                && !error.is_campus_network_required()
                 && error.code != crate::error::ErrorCode::AuthenticationRequired
                 && matches!(
                     error.kind,

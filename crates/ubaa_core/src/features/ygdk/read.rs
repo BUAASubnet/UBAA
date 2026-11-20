@@ -148,7 +148,8 @@ fn optional_success_response(response: Result<String>) -> Result<(String, bool)>
             if matches!(
                 error.code,
                 ErrorCode::AuthenticationRequired | ErrorCode::UpdateRequired
-            ) || is_pre_send_credential_error(&error) =>
+            ) || error.is_campus_network_required()
+                || is_pre_send_credential_error(&error) =>
         {
             Err(error)
         }

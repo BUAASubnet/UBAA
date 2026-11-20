@@ -243,6 +243,7 @@ pub(super) fn record<T>(
         Ok(value) => Ok(CampusMetric::Success { value, fetched_at }),
         Err(error)
             if error.is_session_conflict()
+                || error.is_campus_network_required()
                 || error.code == crate::error::ErrorCode::AuthenticationRequired
                 || !matches!(
                     error.kind,

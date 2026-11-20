@@ -54,10 +54,12 @@ impl UbaaClient {
         runtime.check_school_requests()?;
         let result = auth.login_automatically(runtime, input).await;
         self.clear_on_session_conflict()?;
-        result.map(|data| super::types::CallerPinned {
-            data,
-            pinned_route: route,
-        })
+        result
+            .map(|data| super::types::CallerPinned {
+                data,
+                pinned_route: route,
+            })
+            .map_err(UbaaError::for_facade)
     }
 
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
@@ -357,7 +359,7 @@ pub(super) fn safe_error(error: &UbaaError) -> SafeError {
         diagnostic: error.auth_diagnostic(),
         code,
         kind,
-        retryable: error.retryable,
+        retryable: error.facade_retryable(),
         message: error.message.clone(),
     }
 }
