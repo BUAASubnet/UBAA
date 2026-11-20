@@ -28,6 +28,7 @@ export 'src/infrastructure/network_monitor.dart';
 export 'src/infrastructure/place_preferences.dart';
 
 export 'src/infrastructure/agenda_file.dart';
+export 'src/infrastructure/gallery_image_saver.dart';
 export 'src/infrastructure/bhpan_file.dart';
 export 'src/infrastructure/bhpan_download.dart';
 export 'src/infrastructure/diagnostic_report.dart';

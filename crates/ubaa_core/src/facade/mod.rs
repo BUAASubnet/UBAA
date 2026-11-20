@@ -115,9 +115,9 @@ pub use crate::domain::{
     LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
     LibBookSeat, LibBookStorey, LibBookTimeSlot, LoginInput, LoginOutcome, LoginReadiness,
     ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue,
-    SectionTime, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignmentSummary,
-    SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term, TodayClass,
-    UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    SectionTime, SigninActionResult, SigninClass, SigninQr, SpocAssignmentDetail,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
+    TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
     YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
 };

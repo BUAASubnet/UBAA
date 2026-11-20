@@ -40,7 +40,7 @@
 
 `release/app_service_dashboard.py` 生成 Grafana 使用情况看板，`--maintenance` 生成独立的受限错误诊断看板。不读取本地账号或联网。脚本测试核对枚举、布局与列顺序，应用服务测试在隔离 PostgreSQL 中运行查询。
 
-`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
+`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 触发 dev 的渠道与公告发布，`just app-service-deploy` 触发 main 的应用部署。两者均须先通过本地内容校验。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。`server/content.mjs` 生成内容发布要发送的渠道与应用内公告。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 

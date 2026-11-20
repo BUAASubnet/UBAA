@@ -239,6 +239,7 @@ final class CommandRuntime {
           BridgeSharedAccount.capture(
             directory: revoked.directory,
             generation: BigInt.from(revoked.generation),
+            retainSession: revoked.snapshot.state.canRestore,
           ),
         );
         final attempt = await _wait(
@@ -613,6 +614,7 @@ final class _CommandBackend
     final captured = await BridgeSharedAccount.capture(
       directory: value.directory,
       generation: BigInt.from(value.generation),
+      retainSession: value.snapshot.state.canRestore,
     );
     if (closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);
     if (_client != null) await _client!.bindSharedAccount(scope: captured);

@@ -152,7 +152,7 @@ app-service-content-check:
     node scripts/check/app_service/content.mjs
     node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
 
-# 校验内容并触发 main 部署；普通检查不调用。
+# 校验内容并触发 dev 的渠道与公告发布；普通检查不调用。
 [script]
 app-service-publish:
     python3 scripts/lib/toolchain.py release publish

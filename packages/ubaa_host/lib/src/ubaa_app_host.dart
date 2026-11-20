@@ -74,6 +74,7 @@ Future<void> bootstrapUbaaHost({
             ? SecureLocalAccountStore(capabilities.secureMaterials!)
             : null,
         photoPicker: capabilities.photoPicker,
+        galleryImageSaver: capabilities.galleryImageSaver,
         permissionGateway: capabilities.permissionGateway,
         locationProvider: capabilities.locationProvider,
         initialThemeMode: themeMode,
@@ -147,6 +148,7 @@ class UbaaAppHost extends StatefulWidget {
     this.credentialVault,
     this.localAccountStore,
     this.photoPicker,
+    this.galleryImageSaver = const UnavailableGalleryImageSaver(),
     this.permissionGateway,
     this.locationProvider,
     this.initialDestination = UiDestination.home,
@@ -186,6 +188,7 @@ class UbaaAppHost extends StatefulWidget {
   final CredentialVault? credentialVault;
   final LocalAccountStore? localAccountStore;
   final PlatformPhotoPicker? photoPicker;
+  final GalleryImageSaver galleryImageSaver;
   final PlatformPermissionGateway? permissionGateway;
   final PlatformLocationProvider? locationProvider;
   final UiDestination initialDestination;

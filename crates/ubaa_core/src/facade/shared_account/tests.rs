@@ -251,3 +251,15 @@ fn 真实双进程普通关闭和崩溃不破坏另一消费者() {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[test]
+fn 保留标记_r6_参与归属比较() {
+    let directory = root();
+    let retained = SharedAccountGuard::new(&directory, 1).unwrap();
+    assert!(retained.retains_session());
+    let session_only = retained.clone().with_session_retention(false);
+    assert!(!session_only.retains_session());
+    assert!(retained.same_scope(&retained.clone()));
+    assert!(!retained.same_scope(&session_only));
+    std::fs::remove_dir_all(directory).unwrap();
+}

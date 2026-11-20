@@ -3,6 +3,7 @@ export 'contracts/backend.dart';
 export 'contracts/interactive_auth.dart';
 export 'contracts/lifecycle.dart';
 export 'contracts/query.dart';
+export 'contracts/signin/qr.dart';
 export 'contracts/routing.dart';
 export 'contracts/write.dart';
 export 'contracts/write_readback.dart';

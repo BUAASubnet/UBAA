@@ -375,8 +375,18 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       });
       return;
     }
-    if (!_isAssignmentFeature) return;
-    final parent = _assignmentList();
+    if (!_isAssignmentFeature &&
+        _frames.first.query?.view != FeatureQueryView.bykcDetail) {
+      return;
+    }
+    // 首页直达的博雅课程详情没有父列表，功能入口要换成选课第一页。
+    final parent = _isAssignmentFeature
+        ? _assignmentList()
+        : _ReadFrame(
+            _nextId++,
+            FeatureSnapshot(feature: widget.snapshot.feature),
+            const FeatureQuery(),
+          );
     setState(() {
       _externalAfterRevision = null;
       _frames

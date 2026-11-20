@@ -261,6 +261,12 @@ export function loadContent({
   return { channels, announcements: loadAnnouncements(paths) };
 }
 
+/** 服务器读取的渠道和应用内公告，应用部署与内容发布共用。 */
+export function serverContent(paths) {
+  const { channels, announcements } = loadContent(paths);
+  return { channels, announcements: announcements.filter((item) => item.app) };
+}
+
 if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)

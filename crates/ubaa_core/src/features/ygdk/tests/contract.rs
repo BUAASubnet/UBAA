@@ -35,3 +35,70 @@ fn 解析记录图片和分页状态并拒绝非法页码() {
     assert_eq!(page.content[0].images, vec!["https://img/1"]);
     assert!(parse_records(body, &items, 0, 2).is_err());
 }
+
+#[tokio::test]
+async fn 记录页拒绝原样返回错误并清掉当前业务凭据() {
+    use crate::domain::{ConnectionMode, YgdkOverview};
+    use crate::error::{ErrorCode, Result};
+    use crate::features::ygdk::YgdkCredential;
+    use crate::features::ygdk::read::{YgdkOverviewContext, get_records_in_context};
+    use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
+    use crate::runtime::ClientRuntime;
+    use crate::session::FileSessionStore;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    struct RejectRecords(u16, Arc<AtomicUsize>);
+    #[async_trait::async_trait]
+    impl HttpTransport for RejectRecords {
+        async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+            assert!(request.url.contains("/Clockin/Clockin/getList?"));
+            self.1.fetch_add(1, Ordering::SeqCst);
+            Ok(HttpResponse::new(
+                self.0,
+                request.url,
+                br#"{"code":-98}"#.to_vec(),
+            ))
+        }
+    }
+
+    for (status, message) in [(200, "阳光打卡业务会话已失效"), (401, "阳光打卡：需要认证")]
+    {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.ubaa_local/biz_cache_p2")
+            .join(uuid::Uuid::new_v4().to_string());
+        let calls = Arc::new(AtomicUsize::new(0));
+        let mut runtime = ClientRuntime::new(
+            ConnectionMode::Direct,
+            RejectRecords(status, Arc::clone(&calls)),
+            FileSessionStore::new(&path).unwrap(),
+        )
+        .unwrap();
+        let state = runtime.feature_state();
+        let generation = state.ygdk.generation();
+        let credential = YgdkCredential {
+            uid: 7,
+            token: "fixture-records".into(),
+        };
+        assert!(state.ygdk.store_credential(generation, credential.clone()));
+        let context = YgdkOverviewContext {
+            overview: YgdkOverview {
+                classify_id: 3,
+                ..YgdkOverview::default()
+            },
+            complete: true,
+            generation,
+            credential,
+        };
+        let error = get_records_in_context(&mut runtime, &context, 1, 10)
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+        assert_eq!(error.message, message);
+        assert!(!error.retryable);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert!(state.ygdk.credential().is_none());
+        assert_ne!(state.ygdk.generation(), generation);
+        std::fs::remove_dir_all(path).unwrap();
+    }
+}

@@ -164,6 +164,7 @@ mixin ControllerAuthentication on ControllerState {
     internalBeginAuthTelemetry();
     final inPlace = preserveHome && internalPhase == AppPhase.home;
     internalInPlaceLogin = inPlace;
+    internalClearCurrentSessionGrant();
     final ControllerActivity activity;
     if (inPlace) {
       // 认证使旧在途读取失效，但不销毁当前页面、筛选草稿和返回位置。

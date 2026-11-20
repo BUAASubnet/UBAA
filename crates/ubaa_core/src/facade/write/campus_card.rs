@@ -46,7 +46,7 @@ impl UbaaClient {
                 || previous.session_revision != session_revision
                 || previous.authentication_generation != authentication_generation
             {
-                // v77 只接收真实卡号，不能区分同卡的两次确认。不要悄悄替换仍未消费的绑定。
+                // 接口只接收卡号，不能区分同卡的两次确认。不要替换未消费的绑定。
                 self.prepared_campus_recharge = None;
                 return Ok(Routed {
                     data: None,

@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -32,33 +32,43 @@ pub(super) fn allowed_target_is_rechecked_and_submitted_once_with_separated_iden
             "/",
             "/app/user/login.action",
             "/app/course/get_stu_course_sched.action",
-            "/app/common/get_timestamp.action",
-            "/eschool/app/course/stu_scan_sign.action",
+            "/app/course/stu_auto_sign.action",
         ]
     );
-    let ts_req = &requests[3];
-    let ts_url = url::Url::parse(&ts_req.url).expect("时间戳 URL 有效");
-    assert_eq!(ts_url.scheme(), "http");
-    assert_eq!(ts_url.port(), Some(8081));
-
     let submit = requests.last().expect("必须存在最终提交");
     let url = url::Url::parse(&submit.url).expect("提交 URL 有效");
-    assert_eq!(url.scheme(), "http");
-    assert_eq!(url.port(), Some(8081));
-    assert_eq!(query(&url, "courseSchedId"), Some(SCHEDULE_ID.into()));
-    assert_eq!(query(&url, "timestamp"), Some("1700000000000".into()));
-    assert_eq!(String::from_utf8_lossy(&submit.body), "id=user-safe");
+    assert_eq!(url.scheme(), "https");
+    assert_eq!(url.port(), Some(8181));
+    assert_eq!(url.path(), "/app/course/stu_auto_sign.action");
+    assert!(url.query().is_none());
+    assert_signin_request(submit);
     assert_eq!(
         submit.headers.get("sessionId").map(String::as_str),
         Some(SESSION_ID)
     );
     assert!(!submit.url.contains(USER_ID));
-    assert!(!String::from_utf8_lossy(&submit.body).contains(SCHEDULE_ID));
     cleanup(root);
 }
 
 #[test]
-fn webvpn_mode_uses_8347_https_without_eschool_and_submits_once() {
+fn direct_submission_with_existing_iclass_cookie_keeps_session_and_form_contract() {
+    let scenario = Scenario::new([today_row(SCHEDULE_ID, "signStatus", "0")]).with_login_cookie();
+    let (mut client, root) = client_for("direct-cookie", scenario.clone());
+    let result = runtime().block_on(client.signin_perform(SCHEDULE_ID));
+    let submit = scenario
+        .requests()
+        .last()
+        .cloned()
+        .expect("必须存在最终提交");
+    cleanup(root);
+
+    assert!(result.expect("合成签到应成功").data.success);
+    assert_signin_request(&submit);
+    // Cookie 按主机作用，不区分 8181 端口；此测试只约束业务 sessionId 和表单契约。
+}
+
+#[test]
+fn webvpn_mode_uses_8181_https_without_query_and_submits_once() {
     let scenario = Scenario::new([today_row(SCHEDULE_ID, "signStatus", "0")]);
     let root = test_root("webvpn-allowed");
     let store = FileSessionStore::new(&root).expect("创建会话存储");
@@ -81,29 +91,14 @@ fn webvpn_mode_uses_8347_https_without_eschool_and_submits_once() {
     assert!(result.success);
     assert_eq!(result.code, 200);
     let requests = scenario.requests();
-    let ts_req = &requests[3];
-    let ts_direct = from_webvpn_url(&ts_req.url).expect("反向解码时间戳 URL");
-    let ts_url = url::Url::parse(&ts_direct).expect("时间戳直连 URL 有效");
-    assert_eq!(ts_url.scheme(), "https");
-    assert_eq!(ts_url.port(), Some(8347));
-    assert_eq!(ts_url.path(), "/app/common/get_timestamp.action");
-
     let submit = requests.last().expect("必须存在最终提交");
     let submit_direct = from_webvpn_url(&submit.url).expect("反向解码提交 URL");
-    let submit_url = url::Url::parse(&submit_direct).expect("提交直连 URL 有效");
+    let submit_url = url::Url::parse(&submit_direct).expect("提交 URL 有效");
     assert_eq!(submit_url.scheme(), "https");
-    assert_eq!(submit_url.port(), Some(8347));
-    assert_eq!(submit_url.path(), "/app/course/stu_scan_sign.action");
-    assert!(!submit_url.path().contains("eschool"));
-    assert_eq!(
-        query(&submit_url, "courseSchedId"),
-        Some(SCHEDULE_ID.into())
-    );
-    assert_eq!(
-        query(&submit_url, "timestamp"),
-        Some("1700000000000".into())
-    );
-    assert_eq!(String::from_utf8_lossy(&submit.body), "id=user-safe");
+    assert_eq!(submit_url.port(), Some(8181));
+    assert_eq!(submit_url.path(), "/app/course/stu_auto_sign.action");
+    assert!(submit_url.query().is_none());
+    assert_signin_request(submit);
     assert_eq!(
         submit.headers.get("sessionId").map(String::as_str),
         Some(SESSION_ID)
@@ -299,19 +294,6 @@ fn malformed_post_boundary_responses_are_outcome_unknown_and_not_retried() {
 }
 
 #[test]
-fn pre_send_failure_keeps_original_error_classification() {
-    let scenario =
-        Scenario::new([today_row(SCHEDULE_ID, "signStatus", "0")]).with_timestamp_error();
-    let (mut client, root) = client_for("pre-send-error", scenario.clone());
-    let error = runtime()
-        .block_on(client.signin_perform(SCHEDULE_ID))
-        .expect_err("发送前读取失败应原样返回");
-    assert_eq!(error.code, ErrorCode::NetworkError);
-    assert_eq!(scenario.write_count(), 0);
-    cleanup(root);
-}
-
-#[test]
 fn route_client_post_send_session_change_preserves_business_false_and_unknown() {
     for (name, response, expected_unknown) in [
         (
@@ -483,6 +465,37 @@ fn paths(requests: &[HttpRequest]) -> Vec<String> {
         .collect()
 }
 
+fn form_fields(body: &[u8]) -> BTreeMap<String, String> {
+    let fields = url::form_urlencoded::parse(body).collect::<Vec<_>>();
+    assert_eq!(fields.len(), 6, "stu_auto_sign 必须恰好发送六个表单字段");
+    fields
+        .into_iter()
+        .map(|(key, value)| (key.into_owned(), value.into_owned()))
+        .collect()
+}
+
+fn assert_signin_request(request: &HttpRequest) {
+    assert_eq!(
+        request.headers.get("sessionId").map(String::as_str),
+        Some(SESSION_ID)
+    );
+    assert_eq!(
+        request.headers.get("Content-Type").map(String::as_str),
+        Some("application/x-www-form-urlencoded")
+    );
+    assert_eq!(
+        form_fields(&request.body),
+        BTreeMap::from([
+            ("id".to_owned(), USER_ID.to_owned()),
+            ("courseSchedId".to_owned(), SCHEDULE_ID.to_owned()),
+            ("routerInfo".to_owned(), "02:00:00:00:00:00".to_owned()),
+            ("longitude".to_owned(), "0".to_owned()),
+            ("latitude".to_owned(), "0".to_owned()),
+            ("machineInfo".to_owned(), "Android".to_owned()),
+        ])
+    );
+}
+
 fn query(url: &url::Url, key: &str) -> Option<String> {
     url.query_pairs()
         .find(|(candidate, _)| candidate == key)
@@ -498,7 +511,7 @@ struct State {
     requests: Vec<HttpRequest>,
     today: VecDeque<String>,
     submit: Submit,
-    timestamp_error: bool,
+    login_cookie: bool,
 }
 
 #[derive(Clone)]
@@ -518,7 +531,7 @@ impl Scenario {
                     200,
                     r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#.into(),
                 ),
-                timestamp_error: false,
+                login_cookie: false,
             })),
         }
     }
@@ -528,8 +541,8 @@ impl Scenario {
         self
     }
 
-    fn with_timestamp_error(self) -> Self {
-        self.state.lock().expect("锁定场景").timestamp_error = true;
+    fn with_login_cookie(self) -> Self {
+        self.state.lock().expect("锁定场景").login_cookie = true;
         self
     }
 
@@ -543,7 +556,7 @@ impl Scenario {
             .filter(|request| {
                 let direct = from_webvpn_url(&request.url).unwrap_or_else(|_| request.url.clone());
                 url::Url::parse(&direct)
-                    .is_ok_and(|url| url.path().ends_with("stu_scan_sign.action"))
+                    .is_ok_and(|url| url.path().ends_with("stu_auto_sign.action"))
             })
             .count()
     }
@@ -582,14 +595,21 @@ impl HttpTransport for Scenario {
                     query(&parsed_direct, "verificationType").as_deref(),
                     Some("2")
                 );
-                Ok(HttpResponse::new(
-                200,
-                request.url,
-                format!(
-                    r#"{{"STATUS":"0","result":{{"id":"{USER_ID}","sessionId":"{SESSION_ID}"}}}}"#
-                )
-                .into_bytes(),
-            ))
+                let mut response = HttpResponse::new(
+                    200,
+                    request.url,
+                    format!(
+                        r#"{{"STATUS":"0","result":{{"id":"{USER_ID}","sessionId":"{SESSION_ID}"}}}}"#
+                    )
+                    .into_bytes(),
+                );
+                if state.login_cookie {
+                    response.headers.insert(
+                        "Set-Cookie".into(),
+                        vec!["synthetic-iclass=fixture; Path=/; Secure".into()],
+                    );
+                }
+                Ok(response)
             }
             "/app/course/get_stu_course_sched.action" => {
                 assert_eq!(
@@ -602,15 +622,28 @@ impl HttpTransport for Scenario {
                     .ok_or_else(|| test_error(ErrorCode::InternalError, "缺少今日课程响应"))?;
                 Ok(HttpResponse::new(200, request.url, body.into_bytes()))
             }
-            "/app/common/get_timestamp.action" if state.timestamp_error => {
-                Err(test_error(ErrorCode::NetworkError, "脱敏发送前网络失败"))
-            }
-            "/app/common/get_timestamp.action" => Ok(HttpResponse::new(
-                200,
-                request.url,
-                br#"{"timestamp":1700000000000}"#.to_vec(),
-            )),
-            "/eschool/app/course/stu_scan_sign.action" if port == Some(8081) => {
+            "/app/course/stu_auto_sign.action" if port == Some(8181) => {
+                assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Post);
+                assert!(parsed_direct.query().is_none());
+                assert_eq!(
+                    request.headers.get("sessionId").map(String::as_str),
+                    Some(SESSION_ID)
+                );
+                assert_eq!(
+                    request.headers.get("Content-Type").map(String::as_str),
+                    Some("application/x-www-form-urlencoded")
+                );
+                assert_eq!(
+                    form_fields(&request.body),
+                    BTreeMap::from([
+                        ("id".to_owned(), USER_ID.to_owned()),
+                        ("courseSchedId".to_owned(), SCHEDULE_ID.to_owned()),
+                        ("routerInfo".to_owned(), "02:00:00:00:00:00".to_owned()),
+                        ("longitude".to_owned(), "0".to_owned()),
+                        ("latitude".to_owned(), "0".to_owned()),
+                        ("machineInfo".to_owned(), "Android".to_owned()),
+                    ])
+                );
                 match state.submit.clone() {
                     Submit::Response(status, body) => {
                         Ok(HttpResponse::new(status, request.url, body.into_bytes()))
@@ -622,27 +655,6 @@ impl HttpTransport for Scenario {
                         Err(test_error(ErrorCode::NetworkError, "脱敏发送后网络失败"))
                     }
                 }
-            }
-            "/app/course/stu_scan_sign.action" if port == Some(8347) => {
-                match state.submit.clone() {
-                    Submit::Response(status, body) => {
-                        Ok(HttpResponse::new(status, request.url, body.into_bytes()))
-                    }
-                    Submit::FinalUrl(final_url, body) => {
-                        Ok(HttpResponse::new(200, final_url, body.into_bytes()))
-                    }
-                    Submit::TransportError => {
-                        Err(test_error(ErrorCode::NetworkError, "脱敏发送后网络失败"))
-                    }
-                }
-            }
-            "/eschool/app/course/stu_scan_sign.action" if port == Some(8347) => {
-                // 与真实上游一致，带有 /eschool 的 8347 请求返回 404
-                Ok(HttpResponse::new(
-                    404,
-                    request.url,
-                    b"<html><title>404 Not Found</title></html>".to_vec(),
-                ))
             }
             _ => Err(test_error(ErrorCode::InternalError, "未预期的签到测试路径")),
         }
@@ -675,8 +687,9 @@ impl SessionMutation {
 #[async_trait]
 impl HttpTransport for PostSendMutationTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let is_write = url::Url::parse(&request.url)
-            .is_ok_and(|url| url.path().ends_with("stu_scan_sign.action"));
+        let direct = from_webvpn_url(&request.url).unwrap_or_else(|_| request.url.clone());
+        let is_write =
+            url::Url::parse(&direct).is_ok_and(|url| url.path().ends_with("stu_auto_sign.action"));
         let response = self.inner.execute(request).await?;
         if is_write {
             self.mutation.apply()?;

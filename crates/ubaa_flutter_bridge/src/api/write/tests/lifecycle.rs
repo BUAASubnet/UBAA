@@ -260,6 +260,7 @@ async fn 外部共享代次撤销后旧意图不发送且原路线回读不恢�
     let scope = crate::api::shared_account::BridgeSharedAccount::capture(
         materials.to_string_lossy().into(),
         1,
+        true,
     )
     .unwrap();
     client.bind_shared_account(&scope).await.unwrap();

@@ -395,6 +395,7 @@ async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
         let scope = crate::api::shared_account::BridgeSharedAccount::capture(
             root.to_string_lossy().into(),
             1,
+            true,
         )
         .unwrap();
         bridge.bind_shared_account(&scope).await.unwrap();

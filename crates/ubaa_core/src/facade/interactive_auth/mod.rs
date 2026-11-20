@@ -70,6 +70,7 @@ impl UbaaClient {
         self.direct_auth.clear();
         self.webvpn_auth.clear();
         let revisions = self.sessions.clear_both()?;
+        self.business_sessions.discard_seeds();
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         self.interactive.current_login = Some(login.clone());

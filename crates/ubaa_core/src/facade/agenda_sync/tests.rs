@@ -214,33 +214,21 @@ fn auto_client(
 }
 
 #[test]
-fn auto确认只复用未过期且支持创建的实际路线观察() {
+fn auto确认在没有可复用的网关观察时仍绑定云盘直连() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
-    for (campus, ttl, allowed) in [
-        (true, Duration::from_mins(1), true),
-        (false, Duration::from_mins(1), true),
-        (true, Duration::ZERO, false),
-    ] {
+    for campus in [true, false] {
         let root = root();
-        let (mut client, network) = auto_client(&root, campus, ttl);
-        assert!(matches!(
-            client.agenda_sync_scope(),
-            Err(AgendaSyncError::Local(CacheError::Superseded))
-        ));
+        let (mut client, network) = auto_client(&root, campus, Duration::ZERO);
+        let original = client.agenda_sync_scope().unwrap();
+        assert_eq!(original.mode, ConnectionMode::Direct);
         assert_eq!(network.calls.load(SeqCst), 0);
         let actual = match client.resolve_bhpan_route() {
             Ok(route) => route.resolution.mode,
             Err(error) => error.resolution.unwrap().mode,
         };
-        let confirmation = client.agenda_sync_scope();
-        if allowed {
-            assert_eq!(confirmation.unwrap().mode, actual);
-        } else {
-            assert!(matches!(
-                confirmation,
-                Err(AgendaSyncError::Local(CacheError::Superseded))
-            ));
-        }
+        let current = client.agenda_sync_scope().unwrap();
+        assert_eq!(current.mode, actual);
+        assert!(original.binding == current.binding);
         assert_eq!(network.calls.load(SeqCst), 1);
         drop(client);
         std::fs::remove_dir_all(root).unwrap();
@@ -338,7 +326,7 @@ async fn 切换webvpn后旧创建确认仍然失效() {
 }
 
 #[tokio::test]
-async fn auto校外云盘使用直连且创建确认复用同一次路线观察() {
+async fn auto校外云盘使用直连且创建确认不探测网络() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
     let root = root();
     let (mut client, network) = auto_client(&root, false, Duration::from_mins(1));

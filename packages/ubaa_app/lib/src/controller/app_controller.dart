@@ -11,6 +11,8 @@ import 'error_mapper.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/query.dart' show SigninReadbackBackend;
+import 'package:ubaa_app/src/contracts/signin/qr.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart' show RecoveryTarget;
@@ -49,6 +51,7 @@ import 'session/interactive.dart' show ControllerInteractiveAuthentication;
 import 'session/logout.dart' show ControllerLocalData, ControllerLogout;
 import 'session/settings.dart' show ControllerSettings;
 import 'state/grade_baseline.dart';
+import 'state/read_scope.dart' show PendingFeatureRead;
 import 'state/state.dart' show ControllerState, LocalDataOwnerScope;
 import 'write/lifecycle.dart' show ControllerWriteLifecycle;
 import 'write/memory.dart' show ControllerWriteCache;
@@ -426,6 +429,8 @@ class AppController extends ControllerState
     return _financeService;
   }
 
+  final _signinStatusRead = PendingFeatureRead();
+
   AppController({
     required UbaaBackend backend,
     BackendFactory? backendFactory,
@@ -443,6 +448,131 @@ class AppController extends ControllerState
          diagnostics: diagnostics,
          onReadSchedulerTrace: onReadSchedulerTrace,
        );
+}
+
+extension AppControllerSigninQr on AppController {
+  bool get canFetchSigninQr => internalBackend is SigninQrBackend;
+
+  bool get canCheckSigninStatus => internalBackend is SigninReadbackBackend;
+
+  Future<bool> checkSigninSigned(String courseId) async {
+    final target = courseId.trim();
+    if (target.isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final result = await _signinStatusRead.joinOrStart(_readLatestSignin);
+    final item = result.details
+        .map((detail) => detail.presentation)
+        .whereType<SigninPresentation>()
+        .where((item) => item.actionTarget?.trim() == target)
+        .firstOrNull;
+    if (item == null) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    return item.signStatus == 1;
+  }
+
+  Future<FeatureResult> _readLatestSignin() async {
+    const feature = FeatureId.signin;
+    final scope = internalCaptureReadScope();
+    final route = internalRoutePolicyGeneration;
+    bool current() =>
+        scope.isCurrent &&
+        internalPhase == AppPhase.home &&
+        internalAppForeground &&
+        !internalReadTransitionBlocked &&
+        route == internalRoutePolicyGeneration;
+    final backend = scope.backend;
+    if (backend is! SigninReadbackBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    if (!current()) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    final listContext = internalSnapshots[feature]?.readContext;
+    final homeRevision =
+        internalHomeDefaults[feature]?.readContext?.requestRevision;
+    final result = await internalScheduleAuxiliaryRead(
+      backend,
+      feature,
+      ReadPriority.urgent,
+      current,
+      (backend as SigninReadbackBackend).readSigninAfterWrite,
+    );
+    if (!current() ||
+        internalSnapshots[feature]?.readContext?.requestRevision !=
+            listContext?.requestRevision ||
+        internalHomeDefaults[feature]?.readContext?.requestRevision !=
+            homeRevision) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    if (result.error case final error?) throw BackendException.fromUi(error);
+    final generation = internalNextFeatureGeneration(feature);
+    final query = listContext?.query;
+    final filterStatus = switch (query?.view) {
+      FeatureQueryView.signinPending => 0,
+      FeatureQueryView.signinCompleted => 1,
+      _ => null,
+    };
+    final visible = filterStatus == null
+        ? result
+        : _filterSignin(result, filterStatus);
+    internalAcceptHomeDefault(
+      feature,
+      result,
+      FeatureReadContext(requestRevision: generation),
+    );
+    internalApplyFeatureResultIfCurrent(
+      feature,
+      visible,
+      generation,
+      scope.session.lifecycle,
+      readContext: FeatureReadContext(
+        query: query,
+        requestRevision: generation,
+      ),
+    );
+    internalAgendaEpoch++;
+    internalNotify();
+    return result;
+  }
+
+  FeatureResult _filterSignin(FeatureResult result, int status) {
+    final details = result.details
+        .where(
+          (item) =>
+              (item.presentation as SigninPresentation).signStatus == status,
+        )
+        .toList(growable: false);
+    if (details.isEmpty)
+      return FeatureResult.empty(resolvedRoute: result.resolvedRoute);
+    final label = status == 1 ? '已签到' : '未签到';
+    return FeatureResult.success(
+      summary: '${details.length}门${label}课程',
+      details: details,
+      resolvedRoute: result.resolvedRoute,
+    );
+  }
+
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) async {
+    final scope = internalLocalDataOwnerScope;
+    scope.checkCurrent();
+    final backend = internalBackend;
+    if (backend is! SigninQrBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final route = internalRoutePolicyGeneration;
+    final value = await (backend as SigninQrBackend).fetchSigninQr(
+      courseId,
+      offset,
+    );
+    scope.checkCurrent();
+    if (!identical(internalBackend, backend) ||
+        route != internalRoutePolicyGeneration) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    return value;
+  }
 }
 
 extension AppControllerLockDisplay on AppController {

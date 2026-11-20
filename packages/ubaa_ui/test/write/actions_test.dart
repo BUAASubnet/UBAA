@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/coursework/signin_qr_sheet.dart';
 import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
@@ -263,32 +264,7 @@ void _registerInitialWriteTests() {
             scheduleId: 'schedule-7',
             eligibility: ActionEligibility.allowed,
           );
-          final snapshots = <FeatureId, FeatureSnapshot>{
-            for (final feature in FeatureId.values)
-              feature: FeatureSnapshot(
-                feature: feature,
-                status: FeatureLoadStatus.success,
-                summary: '已加载',
-                details: feature == FeatureId.signin
-                    ? const <FeatureDetail>[
-                        FeatureDetail(
-                          title: '课堂签到课程',
-                          presentation: SigninPresentation(
-                            courseId: '展示课程编号',
-                            classBeginTime: '08:00',
-                            classEndTime: '09:40',
-                            signStatus: 0,
-                          ),
-                          fields: <FeatureField>[
-                            FeatureField(label: '课程 ID', value: '误导目标'),
-                            FeatureField(label: '签到状态', value: '已签到'),
-                          ],
-                          actions: <FeatureAction>[expectedAction],
-                        ),
-                      ]
-                    : const <FeatureDetail>[],
-              ),
-          };
+          final snapshots = _signinSnapshots(expectedAction);
           var prepareCalls = 0;
           var commitCalls = 0;
           var refreshCalls = 0;
@@ -341,17 +317,92 @@ void _registerInitialWriteTests() {
           await tester.pumpAndSettle();
           await openFeature(tester, FeatureId.signin);
           await tester.pumpAndSettle();
-          // 点击签到即准备并提交，不再出现确认页。
           await tester.tap(find.widgetWithText(FilledButton, '签到'));
           await tester.pumpAndSettle();
           expect(prepareCalls, 1);
-          expect(find.text('确认课堂签到'), findsNothing);
           expect(commitCalls, 1);
           expect(refreshCalls, 1);
-          expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
+        }),
+  );
+
+  testWidgets(
+    '课堂签到点二维码打开面板且不触发写入',
+    (tester) =>
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 29, 0, 10)), () async {
+          final snapshots = _signinSnapshots(
+            const SigninPerformAction(
+              scheduleId: 'schedule-7',
+              eligibility: ActionEligibility.allowed,
+            ),
+          );
+          var prepareCalls = 0;
+          var commitCalls = 0;
+          final reads = <(String, Duration)>[];
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: UbaaTheme.light(),
+              home: coordinatedShell(
+                user: const UserSummary(username: 'student'),
+                snapshots: snapshots,
+                routePolicy: RoutePolicy.auto,
+                onRefresh: () async {},
+                onRetryFeature: (_) async {},
+                onFetchSigninQr: (scheduleId, offset) async {
+                  reads.add((scheduleId, offset));
+                  return '合成二维码';
+                },
+                onPrepareSigninWrite: (_) async {
+                  prepareCalls++;
+                  throw StateError('二维码入口不应准备写入');
+                },
+                onCommitWrite: (_) async {
+                  commitCalls++;
+                  throw StateError('二维码入口不应提交写入');
+                },
+                onLogout: () async {},
+                onLogoutAndClearAccount: () async {},
+                onRoutePolicyChanged: (_) {},
+              ),
+            ),
+          );
+          await tester.tap(find.byIcon(UiDestination.study.icon));
+          await tester.pumpAndSettle();
+          await openFeature(tester, FeatureId.signin);
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('签到二维码'));
+          await tester.pumpAndSettle();
+          expect(find.byType(SigninQrSheet), findsWidgets);
+          expect(reads, [('schedule-7', Duration.zero)]);
+          expect(prepareCalls, 0);
+          expect(commitCalls, 0);
+          await tester.pumpWidget(const SizedBox());
         }),
   );
 }
+
+Map<FeatureId, FeatureSnapshot> _signinSnapshots(SigninPerformAction action) =>
+    {
+      FeatureId.signin: FeatureSnapshot(
+        feature: FeatureId.signin,
+        status: FeatureLoadStatus.success,
+        details: [
+          FeatureDetail(
+            title: '课堂签到课程',
+            presentation: const SigninPresentation(
+              courseId: '展示课程编号',
+              classBeginTime: '08:00',
+              classEndTime: '09:40',
+              signStatus: 0,
+            ),
+            fields: const [
+              FeatureField(label: '课程 ID', value: '误导目标'),
+              FeatureField(label: '签到状态', value: '已签到'),
+            ],
+            actions: [action],
+          ),
+        ],
+      ),
+    };
 
 void _registerRemainingWriteTests() {
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {

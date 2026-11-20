@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../support/bridge/fixtures.dart'
     show
         FixtureContractVersionClient,
@@ -15,15 +16,15 @@ import '../support/bridge/fixtures.dart'
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(77);
+    final client = FixtureContractVersionClient(78);
 
     final backend = BridgeBackend(client);
 
     expect(backend.client, same(client));
   });
 
-  test('BridgeBackend 在 release 可执行路径明确拒绝旧 v8 合同', () {
-    final client = FixtureContractVersionClient(8);
+  test('BridgeBackend 拒绝合并前的 v77 合同', () {
+    final client = FixtureContractVersionClient(77);
 
     expect(
       () => BridgeBackend(client),

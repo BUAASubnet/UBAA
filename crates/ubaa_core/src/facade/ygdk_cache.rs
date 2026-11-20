@@ -191,6 +191,7 @@ impl UbaaClient {
             result: OfflineRefresh {
                 data,
                 resolution,
+                online_route: Some(resolution.mode),
                 scope,
                 fetched_at,
                 save_error,

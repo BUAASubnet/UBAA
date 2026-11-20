@@ -66,6 +66,10 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 来源和验证边界见[桌面选图对照](../../docs/protocol/parity/host-platform.md)。本机测试不能替代Windows/Linux原生窗口验收。
 
 
+## 保存 PNG 图片
+
+`GalleryImageSaver` 保存调用方生成的 PNG。iOS 和 Android 使用 `gal` 3.0.1（BSD-3-Clause，无额外运行时依赖），只向系统照片库添加图片，不请求读取相册。macOS、Windows 和 Linux 复用 `file_selector` 另存为 PNG；取消返回 `cancelled`。OHOS 使用宿主原生通道打开系统相册确认弹窗。用户同意后写入系统授予的目标，用户取消时返回 `cancelled`。保存失败返回稳定的错误分类。
+
 ## 日历文件保存
 
 `SystemAgendaFileSaver` 先选择位置，再核对调用方提供的账号与路线作用域，随后提交 UTF-8 日历内容。桌面使用 `file_selector` 保存面板；macOS 需要用户选择文件的读写 entitlement。Android 使用 `ACTION_CREATE_DOCUMENT`，iOS 使用文件夹选择器并在安全作用域内创建文件，OHOS 使用 `DocumentViewPicker` 和 `fileIo`。移动端及 OHOS 的 `cn.edu.buaa.ubaa/agenda-file` 通道分别提供 `select`、`write`、`discard`，选择操作不接收日历内容。

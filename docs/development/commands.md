@@ -164,7 +164,8 @@ OHOS 宿主与三个 `*_ohos` 插件不属于官方 Pub workspace 的八个成�
 | [dev.yml](../../.github/workflows/dev.yml) | dev push 与目标为 dev 的 PR：脚本及敏感材料检查，按改动选择 Rust 类型检查/单元测试、Dart 格式/分析和 应用服务 合同；不运行原生矩阵或 FRB 生成 |
 | [ci.yml](../../.github/workflows/ci.yml) | 目标为 main 的所有 PR、手动调用和发布复用：完整 Rust/Flutter、按生成输入选择 FRB、依赖审计、应用服务 合同、文档构建和原生矩阵。main-required 要求全部必要作业成功，FRB 仅在计划明确不需要时允许跳过，不使用顶层路径过滤 |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) | 由完整验收调用或手动运行；构建 Linux/Windows/macOS/iOS simulator，Android 的三个 ABI 分别构建 APK。macOS 执行原生能力与 FFI 集成，Linux 执行隔离安全存储，HarmonyOS 使用托管 Linux runner 构建无签名 Debug HAP |
-| [worker.yml](../../.github/workflows/worker.yml) | main 的服务或发布内容改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境初始化 PostgreSQL、部署 Node.js、同步 JSON 配置。部署前核对分支最新提交，同一生产环境串行执行 |
+| [worker.yml](../../.github/workflows/worker.yml) | main 的服务改动，以及 main 手动调用：先运行服务合同，再在 app-service-production 环境初始化 PostgreSQL、部署 Node.js，不改写已发布的渠道和公告。部署前核对分支最新提交，同一生产环境串行执行 |
+| [app-content.yml](../../.github/workflows/app-content.yml) | dev 的渠道配置或公告改动，以及 dev 手动调用：校验内容后在 docs-production 环境通知服务器只替换渠道和公告；单独并发组，由服务器部署锁与应用部署串行 |
 | [release.yml](../../.github/workflows/release.yml) | main 手动运行：固定主线候选，复用完整验收，构建分架构正式包，上传 GitHub Release 草稿与服务器、北航云盘，上传 Apple 与 AppGallery 并等待处理完成；维护者手动发布草稿 |
 | [docs.yml](../../.github/workflows/docs.yml) | dev 文档站相关改动构建并部署 自有服务器与 Cloudflare CDN；PR 只构建，docs-production 仅允许 dev |
 
@@ -190,7 +191,7 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
 | `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；`--appgallery` 和 `--appgallery-tablet` 分别生成 AppGallery 手机图和平板图，`--all-sizes` 生成全部规格。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
-| `just app-service-publish` | 校验渠道和公告，触发 main 的服务器部署工作流 |
+| `just app-service-publish` | 校验渠道和公告，触发 dev 的内容发布工作流 |
 | `just app-service-deploy` | 校验内容及本地 应用服务，触发 main 的服务器部署工作流；配置见[应用服务部署手册](../runbooks/app-service.md) |
 | `just app-service-dashboard` | 生成 PostgreSQL 数据源的 Grafana 使用情况看板 JSON，默认写入 `.ubaa_local/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
 | `just app-service-diagnostics-dashboard` | 生成维护者专用的错误诊断看板 JSON，默认写入同一目录；不联网 |
@@ -241,7 +242,7 @@ just verify-live mode=webvpn
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Node.js、PostgreSQL 与 JSON 配置，不访问或写入 Cloudflare 资源。
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
 - `just docs-download-sync <tag> <构建号>` 只读访问 `https://download.ubaa.top:10443` 上该构建的公开 `release.json`，校验通过后改写 `docs/site/download.json`；校验失败时不写入。普通检查和 CI 不调用。
-- `just app-service-publish` 和 `just app-service-deploy` 校验内容并通过 GitHub CLI 触发 main 部署。部署作业使用受保护环境中的 SSH 密钥发送短期产物 URL，服务器直连下载。普通检查不调用部署入口。
+- `just app-service-publish` 和 `just app-service-deploy` 校验内容并通过 GitHub CLI 分别触发 dev 内容发布和 main 应用部署。应用部署作业使用受保护环境中的 SSH 密钥发送短期产物 URL，服务器直连下载；内容发布直接随运行描述发送渠道和公告。普通检查不调用部署入口。
 - `just app-service-e2e` 在 `.ubaa_local/app_service/` 创建私有隔离配置、本地 PostgreSQL 和 JSON 配置，临时监听回环地址。脚本只用合成数据，不访问学校或 Cloudflare 资源；`CI` 非空或遥测硬关闭时直接失败。
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存；FRB 生成检查的写入副作用见上表，并非所有 check 都只读。
 - 门禁 recipe 统一设置 `CARGO_INCREMENTAL=0`，不积累只用一次的增量缓存；日常 Rust 与 Flutter 运行保留增量。开发构建只带行号调试信息，需要查看变量时临时设 `CARGO_PROFILE_DEV_DEBUG=true`。

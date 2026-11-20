@@ -37,6 +37,44 @@ def point(link, target):
     temporary.replace(link)
 
 
+CHANNELS = ('github', 'app_store', 'app_gallery')
+
+
+def write_content(content):
+    path = STATE / 'content.json'
+    atomic_json(path, content)
+    run('chown', 'ubaa:ubaa', str(path))
+
+
+def validate_content(content):
+    # 完整合同校验由 CI 的内容检查完成，这里只拒绝结构错误，避免写坏线上配置。
+    if (not isinstance(content, dict) or set(content) != {'channels', 'announcements'}
+            or not isinstance(content['channels'], dict) or set(content['channels']) != set(CHANNELS)
+            or not all(value is None or isinstance(value, dict) for value in content['channels'].values())
+            or not isinstance(content['announcements'], list)
+            or not all(isinstance(item, dict) for item in content['announcements'])):
+        raise ValueError('无效的应用服务内容')
+
+
+def content(incoming):
+    validate_content(incoming)
+    path = STATE / 'content.json'
+    previous = path.read_text() if path.exists() else None
+    incoming = json.loads(json.dumps(incoming))
+    # GitHub 渠道只由正式发布事件更新，内容发布保留线上值。
+    if previous is not None and (STATE / 'published.json').exists():
+        incoming['channels']['github'] = json.loads(previous)['channels']['github']
+    write_content(incoming)
+    run('systemctl', 'restart', 'ubaa-app.service')
+    if not healthy():
+        if previous is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.write_text(previous)
+        run('systemctl', 'restart', 'ubaa-app.service')
+        raise RuntimeError('内容发布后健康检查失败，已恢复原内容')
+
+
 def download(url, destination):
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or not (
@@ -98,18 +136,15 @@ def application(folder, identifier):
     link = ROOT / 'app_service/current'
     previous = link.resolve() if link.exists() else None
     content_path = STATE / 'content.json'
-    previous_content = content_path.read_text() if content_path.exists() else None
-    content = json.loads((destination / 'content.json').read_text())
-    published = STATE / 'published.json'
-    if published.exists() and previous_content:
-        content['channels']['github'] = json.loads(previous_content)['channels']['github']
-    atomic_json(content_path, content)
-    run('chown', 'ubaa:ubaa', str(content_path))
+    # 渠道和公告由 dev 内容发布维护，应用部署只在首次部署时用包内内容初始化。
+    initialized = not content_path.exists()
+    if initialized:
+        write_content(json.loads((destination / 'content.json').read_text()))
     point(link, destination)
     run('systemctl', 'restart', 'ubaa-app.service')
     if not healthy():
-        if previous_content:
-            content_path.write_text(previous_content)
+        if initialized:
+            content_path.unlink(missing_ok=True)
         if previous:
             point(link, previous)
             run('systemctl', 'restart', 'ubaa-app.service')
@@ -173,14 +208,15 @@ def publish(tag):
         raise ValueError('公开 Release 尚未完成服务器和云盘分发')
     atomic_json(STATE / 'published.json', manifest)
     run('chown', 'ubaa:ubaa', str(STATE / 'published.json'))
-    content = json.loads((ROOT / 'app_service/current/content.json').read_text())
+    live = STATE / 'content.json'
+    source = live if live.exists() else ROOT / 'app_service/current/content.json'
+    content = json.loads(source.read_text())
     content['channels']['github'] = {
         'latest_version': manifest['version'] + '+' + build,
         'min_supported_version': '2.0.0',
         'url': 'https://www.ubaa.top/download', 'release_notes': '更新说明：https://www.ubaa.top/guide/ubaa2',
     }
-    atomic_json(STATE / 'content.json', content)
-    run('chown', 'ubaa:ubaa', str(STATE / 'content.json'))
+    write_content(content)
     run('systemctl', 'restart', 'ubaa-app.service')
 
 
@@ -188,7 +224,7 @@ def main():
     os.umask(0o022)
     payload = json.load(sys.stdin)
     operation = payload['operation']
-    if operation not in ('app', 'docs', 'release', 'publish'):
+    if operation not in ('app', 'docs', 'release', 'publish', 'content'):
         raise ValueError('无效部署操作')
     if not str(payload['run']).isdecimal() or not re.fullmatch('[a-f0-9]{40}', payload['sha']):
         raise ValueError('无效运行标识')
@@ -197,6 +233,8 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX)
         if operation == 'publish':
             publish(payload['tag'])
+        elif operation == 'content':
+            content(payload['content'])
         else:
             staging = ROOT / 'staging'
             staging.mkdir(exist_ok=True, mode=0o700)

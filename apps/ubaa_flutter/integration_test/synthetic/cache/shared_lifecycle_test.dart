@@ -184,6 +184,7 @@ void main() {
     final scope = await BridgeSharedAccount.capture(
       directory: binding.directory,
       generation: BigInt.from(binding.generation),
+      retainSession: binding.snapshot.state.canRestore,
     );
     final handle = await BridgeAgendaStore.openShared(
       configDir: root.path,

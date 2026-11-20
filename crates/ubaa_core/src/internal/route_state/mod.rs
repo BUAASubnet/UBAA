@@ -1,5 +1,7 @@
 //! 路线专属功能状态的聚合入口.
 
+use serde::{Deserialize, Serialize};
+
 mod ihome;
 pub(crate) use ihome::IhomeState;
 mod cache;
@@ -18,7 +20,8 @@ pub(crate) use credentials::{
     SigninCredential, SigninState, SpocCredential, SpocState, YgdkCredential, YgdkState,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub(crate) enum StudentKind {
     Undergraduate,
     Graduate,
@@ -47,6 +50,22 @@ pub(crate) struct RouteFeatureState {
 impl RouteFeatureState {
     pub(crate) fn lifecycle_generation(&self) -> u64 {
         *self.lifecycle_lock()
+    }
+    pub(crate) fn cached_academic_identity(&self) -> Option<StudentKind> {
+        let generation = self.lifecycle_lock();
+        self.academic_identity
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .filter(|(stored, _)| *stored == *generation)
+            .map(|(_, kind)| kind)
+    }
+    pub(crate) fn seed_academic_identity(&self, kind: Option<StudentKind>) {
+        let generation = self.lifecycle_lock();
+        *self
+            .academic_identity
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) =
+            kind.map(|kind| (*generation, kind));
     }
     pub(crate) fn clear(&self) {
         self.clear_locked(&mut self.lifecycle_lock());

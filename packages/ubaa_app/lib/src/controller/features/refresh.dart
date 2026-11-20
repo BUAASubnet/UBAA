@@ -24,20 +24,27 @@ mixin ControllerRefresh on ControllerState {
     bool firstBatch = false,
   }) async {
     if (internalDisposed || internalClearingBusinessCache) return;
+    // 考试随首页主来源启动，完整读取和身份复用批次仍等考试收尾。
+    bool waitsForFirstBatch(FeatureId feature) =>
+        firstBatch &&
+        (feature != FeatureId.exam || only != null || writeReadback);
+    final visible = <Future<void>>[];
     final joining = <Future<void>>[];
     final features = <FeatureId>[];
     for (final feature in (only ?? controllerHomeDefaultFeatures).toSet()) {
+      final waits = waitsForFirstBatch(feature);
       final pending = writeReadback
           ? null
-          : internalPendingFeatureRead(feature, null, firstBatch: firstBatch);
+          : internalPendingFeatureRead(feature, null, firstBatch: waits);
       if (pending != null) {
         joining.add(pending);
+        if (waits) visible.add(pending);
       } else {
         features.add(feature);
       }
     }
     if (features.isEmpty) {
-      await Future.wait(joining);
+      await Future.wait(firstBatch ? visible : joining);
       return;
     }
     // 局部重试只推进目标请求修订，保留其他来源和辅助查询的在途归属。
@@ -73,7 +80,6 @@ mixin ControllerRefresh on ControllerState {
     final batch = batchBackend?.beginHomeRecoveryBatch();
     if (batch != null) internalHomeRecoveryBatch = batch;
     internalNotify();
-    final visible = <Future<void>>[];
     final all = Future.wait<void>([
       ...joining,
       ...features.map((feature) {
@@ -84,10 +90,12 @@ mixin ControllerRefresh on ControllerState {
           writeReadback: writeReadback,
           ygdkGeneration: feature == FeatureId.ygdk ? ygdkGeneration : null,
         );
-        visible.add(
-          internalPendingFeatureRead(feature, null, firstBatch: true) ??
-              loading,
-        );
+        if (waitsForFirstBatch(feature)) {
+          visible.add(
+            internalPendingFeatureRead(feature, null, firstBatch: true) ??
+                loading,
+          );
+        }
         return loading;
       }),
     ]);
@@ -112,7 +120,7 @@ mixin ControllerRefresh on ControllerState {
             internalRecordFailure(error, DiagnosticOperation.read);
         }),
       );
-      await Future.wait([...joining, ...visible]);
+      await Future.wait(visible);
     } else {
       await complete;
     }

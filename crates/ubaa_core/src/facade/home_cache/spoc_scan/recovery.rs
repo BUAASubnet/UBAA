@@ -84,8 +84,7 @@ impl UbaaClient {
             plan.fetched_at = aggregate.fetched_at;
             plan.complete = aggregate.completeness == CacheCompleteness::Complete;
             plan.finished = true;
-            plan.resolution.mode = aggregate.scope.route;
-            plan.resolution.diagnostic.mode = aggregate.scope.route;
+            plan.offline_list_source_route = Some(aggregate.scope.route);
             return Ok(plan.batch(Some(CachePublication::Stored)));
         }
         let cancellation = plan.cancellation.clone();
@@ -94,6 +93,7 @@ impl UbaaClient {
             .await?;
         self.validate_spoc_owner(plan)?;
         replacement.cancellation = cancellation;
+        replacement.online_routes = std::mem::take(&mut plan.online_routes);
         *plan = replacement;
         // 一次调用内完成这次重读，避免两个正常调度的读取在批次间反复互相替代。
         loop {
@@ -118,8 +118,7 @@ fn finish_shared(
         plan.data = data;
         plan.fetched_at = record.fetched_at;
         plan.complete = !superseded && record.completeness == CacheCompleteness::Complete;
-        plan.resolution.mode = record.scope.route;
-        plan.resolution.diagnostic.mode = record.scope.route;
+        plan.offline_list_source_route = Some(record.scope.route);
     } else {
         plan.complete = false;
     }

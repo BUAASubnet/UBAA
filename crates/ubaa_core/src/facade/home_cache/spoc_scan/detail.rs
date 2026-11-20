@@ -1,8 +1,8 @@
 //! 当前目标详情复用前置扫描；独立票据约束从开始到正文完成的整个读取。
 use super::{
     CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheReadTicket,
-    CacheScope, ErrorKind, HomeReadData, HomeRefresh, OfflineCache, OfflineReadError,
-    OfflineRefresh, RouteResolution, SpocScan, SpocScanCancellation, UbaaClient,
+    CacheScope, ConnectionMode, ErrorKind, HomeReadData, HomeRefresh, OfflineCache,
+    OfflineReadError, OfflineRefresh, RouteResolution, SpocScan, SpocScanCancellation, UbaaClient,
 };
 use crate::facade::{ErrorCode, RoutedError, SpocAssignmentDetail, UbaaError};
 mod recovery;
@@ -16,6 +16,9 @@ pub struct SpocDetailScan {
 }
 pub struct SpocDetailScanBatch {
     pub resolution: RouteResolution,
+    /// 本次前置采用的离线列表来源；在线获取列表时为空。
+    pub offline_list_source_route: Option<ConnectionMode>,
+    pub online_route: Option<ConnectionMode>,
     pub data: Option<SpocAssignmentDetail>,
     pub completed_pages: u32,
     pub fetched_at: i64,
@@ -61,6 +64,8 @@ impl SpocDetailScan {
     ) -> SpocDetailScanBatch {
         SpocDetailScanBatch {
             resolution: self.list.resolution,
+            offline_list_source_route: self.list.offline_list_source_route,
+            online_route: self.list.online_route,
             data,
             completed_pages: self.list.next_page - 1,
             fetched_at: self.list.fetched_at,
@@ -127,6 +132,7 @@ impl UbaaClient {
         &mut self,
         plan: &mut SpocDetailScan,
     ) -> Result<SpocDetailScanBatch, OfflineReadError> {
+        plan.list.online_route = None;
         let result = match self.advance_spoc_detail(plan).await {
             Err(OfflineReadError::Cache(CacheError::Superseded)) if !plan.finished => {
                 self.recover_spoc_detail(plan)
@@ -193,6 +199,7 @@ impl UbaaClient {
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?
             .data;
+        plan.list.record_online_route(resolution.mode);
         let complete = plan.list.complete && detail_complete;
         plan.pending = Some((data, complete));
         self.validate_spoc_detail(plan)?;
@@ -218,12 +225,17 @@ impl UbaaClient {
             if let Some(data) = value.data {
                 return Ok(HomeRefresh {
                     result: OfflineRefresh {
-                        data: HomeReadData::SpocDetail(data),
+                        data: HomeReadData::SpocDetail {
+                            data,
+                            offline_list_source_route: value.offline_list_source_route,
+                        },
                         scope: plan.scope(),
                         resolution: value.resolution,
+                        online_route: value.online_route,
                         fetched_at: value.fetched_at,
                         save_error: value.save_error,
                     },
+                    online_routes: plan.list.online_routes,
                     complete: value.complete,
                     publication: value.publication,
                 });

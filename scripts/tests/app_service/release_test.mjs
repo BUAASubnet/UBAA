@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runRelease } from "../../release/app_service/release.mjs";
 
-test("显式部署和内容发布只触发 main 工作流", async () => {
-  for (const operation of ["deploy", "publish"]) {
+test("应用部署触发 main 工作流，内容发布触发 dev 工作流", async () => {
+  for (const [operation, workflow, branch] of [
+    ["deploy", "worker.yml", "main"],
+    ["publish", "app-content.yml", "dev"],
+  ]) {
     const calls = [];
     await runRelease(operation, {
       execute: (...args) => {
@@ -13,7 +16,7 @@ test("显式部署和内容发布只触发 main 工作流", async () => {
     });
     assert.deepEqual(calls[0].slice(0, 2), [
       "gh",
-      ["workflow", "run", "worker.yml", "--ref", "main"],
+      ["workflow", "run", workflow, "--ref", branch],
     ]);
   }
 });

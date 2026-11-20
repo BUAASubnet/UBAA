@@ -57,7 +57,7 @@ fn shared_owner(root: &Path) -> BridgeSharedAccount {
     ] {
         std::fs::write(root.join(name), value).unwrap();
     }
-    BridgeSharedAccount::capture(root.to_string_lossy().into(), 1).unwrap()
+    BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap()
 }
 
 #[tokio::test]

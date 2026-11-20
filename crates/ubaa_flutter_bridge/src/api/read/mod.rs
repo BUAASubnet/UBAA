@@ -165,6 +165,12 @@ pub struct BridgeSigninClass {
     pub signin_target: Option<String>,
 }
 
+#[derive(Clone, Debug)]
+pub struct BridgeSigninQr {
+    pub content: String,
+    pub timestamp: i64,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeSpocSubmissionStatus {
     Submitted,
@@ -735,6 +741,7 @@ routed!(BridgeRoutedExamArrangement, BridgeExamArrangement);
 routed!(BridgeRoutedGrades, BridgeGradeData);
 routed!(BridgeRoutedClassroomQuery, BridgeClassroomQuery);
 routed!(BridgeRoutedSigninClasses, Vec<BridgeSigninClass>);
+routed!(BridgeRoutedSigninQr, BridgeSigninQr);
 routed!(BridgeRoutedSpocAssignments, BridgeSpocAssignments);
 routed!(BridgeRoutedSpocAssignmentDetail, BridgeSpocAssignmentDetail);
 routed!(

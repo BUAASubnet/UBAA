@@ -22,6 +22,15 @@ pub struct SigninClass {
     pub signin_target: Option<String>,
 }
 
+/// 供扫码客户端使用的课堂签到二维码内容。
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SigninQr {
+    /// 由扫码客户端打开的签到地址。
+    pub content: String,
+    /// 应用偏移后的毫秒时间戳。
+    pub timestamp: i64,
+}
+
 /// 课堂签到写操作结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

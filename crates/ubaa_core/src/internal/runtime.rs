@@ -21,8 +21,6 @@ use readonly::ReadonlyOwner;
 #[path = "runtime_session_tests.rs"]
 mod session_tests;
 
-const SESSION_ACTIVITY_SAVE_INTERVAL_SECS: i64 = 60;
-
 pub(crate) struct ClientRuntime {
     pub(crate) network_failure_domain: Option<String>,
     pub(crate) reached_domains: std::collections::BTreeSet<String>,
@@ -47,6 +45,10 @@ pub(crate) struct ClientRuntime {
     interactive_login_scope: Option<InteractiveLoginHandle>,
     required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
+    pub(crate) business_sessions: Option<Arc<crate::session::business_cache::BusinessSessionCache>>,
+    #[cfg(test)]
+    pub(crate) before_login_revocation: Option<Box<dyn FnOnce() + Send + Sync>>,
+    coordinated_store: Option<crate::session::CoordinatedRouteSessionStore>,
     pub(crate) consumer_closed: Arc<AtomicBool>,
     pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
@@ -61,6 +63,17 @@ impl ClientRuntime {
         let store: Arc<dyn SessionStore> = Arc::new(store);
         let persisted = store.load_versioned()?;
         Self::from_versioned(mode, transport, store, persisted, Arc::new(SystemTime::now))
+    }
+
+    pub(crate) fn new_coordinated(
+        mode: ConnectionMode,
+        transport: impl HttpTransport + 'static,
+        sessions: &crate::session::DualSessionCoordinator,
+    ) -> Result<Self> {
+        let store = sessions.route_store(mode);
+        let mut runtime = Self::new(mode, transport, store.clone())?;
+        runtime.coordinated_store = Some(store);
+        Ok(runtime)
     }
 
     #[cfg(feature = "test-contract")]
@@ -128,6 +141,10 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: None,
+            business_sessions: None,
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: None,
             consumer_closed: Arc::new(AtomicBool::new(false)),
         })
@@ -187,6 +204,10 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
+            business_sessions: self.business_sessions.clone(),
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: self.shared_account.clone(),
             consumer_closed: self.consumer_closed.clone(),
         }
@@ -298,7 +319,7 @@ impl ClientRuntime {
     /// 会话为空时同步最新修订，允许随后开始新的登录流程。
     pub(crate) fn sync_empty_session_revision(&mut self) -> Result<()> {
         if !self.has_local_session() {
-            self.session_revision = self.store.load_versioned()?.revision;
+            self.set_session_revision(self.store.load_versioned()?.revision);
         }
         Ok(())
     }
@@ -406,88 +427,6 @@ impl ClientRuntime {
         Ok(response)
     }
 
-    pub(crate) fn refresh_authentication(
-        &mut self,
-        clear_workflow: &mut (dyn FnMut() + Send),
-    ) -> Result<(i64, i64)> {
-        self.check_authentication_scope()?;
-        let now = now_seconds_at(self.now())?;
-        let authenticated_at = self.authenticated_at.unwrap_or(now);
-        self.authenticated_at = Some(authenticated_at);
-        self.last_activity = Some(now);
-        if self.readonly_generation.is_some() {
-            self.ensure_session_revision()?;
-            return Ok((authenticated_at, now));
-        }
-        if self.persisted_authentication.as_ref().is_some_and(|saved| {
-            authenticated_at == saved.authenticated_at
-                && now.saturating_sub(saved.last_activity) < SESSION_ACTIVITY_SAVE_INTERVAL_SECS
-                && self.jar.matches_persisted(&saved.cookies)
-        }) {
-            // 即使无需保存，也必须拒绝外部修订，不能把旧核验结果当作成功。
-            if let Err(error) = self.ensure_session_revision() {
-                self.clear_memory();
-                clear_workflow();
-                return Err(error);
-            }
-            return Ok((authenticated_at, now));
-        }
-        let snapshot = SessionSnapshot {
-            mode: self.mode,
-            cookies: self.jar.cookies().to_vec(),
-            authenticated_at,
-            last_activity: now,
-        };
-        let _permit = self
-            .shared_account
-            .as_ref()
-            .map(crate::facade::SharedAccountGuard::acquire)
-            .transpose()?;
-        let mutation = match self
-            .store
-            .compare_exchange(self.session_revision, Some(&snapshot))
-        {
-            Ok(mutation) => mutation,
-            Err(error) => {
-                self.clear_memory();
-                clear_workflow();
-                return Err(error);
-            }
-        };
-        match mutation {
-            SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
-                self.persisted_authentication = Some(Arc::new(snapshot));
-                Ok((authenticated_at, now))
-            }
-            SessionMutation::Conflict => {
-                self.clear_memory();
-                clear_workflow();
-                Err(session_conflict())
-            }
-        }
-    }
-
-    pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {
-        self.clear_memory();
-        clear_workflow();
-        if self.readonly_generation.is_some() {
-            return Ok(());
-        }
-        let _permit = self
-            .shared_account
-            .as_ref()
-            .map(crate::facade::SharedAccountGuard::acquire)
-            .transpose()?;
-        match self.store.compare_exchange(self.session_revision, None)? {
-            SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
-                Ok(())
-            }
-            SessionMutation::Conflict => Err(session_conflict()),
-        }
-    }
-
     pub(crate) const fn session_revision(&self) -> u64 {
         self.session_revision
     }
@@ -519,10 +458,6 @@ impl ClientRuntime {
         if let Some(owner) = &self.readonly_generation {
             owner.invalidate();
         }
-    }
-
-    pub(crate) fn set_session_revision(&mut self, revision: u64) {
-        self.session_revision = revision;
     }
 }
 
@@ -997,4 +932,6 @@ mod object;
 #[path = "runtime/school_gate.rs"]
 mod school_gate;
 
+#[path = "runtime/main_session.rs"]
+mod main_session;
 mod request_batch;

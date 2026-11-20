@@ -493,6 +493,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String date,
   });
 
+  /// 清除设置中的业务会话缓存和派生读组。
+  Future<void> clearBusinessSessionCache();
+
   Future<List<BridgeError?>> cloudPrintDelete({
     required bool scans,
     required List<String> ids,
@@ -1104,6 +1107,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 客户端已销毁、配置保存失败或重开失败时返回安全错误。
   Future<BridgeRouteSettings> setDefaultRoutePolicy({
     required BridgeRoutePolicy policy,
+  });
+
+  Future<BridgeRoutedSigninQr> signinQr({
+    required String courseId,
+    required int offsetMs,
   });
 
   Future<BridgeRoutedSigninClasses> signinToday();

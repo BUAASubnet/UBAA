@@ -8,8 +8,37 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import '../state/models.dart' show RecoveryRequest;
 import '../state/state.dart' show ControllerState;
+import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
 mixin ControllerBackendRecovery on ControllerState {
+  @internal
+  Future<bool> internalEndDisposedCurrentSession(
+    UbaaBackend backend,
+    bool Function() current,
+  ) async {
+    final grant = internalCurrentSessionGrantFor(backend);
+    if (grant == null || !current()) return false;
+    try {
+      await grant.binding.validate();
+    } on SecureMaterialException {
+      return false;
+    }
+    if (!current() ||
+        !identical(internalCurrentSessionGrantFor(backend), grant))
+      return false;
+
+    internalClearCurrentSessionGrant();
+    internalBackendNeedsRebuild = true;
+    internalUser = null;
+    internalLocalAccount = null;
+    internalActiveRoutes = const [];
+    internalManualAuthenticationRequired = true;
+    internalResetFeatureSnapshots();
+    internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+    internalSetPhase(AppPhase.login);
+    return true;
+  }
+
   @internal
   Future<bool> internalRebuildDuringRecovery(RecoveryRequest request) async {
     final factory = internalBackendFactory;
@@ -97,7 +126,9 @@ mixin ControllerBackendRecovery on ControllerState {
       }
       if (shared?.sharedSnapshot != null)
         internalSharedAccountSnapshot = shared!.sharedSnapshot;
+      internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
+      internalBackendNeedsRebuild = false;
       internalReplaceWriteCoordinator(replacement);
       internalProfileRefreshedEpoch = -1;
       internalProfileFailureEpoch = -1;

@@ -154,13 +154,6 @@ impl<P> CachingGatewayProbe<P> {
         self.revision.fetch_add(1, Ordering::SeqCst);
     }
 
-    /// 只读取仍可供下一次路线解析复用的观察，不等待正在进行的探测。
-    pub(crate) fn cached_network(&self) -> Option<NetworkState> {
-        let (at, state, revision) = (*self.cached.try_lock().ok()?)?;
-        (at.elapsed() < self.ttl && revision == self.revision.load(Ordering::SeqCst))
-            .then_some(state)
-    }
-
     /// 使用合同规定的 3 秒 TTL 构造缓存。
     #[must_use]
     pub fn with_default_ttl(inner: P) -> Self {
@@ -253,20 +246,6 @@ pub(crate) fn resolve_route<P: GatewayProbe + ?Sized>(
         policy: effective_policy,
         diagnostic: RouteDiagnostic::new(network, mode),
     }
-}
-
-pub(crate) fn resolve_route_from_network(
-    effective_policy: RoutePolicy,
-    row: FeatureRouteConfig,
-    network: NetworkState,
-) -> RouteResolution {
-    struct ObservedNetwork(NetworkState);
-    impl GatewayProbe for ObservedNetwork {
-        fn probe(&self, _: Duration) -> NetworkState {
-            self.0
-        }
-    }
-    resolve_route(effective_policy, row, &ObservedNetwork(network))
 }
 
 /// 冻结 SSO/用户中心认证流程中观察到的主机。
