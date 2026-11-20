@@ -280,6 +280,18 @@ class _FinanceViewState extends State<FinanceView> {
             DetailField(label: '应发金额', value: financeYuan(entry.amountCents)),
             DetailField(label: '扣税', value: financeYuan(entry.taxCents)),
             DetailField(label: '实发金额', value: financeYuan(entry.paidCents)),
+            DetailField(
+              label: '部门名称',
+              value: uiNonBlank(entry.department) ?? '—',
+            ),
+            DetailField(
+              label: '项目编号',
+              value: uiNonBlank(entry.projectCode) ?? '—',
+            ),
+            DetailField(
+              label: '项目名称',
+              value: uiNonBlank(entry.projectName) ?? '—',
+            ),
             DetailField(label: '税率', value: uiNonBlank(entry.taxRate) ?? '—'),
             if (period != null)
               DetailField(label: '所属年月', value: '${period.$1}年${period.$2}月'),

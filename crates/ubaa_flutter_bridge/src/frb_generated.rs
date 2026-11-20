@@ -25910,6 +25910,9 @@ impl SseDecode for crate::api::finance::BridgeFinanceIncome {
         let mut var_id = <String>::sse_decode(deserializer);
         let mut var_project = <Option<String>>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
+        let mut var_department = <Option<String>>::sse_decode(deserializer);
+        let mut var_projectCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_projectName = <Option<String>>::sse_decode(deserializer);
         let mut var_amountCents = <Option<i64>>::sse_decode(deserializer);
         let mut var_taxCents = <Option<i64>>::sse_decode(deserializer);
         let mut var_paidCents = <Option<i64>>::sse_decode(deserializer);
@@ -25921,6 +25924,9 @@ impl SseDecode for crate::api::finance::BridgeFinanceIncome {
             id: var_id,
             project: var_project,
             description: var_description,
+            department: var_department,
+            project_code: var_projectCode,
+            project_name: var_projectName,
             amount_cents: var_amountCents,
             tax_cents: var_taxCents,
             paid_cents: var_paidCents,
@@ -39648,6 +39654,9 @@ impl flutter_rust_bridge::IntoDart for crate::api::finance::BridgeFinanceIncome 
             self.id.into_into_dart().into_dart(),
             self.project.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
+            self.department.into_into_dart().into_dart(),
+            self.project_code.into_into_dart().into_dart(),
+            self.project_name.into_into_dart().into_dart(),
             self.amount_cents.into_into_dart().into_dart(),
             self.tax_cents.into_into_dart().into_dart(),
             self.paid_cents.into_into_dart().into_dart(),
@@ -47844,6 +47853,9 @@ impl SseEncode for crate::api::finance::BridgeFinanceIncome {
         <String>::sse_encode(self.id, serializer);
         <Option<String>>::sse_encode(self.project, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
+        <Option<String>>::sse_encode(self.department, serializer);
+        <Option<String>>::sse_encode(self.project_code, serializer);
+        <Option<String>>::sse_encode(self.project_name, serializer);
         <Option<i64>>::sse_encode(self.amount_cents, serializer);
         <Option<i64>>::sse_encode(self.tax_cents, serializer);
         <Option<i64>>::sse_encode(self.paid_cents, serializer);

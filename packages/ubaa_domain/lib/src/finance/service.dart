@@ -6,6 +6,9 @@ final class FinanceIncome {
     required this.id,
     this.project,
     this.description,
+    this.department,
+    this.projectCode,
+    this.projectName,
     this.amountCents,
     this.taxCents,
     this.paidCents,
@@ -15,7 +18,15 @@ final class FinanceIncome {
     this.month,
   });
   final String id;
-  final String? project, description, taxRate, recordedDate, year, month;
+  final String? project,
+      description,
+      department,
+      projectCode,
+      projectName,
+      taxRate,
+      recordedDate,
+      year,
+      month;
   final int? amountCents, taxCents, paidCents;
 }
 

@@ -38,6 +38,9 @@ class BridgeFinanceIncome {
   final String id;
   final String? project;
   final String? description;
+  final String? department;
+  final String? projectCode;
+  final String? projectName;
   final PlatformInt64? amountCents;
   final PlatformInt64? taxCents;
   final PlatformInt64? paidCents;
@@ -50,6 +53,9 @@ class BridgeFinanceIncome {
     required this.id,
     this.project,
     this.description,
+    this.department,
+    this.projectCode,
+    this.projectName,
     this.amountCents,
     this.taxCents,
     this.paidCents,
@@ -64,6 +70,9 @@ class BridgeFinanceIncome {
       id.hashCode ^
       project.hashCode ^
       description.hashCode ^
+      department.hashCode ^
+      projectCode.hashCode ^
+      projectName.hashCode ^
       amountCents.hashCode ^
       taxCents.hashCode ^
       paidCents.hashCode ^
@@ -80,6 +89,9 @@ class BridgeFinanceIncome {
           id == other.id &&
           project == other.project &&
           description == other.description &&
+          department == other.department &&
+          projectCode == other.projectCode &&
+          projectName == other.projectName &&
           amountCents == other.amountCents &&
           taxCents == other.taxCents &&
           paidCents == other.paidCents &&

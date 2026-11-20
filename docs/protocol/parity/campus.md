@@ -106,7 +106,7 @@
 |---|---|---|---|
 | 财务门户认证 | CAS service 为 `http://icw.buaa.edu.cn/checkbuaa.aspx`；Direct 实测 HTTP 回调 302 到同路径 HTTPS，再到 `/Newindex.aspx`。WebVPN 实测返回网关相对路径，必须以实际响应 URL 解析相对 Location，再解包验证上游。复用路线内 SSO Cookie。 | SSO 使用既有表单认证；门户跳转为 GET，无新增加密常量。 | 登录页需交给既有认证恢复，业务模块不保存密码。门户非成功终点不能当作成功。 |
 | 查询系统登录 | GET `https://icw.buaa.edu.cn/jump.aspx?sysid=wscx`；实测 302 到 `https://chaxun.icw.buaa.edu.cn/gxzhcxzhb/login`，查询参数包含 `Userid/Cypt/Stamp`。 | POST `/api-zhcx/login`，表单 `username=Userid,password=Cypt,yzm=yzm,stamp=Stamp`，Referer 为跳转目标。 | `code=200`、`data.token`；票据只用于本次交换，Token 只存当前路线内存。并发复用现有 CredentialState，退出使迟到结果失效。 |
-| 学生收入 | `https://chaxun.icw.buaa.edu.cn/api-zhcx/getStudentSRCX`，Bearer Token，仅查询当前登录账号。 | POST JSON `userId,currentPage,limit`，从第 1 页开始。参考默认 limit=100，Direct 实测 limit=2 可连续翻页至完整终页。 | 当前为 `code=200,data.mx,data.total`；旧 `data.data/count` 仅作为固定补充源码明确支持的另一结构。未知结构报错。金额为数值、最多两位小数，映射整数分；税率和缺失字段保留原语义。只投影流水号、项目、摘要、金额、税额、实发、税率、日期、年月，排除证件和银行字段。 |
+| 学生收入 | `https://chaxun.icw.buaa.edu.cn/api-zhcx/getStudentSRCX`，Bearer Token，仅查询当前登录账号。 | POST JSON `userId,currentPage,limit`，从第 1 页开始。参考默认 limit=100，Direct 实测 limit=2 可连续翻页至完整终页。 | 当前为 `code=200,data.mx,data.total`；旧 `data.data/count` 仅作为固定补充源码明确支持的另一结构。未知结构报错。金额为数值、最多两位小数，映射整数分；税率和缺失字段保留原语义。只投影流水号、发放项目、摘要、部门名称、项目编号、项目名称、金额、税额、实发、税率、日期、年月，排除证件和银行字段。 |
 | 本地缓存 | 同账号跨路线共用业务结果，认证材料按路线隔离。 | 无额外学校请求，复用现有加密仓库与读取票据。 | 所有分页完整成功才替换缓存；失败保留旧结果。记录表示财务录入，不推断银行到账。查询返回范围不额外声明全部历史。 |
 
 参考脚本每轮重新登录、明文配置及状态文件、SMTP 通知不纳入本功能。Direct/WebVPN 的生产入口验收分别记录，探针观察不代替生产验收。
@@ -114,6 +114,8 @@
 2026-11-12 对照上述两个固定版本及财务补充来源：旧版与 buaa-api 仍无这三个财务操作；buaa-api 的 `src/api/sso/auth.rs` 独立激活 WebVPN，财务补充脚本仅走 Direct。无网关会话的只读探测确认：WebVPN 下门户 `jump.aspx`、查询登录与收入读取都返回 HTTP 302，`Location` 为 `https://d.buaa.edu.cn/login`。该已知落点是网关要求认证；不跟随该跳转，也不改变其它未知跳转的协议错误语义。Direct 及三个财务操作的业务 URL、请求方法和字段、请求头、会话作用域、加密、DTO、分页与缓存继续采用上表合同。GUI 在认证失败时走现有财务路线恢复，按账号与自动登录许可重读一次。
 
 修复后 Core-live 的 WebVPN 新会话登录与收入读取通过；会话失效后的错误分类和 GUI 重试由合成测试验证。真实 Direct 未运行（本次授权只含 WebVPN）；安卓切换网络仍需在安装本修复的设备上复测。
+
+2026-11-20 根据当前会话提供的脱敏真实收入响应补充展示字段：`bmmc` 为部门名称、`xmbh` 为项目编号、`xmmc` 为项目名称，三者均可为 null，空字符串按缺失处理；`ffxmmc` 继续作为发放项目。`bmbh`、`bmhb`、`xmhb` 与上述字段重复，`sfzh`、`yhzh`、`yhzh_` 属于证件和银行信息，均不进入 DTO。两个冻结来源仍无财务业务接口，九列对照中的业务部分继续不适用；本次仅追加已观察到的 DTO 字段，不改变 CAS、跳转、会话、请求方法、参数、请求头、加密、分页、缓存或错误语义。
 
 ## GUI 按需恢复（2026-11-12）
 
