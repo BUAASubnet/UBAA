@@ -8,16 +8,16 @@ pub(super) fn write(out: &mut impl Write, route: ConnectionMode, data: &Value) -
         for e in entries {
             writeln!(
                 out,
-                "{} | {} | {} | 部门 {} | 项目编号 {} | 项目名称 {} | 金额 {} 元 | 税额 {} 元 | 实发 {} 元",
+                "{} | {} | {} | 金额 {} 元 | 税额 {} 元 | 实发 {} 元 | 部门 {} | 项目编号 {} | 项目名称 {}",
                 e["recordedDate"].as_str().unwrap_or("未知日期"),
                 e["project"].as_str().unwrap_or("未提供项目"),
                 e["description"].as_str().unwrap_or(""),
-                e["department"].as_str().unwrap_or("未知"),
-                e["projectCode"].as_str().unwrap_or("未知"),
-                e["projectName"].as_str().unwrap_or("未知"),
                 money(&e["amountCents"]),
                 money(&e["taxCents"]),
-                money(&e["paidCents"])
+                money(&e["paidCents"]),
+                e["department"].as_str().unwrap_or("未知"),
+                e["projectCode"].as_str().unwrap_or("未知"),
+                e["projectName"].as_str().unwrap_or("未知")
             )?;
         }
     }
