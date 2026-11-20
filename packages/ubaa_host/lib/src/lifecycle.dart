@@ -333,7 +333,9 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         unawaited(_controller.refreshAppBootstrap());
       });
     }
-    unawaited(_controller.initialize());
+    unawaited(
+      _controller.initialize(materialRecovery: widget.materialRecovery),
+    );
     unawaited(_attemptAppService(force: true, startup: true));
     unawaited(_controller.refreshAppBootstrap(force: true));
   }

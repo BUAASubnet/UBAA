@@ -58,14 +58,8 @@ Future<void> bootstrapUbaaHost({
       UbaaAccent.blue,
     ),
   ).wait;
-  // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
-  runApplication(UbaaBootSplash(themeMode: themeMode, accent: accent));
   var stage = DiagnosticInitializationStage.sdk;
-  try {
-    await initializeSdk();
-    stage = DiagnosticInitializationStage.bridgeCheck;
-    assert(debugHello() == _expectedBridgeHello);
-    stage = DiagnosticInitializationStage.platformCapabilities;
+  Future<void> openPlatform() async {
     final capabilities = await createCapabilities();
     runApplication(
       UbaaAppHost(
@@ -83,9 +77,14 @@ Future<void> bootstrapUbaaHost({
         appInformation: information,
         diagnosticReportExporter: reportExporter,
         startupDiagnostics: diagnostics,
+        materialRecovery: capabilities.materialRecovery,
       ),
     );
-  } on Object catch (error, stackTrace) {
+  }
+
+  void showSplash() =>
+      runApplication(UbaaBootSplash(themeMode: themeMode, accent: accent));
+  void showFailure(Object error, StackTrace stackTrace) {
     final failure = _recordStartupError(diagnostics, stage, error, stackTrace);
     runApplication(
       _startupApplication(
@@ -97,9 +96,36 @@ Future<void> bootstrapUbaaHost({
           error: failure,
           stage: stage,
           diagnostics: diagnostics,
+          showRestartHint: error is! MaterialTransactionUnrecoverable,
+          retryLabel: '重试启动',
+          onRetry:
+              stage == DiagnosticInitializationStage.platformCapabilities &&
+                  error is SecureMaterialException &&
+                  error is! MaterialTransactionUnrecoverable
+              ? () async {
+                  showSplash();
+                  try {
+                    await openPlatform();
+                  } on Object catch (error, stackTrace) {
+                    showFailure(error, stackTrace);
+                  }
+                }
+              : null,
         ),
       ),
     );
+  }
+
+  // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
+  showSplash();
+  try {
+    await initializeSdk();
+    stage = DiagnosticInitializationStage.bridgeCheck;
+    assert(debugHello() == _expectedBridgeHello);
+    stage = DiagnosticInitializationStage.platformCapabilities;
+    await openPlatform();
+  } on Object catch (error, stackTrace) {
+    showFailure(error, stackTrace);
     rethrow;
   }
 }
@@ -169,6 +195,7 @@ class UbaaAppHost extends StatefulWidget {
     this.preferenceValues,
     this.appInformation,
     this.startupDiagnostics,
+    this.materialRecovery,
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
     this.scheduleWidgetGateway,
@@ -211,6 +238,7 @@ class UbaaAppHost extends StatefulWidget {
   final PreferenceValues? preferenceValues;
   final PlatformAppInformation? appInformation;
   final LocalDiagnostics? startupDiagnostics;
+  final MaterialTransactionRecovery? materialRecovery;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
   final ScheduleWidgetGateway? scheduleWidgetGateway;

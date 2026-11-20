@@ -12,6 +12,9 @@ final class MaterialCoordinationException implements Exception {
   String toString() => uncertain ? '安全材料事务未完成，已阻止后续访问' : '安全材料协调暂不可用';
 }
 
+/// 声明顺序也是同一事务中允许升级的顺序。
+enum MaterialMutation { probe, save, remove }
+
 /// 固定材料域的短事务锁。锁文件永久保留，不能在释放时删除或替换。
 /// Unix 使用 fd 级 flock，覆盖同进程不同 isolate；Windows 使用句柄级锁。
 final class MaterialCoordinator {
@@ -73,7 +76,7 @@ final class MaterialCoordinator {
     final lease = Zone.current[_zoneKey];
     if (lease is! _Lease || !lease.active || generation < 1)
       throw const MaterialCoordinationException(true);
-    await beforeMutation();
+    await beforeMutation(MaterialMutation.save);
     await lease.persistFile(
       File('${lease.state.parent.path}/account-generation.v1'),
       'UBAA1:$generation',
@@ -102,15 +105,60 @@ final class MaterialCoordinator {
     return lease.state.parent.path;
   }
 
-  Future<T> run<T>(Future<T> Function() action) async {
+  /// 只在启动时调用。B 的对账成功后，在释放独占锁前提交 C。
+  Future<T?> reconcile<T>(Future<T> Function(MaterialMutation) action) =>
+      _run<T?>((mutation) => action(mutation!), whenClean: () => null);
+
+  bool get isReconciling => switch (Zone.current[_zoneKey]) {
+    _Lease(active: true, reconciling: true) => true,
+    _ => false,
+  };
+
+  /// 缺失、损坏或无法读取的记录不能作为撤销代次的依据。
+  Future<int?> readGenerationForReconciliation() async {
+    final lease = Zone.current[_zoneKey];
+    if (lease is! _Lease || !isReconciling)
+      throw const MaterialCoordinationException(true);
+    final file = File('${lease.state.parent.path}/account-generation.v1');
+    try {
+      if (await FileSystemEntity.type(file.path, followLinks: false) !=
+          FileSystemEntityType.file)
+        return null;
+      final value = await file.readAsString();
+      if (!value.startsWith('UBAA1:')) return null;
+      final generation = int.tryParse(value.substring(6));
+      return generation != null &&
+              generation > 0 &&
+              value == 'UBAA1:$generation'
+          ? generation
+          : null;
+    } on FileSystemException {
+      return null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<T> run<T>(Future<T> Function() action) => _run((_) => action());
+
+  Future<T> _run<T>(
+    Future<T> Function(MaterialMutation?) action, {
+    T Function()? whenClean,
+  }) async {
     final borrowed = Zone.current[_zoneKey];
     if (borrowed is _Lease) {
       final parent = Zone.current[_operationKey];
-      if (!borrowed.active || parent is! _Operation || !parent.accepting)
+      if (whenClean != null ||
+          !borrowed.active ||
+          parent is! _Operation ||
+          !parent.accepting)
         throw const MaterialCoordinationException(true);
       // 同一父操作的并行分支排队，递归调用进入各自子 Zone，避免重入读改写竞态。
       final next = parent.tail.then(
-        (_) => runZoned(() => _execute(action, _Operation()), zoneValues: {}),
+        (_) => runZoned(
+          () => _execute(() => action(null), _Operation()),
+          zoneValues: {},
+        ),
       );
       parent.tail = next.then<void>(
         (_) {},
@@ -148,13 +196,23 @@ final class MaterialCoordinator {
       } on FormatException {
         throw const MaterialCoordinationException(true);
       }
-      if (marker != null && marker != 'UBAA1:C') {
+      final clean = marker == null || marker == 'UBAA1:C';
+      if (clean && whenClean != null) return whenClean();
+      final mutation = switch (marker) {
+        'UBAA1:B:probe' => MaterialMutation.probe,
+        'UBAA1:B:save' => MaterialMutation.save,
+        'UBAA1:B' || 'UBAA1:B:remove' => MaterialMutation.remove,
+        _ => null,
+      };
+      if (!clean && (mutation == null || whenClean == null)) {
         throw const MaterialCoordinationException(true);
       }
+      lease.reconciling = !clean;
+      lease.mutation = mutation;
       return await runZoned(() async {
-        final value = await _execute(action, _Operation());
+        final value = await _execute(() => action(mutation), _Operation());
         if (lease.failed) throw const MaterialCoordinationException(true);
-        if (lease.dirty) await lease.persist('UBAA1:C');
+        if (lease.dirty || lease.reconciling) await lease.persist('UBAA1:C');
         return value;
       }, zoneValues: {_zoneKey: lease});
     } finally {
@@ -181,16 +239,24 @@ final class MaterialCoordinator {
         return value;
       }, zoneValues: {_operationKey: operation});
 
-  /// 在发送第一项可能落地的材料变更前调用。失败后不自动清除标记。
-  Future<void> beforeMutation() async {
+  /// 在变更前持久记录意图。更强的操作必须等新的标记落盘。
+  Future<void> beforeMutation(MaterialMutation mutation) async {
     final lease = Zone.current[_zoneKey];
-    if (lease is! _Lease || !lease.active)
+    if (lease is! _Lease || !lease.active) {
       throw const MaterialCoordinationException(true);
-    if (!lease.dirty) {
-      lease.dirty = true;
-      lease.start = lease.persist('UBAA1:B');
     }
-    await lease.start;
+    if (lease.mutation == null || mutation.index > lease.mutation!.index) {
+      lease.mutation = mutation;
+      lease.start = (lease.start ?? Future<void>.value()).then(
+        (_) => lease.persist('UBAA1:B:${mutation.name}'),
+      );
+    }
+    try {
+      await lease.start;
+    } on Object {
+      lease.failed = true;
+      rethrow;
+    }
   }
 
   Future<Future<void> Function()> _acquire(
@@ -249,7 +315,9 @@ class _Lease {
   _Lease(this.state);
   final File state;
   bool active = true;
-  bool dirty = false;
+  bool reconciling = false;
+  MaterialMutation? mutation;
+  bool get dirty => mutation != null;
   bool failed = false;
   Future<void>? start;
   Future<void> persist(String value) => persistFile(state, value);

@@ -150,6 +150,7 @@ void main() {
     );
     final failingStore = SecureMaterialStore(
       transport: failing,
+      probeMutation: MaterialMutation.save,
       coordinator: MaterialCoordinator(
         directory: Directory('${root.path}/lock'),
       ),
@@ -171,11 +172,20 @@ void main() {
     );
     expect(
       await File('${root.path}/lock/transaction.v1').readAsString(),
-      'UBAA1:B',
+      'UBAA1:B:save',
     );
     await expectLater(accounts.read(), throwsA(isA<SecureMaterialException>()));
     await materials.probe();
     expect(materials.isAvailable, isFalse);
+    await expectLater(
+      accounts.reconcileForStartup(),
+      throwsA(isA<MaterialTransactionUnrecoverable>()),
+    );
+    expect(await file.exists(), isFalse);
+    expect(
+      await File('${root.path}/lock/transaction.v1').readAsString(),
+      'UBAA1:B:save',
+    );
     expect(await backup!.readAsBytes(), original);
   });
 

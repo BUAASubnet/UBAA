@@ -31,6 +31,7 @@ void main() {
       ),
       const CredentialVaultException(CredentialVaultErrorCode.storageFailure),
       const SecureMaterialCoordinationException(true),
+      const MaterialTransactionUnrecoverable(),
     ]) {
       diagnostics.record(
         operation: DiagnosticOperation.initialization,
@@ -38,6 +39,14 @@ void main() {
         cause: cause,
       );
     }
+    diagnostics.recordMaterialRecovery(
+      MaterialTransactionRecovery.reconciled,
+      stage: DiagnosticInitializationStage.platformCapabilities,
+    );
+    diagnostics.recordMaterialRecovery(
+      MaterialTransactionRecovery.reset,
+      stage: DiagnosticInitializationStage.platformCapabilities,
+    );
     await diagnostics.flushed;
     final restarted = LocalDiagnostics(storage: storage);
     await restarted.flushed;
@@ -47,7 +56,12 @@ void main() {
       'permission_camera_denied',
       'credential_storageFailure',
       'material_transaction_uncertain',
+      'material_transaction_unrecoverable',
+      'material_transaction_reconciled',
+      'material_transaction_reset',
     ]);
+    expect(events[4], isNot(contains('code')));
+    expect(events[5]['code'], 'authentication_required');
   });
 
   test('已映射的业务错误保留分类和去重后的完整项目调用链', () {

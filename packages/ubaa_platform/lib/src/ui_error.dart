@@ -189,6 +189,14 @@ class UiErrorMapper {
         message: '无法读取本机保存的登录信息，请手动登录',
       );
     }
+    if (error is MaterialTransactionUnrecoverable) {
+      return UiError(
+        code: UbaaErrorCode.internalError,
+        kind: UiErrorKind.internal,
+        title: '本地安全数据无法恢复',
+        message: error.toString(),
+      );
+    }
     if (error is SecureMaterialException) {
       return const UiError(
         code: UbaaErrorCode.internalError,

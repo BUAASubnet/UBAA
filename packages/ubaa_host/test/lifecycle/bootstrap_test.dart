@@ -170,4 +170,61 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('材料传输失败时重试启动重新执行平台初始化', (tester) async {
+    var sdkCalls = 0;
+    var capabilityCalls = 0;
+    final apps = <Widget>[];
+    await expectLater(
+      bootstrapUbaaHost(
+        readThemeMode: () async => ThemeMode.system,
+        readAccent: () async => UbaaAccent.blue,
+        ensureFlutterInitialized: () {},
+        initializeSdk: () async => sdkCalls++,
+        debugHello: () => 'UBAA FRB 2.13.0 ready',
+        createCapabilities: () async {
+          if (++capabilityCalls == 1) throw const SecureMaterialException();
+          final base = fixtureCapabilities();
+          return PlatformCapabilities(
+            credentialVault: base.credentialVault,
+            photoPicker: base.photoPicker,
+            permissionGateway: base.permissionGateway,
+            locationProvider: base.locationProvider,
+            materialRecovery: MaterialTransactionRecovery.reset,
+          );
+        },
+        runApplication: apps.add,
+      ),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    await tester.pumpWidget(apps.last);
+    expect(find.text('本机安全存储不可用'), findsOneWidget);
+    await tester.tap(find.text('重试启动'));
+    await tester.pump();
+    expect(sdkCalls, 1);
+    expect(capabilityCalls, 2);
+    final host = apps.last as UbaaAppHost;
+    expect(host.materialRecovery, MaterialTransactionRecovery.reset);
+  });
+
+  testWidgets('安全数据不可恢复时停在启动错误页并提示清除应用数据', (tester) async {
+    final apps = <Widget>[];
+    await expectLater(
+      bootstrapUbaaHost(
+        readThemeMode: () async => ThemeMode.system,
+        readAccent: () async => UbaaAccent.blue,
+        ensureFlutterInitialized: () {},
+        initializeSdk: () async {},
+        debugHello: () => 'UBAA FRB 2.13.0 ready',
+        createCapabilities: () async =>
+            throw const MaterialTransactionUnrecoverable(),
+        runApplication: apps.add,
+      ),
+      throwsA(isA<MaterialTransactionUnrecoverable>()),
+    );
+    await tester.pumpWidget(apps.last);
+    expect(find.text('本地安全数据需要重置，请清除应用数据后重新登录'), findsOneWidget);
+    expect(find.text('重试启动'), findsNothing);
+    expect(apps.whereType<UbaaAppHost>(), isEmpty);
+  });
 }

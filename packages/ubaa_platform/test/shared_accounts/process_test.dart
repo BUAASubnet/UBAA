@@ -141,6 +141,29 @@ void main() {
     expect(state.account!.id, saved['id']);
     expect(base64Encode(await accounts.cacheKey(state.account!)), saved['key']);
   });
+  test('两个进程同时启动对账只撤销一次并推进一代', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(state.account!);
+    final directory = '${root.path}/coordination';
+    final marker = File('$directory/transaction.v1');
+    await marker.writeAsString('UBAA1:B:remove', flush: true);
+
+    final results = Future.wait([run('reconcile', 'a'), run('reconcile', 'b')]);
+    final deadline = DateTime.now().add(const Duration(seconds: 8));
+    while (!await File('${root.path}/ready-a').exists() ||
+        !await File('${root.path}/ready-b').exists()) {
+      if (DateTime.now().isAfter(deadline)) fail('两个对账进程未就绪');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    await File('${root.path}/reconcile-go').create();
+    expect(await results, unorderedEquals(['reset', 'clean']));
+    expect(await marker.readAsString(), 'UBAA1:C');
+    expect(
+      await File('$directory/account-generation.v1').readAsString(),
+      'UBAA1:${state.generation + 1}',
+    );
+    expect((await accounts.read())!.account, isNull);
+  });
   test('有界锁等待、路径别名、进程终止释放及普通句柄结束不退出', () async {
     final state = await accounts.retain('fixture-a', retainSession: true);
     final path = Directory('${root.path}/coordination');

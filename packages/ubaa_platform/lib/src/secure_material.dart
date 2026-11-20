@@ -21,11 +21,15 @@ final class SecureMaterialStore extends core.SecureMaterialStore {
     MaterialCoordinator? coordinator,
   }) : super(
          transport: transport ?? const PlatformSecureMaterialTransport(),
-         probeRequiresTransaction: transport == null
-             ? !Platform.isAndroid
-             : transport is! PlatformSecureMaterialTransport ||
-                   (transport.operatingSystem ?? Platform.operatingSystem) !=
-                       'android',
+         probeMutation: switch (transport) {
+           WindowsFileMaterials() => MaterialMutation.save,
+           PlatformSecureMaterialTransport(:final operatingSystem) =>
+             _platformProbeMutation(
+               operatingSystem ?? Platform.operatingSystem,
+             ),
+           null => _platformProbeMutation(Platform.operatingSystem),
+           _ => MaterialMutation.probe,
+         },
          coordinator:
              coordinator ??
              MaterialCoordinator.resolving(
@@ -34,6 +38,14 @@ final class SecureMaterialStore extends core.SecureMaterialStore {
                    : mobileMaterialCoordinationDirectory(),
              ),
        );
+
+  static MaterialMutation? _platformProbeMutation(String operatingSystem) =>
+      switch (operatingSystem) {
+        'android' => null,
+        // ReplaceFileW 失败可能移动整份安全存储，不能按随机键无条件提交 C。
+        'windows' => MaterialMutation.save,
+        _ => MaterialMutation.probe,
+      };
 }
 
 /// 全平台均使用flutter_secure_storage插件合同；OHOS由宿主注册对应插件。

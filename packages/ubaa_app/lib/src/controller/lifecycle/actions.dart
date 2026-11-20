@@ -174,9 +174,25 @@ mixin ControllerActions on ControllerState, ControllerAppService {
     return const JsonEncoder.withIndent('  ').convert(report);
   }
 
-  Future<void> initialize() async {
+  Future<void> initialize({
+    MaterialTransactionRecovery? materialRecovery,
+  }) async {
     unawaited(refreshAppService().then((_) => internalRecordAppOpen()));
-    await internalInitializeController();
+    final startupLoginNotice =
+        materialRecovery != null && !internalInitialized && !internalDisposed
+        ? internalDiagnostics.recordMaterialRecovery(
+            materialRecovery,
+            stage: DiagnosticInitializationStage.platformCapabilities,
+          )
+        : null;
+    if (startupLoginNotice != null) {
+      internalInitialized = true;
+      internalError = startupLoginNotice;
+      internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+      internalSetPhase(AppPhase.login);
+    } else {
+      await internalInitializeController();
+    }
     internalRecordColdStart();
   }
 
