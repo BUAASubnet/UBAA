@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 
+const fixtureBridgeContractVersion = 78;
+
 class FixtureContractVersionClient implements BridgeClient {
   FixtureContractVersionClient(this.version);
 

@@ -6,6 +6,8 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/materials.dart';
 import 'package:ubaa_test_support/recovery.dart' show MemoryMaterials;
 
+import '../../support/bridge/fixtures.dart' show fixtureBridgeContractVersion;
+
 void main() {
   final api = _Api();
   setUpAll(() => RustLib.initMock(api: api));
@@ -58,7 +60,7 @@ class _NativeSharedAccount implements BridgeSharedAccount {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 78;
+  int contractVersion() => fixtureBridgeContractVersion;
 
   @override
   Future<void> bindSharedAccount({required BridgeSharedAccount scope}) async {}

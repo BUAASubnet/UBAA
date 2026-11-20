@@ -12,6 +12,8 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/materials.dart';
 import 'package:ubaa_test_support/recovery.dart';
 
+import '../../support/bridge/fixtures.dart' show fixtureBridgeContractVersion;
+
 void main() {
   test('D1 不记住密码的手动登录可以刷新完整首页', () async {
     final fixture = await _login();
@@ -661,7 +663,7 @@ const _disposed = BackendException(
 
 class _DisposedBatchClient implements BridgeClient {
   @override
-  int contractVersion() => 78;
+  int contractVersion() => fixtureBridgeContractVersion;
 
   @override
   Future<void> invalidateReadRecoveryBatch() async => throw const BridgeError(

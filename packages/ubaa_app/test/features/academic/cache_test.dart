@@ -5,6 +5,8 @@ import 'package:ubaa_bindings/src/rust/frb_generated.dart' show RustLibApi;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
+import '../../support/bridge/fixtures.dart' show fixtureBridgeContractVersion;
+
 void main() {
   final cache = _Cache();
   setUpAll(() => RustLib.initMock(api: _Api(cache)));
@@ -348,7 +350,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 78;
+  int contractVersion() => fixtureBridgeContractVersion;
 
   @override
   Future<BridgeTodayRefresh> scheduleTodayCached({
