@@ -1,6 +1,7 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart' show DiagnosticOperation;
 import '../../../contracts/recovery.dart';
+import '../../../write/coordinator.dart';
 
 /// 绑定创建时的账号代次；账号或会话变化后，旧页面的请求与结果都被拒绝。
 class GuardedCampusAccountService implements CampusAccountService {
@@ -76,9 +77,10 @@ class GuardedCampusAccountService implements CampusAccountService {
 
 /// 校园卡充值的代次守卫：下单是不可重放的写操作，必须绑定发起时的账号。
 class GuardedCampusRechargeService implements CampusRechargeService {
-  GuardedCampusRechargeService(this.delegate, this.current);
+  GuardedCampusRechargeService(this.delegate, this.current, this.writer);
   final CampusRechargeService delegate;
   final bool Function() current;
+  final WriteCoordinator writer;
 
   void _check() {
     if (!current()) {
@@ -102,13 +104,19 @@ class GuardedCampusRechargeService implements CampusRechargeService {
   Future<CampusRechargeOrder> createOrder({
     required String idserial,
     required String amountFen,
-  }) async {
+  }) => writer.runConfirmedBatch(() async {
     _check();
     final value = await delegate.createOrder(
       idserial: idserial,
       amountFen: amountFen,
     );
-    _check();
+    if (!current()) {
+      throw const UiError(
+        code: UbaaErrorCode.outcomeUnknown,
+        title: '请核对订单状态',
+        message: '登录或连接状态已变化，请用原账号核对订单后再试',
+      );
+    }
     return value;
-  }
+  });
 }

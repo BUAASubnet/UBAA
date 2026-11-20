@@ -29,7 +29,8 @@ function resolveToolchain(ohosDir) {
             throw new Error(`ohos/local.properties 的 ${key} 必须是不含空白或分隔符的绝对路径`);
         }
     }
-    const config = { flutterRoot, nativeSdkRoot: path.join(hmosSdk, 'default/openharmony/native') };
+    const nativeSdkRoot = path.join(hmosSdk, 'default/openharmony/native').split(path.sep).join('/');
+    const config = { flutterRoot, nativeSdkRoot };
     for (const [root, file, executable] of [
         [config.flutterRoot, 'bin/flutter', true],
         [config.flutterRoot, 'bin/cache/dart-sdk/bin/dart', true],

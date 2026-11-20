@@ -33,6 +33,14 @@ pub struct UbaaClient {
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
     pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
     pub(super) cloud_print: Option<Box<ClientRuntime>>,
+    pub(super) prepared_campus_recharge: Option<PreparedCampusRecharge>,
+}
+
+pub(super) struct PreparedCampusRecharge {
+    pub(super) idserial: String,
+    pub(super) route: ConnectionMode,
+    pub(super) session_revision: u64,
+    pub(super) authentication_generation: uuid::Uuid,
 }
 
 impl UbaaClient {
@@ -71,6 +79,7 @@ impl UbaaClient {
         if !same {
             self.invalidate_read_recovery_batch();
             self.cloud_print = None;
+            self.prepared_campus_recharge = None;
         }
         self.direct_runtime.shared_account.clone_from(&guard);
         self.webvpn_runtime.shared_account = guard;
@@ -301,6 +310,7 @@ impl UbaaClient {
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
             cloud_print: None,
+            prepared_campus_recharge: None,
         })
     }
 
@@ -345,6 +355,7 @@ impl UbaaClient {
         self.route_generation = generation;
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
+        self.prepared_campus_recharge = None;
         self.config = replacement;
         self.clear_interactive_context();
         Ok(())

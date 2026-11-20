@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_app/src/controller/features/campus/service.dart';
@@ -55,6 +56,51 @@ void main() {
     await expectLater(service.networkUsage(), throwsA(isA<UiError>()));
     expect((await service.cached()).isEmpty, isTrue);
     expect(client.calls, ['profile']);
+  });
+
+  test('在途充值独占写入，账号失效后不交付付款地址', () async {
+    final backend = _RechargeBackend();
+    final writer = WriteCoordinator(commit: (_) => throw StateError('fixture'));
+    addTearDown(writer.dispose);
+    var current = true;
+    final service = GuardedCampusRechargeService(
+      backend,
+      () => current,
+      writer,
+    );
+    final pending = service.createOrder(idserial: '123456', amountFen: '100');
+    await expectLater(
+      writer.runConfirmedBatch(() async => fail('不得并行发送写入')),
+      throwsA(
+        isA<UiError>().having(
+          (error) => error.code,
+          '错误码',
+          UbaaErrorCode.operationConflict,
+        ),
+      ),
+    );
+
+    current = false;
+    final rejected = expectLater(
+      pending,
+      throwsA(
+        isA<UiError>().having(
+          (error) => error.code,
+          '错误码',
+          UbaaErrorCode.outcomeUnknown,
+        ),
+      ),
+    );
+    backend.order.complete(
+      CampusRechargeOrder(
+        orderno: 'synthetic',
+        cashierUrl: 'https://cashier.cc-pay.cn/cashier?id=synthetic',
+        amountFen: '100',
+        fetchedAt: DateTime.utc(2026),
+      ),
+    );
+    await rejected;
+    expect(await writer.runConfirmedBatch(() async => '可提交'), '可提交');
   });
 }
 
@@ -124,4 +170,18 @@ class _Client implements BridgeClient {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RechargeBackend implements CampusRechargeService {
+  final order = Completer<CampusRechargeOrder>();
+
+  @override
+  Future<CampusRechargePreflight> preflight() =>
+      throw UnsupportedError('此测试不读取预检');
+
+  @override
+  Future<CampusRechargeOrder> createOrder({
+    required String idserial,
+    required String amountFen,
+  }) => order.future;
 }

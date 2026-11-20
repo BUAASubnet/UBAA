@@ -14,12 +14,16 @@ class OhosNativeLibraryTest(unittest.TestCase):
     def test_打包文件名与Dart加载的动态库一致(self):
         cmake = shutil.which('cmake')
         self.assertIsNotNone(cmake, '测试需要 CMake')
+        fixtures = ROOT / '.ubaa_local/ohos_native_library_tests'
+        fixtures.mkdir(parents=True, exist_ok=True)
         for configuration in ['Debug', 'Release']:
-            with self.subTest(configuration=configuration), tempfile.TemporaryDirectory() as folder:
+            with self.subTest(configuration=configuration), tempfile.TemporaryDirectory(dir=fixtures) as folder:
                 root = Path(folder)
                 cmake_dir = root / 'cargokit/cmake'
                 cmake_dir.mkdir(parents=True)
                 shutil.copyfile(CARGOKIT_CMAKE, cmake_dir / 'cargokit.cmake')
+                shutil.copyfile(CARGOKIT_CMAKE.with_name('resolve_symlinks.ps1'),
+                                cmake_dir / 'resolve_symlinks.ps1')
                 (root / 'cargokit/run_build_tool.sh').write_text(
                     '#!/bin/sh\n'
                     'set -eu\n'
@@ -47,13 +51,16 @@ class OhosNativeLibraryTest(unittest.TestCase):
                 for args in [
                     [cmake, '-S', str(root), '-B', str(build),
                      f'-DCMAKE_BUILD_TYPE={configuration}'],
-                    [cmake, '--build', str(build)],
+                    [cmake, '--build', str(build), '--config', configuration],
                 ]:
                     result = subprocess.run(args, capture_output=True, text=True)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 packaged = root / 'libs/arm64-v8a/libubaa_flutter_bridge.so'
                 self.assertTrue(packaged.is_file(), 'OHOS 包必须保留 Dart 实际加载的动态库名')
-                self.assertEqual(packaged.read_bytes(), (build / packaged.name).read_bytes())
+                library_dir = build / configuration
+                if not library_dir.is_dir():
+                    library_dir = build
+                self.assertEqual(packaged.read_bytes(), (library_dir / packaged.name).read_bytes())
                 self.assertFalse((packaged.parent / 'libubaa_bindings.so').exists())
 
 

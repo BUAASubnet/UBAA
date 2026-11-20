@@ -32,6 +32,20 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+if(MSVC)
+  # 应用和 Flutter 插件的 C++ 源码统一按 UTF-8 编译。
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/utf-8>")
+
+  # flutter_secure_storage_windows 使用 ATL；安装 VC 工具集并不一定安装 ATL。
+  include(CheckIncludeFileCXX)
+  check_include_file_cxx("atlstr.h" UBAA_HAS_MSVC_ATL)
+  if(NOT UBAA_HAS_MSVC_ATL)
+    unset(UBAA_HAS_MSVC_ATL CACHE)
+    message(FATAL_ERROR
+      "Windows 构建需要 ATL (atlstr.h)。请在 Visual Studio Installer 为当前 MSVC 工具集安装 C++ ATL（Microsoft.VisualStudio.Component.VC.ATL）。")
+  endif()
+endif()
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by

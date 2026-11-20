@@ -249,7 +249,7 @@ script-test:
     python3 scripts/tests/release/acceptance_test.py
     python3 scripts/tests/release/metadata_test.py
     python3 scripts/tests/release/distribute_test.py
-    python3 scripts/tests/release/server_deploy_test.py
+    just _posix-script-test scripts/tests/release/server_deploy_test.py
     python3 scripts/tests/release/download_manifest_test.py
     python3 scripts/tests/release/ios_privacy_test.py
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
@@ -268,7 +268,7 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/cargo_locks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/build_cache_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
+    just _posix-script-test scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/repo_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/release_preflight_test.py
@@ -277,6 +277,17 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/doctor_test.py
     node --test scripts/tests/checks/ohos_hvigor_test.cjs
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
+
+# POSIX 锁和可执行 Shell 夹具在 Windows 上也由实际的 POSIX 运行时执行。
+[windows]
+[positional-arguments]
+_posix-script-test script:
+    wsl.exe --cd "{{justfile_directory()}}" --exec bash -lc 'export PYTHONDONTWRITEBYTECODE=1; exec python3 "$1"' bash "$1"
+
+[unix]
+[positional-arguments]
+_posix-script-test script:
+    python3 "$1"
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。
 quality-tools-bootstrap:

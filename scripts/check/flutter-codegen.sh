@@ -11,7 +11,10 @@ source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 # shellcheck source=../lib/toolchain.sh
 source "$script_dir/../lib/toolchain.sh"
-flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
+if ! flutter_root=$(ubaa_toolchain_absolute_path "${UBAA_FLUTTER_HOME:-}"); then
+  printf '%s\n' 'error: 请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径' >&2
+  exit 2
+fi
 codegen=${UBAA_FRB_CODEGEN:-$(command -v flutter_rust_bridge_codegen || true)}
 
 "$repo_root/scripts/check/flutter-toolchains.sh" official

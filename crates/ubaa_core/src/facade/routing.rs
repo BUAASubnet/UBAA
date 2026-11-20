@@ -305,17 +305,24 @@ impl UbaaClient {
             error,
             resolution: None,
         })?;
-        let (policy, row) = match operation {
+        let feature = match operation {
+            Operation::CampusRecharge => Some(ReadonlyFeature::Portal),
+            Operation::Feature(feature) => Some(feature),
             Operation::Authentication
             | Operation::ConnectionRecovery
             | Operation::User
             | Operation::CloudPrint
-            | Operation::Bhpan => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
-            Operation::Feature(feature) => (
-                self.config.feature(feature),
-                FeatureRouteConfig::for_feature(feature),
-            ),
+            | Operation::Bhpan => None,
         };
+        let (policy, row) = feature.map_or(
+            (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
+            |feature| {
+                (
+                    self.config.feature(feature),
+                    FeatureRouteConfig::for_feature(feature),
+                )
+            },
+        );
         let mut resolution = resolve_route(policy, row, self.probe.as_ref());
         if policy == RoutePolicy::Auto {
             let mut domains = self
@@ -380,7 +387,15 @@ impl UbaaClient {
         feature: ReadonlyFeature,
         expected_route: Option<ConnectionMode>,
     ) -> std::result::Result<RouteResolution, RoutedError> {
-        let resolution = self.resolve_operation(Operation::Feature(feature))?;
+        self.resolve_write_operation_route(Operation::Feature(feature), expected_route)
+    }
+
+    pub(super) fn resolve_write_operation_route(
+        &mut self,
+        operation: Operation,
+        expected_route: Option<ConnectionMode>,
+    ) -> std::result::Result<RouteResolution, RoutedError> {
+        let resolution = self.resolve_operation(operation)?;
         if expected_route.is_some_and(|expected| expected != resolution.mode) {
             return Err(routed_error(
                 invalid_input("写入路线已变化，请重新确认"),
@@ -487,6 +502,7 @@ impl UbaaClient {
     pub(super) fn clear_all_memory(&mut self) {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
+        self.prepared_campus_recharge = None;
         self.clear_interactive_context();
         self.direct_runtime.clear_memory();
         self.webvpn_runtime.clear_memory();

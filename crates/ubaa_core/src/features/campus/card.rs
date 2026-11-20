@@ -3,11 +3,14 @@
 //! 冻结旧版与 buaa-api 都没有校园卡充值的同源协议；本模块的九列依据来自用户
 //! 提供的抓包和本会话实测，记录在 `docs/protocol/parity/campus.md`。
 
-use super::{CARD_BASE, CARD_PREFIX, envelope, parser};
+use std::sync::LazyLock;
+
+use super::{CARD_BASE, CARD_HOST, CARD_PREFIX, envelope, parser};
 use crate::domain::{CampusRechargeOrder, CampusRechargePreflight};
 use crate::error::{ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
+use scraper::{Html, Selector};
 use serde_json::Value;
 use url::Url;
 
@@ -18,13 +21,60 @@ const CARD_SERVICE_PATH: &str = "/card/home/sisUstbMiniReturnPage/112233/6/auth"
 const PATH_USERTYPE: &str = "6";
 const PAYLOAD_USERTYPE: &str = "1";
 const PAY_WAY_HCT: &str = "10";
+const MAX_RESPONSE_SIZE: usize = 2 * 1024 * 1024;
+const ORDER_OUTCOME_MESSAGE: &str = "充值下单结果未知，请先核对订单再决定是否重试";
 
 fn invalid() -> UbaaError {
     UbaaError::upstream_changed("校园卡响应不符合已验证的格式")
 }
 
+fn unknown_after_send(error: UbaaError) -> UbaaError {
+    error.with_write_outcome_unknown(ORDER_OUTCOME_MESSAGE)
+}
+
 fn is_redirect(status: u16) -> bool {
     matches!(status, 301 | 302 | 303 | 307 | 308)
+}
+
+fn is_sso_login_form(response: &crate::ports::HttpResponse, runtime: &ClientRuntime) -> bool {
+    static FORM: LazyLock<Selector> =
+        LazyLock::new(|| Selector::parse("form#loginForm, form#fm1").unwrap());
+    static CREDENTIAL_FIELDS: LazyLock<Selector> = LazyLock::new(|| {
+        Selector::parse(
+            "input[name=username], input[type=password][name=password], input[name=execution][value]",
+        )
+        .unwrap()
+    });
+
+    if response.status != 200
+        || response.body.len() > MAX_RESPONSE_SIZE
+        || !super::decode(&response.final_url, runtime.mode())
+            .is_ok_and(|url| url.host_str() == Some("sso.buaa.edu.cn") && url.path() == "/login")
+    {
+        return false;
+    }
+    let Ok(html) = std::str::from_utf8(&response.body) else {
+        return false;
+    };
+    Html::parse_document(html).select(&FORM).any(|form| {
+        let mut username = false;
+        let mut password = false;
+        let mut execution = false;
+        for field in form.select(&CREDENTIAL_FIELDS) {
+            match field.value().attr("name") {
+                Some("username") => username = true,
+                Some("password") => password = true,
+                Some("execution") => {
+                    execution |= field
+                        .value()
+                        .attr("value")
+                        .is_some_and(|v| !v.trim().is_empty());
+                }
+                _ => {}
+            }
+        }
+        username && password && execution
+    })
 }
 
 /// 回调只允许精确落在卡站点固定组织段与授权路径上，且必须携带唯一非空 ticket。
@@ -37,7 +87,7 @@ fn callback_url(url: &Url) -> bool {
     {
         return false;
     }
-    if url.host_str() != Some("m.icw.buaa.edu.cn") || url.path() != CARD_SERVICE_PATH {
+    if url.host_str() != Some(CARD_HOST) || url.path() != CARD_SERVICE_PATH {
         return false;
     }
     let mut ticket = None;
@@ -78,14 +128,16 @@ async fn fetch_openid(runtime: &mut ClientRuntime) -> Result<String> {
             .await?;
         runtime.ensure_session_revision()?;
         if !is_redirect(response.status) {
-            // 卡站点以 302 交出 openid；任何页面都偏离已验证行为。
+            if is_sso_login_form(&response, runtime) {
+                return Err(parser::business_login_required());
+            }
             return Err(invalid());
         }
         let next = next_location(&response, runtime)?;
         if next.host_str() == Some("sso.buaa.edu.cn") {
             return Err(parser::business_login_required());
         }
-        if next.host_str() == Some("m.icw.buaa.edu.cn") && next.path() == goindex_path() {
+        if next.host_str() == Some(CARD_HOST) && next.path() == goindex_path() {
             return openid_from(&next);
         }
         if !callback_url(&next) {
@@ -178,28 +230,39 @@ async fn call(
         request = request.with_header(name, value);
     }
     let response = if non_idempotent {
-        runtime
-            .request_non_idempotent_with_pre_send_check(
-                request,
-                ClientRuntime::ensure_session_revision,
-            )
-            .await?
+        runtime.request_non_idempotent(request).await?
     } else {
         runtime
             .request_with_pre_send_check(request, ClientRuntime::ensure_session_revision)
             .await?
     };
-    runtime.ensure_session_revision()?;
+    let after_response = |error| {
+        if non_idempotent {
+            unknown_after_send(error)
+        } else {
+            error
+        }
+    };
+    runtime.ensure_session_revision().map_err(after_response)?;
     match response.status {
         200 => {}
         401 | 403 => return Err(parser::business_login_required()),
-        500..=599 => return Err(UbaaError::upstream_unavailable("校园卡服务暂时不可用")),
-        _ => return Err(invalid()),
+        500..=599 => {
+            return Err(after_response(
+                UbaaError::upstream_unavailable("校园卡服务暂时不可用")
+                    .with_http_status(response.status),
+            ));
+        }
+        _ => return Err(after_response(invalid().with_http_status(response.status))),
     }
-    if response.body.len() > 2 * 1024 * 1024 {
+    decode_envelope(&response.body).map_err(after_response)
+}
+
+fn decode_envelope(body: &[u8]) -> Result<Value> {
+    if body.len() > MAX_RESPONSE_SIZE {
         return Err(invalid());
     }
-    let body: Value = serde_json::from_slice(&response.body).map_err(|_| invalid())?;
+    let body: Value = serde_json::from_slice(body).map_err(|_| invalid())?;
     let blob = body
         .get("datajson")
         .and_then(Value::as_str)
@@ -207,16 +270,20 @@ async fn call(
     envelope::open(blob)
 }
 
-fn success_field<'a>(payload: &'a Value, field: &str) -> Result<&'a Value> {
+fn success_field<'a>(
+    payload: &'a Value,
+    field: &str,
+    malformed: impl FnOnce() -> UbaaError,
+) -> Result<&'a Value> {
     match payload.get("success").and_then(Value::as_bool) {
-        Some(true) => payload.get(field).ok_or_else(invalid),
+        Some(true) => payload.get(field).ok_or_else(malformed),
         Some(false) => Err(UbaaError::new(
             crate::error::ErrorCode::UpstreamUnavailable,
             ErrorKind::Upstream,
             false,
             "校园卡服务拒绝了本次请求",
         )),
-        None => Err(invalid()),
+        None => Err(malformed()),
     }
 }
 
@@ -230,7 +297,7 @@ pub(crate) async fn preflight(runtime: &mut ClientRuntime) -> Result<CampusRecha
         false,
     )
     .await?;
-    let card = success_field(&payload, "data")?
+    let card = success_field(&payload, "data", invalid)?
         .get("cardPay")
         .ok_or_else(invalid)?;
     let idserial = card
@@ -242,7 +309,7 @@ pub(crate) async fn preflight(runtime: &mut ClientRuntime) -> Result<CampusRecha
     let balance = card
         .get("cardbal")
         .and_then(Value::as_str)
-        .filter(|v| !v.is_empty() && v.len() <= 32 && !v.chars().any(char::is_control))
+        .filter(|v| v.len() <= 32 && parser::is_decimal(v))
         .ok_or_else(invalid)?
         .to_owned();
     Ok(CampusRechargePreflight {
@@ -278,7 +345,11 @@ pub(crate) async fn order(
         true,
     )
     .await?;
-    let result = success_field(&payload, "resultData")?;
+    let result = success_field(&payload, "resultData", || unknown_after_send(invalid()))?;
+    parse_order(runtime, result, fen).map_err(unknown_after_send)
+}
+
+fn parse_order(runtime: &ClientRuntime, result: &Value, fen: &str) -> Result<CampusRechargeOrder> {
     let orderno = result
         .get("orderno")
         .and_then(Value::as_str)

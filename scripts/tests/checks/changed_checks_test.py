@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -47,9 +48,9 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_workspace测试辅助包进入清单和改动规划(self):
         self.assertEqual(gates.PACKAGES['ubaa_test_support'], 'packages/ubaa_test_support')
-        package_list = subprocess.check_output(
-            ['python3', str(ROOT / 'scripts/lib/packages.py')], text=True).splitlines()
-        self.assertEqual(package_list[-1], 'packages/ubaa_test_support')
+        package_list = subprocess.check_output([sys.executable, str(ROOT / 'scripts/lib/packages.py')])
+        self.assertTrue(package_list.endswith(b'packages/ubaa_test_support\n'))
+        self.assertNotIn(b'\r', package_list)
         self.assertEqual(
             self.plan('packages/ubaa_test_support/lib/recovery.dart')['packages'],
             ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'],
@@ -217,13 +218,14 @@ class ChangedChecksTest(unittest.TestCase):
                 target = root / path
                 target.parent.mkdir(parents=True)
                 target.write_text('合成改动\n')
-                bin_dir = root / '.git' / 'bin'
-                bin_dir.mkdir()
-                just = bin_dir / 'just'
-                just.write_text('#!/bin/sh\nif [ "$1" = app-service-check ]; then exit 23; fi\n')
-                just.chmod(0o700)
+                (root / '.git/info/exclude').write_text('/justfile\n')
+                (root / 'justfile').write_text(
+                    'refs:\n    @echo fixture\n'
+                    'check-sensitive:\n    @echo fixture\n'
+                    'app-service-content-check:\n    @echo fixture\n'
+                    'app-service-check:\n    @exit 23\n'
+                )
                 with patch.object(gates, 'ROOT', root), patch.object(gates.sys, 'argv', ['check', '--run']), \
-                        patch.dict(os.environ, {'PATH': f'{bin_dir}{os.pathsep}{os.environ["PATH"]}'}), \
                         redirect_stdout(io.StringIO()):
                     with self.assertRaises(subprocess.CalledProcessError) as failure:
                         gates.main()
@@ -273,9 +275,10 @@ class ChangedChecksTest(unittest.TestCase):
             (repo / 'staged.dart').write_text('staged')
             git('add', 'staged.dart')
             (repo / 'new name.dart').write_text('changed')
-            (repo / '中文\n未跟踪.dart').write_text('new')
+            untracked = '中文 未跟踪.dart' if os.name == 'nt' else '中文\n未跟踪.dart'
+            (repo / untracked).write_text('new')
             self.assertEqual(set(gates.changed_paths(repo, base)),
-                             {'old.dart', 'new name.dart', 'staged.dart', '中文\n未跟踪.dart'})
+                             {'old.dart', 'new name.dart', 'staged.dart', untracked})
             self.assertEqual(gates.changed_paths(repo, 'base=' + base), gates.changed_paths(repo, base))
             # 暂存改动被工作区反向覆盖时，净差异为零仍必须检查暂存内容。
             git('add', 'new name.dart')

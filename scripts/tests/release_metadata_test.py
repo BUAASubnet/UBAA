@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("dependency_report", ROOT / "scripts/release/dependency_report.py")
 report = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(report)
+from toolchain import bash_command
 
 
 class ReleaseMetadataTest(unittest.TestCase):
@@ -141,9 +142,9 @@ class ReleaseMetadataTest(unittest.TestCase):
     def test_工具未准备时失败且不自动安装(self):
         with tempfile.TemporaryDirectory() as directory:
             absent = Path(directory) / "missing"
-            result = subprocess.run(["bash", str(ROOT / "scripts/tools/python.sh"), "-c", "pass"],
-                                    env=dict(os.environ, UBAA_QUALITY_TOOLS_DIR=str(absent)),
-                                    capture_output=True, text=True)
+            env = dict(os.environ, UBAA_QUALITY_TOOLS_DIR=str(absent))
+            command = bash_command(ROOT / "scripts/tools/python.sh", "-c", "pass", environment=env)
+            result = subprocess.run(command, env=env, capture_output=True, encoding="utf-8")
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("quality-tools-bootstrap", result.stderr)
             self.assertFalse(absent.exists())

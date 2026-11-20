@@ -711,15 +711,26 @@ impl RouteUsage {
 }
 
 fn route_usage(tokens: &[String]) -> RouteUsage {
+    // 确认预检委托完整读取；消费绑定只查会话修订，不执行另一项业务。
+    let delegated_preflight =
+        count_sequence(tokens, &["self", ".", "campus_recharge_preflight", "("]);
+    let confirmation_slot =
+        function_body(tokens, "take_campus_recharge_preflight_route").map_or(0, |body| {
+            assert_eq!(count_sequence(body, &["runtime_for", "("]), 1);
+            1
+        });
     RouteUsage {
         entry_points: count_sequence(tokens, &["pub", "async", "fn"]),
         resolve_operation: count_sequence(tokens, &["resolve_operation", "("])
-            + count_sequence(tokens, &["resolve_write_route", "("]),
+            + count_sequence(tokens, &["resolve_write_route", "("])
+            + count_sequence(tokens, &["resolve_write_operation_route", "("])
+            + delegated_preflight,
         caller_pinned: count_sequence(tokens, &["guard_caller_pinned_route", "("]),
-        runtime_for: count_sequence(tokens, &["runtime_for", "("]),
+        runtime_for: count_sequence(tokens, &["runtime_for", "("]) - confirmation_slot,
         route_parts_for: count_sequence(tokens, &["route_parts_for", "("]),
         finish_routed: count_sequence(tokens, &["finish_routed", "("])
-            + count_sequence(tokens, &["finish_routed_write", "("]),
+            + count_sequence(tokens, &["finish_routed_write", "("])
+            + delegated_preflight,
         finish_caller_pinned: count_sequence(tokens, &["finish_caller_pinned", "("]),
     }
 }

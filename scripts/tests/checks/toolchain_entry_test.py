@@ -17,6 +17,16 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # 假 SDK 与工具依赖 POSIX 的 shebang、执行位和符号链接。
+        if os.name != 'posix':
+            raise RuntimeError('工具链入口夹具需要 POSIX；Windows 请通过 just script-test 在 WSL 中运行')
+        just = shutil.which('just')
+        if just is None:
+            raise RuntimeError('请将当前 POSIX 系统的原生 just 加入 PATH；WSL 不能使用 Windows 的 just.exe')
+        cls.just = os.path.abspath(just)
+
     def test_Gradle准备仅重试下载且保留最后一次失败(self):
         workflow = (ROOT / '.github/workflows/flutter-platforms.yml').read_text()
         step = workflow.split('      - name: 准备 Gradle Wrapper\n', 1)[1]
@@ -152,7 +162,7 @@ exit 73
         environment = {'PATH': '测试进程的PATH'}
         script = r'D:\项目 空格\scripts\check.sh'
         with patch.object(toolchain.sys, 'platform', 'win32'), patch.object(
-                toolchain.shutil, 'which', return_value=r'C:\Program Files\Git\bin\bash.exe') as which:
+                shutil, 'which', return_value=r'C:\Program Files\Git\bin\bash.exe') as which:
             self.assertEqual(toolchain.bash_command(script, 'official', environment=environment),
                              [r'C:\Program Files\Git\bin\bash.exe', 'D:/项目 空格/scripts/check.sh', 'official'])
             which.assert_called_with('bash', path=environment['PATH'])
@@ -225,7 +235,7 @@ exit 73
             program.chmod(0o755)
 
     def run_entry(self, *arguments, direct=False):
-        command = (['python3', 'scripts/lib/toolchain.py'] if direct else ['just'])
+        command = ['python3', 'scripts/lib/toolchain.py'] if direct else [self.just]
         return subprocess.run([*command, *arguments], cwd=self.root,
                               env=self.environment, capture_output=True, text=True)
 
@@ -274,7 +284,7 @@ exit 73
                                  'ANDROID_KEY_PASSWORD': 'synthetic-ci', 'OHOS_KEY_PASSWORD': 'synthetic-other',
                                  'CLOUDFLARE_API_TOKEN': 'synthetic-cloud'})
         for direct in (False, True):
-            command = ['bash', 'scripts/build/flutter.sh'] if direct else ['just', 'flutter-build']
+            command = ['bash', 'scripts/build/flutter.sh'] if direct else [self.just, 'flutter-build']
             result = subprocess.run([*command, 'android-apk', 'release'], cwd=self.root,
                                     env=self.environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -415,7 +425,7 @@ exit 73
         child = self.root / 'app'
         child.mkdir()
         (self.sdk / 'bin/dart').write_text('#!/usr/bin/env python3\nimport os\nprint(os.getcwd())\n')
-        result = subprocess.run(['just', 'dart'], cwd=child, env=self.environment,
+        result = subprocess.run([self.just, 'dart'], cwd=child, env=self.environment,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(Path(result.stdout.strip()), child.resolve())

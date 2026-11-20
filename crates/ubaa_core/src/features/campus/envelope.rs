@@ -15,24 +15,16 @@ fn invalid() -> UbaaError {
     UbaaError::upstream_changed("校园卡响应不符合已验证的格式")
 }
 
-/// 前端 handleKey：先按 10 位移位，再整体反转；解码是它的逆过程。
-fn handle_key(value: &str, encode: bool) -> String {
-    let chars: Vec<char> = value.chars().collect();
-    if encode {
-        let shifted: String = chars[10..].iter().chain(chars[..10].iter()).collect();
-        return shifted.chars().rev().collect();
-    }
-    let reversed: Vec<char> = chars.iter().rev().copied().collect();
-    let mut out: String = reversed[6..].iter().collect();
-    out.extend(&reversed[..6]);
-    out
+/// 左移 10 位后整体反转，等价于分别反转前 10 位和后 6 位；同一置换即可还原。
+fn handle_key(mut key: [u8; 16]) -> [u8; 16] {
+    key[..10].reverse();
+    key[10..].reverse();
+    key
 }
 
-pub(super) fn random_key() -> String {
+fn random_key() -> [u8; 16] {
     let mut rng = rand::rng();
-    (0..16)
-        .map(|_| char::from(KEY_CHARS[rng.random_range(0..KEY_CHARS.len())]))
-        .collect()
+    std::array::from_fn(|_| KEY_CHARS[rng.random_range(0..KEY_CHARS.len())])
 }
 
 /// 生成 `datajson`：密钥置换前缀 + AES-128-ECB/PKCS7 的 Base64 密文。
@@ -42,25 +34,25 @@ pub(super) fn seal(payload: &Value) -> Result<String> {
     let mut buffer = plain;
     let length = buffer.len();
     buffer.resize(length + 16, 0);
-    let cipher = ecb::Encryptor::<Aes128>::new_from_slice(key.as_bytes()).map_err(|_| invalid())?;
+    let cipher = ecb::Encryptor::<Aes128>::new_from_slice(&key).map_err(|_| invalid())?;
     let encrypted = cipher
         .encrypt_padded::<Pkcs7>(&mut buffer, length)
         .map_err(|_| invalid())?;
-    Ok(format!(
-        "{}{}",
-        handle_key(&key, true),
-        STANDARD.encode(encrypted)
-    ))
+    let mut blob = String::with_capacity(key.len() + encrypted.len().div_ceil(3) * 4);
+    blob.extend(handle_key(key).into_iter().map(char::from));
+    STANDARD.encode_string(encrypted, &mut blob);
+    Ok(blob)
 }
 
 /// 解开响应 `datajson`；密钥由前缀反推。
 pub(super) fn open(blob: &str) -> Result<Value> {
-    if blob.len() < 17 || !blob.is_char_boundary(16) {
+    let (prefix, ciphertext) = blob.as_bytes().split_at_checked(16).ok_or_else(invalid)?;
+    if !prefix.iter().all(u8::is_ascii_alphanumeric) || ciphertext.is_empty() {
         return Err(invalid());
     }
-    let key = handle_key(&blob[..16], false);
-    let mut raw = STANDARD.decode(&blob[16..]).map_err(|_| invalid())?;
-    let cipher = ecb::Decryptor::<Aes128>::new_from_slice(key.as_bytes()).map_err(|_| invalid())?;
+    let key = handle_key(prefix.try_into().map_err(|_| invalid())?);
+    let mut raw = STANDARD.decode(ciphertext).map_err(|_| invalid())?;
+    let cipher = ecb::Decryptor::<Aes128>::new_from_slice(&key).map_err(|_| invalid())?;
     let plain = cipher
         .decrypt_padded::<Pkcs7>(&mut raw)
         .map_err(|_| invalid())?;
@@ -73,8 +65,12 @@ mod tests {
 
     #[test]
     fn 密钥置换可逆() {
-        for key in ["AbCdEfGh12345678", "zzzzzzzzzzzzzzzz", "0123456789abcdef"] {
-            assert_eq!(handle_key(&handle_key(key, true), false), key);
+        for key in [
+            *b"AbCdEfGh12345678",
+            *b"zzzzzzzzzzzzzzzz",
+            *b"0123456789abcdef",
+        ] {
+            assert_eq!(handle_key(handle_key(key)), key);
         }
     }
 
@@ -97,5 +93,11 @@ mod tests {
         assert!(open("").is_err());
         assert!(open("short").is_err());
         assert!(open("!!!!!!!!!!!!!!!!not-base64").is_err());
+    }
+
+    #[test]
+    fn 恶意多字节前缀返回格式错误而非崩溃() {
+        let error = open("🀀🀀🀀🀀YWJjZA==").unwrap_err();
+        assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
     }
 }

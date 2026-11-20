@@ -392,6 +392,7 @@ class AppController extends ControllerState
             internalPhase == AppPhase.home &&
             internalLifecycleEpoch == epoch &&
             identical(internalBackend, backend),
+        internalWriteCoordinator,
       );
     }
     return _rechargeService;

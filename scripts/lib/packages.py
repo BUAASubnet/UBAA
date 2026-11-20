@@ -4,6 +4,7 @@ import sys
 sys.dont_write_bytecode = True
 from repo import workspace_packages
 PACKAGES = workspace_packages()
+sys.stdout.reconfigure(encoding='utf-8', newline='\n')
 
 try:
     for name in sys.argv[1:] or PACKAGES:

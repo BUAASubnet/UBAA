@@ -22,11 +22,6 @@ add_executable(${BINARY_NAME} WIN32
 apply_standard_settings(${BINARY_NAME})
 target_compile_features(${BINARY_NAME} PRIVATE cxx_std_20)
 
-# 项目源码包含中文，MSVC 必须按 UTF-8 读取并生成字符串常量。
-if(MSVC)
-  target_compile_options(${BINARY_NAME} PRIVATE /utf-8)
-endif()
-
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
@@ -49,7 +44,6 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 add_executable(ubaa_command "command_main.cpp" "Runner.rc" "runner.exe.manifest")
 set_target_properties(ubaa_command PROPERTIES OUTPUT_NAME "ubaa-cli")
 apply_standard_settings(ubaa_command)
-target_compile_options(ubaa_command PRIVATE /utf-8)
 target_compile_definitions(ubaa_command PRIVATE NOMINMAX
   "UBAA_EXECUTABLE_NAME=\"ubaa-cli.exe\""
   "UBAA_INTERNAL_NAME=\"ubaa-cli\""

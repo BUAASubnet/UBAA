@@ -8,19 +8,35 @@ import 'package:win32/win32.dart';
 Directory systemMaterialDirectory() {
   if (Platform.isWindows) {
     return using((arena) {
-      final folder = FOLDERID_LocalAppData.toNative(allocator: arena);
-      final result = SHGetKnownFolderPath(
-        folder,
-        const KNOWN_FOLDER_FLAG(0),
-        null,
+      final handle = arena<Pointer>();
+      // 空令牌会让 Shell 使用进程的 USERPROFILE；显式指定系统用户。
+      final opened = OpenProcessToken(
+        GetCurrentProcess(),
+        TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
+        handle,
       );
+      if (!opened.value) throw const FileSystemException();
+      final token = HANDLE(handle.value);
       try {
-        if (result.address == 0) throw const FileSystemException();
-        return Directory(
-          '${result.toDartString()}/UBAA/material_coordination_v1',
-        );
+        final result = arena<Pointer<Utf16>>();
+        try {
+          final status = _getKnownFolderPath(
+            FOLDERID_LocalAppData.toNative(allocator: arena),
+            0,
+            token,
+            result,
+          );
+          if (status < 0 || result.value == nullptr) {
+            throw const FileSystemException();
+          }
+          return Directory(
+            '${result.value.toDartString()}/UBAA/material_coordination_v1',
+          );
+        } finally {
+          CoTaskMemFree(result.value);
+        }
       } finally {
-        if (result.address != 0) CoTaskMemFree(result);
+        token.close();
       }
     });
   }
@@ -74,6 +90,13 @@ Directory systemMaterialDirectory() {
         : '$home/.local/share/UBAA/material_coordination_v1',
   );
 }
+
+// Shell 失败时也可能交回须释放的路径；直接持有输出指针。
+final _getKnownFolderPath = DynamicLibrary.open('shell32.dll')
+    .lookupFunction<
+      Int32 Function(Pointer<GUID>, Uint32, Pointer, Pointer<Pointer<Utf16>>),
+      int Function(Pointer<GUID>, int, Pointer, Pointer<Pointer<Utf16>>)
+    >('SHGetKnownFolderPath');
 
 /// 布局分别来自锁定 SDK pwd.h 与 Linux libc 的 struct passwd。
 final class _LinuxUser extends Struct {

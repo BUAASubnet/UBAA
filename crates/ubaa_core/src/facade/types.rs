@@ -61,6 +61,7 @@ impl std::error::Error for RoutedError {
 pub(super) enum Operation {
     Bhpan,
     CloudPrint,
+    CampusRecharge,
     Authentication,
     ConnectionRecovery,
     User,

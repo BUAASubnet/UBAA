@@ -71,6 +71,8 @@ void main() {
         environment: {
           'HOME': '${root.path}/home-$suffix',
           'USERPROFILE': '${root.path}/profile-$suffix',
+          'LOCALAPPDATA': '${root.path}/local-$suffix',
+          'APPDATA': '${root.path}/roaming-$suffix',
           'XDG_DATA_HOME': '${root.path}/xdg-$suffix',
           'UBAA_CONFIG_DIR': '${root.path}/config-$suffix',
         },
@@ -79,7 +81,9 @@ void main() {
       return result.stdout.toString().trim();
     }
 
-    expect(await resolve('one'), await resolve('two'));
+    final expected = MaterialCoordinator.desktopDirectory().path;
+    expect(await resolve('one'), expected);
+    expect(await resolve('two'), expected);
   });
 
   test('两个真实进程在不同config目录保留同账号：别名和密钥唯一、代次推进', () async {

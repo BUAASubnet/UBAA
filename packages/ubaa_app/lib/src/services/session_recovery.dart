@@ -310,6 +310,8 @@ final class _RecoveryJob {
       consumers.clear();
       watcher?.cancel();
       stopAccepting();
+      // 定时核对可能仍持有材料文件锁，须先排空才算完成收尾。
+      await validation;
       owner._draining.remove(this);
       owner._completedLogins.removeWhere(
         (key, _) => !owner._draining.any((job) => job.scope.key == key.$1),

@@ -1,13 +1,17 @@
 //! 门户资料、校园账户指标与网费流量的类型化只读绑定。
 #![allow(clippy::missing_errors_doc)]
 use super::client::{
-    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeRouteDecision,
-    catch_panic, disposed_error, map_route,
+    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind,
+    BridgeRouteDecision, catch_panic, disposed_error, map_route,
 };
 use super::offline::{
     BridgeCacheFailure, BridgeOfflineCache, cache_error, local_task, offline_read_error,
 };
 use ubaa_core::facade as domain;
+
+#[cfg(test)]
+#[path = "tests/card.rs"]
+mod card_tests;
 
 /// 门户身份与学院，仅用于资料展示。
 #[derive(Clone, Debug)]
@@ -293,11 +297,14 @@ impl BridgeClient {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
-                .campus_recharge_preflight()
+                .campus_recharge_preflight_for_confirmation()
                 .await
-                .map_err(BridgeError::from_routed)?;
+                .map_err(|error| map_recharge_confirmation_error(error, None))?;
+            let data = value
+                .data
+                .ok_or_else(|| recharge_confirmation_conflict(Some(value.resolution.mode)))?;
             Ok(BridgeCampusRechargePreflightResult {
-                data: value.data.into(),
+                data: data.into(),
                 route: map_route(value.resolution),
             })
         })
@@ -313,10 +320,13 @@ impl BridgeClient {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
+            let expected_route = client
+                .take_campus_recharge_preflight_route(&idserial)
+                .ok_or_else(|| recharge_confirmation_conflict(None))?;
             let value = client
-                .campus_recharge_order(&idserial, &amount_fen)
+                .campus_recharge_order_if_route_matches(&idserial, &amount_fen, expected_route)
                 .await
-                .map_err(BridgeError::from_routed)?;
+                .map_err(|error| map_recharge_confirmation_error(error, Some(expected_route)))?;
             Ok(BridgeCampusRechargeOrderResult {
                 data: value.data.into(),
                 route: map_route(value.resolution),
@@ -324,6 +334,31 @@ impl BridgeClient {
         })
         .await
     }
+}
+
+fn recharge_confirmation_conflict(resolved: Option<domain::ConnectionMode>) -> BridgeError {
+    let mut error = BridgeError::local(
+        BridgeErrorCode::OperationConflict,
+        BridgeErrorKind::Input,
+        false,
+        "充值预检已失效，请重新预检并确认",
+    );
+    error.resolved_route = resolved.map(Into::into);
+    error
+}
+
+fn map_recharge_confirmation_error(
+    error: domain::RoutedError,
+    expected: Option<domain::ConnectionMode>,
+) -> BridgeError {
+    let resolved = error.resolution().map(|value| value.mode);
+    if error.error.is_session_conflict()
+        || (error.error.code == domain::ErrorCode::InvalidInput
+            && expected.zip(resolved).is_some_and(|(a, b)| a != b))
+    {
+        return recharge_confirmation_conflict(resolved);
+    }
+    BridgeError::from_routed(error)
 }
 
 /// 本地快照的一项：快照中缺失的项既无值也无失败，表示尚未取得。

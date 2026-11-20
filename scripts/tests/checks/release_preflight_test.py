@@ -4,10 +4,13 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "scripts/lib"))
+from toolchain import bash_command
 
 
 class ReleasePreflightTest(unittest.TestCase):
@@ -24,9 +27,11 @@ class ReleasePreflightTest(unittest.TestCase):
         for name in ("scripts/lib/toolchain.sh", "scripts/check/references.sh", "scripts/check/sensitive.sh"):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text("#!/usr/bin/env bash\nexit 0\n" if "/check/" in name else "# 合成工具链\n")
+            target.write_text("#!/usr/bin/env bash\nexit 0\n" if "/check/" in name else "# 合成工具链\n",
+                              encoding="utf-8", newline="\n")
         (self.root / "scripts/tools").mkdir()
-        (self.root / "scripts/tools/python.sh").write_text('#!/usr/bin/env bash\nexec python3 "$@"\n')
+        (self.root / "scripts/tools/python.sh").write_text(
+            '#!/usr/bin/env bash\nexec python3 "$@"\n', encoding="utf-8", newline="\n")
         (self.root / "scripts/release/dependency_report.py").write_text(
             "import argparse,json,os\nfrom pathlib import Path\n"
             "p=argparse.ArgumentParser();p.add_argument('--output',type=Path);"
@@ -39,8 +44,6 @@ class ReleasePreflightTest(unittest.TestCase):
         (self.root / "pubspec.lock").write_text("packages: {}\n")
         (self.root / "apps/sample").mkdir(parents=True)
         (self.root / "apps/sample/pubspec.lock").write_text("packages: {}\n")
-        self.bin = self.base / "bin"
-        self.bin.mkdir()
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         subprocess.run(["git", "-C", str(self.root), "add", "scripts", "pubspec.lock", "apps"], check=True)
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=测试", "-c",
@@ -48,16 +51,18 @@ class ReleasePreflightTest(unittest.TestCase):
 
     def run_preflight(self, mode="strict", **environment):
         output = self.base / "report"
-        result = subprocess.run(["bash", "scripts/release/preflight.sh", str(output), mode], cwd=self.root,
-                                env={**os.environ, "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
-                                     **environment}, capture_output=True, text=True)
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8", **environment}
+        # preflight expects an absolute path in the launching shell's own path syntax.
+        command = bash_command("-c", 'exec bash scripts/release/preflight.sh "${PWD%/*}/$1" "$2"',
+                               "preflight", output.name, mode, environment=env)
+        result = subprocess.run(command, cwd=self.root, env=env, capture_output=True, encoding="utf-8")
         return result, output
 
     def test_默认严格模式返回发布阻断且保留完整报告(self):
         result, output = self.run_preflight()
         self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         self.assertFalse((output / "sbom.cdx.json").exists())
-        self.assertIn("发布阻塞", (output / "summary.txt").read_text())
+        self.assertIn("发布阻塞", (output / "summary.txt").read_text(encoding="utf-8"))
 
     def test_报告模式保留partial与阻断但不充当发布通过(self):
         result, output = self.run_preflight("report")
@@ -65,7 +70,7 @@ class ReleasePreflightTest(unittest.TestCase):
         report = json.loads((output / "license-evidence.json").read_text())
         self.assertEqual(report["material_status"], "partial")
         self.assertEqual(len(report["release_blockers"]), 1)
-        summary = (output / "summary.txt").read_text()
+        summary = (output / "summary.txt").read_text(encoding="utf-8")
         self.assertIn("仅报告", summary)
         self.assertIn("partial", summary)
         self.assertIn("发布阻塞：1", summary)

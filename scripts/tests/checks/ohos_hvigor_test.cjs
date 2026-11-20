@@ -7,7 +7,9 @@ const path = require('node:path');
 const { resolveToolchain, requireDependencies, nativeArguments, applySigning, readLocalSigning } = require('../../tools/ohos_hvigor.cjs');
 
 function sdk(t) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ubaa_hvigor_'));
+    const fixtures = path.resolve(__dirname, '../../../.ubaa_local/ohos_hvigor_tests');
+    fs.mkdirSync(fixtures, { recursive: true });
+    const root = fs.mkdtempSync(path.join(fixtures, 'run_')).split(path.sep).join('/');
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const native = 'hmos/default/openharmony/native';
     for (const file of ['flutter/bin/flutter', 'flutter/bin/cache/dart-sdk/bin/dart',

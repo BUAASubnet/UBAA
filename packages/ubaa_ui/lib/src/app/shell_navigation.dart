@@ -369,7 +369,9 @@ extension UbaaShellRecharge on _UbaaMainShellState {
     if (service == null ||
         supports == null ||
         open == null ||
-        widget.writeState.intent != null) {
+        widget.writeState.intent != null ||
+        widget.writeState.isSubmitting ||
+        ModalRoute.isCurrentOf(context) == false) {
       return;
     }
     Navigator.of(context).push(

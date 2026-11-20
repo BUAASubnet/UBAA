@@ -92,7 +92,7 @@ class CashierBrowserPolicyTest {
         for (source in listOf(order, alipayPage)) {
             assertEquals(
                 "com.eg.android.AlipayGphone",
-                CashierBrowserPolicy.paymentPackage(source, payment)
+                CashierBrowserPolicy.paymentPackage(source, payment, isMainFrame = true)
             )
         }
         for (target in listOf(
@@ -102,7 +102,7 @@ class CashierBrowserPolicyTest {
             "alipays://name@platformapi/startapp",
             "alipays:///startapp"
         )) {
-            assertNull(target, CashierBrowserPolicy.paymentPackage(order, target))
+            assertNull(target, CashierBrowserPolicy.paymentPackage(order, target, isMainFrame = true))
         }
     }
 
@@ -117,7 +117,14 @@ class CashierBrowserPolicyTest {
             "https://excashier.alipay.com@other.invalid/",
             "https://sso.buaa.edu.cn/login"
         )) {
-            assertNull(source, CashierBrowserPolicy.paymentPackage(source, payment))
+            assertNull(source, CashierBrowserPolicy.paymentPackage(source, payment, isMainFrame = true))
+        }
+    }
+
+    @Test
+    fun subframesCannotRequestPaymentHandoffFromTrustedCheckout() {
+        for (source in listOf(order, alipayPage)) {
+            assertNull(source, CashierBrowserPolicy.paymentPackage(source, payment, isMainFrame = false))
         }
     }
 }

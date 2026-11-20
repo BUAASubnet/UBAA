@@ -3,10 +3,14 @@ from pathlib import Path
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts/lib"))
+from toolchain import bash_command
+
 MARKER = "UBAA_TEST_" + "USERNAME=synthetic-check-only"
 
 
@@ -28,9 +32,10 @@ class SensitiveTest(unittest.TestCase):
         return subprocess.run(["git", "-C", str(self.root), *arguments],
                               check=True, capture_output=True)
 
-    def scan(self):
-        return subprocess.run(["bash", str(self.root / "scripts/check/sensitive.sh")],
-                              capture_output=True, text=True)
+    def scan(self, **environment):
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8", **environment}
+        command = bash_command(self.root / "scripts/check/sensitive.sh", environment=env)
+        return subprocess.run(command, env=env, capture_output=True, encoding="utf-8")
 
     def test_暂存敏感正文不能被工作区清理遮盖(self):
         sample = self.root / "sample.txt"
@@ -39,25 +44,35 @@ class SensitiveTest(unittest.TestCase):
         sample.write_text("已清理的工作区版本")
         result = self.scan()
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("可能的敏感材料：index 'sample.txt'", result.stderr)
         self.assertNotIn(MARKER, result.stdout + result.stderr)
 
     def test_未暂存新文件也必须检查且不输出正文(self):
         (self.root / "new.txt").write_text(MARKER)
         result = self.scan()
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("可能的敏感材料：工作区 'new.txt'", result.stderr)
         self.assertNotIn(MARKER, result.stdout + result.stderr)
 
     def test_断开的符号链接必须失败关闭(self):
-        (self.root / "unreadable.txt").symlink_to(self.root / "absent")
+        try:
+            (self.root / "unreadable.txt").symlink_to("absent")
+        except OSError as error:
+            if os.name == "nt" and error.winerror == 1314:
+                self.skipTest("创建真实符号链接需要 Windows 开发人员模式或符号链接权限")
+            raise
         result = self.scan()
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("工作区候选不能是符号链接：'unreadable.txt'", result.stderr)
 
     def test_暂存后删除工作区仍检查原blob(self):
         sample = self.root / "deleted.txt"
         sample.write_text(MARKER)
         self.git("add", "deleted.txt")
         sample.unlink()
-        self.assertNotEqual(self.scan().returncode, 0)
+        result = self.scan()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("可能的敏感材料：index 'deleted.txt'", result.stderr)
 
     def test_安全文件及忽略的本地凭据不被读取(self):
         (self.root / ".gitignore").write_text(".env\n.env.local\n")
@@ -77,6 +92,7 @@ class SensitiveTest(unittest.TestCase):
                 sample.write_text(f'{key} = "synthetic-secret"\n')
                 result = self.scan()
                 self.assertNotEqual(result.returncode, 0)
+                self.assertIn("可能的敏感材料：工作区 '.env.example'", result.stderr)
                 self.assertNotIn("synthetic-secret", result.stderr)
 
     def test_根配置即使没有凭据也不得暂存(self):
@@ -93,10 +109,14 @@ class SensitiveTest(unittest.TestCase):
                     sample.write_text(marker)
                     result = self.scan()
                     self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("可能的敏感材料：工作区 'personal.txt'", result.stderr)
                     self.assertNotIn(marker, result.stdout + result.stderr)
                     self.git("add", "personal.txt")
                     sample.write_text("工作区已清理")
-                    self.assertNotEqual(self.scan().returncode, 0)
+                    result = self.scan()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("可能的敏感材料：index 'personal.txt'", result.stderr)
+                    self.assertNotIn(marker, result.stdout + result.stderr)
                     self.git("rm", "-f", "--cached", "personal.txt")
                     sample.unlink()
 
@@ -107,17 +127,16 @@ class SensitiveTest(unittest.TestCase):
         self.assertEqual(self.scan().returncode, 0)
 
     def test_Git读取失败明确退出且不打印工具正文(self):
-        fake_bin = self.root / "fake-bin"
-        fake_bin.mkdir()
-        fake_git = fake_bin / "git"
-        fake_git.write_text("#!/bin/sh\nprintf '不应转发的底层错误正文' >&2\nexit 2\n")
-        fake_git.chmod(0o755)
-        environment = dict(os.environ, PATH=str(fake_bin) + os.pathsep + os.environ['PATH'])
-        result = subprocess.run(["bash", str(self.root / "scripts/check/sensitive.sh")],
-                                capture_output=True, text=True, env=environment)
+        missing = "synthetic-missing-git-directory"
+        environment = {"GIT_DIR": missing}
+        git_result = subprocess.run(["git", "-C", str(self.root), "ls-files", "--stage", "-z"],
+                                    env={**os.environ, **environment}, capture_output=True)
+        self.assertNotEqual(git_result.returncode, 0)
+        self.assertIn(missing.encode("ascii"), git_result.stderr)
+        result = self.scan(**environment)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Git 读取失败", result.stderr)
-        self.assertNotIn("不应转发的底层错误正文", result.stderr)
+        self.assertNotIn(missing, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

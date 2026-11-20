@@ -62,13 +62,17 @@ pub(super) fn nonblank(value: &Value) -> Result<&str> {
         .ok_or_else(|| invalid())
 }
 
+pub(super) fn is_decimal(value: &str) -> bool {
+    DECIMAL.is_match(value)
+}
+
 fn decimal(value: &Value) -> Result<String> {
     let text = match value {
         Value::Number(v) => v.to_string(),
         Value::String(v) => v.trim().to_owned(),
         _ => return Err(invalid()),
     };
-    if text.len() > 64 || !DECIMAL.is_match(&text) {
+    if text.len() > 64 || !is_decimal(&text) {
         return Err(invalid());
     }
     Ok(text)

@@ -1,14 +1,26 @@
 """CI 生成选择、测试分组与汇总必须保留完整覆盖。"""
 import importlib.util
-import unittest
+import os
 import subprocess
+import sys
 import tempfile
+import unittest
 import zipfile
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('ci_plan', ROOT / 'scripts/check/ci/plan.py')
 plan = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(plan)
+sys.path.insert(0, str(ROOT / 'scripts/lib'))
+from toolchain import bash_command
+
+
+def verify_apk(artifact, abi):
+    environment = {**os.environ, 'PYTHONIOENCODING': 'utf-8'}
+    command = bash_command(ROOT / 'scripts/release/verify-flutter-artifact.sh',
+                           'android-apk', artifact.as_posix(), abi, environment=environment)
+    return subprocess.run(command, env=environment, capture_output=True, encoding='utf-8')
+
 
 class SelectionTest(unittest.TestCase):
     def test_生成输入与实现改动分别选择(self):
@@ -31,7 +43,8 @@ class SelectionTest(unittest.TestCase):
             found.extend((group['package'], path) for path in paths)
             if group['group'] == 'golden':
                 self.assertEqual(group['os'], 'macos-26')
-        expected = [(package, str(path.relative_to(ROOT / directory)))
+        self.assertIn('test/visual/golden_test.dart', plan.flutter_files(ROOT, 'ubaa_ui', 'golden'))
+        expected = [(package, path.relative_to(ROOT / directory).as_posix())
                     for package, directory in plan.PACKAGES.items()
                     for path in (ROOT / directory / 'test').rglob('*_test.dart')]
         self.assertCountEqual(found, expected)
@@ -61,8 +74,7 @@ class SelectionTest(unittest.TestCase):
                     with zipfile.ZipFile(artifact, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
                         for name in files:
                             archive.writestr(name, 'fixture')
-                    result = subprocess.run(['bash', str(ROOT / 'scripts/release/verify-flutter-artifact.sh'),
-                                             'android-apk', str(artifact), abi], capture_output=True, text=True)
+                    result = verify_apk(artifact, abi)
                     self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
     def test_Android产物检查拒绝任意未压缩原生库(self):
@@ -82,8 +94,7 @@ class SelectionTest(unittest.TestCase):
                                     archive.writestr(f'lib/{target}/{name}', 'fixture')
                             archive.writestr('lib/arm64-v8a/libextra.so', 'fixture',
                                              compress_type=zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
-                        result = subprocess.run(['bash', str(ROOT / 'scripts/release/verify-flutter-artifact.sh'),
-                                                 'android-apk', str(artifact), abi], capture_output=True, text=True)
+                        result = verify_apk(artifact, abi)
                         self.assertEqual(result.returncode, 1 if stored else 0, result.stdout + result.stderr)
 
 if __name__ == '__main__':

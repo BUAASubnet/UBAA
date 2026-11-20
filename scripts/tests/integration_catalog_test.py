@@ -15,25 +15,34 @@ SCRIPT = Path(__file__).resolve().parents[1] / "check" / "integration_catalog.py
 spec = importlib.util.spec_from_file_location("catalog", SCRIPT)
 catalog = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(catalog)
+SDK_ROOT = SCRIPT.parent / "synthetic-sdk"
+FLUTTER = SDK_ROOT / "bin/flutter"
+CHECK_BASH = "synthetic-bash"
 
 
-ANDROID_SCRIPT = Path(__file__).parent / "platform/android_materials.py"
+ANDROID_SCRIPT = Path(__file__).resolve().parent / "platform/android_materials.py"
 android_spec = importlib.util.spec_from_file_location("android_material_runner", ANDROID_SCRIPT)
 android_runner = importlib.util.module_from_spec(android_spec)
 android_spec.loader.exec_module(android_runner)
 
 
 class CatalogTest(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch.object(
+            catalog, "bash_command",
+            side_effect=lambda script, *args, **_: [CHECK_BASH, str(script), *args],
+        ))
+
     def test_实际集成入口共用Bash及平台SDK执行文件(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             entries = self.write_entries(root, self.entry())
             command = ['测试Bash', 'D:/项目 空格/check.sh', 'official']
-            flutter = Path('/SDK 空格/bin/flutter.bat')
+            flutter = SDK_ROOT / "bin/flutter.bat"
             with patch.object(catalog, 'bash_command', return_value=command) as bash, \
                     patch.object(catalog, 'sdk_executable', return_value=flutter) as sdk:
                 _, run = self.run_main([], entries, root)
-            sdk.assert_called_once_with('/sdk', 'flutter')
+            sdk.assert_called_once_with(str(SDK_ROOT), 'flutter')
             self.assertEqual(run.call_args_list[0].args[0], command)
             self.assertEqual(run.call_args_list[1].args[0][0], str(flutter))
             self.assertEqual(bash.call_args.args, (catalog.ROOT / 'scripts/check/flutter-toolchains.sh', 'official'))
@@ -161,7 +170,7 @@ class CatalogTest(unittest.TestCase):
     def test_缺少后续入口配置时不启动任何Flutter命令(self):
         entries = [self.entry(), self.entry(path="second_test.dart", environment=["REQUIRED_CONFIG"])]
         with patch.dict(catalog.os.environ, {}, clear=True), \
-                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": "/sdk"}), \
+                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": str(SDK_ROOT)}), \
                 patch.object(catalog, "validate", return_value=entries), \
                 patch.object(catalog.sys, "argv", [str(SCRIPT), "run"]), \
                 patch.object(catalog.subprocess, "run") as run, \
@@ -172,18 +181,18 @@ class CatalogTest(unittest.TestCase):
 
     def test_命令应用Dart_define和run执行方式(self):
         entry = self.entry(runner="run", defines=["FEATURE=true", "VALUE=a=b"])
-        command = catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux", "linux-device")
+        command = catalog.build_command(entry, FLUTTER, "linux", "linux-device")
         self.assertEqual(command, [
-            "/sdk/bin/flutter", "run", "integration_test/sample_test.dart",
+            str(FLUTTER), "run", "integration_test/sample_test.dart",
             "-d", "linux-device", "--dart-define=FEATURE=true", "--dart-define=VALUE=a=b",
         ])
 
     def test_Android材料入口构建独立Debug身份(self):
         entry = self.entry(path="platform/credentials/material_test.dart")
-        command = catalog.build_command(entry, Path("/sdk/bin/flutter"), "android", "fixture")
-        self.assertTrue(command[1].endswith("scripts/tests/platform/android_materials.py"))
+        command = catalog.build_command(entry, FLUTTER, "android", "fixture")
+        self.assertEqual(Path(command[1]), ANDROID_SCRIPT)
         self.assertEqual(command[-2:], ["--device", "fixture"])
-        ordinary = catalog.build_command(entry, Path("/sdk/bin/flutter"), "macos")
+        ordinary = catalog.build_command(entry, FLUTTER, "macos")
         self.assertNotIn("--dart-define=UBAA_SYNTHETIC_ANDROID_MATERIALS=true", ordinary)
 
     def test_CI入口不能使用run(self):
@@ -197,7 +206,7 @@ class CatalogTest(unittest.TestCase):
     def test_命令预览显示清单中的Dart_define(self):
         output = io.StringIO()
         environment = {
-            "UBAA_FLUTTER_HOME": "/sdk",
+            "UBAA_FLUTTER_HOME": str(SDK_ROOT),
             "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/bus",
         }
         entry = self.entry(
@@ -217,7 +226,7 @@ class CatalogTest(unittest.TestCase):
 
     def test_入口环境变量传给Flutter(self):
         environment = {
-            "UBAA_FLUTTER_HOME": "/sdk",
+            "UBAA_FLUTTER_HOME": str(SDK_ROOT),
             "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/bus",
         }
         entry = self.entry(
@@ -238,7 +247,7 @@ class CatalogTest(unittest.TestCase):
     def test_无效Dart_define必须失败(self):
         entry = self.entry(defines=["=missing-name"])
         with self.assertRaisesRegex(ValueError, "Dart define"):
-            catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux")
+            catalog.build_command(entry, FLUTTER, "linux")
 
 
     def run_main(self, argv, entries, root, run=None):
@@ -247,7 +256,7 @@ class CatalogTest(unittest.TestCase):
         run = run or patch.object(catalog.subprocess, "run").start()
         self.addCleanup(patch.stopall)
         with patch.dict(catalog.os.environ, {}, clear=True), \
-                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": "/sdk"}), \
+                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": str(SDK_ROOT)}), \
                 patch.object(catalog, "validate", return_value=entries), \
                 patch.object(catalog, "TEST_ROOT", root), \
                 patch.object(catalog.sys, "argv", [str(SCRIPT), "run", *argv]), \
@@ -270,7 +279,7 @@ class CatalogTest(unittest.TestCase):
                 self.entry(path="b/lock_test.dart", defines=["SHARED=1", "LOCK=on"]))
             seen = []
             def record(command, **kwargs):
-                if command[0] != "bash":
+                if command[0] != CHECK_BASH:
                     seen.append((command, (root / ".ci_suite/suite_test.dart").read_text()))
             output, run = self.run_main([], entries, root, patch.object(
                 catalog.subprocess, "run", side_effect=record).start())
@@ -289,7 +298,7 @@ class CatalogTest(unittest.TestCase):
             root = Path(directory)
             entries = self.write_entries(root, self.entry(path="a_test.dart"), self.entry(path="b_test.dart"))
             def fail(command, **kwargs):
-                if command[0] != "bash":
+                if command[0] != CHECK_BASH:
                     raise catalog.subprocess.CalledProcessError(1, command)
             with self.assertRaises(catalog.subprocess.CalledProcessError):
                 self.run_main([], entries, root, patch.object(catalog.subprocess, "run", side_effect=fail).start())
@@ -300,7 +309,7 @@ class CatalogTest(unittest.TestCase):
             root = Path(directory)
             entries = self.write_entries(root, self.entry(path="a_test.dart"), self.entry(path="b_test.dart"))
             output, run = self.run_main(["--suite", "ci-isolated"], entries, root)
-            flutter = [call.args[0] for call in run.call_args_list if call.args[0][0] != "bash"]
+            flutter = [call.args[0] for call in run.call_args_list if call.args[0][0] != CHECK_BASH]
             self.assertEqual([command[2] for command in flutter],
                              ["integration_test/a_test.dart", "integration_test/b_test.dart"])
 
@@ -327,6 +336,10 @@ class CatalogTest(unittest.TestCase):
 class MaterialDeviceRoutingTest(unittest.TestCase):
     """替换设备发现和子进程，真实 catalog 决策不得派发危险安装。"""
 
+    @classmethod
+    def setUpClass(cls):
+        cls.entries = catalog.validate(json.loads(catalog.MANIFEST.read_text())["tests"])
+
     def device(self, identity="emulator-5554", platform="android-arm64", **overrides):
         return dict(id=identity, name="合成设备", targetPlatform=platform,
                     isSupported=True, **overrides)
@@ -349,14 +362,16 @@ class MaterialDeviceRoutingTest(unittest.TestCase):
             output = devices if isinstance(devices, str) else json.dumps(devices)
             return subprocess.CompletedProcess(command, 0, output, "")
 
-        environment = {"UBAA_FLUTTER_HOME": "/sdk", "DBUS_SESSION_BUS_ADDRESS": "fixture-bus",
+        environment = {"UBAA_FLUTTER_HOME": str(SDK_ROOT), "DBUS_SESSION_BUS_ADDRESS": "fixture-bus",
                        "UBAA_SYNTHETIC_SECRET_SERVICE_ROOT": "/fixture",
                        "XDG_DATA_HOME": "/fixture/data", "XDG_CONFIG_HOME": "/fixture/config",
                        "XDG_RUNTIME_DIR": "/fixture/runtime"}
         with patch.dict(catalog.os.environ, {}, clear=True), \
                 patch.object(catalog, "load_environment", return_value=environment), \
+                patch.object(catalog, "validate", return_value=self.entries), \
                 patch.object(catalog.sys, "argv", argv), \
                 patch.object(catalog.subprocess, "run", side_effect=record), \
+                patch.object(catalog, "bash_command", return_value=[CHECK_BASH]), \
                 redirect_stdout(io.StringIO()):
             if reject:
                 try:
@@ -418,7 +433,7 @@ class MaterialDeviceRoutingTest(unittest.TestCase):
             with self.subTest(target=target):
                 commands = self.invoke([self.device(platform=target)], platform="android")
                 self.assertEqual(commands[0][-2:], ["devices", "--machine"])
-                self.assertTrue(commands[-1][1].endswith("platform/android_materials.py"))
+                self.assertEqual(Path(commands[-1][1]), ANDROID_SCRIPT)
                 self.assertEqual(commands[-1][-2:], ["--device", "emulator-5554"])
 
     def test_正常非Android保留普通入口且绑定精确ID(self):

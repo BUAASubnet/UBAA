@@ -175,7 +175,18 @@ pub(super) fn assert_shared_write_route_boundary(facade_dir: &std::path::Path) -
         assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
     }
     let tokens = rust_tokens(&source(&facade_dir.join("routing.rs")));
-    let resolver = function_body(&tokens, "resolve_write_route").expect("共同写路线辅助存在");
+    let feature_resolver =
+        function_body(&tokens, "resolve_write_route").expect("按功能选择写路线的入口存在");
+    assert_eq!(
+        count_sequence(feature_resolver, &["resolve_operation", "("]),
+        0
+    );
+    assert_eq!(
+        count_sequence(feature_resolver, &["resolve_write_operation_route", "("]),
+        1
+    );
+    let resolver =
+        function_body(&tokens, "resolve_write_operation_route").expect("共同写路线辅助存在");
     assert_eq!(count_sequence(resolver, &["resolve_operation", "("]), 1);
     assert_eq!(
         count_sequence(resolver, &["expected_route", ".", "is_some_and"]),

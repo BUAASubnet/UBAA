@@ -52,7 +52,8 @@ internal object CashierBrowserPolicy {
         return uri.host.equals(CASHIER, ignoreCase = true) && uri.rawPath == "/cashier"
     }
 
-    fun paymentPackage(page: String?, target: String): String? {
+    fun paymentPackage(page: String?, target: String, isMainFrame: Boolean): String? {
+        if (!isMainFrame) return null
         val sourceHost = httpsUrl(page)?.host?.lowercase() ?: return null
         if (sourceHost != CASHIER && sourceHost != "alipay.com" &&
             !sourceHost.endsWith(".alipay.com")) return null

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,7 +92,9 @@ void _visual(
         expect(tester.takeException(), isNull);
         await expectLater(
           find.byKey(const ValueKey('visual-scene')),
-          matchesGoldenFile('../goldens/$name.png'),
+          matchesGoldenFile(
+            '../goldens/${Platform.isWindows ? 'windows/' : ''}$name.png',
+          ),
         );
       },
     );

@@ -4,12 +4,11 @@ import json
 import os
 from pathlib import Path
 import shlex
-import shutil
 import subprocess
 import sys
 sys.dont_write_bytecode = True
 from environment import credentials, read_values
-from repo import ROOT, hand_off
+from repo import ROOT, hand_off, windows_bash
 
 TOOL_KEYS = frozenset({
     'UBAA_FLUTTER_HOME', 'UBAA_OHOS_FLUTTER_HOME', 'UBAA_DEVECO_HOME', 'UBAA_HMOS_SDK_HOME',
@@ -42,13 +41,11 @@ LEGACY_FILES = {'.env.toolchain': TOOL_KEYS, '.env.local': LIVE_KEYS}
 
 
 def bash_command(script, *arguments, environment):
-    """Windows 按进程 PATH 选择 Bash，并保留脚本路径中的分隔符。"""
+    """Windows 选择 Git Bash，并保留脚本路径中的分隔符。"""
     bash = 'bash'
     path = str(script)
     if sys.platform == 'win32':
-        bash = shutil.which('bash', path=environment.get('PATH'))
-        if not bash:
-            raise ValueError('请在进程 PATH 中配置 Git Bash')
+        bash = windows_bash(environment)
         path = path.replace('\\', '/')
     return [bash, path, *arguments]
 
@@ -212,6 +209,7 @@ def main():
     if command == 'shell':
         if arguments not in ([], ['build']):
             raise ValueError('shell 只接受可选的 build 参数')
+        sys.stdout.reconfigure(encoding='utf-8', newline='\n')
         for key in os.environ:
             if key.upper() in SECRET_KEYS and not (arguments == ['build'] and key.upper() in SIGNING_KEYS):
                 print(f'unset {key}')

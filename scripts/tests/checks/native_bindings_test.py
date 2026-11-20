@@ -15,11 +15,14 @@ class NativeBindingsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             entry = root / 'frb_generated.dart'
-            entry.write_text("import 'frb_generated.io.dart'\n    if (dart.library.js_interop) 'frb_generated.web.dart';\n// 其他内容\n")
+            entry.write_bytes(
+                ("import 'frb_generated.io.dart'\r\n    if (dart.library.js_interop) "
+                 "'frb_generated.web.dart';\r\n// 其他内容\r\n").encode('utf-8')
+            )
             web = root / 'frb_generated.web.dart'
             web.write_text('// 过时的 Web 生成物')
             native.normalize(root)
-            self.assertEqual(entry.read_text(), "import 'frb_generated.io.dart';\n// 其他内容\n")
+            self.assertEqual(entry.read_bytes(), "import 'frb_generated.io.dart';\n// 其他内容\n".encode('utf-8'))
             self.assertFalse(web.exists())
 
     def test_unknown_generator_shape_is_rejected_without_deletion(self):
@@ -41,11 +44,9 @@ class NativeBindingsTest(unittest.TestCase):
             api = root / 'api'
             api.mkdir()
             client = api / 'client.dart'
-            client.write_text(
-                '  @override\n  Future<void> dispose();\n'
-            )
+            client.write_bytes(b'  @override\r\n  Future<void> dispose();\r\n')
             native.normalize(root)
-            self.assertEqual(client.read_text(), '  Future<void> dispose();\n')
+            self.assertEqual(client.read_bytes(), b'  Future<void> dispose();\n')
 
 
 if __name__ == '__main__':

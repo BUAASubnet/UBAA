@@ -1,9 +1,30 @@
 """Python 入口共用的仓库位置、Flutter 包清单与命令交接。"""
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
+import shutil
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def windows_bash(environment):
+    """Windows 的 WSL bash 不能直接接收本机路径；使用 Git Bash。"""
+    path = environment.get('PATH', '')
+    bash = shutil.which('bash', path=path)
+    windows = PureWindowsPath(environment.get('SYSTEMROOT') or environment.get('SystemRoot') or r'C:\Windows')
+    if bash and not PureWindowsPath(bash).is_relative_to(windows):
+        return bash
+    git = shutil.which('git', path=path)
+    roots = [PureWindowsPath(git).parent.parent] if git else []
+    for key in ('ProgramW6432', 'ProgramFiles', 'ProgramFiles(x86)'):
+        prefix = environment.get(key.upper()) or environment.get(key)
+        if prefix:
+            roots.append(PureWindowsPath(prefix) / 'Git')
+    for root in roots:
+        candidate = str(root / 'bin/bash.exe')
+        if os.path.isfile(candidate):
+            return candidate
+    raise ValueError('请在进程 PATH 中配置 Git Bash')
 
 
 def hand_off(argv, environment):
@@ -13,10 +34,9 @@ def hand_off(argv, environment):
     因此在 Windows 上等待子进程结束后按其退出码退出。
     """
     if os.name == 'nt':
-        import shutil
         import subprocess
-        # CreateProcess 先搜 System32，会把 bash 解析成 WSL；按 PATH 顺序先找到完整路径。
-        executable = shutil.which(argv[0], path=environment.get('PATH')) or argv[0]
+        executable = (windows_bash(environment) if argv[0] == 'bash' else
+                      shutil.which(argv[0], path=environment.get('PATH')) or argv[0])
         raise SystemExit(subprocess.call([executable, *argv[1:]], env=environment))
     os.execvpe(argv[0], argv, environment)
 

@@ -25,7 +25,7 @@ def codegen_required(paths):
 
 def flutter_files(root, package, group):
     folder = root / PACKAGES[package]
-    files = sorted(str(path.relative_to(folder)) for path in (folder / 'test').rglob('*_test.dart'))
+    files = sorted(path.relative_to(folder).as_posix() for path in (folder / 'test').rglob('*_test.dart'))
     if package != 'ubaa_ui':
         if group != 'all':
             raise ValueError('普通包只接受完整测试组')

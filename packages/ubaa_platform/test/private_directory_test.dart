@@ -24,6 +24,9 @@ void main() {
   });
 
   test('五端和OHOS目录由插件取得，不依赖 HOME，重复初始化只读取一次', () async {
+    final supportPath = Platform.isWindows
+        ? r'C:\synthetic\app-support'
+        : '/synthetic/app-support';
     for (final os in ['ios', 'macos', 'linux', 'windows', 'ohos']) {
       var calls = 0;
       final directory = PrivateConfigDirectory(
@@ -31,12 +34,12 @@ void main() {
         operatingSystem: os,
         supportDirectory: () async {
           calls++;
-          return Directory('/synthetic/app-support');
+          return Directory(supportPath);
         },
       );
       await directory.initialize();
       await directory.initialize();
-      expect(directory.resolve(), '/synthetic/app-support/UBAA');
+      expect(directory.resolve(), '$supportPath${Platform.pathSeparator}UBAA');
       expect(calls, 1);
     }
   });

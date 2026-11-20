@@ -8,7 +8,8 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit
+from urllib.request import url2pathname
 
 import json5
 import yaml
@@ -87,7 +88,7 @@ def package_roots(project):
     for package in read_json(configuration)['packages']:
         uri = urlsplit(urljoin(configuration.as_uri(), package['rootUri']))
         if uri.scheme == 'file' and not uri.netloc:
-            result[package['name']] = Path(unquote(uri.path))
+            result[package['name']] = Path(url2pathname(uri.path))
     return result
 
 

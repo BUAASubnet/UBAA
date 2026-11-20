@@ -20,7 +20,7 @@ class CampusRechargePage extends StatefulWidget {
   /// 在应用内通过系统 WebView 打开收银台；返回是否成功。
   final Future<bool> Function(Uri url) openCashier;
 
-  /// 页面关闭或账号变化后拒绝迟到结果。
+  /// 记录页面仍在时收到的服务错误。
   final void Function(Object error)? onRejected;
 
   @override
@@ -71,8 +71,8 @@ class _CampusRechargePageState extends State<CampusRechargePage> {
         _loading = false;
       });
     } on Object catch (error) {
-      widget.onRejected?.call(error);
       if (!mounted) return;
+      widget.onRejected?.call(error);
       setState(() {
         _error = error is UiError
             ? error
@@ -100,9 +100,14 @@ class _CampusRechargePageState extends State<CampusRechargePage> {
     return '$fen';
   }
 
+  bool get _canSubmit =>
+      !_submitting &&
+      _checkout == null &&
+      _error?.code != UbaaErrorCode.outcomeUnknown;
+
   Future<void> _submit() async {
     final preflight = _preflight;
-    if (preflight == null || _submitting || _checkout != null) return;
+    if (preflight == null || !_canSubmit) return;
     final fen = _toFen(_amount.text);
     if (fen == null) {
       setState(
@@ -156,14 +161,14 @@ class _CampusRechargePageState extends State<CampusRechargePage> {
         amountFen: fen,
       );
     } on Object catch (error) {
-      widget.onRejected?.call(error);
       if (!mounted) return;
+      widget.onRejected?.call(error);
       setState(() {
-        _error = error is UiError
+        _error = error is UiError && error.code != UbaaErrorCode.outcomeUnknown
             ? error
             : const UiError(
-                code: UbaaErrorCode.internalError,
-                title: '下单失败',
+                code: UbaaErrorCode.outcomeUnknown,
+                title: '无法确认是否已创建订单',
                 message: '请到掌上服务大厅核对订单状态后再试',
               );
       });
@@ -199,71 +204,74 @@ class _CampusRechargePageState extends State<CampusRechargePage> {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = !_submitting && _checkout == null;
-    return Scaffold(
-      appBar: AppBar(title: const Text('校园卡充值')),
-      body: ListView(
-        padding: UbaaTheme.pageInsets(context, top: 16),
-        children: [
-          if (_loading) const LinearProgressIndicator(),
-          if (_preflight != null) ...[
-            _InfoRow(label: '卡号尾号', value: _mask(_preflight!.idserial)),
-            _InfoRow(label: '当前余额', value: '${_preflight!.balance} 元'),
-            const SizedBox(height: 16),
-            TextField(
-              key: const ValueKey('campus-recharge-amount'),
-              controller: _amount,
-              enabled: canSubmit,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+    final canSubmit = _canSubmit;
+    return PopScope<void>(
+      canPop: !_submitting,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('校园卡充值')),
+        body: ListView(
+          padding: UbaaTheme.pageInsets(context, top: 16),
+          children: [
+            if (_loading) const LinearProgressIndicator(),
+            if (_preflight != null) ...[
+              _InfoRow(label: '卡号尾号', value: _mask(_preflight!.idserial)),
+              _InfoRow(label: '当前余额', value: '${_preflight!.balance} 元'),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('campus-recharge-amount'),
+                controller: _amount,
+                enabled: canSubmit,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: '充值金额（元）',
+                  helperText: '单次 0.01–1000 元',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: '充值金额（元）',
-                helperText: '单次 0.01–1000 元',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text('支付渠道：支付宝'),
-            const SizedBox(height: 16),
-            FilledButton(
-              key: const ValueKey('campus-recharge-submit'),
-              onPressed: canSubmit ? _submit : null,
-              child: Text(
-                _checkout != null
-                    ? '订单已创建'
-                    : _submitting
-                    ? '处理中…'
-                    : '创建订单',
-              ),
-            ),
-          ],
-          if (_checkout case final checkout?) ...[
-            const SizedBox(height: 20),
-            const Divider(),
-            _InfoRow(label: '订单号', value: checkout.order.orderno),
-            if (checkout.url == null || _cashierOpenFailed)
-              Text(
-                '未能在应用内打开航财通收银台。',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            if (checkout.url case final url?) ...[
               const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _openingCashier ? null : () => _openCheckout(url),
-                child: const Text('重新打开航财通收银台'),
+              const Text('支付渠道：支付宝'),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const ValueKey('campus-recharge-submit'),
+                onPressed: canSubmit ? _submit : null,
+                child: Text(
+                  _checkout != null
+                      ? '订单已创建'
+                      : _submitting
+                      ? '处理中…'
+                      : '创建订单',
+                ),
               ),
             ],
-            const Text('订单 15 分钟内有效。请勿重复下单。', style: TextStyle(fontSize: 12)),
+            if (_checkout case final checkout?) ...[
+              const SizedBox(height: 20),
+              const Divider(),
+              _InfoRow(label: '订单号', value: checkout.order.orderno),
+              if (checkout.url == null || _cashierOpenFailed)
+                Text(
+                  '未能在应用内打开航财通收银台。',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              if (checkout.url case final url?) ...[
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _openingCashier ? null : () => _openCheckout(url),
+                  child: const Text('重新打开航财通收银台'),
+                ),
+              ],
+              const Text('订单 15 分钟内有效。请勿重复下单。', style: TextStyle(fontSize: 12)),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                '${_error!.title}：${_error!.message}',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
           ],
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              '${_error!.title}：${_error!.message}',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

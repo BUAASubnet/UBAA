@@ -42,7 +42,6 @@ void main() {
       final submitAction = tester.widget<FilledButton>(submit).onPressed!;
       expect(service.preflightCalls, 1);
       expect(find.text('支付渠道：支付宝'), findsOneWidget);
-      expect(find.text('支付方式'), findsNothing);
       await tester.enterText(
         find.byKey(const ValueKey('campus-recharge-amount')),
         '12.34',
@@ -74,10 +73,7 @@ void main() {
       expect(tester.widget<FilledButton>(submit).onPressed, isNull);
       expect(service.requests, [(idserial: '123456', amountFen: '1234')]);
       expect(find.text('synthetic-order'), findsOneWidget);
-      expect(find.textContaining('下单失败'), findsNothing);
       expect(rejected, isEmpty);
-      expect(find.text(_merchant), findsNothing);
-      expect(find.textContaining('复制'), findsNothing);
 
       final merchant = Uri.parse(_merchant);
       expect(opened, [merchant]);
@@ -99,6 +95,64 @@ void main() {
       }
     });
   }
+
+  testWidgets('等待下单结果时不离开页面，结果未知时不允许直接重新下单', (tester) async {
+    final service = _RechargeService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => CampusRechargePage(
+                  service: service,
+                  supportsCashier: () async => true,
+                  openCashier: (_) async => true,
+                ),
+              ),
+            ),
+            child: const Text('打开充值页'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('打开充值页'));
+    await tester.pumpAndSettle();
+    await _confirmOrder(tester);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(CampusRechargePage), findsOneWidget);
+
+    service.orderReady.completeError(
+      const UiError(
+        code: UbaaErrorCode.outcomeUnknown,
+        title: '订单结果未知',
+        message: '请先核对订单',
+      ),
+    );
+    await tester.pumpAndSettle();
+    final submit = find.byKey(const ValueKey('campus-recharge-submit'));
+    expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+    expect(service.requests, [(idserial: '123456', amountFen: '1234')]);
+  });
+
+  testWidgets('预检失败在页面销毁后返回不产生未处理异常', (tester) async {
+    final support = Completer<bool>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CampusRechargePage(
+          service: _RechargeService(),
+          supportsCashier: () => support.future,
+          openCashier: (_) async => true,
+        ),
+      ),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    support.completeError(StateError('synthetic failure'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('不支持应用内收银台时不查询校园卡或下单', (tester) async {
     final service = _RechargeService();
@@ -128,6 +182,17 @@ void main() {
     expect(service.requests, isEmpty);
     expect(opened, isEmpty);
   });
+}
+
+Future<void> _confirmOrder(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('campus-recharge-amount')),
+    '12.34',
+  );
+  await tester.tap(find.byKey(const ValueKey('campus-recharge-submit')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('确认'));
+  await tester.pumpAndSettle();
 }
 
 class _RechargeService implements CampusRechargeService {

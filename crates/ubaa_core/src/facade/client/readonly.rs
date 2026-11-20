@@ -33,6 +33,7 @@ impl UbaaClient {
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
             bhpan: Box::default(),
             cloud_print: None,
+            prepared_campus_recharge: None,
         })
     }
 

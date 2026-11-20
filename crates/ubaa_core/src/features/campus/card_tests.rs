@@ -10,7 +10,7 @@ use std::time::SystemTime;
 use serde_json::json;
 
 use crate::domain::ConnectionMode;
-use crate::error::Result;
+use crate::error::{ErrorCode, ErrorKind, Result};
 use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
@@ -74,12 +74,24 @@ impl Step {
             location: None,
         }
     }
+
+    fn raw(method: HttpMethod, url: String, status: u16, body: Vec<u8>) -> Self {
+        Self {
+            method,
+            url,
+            status,
+            body,
+            location: None,
+        }
+    }
 }
 
 struct Scenario {
     mode: ConnectionMode,
     steps: VecDeque<Step>,
     requests: Vec<HttpRequest>,
+    store: Store,
+    change_session_on_order: bool,
 }
 
 struct Transport(Arc<Mutex<Scenario>>);
@@ -113,6 +125,9 @@ impl HttpTransport for Transport {
                 .headers
                 .insert("Location".into(), vec![route_url(scenario.mode, &location)]);
         }
+        if scenario.change_session_on_order && direct.contains("/recharge/rechargeByHct?") {
+            scenario.store.0.lock().unwrap().revision += 1;
+        }
         scenario.requests.push(request);
         Ok(response)
     }
@@ -133,11 +148,6 @@ fn runtime_on_route(
     mode: ConnectionMode,
     steps: Vec<Step>,
 ) -> (ClientRuntime, Arc<Mutex<Scenario>>) {
-    let scenario = Arc::new(Mutex::new(Scenario {
-        mode,
-        steps: steps.into(),
-        requests: Vec::new(),
-    }));
     let mut jar = CookieJar::default();
     let card = route_url(mode, CARD);
     let mut response = HttpResponse::new(200, &card, vec![]);
@@ -159,6 +169,13 @@ fn runtime_on_route(
             last_activity: 1,
         }),
     })));
+    let scenario = Arc::new(Mutex::new(Scenario {
+        mode,
+        steps: steps.into(),
+        requests: Vec::new(),
+        store: store.clone(),
+        change_session_on_order: false,
+    }));
     (
         ClientRuntime::new(mode, Transport(scenario.clone()), store).unwrap(),
         scenario,
@@ -180,6 +197,10 @@ fn login_steps() -> Vec<Step> {
             format!("{CARD}/card/goIndex?openid={OPENID}&usertype=6"),
         ),
     ]
+}
+
+fn order_url() -> String {
+    format!("{CARD}/card/recharge/rechargeByHct?openid={OPENID}")
 }
 
 #[test]
@@ -266,7 +287,7 @@ fn 未登录时在下单前停止() {
         let error = super::recharge_order(&mut client, "25375059", "100")
             .await
             .unwrap_err();
-        assert_eq!(error.kind, crate::error::ErrorKind::Authentication);
+        assert_eq!(error.kind, ErrorKind::Authentication);
         assert_eq!(scenario.lock().unwrap().requests.len(), 1);
     });
 }
@@ -292,8 +313,148 @@ fn 非收银台地址被拒绝() {
             let error = super::recharge_order(&mut client, "25375059", "100")
                 .await
                 .unwrap_err();
-            assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
+            assert_eq!(error.code, ErrorCode::OutcomeUnknown);
+            assert!(!error.retryable);
             assert!(scenario.lock().unwrap().steps.is_empty());
+        }
+    });
+}
+
+#[test]
+fn 充值失去响应证明时不能重试而明确拒绝保留原分类() {
+    block_on_test(async {
+        let refused = Step::post_json(order_url(), &json!({"success": false}));
+        let malformed_result = Step::post_json(order_url(), &json!({"success": true}));
+        let valid_result = Step::post_json(
+            order_url(),
+            &json!({
+                "success": true,
+                "resultData": {
+                    "orderno": ORDERNO,
+                    "mweb_url": format!("https://cashier.cc-pay.cn/cashier?id={ORDERNO}"),
+                },
+            }),
+        );
+        for (response, change_session, code, kind) in [
+            (
+                Step::raw(HttpMethod::Post, order_url(), 503, Vec::new()),
+                false,
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+            ),
+            (
+                Step::raw(HttpMethod::Post, order_url(), 200, b"not-json".to_vec()),
+                false,
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+            ),
+            (
+                Step::raw(
+                    HttpMethod::Post,
+                    order_url(),
+                    200,
+                    br#"{"datajson":"bad"}"#.to_vec(),
+                ),
+                false,
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+            ),
+            (
+                malformed_result,
+                false,
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+            ),
+            (
+                valid_result,
+                true,
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+            ),
+            (
+                refused,
+                false,
+                ErrorCode::UpstreamUnavailable,
+                ErrorKind::Upstream,
+            ),
+            (
+                Step::raw(HttpMethod::Post, order_url(), 403, Vec::new()),
+                false,
+                ErrorCode::UpstreamUnavailable,
+                ErrorKind::Authentication,
+            ),
+        ] {
+            let mut steps = login_steps();
+            steps.push(response);
+            let (mut client, scenario) = runtime(steps);
+            scenario.lock().unwrap().change_session_on_order = change_session;
+            let error = super::recharge_order(&mut client, "25375059", "100")
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, code);
+            assert_eq!(error.kind, kind);
+            assert!(!error.retryable);
+            assert_eq!(scenario.lock().unwrap().requests.len(), 3);
+        }
+    });
+}
+
+#[test]
+fn sso二百只把可识别的登录表单识别为业务登录() {
+    block_on_test(async {
+        let form = r#"<form id="loginForm" action="login" method="post">
+            <input type="text" name="username">
+            <input type="password" name="password">
+            <input type="hidden" name="execution" value="synthetic">
+            <input type="hidden" name="_eventId" value="submit">
+        </form>"#;
+        for (body, code, kind) in [
+            (
+                form,
+                ErrorCode::UpstreamUnavailable,
+                ErrorKind::Authentication,
+            ),
+            (
+                r#"<form id="loginForm"><input type="password" name="password"></form>"#,
+                ErrorCode::UpstreamChanged,
+                ErrorKind::Upstream,
+            ),
+        ] {
+            let steps = vec![Step::raw(
+                HttpMethod::Get,
+                login_url(),
+                200,
+                body.as_bytes().to_vec(),
+            )];
+            let (mut client, scenario) = runtime(steps);
+            let error = super::recharge_order(&mut client, "25375059", "100")
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, code);
+            assert_eq!(error.kind, kind);
+            assert_eq!(scenario.lock().unwrap().requests.len(), 1);
+        }
+    });
+}
+
+#[test]
+fn 充值准备拒绝非金额字符串() {
+    block_on_test(async {
+        for balance in ["未知", "1.2元", "1e3", "12\n34"] {
+            let mut steps = login_steps();
+            steps.push(Step::post_json(
+                format!("{CARD}/card/cardpay/openCardPay"),
+                &json!({
+                    "success": true,
+                    "data": {
+                        "cardPay": {"idserial": "25375059", "cardbal": balance},
+                    },
+                }),
+            ));
+            let (mut client, scenario) = runtime(steps);
+            let error = super::card::preflight(&mut client).await.unwrap_err();
+            assert_eq!(error.code, ErrorCode::UpstreamChanged);
+            assert_eq!(scenario.lock().unwrap().requests.len(), 3);
         }
     });
 }

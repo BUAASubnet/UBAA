@@ -2,6 +2,7 @@
 """按 Git 改动规划本地确定性检查；未知输入保守执行完整门禁。"""
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -11,6 +12,7 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from repo import ROOT, workspace_packages
+from toolchain import bash_command
 PACKAGES = workspace_packages()
 
 CODEGEN = ['env', 'CARGO_INCREMENTAL=0', 'CARGO_BUILD_JOBS=1', 'just', 'flutter-codegen-check']
@@ -337,6 +339,8 @@ def main():
     print(json.dumps({'改动': paths, '命令': commands(plan), '专项说明': plan['notes']}, ensure_ascii=False, indent=2), flush=True)
     if args.run:
         for command in commands(plan):
+            if command[0] == 'bash':
+                command = bash_command(*command[1:], environment=os.environ)
             subprocess.run(command, cwd=ROOT, check=True)
 
 

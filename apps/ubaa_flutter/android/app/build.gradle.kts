@@ -151,6 +151,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("androidx.webkit:webkit:1.9.0")
     implementation("org.rustls:rustls-platform-verifier:${verifierPackage["version"]}")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")

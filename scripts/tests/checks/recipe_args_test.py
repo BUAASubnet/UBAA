@@ -19,7 +19,8 @@ class RecipeArgsTest(unittest.TestCase):
 
     def test_single_argument_recipe_still_dispatches(self):
         with patch.object(recipe.sys, 'argv', ['recipe.py', 'ohos-check']), \
-                patch.object(recipe.os, 'chdir'), patch.object(recipe.os, 'execvpe') as execute:
+                patch.object(recipe.os, 'chdir'), patch.object(recipe.os, 'name', 'posix'), \
+                patch.object(recipe.os, 'execvpe') as execute:
             recipe.main()
         self.assertEqual(execute.call_args.args[1], ['bash', 'scripts/build/ohos.sh', 'release'])
 
@@ -39,6 +40,21 @@ class RecipeArgsTest(unittest.TestCase):
         self.assertEqual(call.call_args.args[0],
                          ['C:/Git/usr/bin/bash.exe', 'scripts/build/flutter.sh', 'windows', 'debug'])
         self.assertEqual(exit_.exception.code, 3)
+
+    def test_windows_prefers_git_bash_when_wsl_is_first_on_path(self):
+        git_bash = r'D:\Git 安装\bin\bash.exe'
+        environment = {'PATH': 'synthetic-path', 'SYSTEMROOT': r'C:\Windows'}
+        with patch.object(recipe.sys, 'argv', ['recipe.py', 'flutter-test', 'ubaa_ui']), \
+                patch.object(recipe.os, 'chdir'), patch.object(recipe.os, 'name', 'nt'), \
+                patch.object(recipe, 'load_environment', return_value=environment), \
+                patch('shutil.which', side_effect=[r'C:\WINDOWS\System32\bash.exe', r'D:\Git 安装\cmd\git.exe']), \
+                patch('os.path.isfile', side_effect=lambda path: path == git_bash), \
+                patch('subprocess.call', return_value=0) as call, \
+                self.assertRaises(SystemExit) as exit_:
+            recipe.main()
+        call.assert_called_once_with([git_bash, 'scripts/tests/flutter-package.sh', 'ubaa_ui', 'test'],
+                                     env=environment)
+        self.assertEqual(exit_.exception.code, 0)
 
     def test_positional_and_named_forms_are_equivalent(self):
         self.assertEqual(recipe.values('flutter-build', ['linux', 'debug']),

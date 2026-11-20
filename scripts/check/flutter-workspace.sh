@@ -22,7 +22,10 @@ if [[ ! "$test_jobs" =~ ^[1-9][0-9]*$ ]]; then
   printf '%s\n' 'error: UBAA_FLUTTER_TEST_JOBS 必须是正整数' >&2
   exit 2
 fi
-flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
+if ! flutter_root=$(ubaa_toolchain_absolute_path "${UBAA_FLUTTER_HOME:-}"); then
+  printf '%s\n' 'error: 请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径' >&2
+  exit 2
+fi
 flutter_bin=$flutter_root/bin/flutter
 dart_bin=$flutter_root/bin/dart
 

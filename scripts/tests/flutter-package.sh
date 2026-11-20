@@ -19,7 +19,10 @@ if [[ "$test_path" == *'..'* || ! -e "$package_dir/$test_path" ]]; then
   printf '%s\n' 'error: 测试路径不存在或越出包目录' >&2
   exit 2
 fi
-flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
+if ! flutter_root=$(ubaa_toolchain_absolute_path "${UBAA_FLUTTER_HOME:-}"); then
+  printf '%s\n' 'error: 请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径' >&2
+  exit 2
+fi
 bash "$repo_root/scripts/check/flutter-toolchains.sh" official
 cd "$package_dir"
 exec "$flutter_root/bin/flutter" test --no-pub "$test_path"

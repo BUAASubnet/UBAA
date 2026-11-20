@@ -488,6 +488,10 @@ impl ClientRuntime {
         }
     }
 
+    pub(crate) const fn session_revision(&self) -> u64 {
+        self.session_revision
+    }
+
     pub(crate) const fn authentication_generation(&self) -> uuid::Uuid {
         self.authentication_generation
     }

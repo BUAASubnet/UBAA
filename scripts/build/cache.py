@@ -56,7 +56,8 @@ def disk_usage(path, seen):
             stat = os.lstat(os.path.join(current, name))
             if (stat.st_dev, stat.st_ino) not in seen:
                 seen.add((stat.st_dev, stat.st_ino))
-                total += stat.st_blocks * 512
+                blocks = getattr(stat, 'st_blocks', None)
+                total += blocks * 512 if blocks is not None else stat.st_size
     return total
 
 
@@ -88,7 +89,8 @@ def refusal(root, path):
 
 
 def show(root):
-    print(f'{"范围":<18}{"占用":>12}  说明')
+    measure = '逻辑大小' if os.name == 'nt' else '占用'
+    print(f'{"范围":<18}{measure:>12}  说明')
     for name, (description, patterns) in SCOPES.items():
         # 范围之间可能重叠（如 rust 含 rust-incremental），各自独立计算，合计去重。
         paths = [path for path in directories(root, patterns) if not path.is_symlink()]
@@ -122,7 +124,8 @@ def clean(root, scopes):
         freed += disk_usage(path, seen)
         shutil.rmtree(path)
         print(f'已删除 {path.relative_to(root)}')
-    print(f'释放约 {human(freed)}')
+    measure = '已删除文件逻辑大小' if os.name == 'nt' else '释放约'
+    print(f'{measure} {human(freed)}')
 
 
 def main():

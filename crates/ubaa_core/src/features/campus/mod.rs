@@ -26,6 +26,7 @@ pub(super) const NETWORK_HOME: &str = "https://zfw.buaa.edu.cn/home";
 pub(super) const NETWORK_LOGIN: &str = "https://zfw.buaa.edu.cn/sso/cas/index";
 /// 校园卡掌上服务大厅。
 pub(super) const CARD_BASE: &str = "https://m.icw.buaa.edu.cn";
+pub(crate) const CARD_HOST: &str = "m.icw.buaa.edu.cn";
 pub(super) const CARD_PREFIX: &str = "/card";
 
 #[derive(Clone, Copy)]
