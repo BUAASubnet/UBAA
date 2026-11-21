@@ -150,21 +150,22 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 
 ### GitHub Actions 的材料映射
 
-新发布作业使用与 `.env.example` 相同的 `ANDROID_*`、`OHOS_*` 字段。密码放在受保护 Environment 的 Secrets 中，非机密目标放在 Variables 中。keystore、证书等文件由作业准备到私有目录，文件路径传给对应的 `*_FILE`。当前旧版 Secret 的映射如下。
+发布工作流从受保护的 `release-production` 环境读取下列 Secrets。Fork 默认不继承这些配置。工作流把 keystore、证书和 Profile 写入 runner 的私有目录，再把文件路径传给构建工具。
 
-当前仓库已有下列旧版 secrets 条目。只能确认条目存在，仍需验证内容、密码、证书状态和 Profile 是否匹配。Fork 默认不继承这些 secrets，维护者应在自己的仓库重新配置。
-
-| 既有 secret | 用途与 UBAA v2.0 接线 |
+| Secret | 用途 |
 |---|---|
-| `SIGNING_KEY` | Base64 编码的 Android keystore，解码到 runner 临时私有目录，将文件绝对路径传给 `ANDROID_STORE_FILE` |
-| `SIGNING_STORE_PASSWORD` | 映射为 `ANDROID_STORE_PASSWORD` |
-| `SIGNING_KEY_ALIAS` | 映射为 `ANDROID_KEY_ALIAS` |
-| `SIGNING_KEY_PASSWORD` | 映射为 `ANDROID_KEY_PASSWORD` |
+| `ANDROID_KEYSTORE_BASE64` | Android keystore，解码后将文件路径传给 `ANDROID_STORE_FILE` |
+| `ANDROID_STORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` | Android keystore 密码、密钥别名和密钥密码 |
 | `IOS_CERTIFICATE_P12_BASE64`、`IOS_CERTIFICATE_PASSWORD` | 导入 Apple 分发证书及私钥 |
 | `IOS_PROVISIONING_PROFILE_BASE64` | 安装对应应用和渠道的 Profile |
 | `APPSTORE_KEY_ID`、`APPSTORE_ISSUER_ID`、`APPSTORE_PRIVATE_KEY` | App Store Connect 上传认证 |
+| `MACOS_CERTIFICATE_P12_BASE64`、`MACOS_CERTIFICATE_PASSWORD` | 导入 macOS Developer ID 分发证书及私钥 |
+| `OHOS_KEYSTORE_BASE64`、`OHOS_CERTIFICATE_BASE64`、`OHOS_PROFILE_BASE64` | 还原 HarmonyOS 发布签名文件 |
+| `OHOS_STORE_PASSWORD`、`OHOS_KEY_ALIAS`、`OHOS_KEY_PASSWORD` | HarmonyOS keystore 原始密码、密钥别名和密钥原始密码 |
+| `APPGALLERY_APP_ID`、`APPGALLERY_SERVICE_ACCOUNT_JSON` | AppGallery 应用标识和上传认证 |
+| `UBAA_DEPLOY_KEY`、`UBAA_DEPLOY_HOST_KEYS` | 通知服务器分发产物的 SSH 密钥与固定主机公钥 |
 
-Release 工作流的 iOS 步骤使用上述 Apple Secrets。Android 使用 release-production 的 ANDROID_KEYSTORE_BASE64 和 ANDROID_*；HarmonyOS 使用 OHOS_KEYSTORE_BASE64、OHOS_CERTIFICATE_BASE64、OHOS_PROFILE_BASE64 和 OHOS_*；macOS 使用 MACOS_CERTIFICATE_P12_BASE64 和 MACOS_CERTIFICATE_PASSWORD。后续发布作业应只在可信分支、明确发布触发条件下读取材料，不能向 Fork PR 暴露密钥；临时文件与 Keychain 在成功、失败时都清理，不上传到 artifact。Base64 是编码，不提供加密保护。
+仅在可信分支的发布作业读取这些材料。无论构建成功还是失败，都应清理临时文件和 Keychain。发布 artifact 不包含签名材料。Base64 只提供编码。
 
 ## 验证
 

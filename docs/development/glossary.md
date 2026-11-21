@@ -37,7 +37,7 @@ FRB 是 [flutter_rust_bridge](https://pub.dev/packages/flutter_rust_bridge)，�
 
 ### 应用服务
 
-UBAA 自有的 Cloudflare Worker 服务，提供启动配置、更新提示、公告和经用户同意的匿名统计。它不接触学校账号。规则见[应用服务合同](../contracts/app-service.md)，部署见[应用服务部署手册](../runbooks/app-service.md)。
+UBAA 在自有服务器上运行的 Node.js 服务，使用 PostgreSQL，提供启动配置、更新提示、公告和经用户同意的匿名统计。它不接触学校账号。规则见[应用服务合同](../contracts/app-service.md)，部署见[应用服务部署手册](../runbooks/app-service.md)。
 
 ## 协议与网络
 

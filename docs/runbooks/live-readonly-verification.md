@@ -117,11 +117,3 @@ count=<safe-count-or-none> reason=<dependency-code-or-none> exit_code=<n>
 ## auto 的确定性验证
 
 `auto` 只在 Core/Mock 路由测试中验证网络探测、解析和 WebVPN-only 会话。`verify-live` 与 `core-live` 都拒绝 `auto`，不执行真实登录矩阵。早期基于 CLI 的认证验证器说明见[归档](../archive/history/live-auth-verification-2026-08-26.md)。
-
-## 报错诊断链真实只读验证
-
-2026-11-16，Direct 与 WebVPN 的默认矩阵均完成登录，各有 56 项通过。两条路线的财务收入均返回 `upstream_changed`，失败位置在财务解析器，尚未确定具体不符字段。两条路线深夜读取图书馆分区详情均返回 `business_unavailable`，同轮楼栋、分区列表和座位查询通过。重跑财务使用 `just verify-live feature=finance route=<direct|webvpn>`；重跑图书馆分区详情使用 `feature=libbook`，选择预约时段内执行。
-
-用同一 Core facade 补验云打印和北航云盘。Direct 的文档列表、扫描件列表、打印点和云盘个人根目录通过；WebVPN 的扫描件列表和打印点通过，首次文档列表在认证跳转的来源校验处拒绝，云盘个人根目录沿用未验证路线的拒绝规则。云盘未取文件内容。云打印跳转后续应在已授权的 WebVPN 会话获取脱敏的跳转证据，再与已有来源对照；不放宽允许的来源。
-
-真实写入须逐次确认操作、目标、路线与时间。结果未知时只读核对，不重复提交。

@@ -80,7 +80,7 @@ Windows runner 的 MSVC 目标已在 CMake 中设置 `/utf-8`，构建时无须�
 python3 scripts/lib/toolchain.py migrate
 ```
 
-如还需迁移旧部署目标，在同一命令附加 `--target <旧目标 JSON 路径>`，选择一个目标。命令合并旧工具链、学校账号和选定的部署目标，保留 `.env` 已有键及原文件，输出不含配置值。手工迁移也可按 `.env.example` 逐键填写；旧目标的 `account_id`、`worker_name`、`database_id`、`kv_namespace_id`、`domain` 对应下表中五个部署目标键。
+命令迁移旧工具路径和学校账号配置，保留 `.env` 已有键及原文件，输出不含配置值。也可按 `.env.example` 手工填写。服务器部署配置见[应用服务手册](../runbooks/app-service.md)。
 
 ## UBAA 环境变量
 
@@ -88,7 +88,7 @@ python3 scripts/lib/toolchain.py migrate
 
 | 内容 | 维护位置 |
 |---|---|
-| 本机工具路径、构建渠道、部署目标、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
+| 本机工具路径、构建渠道、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
 | CI 的同名参数与凭据 | GitHub Environment Variables/Secrets；通过进程环境注入，无需生成或上传完整 `.env` |
 | 渠道最新版本、最低支持版本、下载地址 | [`channels.json`](../../services/app_service/config/channels.json)，确认渠道可下载后更新 |
 | 公告与隐私政策 | `docs/site/` 下的 Markdown 源文件 |

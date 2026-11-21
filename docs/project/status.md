@@ -14,7 +14,7 @@
 
 | 项目 | 当前值 | 定义位置 |
 |---|---|---|
-| 产品版本 | `2.0.1`，构建号 `2011`；官方 Flutter 与 OHOS 宿主均为 `2.0.1+2011` | [version.toml](../../version.toml)，用 `just version` 同步 |
+| 产品版本 | `2.0.3`，构建号 `2030`；官方 Flutter 与 OHOS 宿主均为 `2.0.3+2030` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
 | 命令输出 | 以 [`CLI_JSON_SCHEMA_VERSION`](../../crates/ubaa_command/src/io/schema.rs) 为准 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
@@ -45,7 +45,7 @@
 | 北航云盘 | ✅ GUI 初次浏览及重新登录按需恢复 Direct | ✅ 2026-11-05（合成测试目录） | ⏳ | WebVPN 完整链路；系统文件面板的设备实测 |
 | 图书馆云打印 | ✅ 原生上传、待打印队列与逐页预览、扫描文档、打印点和使用记录；复用全局连接策略 | ⏳ Windows 试用会话已验证生产 Core 登录、扫描列表、打印点和使用记录；已用生产 Core 下载真实扫描原件并在内存中合并双页 PDF | ⏳ 官网入口和扫描列表已实测；原生路线经合成请求验证，真实账号端到端待验证 | Windows 扫描 PDF 使用系统渲染，已通过合成双页原生验证；新版原生上传、各平台文件选择和保存面板待设备验证 |
 | 桌面命令模式 | ✅ | — | — | 签名 Release、安装升级，以及沿用旧版本机材料 |
-| 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主在登录或恢复会话前要求明示同意 v8；同意前只重试此前请求的统计删除；登录和功能加载的匿名分钟计数已实现 | — | — | 构建 2007 客户端发布、生产定时任务观察；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
+| 应用服务（更新、公告、统计） | ✅ 启动配置、公告和按天统计已部署；图形宿主在登录或恢复会话前要求明示同意 v8；同意前只重试此前请求的统计删除；登录和功能加载的匿名分钟计数已实现 | — | — | 生产定时任务观察；既有功能验收见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md) |
 
 共享会话重绑会先撤销旧的本机提示读取，重绑完成后重新加载，避免旧任务把正常会话更新报告为操作冲突。上述 GUI 恢复调整已通过合成回归，当前版本的真实账号和设备验证尚未执行。
 
@@ -55,9 +55,9 @@
 
 写入错误保留资格核对、实际路线和结果未知的诊断。已知格式的业务拒绝以 `business_rejected` 报告，HTTP 限流与响应结构异常分别记录。允许统计时，写入和专用读取采集操作结果；维护者看板配置支持按版本和错误维度查阅样本，服务端和看板尚未部署。
 
-2026-11-16 使用真实账号完成 Direct 和 WebVPN 只读验证，两条路线各有 56 项通过。财务收入、图书馆分区详情、WebVPN 云打印文档列表和云盘路线边界见[只读验证记录](../runbooks/live-readonly-verification.md#报错诊断链真实只读验证)。
+2026-11-16：Direct 和 WebVPN 只读矩阵各通过 56 项。两条路线的财务收入在解析时返回 `upstream_changed`，当晚的图书馆分区详情返回 `business_unavailable`。Direct 的云打印文档、扫描件、打印点和云盘个人根目录验证通过。WebVPN 的扫描件和打印点验证通过，文档列表被认证跳转来源校验拒绝，云盘个人根目录仍受未验证路线限制。本轮未读取云盘文件内容。
 
-登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线，并支持从错误卡复制关联记录、应用版本和平台。通用响应异常使用中性提示，Core 安全诊断贯穿 Bridge、本地报告和遥测。HTTP 判定以及博雅、SPOC、校园门户与研究生 JSON 解析失败可附带响应摘要。CLI JSON 四字段保持原样。确定性回归覆盖原因传递、路线选择与安全复制，设备端待验收。
+登录错误已通过 Bridge 保留固定阶段和原因，本地诊断分别记录失败路线。登录页可从错误卡下方的“诊断信息”分享报告，其他错误卡显示错误编号并指引到设置。通用响应异常使用中性提示，Core 安全诊断贯穿 Bridge、本地报告和遥测。HTTP 判定以及博雅、SPOC、校园门户与研究生 JSON 解析失败可附带响应摘要。CLI JSON 四字段保持原样。确定性回归覆盖原因传递与路线选择，设备端待验收。
 
 云打印错误已保留 Core 实际路线，包括 Auto 回退后的 WebVPN 和上传、删除的逐项结果。选路前的本地参数错误不附带路线。Direct/WebVPN、回退及写入不重放已有合成回归，真实云打印路线验收范围仍见上表。
 
@@ -89,34 +89,29 @@ Android 首页按系统默认网络身份去重；同一网络的能力通知不
 | Windows | Windows 11 x64 Debug：GUI、`ubaa-cli` 命令、DPAPI 与日程双进程；托管 Release EXE 构建 | 安装升级、其他架构 |
 | Linux | Debian 12 arm64：AOT 命令、Secret Service、SSH/PAM（隔离容器）；托管 x64、arm64 Release 构建 | 部署安装 |
 | Android | 正式证书签名的三个独立 ABI APK；Android 16 实机运行 build 2002 | build 2003 设备安装；覆盖安装旧版 |
-| iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 商店上传、模拟器运行、实机 |
+| iOS | 模拟器目标构建；Xcode 26.3 签名 IPA 构建 | 模拟器运行、App Store 安装和实机验证 |
 | HarmonyOS | 静态分析与测试、无签名 Debug HAP、arm64 Rust 库；模拟器上的合成 HUKS 流程 | 签名包、实机 |
 
 Android 已按[小米 Flip 基础与连续性适配指南](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=2026)补充 `android.supports_size_changes=true`，并显式启用 `resizeableActivity`，沿用 Flutter 对屏幕尺寸、布局、方向和密度配置变化的处理。外屏运行采用[Android 标准声明](https://developer.android.com/reference/android/view/WindowManager#PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN) `PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN=1`。清单 XML 语法和声明静态校验已通过；页面、搜索与滚动状态沿用既有连续性实现。本次未完成 Flutter 回归和完整验收，未构建安装包，也未验证 MIX Flip 2 外屏启动、双向开合接续和键盘行为。
 
 Android 安全材料使用 `flutter_secure_storage 11.2.0`。启动探测在材料文件锁内操作随机测试键，失败后不写入未完成业务事务标记，系统恢复后可在下一次启动重新检测；已有未完成业务事务仍阻止访问。Windows 整文件后端的探测继续保留事务保护。官方八包格式、静态分析与 2,217 项测试通过，另有 1 项既有跳过项。macOS 13 项原生集成、Android 原生代码与测试编译、OHOS 分析与 2 项宿主测试通过。Android 本次未执行设备测试。Xiaomi Android 17 的原生诊断曾在 UBAA 原生库加载前记录 Keystore 系统内部错误 4，具体系统原因尚未确定。该系统错误与应用探测留下事务标记分别处理。
 
-表中的托管 Release 构建来自候选 `cb2a67ac` 的[运行记录](https://github.com/BUAASubnet/UBAA/actions/runs/43015152128)。macOS 两个架构已提交 Apple 公证。Release 当前暂停，等待公证服务恢复后再继续；尚未发布 v2.0.0 Tag、GitHub/R2 产物或商店构建。
+v2.0.0 至 v2.0.2 已发布。iOS 2.0.3 已上架 App Store，HarmonyOS 仍待上架 AppGallery。各渠道的安装入口见[下载页](../site/download.md)。
 
 文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)，由自有服务器提供静态文件，Cloudflare CDN 通过 HTTPS 10443 严格校验证书并回源。应用服务使用 `https://app.ubaa.top:10443`，Node.js 26 与 PostgreSQL 17 已运行。Grafana 使用 `https://stats.ubaa.top:10443`，需要登录，数据源账号只读。公网 HTTPS、CDN 命中和 Grafana PostgreSQL 查询已核对。
 
 下载页读取正式发布状态。服务器从指定 GitHub Actions 运行直接下载产物，核对发布清单后自动上传到既有北航云盘发布目录的版本子目录。程序使用 Core facade，发布账号保存在服务器。Direct 登录与目标目录定位已通过真实只读验证，正式产物上传随 Release 执行。
 
-Release 工作流仍由维护者在 main 手动启动，准备 GitHub Release 草稿、服务器与云盘产物和商店构建。手动公开草稿后，单独同步下载页和应用渠道，不重复构建。本次候选构建号为 2007，使用 GitHub 托管 runner。
+Release 工作流仍由维护者在 main 手动启动，准备 GitHub Release 草稿、服务器与云盘产物和商店构建。手动公开草稿后，单独同步下载页和应用渠道，不重复构建。
 
 应用服务的 158 项测试已在隔离 PostgreSQL 上通过，覆盖请求、去重、事务回滚、并发删除、保留期和 27 个 Grafana 查询。Core HTTP 与真实 Dart FFI 联调通过。完整 Rust、Flutter 2,309 项测试（另有 1 项既有跳过）、13 项 macOS 原生集成、FRB 生成检查和文档构建通过。公网上传去重、删除、晚到拒收以及生产汇总任务已用合成数据验证。原 D1/R2 专用测试的事务和不可覆盖行为分别由 PostgreSQL 服务测试和 `server_deploy_test.py` 保留；看板时间桶、过滤和补零覆盖移至 PostgreSQL 测试。
 
 2026-11-13 工具链与依赖升级后的本机验收覆盖完整 Rust/CLI 测试、Flutter 八个包、macOS 原生集成、Android ARM64 Debug APK、iOS 模拟器和 OHOS 无签名 Debug HAP。远端 CI、Windows/Linux 原生构建及实体设备验收待执行。
 
-## 发布 v2.0.0 前还差什么
+## 待完成的发布验收
 
-按[发布流程](../runbooks/flutter-release.md)完成：
-
-- [ ] 完成各平台发布产物，核对版本 `2.0.0+2007`
-- [ ] 各平台设备安装，以及从 v1.x 覆盖升级
-- [x] 应用服务生产部署（[部署手册](../runbooks/app-service.md)）
-- [ ] 远端 CI 在发布提交上全部通过，再打 Tag
-- [ ] 分发 GitHub、服务器与北航云盘产物，并上传 App Store Connect 和 AppGallery，供维护者提交审核
+- HarmonyOS 上架 AppGallery。
+- 在各平台实体设备核对安装和从 v1.x 覆盖升级。
 
 ## 已知问题
 
