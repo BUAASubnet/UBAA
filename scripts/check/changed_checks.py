@@ -260,7 +260,7 @@ def select_checks(root, paths, mode='commit', previous=None):
     selected, production = set(), set()
     rust_paths, risk_paths, native_checks = set(), set(), set()
     rust_crates = set()
-    scripts = docs = site = app_service = privacy_policy = maintenance = False
+    scripts = site = app_service = privacy_policy = maintenance = False
     app_service_content = False
     full = mode == 'full'
     codegen = protocol = False
@@ -280,7 +280,6 @@ def select_checks(root, paths, mode='commit', previous=None):
             continue
         # Markdown 与已知文档资源无需编译。合同 schema、未知扩展仍保守处理。
         markdown = path.endswith('.md') and ('/' not in path or path.startswith(DOCUMENT_ROOTS))
-        docs |= markdown
         if (markdown
                 or path.startswith('docs/site/')
                 or (path.startswith('docs/') and Path(path).suffix in {'.svg', '.png', '.jpg', '.jpeg'})
@@ -396,10 +395,11 @@ def select_checks(root, paths, mode='commit', previous=None):
         notes.add('高风险改动：增加 check-risk、受影响包的消费者测试及专项检查。')
         if protocol:
             notes.add('涉及协议变更时，按来源对照门禁记录。')
+    docs = any(path.endswith('.md') for path in paths)
     return {'rust': bool(rust_paths) or full, 'rust_crates': sorted(rust_crates),
             'rust_workspace': bool(rust_paths & {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}),
             'scripts': scripts, 'docs': docs, 'full': full, 'risk': risk and not full,
-            'cargo_lock': scripts or any(path.endswith('.md') for path in paths),
+            'cargo_lock': scripts or docs,
             'maintenance': maintenance,
             'live_launchers': any(path.startswith('scripts/live/') or path in LIVE_LAUNCHER_INPUTS
                                   for path in paths),
@@ -430,7 +430,7 @@ def commands(plan):
             result.append(['just', 'check-risk', *crates])
         if plan['scripts']:
             result.append(['just', 'script-check', 'scoped'])
-        elif plan['docs']:
+        if plan['docs']:
             result.append(['just', 'docs-link-check'])
         if plan['cargo_lock']:
             result.append(['just', 'cargo-lock-check'])

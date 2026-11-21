@@ -78,6 +78,12 @@ class ChangedChecksTest(unittest.TestCase):
             self.assertIn(command, gates.commands(self.plan(path)))
         self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
 
+    def test_docs_link_gate_follows_markdown_even_with_script_changes(self):
+        command = ['just', 'docs-link-check']
+        script = 'scripts/check/example.py'
+        self.assertNotIn(command, gates.commands(self.plan(script)))
+        self.assertEqual(gates.commands(self.plan(script, 'scripts/README.md')).count(command), 1)
+
     def test_unknown_path_keeps_full_mode(self):
         self.assertTrue(self.plan('unexpected/file')['full'])
 
