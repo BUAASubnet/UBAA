@@ -119,7 +119,7 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertEqual(gates.commands(gates.select_checks(ROOT, paths, mode='full')), snapshot + extras)
 
     def test_docs_do_not_trigger_language_suites(self):
-        plan = self.plan('docs/project/status.md', 'README.md', 'docs/project/goal.md', 'scripts/README.md', 'packages/ubaa_ui/README.md')
+        plan = self.plan('docs/project/status.md', 'README.md', 'docs/project/roadmap.md', 'scripts/README.md', 'packages/ubaa_ui/README.md')
         self.assertFalse(plan['rust'])
         self.assertEqual(plan['packages'], [])
         self.assertEqual(plan['extra'], [])

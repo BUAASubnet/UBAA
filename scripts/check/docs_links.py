@@ -82,9 +82,7 @@ def main():
     errors, count = [], 0
     for name in sorted(set(output.decode().split('\0')) - {''}):
         path = ROOT / name
-        if not path.is_file() or name.startswith(('packages/ubaa_bindings/cargokit/',
-                                                   'docs/archive/',
-                                                   'docs/design/evidence/')):
+        if not path.is_file() or name.startswith('packages/ubaa_bindings/cargokit/'):
             continue
         errors.extend(check_file(ROOT, path))
         count += 1

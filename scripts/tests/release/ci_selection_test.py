@@ -41,7 +41,7 @@ class SelectionTest(unittest.TestCase):
         self.assertTrue(selected['flutter'])
         self.assertCountEqual(selected['flutter_packages'],
                               ['ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support', 'ubaa_app'])
-        selected = changes.select(['docs/project/goal.md'])
+        selected = changes.select(['docs/project/status.md'])
         self.assertFalse(selected['flutter'])
         self.assertEqual(selected['flutter_packages'], [])
 

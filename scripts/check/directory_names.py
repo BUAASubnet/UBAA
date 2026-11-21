@@ -11,11 +11,7 @@ from repo import ROOT
 
 
 
-# 这些目录保留工具或历史归档的命名，不接受自有源码扩展。
-FROZEN = (
-    'packages/ubaa_bindings/cargokit/',
-    'docs/design/evidence/ui-ux/',
-)
+FROZEN = 'packages/ubaa_bindings/cargokit/'
 ANDROID_RESOURCE = re.compile(
     r'apps/ubaa_flutter/android/app/src/(?:main|debug|profile|test|androidTest)/res/'
     r'[a-z_]+(?:-[A-Za-z0-9]+)+$'
