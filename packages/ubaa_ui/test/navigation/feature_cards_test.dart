@@ -45,19 +45,6 @@ void main() {
           }
         });
       }
-
-      testWidgets('物理点击${feature.title}后一次返回即可回到原功能分组', (tester) async {
-        final reads = await _showGroup(tester, group.key);
-        final card = await _revealCard(tester, feature);
-
-        await tester.tap(card);
-        await tester.pumpAndSettle();
-
-        _expectFeaturePage(feature);
-        await _returnToGroup(tester, group.key, feature);
-        expect(reads, isEmpty, reason: '物理点击不额外重试或重新读取');
-        expect(tester.takeException(), isNull);
-      });
     }
   }
 }

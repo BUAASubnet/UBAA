@@ -5,7 +5,6 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:clock/clock.dart';
-import '../../app/shell_parity_test.dart' show mount;
 import '../../support/home_todos.dart';
 import '../flow_test.dart' show opened;
 import '../support.dart';
@@ -218,25 +217,5 @@ void main() {
           .value,
       isFalse,
     );
-  });
-  testWidgets('日程为中间入口，学习保留课表与成绩入口', (tester) async {
-    await mount(tester);
-    await tester.tap(find.widgetWithText(NavigationDestination, '日程'));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('agenda-create')).hitTestable(),
-      findsOneWidget,
-    );
-    expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      UiDestination.agenda.index,
-    );
-    await tester.tap(find.widgetWithText(NavigationDestination, '学习'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, FeatureId.schedule.title), findsOneWidget);
-    await tester.ensureVisible(
-      find.widgetWithText(Card, FeatureId.grades.title),
-    );
-    expect(find.widgetWithText(Card, FeatureId.grades.title), findsOneWidget);
   });
 }

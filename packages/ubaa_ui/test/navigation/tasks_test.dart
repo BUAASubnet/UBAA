@@ -9,10 +9,21 @@ void main() {
     await _mount(tester);
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     for (final feature in FeatureId.values) {
+      final group = UiDestination.forFeature(feature);
       await openFeature(tester, feature);
+      expect(
+        find.widgetWithText(
+          AppBar,
+          feature == FeatureId.schedule ? '课表' : feature.title,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('合成详情-${feature.wireName}'), findsOneWidget);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
+      expect(find.widgetWithText(AppBar, group.label), findsOneWidget);
+      expect(find.byTooltip('返回'), findsNothing);
+      expect(tester.takeException(), isNull);
     }
   });
 
@@ -152,6 +163,7 @@ Future<void> _mount(WidgetTester tester) async {
         onRefresh: () async => fail('导航不能新增刷新'),
         onRetryFeature: (_) async => fail('导航不能新增重试'),
         onFeatureQuery: (_, _) async => fail('导航不能新增业务查询'),
+        onCommitWrite: (_) async => fail('功能卡片只能导航，不能提交写入'),
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},

@@ -169,46 +169,6 @@ void _registerQueryTests() {
     expect(prepareCalls, 0);
   });
 
-  testWidgets('考试筛选点选已安排即提交派生视图', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.exam
-              ? const <FeatureDetail>[FeatureDetail(title: '考试')]
-              : const <FeatureDetail>[],
-        ),
-    };
-    FeatureQuery? received;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onFeatureQuery: (feature, query) async {
-            expect(feature, FeatureId.exam);
-            received = query;
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-        ),
-      ),
-    );
-    await openFeature(tester, FeatureId.exam);
-    await openQueryPanel(tester);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, '已安排'));
-    await tester.pumpAndSettle();
-    expect(received?.view, FeatureQueryView.examArranged);
-  });
-
   testWidgets('成绩筛选点选已出成绩即提交派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

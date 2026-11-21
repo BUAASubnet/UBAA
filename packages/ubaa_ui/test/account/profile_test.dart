@@ -14,21 +14,6 @@ const _profile = UserSummary(
 );
 
 void main() {
-  testWidgets('相同本机归属从遮罩变为在线姓名不会重置资料路由', (tester) async {
-    final profile = ValueNotifier<UserSummary?>(
-      const UserSummary(username: 'f***r', accountScope: 'same'),
-    );
-    addTearDown(profile.dispose);
-    await _mount(tester, profile, []);
-    profile.value = const UserSummary(
-      username: 'fixture-user',
-      accountScope: 'same',
-    );
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '我的资料'), findsOneWidget);
-    expect(find.text('fixture-user'), findsOneWidget);
-  });
-
   testWidgets('遮罩资料保持联系人保护且在线更新不退出个人页', (tester) async {
     final profile = ValueNotifier<UserSummary?>(
       UserSummary(

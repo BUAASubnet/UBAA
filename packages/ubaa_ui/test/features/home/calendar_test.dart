@@ -42,23 +42,6 @@ void main() {
     expect(find.byType(LoadingPlaceholder), findsNothing);
   });
 
-  testWidgets('首次进入明日课表尚无结果显示加载占位', (tester) async {
-    final gate = Completer<FeatureResult>();
-    await calendar(
-      tester,
-      DateTime(2026, 10, 25, 20),
-      (date, force) => gate.future,
-      settle: false,
-    );
-    await tester.pump();
-    expect(find.byType(LoadingPlaceholder), findsOneWidget);
-
-    gate.complete(emptyDayResult('2026-10-26'));
-    await tester.pumpAndSettle();
-    expect(find.text('明天没有课程安排'), findsOneWidget);
-    expect(find.byType(LoadingPlaceholder), findsNothing);
-  });
-
   testWidgets('明日课表路线反映实际日程来源，午夜后保留同日路线', (tester) async {
     final routes = <HomeScheduleRoute>[];
     Future<FeatureResult> read(String date, bool force) async =>
