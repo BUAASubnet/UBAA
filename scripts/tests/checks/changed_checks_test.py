@@ -93,6 +93,15 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertTrue(self.plan('crates/ubaa_flutter_bridge/cargokit.yaml')['full'])
         self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
 
+    def test_product_version_gate_follows_source_and_mirrors(self):
+        command = ['just', 'version-check']
+        self.assertEqual(gates.commands(self.plan('version.toml'))[-1], command)
+        for path in ('scripts/release/version.py', 'packages/ubaa_ui/pubspec.yaml',
+                     'apps/ubaa_flutter/macos/Podfile.lock', 'apps/ubaa_ohos/pubspec.lock'):
+            with self.subTest(path=path):
+                self.assertIn(command, gates.commands(self.plan(path)))
+        self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
+
     def test_unknown_path_keeps_full_mode(self):
         self.assertTrue(self.plan('unexpected/file')['full'])
 

@@ -241,6 +241,18 @@ TOOL_VERSION_INPUTS = {
     'Cargo.toml', 'rust-toolchain.toml', 'crates/ubaa_flutter_bridge/Cargo.toml',
     'crates/ubaa_flutter_bridge/cargokit.yaml', 'packages/ubaa_bindings/pubspec.yaml',
 }
+VERSION_INPUTS = {
+    'version.toml', 'scripts/release/version.py', 'Cargo.toml', 'Cargo.lock',
+    'crates/ubaa_core/tests/compile/Cargo.lock', 'pubspec.yaml', 'pubspec.lock',
+    'apps/ubaa_ohos/pubspec.yaml', 'apps/ubaa_ohos/pubspec.lock',
+    'apps/ubaa_ohos/ohos/AppScope/app.json5', 'apps/ubaa_ohos/ohos/oh-package.json5',
+    'apps/ubaa_ohos/ohos/entry/oh-package.json5', 'packages/ubaa_bindings/ohos/oh-package.json5',
+    'packages/ubaa_bindings/ohos/src/main/cpp/types/libubaa_flutter_bridge/oh-package.json5',
+    'packages/ubaa_bindings/android/build.gradle',
+    *(f'{folder}/pubspec.yaml' for folder in PACKAGES.values()),
+    *(f'apps/ubaa_flutter/{platform}/Podfile.lock' for platform in ('ios', 'macos')),
+    *(f'packages/ubaa_bindings/{platform}/ubaa_bindings.podspec' for platform in ('ios', 'macos')),
+}
 SITE_INPUTS = {
     'package.json', 'package-lock.json', 'docs/contracts/app-service.schema.json',
     'scripts/check/app_service/content.mjs', 'services/app_service/src/version.mjs',
@@ -290,7 +302,7 @@ def select_checks(root, paths, mode='commit', previous=None):
         if (markdown
                 or path.startswith('docs/site/')
                 or (path.startswith('docs/') and Path(path).suffix in {'.svg', '.png', '.jpg', '.jpeg'})
-                or path in {'package.json', 'package-lock.json'}):
+                or path in {'package.json', 'package-lock.json', 'version.toml'}):
             continue
         if path == 'scripts/release/dependency-audit.sh':
             notes.add('发布依赖审计入口改动：just dependency-audit 仍需显式联网运行。')
@@ -413,6 +425,7 @@ def select_checks(root, paths, mode='commit', previous=None):
             'tool_versions': any(path in TOOL_VERSION_INPUTS
                                  or (path.startswith('.github/') and path.endswith('.yml'))
                                  for path in paths),
+            'versions': any(path in VERSION_INPUTS for path in paths),
             'native': [['just', 'integration-test']] if full else [
                 ['just', 'integration-test', f'suite={suite}', f'platform={platform}']
                 for suite, platform in sorted(native_checks)],
@@ -452,6 +465,8 @@ def commands(plan):
             result.append(['just', 'privacy-policy-check'])
         if plan['tool_versions']:
             result.append(['just', 'tool-version-check'])
+        if plan['versions']:
+            result.append(['just', 'version-check'])
     if plan['packages']:
         if not plan['full'] and not plan['scripts']:
             result.append(['just', 'module-check'])
