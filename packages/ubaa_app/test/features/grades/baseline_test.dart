@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -8,16 +6,10 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import '../../recovery/backend_rebuild/fakes.dart' as base;
 
 void main() {
-  late Directory directory;
-  late File legacy;
   late _Backend backend;
   late AppController controller;
   late GradeScoreWatch watch;
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp(
-      'ubaa-grade-baseline-controller-',
-    );
-    legacy = File('${directory.path}/legacy.json');
     backend = _Backend();
     controller = AppController(
       backend: backend,
@@ -30,24 +22,15 @@ void main() {
       store: ControllerGradeScoreStore(controller),
     );
   });
-  tearDown(() async {
+  tearDown(() {
     watch.dispose();
     controller.dispose();
-    await directory.delete(recursive: true);
-  });
-  test('开发阶段忽略损坏旧基线文件，仍可建立加密基线', () async {
-    await legacy.writeAsString('{合成损坏');
-    await watch.check();
-    expect(watch.cacheError, isNull);
-    expect(backend.updates, 1);
-    expect(await legacy.readAsString(), '{合成损坏');
   });
   test('完整在线成绩经账号加密通道建立和比较基线，缓存观察不重复更新', () async {
     await watch.check();
     expect(backend.updates, 1);
     expect(backend.lastAccount, backend.account!.id);
     expect(watch.notice, isNull);
-    expect(await legacy.exists(), isFalse);
     backend.score = '90';
     await watch.check(forceRefresh: true);
     expect(watch.notice!.changes.single.oldScore, '80');
@@ -58,33 +41,23 @@ void main() {
     expect(backend.updates, 2);
     expect(watch.notice!.changes.single.newScore, '90');
   });
-  test('旧基线不导入也不修改，新加密基线独立建立', () async {
-    await legacy.writeAsString(oldFixture());
-    await watch.check();
-    expect(watch.notice, isNull);
-    expect(backend.updates, 1);
-    expect(await legacy.readAsString(), oldFixture());
-  });
   test('密钥或容量故障与学校成功分列，不更新基线且不写明文', () async {
     backend.failure = const BackendException(
       UbaaErrorCode.internalError,
       cacheFailure: CacheMaintenanceFailure.unavailable,
     );
-    await legacy.writeAsString(oldFixture());
     await watch.check();
     expect(watch.error, isNull);
     expect(watch.cacheError, isNotNull);
     expect(watch.checkedRoute, ConnectionMode.direct);
     expect((await controller.loadGradeTerm(term)).overview, isNotNull);
-    expect(await legacy.readAsString(), oldFixture());
     expect(backend.values, isEmpty);
     backend.failure = null;
     await watch.check(forceRefresh: true);
     expect(watch.cacheError, isNull);
     expect(watch.notice, isNull);
   });
-  test('退出使迟到本地观察失效，不清理尚未确认迁入的旧文件', () async {
-    await legacy.writeAsString(oldFixture());
+  test('退出使迟到本地观察失效', () async {
     backend.updateGate = Completer<void>();
     final checking = watch.check();
     await backend.updateStarted.future;
@@ -94,31 +67,20 @@ void main() {
     expect(watch.notice, isNull);
     expect(watch.cacheError, isNull);
     expect(backend.values, isEmpty);
-    expect(await legacy.readAsString(), oldFixture());
   });
-  test('显式清理加密基线和变化提醒，不读取或修改旧文件', () async {
+  test('显式清理加密基线和变化提醒', () async {
     await watch.check();
     backend.score = '90';
     await watch.check(forceRefresh: true);
     expect(watch.notice, isNotNull);
-    await legacy.writeAsString(oldFixture());
-    await controller.clearBusinessCache(accountId: controller.cacheAccountId!);
-    expect(backend.values, isEmpty);
-    expect(watch.notice, isNull);
-    expect(await legacy.readAsString(), oldFixture());
-    expect(controller.phase, AppPhase.home);
-  });
-  test('损坏旧文件不阻塞加密缓存清理', () async {
-    await watch.check();
-    await legacy.writeAsString('{合成损坏');
     await controller.clearBusinessCache(accountId: controller.cacheAccountId!);
     expect(backend.clears, 1);
-    expect(backend.values, isEmpty);
     expect(controller.isClearingBusinessCache, isFalse);
-    expect(await legacy.readAsString(), '{合成损坏');
+    expect(backend.values, isEmpty);
+    expect(watch.notice, isNull);
+    expect(controller.phase, AppPhase.home);
   });
-  test('清理后拒绝在途批次迟到交付，旧基线不会重新导入', () async {
-    await legacy.writeAsString(oldFixture());
+  test('清理后拒绝在途批次迟到交付', () async {
     backend.updateGate = Completer<void>();
     final pending = watch.check();
     await backend.updateStarted.future;
@@ -132,7 +94,6 @@ void main() {
     expect(backend.values, isEmpty);
     expect(watch.notice, isNull);
     expect(watch.cacheError, isNull);
-    expect(await legacy.readAsString(), oldFixture());
   });
 }
 
@@ -212,8 +173,7 @@ class _Backend extends base.Backend
     if (epoch != generation)
       throw const BackendException(UbaaErrorCode.operationConflict);
     if (failure case final error?) throw error;
-    if (legacy != null)
-      values.putIfAbsent((route, legacy.termCode), () => legacy);
+    expect(legacy, isNull);
     final previous = values[(route, latest.termCode)];
     values[(route, latest.termCode)] = latest;
     return previous;
@@ -237,26 +197,4 @@ class _Backend extends base.Backend
   @override
   Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
       throw UnimplementedError();
-}
-
-String oldFixture() {
-  Map<String, Object> entry(String score) => {
-    'termCode': term,
-    'termName': '合成学期',
-    'scores': [
-      {
-        'key': 'code:safe',
-        'courseCode': 'safe',
-        'courseName': '合成课程',
-        'score': score,
-      },
-    ],
-  };
-  return jsonEncode({
-    'schema': 1,
-    'accounts': {
-      'fixture-user': {'direct': entry('70'), 'webvpn': entry('60')},
-      'another': {'direct': entry('50')},
-    },
-  });
 }

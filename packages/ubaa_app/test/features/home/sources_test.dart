@@ -67,31 +67,15 @@ void _registerHomeSourceTests() {
       controller.snapshots[FeatureId.spoc]!.readContext!.query!.view,
       FeatureQueryView.spocDetail,
     );
-  });
-
-  test('首页保留默认今日和作业来源，领域单项查询不覆盖首页', () async {
-    final backend = _HomeSourcesBackend();
-    final controller = AppController(backend: backend);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.refreshHome(only: [FeatureId.spoc]);
-    final home = controller.homeSnapshots[FeatureId.spoc];
-    expect(home?.status, FeatureLoadStatus.success);
-    await controller.refreshFeatureQuery(
-      FeatureId.spoc,
-      const FeatureQuery(view: FeatureQueryView.spocDetail, assignmentId: 'a'),
-    );
-    expect(controller.homeSnapshots[FeatureId.spoc], same(home));
-    expect(
-      controller.snapshots[FeatureId.spoc]!.readContext!.query!.view,
-      FeatureQueryView.spocDetail,
-    );
     await controller.logout();
     expect(
-      controller.homeSnapshots.values.every((s) => s.details.isEmpty),
+      controller.homeSnapshots.values.every(
+        (snapshot) => snapshot.details.isEmpty,
+      ),
       isTrue,
     );
   });
+
   test('首页额外读取合并同代请求，不覆盖领域当前查询', () async {
     final gate = Completer<FeatureResult>();
     final backend = _HomeSourcesBackend()..pending = gate;

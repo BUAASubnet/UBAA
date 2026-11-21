@@ -17,6 +17,12 @@ void registerCourseworkTests() {
     final presentation =
         result.details.single.presentation! as SpocAssignmentPresentation;
     expect(presentation.courseId, 'course-spoc-1');
+    expect(
+      result.details.single.fields
+          .singleWhere((field) => field.label == '课程编号')
+          .value,
+      'course-spoc-1',
+    );
     expect(presentation.score, isNull);
     expect((result.overview! as SpocTermOverview).termCode, '2026-fall');
     expect(client.calls, hasLength(1));
@@ -47,6 +53,11 @@ void registerCourseworkTests() {
     expect(b.problems.single.score, 'B分');
     expect(a.problems.single.score, 'A分');
     expect(b.problems.single.name, '同名题');
+    expect(
+      result.details.first.fields.map((field) => field.label),
+      contains('题目数'),
+    );
+    expect(result.resolvedRoute, ConnectionMode.webvpn);
     expect(result.details.every((d) => d.readNavigation == null), isTrue);
     expect(
       result.details.first.fields.any((f) => f.value.contains('同名题')),
@@ -133,6 +144,10 @@ void registerCourseworkTests() {
     expect(result.details, hasLength(1));
     final p = result.details.single.presentation! as SigninPresentation;
     expect(p.signStatus, 0);
+    expect(
+      result.details.single.action<SigninPerformAction>()?.scheduleId,
+      'signin-target',
+    );
     expect(
       result.details.single.action<SigninPerformAction>()!.eligibility,
       ActionEligibility.denied,
@@ -222,7 +237,7 @@ class _CourseworkClient extends FixtureCharacterizationBridgeClient {
                 classEndTime: '9',
                 signStatus: 0,
                 signinEligibility: BridgeActionEligibility.denied,
-                signinTarget: 's',
+                signinTarget: 'signin-target',
               ),
             ],
           ),

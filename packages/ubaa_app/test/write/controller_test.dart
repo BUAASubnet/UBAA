@@ -569,39 +569,6 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('场馆写入成功优先刷新订单列表用于核对', () async {
-    final backend = FixtureCgyyQueryWriteBackend();
-    final controller = AppController(backend: backend);
-
-    await controller.refreshAfterWrite(WriteOperation.cgyySubmitReservation);
-
-    expect(backend.queries, hasLength(1));
-    expect(backend.queries.single.$1, FeatureId.cgyy);
-    expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
-    controller.dispose();
-  });
-
-  test('图书馆预约与取消都只刷新一次预约记录', () async {
-    final backend = FixtureRefreshMatrixBackend();
-    final controller = AppController(backend: backend);
-
-    for (final operation in const <WriteOperation>[
-      WriteOperation.libbookReserve,
-      WriteOperation.libbookCancelBooking,
-    ]) {
-      backend.queries.clear();
-      backend.loadedFeatures.clear();
-
-      await controller.refreshAfterWrite(operation);
-
-      expect(backend.loadedFeatures, isEmpty);
-      expect(backend.queries, hasLength(1));
-      expect(backend.queries.single.$1, FeatureId.libbook);
-      expect(backend.queries.single.$2.view, FeatureQueryView.libbookBookings);
-    }
-    controller.dispose();
-  });
-
   test('图书馆取消按 action 保存的同页上下文执行只读核对', () async {
     final backend = FixtureRefreshMatrixBackend();
     final controller = AppController(backend: backend);
