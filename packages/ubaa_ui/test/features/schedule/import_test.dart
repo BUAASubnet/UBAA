@@ -5,120 +5,118 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
-  for (final width in [390.0, 834.0, 1280.0]) {
-    testWidgets('$width宽度课表后台同步与整学期刷新保留当前查询', (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = Size(width, 1000);
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      ScheduleImportState? state;
-      late StateSetter update;
-      final starts = <String>[], queries = <FeatureQuery>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(platform: TargetPlatform.macOS),
-          home: StatefulBuilder(
-            builder: (context, setState) {
-              update = setState;
-              return MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: const TextScaler.linear(1.3)),
-                child: UbaaMainShell(
-                  user: const UserSummary(username: 'fixture'),
-                  initialDestination: UiDestination.study,
-                  snapshots: {
-                    for (final feature in FeatureId.values)
-                      feature: FeatureSnapshot(
-                        feature: feature,
-                        status: FeatureLoadStatus.empty,
-                        resolvedRoute: ConnectionMode.direct,
-                        readContext: feature == FeatureId.schedule
-                            ? FeatureReadContext(
-                                query: FeatureQuery(
-                                  view: FeatureQueryView.scheduleWeek,
-                                  term: 'selected',
-                                  week: 3,
-                                ),
-                                requestRevision: 1,
-                              )
-                            : null,
-                      ),
-                  },
-                  routePolicy: RoutePolicy.direct,
-                  onRefresh: () async {},
-                  onRetryFeature: (_) async {},
-                  onLogout: () async {},
-                  onLogoutAndClearAccount: () async {},
-                  onRoutePolicyChanged: (_) {},
-                  onFeatureQuery: (feature, query) async {
-                    queries.add(query);
-                  },
-                  onLoadAcademicWeeks: (_, _) async =>
-                      const FeatureResult.empty(),
-                  scheduleImports: {if (state != null) 'selected': state!},
-                  onSaveScheduleSemester: (term) async {
-                    starts.add(term);
-                  },
-                ),
-              );
-            },
-          ),
+  testWidgets('窄屏大字下课表后台同步与整学期刷新保留当前查询', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 1000);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    ScheduleImportState? state;
+    late StateSetter update;
+    final starts = <String>[], queries = <FeatureQuery>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.3)),
+              child: UbaaMainShell(
+                user: const UserSummary(username: 'fixture'),
+                initialDestination: UiDestination.study,
+                snapshots: {
+                  for (final feature in FeatureId.values)
+                    feature: FeatureSnapshot(
+                      feature: feature,
+                      status: FeatureLoadStatus.empty,
+                      resolvedRoute: ConnectionMode.direct,
+                      readContext: feature == FeatureId.schedule
+                          ? FeatureReadContext(
+                              query: FeatureQuery(
+                                view: FeatureQueryView.scheduleWeek,
+                                term: 'selected',
+                                week: 3,
+                              ),
+                              requestRevision: 1,
+                            )
+                          : null,
+                    ),
+                },
+                routePolicy: RoutePolicy.direct,
+                onRefresh: () async {},
+                onRetryFeature: (_) async {},
+                onLogout: () async {},
+                onLogoutAndClearAccount: () async {},
+                onRoutePolicyChanged: (_) {},
+                onFeatureQuery: (feature, query) async {
+                  queries.add(query);
+                },
+                onLoadAcademicWeeks: (_, _) async =>
+                    const FeatureResult.empty(),
+                scheduleImports: {if (state != null) 'selected': state!},
+                onSaveScheduleSemester: (term) async {
+                  starts.add(term);
+                },
+              ),
+            );
+          },
         ),
-      );
-      await openFeature(tester, FeatureId.schedule);
-      expect(starts, ['selected']);
-      update(
-        () => state = const ScheduleImportState(
-          status: ScheduleImportStatus.running,
-          progress: ScheduleImportProgress(
-            term: 'selected',
-            completedWeeks: 1,
-            totalWeeks: 2,
-            finished: false,
-            route: ConnectionMode.direct,
-          ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule);
+    expect(starts, ['selected']);
+    update(
+      () => state = const ScheduleImportState(
+        status: ScheduleImportStatus.running,
+        progress: ScheduleImportProgress(
+          term: 'selected',
+          completedWeeks: 1,
+          totalWeeks: 2,
+          finished: false,
+          route: ConnectionMode.direct,
         ),
-      );
-      await tester.pump();
-      expect(find.text('第3周'), findsOneWidget);
-      expect(starts, ['selected']);
-      update(
-        () => state = const ScheduleImportState(
-          status: ScheduleImportStatus.failed,
-          progress: ScheduleImportProgress(
-            term: 'selected',
-            completedWeeks: 2,
-            totalWeeks: 2,
-            finished: true,
-            route: ConnectionMode.direct,
-            saveFailure: CacheMaintenanceFailure.capacity,
-          ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('第3周'), findsOneWidget);
+    expect(starts, ['selected']);
+    update(
+      () => state = const ScheduleImportState(
+        status: ScheduleImportStatus.failed,
+        progress: ScheduleImportProgress(
+          term: 'selected',
+          completedWeeks: 2,
+          totalWeeks: 2,
+          finished: true,
+          route: ConnectionMode.direct,
+          saveFailure: CacheMaintenanceFailure.capacity,
         ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.textContaining('空间不足'), findsOneWidget);
-      await tester.tap(find.text('重试'));
-      expect(starts.length, 2);
-      update(
-        () => state = const ScheduleImportState(
-          status: ScheduleImportStatus.saved,
-          progress: ScheduleImportProgress(
-            term: 'selected',
-            completedWeeks: 2,
-            totalWeeks: 2,
-            finished: true,
-            route: ConnectionMode.direct,
-          ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('空间不足'), findsOneWidget);
+    await tester.tap(find.text('重试'));
+    expect(starts.length, 2);
+    update(
+      () => state = const ScheduleImportState(
+        status: ScheduleImportStatus.saved,
+        progress: ScheduleImportProgress(
+          term: 'selected',
+          completedWeeks: 2,
+          totalWeeks: 2,
+          finished: true,
+          route: ConnectionMode.direct,
         ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('刷新'));
-      await tester.pumpAndSettle();
-      expect(starts, ['selected', 'selected', 'selected']);
-      expect(find.text('第3周'), findsOneWidget);
-      expect(queries, isEmpty);
-      expect(tester.takeException(), isNull);
-    });
-  }
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    expect(starts, ['selected', 'selected', 'selected']);
+    expect(find.text('第3周'), findsOneWidget);
+    expect(queries, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 }

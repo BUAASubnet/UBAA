@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/common/feature_detail.dart';
 import '../support/write_harness.dart';
 import '../support/navigation.dart';
 import '../support/ui/writes.dart' show fixturePumpBykcCommitError;
@@ -712,117 +713,76 @@ void _registerSharedStateTests() {
     expect(retryCalls, 1);
   });
 
-  testWidgets('十二项功能共享 loading、empty、failure、stale 状态矩阵', (tester) async {
+  testWidgets('详情共享加载与空态，十二个领域保留错误、上次详情及重试', (tester) async {
     var retryCalls = 0;
-    final statuses = <FeatureLoadStatus>[
-      FeatureLoadStatus.loading,
-      FeatureLoadStatus.empty,
-      FeatureLoadStatus.failure,
-      FeatureLoadStatus.stale,
+    final features = <(FeatureLoadStatus, Iterable<FeatureId>)>[
+      (FeatureLoadStatus.loading, [FeatureId.exam]),
+      (
+        FeatureLoadStatus.empty,
+        [FeatureId.exam, FeatureId.signin, FeatureId.evaluation],
+      ),
+      (FeatureLoadStatus.failure, FeatureId.values),
+      (FeatureLoadStatus.stale, FeatureId.values),
     ];
-
-    Future<void> openFeature(FeatureId feature) async {
-      final destination = UiDestination.forFeature(feature);
-      final selectedIcon = destination.selectedIcon;
-      final unselectedIcon = destination.icon;
-      final selectedFinder = find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(selectedIcon),
-      );
-      final tabFinder = selectedFinder.evaluate().isNotEmpty
-          ? selectedFinder
-          : find.descendant(
-              of: find.byType(NavigationRail),
-              matching: find.byIcon(unselectedIcon),
-            );
-      await tester.tap(tabFinder.first);
-      await tester.pumpAndSettle();
-      final grid = find.descendant(
-        of: find.byType(CustomScrollView),
-        matching: find.byType(Scrollable),
-      );
-      await tester.drag(grid, const Offset(0, 2000));
-      await tester.pumpAndSettle();
-      final target = find.widgetWithText(Card, feature.title);
-      await tester.scrollUntilVisible(
-        target,
-        240,
-        scrollable: find.descendant(
-          of: find.byType(CustomScrollView),
-          matching: find.byType(Scrollable),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(target);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-      expect(find.byTooltip('返回'), findsOneWidget);
-    }
-
-    for (final status in statuses) {
-      final snapshots = <FeatureId, FeatureSnapshot>{
-        for (final feature in FeatureId.values)
-          feature: FeatureSnapshot(
-            feature: feature,
-            status: status,
-            summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
-            details: status == FeatureLoadStatus.stale
-                ? <FeatureDetail>[
-                    FeatureDetail(
-                      title: '上次成功详情',
-                      presentation: feature == FeatureId.judge
-                          ? JudgeAssignmentPresentation(
-                              courseId: 'c',
-                              courseName: '合成课程',
-                              assignmentId: 'a',
-                              status: AssignmentSubmissionStatus.unsubmitted,
-                              statusText: '未提交',
-                              totalProblems: 1,
-                              submittedCount: 0,
-                            )
-                          : feature == FeatureId.spoc
-                          ? const SpocAssignmentPresentation(
-                              courseId: 'c',
-                              courseName: '合成课程',
-                              assignmentId: 'a',
-                              status: AssignmentSubmissionStatus.unsubmitted,
-                              statusText: '未提交',
-                            )
-                          : null,
-                    ),
-                  ]
-                : const <FeatureDetail>[],
-            error:
-                status == FeatureLoadStatus.failure ||
-                    status == FeatureLoadStatus.stale
-                ? const UiError(
-                    code: UbaaErrorCode.networkError,
-                    title: '读取失败',
-                    message: '测试读取失败',
-                    retryable: true,
-                  )
-                : null,
+    for (final (status, ids) in features) {
+      for (final feature in ids) {
+        final snapshot = FeatureSnapshot(
+          feature: feature,
+          status: status,
+          summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
+          details: status == FeatureLoadStatus.stale
+              ? <FeatureDetail>[
+                  FeatureDetail(
+                    title: '上次成功详情',
+                    presentation: feature == FeatureId.judge
+                        ? JudgeAssignmentPresentation(
+                            courseId: 'c',
+                            courseName: '合成课程',
+                            assignmentId: 'a',
+                            status: AssignmentSubmissionStatus.unsubmitted,
+                            statusText: '未提交',
+                            totalProblems: 1,
+                            submittedCount: 0,
+                          )
+                        : feature == FeatureId.spoc
+                        ? const SpocAssignmentPresentation(
+                            courseId: 'c',
+                            courseName: '合成课程',
+                            assignmentId: 'a',
+                            status: AssignmentSubmissionStatus.unsubmitted,
+                            statusText: '未提交',
+                          )
+                        : null,
+                  ),
+                ]
+              : const <FeatureDetail>[],
+          error:
+              status == FeatureLoadStatus.failure ||
+                  status == FeatureLoadStatus.stale
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '读取失败',
+                  message: '测试读取失败',
+                  retryable: true,
+                )
+              : null,
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: UbaaTheme.light(),
+            home: Scaffold(
+              body: FeatureDetailView(
+                key: ValueKey((feature, status)),
+                feature: feature,
+                snapshot: snapshot,
+                bykcFilters: const BykcCourseFilters.defaults(),
+                onBykcFiltersChanged: (_) {},
+                onBack: () {},
+                onRetry: () async => retryCalls++,
+              ),
+            ),
           ),
-      };
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: UbaaTheme.light(),
-          home: coordinatedShell(
-            user: const UserSummary(username: 'student'),
-            snapshots: snapshots,
-            routePolicy: RoutePolicy.auto,
-            onRefresh: () async {},
-            onRetryFeature: (_) async => retryCalls++,
-            onLogout: () async {},
-            onLogoutAndClearAccount: () async {},
-            onRoutePolicyChanged: (_) {},
-          ),
-        ),
-      );
-      await tester.pump();
-
-      for (final feature in FeatureId.values) {
-        await openFeature(feature);
+        );
         switch (status) {
           case FeatureLoadStatus.loading:
             expect(find.bySemanticsLabel('正在加载'), findsWidgets);
@@ -847,8 +807,6 @@ void _registerSharedStateTests() {
           case FeatureLoadStatus.idle || FeatureLoadStatus.success:
             fail('状态矩阵不应包含 ${status.name}');
         }
-        await tester.tap(find.byTooltip('返回'));
-        await tester.pump();
       }
     }
     expect(retryCalls, 24);

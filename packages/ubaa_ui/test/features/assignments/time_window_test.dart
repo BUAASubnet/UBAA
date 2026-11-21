@@ -9,71 +9,89 @@ import 'package:ubaa_ui/src/common/tag.dart';
 import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
-  for (final sample in [
-    // (时, 分, 可扫码, 可直接签到)：二维码课前 10 分钟到下课，直接签到课前 5 分钟到上课后 30 分钟。
-    (7, 49, false, false),
-    (7, 50, true, false),
-    (7, 54, true, false),
-    (7, 55, true, true),
-    (8, 29, true, true),
-    (8, 30, true, false),
-    (9, 39, true, false),
-    (9, 40, false, false),
-  ]) {
-    for (final done in [false, true]) {
-      testWidgets(
-        '签到时间窗 ${sample.$1}:${sample.$2} 已签到=$done',
-        (tester) => withClock(
-          Clock.fixed(DateTime.utc(2026, 10, 28, sample.$1 - 8, sample.$2)),
-          () async {
-            final reads = <(String, Duration)>[];
-            final checks = <String>[];
-            await tester.pumpWidget(
-              _signinCard(
-                signed: done,
-                fetch: (scheduleId, offset) async {
-                  reads.add((scheduleId, offset));
-                  return '合成二维码';
-                },
-                check: (scheduleId) async {
-                  checks.add(scheduleId);
-                  return false;
-                },
-              ),
-            );
-            final button = find.widgetWithText(FilledButton, '签到');
-            final qrButton = find.byTooltip('签到二维码');
-            if (sample.$4 && !done) {
-              expect(tester.widget<FilledButton>(button).enabled, isTrue);
-            } else {
-              expect(button, findsNothing);
-            }
-            expect(
-              find.text('07:55 起可签'),
-              sample.$3 && sample.$1 == 7 && !sample.$4 && !done
-                  ? findsOneWidget
-                  : findsNothing,
-            );
-            expect(qrButton, sample.$3 ? findsWidgets : findsNothing);
-            if (done) {
-              expect(
-                tester.widget<UiTag>(find.byType(UiTag)).tone,
-                UiTagTone.primary,
-              );
-            }
-            if (sample.$3) {
-              await tester.tap(qrButton);
-              await tester.pumpAndSettle();
-              expect(find.byType(SigninQrSheet), findsWidgets);
-              expect(reads, [('课次', Duration.zero)]);
-              await tester.pump(const Duration(seconds: 3));
-              expect(checks, done ? isEmpty : ['课次']);
-            }
-            await tester.pumpWidget(const SizedBox());
-          },
-        ),
+  test('签到二维码与直接签到时间窗保留八个分钟边界', () {
+    const course = SigninPresentation(
+      courseId: '合成课程',
+      classBeginTime: '08:00',
+      classEndTime: '09:40',
+    );
+    for (final (hour, minute, phase, canSubmit) in [
+      (7, 49, SigninPhase.upcoming, false),
+      (7, 50, SigninPhase.open, false),
+      (7, 54, SigninPhase.open, false),
+      (7, 55, SigninPhase.open, true),
+      (8, 29, SigninPhase.open, true),
+      (8, 30, SigninPhase.open, false),
+      (9, 39, SigninPhase.open, false),
+      (9, 40, SigninPhase.ended, false),
+    ]) {
+      final window = signinPhase(course, DateTime(2026, 10, 28, hour, minute));
+      expect(
+        (window.phase, window.submitOpen),
+        (phase, canSubmit),
+        reason: '$hour:$minute',
       );
+      expect(window.opensAt, DateTime(2026, 10, 28, 7, 50));
+      expect(window.submitOpensAt, DateTime(2026, 10, 28, 7, 55));
     }
+  });
+
+  for (final (hour, minute, qrOpen, canSubmit, done, openSheet) in [
+    (7, 49, false, false, false, false),
+    (7, 50, true, false, false, false),
+    (7, 55, true, true, false, true),
+    (8, 29, true, false, true, true),
+  ]) {
+    testWidgets(
+      '签到入口 $hour:$minute 已签到=$done',
+      (tester) => withClock(
+        Clock.fixed(DateTime.utc(2026, 10, 28, hour - 8, minute)),
+        () async {
+          final reads = <(String, Duration)>[];
+          final checks = <String>[];
+          await tester.pumpWidget(
+            _signinCard(
+              signed: done,
+              fetch: (scheduleId, offset) async {
+                reads.add((scheduleId, offset));
+                return '合成二维码';
+              },
+              check: (scheduleId) async {
+                checks.add(scheduleId);
+                return false;
+              },
+            ),
+          );
+          final button = find.widgetWithText(FilledButton, '签到');
+          final qrButton = find.byTooltip('签到二维码');
+          if (canSubmit) {
+            expect(tester.widget<FilledButton>(button).enabled, isTrue);
+          } else {
+            expect(button, findsNothing);
+          }
+          expect(
+            find.text('07:55 起可签'),
+            qrOpen && hour == 7 && !canSubmit ? findsOneWidget : findsNothing,
+          );
+          expect(qrButton, qrOpen ? findsOneWidget : findsNothing);
+          if (done) {
+            expect(
+              tester.widget<UiTag>(find.byType(UiTag)).tone,
+              UiTagTone.primary,
+            );
+          }
+          if (openSheet) {
+            await tester.tap(qrButton);
+            await tester.pumpAndSettle();
+            expect(find.byType(SigninQrSheet), findsWidgets);
+            expect(reads, [('课次', Duration.zero)]);
+            await tester.pump(const Duration(seconds: 3));
+            expect(checks, done ? isEmpty : ['课次']);
+          }
+          await tester.pumpWidget(const SizedBox());
+        },
+      ),
+    );
   }
   testWidgets(
     '缺少排课 ID 时二维码不可用且直接签到不可点',

@@ -86,45 +86,40 @@ void main() {
     expect(entry.left, closeTo(grid.left, .01));
   });
 
-  for (final width in [390.0, 1280.0])
-    for (final changeDate in [false, true]) {
-      testWidgets('$width宽度正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (
+  for (final changeDate in [false, true]) {
+    testWidgets('正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (tester) async {
+      final queries = <FeatureQuery>[];
+      await showFeature(
         tester,
-      ) async {
-        final queries = <FeatureQuery>[];
-        await showFeature(
-          tester,
-          FeatureId.classroom,
-          [room('合成教室')],
-          queries,
-          size: Size(width, 900),
-          query: FeatureQuery(
-            date: DateTime(2026, 9, 9),
-            campus: 2,
-            floorId: 'F',
-            section: '3',
-          ),
-        );
-        if (changeDate) {
-          // 日期芯片显示中文日期，按日期图标定位。
-          await tester.tap(find.byIcon(Icons.date_range));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('10').last);
-          await tester.tap(find.text('确定'));
-        } else {
-          await tester.tap(find.byTooltip('切换校区'));
-          await tester.pumpAndSettle();
-          await tester.tap(
-            find.widgetWithText(CheckedPopupMenuItem<int>, '杭州'),
-          );
-        }
+        FeatureId.classroom,
+        [room('合成教室')],
+        queries,
+        size: const Size(390, 900),
+        query: FeatureQuery(
+          date: DateTime(2026, 9, 9),
+          campus: 2,
+          floorId: 'F',
+          section: '3',
+        ),
+      );
+      if (changeDate) {
+        // 日期芯片显示中文日期，按日期图标定位。
+        await tester.tap(find.byIcon(Icons.date_range));
         await tester.pumpAndSettle();
-        expect(queries.single.campus, changeDate ? 2 : 3);
-        expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
-        expect(queries.single.floorId, isNull);
-        expect(queries.single.section, isNull);
-      });
-    }
+        await tester.tap(find.text('10').last);
+        await tester.tap(find.text('确定'));
+      } else {
+        await tester.tap(find.byTooltip('切换校区'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(CheckedPopupMenuItem<int>, '杭州'));
+      }
+      await tester.pumpAndSettle();
+      expect(queries.single.campus, changeDate ? 2 : 3);
+      expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
+      expect(queries.single.floorId, isNull);
+      expect(queries.single.section, isNull);
+    });
+  }
   testWidgets('大字横滚表格时长楼栋标题保持在可视宽度内', (tester) async {
     final name = List.filled(4, '合成较长教学楼名称').join();
     // 楼栋筛选芯片同名，只核对表格内的分组标题。

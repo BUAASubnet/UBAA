@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
@@ -60,22 +61,24 @@ const _qrLead = Duration(minutes: 10);
 const _submitLead = Duration(minutes: 5);
 const _submitAfterBegin = Duration(minutes: 30);
 
-enum _SigninPhase { open, upcoming, ended, unknown }
+@visibleForTesting
+enum SigninPhase { open, upcoming, ended, unknown }
 
 /// [phase] 按二维码时间窗；[submitOpen] 为此刻能否直接签到，
 /// [submitOpensAt] 为直接签到开始时间。
+@visibleForTesting
 ({
-  _SigninPhase phase,
+  SigninPhase phase,
   DateTime? opensAt,
   DateTime? submitOpensAt,
   bool submitOpen,
 })
-_signinPhase(SigninPresentation p, DateTime now) {
+signinPhase(SigninPresentation p, DateTime now) {
   final begin = uiParseCampusTime(p.classBeginTime, day: now);
   final end = uiParseCampusTime(p.classEndTime, day: now);
   if (begin == null || end == null) {
     return (
-      phase: _SigninPhase.unknown,
+      phase: SigninPhase.unknown,
       opensAt: null,
       submitOpensAt: null,
       submitOpen: false,
@@ -85,16 +88,16 @@ _signinPhase(SigninPresentation p, DateTime now) {
   final submitOpens = begin.subtract(_submitLead);
   final submitCloses = begin.add(_submitAfterBegin);
   final phase = now.isBefore(opens)
-      ? _SigninPhase.upcoming
+      ? SigninPhase.upcoming
       : now.isBefore(end)
-      ? _SigninPhase.open
-      : _SigninPhase.ended;
+      ? SigninPhase.open
+      : SigninPhase.ended;
   return (
     phase: phase,
     opensAt: opens,
     submitOpensAt: submitOpens,
     submitOpen:
-        phase == _SigninPhase.open &&
+        phase == SigninPhase.open &&
         !now.isBefore(submitOpens) &&
         now.isBefore(submitCloses),
   );
@@ -145,11 +148,11 @@ class _SigninListState extends State<_SigninList> {
     final now = uiCampusNow();
     int rank(FeatureDetail d) {
       final p = d.presentation! as SigninPresentation;
-      return switch (_signinPhase(p, now).phase) {
-        _SigninPhase.open => p.signStatus == 1 ? 1 : 0,
-        _SigninPhase.unknown => 1,
-        _SigninPhase.upcoming => 2,
-        _SigninPhase.ended => 3,
+      return switch (signinPhase(p, now).phase) {
+        SigninPhase.open => p.signStatus == 1 ? 1 : 0,
+        SigninPhase.unknown => 1,
+        SigninPhase.upcoming => 2,
+        SigninPhase.ended => 3,
       };
     }
 
@@ -203,12 +206,12 @@ class _SigninCourseCard extends StatelessWidget {
     final allowed =
         action?.eligibility == ActionEligibility.allowed &&
         scheduleId.isNotEmpty;
-    final window = _signinPhase(p, now);
-    final canSignNow = !done && window.phase == _SigninPhase.open;
+    final window = signinPhase(p, now);
+    final canSignNow = !done && window.phase == SigninPhase.open;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final fetchQr = onFetchSigninQr;
-    final inWindow = window.phase == _SigninPhase.open;
+    final inWindow = window.phase == SigninPhase.open;
     final canShowQr = inWindow && fetchQr != null && scheduleId.isNotEmpty;
     void openQr() {
       final check = onCheckSigninStatus;
@@ -267,8 +270,8 @@ class _SigninCourseCard extends StatelessWidget {
             ],
           )
         : switch (window.phase) {
-            _SigninPhase.upcoming => UiTag('${uiClock(window.opensAt!)} 起可签'),
-            _SigninPhase.ended => const UiTag('未签到'),
+            SigninPhase.upcoming => UiTag('${uiClock(window.opensAt!)} 起可签'),
+            SigninPhase.ended => const UiTag('未签到'),
             _ => null,
           };
     final time =
@@ -309,7 +312,7 @@ class _SigninCourseCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: window.phase == _SigninPhase.ended && !done
+                              color: window.phase == SigninPhase.ended && !done
                                   ? scheme.onSurfaceVariant
                                   : null,
                             ),
