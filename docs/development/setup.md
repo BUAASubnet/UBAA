@@ -1,6 +1,6 @@
 # 开发环境设置
 
-本页供准备本机开发环境的贡献者使用，说明需要的工具与版本、安装步骤和全部 `.env` 变量。只想尽快运行 App 时，先看[从零开始运行 App](getting-started.md)。除另有说明外，命令都在仓库根目录执行；Dart/Flutter 的调用规则见 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)。
+本页供准备本机开发环境的贡献者使用，说明需要的工具与版本、安装步骤和全部 `.env` 变量。只想尽快运行 App 时，先看[从零开始运行 App](getting-started.md)。除另有说明外，命令都在仓库根目录执行；工具链调用规则见[工具链调用规则](#工具链调用规则)。
 
 ## 工具与版本
 
@@ -44,6 +44,13 @@ just setup
 `just setup` 按 `versions.env` 克隆锁定的 Flutter，安装 Rust 工具链、cargo-expand、FRB codegen 和 cargo-deny，再准备 Python 质量环境、Cargo 和 Dart 依赖。已符合锁定版本的工具会跳过。已有 SDK 版本不符时，命令会停止并保留该 SDK。手工安装可参考 [setup.sh](../../scripts/bootstrap/setup.sh)。
 
 之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
+
+## 工具链调用规则
+
+- Dart/Flutter 命令一律用 `just dart`、`just flutter`，OHOS 用 `just flutter-ohos`。命令中不写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。
+- just 入口和直接执行的项目脚本，通过 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`；已导出的同名环境变量优先。
+- 签名参数按平台和构建模式整组从进程环境或 `.env` 中选一个来源，缺项不得从另一来源补齐。
+- 机密只交给需要它的入口：普通命令只加载非机密键；Android/OHOS 签名只交给对应平台的 SDK 构建命令；学校账号只交给显式的真实验证入口；SSH 部署密钥只交给受保护环境中的部署和分发步骤；云盘发布账号仅由服务器发布程序读取，不能进入 CI。
 
 后续维护：
 
