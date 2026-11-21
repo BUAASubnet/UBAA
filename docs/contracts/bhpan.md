@@ -2,7 +2,7 @@
 
 本合同供修改北航云盘功能的开发者使用，定义云盘在 Core、公共命令、Bridge 与 GUI 之间的授权、路线、写入、传输和缓存边界。
 
-产品安排见[北航云盘设计](../design/bhpan.md)，逐操作证据见[来源对照](../protocol/parity/bhpan.md)，实际验收结果见[状态页](../project/status.md#功能)。
+产品安排见[北航云盘设计](../design/bhpan.md)，逐操作证据见[来源对照](../protocol/parity/bhpan.md)，实际验收结果见[状态页](../project/status.md#功能与平台)。
 
 ## 范围与所有权
 
