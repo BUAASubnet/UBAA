@@ -63,6 +63,15 @@ class ChangedChecksTest(unittest.TestCase):
         commands = gates.commands(self.plan('packages/ubaa_ui/lib/src/example.dart'))
         self.assertIn(['just', 'module-check'], commands)
 
+    def test_maintenance_gate_follows_artifact_and_permission_inputs(self):
+        command = ['bash', './scripts/tests/maintenance-gates.sh']
+        for path in ('scripts/release/verify-flutter-artifact.sh',
+                     'apps/ubaa_flutter/macos/Runner/Release.entitlements',
+                     'scripts/release/platforms/apple_signing.py'):
+            with self.subTest(path=path):
+                self.assertIn(command, gates.commands(self.plan(path)))
+        self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
+
     def test_unknown_path_keeps_full_mode(self):
         self.assertTrue(self.plan('unexpected/file')['full'])
 

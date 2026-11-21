@@ -211,6 +211,12 @@ DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'crates/ubaa_command/', 'tool
                   'crates/ubaa_core/', 'crates/ubaa_flutter_bridge/', 'crates/ubaa_test_support/',
                   *OHOS, *(folder + '/' for folder in PACKAGES.values()))
 SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.mjs', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
+MAINTENANCE_INPUTS = {
+    'justfile', 'scripts/check/shell.sh', 'scripts/tests/maintenance-gates.sh',
+    'scripts/build/flutter.sh', 'scripts/release/verify-flutter-artifact.sh',
+    'scripts/release/macos-entitlements.sh', 'scripts/release/platforms/apple_signing.py',
+    'scripts/release/platforms/ohos_signing.mjs', 'scripts/tools/versions.env',
+}
 APP_SERVICE_INPUTS = {
     'docs/contracts/app-service.schema.json', 'docs/contracts/app-service.md',
     'scripts/check/contract-versions.sh', 'scripts/tests/checks/contract_versions_test.py',
@@ -249,7 +255,7 @@ def select_checks(root, paths, mode='commit', previous=None):
     selected, production = set(), set()
     rust_paths, risk_paths, native_checks = set(), set(), set()
     rust_crates = set()
-    scripts = docs = site = app_service = privacy_policy = False
+    scripts = docs = site = app_service = privacy_policy = maintenance = False
     app_service_content = False
     full = mode == 'full'
     codegen = protocol = False
@@ -312,6 +318,8 @@ def select_checks(root, paths, mode='commit', previous=None):
             native_checks.update((suite, platform) for platform in platform_parts or {host_platform}
                                  for suite in ('synthetic/cache/bridge_test.dart', 'synthetic/app/smoke_test.dart'))
         platform_security = Path(path).suffix == '.entitlements' or filename in {'AndroidManifest.xml', 'Info.plist'}
+        maintenance |= (platform_security or path in MAINTENANCE_INPUTS
+                        or path.startswith(('scripts/release/platforms/', '.github/actions/shellcheck/')))
         if (path.startswith(HIGH_RISK) and not generated_binding) or feature_protocol or platform_security:
             risk_paths.add(path)
         if ohos:
@@ -387,6 +395,7 @@ def select_checks(root, paths, mode='commit', previous=None):
             'rust_workspace': bool(rust_paths & {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}),
             'scripts': scripts, 'docs': docs, 'full': full, 'risk': risk and not full,
             'cargo_lock': scripts or any(path.endswith('.md') for path in paths),
+            'maintenance': maintenance,
             'native': [['just', 'integration-test']] if full else [
                 ['just', 'integration-test', f'suite={suite}', f'platform={platform}']
                 for suite, platform in sorted(native_checks)],
@@ -418,6 +427,8 @@ def commands(plan):
             result.append(['just', 'docs-link-check'])
         if plan['cargo_lock']:
             result.append(['just', 'cargo-lock-check'])
+        if plan['maintenance']:
+            result.append(['bash', './scripts/tests/maintenance-gates.sh'])
         if plan['privacy_policy']:
             result.append(['just', 'privacy-policy-check'])
     if plan['packages']:

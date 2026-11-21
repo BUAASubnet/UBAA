@@ -96,7 +96,6 @@ _script-contracts:
     just script-test
     just integration-check
     bash ./scripts/tests/flutter-toolchains.sh
-    bash ./scripts/tests/maintenance-gates.sh
     just layout-check
     just module-check
     just contract-version-check
@@ -108,6 +107,7 @@ _script-contracts:
     git diff --check
 
 _script-specialized:
+    bash ./scripts/tests/maintenance-gates.sh
     just cargo-lock-check
 
 _rust-shell-contracts:
