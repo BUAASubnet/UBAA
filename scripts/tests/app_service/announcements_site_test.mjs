@@ -3,7 +3,6 @@ import { spawnSync } from "node:child_process";
 import {
   cpSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -12,6 +11,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import { createTestTempDirectory } from "../test_tmp.cjs";
 const root = resolve(import.meta.dirname, "../../..");
 const fixtures = join(root, "fixtures/app_service/announcements");
 const filename = "2000-01-03-001.md";
@@ -36,9 +36,7 @@ function buildSite(site, out) {
 }
 
 test("VitePress 构建的两页显示真实夹具正文并按时间筛选", () => {
-  const parent = join(root, ".ubaa_local/app_service");
-  mkdirSync(parent, { recursive: true, mode: 0o700 });
-  const work = mkdtempSync(join(parent, "content-test-"));
+  const work = createTestTempDirectory("app_service_announcements_site");
   try {
     const site = join(work, "docs/site");
     mkdirSync(site, { recursive: true });

@@ -302,7 +302,7 @@ def prepare():
 
 @contextmanager
 def local_worker(name):
-    parent = Path(os.environ.get("UBAA_APP_SERVICE_E2E_DIR", ROOT / ".ubaa_local/app_service"))
+    parent = Path(os.environ.get("UBAA_TEST_TMP") or ROOT / "target/test_tmp") / "app_service_http_e2e"
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"{name}_e2e_", dir=parent) as temporary:
         directory = Path(temporary)
@@ -316,7 +316,7 @@ def local_worker(name):
             port = probe.getsockname()[1]
         database = directory / 'postgres'
         run([str(binary / 'initdb'), '-D', str(database), '-A', 'trust', '-U', 'postgres', '--no-locale', '-E', 'UTF8'], cwd=SERVICE, capture=True)
-        run([str(binary / 'pg_ctl'), '-D', str(database), '-l', str(directory / 'postgres.log'), '-o', f'-h {LOOPBACK} -p {port} -k {directory}', '-w', 'start'], cwd=SERVICE, capture=True)
+        run([str(binary / 'pg_ctl'), '-D', str(database), '-l', str(directory / 'postgres.log'), '-o', f"-h {LOOPBACK} -p {port} -k ''", '-w', 'start'], cwd=SERVICE, capture=True)
         try:
             env = {key: value for key, value in os.environ.items() if key not in ('UBAA_TEST_USERNAME', 'UBAA_TEST_PASSWORD', 'CLOUDFLARE_API_TOKEN')}
             env.update(DATABASE_URL=f'postgresql://postgres@{LOOPBACK}:{port}/postgres', USER_KEY_SECRET=secret,

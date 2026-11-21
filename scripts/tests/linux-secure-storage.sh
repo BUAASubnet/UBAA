@@ -25,8 +25,10 @@ if [[ ${1:-} == --keyring-session ]]; then
     --dart-define=UBAA_SECURE_STORAGE_AVAILABLE=true \
     --dart-define=UBAA_SYNTHETIC_SECRET_SERVICE=true
 fi
-mkdir -p "$repo_root/.ubaa_local/linux_secure_storage"
-storage_test_dir=$(mktemp -d "$repo_root/.ubaa_local/linux_secure_storage/session_XXXXXX")
+test_tmp=${UBAA_TEST_TMP:-"$repo_root/target/test_tmp"}/linux_secure_storage
+mkdir -p "$test_tmp"
+test_tmp=$(cd "$test_tmp" && pwd)
+storage_test_dir=$(mktemp -d "$test_tmp/run_XXXXXX")
 export UBAA_SYNTHETIC_SECRET_SERVICE_ROOT="$storage_test_dir"
 trap 'rm -rf -- "$storage_test_dir"' EXIT
 export XDG_DATA_HOME="$storage_test_dir/data"

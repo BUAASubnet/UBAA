@@ -7,8 +7,10 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
-mkdir -p "$repo_root/.ubaa_local/live_launcher_tests"
-test_root=$(mktemp -d "$repo_root/.ubaa_local/live_launcher_tests/run.XXXXXX")
+test_tmp=${UBAA_TEST_TMP:-"$repo_root/target/test_tmp"}/live_launchers
+mkdir -p "$test_tmp"
+test_tmp=$(cd "$test_tmp" && pwd)
+test_root=$(mktemp -d "$test_tmp/run.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p "$test_root/tmp"
 export TMPDIR="$test_root/tmp"

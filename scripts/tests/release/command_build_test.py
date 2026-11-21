@@ -1,4 +1,5 @@
 """Linux 命令构建保留编译声明，并从纯 Dart Kernel 生成可执行文件。"""
+import os
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -13,7 +14,7 @@ spec.loader.exec_module(command)
 
 class CommandBuildTest(unittest.TestCase):
     def test_Kernel保留发布声明且可执行文件不依赖中间产物(self):
-        private = ROOT / '.ubaa_local/command_build_tests'
+        private = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'command_build'
         private.mkdir(parents=True, exist_ok=True)
         for mode in ('debug', 'release'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(dir=private) as folder:

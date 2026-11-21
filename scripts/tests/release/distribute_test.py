@@ -25,7 +25,7 @@ def option(args, name):
 
 class DistributionTest(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / '.ubaa_local/release_draft/tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'distribute'
         parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.TemporaryDirectory(dir=parent)
         self.addCleanup(temporary.cleanup)
@@ -171,7 +171,7 @@ class HarmonyOSArtifactsTest(unittest.TestCase):
             'ohos_artifacts', ROOT / 'scripts/release/platforms/ohos_artifacts.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        parent = ROOT / '.ubaa_local/release_hap/tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'distribute'
         parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=parent) as temporary:
             root = Path(temporary)

@@ -1,4 +1,5 @@
 """在提交 Apple 前检查源配置和导出 IPA 的相册用途说明。"""
+import os
 import importlib.util
 from pathlib import Path
 import plistlib
@@ -14,7 +15,7 @@ spec.loader.exec_module(privacy)
 
 class PrivacyTest(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / '.ubaa_local/ios_privacy/tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'ios_privacy'
         parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.TemporaryDirectory(dir=parent)
         self.addCleanup(temporary.cleanup)

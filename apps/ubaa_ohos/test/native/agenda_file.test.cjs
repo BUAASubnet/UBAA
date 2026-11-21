@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {createTestTempDirectory} = require('../../../../scripts/tests/test_tmp.cjs');
 const ts = require(process.env.UBAA_TYPESCRIPT);
 const root = path.resolve(__dirname, '../../../..');
 const sourcePath = path.join(root, 'apps/ubaa_ohos/ohos/entry/src/main/ets/platform/AgendaFilePlugin.ets');
@@ -11,9 +12,15 @@ const compiled = ts.transpileModule(fs.readFileSync(sourcePath, 'utf8'), {
   compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021},
 }).outputText;
 function fixture(t, mode = 'local') {
-  const parent = path.join(root, '.ubaa_local/tests/ohos_files');
-  fs.mkdirSync(parent, {recursive: true, mode: 0o700});
-  const directory = fs.mkdtempSync(path.join(parent, 'save_'));
+  const directory = createTestTempDirectory('ubaa_ohos_agenda_file');
+  let plugin;
+  t.after(() => {
+    try {
+      plugin?.onDetachedFromEngine({});
+    } finally {
+      fs.rmSync(directory, {recursive: true, force: true});
+    }
+  });
   const destination = path.join(directory, '报告.txt');
   const host = mode === 'media' ? 'media' : 'docs';
   const uri = 'file://' + host + encodeURI(destination) + (mode === 'remote' ? '?networkid=synthetic' : '');
@@ -53,9 +60,8 @@ function fixture(t, mode = 'local') {
     if (name === '@ohos/flutter_ohos') return {MethodChannel: class {setMethodCallHandler() {}}};
     throw Error('未声明的平台依赖');
   }});
-  const plugin = new moduleValue.exports.default({cacheDir: directory});
+  plugin = new moduleValue.exports.default({cacheDir: directory});
   plugin.onAttachedToEngine({getBinaryMessenger() {return {};}});
-  t.after(() => {plugin.onDetachedFromEngine({});fs.rmSync(directory, {recursive: true, force: true});});
   async function invoke(method, args) {
     return new Promise((resolve, reject) => plugin.onMethodCall({method, args: new Map(Object.entries(args))}, {
       success(value) {resolve(value);},

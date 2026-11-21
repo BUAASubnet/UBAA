@@ -1,4 +1,5 @@
 """服务器下载完整性、构建号不可覆盖和分发完成条件。"""
+import os
 import hashlib
 import importlib.util
 import io
@@ -17,7 +18,7 @@ spec.loader.exec_module(deploy)
 
 class DeployTest(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / '.ubaa_local/server_tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'server_deploy'
         parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.TemporaryDirectory(dir=parent)
         self.addCleanup(temporary.cleanup)
