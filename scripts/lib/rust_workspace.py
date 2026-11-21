@@ -12,7 +12,7 @@ def members(root):
     return {package['name']: package for package in metadata['packages'] if package['id'] in identities}
 
 
-def affected(root, packages, seeds):
+def affected(packages, seeds):
     affected_names = set(seeds)
     if unknown := affected_names - packages.keys():
         raise ValueError('未登记的 Rust crate：' + '、'.join(sorted(unknown)))

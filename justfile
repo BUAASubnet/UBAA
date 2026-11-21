@@ -55,10 +55,8 @@ refs-bootstrap:
 fmt:
     cargo fmt --all -- --check
 
-[env("CARGO_INCREMENTAL", "0")]
 test:
-    just core-test-contract
-    cargo test --locked --workspace --exclude ubaa-core
+    cargo test --locked --workspace
 
 # Core 单元/集成只执行一次；默认配置保留编译、文档与关闭态负向合同。
 [env("CARGO_INCREMENTAL", "0")]
@@ -68,9 +66,8 @@ core-test-contract:
     cargo test --locked -p ubaa-core --features test-contract --all-targets
     bash ./scripts/tests/facade-test-contract.sh
 
-# 日常反馈：可用 base=origin/ubaa2 覆盖本分支已提交改动；默认包含全部本地改动。
+# 默认按改动选择提交检查；mode=full 显式执行完整验收。
 [positional-arguments]
-[env("CARGO_INCREMENTAL", "0")]
 check-changed *args:
     @python3 scripts/lib/recipe.py check-changed "$@"
 
@@ -78,10 +75,17 @@ check-changed *args:
 check-plan *args:
     @python3 scripts/lib/recipe.py check-plan "$@"
 
+[positional-arguments]
+check *crates:
+    cargo fmt --all -- --check
+    bash scripts/build/rust-workspace.sh clippy "$@"
+    bash scripts/build/rust-workspace.sh test "$@"
+
+[positional-arguments]
 [env("CARGO_INCREMENTAL", "0")]
-check:
-    just shell-check
-    just _rust-shell-contracts
+check-risk *crates:
+    just core-test-contract
+    bash scripts/build/rust-workspace.sh risk "$@"
 
 # 维护验收和 CI 使用的严格入口；ShellCheck 缺失或版本不是 0.11.0 时立即失败。
 [env("CARGO_INCREMENTAL", "0")]
@@ -225,7 +229,6 @@ flutter-codegen-check:
     bash ./scripts/check/flutter-codegen.sh
 
 # 固定官方 Flutter SDK 下统一解析依赖、一次格式与静态分析，再逐包测试。
-[env("CARGO_INCREMENTAL", "0")]
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 

@@ -61,7 +61,8 @@ class RecipeArgsTest(unittest.TestCase):
 
     def test_missing_duplicate_unknown_and_extra_arguments_fail(self):
         for name, args in [('flutter-test', []), ('flutter-build', ['platform=linux', 'platform=macos']),
-                           ('check-plan', ['unknown=value']), ('flutter-build', ['a','b','c'])]:
+                           ('check-plan', ['unknown=value']), ('check-changed', ['mode=push']),
+                           ('flutter-build', ['a','b','c'])]:
             with self.subTest(name=name, args=args), self.assertRaises(ValueError):
                 recipe.values(name, args)
 

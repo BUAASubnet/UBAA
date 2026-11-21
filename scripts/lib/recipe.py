@@ -42,6 +42,8 @@ def values(name, arguments):
     if any(value is None for value in result):
         raise ValueError('缺少必填参数：' + '、'.join(key for key, default in spec.items()
                                               if default is None and key not in provided))
+    if name in {'check-plan', 'check-changed'} and result[1] not in {'commit', 'full'}:
+        raise ValueError('检查模式只接受 commit 或 full')
     return result
 
 

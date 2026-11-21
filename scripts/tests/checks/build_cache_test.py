@@ -10,19 +10,21 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 CACHE = ROOT / 'scripts/build/cache.py'
-# 一次性门禁不复用增量缓存，留着只会按 feature 组合堆积。
-GATES = {'test', 'core-test-contract', 'check', 'check-strict', 'check-changed',
-         'flutter-codegen-check', 'flutter-check', 'integration-test', 'ohos-check'}
+# 多 feature 组合和一次性重建门禁关闭增量编译；日常入口复用本地缓存。
+INCREMENTAL_DISABLED = {'core-test-contract', 'check-risk', 'check-strict',
+                        'flutter-codegen-check', 'integration-test', 'ohos-check'}
+INCREMENTAL_ENABLED = {'test', 'check', 'check-changed', 'flutter-check'}
 
 
 class GateCacheTest(unittest.TestCase):
     def test_门禁入口关闭增量编译(self):
         dump = json.loads(subprocess.check_output(
             ['just', '--justfile', str(ROOT / 'justfile'), '--dump', '--dump-format', 'json'], text=True))
-        for name in sorted(GATES):
+        for name in sorted(INCREMENTAL_DISABLED | INCREMENTAL_ENABLED):
             with self.subTest(recipe=name):
                 attributes = dump['recipes'][name]['attributes']
-                self.assertIn({'env': ['CARGO_INCREMENTAL', '0']}, attributes)
+                expected = name in INCREMENTAL_DISABLED
+                self.assertEqual({'env': ['CARGO_INCREMENTAL', '0']} in attributes, expected)
 
     def test_开发构建只保留行号调试信息(self):
         profile = tomllib.loads((ROOT / 'Cargo.toml').read_text()).get('profile', {})

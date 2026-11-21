@@ -157,12 +157,13 @@ PROTOCOL = tuple(CORE + path for path in (
     'internal/runtime/bearer.rs', 'internal/runtime/school_gate.rs', 'internal/runtime/request_batch.rs',
     'ports/reqwest_transport.rs', 'upstream/mod.rs', 'upstream/interactive_auth.rs',
     'facade/auth.rs', 'facade/auth/', 'facade/interactive_auth/', 'facade/required_recovery/',
-    'facade/routing.rs', 'facade/routing/', 'facade/write/', 'facade/agenda_sync/remote.rs',
+    'facade/routing.rs', 'facade/routing/', 'facade/write/', 'facade/read/write_readback.rs',
+    'facade/agenda_sync/remote.rs',
 ))
 FFI = (
     BRIDGE_SRC + 'api/', BRIDGE_SRC + 'api.rs', BRIDGE_SRC + 'lib.rs', BRIDGE_SRC + 'android_tls.rs',
     'packages/ubaa_bindings/lib/ubaa_bindings.dart', 'packages/ubaa_bindings/lib/src/',
-    'packages/ubaa_bindings/cargokit/', 'packages/ubaa_bindings/test/',
+    'packages/ubaa_bindings/cargokit/',
     *(f'packages/ubaa_bindings/{platform}/' for platform in ('android', 'ios', 'macos', 'linux', 'windows', 'ohos')),
 )
 HIGH_RISK = (
@@ -172,8 +173,10 @@ HIGH_RISK = (
         'internal/sqlite.rs', 'agenda/operations.rs', 'agenda/sqlite.rs', 'agenda/store.rs', 'agenda/sync/',
         'app_service/privacy.rs', 'app_service/queue.rs', 'app_service/sqlite.rs', 'app_service/upload.rs',
         'ports/reqwest_object.rs', 'features/libbook/service.rs', 'features/libbook/crypto.rs',
-        'facade/mod.rs', 'facade/client.rs', 'facade/client/readonly.rs', 'facade/client/operation_control.rs',
-        'facade/offline.rs', 'facade/shared_account/', 'facade/agenda_sync/', 'facade/schedule_import/mod.rs',
+        'facade/mod.rs', 'facade/client.rs', 'facade/client/app_service.rs', 'facade/client/observation.rs',
+        'facade/client/readonly.rs', 'facade/client/operation_control.rs',
+        'facade/offline.rs', 'facade/offline/grade_baseline.rs', 'facade/offline/refresh.rs',
+        'facade/shared_account/', 'facade/agenda_sync/', 'facade/schedule_import/mod.rs',
         'facade/academic_cache.rs', 'facade/bykc_cache.rs', 'facade/cgyy_cache.rs',
         'facade/evaluation_cache.rs', 'facade/home_cache.rs', 'facade/libbook_cache.rs',
         'facade/ygdk_cache.rs', 'facade/profile_cache/', 'facade/campus/cache.rs',
@@ -190,14 +193,13 @@ HIGH_RISK = (
         'services/session_recovery.dart',
     )),
     'packages/ubaa_ui/lib/src/write', 'packages/ubaa_ui/lib/src/app/shell_write.dart',
-    'packages/ubaa_ui/lib/src/write_callbacks.dart', 'packages/ubaa_ui/lib/src/app/cache_settings.dart',
+    'packages/ubaa_ui/lib/src/app/cache_settings.dart',
     'crates/ubaa_command/src/execute/', 'crates/ubaa_command/src/backend/',
     'crates/ubaa_command/src/command/', 'crates/ubaa_command/src/runtime/', 'crates/ubaa_command/src/agenda/',
     'crates/ubaa_command/src/io/input.rs', 'crates/ubaa_command/src/routing.rs',
     'tools/core_live/src/', 'scripts/live/', 'scripts/check/sensitive', 'scripts/lib/sensitive',
     'scripts/lib/environment.py', 'scripts/lib/live-features.sh', 'scripts/release/macos-entitlements.sh',
     'scripts/release/platforms/apple_signing.py', 'scripts/release/platforms/ohos_signing.mjs',
-    'packages/ubaa_app/lib/src/bridge/cache/account.dart',
     'Cargo.lock', 'pubspec.lock', 'rust-toolchain.toml', 'packages/ubaa_bindings/flutter_rust_bridge.yaml',
 )
 NATIVE_PARTS = {'android', 'ios', 'macos', 'linux', 'windows', 'ohos', 'native', 'cargokit'}
@@ -285,20 +287,16 @@ def select_checks(root, paths, mode='commit', previous=None):
             skip_codegen = False
             notes.add('无法可靠解析 Rust 依赖：执行完整验收。')
         rust_test = ('tests' in Path(path).parts or filename == 'tests.rs' or filename.endswith('_tests.rs'))
+        generated_binding = path.startswith('packages/ubaa_bindings/lib/src/rust/')
         codegen |= ((path.startswith('crates/ubaa_flutter_bridge/src/api/') and not rust_test)
                     or path in {'crates/ubaa_flutter_bridge/src/api.rs', 'crates/ubaa_flutter_bridge/src/lib.rs',
                                 'crates/ubaa_flutter_bridge/src/frb_generated.rs'}
-                    or path.startswith('packages/ubaa_bindings/lib/src/rust/')
+                    or generated_binding
                     or (filename in MANIFESTS and not skip_codegen))
         feature_protocol = (path.startswith(CORE + 'features/') and not rust_test
                             and filename in {'auth.rs', 'write.rs', 'upload.rs'})
         protocol |= feature_protocol or path.startswith(PROTOCOL)
-        ffi = path.startswith(FFI) and not rust_test
-        if (path.startswith(BRIDGE_SRC + 'api/') or path == BRIDGE_SRC + 'api.rs') and not rust_test:
-            selected.update(PACKAGES)
-        if path == 'packages/ubaa_bindings/flutter_rust_bridge.yaml':
-            selected.update(PACKAGES)
-            risk_paths.add(path)
+        ffi = path.startswith(FFI) and not rust_test and not generated_binding
         platform_parts = set(Path(path).parts) & (NATIVE_PARTS - {'ohos', 'native', 'cargokit'})
         if path.startswith(SECURE_STORAGE) and not ohos:
             if filename.startswith('linux_'):
@@ -313,7 +311,7 @@ def select_checks(root, paths, mode='commit', previous=None):
             native_checks.update((suite, platform) for platform in platform_parts or {host_platform}
                                  for suite in ('synthetic/cache/bridge_test.dart', 'synthetic/app/smoke_test.dart'))
         platform_security = Path(path).suffix == '.entitlements' or filename in {'AndroidManifest.xml', 'Info.plist'}
-        if path.startswith(HIGH_RISK) or feature_protocol or platform_security:
+        if (path.startswith(HIGH_RISK) and not generated_binding) or feature_protocol or platform_security:
             risk_paths.add(path)
         if ohos:
             continue
@@ -323,8 +321,7 @@ def select_checks(root, paths, mode='commit', previous=None):
             continue
         owner = next((name for name, folder in PACKAGES.items() if path.startswith(folder + '/')), None)
         if path == 'packages/ubaa_bindings/flutter_rust_bridge.yaml':
-            selected.update(PACKAGES)
-            risk_paths.add(path)
+            production.add('ubaa_bindings')
         elif owner:
             relative = path[len(PACKAGES[owner]) + 1:]
             if relative.startswith(('test/', 'integration_test/')):
@@ -354,17 +351,6 @@ def select_checks(root, paths, mode='commit', previous=None):
         elif path.startswith('fixtures/'):
             if not path.startswith('fixtures/app_service/'):
                 rust_paths.add('crates/ubaa_test_support/Cargo.toml')
-        elif path.startswith('apps/ubaa_flutter/'):
-            relative = path.removeprefix('apps/ubaa_flutter/')
-            selected.add('ubaa_flutter')
-            risk_paths.add(path)
-            app_platforms = set(Path(relative).parts) & (NATIVE_PARTS - {'ohos', 'native', 'cargokit'})
-            if 'integration_test' in Path(relative).parts:
-                native_checks.add(('ci', host_platform))
-            elif app_platforms:
-                native_checks.update(('ci', platform) for platform in app_platforms)
-            elif relative.endswith(('.swift', '.m', '.mm', '.kt', '.java', '.c', '.h')):
-                native_checks.add(('ci', host_platform))
         else:
             full = codegen = True
     risk = bool(risk_paths) and not full
@@ -376,7 +362,7 @@ def select_checks(root, paths, mode='commit', previous=None):
             if rust_paths:
                 packages = rust_workspace.members(root)
                 owners = {
-                    str(Path(package['manifest_path']).parent.resolve().relative_to(root.resolve())) + '/': name
+                    Path(package['manifest_path']).parent.resolve().relative_to(root.resolve()).as_posix() + '/': name
                     for name, package in packages.items()
                 }
                 for rust_path in sorted(rust_paths - {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}):
@@ -385,7 +371,7 @@ def select_checks(root, paths, mode='commit', previous=None):
                     if owner is None:
                         raise ValueError('未登记的 Rust crate')
                     rust_crates.add(owner)
-                rust_crates = set(rust_workspace.affected(root, packages, rust_crates))
+                rust_crates = set(rust_workspace.affected(packages, rust_crates))
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
         full = True
         notes.add('无法可靠解析本地依赖：执行完整验收。')

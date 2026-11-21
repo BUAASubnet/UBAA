@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -28,13 +29,10 @@ class ChangedChecksTest(unittest.TestCase):
                 plan = self.plan(path)
                 self.assertFalse(plan['full'])
                 self.assertFalse(plan['risk'])
-                if path.startswith('crates/ubaa_flutter_bridge/'):
-                    self.assertEqual(plan['packages'], list(gates.PACKAGES))
-                else:
-                    self.assertEqual(plan['packages'], [])
+                self.assertEqual(plan['packages'], [])
                 self.assertTrue(any(command[:2] == ['just', 'check'] and 'ubaa-core' in command
                                     for command in gates.commands(plan)))
-                self.assertNotIn(['just', 'integration-test'], gates.commands(plan))
+                self.assertEqual(plan['native'], [])
 
     def test_auth_storage_and_bridge_api_use_l1_plus(self):
         for path in ['crates/ubaa_core/src/auth/automatic.rs',
@@ -44,10 +42,7 @@ class ChangedChecksTest(unittest.TestCase):
                 plan = self.plan(path)
                 self.assertFalse(plan['full'])
                 self.assertTrue(plan['risk'])
-                if path.startswith('crates/ubaa_flutter_bridge/'):
-                    self.assertEqual(plan['packages'], list(gates.PACKAGES))
-                else:
-                    self.assertEqual(plan['packages'], [])
+                self.assertEqual(plan['packages'], [])
                 self.assertTrue(any(command[:2] == ['just', 'check-risk'] for command in gates.commands(plan)))
 
     def test_plain_docs_and_scripts_select_only_relevant_checks(self):
@@ -148,12 +143,20 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertTrue(any('显式联网' in note for note in plan['notes']))
         self.assertNotIn(['just', 'dependency-audit'], gates.commands(plan))
 
-    def test_rust_bridge_adds_codegen_and_all_flutter(self):
+    def test_rust_bridge_adds_codegen_and_targeted_native_tests(self):
         plan = self.plan('crates/ubaa_flutter_bridge/src/api.rs')
         self.assertTrue(plan['rust'])
-        self.assertEqual(plan['packages'], list(gates.PACKAGES))
+        self.assertEqual(plan['packages'], [])
         self.assertTrue(plan['risk'])
         self.assertIn(gates.CODEGEN, plan['extra'])
+        self.assertEqual([command[2] for command in plan['native']],
+                         ['suite=synthetic/app/smoke_test.dart', 'suite=synthetic/cache/bridge_test.dart'])
+
+    def test_generated_bindings_keep_codegen_without_high_risk_native_tests(self):
+        plan = self.plan('packages/ubaa_bindings/lib/src/rust/frb_generated.dart')
+        self.assertFalse(plan['risk'])
+        self.assertIn(gates.CODEGEN, plan['extra'])
+        self.assertEqual(plan['native'], [])
 
     def test_core_storage_keeps_full_checks_without_redundant_codegen(self):
         plan = self.plan('crates/ubaa_core/src/session/mod.rs')
@@ -201,6 +204,15 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertFalse(plan['full'])
                 self.assertFalse(plan['risk'])
 
+    def test_facade_boundary_paths_use_l1_plus_without_promoting_read_models(self):
+        for path in ['client/app_service.rs', 'client/observation.rs', 'offline/grade_baseline.rs',
+                     'offline/refresh.rs', 'read/write_readback.rs']:
+            with self.subTest(path=path):
+                self.assertTrue(self.plan('crates/ubaa_core/src/facade/' + path)['risk'])
+        for path in ['types.rs', 'agenda/export.rs', 'read/academic.rs', 'bhpan/pagination.rs']:
+            with self.subTest(path=path):
+                self.assertFalse(self.plan('crates/ubaa_core/src/facade/' + path)['risk'])
+
     def test_codegen_is_selected_for_bridge_inputs_and_locks(self):
         for path in ['crates/ubaa_flutter_bridge/src/api/read/methods.rs',
                      'packages/ubaa_bindings/flutter_rust_bridge.yaml', 'Cargo.lock', 'pubspec.lock']:
@@ -222,10 +234,11 @@ class ChangedChecksTest(unittest.TestCase):
     def test_push_mode_is_removed_and_native_tests_are_selected_by_platform(self):
         with self.assertRaises(ValueError):
             gates.select_checks(ROOT, ['packages/ubaa_ui/test/navigation/read_test.dart'], mode='push')
-        for path in ['apps/ubaa_flutter/macos/Runner/AppDelegate.swift',
-                     'apps/ubaa_flutter/integration_test/platform/network_test.dart']:
+        host = {'darwin': 'macos', 'win32': 'windows'}.get(sys.platform, 'linux')
+        for path, platform in [('apps/ubaa_flutter/macos/Runner/AppDelegate.swift', 'macos'),
+                               ('apps/ubaa_flutter/integration_test/platform/network_test.dart', host)]:
             with self.subTest(path=path):
-                self.assertIn(['just', 'integration-test', 'suite=ci', 'platform=macos'],
+                self.assertIn(['just', 'integration-test', 'suite=ci', f'platform={platform}'],
                               gates.commands(self.plan(path)))
 
     def test_full_mode_executes_each_heavy_gate_once(self):
