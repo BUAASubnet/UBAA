@@ -25,8 +25,6 @@
 | L1+ | 命中选择脚本判定的高风险路径时：认证与会话、凭据与安全存储、写入、缓存持久化、Bridge 与 FFI、平台安全边界、签名与真实验证脚本等 | 同一条命令自动追加高风险检查；依赖配置、锁文件或未知范围可能直接进入完整验收 |
 | CI | 推送 dev、每天夜间、合入 main | dev 推送检查；dev 夜间完整验收；main 完整验收 |
 
-- `just check-changed` 自动选择 L1 或 L1+；需要完整验收时使用 `just check-changed mode=full`。`mode=push` 不存在。
-- `just check` 是 L1 的 Rust 部分，`just check-risk` 是 L1+ 的 Rust 部分，`check-strict` 供 CI 和完整验收使用。
 - 行为变更和缺陷修复：先写一个会失败的测试，再修。纯文案、样式、文档改动复用已有覆盖。
 - 删除测试时，在提交说明里写一行“覆盖由哪里保留”。
 - 修改检查脚本或 CI 本身时，额外运行 `just check-changed mode=full`。
@@ -50,6 +48,11 @@
 **顺序**：先用脱敏 Fixture 写失败测试 → 最小修复 → 聚焦测试 → L1+ → 真实验证（按授权）。
 
 某条路线不可达或未获授权时，记录原因和重跑条件。不能用另一条路线、Mock 或历史成功来代替。
+
+## 提交
+
+- 用明确的 pathspec 暂存，不用 `git add .`；按主题拆分提交，细则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 新增一条规则时，写明它防止什么。
 
 ## 项目地图
 
