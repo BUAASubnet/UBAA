@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞报告
+    url: https://github.com/BUAASubnet/UBAA/blob/main/SECURITY.md
+    about: 请按安全策略中的私有渠道联系维护者，不要公开提交漏洞细节。
