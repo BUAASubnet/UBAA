@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,6 +144,7 @@ Future<RoomBackend> _open(
   final backend = RoomBackend(state: state);
   await tester.pumpWidget(
     UbaaFlutterApp(
+      preferenceValues: acceptedPrivacyPreferences(),
       backend: backend,
       credentialVault: MemoryCredentialVault(),
       initialDestination: UiDestination.campus,

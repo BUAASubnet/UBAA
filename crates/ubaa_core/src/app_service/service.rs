@@ -7,7 +7,13 @@ use super::{
 use crate::facade::SharedAccountGuard;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use chrono_tz::Asia::Shanghai;
-use std::{path::Path, sync::Arc};
+use std::{
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 use url::Url;
 use uuid::Uuid;
 
@@ -35,6 +41,7 @@ pub struct AppService {
     pub(super) config: AppServiceConfig,
     pub(super) surface: Surface,
     pub(super) telemetry_hard_closed: fn() -> bool,
+    host_privacy_accepted: AtomicBool,
     now: Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>,
 }
 
@@ -54,12 +61,29 @@ impl AppService {
         }
         let policy = config.available().map(|_| policy_version);
         Ok(Self {
-            store: Store::open(config_dir, policy, surface)?,
+            store: Store::open(config_dir, policy)?,
             config,
             surface,
             telemetry_hard_closed: config::telemetry_hard_closed,
+            host_privacy_accepted: AtomicBool::new(true),
             now: Arc::new(Utc::now),
         })
+    }
+
+    /// 让图形宿主在确认本机政策接受记录之前只允许重试待删除请求。
+    #[must_use]
+    pub fn with_pending_host_privacy(mut self) -> Self {
+        *self.host_privacy_accepted.get_mut() = false;
+        self
+    }
+
+    /// 宿主已持久化当前政策版本，允许继续按共享状态判断各项权限。
+    pub fn allow_host_privacy(&self) {
+        self.host_privacy_accepted.store(true, Ordering::Relaxed);
+    }
+
+    pub(super) fn host_privacy_accepted(&self) -> bool {
+        self.host_privacy_accepted.load(Ordering::Relaxed)
     }
 
     #[cfg(test)]

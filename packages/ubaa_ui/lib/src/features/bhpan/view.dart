@@ -826,7 +826,7 @@ class _BhpanViewState extends State<BhpanView> {
     if (_service == null) {
       return const UiStatePanel(
         icon: Icons.cloud_off_outlined,
-        title: '此版本暂不支持北航云盘',
+        title: '此版本暂不支持云盘',
       );
     }
     final items = _visibleItems();

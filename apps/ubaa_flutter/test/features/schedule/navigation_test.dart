@@ -1,3 +1,5 @@
+import 'package:ubaa_test_support/privacy.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ Future<void> mount(
 ) async {
   await tester.pumpWidget(
     UbaaFlutterApp(
+      preferenceValues: acceptedPrivacyPreferences(),
       backend: backend,
       credentialVault: MemoryCredentialVault(),
       initialDestination: UiDestination.study,

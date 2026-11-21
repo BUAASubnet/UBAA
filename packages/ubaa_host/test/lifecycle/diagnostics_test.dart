@@ -12,6 +12,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import '../support/host/fakes.dart' show fixtureCapabilities;
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('设置分享完整诊断保留学校原文且不自动打开反馈', (tester) async {
@@ -32,6 +33,7 @@ void main() {
     final backend = _RawDiagnosticBackend();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         diagnosticReportExporter: const DiagnosticReportExporter(
           operatingSystem: 'android',
@@ -87,6 +89,7 @@ void main() {
     final appInformation = _PendingAppInformation();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         appInformation: appInformation,
         diagnosticReportExporter: const DiagnosticReportExporter(
           operatingSystem: 'android',
@@ -121,6 +124,7 @@ void main() {
   testWidgets('诊断版本读取未完成时可关闭宿主且不遗留定时器', (tester) async {
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: DemoBackend(),
         appInformation: _PendingAppInformation(),
       ),
@@ -213,6 +217,7 @@ void main() {
     );
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: _SignedInBackend(),
         diagnosticReportExporter: const DiagnosticReportExporter(
           operatingSystem: 'android',
@@ -263,6 +268,7 @@ void main() {
     );
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: _FailingInitialization(),
         diagnosticReportExporter: const DiagnosticReportExporter(
           operatingSystem: 'android',

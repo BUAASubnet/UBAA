@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/lock_display.dart' as synthetic;
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final size in [const Size(390, 844), const Size(1024, 900)]) {
@@ -14,7 +15,11 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final backend = synthetic.SyntheticLockBackend();
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, initialDestination: UiDestination.campus),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          initialDestination: UiDestination.campus,
+        ),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('研讨室预约').first);

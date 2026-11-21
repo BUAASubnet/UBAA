@@ -14,7 +14,7 @@ pub(crate) fn id(input: &str) -> Result<String> {
             || u.query().is_some()
             || u.fragment().is_some()
         {
-            return Err(UbaaError::invalid_input("请选择北航云盘分享链接"));
+            return Err(UbaaError::invalid_input("请选择云盘分享链接"));
         }
         u.path()
             .strip_prefix("/link/")

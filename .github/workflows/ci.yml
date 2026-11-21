@@ -8,6 +8,10 @@ on:
         description: Release 使用本机 Apple runner
         type: boolean
         default: false
+      checkout_ref:
+        description: 夜间验收指定已选定的 dev 提交，留空沿用触发提交
+        type: string
+        default: ''
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,15 +28,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ inputs.checkout_ref }}
       - id: plan
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: python3 scripts/check/ci/plan.py plan
+          CHECKOUT_REF: ${{ inputs.checkout_ref }}
+          WORKFLOW_JOB: ${{ toJSON(job) }}
+        run: |
+          if [[ -n "$CHECKOUT_REF" ]] && ! jq -e --arg sha "$CHECKOUT_REF" '.workflow_sha == $sha' <<< "$WORKFLOW_JOB" >/dev/null; then
+            printf '%s\n' 'dev 检出提交与复用的工作流版本不同，请重新触发夜间验收。' >&2
+            exit 1
+          fi
+          python3 scripts/check/ci/plan.py plan
 
   scripts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/shellcheck
       - name: 准备冻结引用与脚本工具
@@ -54,6 +68,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -77,6 +93,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -93,6 +111,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -108,6 +128,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - id: tools
         run: |
@@ -125,6 +147,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -164,6 +188,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
         with:
           rust: false
@@ -179,6 +205,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
         with:
           rust: false
@@ -199,6 +227,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - id: toolchain
         uses: ./.github/actions/toolchain
         with:
@@ -225,6 +255,7 @@ jobs:
     uses: ./.github/workflows/flutter-platforms.yml
     with:
       local_macos: ${{ inputs.local_macos || false }}
+      checkout_ref: ${{ inputs.checkout_ref }}
 
   main-required:
     name: main-required
@@ -233,6 +264,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - name: 确认全部验收成功
         env:
           NEEDS: ${{ toJSON(needs) }}

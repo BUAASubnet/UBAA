@@ -2,13 +2,33 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 7,
+  version: 8,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
+      text: '生效日期：2026 年 11 月 21 日。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
       text: '本政策说明 UBAA 如何处理学校账号、会话、业务数据、更新与公告请求和产品改进统计。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.heading,
+      level: 2,
+      text: '开发者信息',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text: '应用名称：UBAA。开发者：BUAASubnet。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text: 'UBAA 是学生开发的第三方工具，与北京航空航天大学官方无隶属或授权关系。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -20,11 +40,13 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       level: 0,
       text:
           '登录所需的账号、密码与验证码用于向学校认证系统验证身份。课表、成绩、作业和预约等请求由设备通过直连或学校 WebVPN 发起，不经过 UBAA 的服务器中转。',
+      bold: <(int, int)>[(0, 28)],
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text: '登录过程产生的会话与 Cookie 用于后续访问学校系统。选择阳光打卡照片并提交时，照片会上传到学校业务系统。',
+      bold: <(int, int)>[(29, 55)],
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -77,7 +99,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '支持应用服务的版本默认请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告。旧版已保存的基础模式不发送此类请求。公告已读记录仅保存在本机。',
+          '支持应用服务的版本仅在您同意本政策后请求更新信息和公告。请求只发送接口版本、应用版本、设备平台和分发渠道，不携带安装 ID、用户标识或学校 Cookie，也不计入产品改进统计。关闭统计不影响更新检查和公告。旧版已保存的基础模式不发送此类请求。公告已读记录仅保存在本机。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -88,7 +110,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '支持应用服务的版本默认开启产品改进统计，应用启动时不再弹出隐私选择。您可以通过设置中的“产品改进统计”开关选择是否参与，并在项目网站查阅本政策。',
+          '首次使用或政策升级后，您需要阅读并同意本政策才能登录或恢复会话。不同意时无法登录使用。支持应用服务的版本在您同意后开启产品改进统计，您可以随时在设置中关闭。已有基础模式保持关闭，除非您在设置中主动开启。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -105,6 +127,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       level: 0,
       text:
           '根据已确认的学校账号在设备上计算的学号派生标识、年级类型和入学年份。无法识别年级时记为未知。派生标识用于跨设备去重，仍属于个人信息。',
+      bold: <(int, int)>[(0, 34)],
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.bullet,
@@ -177,7 +200,7 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '隐私政策更新后，应用保留您先前保存的统计开关和基础模式选择。旧版基础模式用户可以通过“产品改进统计”开关确认后重新启用。',
+      text: '如您此前要求删除统计数据，应用会继续发送删除请求直到完成。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -188,7 +211,12 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
       text:
-          '如对本政策有疑问，或需要协助关闭、撤回或删除统计数据，请通过 UBAA 项目的 GitHub Issues（https://github.com/BUAASubnet/UBAA/issues） 联系维护者。发现安全漏洞时，请使用 GitHub 私有漏洞报告（https://github.com/BUAASubnet/UBAA/security/advisories/new）。不要在公开渠道发布账号、密码、验证码、预约门锁信息或个人资料。',
+          '请通过 UBAA 项目的 GitHub Issues（https://github.com/BUAASubnet/UBAA/issues） 联系维护者。维护者在 15 个工作日内答复并处理查阅、复制、更正、删除个人信息及撤回同意的请求。请勿在公开渠道发布账号、密码、验证码、预约门锁信息或个人资料。',
+    ),
+    PrivacyPolicyBlock(
+      kind: PrivacyPolicyBlockKind.paragraph,
+      level: 0,
+      text: 'UBAA 不提供独立账号注册。退出登录并清除已保存账号，即可删除本机账号数据。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.heading,
@@ -202,5 +230,8 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>['产品改进统计覆盖更多功能的读取与写入结果；安全诊断样本仅供授权维护者查看。'],
+  changes: <String>[
+    '恢复隐私政策明示同意，说明应用服务的启用条件。',
+    '补充开发者信息、个人信息请求处理期限和本机账号数据删除方式。',
+  ],
 );

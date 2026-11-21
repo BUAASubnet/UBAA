@@ -118,11 +118,13 @@ impl UbaaClient {
         }
     }
     async fn bhpan_ready(&mut self) -> Result<SecretValue> {
-        self.bhpan_scope()?;
+        self.bhpan_scope().map_err(UbaaError::for_facade)?;
         if let Some(token) = &self.bhpan.token {
             return Ok(token.clone());
         }
-        let token = auth::login(&mut self.direct_runtime).await?;
+        let token = auth::login(&mut self.direct_runtime)
+            .await
+            .map_err(UbaaError::for_facade)?;
         self.bhpan.token = Some(token.clone());
         Ok(token)
     }

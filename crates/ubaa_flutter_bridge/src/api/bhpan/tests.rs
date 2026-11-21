@@ -43,6 +43,67 @@ impl HttpTransport for Transport {
         Ok(response)
     }
 }
+
+struct CampusOnlyTransport;
+#[async_trait::async_trait]
+impl HttpTransport for CampusOnlyTransport {
+    async fn execute(&self, request: HttpRequest) -> c::Result<HttpResponse> {
+        Ok(HttpResponse::new(
+            200,
+            request.url,
+            include_bytes!("../../../../../fixtures/readonly/campus-network-required.html")
+                .to_vec(),
+        ))
+    }
+}
+
+#[tokio::test]
+async fn 云盘导航提示映射为不可重试_core_与_bridge_错误() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/campus_only/bridge_tests")
+        .join(uuid::Uuid::new_v4().to_string());
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1000,
+                last_activity: 1001,
+            }),
+            None,
+        ))
+        .unwrap();
+    let core = UbaaClient::with_routing(
+        CampusOnlyTransport,
+        CampusOnlyTransport,
+        store,
+        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
+    )
+    .unwrap();
+    let bridge = BridgeClient::from_core(core);
+    for error in [
+        bridge.ihome_config().await.err().unwrap(),
+        bridge.finance_incomes().await.err().unwrap(),
+        bridge.bhpan_login().await.err().unwrap(),
+    ] {
+        assert_eq!(error.code, BridgeErrorCode::NetworkError);
+        assert!(!error.retryable);
+        assert!(error.message.contains("仅限校园网访问"));
+        let diagnostic = error
+            .diagnostic_json
+            .as_deref()
+            .and_then(c::ErrorDiagnostic::from_json)
+            .unwrap();
+        assert_eq!(
+            diagnostic.reason.as_deref(),
+            Some("campus_network_required")
+        );
+    }
+    bridge.dispose().await.unwrap();
+    drop(bridge);
+    std::fs::remove_dir_all(root).unwrap();
+}
 #[tokio::test]
 async fn 发送后panic保持结果未知且确认不可复用() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

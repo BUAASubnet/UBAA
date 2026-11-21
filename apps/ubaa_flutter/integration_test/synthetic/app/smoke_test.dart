@@ -1,3 +1,5 @@
+import 'package:ubaa_test_support/privacy.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -30,6 +32,7 @@ void main() {
       try {
         await tester.pumpWidget(
           UbaaFlutterApp(
+            preferenceValues: acceptedPrivacyPreferences(),
             backendFactory: () async {
               final client = await BridgeClient.open(configDir: directory.path);
               await client.setDefaultRoutePolicy(

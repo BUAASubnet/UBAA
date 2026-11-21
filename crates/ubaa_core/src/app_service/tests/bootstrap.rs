@@ -168,6 +168,49 @@ fn active(view: &AppBootstrapView) -> bool {
 }
 
 #[tokio::test]
+async fn 首次启动与政策升级均须明示同意才请求启动配置() {
+    use crate::app_service::Consent;
+
+    let dir = TestDirectory::new();
+    let clock = clock();
+    let mock = Mock::named("未知顶层字段不妨碍识别更新要求");
+    let first = dir.open("github", "1.9.0+9", Surface::Gui, 7, &clock);
+    assert_eq!(first.snapshot().unwrap().consent, Consent::Unasked);
+    first.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 0);
+    first.agree(7).unwrap();
+    let next = dir.open("github", "1.9.0+9", Surface::Gui, 8, &clock);
+    assert_eq!(
+        next.snapshot().unwrap().consent,
+        Consent::ReconsentRequired(8)
+    );
+    next.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 0);
+    next.agree(8).unwrap();
+    next.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 1);
+    let pending = dir
+        .open("github", "1.9.0+9", Surface::Gui, 8, &clock)
+        .with_pending_host_privacy();
+    assert_eq!(pending.snapshot().unwrap().consent, Consent::Agreed(8));
+    assert!(
+        pending
+            .refresh_bootstrap_with(&mock, true)
+            .await
+            .unwrap()
+            .update
+            .is_none()
+    );
+    assert!(!pending.update_gate_active().unwrap());
+    assert_eq!(mock.count(), 1);
+    next.enter_basic().unwrap();
+    let basic = dir.open("github", "1.9.0+9", Surface::Gui, 8, &clock);
+    assert_eq!(basic.snapshot().unwrap().consent, Consent::Basic);
+    basic.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 1);
+}
+
+#[tokio::test]
 async fn 启动刷新隔离身份并按六小时节流且命令模式只读门控() {
     let dir = TestDirectory::new();
     let clock = clock();
@@ -247,8 +290,8 @@ async fn 门控在撤回时停用并在重新同意刷新失败或未知状态�
         &gui.refresh_bootstrap_with(&required, true).await.unwrap()
     ));
     let new_policy = dir.open("github", "1.9.0", Surface::Gui, 2, &clock);
-    assert!(gui.update_gate_active().unwrap());
-    assert!(new_policy.update_gate_active().unwrap());
+    assert!(!gui.update_gate_active().unwrap());
+    assert!(!new_policy.update_gate_active().unwrap());
     assert_eq!(required.count(), 1);
     gui.enter_basic().unwrap();
     assert!(!new_policy.update_gate_active().unwrap());

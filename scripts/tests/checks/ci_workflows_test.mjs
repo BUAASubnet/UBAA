@@ -41,6 +41,89 @@ test("开发提交不会触发完整验收和原生矩阵", () => {
   assert.equal(native.on.pull_request, undefined);
   assert.ok(Object.hasOwn(native.on, "workflow_call"));
 });
+test("dev 的每次推送独立运行，同一个 PR 取消旧运行", () => {
+  const { group, "cancel-in-progress": cancelInProgress } = workflow("dev").concurrency;
+  const evaluate = (expression, github) => new Function("github", `return ${expression}`)(github);
+  const groupFor = (github) => group.replace(/\$\{\{(.+?)\}\}/g, (_, expression) => evaluate(expression, github));
+  const cancels = (github) => typeof cancelInProgress === "boolean"
+    ? cancelInProgress
+    : evaluate(cancelInProgress.slice(3, -2), github);
+  const pushes = ["1", "2", "3"].map((run_id) => ({ event_name: "push", ref: "refs/heads/dev", run_id }));
+  for (const push of pushes) assert.equal(cancels(push), false);
+  assert.equal(new Set(pushes.map(groupFor)).size, pushes.length);
+  const pr = { event_name: "pull_request", ref: "refs/pull/8/merge", run_id: "4" };
+  assert.equal(cancels(pr), true);
+  assert.equal(groupFor(pr), groupFor({ ...pr, run_id: "5" }));
+  assert.notEqual(groupFor(pr), groupFor({ ...pr, ref: "refs/pull/9/merge", run_id: "6" }));
+  const manual = { ...pushes[0], event_name: "workflow_dispatch", run_id: "7" };
+  assert.equal(cancels(manual), false);
+  assert.ok(!pushes.map(groupFor).includes(groupFor(manual)));
+});
+test("dev Rust 执行 Clippy、Core 合同及其余工作区测试", () => {
+  const { steps } = workflow("dev").jobs.rust;
+  assert.equal(steps.find((step) => step.uses === "./.github/actions/rust_cache").with.kind, "tests");
+  const commands = steps.flatMap((step) => step.run?.split("\n") ?? []);
+  assert.deepEqual(commands, [
+    "cargo fmt --all -- --check",
+    "cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "just core-test-contract",
+    "cargo test --locked --workspace --exclude ubaa-core",
+  ]);
+});
+test("dev Flutter 在静态分析后把选中的包传给非 golden 测试入口", () => {
+  const { changes, flutter } = workflow("dev").jobs;
+  assert.equal(flutter["runs-on"], "ubuntu-latest");
+  assert.equal(flutter.needs, "changes");
+  assert.equal(changes.outputs.flutter_packages, "${{ steps.paths.outputs.flutter_packages }}");
+  const commands = flutter.steps.filter((step) => step.run);
+  assert.deepEqual(commands.map(({ run }) => run), [
+    "bash scripts/check/flutter-workspace.sh analyze",
+    'bash scripts/check/flutter-workspace.sh test-non-golden "$FLUTTER_PACKAGES"',
+  ]);
+  assert.equal(commands[1].env.FLUTTER_PACKAGES, "${{ needs.changes.outputs.flutter_packages }}");
+});
+test("dev 夜间定时或手动运行，以只读权限复用 dev 的完整验收", () => {
+  const nightly = workflow("dev-nightly");
+  assert.deepEqual(Object.keys(nightly.on).sort(), ["schedule", "workflow_dispatch"]);
+  assert.equal(nightly.on.schedule.length, 1);
+  assert.match(nightly.on.schedule[0].cron, /^\d+ \d+ \* \* \*$/);
+  assert.deepEqual(nightly.permissions, { contents: "read", actions: "read" });
+  assert.doesNotMatch(JSON.stringify(nightly), /\bsecrets\b/);
+  assert.deepEqual(Object.keys(nightly.jobs).sort(), ["prepare", "verify"]);
+  assert.equal(nightly.jobs.prepare.steps[0].with.ref, "refs/heads/dev");
+  assert.equal(nightly.jobs.prepare.steps[0].with["persist-credentials"], false);
+  const verify = nightly.jobs.verify;
+  assert.equal(verify.needs, "prepare");
+  assert.equal(verify.if, "needs.prepare.outputs.accepted == 'false'");
+  assert.equal(verify.uses, "BUAASubnet/UBAA/.github/workflows/ci.yml@dev");
+  assert.deepEqual(verify.with, { checkout_ref: "${{ needs.prepare.outputs.sha }}", local_macos: false });
+});
+test("夜间候选传给完整验收及原生子流程，现有调用默认检出保持不变", () => {
+  const full = workflow("ci");
+  const native = workflow("flutter-platforms");
+  for (const caller of [full, native]) {
+    assert.equal(caller.on.workflow_call.inputs.checkout_ref.default, "");
+    for (const job of Object.values(caller.jobs)) {
+      for (const step of job.steps ?? []) {
+        if (step.uses?.startsWith("actions/checkout@")) {
+          assert.equal(step.with.ref, "${{ inputs.checkout_ref }}");
+        }
+      }
+    }
+  }
+  assert.equal(full.jobs.native.with.checkout_ref, "${{ inputs.checkout_ref }}");
+  assert.equal(workflow("release").jobs.verify.with.checkout_ref, undefined);
+  const plan = full.jobs.plan.steps.find((step) => step.id === "plan");
+  const sha = "a".repeat(40);
+  for (const [checkoutRef, workflowSha, status] of [["", undefined, 0], [sha, sha, 0], [sha, "b".repeat(40), 1]]) {
+    const result = spawnSync("bash", ["-euo", "pipefail", "-c", plan.run], {
+      env: { ...process.env, BASE_SHA: "", CHECKOUT_REF: checkoutRef,
+        WORKFLOW_JOB: JSON.stringify({ workflow_sha: workflowSha }), GITHUB_OUTPUT: "/dev/null" },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, status, result.stderr);
+  }
+});
 test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
   const release = workflow("release");
   for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {

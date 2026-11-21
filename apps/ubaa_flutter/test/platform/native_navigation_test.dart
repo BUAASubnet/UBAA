@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_flutter/main.dart';
@@ -24,6 +25,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       await tester.pumpWidget(
         UbaaFlutterApp(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: CourseworkBackend()..signedIn = true,
           credentialVault: MemoryCredentialVault(),
           appInformation: _Information(),

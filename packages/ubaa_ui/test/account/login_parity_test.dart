@@ -4,9 +4,52 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  for (final agree in [false, true]) {
+    testWidgets('未勾选时等待明确选择，选择同意=$agree', (tester) async {
+      var submits = 0;
+      await tester.pumpWidget(_login(accepted: false, submit: () => submits++));
+      final login = find.widgetWithText(FilledButton, '登录');
+      await tester.ensureVisible(login);
+      await tester.tap(login);
+      await tester.pumpAndSettle();
+      expect(submits, 0);
+      await tester.binding.handlePopRoute();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text(agree ? '同意' : '不同意'));
+      await tester.pumpAndSettle();
+      expect(submits, agree ? 1 : 0);
+      expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, agree);
+    });
+  }
+
+  testWidgets('只勾选不记录，提交时先保存同意再调用登录', (tester) async {
+    final calls = <String>[];
+    await tester.pumpWidget(
+      _login(
+        accepted: false,
+        accept: () async => calls.add('接受'),
+        submit: () => calls.add('登录'),
+      ),
+    );
+    final checkbox = find.byType(Checkbox).last;
+    await tester.ensureVisible(checkbox);
+    expect(tester.widget<Checkbox>(checkbox).value, isFalse);
+    await tester.tap(checkbox);
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
+    final login = find.widgetWithText(FilledButton, '登录');
+    await tester.ensureVisible(login);
+    await tester.tap(login);
+    await tester.pumpAndSettle();
+    expect(calls, ['接受', '登录']);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
   testWidgets('登录页可打开离线隐私政策全文并返回表单', (tester) async {
     await tester.pumpWidget(_login());
-    final link = find.widgetWithText(TextButton, '隐私政策');
+    final link = find.text('《隐私政策》');
     await tester.ensureVisible(link);
     await tester.tap(link);
     await tester.pumpAndSettle();
@@ -93,7 +136,7 @@ void main() {
     await tester.tap(find.text('自动登录'));
     await tester.pump();
     expect(autoChanges, <bool>[true]);
-    await tester.tapAt(tester.getCenter(find.byType(Checkbox).last));
+    await tester.tapAt(tester.getCenter(find.byType(Checkbox).at(1)));
     await tester.pump();
     expect(autoChanges, <bool>[true, true]);
   });
@@ -123,6 +166,8 @@ void main() {
       expect(
         tester
             .widgetList<Checkbox>(find.byType(Checkbox))
+            // 只检查“记住密码”“自动登录”两项；隐私政策勾选行单独覆盖。
+            .take(2)
             .every((checkbox) => checkbox.onChanged == null),
         isTrue,
       );
@@ -132,6 +177,8 @@ void main() {
 
 Widget _login({
   bool loading = false,
+  bool accepted = true,
+  Future<void> Function()? accept,
   bool persistenceAvailable = true,
   VoidCallback? submit,
   ValueChanged<bool>? rememberChanged,
@@ -154,5 +201,7 @@ Widget _login({
     onRememberPasswordChanged: rememberChanged ?? (_) {},
     onAutoLoginChanged: autoChanged ?? (_) {},
     onSubmit: submit ?? () {},
+    privacyAccepted: accepted,
+    onAcceptPrivacy: accept ?? () async {},
   ),
 );

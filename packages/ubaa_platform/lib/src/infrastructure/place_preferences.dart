@@ -116,19 +116,3 @@ final class ThemePreferenceStore {
     return next;
   }
 }
-
-/// 合成宿主使用的普通偏好端口。
-final class MemoryPreferenceValues implements PreferenceValues {
-  final _values = <String, String>{};
-  @override
-  Future<String?> read(String key) async => _values[key];
-  @override
-  Future<void> write(String key, String value) async {
-    _values[key] = value;
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    _values.remove(key);
-  }
-}

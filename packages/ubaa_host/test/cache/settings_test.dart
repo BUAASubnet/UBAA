@@ -7,6 +7,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('生产宿主把清理接到控制器并保留本机账号及已登录首页', (tester) async {
@@ -17,7 +18,11 @@ void main() {
       final account = await accounts.retain('synthetic', retainSession: true);
       final backend = _Backend();
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, localAccountStore: accounts),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          localAccountStore: accounts,
+        ),
       );
       await pumpRecoveryUntil(
         tester,
@@ -112,5 +117,9 @@ Future<Widget> buildSyntheticCacheInspection() async {
   await materials.probe();
   final accounts = SecureLocalAccountStore(materials);
   await accounts.retain('synthetic', retainSession: true);
-  return UbaaAppHost(backend: _Backend(), localAccountStore: accounts);
+  return UbaaAppHost(
+    preferenceValues: acceptedPrivacyPreferences(),
+    backend: _Backend(),
+    localAccountStore: accounts,
+  );
 }

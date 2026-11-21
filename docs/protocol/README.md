@@ -16,6 +16,7 @@
 |---|---|---|
 | 总则与跨领域基线 | [general.md](parity/general.md) | 当前规则与冻结版本、逐操作历史矩阵说明、Flutter bridge 投影 |
 | 认证、会话与连接方式 | [auth-session.md](parity/auth-session.md) | SSO/UC、WebVPN 重试、网关探测、退出、验证码、门锁显示、登录选项、路线切换 |
+| 校园网限定提示页 | [route-policy.md](../contracts/route-policy.md#校园网限定提示页) | 分时段响应的来源对照、识别条件及读取回退 |
 | 本机账号与身份 | [accounts.md](parity/accounts.md) | 账号索引、安全材料、共享恢复与身份撤销、CLI 账号登记、macOS Keychain、同账号资料缓存 |
 | 离线恢复与持久缓存 | [offline-cache.md](parity/offline-cache.md) | 所需路线恢复、本地仓库、各业务持久范围与接线 |
 | 首页 | [home.md](parity/home.md) | 首页状态与读取编排、待办、日程投影、考试待办、并发与加载性能 |

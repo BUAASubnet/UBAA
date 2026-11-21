@@ -40,13 +40,15 @@ final _schoolPromptZone = Object();
 abstract class ControllerState extends ControllerOperations {
   ControllerState({
     required UbaaBackend backend,
+    bool privacyAccepted = true,
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     LocalAccountStore? localAccountStore,
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
     void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace,
-  }) : internalSessionLifecycle = SessionLifecycleOwner(backend),
+  }) : internalPrivacyAccepted = privacyAccepted,
+       internalSessionLifecycle = SessionLifecycleOwner(backend),
        internalBackendFactory = backendFactory,
        internalCredentialVault = credentialVault ?? const NoopCredentialVault(),
        internalLocalAccountStore = localAccountStore,
@@ -453,6 +455,7 @@ abstract class ControllerState extends ControllerOperations {
   bool get internalDisposed => internalSessionLifecycle.disposed;
 
   @internal
+  bool internalPrivacyAccepted;
   bool internalInitialized = false;
 
   @internal

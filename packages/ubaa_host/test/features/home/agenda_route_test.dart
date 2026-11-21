@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final (from, to) in [
@@ -18,7 +19,12 @@ void main() {
         tester,
       ) async {
         final backend = _Backend(from);
-        await tester.pumpWidget(UbaaAppHost(backend: backend));
+        await tester.pumpWidget(
+          UbaaAppHost(
+            preferenceValues: acceptedPrivacyPreferences(),
+            backend: backend,
+          ),
+        );
         await tester.pumpAndSettle();
         UbaaMainShell shell() =>
             tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));

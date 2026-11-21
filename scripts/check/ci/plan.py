@@ -33,10 +33,12 @@ def flutter_files(root, package, group):
     golden = [path for path in files if path.startswith('test/visual/')]
     if group == 'golden':
         return golden
+    non_golden = [path for path in files if path not in golden]
+    if group == 'non-golden':
+        return non_golden
     if group not in {'0', '1'}:
-        raise ValueError('UI 测试组必须为 golden、0 或 1')
-    return [path for index, path in enumerate(path for path in files if path not in golden)
-            if index % 2 == int(group)]
+        raise ValueError('UI 测试组必须为 golden、non-golden、0 或 1')
+    return [path for index, path in enumerate(non_golden) if index % 2 == int(group)]
 
 
 def flutter_matrix(root):
@@ -57,6 +59,10 @@ def accepted(jobs, codegen):
     )
 
 
+def run_flutter_tests(package, files):
+    subprocess.run(['just', 'flutter', 'test', '--no-pub', *files], cwd=ROOT / PACKAGES[package], check=True)
+
+
 def main():
     operation = sys.argv[1]
     if operation == 'plan':
@@ -73,7 +79,12 @@ def main():
         files = flutter_files(ROOT, package, group)
         if not files:
             raise ValueError('测试组不能为空')
-        subprocess.run(['just', 'flutter', 'test', '--no-pub', *files], cwd=ROOT / PACKAGES[package], check=True)
+        run_flutter_tests(package, files)
+    elif operation == 'test-non-golden':
+        for package in json.loads(sys.argv[2]):
+            files = flutter_files(ROOT, package, 'non-golden' if package == 'ubaa_ui' else 'all')
+            if files:
+                run_flutter_tests(package, files)
     elif operation == 'gate':
         jobs = json.loads(os.environ['NEEDS'])
         print(json.dumps(jobs, ensure_ascii=False))

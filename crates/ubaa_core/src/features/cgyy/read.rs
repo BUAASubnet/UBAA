@@ -39,10 +39,11 @@ pub(crate) async fn get_purpose_types_with_source(
             Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
         },
         Err(error)
-            if matches!(
-                error.code,
-                ErrorCode::AuthenticationRequired | ErrorCode::UpdateRequired
-            ) =>
+            if error.is_campus_network_required()
+                || matches!(
+                    error.code,
+                    ErrorCode::AuthenticationRequired | ErrorCode::UpdateRequired
+                ) =>
         {
             Err(error)
         }

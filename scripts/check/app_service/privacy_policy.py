@@ -42,6 +42,21 @@ def plain_text(text):
     return ''.join(out)
 
 
+def styled_text(text):
+    pieces = re.split(r'\*\*(\S(?:.*?\S)?)\*\*', text)
+    out = []
+    bold = []
+    end = 0
+    for index, piece in enumerate(pieces):
+        part = plain_text(piece)
+        length = len(part.encode('utf-16-le')) // 2
+        if index % 2:
+            bold.append((end, end + length))
+        end += length
+        out.append(part)
+    return ''.join(out), bold
+
+
 def policy_blocks(body):
     title = None
     blocks = []
@@ -50,7 +65,7 @@ def policy_blocks(body):
 
     def flush():
         if lines:
-            blocks.append((kind, 0, plain_text(' '.join(lines))))
+            blocks.append((kind, 0, *styled_text(' '.join(lines))))
             lines.clear()
 
     for line in body.splitlines():
@@ -67,7 +82,7 @@ def policy_blocks(body):
         bullet = re.fullmatch(r'[-*+] +(.+)', line)
         if heading:
             flush()
-            blocks.append(('heading', len(heading[1]), plain_text(heading[2])))
+            blocks.append(('heading', len(heading[1]), *styled_text(heading[2])))
             kind = 'paragraph'
         elif bullet:
             flush()
@@ -116,13 +131,17 @@ def render(source):
         f'  title: {dart_literal(title)},',
         '  blocks: <PrivacyPolicyBlock>[',
     ]
-    for kind, level, text in blocks:
+    for kind, level, text, bold in blocks:
         literal = dart_literal(text)
         text_field = f'      text: {literal},'
         if len(text_field) > 80:
             text_field = f'      text:\n          {literal},'
         out.extend(['    PrivacyPolicyBlock(', f'      kind: PrivacyPolicyBlockKind.{kind},',
-                    f'      level: {level},', text_field, '    ),'])
+                    f'      level: {level},', text_field])
+        if bold:
+            ranges = ', '.join(f'({start}, {end})' for start, end in bold)
+            out.append(f'      bold: <(int, int)>[{ranges}],')
+        out.append('    ),')
     changes_text = ', '.join(dart_literal(change.strip()) for change in changes)
     short_changes = f'  changes: <String>[{changes_text}],'
     if len(short_changes) <= 80:

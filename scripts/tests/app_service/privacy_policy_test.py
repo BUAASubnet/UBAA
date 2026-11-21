@@ -52,6 +52,12 @@ class PrivacyPolicyTest(unittest.TestCase):
         generated = self.run_checker('--write')
         self.assertEqual(generated.returncode, 0, generated.stderr)
 
+    def test_embeds_bold_phrases_without_losing_plain_text(self):
+        self.assert_generation_succeeds()
+        output = self.output.read_text(encoding='utf-8')
+        self.assertIn("bold: <(int, int)>[(3, 7)]", output)
+        self.assertIn('支持 缺陷定位、改进和 离线阅读。', output)
+
     def test_changed_body_requires_updated_digest(self):
         self.write_source(body=BODY.replace('离线阅读', '数据删除'))
         result = self.run_checker('--write')

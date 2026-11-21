@@ -171,7 +171,7 @@ void expectRefreshRunning(WidgetTester tester, {required String actionLabel}) {
   Finder within(Finder matching) =>
       find.descendant(of: card, matching: matching);
   expect(within(find.text('正在同步日程')).hitTestable(), findsOneWidget);
-  expect(within(find.text('正在同步到北航云盘')), findsOneWidget);
+  expect(within(find.text('正在同步到云盘')), findsOneWidget);
   final progress = within(find.byType(CircularProgressIndicator));
   expect(progress.hitTestable(), findsOneWidget);
   expect(tester.widget<CircularProgressIndicator>(progress).value, isNull);

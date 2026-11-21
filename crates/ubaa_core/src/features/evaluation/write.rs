@@ -101,6 +101,23 @@ pub(crate) async fn submit_courses(
         let course_name = course.kcmc.clone();
         let authority = authority.clone();
         let outcome = match submit_one_course(runtime, &authority).await {
+            Err(error) if error.is_campus_network_required() => {
+                let outcome = if error.code == ErrorCode::OutcomeUnknown {
+                    stop_message = Some("前序课程结果未知且服务仅限校园网访问，本课程未尝试");
+                    EvaluationCourseOutcome::OutcomeUnknown
+                } else {
+                    stop_message = Some("未尝试：该服务当前仅限校园网访问");
+                    EvaluationCourseOutcome::Unattempted
+                };
+                let mut item = course_result(target, Some(course_name), outcome);
+                item.message = if outcome == EvaluationCourseOutcome::Unattempted {
+                    "未尝试：该服务当前仅限校园网访问，可切换到 WebVPN 后重试".into()
+                } else {
+                    error.message
+                };
+                items.push(item);
+                continue;
+            }
             Err(error) if error.code == ErrorCode::UpdateRequired && runtime.has_sent_write() => {
                 // 已发出的课程结果仍需交付；剩余课程未尝试，不可自动重放。
                 let message = "请先更新客户端，本课程未尝试";
@@ -236,14 +253,20 @@ async fn submit_final(
         Err(_) => return Ok(EvaluationCourseOutcome::Failure),
     };
     let expected = request.url.clone();
-    match runtime.request_non_idempotent(request).await {
+    let response = runtime.request_non_idempotent(request).await;
+    let outcome = match response {
         Ok(response) => Ok(classify_submit_response(&response, &expected)),
-        Err(error) if error.code == ErrorCode::UpdateRequired => Err(error),
+        Err(error)
+            if error.code == ErrorCode::UpdateRequired || error.is_campus_network_required() =>
+        {
+            Err(error)
+        }
         Err(error) if error.code == ErrorCode::OutcomeUnknown => {
             Ok(EvaluationCourseOutcome::OutcomeUnknown)
         }
         Err(_) => Ok(EvaluationCourseOutcome::Failure),
-    }
+    };
+    runtime.finish_non_idempotent_result(outcome)
 }
 
 fn classify_submit_response(

@@ -21,6 +21,7 @@ Future<BridgeAppService?> openConfiguredAppService({
   required BridgeAppServiceSurface surface,
   required bool release,
   required Future<String?> Function() readVersion,
+  bool pendingHostPrivacy = false,
   Duration budget = const Duration(seconds: 2),
 }) async {
   if (_serviceUrl.isEmpty || _channel.isEmpty || budget <= Duration.zero) {
@@ -51,6 +52,7 @@ Future<BridgeAppService?> openConfiguredAppService({
           release: release,
           surface: surface,
           policyVersion: bundledPrivacyPolicy.version,
+          pendingHostPrivacy: pendingHostPrivacy,
         )
         .then<BridgeAppService?>((service) {
           if (!expired) return service;

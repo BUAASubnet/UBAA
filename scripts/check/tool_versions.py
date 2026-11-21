@@ -48,6 +48,9 @@ def main():
             raise ValueError(f'{label} 未同步唯一版本清单')
     for path in (ROOT / '.github').rglob('*.yml'):
         for action in re.findall(r'\buses:\s*(\S+)', path.read_text()):
+            # 定时工作流只能从默认分支 main 触发，因此需要复用 dev 上的 ci.yml。
+            if action == 'BUAASubnet/UBAA/.github/workflows/ci.yml@dev':
+                continue
             if not action.startswith('./') and not re.fullmatch(r'[^@]+@[a-f0-9]{40}', action):
                 raise ValueError(f'{path.relative_to(ROOT)} 的第三方 Action 未锁定 SHA')
     print('工具版本镜像与 Action SHA 检查通过')

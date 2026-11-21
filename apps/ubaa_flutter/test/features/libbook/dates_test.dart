@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 
 import 'dart:async';
@@ -379,6 +380,7 @@ Future<_ScheduleBackend> _open(
   final backend = _ScheduleBackend(state: state, days: days);
   await tester.pumpWidget(
     UbaaFlutterApp(
+      preferenceValues: acceptedPrivacyPreferences(),
       backend: backend,
       credentialVault: MemoryCredentialVault(),
       initialDestination: UiDestination.campus,

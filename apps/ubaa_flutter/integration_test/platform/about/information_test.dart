@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 
 import 'dart:async';
@@ -36,6 +37,7 @@ class _Information implements PlatformAppInformation {
 }
 
 Widget _app(PlatformAppInformation information) => UbaaFlutterApp(
+  preferenceValues: acceptedPrivacyPreferences(),
   backend: CourseworkBackend()..signedIn = true,
   credentialVault: MemoryCredentialVault(),
   appInformation: information,
@@ -91,7 +93,7 @@ void main() {
         expect(find.byType(TextField), findsNothing);
         expect(find.byType(NavigationBar), findsNothing);
         final card = find.ancestor(
-          of: find.text('北航校园生活助手'),
+          of: find.text('校园生活助手'),
           matching: find.byType(Card),
         );
         expect(

@@ -6,6 +6,7 @@ import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('系统明暗切换与后端等待沿用相同启动页主题', (tester) async {
@@ -18,7 +19,12 @@ void main() {
       await tester.pumpAndSettle();
       final boot = Theme.of(tester.element(find.byType(UbaaSplashView)));
       expect(boot.brightness, brightness);
-      await tester.pumpWidget(UbaaAppHost(backendFactory: () => gate.future));
+      await tester.pumpWidget(
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backendFactory: () => gate.future,
+        ),
+      );
       await tester.pumpAndSettle();
       final host = Theme.of(tester.element(find.byType(UbaaSplashView)));
       expect(host.brightness, brightness);
@@ -37,7 +43,12 @@ void main() {
 
   testWidgets('打开后端期间可以绘制且销毁后释放迟到实例', (tester) async {
     final gate = Completer<UbaaBackend>();
-    await tester.pumpWidget(UbaaAppHost(backendFactory: () => gate.future));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backendFactory: () => gate.future,
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.byType(UbaaSplashView), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -54,6 +65,7 @@ void main() {
       final backend = _Backend();
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backendFactory: () async {
             attempts++;
             return attempts == 1
@@ -76,6 +88,7 @@ void main() {
   testWidgets('工厂失败后显示脱敏故障与重新打开入口', (tester) async {
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () => throw StateError('/private/secret=fixture'),
       ),
     );

@@ -71,14 +71,15 @@ mixin ControllerDiagnostics on ControllerState {
               view.telemetryEnabled &&
               view.consent == AppServiceConsent.agreed
         : internalTelemetry.enabled;
-    if (_started || !enabled || internalDisposed) return;
+    if (_started || !enabled || internalDisposed || !internalPrivacyAccepted)
+      return;
     _started = true;
     await internalTrackTelemetry(TelemetryEvents.appStarted);
   }
 
   @internal
   void internalRecordColdStart() {
-    if (_coldStart || internalDisposed) return;
+    if (_coldStart || internalDisposed || !internalPrivacyAccepted) return;
     _coldStart = true;
     _timing(TelemetryMetrics.coldStart, 'app', null, _startup.elapsed);
   }
@@ -302,7 +303,7 @@ mixin ControllerDiagnostics on ControllerState {
     String event, {
     Map<String, Object?> properties = const {},
   }) async {
-    if (internalDisposed) return;
+    if (internalDisposed || !internalPrivacyAccepted) return;
     final epoch = internalLifecycleEpoch;
     final backend = internalBackend;
     void failed() {

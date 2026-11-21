@@ -113,11 +113,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String term,
   });
 
-  /// 校验持久化认证状态。
+  /// 校验本机持有的会话。
   ///
   /// # Errors
-  ///
-  /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
+  /// 认证状态无法读取时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
 
   /// 无缓存时也按已知本机账号核对身份，并在每个业务请求后让位。
@@ -644,6 +643,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedGrades> grades({required String term});
 
   Future<BridgeRoutedGradeOverview> gradesOverview();
+
+  /// 查看是否存在可恢复的本机会话，不访问网络。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁时返回安全错误。
+  Future<bool> hasSavedSession();
 
   /// 读取某个年份或网站当前的体测页面。
   ///

@@ -40,6 +40,8 @@ pub(crate) struct ClientRuntime {
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
     non_idempotent_boundary_crossed: bool,
+    campus_network_write_status: Option<u16>,
+    campus_network_write_observer: Option<Arc<std::sync::atomic::AtomicU16>>,
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
@@ -136,6 +138,8 @@ impl ClientRuntime {
             feature_state: Arc::new(RouteFeatureState::default()),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
+            campus_network_write_status: None,
+            campus_network_write_observer: None,
             write_observer: None,
             clock,
             interactive_login_scope: None,
@@ -199,6 +203,8 @@ impl ClientRuntime {
             feature_state: Arc::clone(&self.feature_state),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
+            campus_network_write_status: None,
+            campus_network_write_observer: self.campus_network_write_observer.clone(),
             write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
@@ -216,6 +222,7 @@ impl ClientRuntime {
     /// 开始一个不可重放的写操作作用域，并清除上一次操作留下的边界状态。
     pub(crate) fn begin_non_idempotent_operation(&mut self) {
         self.non_idempotent_boundary_crossed = false;
+        self.campus_network_write_status = None;
     }
 
     pub(crate) fn observe_write_boundary(&mut self, observer: Weak<AtomicBool>) {
@@ -225,6 +232,20 @@ impl ClientRuntime {
     /// 取走本次写操作的发送边界状态，确保后续操作不会读到陈旧标记。
     pub(crate) fn take_non_idempotent_boundary_crossed(&mut self) -> bool {
         std::mem::take(&mut self.non_idempotent_boundary_crossed)
+    }
+
+    pub(crate) fn observe_campus_network_writes_with(
+        &mut self,
+        observer: Arc<std::sync::atomic::AtomicU16>,
+    ) {
+        self.campus_network_write_observer = Some(observer);
+    }
+
+    pub(crate) fn finish_non_idempotent_result<T>(&mut self, result: Result<T>) -> Result<T> {
+        match self.campus_network_write_status.take() {
+            Some(status) => Err(UbaaError::campus_network_write_unknown(status)),
+            None => result.map_err(UbaaError::for_facade),
+        }
     }
 
     pub(crate) fn feature_state(&self) -> Arc<RouteFeatureState> {
@@ -386,7 +407,8 @@ impl ClientRuntime {
     /// 在非幂等发送边界紧前执行调用方检查。
     ///
     /// 检查失败时尚未设置发送边界，也不会调用 transport；请求一旦通过检查，
-    /// 即视为已经合法交付给 transport，后续失败统一归约为结果未知。
+    /// 即视为已经合法交付给 transport，传输和处理失败归约为结果未知。
+    /// 校园网限定响应仍交给业务校验，收尾时保留结果未知及停止原因。
     pub(crate) async fn request_non_idempotent_with_pre_send_check<F>(
         &mut self,
         mut request: HttpRequest,
@@ -417,6 +439,7 @@ impl ClientRuntime {
         let pending = self.transport.execute(request);
         drop(permit);
         let response = pending.await.map_err(unknown_after_send)?;
+        self.observe_campus_network_page(&response, &request_url);
         self.check_consumer().map_err(unknown_after_send)?;
         if let Some(scope) = &self.shared_account {
             scope.check().map_err(unknown_after_send)?;

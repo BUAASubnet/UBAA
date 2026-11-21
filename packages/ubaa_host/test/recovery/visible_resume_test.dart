@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('单项目标恢复期间宿主保持非连接状态并提供待办投影', (tester) async {
@@ -18,7 +19,11 @@ void main() {
       if (!backend.releaseSpoc.isCompleted) backend.releaseSpoc.complete();
     });
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        localAccountStore: accounts,
+      ),
     );
     await accounts.settle(tester);
     Future<void> pumpUntil(bool Function() completed) async {
@@ -54,6 +59,7 @@ void main() {
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () => opened.future,
         localAccountStore: accounts,
         networkChanges: events.stream,
@@ -88,6 +94,7 @@ void main() {
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () => opened.future,
         localAccountStore: accounts,
       ),
@@ -110,6 +117,7 @@ void main() {
       final backend = fixtures.FakeRecoveryBackend();
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: backend,
           localAccountStore: accounts,
           networkChanges: events.stream,
@@ -145,7 +153,11 @@ void main() {
     final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        localAccountStore: accounts,
+      ),
     );
     await accounts.settle(tester);
     await tester.pumpAndSettle();

@@ -17,7 +17,7 @@ use crate::domain::{
     WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
     YgdkRecordsPage,
 };
-use crate::error::Result;
+use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
@@ -807,7 +807,7 @@ impl RouteClient {
 
     fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
         self.guard_session_ownership()?;
-        result
+        result.map_err(UbaaError::for_facade)
     }
 
     fn cleanup_operation_result<T>(&mut self, result: &Result<T>) -> Result<()> {
@@ -821,11 +821,12 @@ impl RouteClient {
 
     /// 写请求跨越发送边界后，收尾检查只负责使失效会话进入安全状态，不能覆盖写结果。
     fn finish_write_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        let result = self.runtime.finish_non_idempotent_result(result);
         if !RouteExecution::new(&mut self.runtime, &mut self.auth).cleanup_sent_write(&result) {
             return self.finish_readonly_operation(result);
         }
         let _ = self.guard_session_ownership();
-        result
+        result.map_err(UbaaError::for_facade)
     }
 }
 

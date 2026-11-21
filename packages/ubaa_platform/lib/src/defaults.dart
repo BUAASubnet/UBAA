@@ -20,11 +20,13 @@ final class PlatformCapabilities {
     required this.permissionGateway,
     required this.locationProvider,
     this.secureMaterials,
+    this.materialRecovery,
     this.galleryImageSaver = const UnavailableGalleryImageSaver(),
   });
 
   final CredentialVault credentialVault;
   final SecureMaterialStore? secureMaterials;
+  final MaterialTransactionRecovery? materialRecovery;
   final PlatformPhotoPicker photoPicker;
   final PlatformPermissionGateway permissionGateway;
   final PlatformLocationProvider locationProvider;
@@ -36,9 +38,11 @@ final class SessionPlatformCapabilities {
   const SessionPlatformCapabilities({
     required this.credentialVault,
     required this.secureMaterials,
+    this.materialRecovery,
   });
   final CredentialVault credentialVault;
   final SecureMaterialStore? secureMaterials;
+  final MaterialTransactionRecovery? materialRecovery;
   LocalAccountStore? createAccountStore() => secureMaterials == null
       ? null
       : SecureLocalAccountStore(secureMaterials!);
@@ -53,12 +57,16 @@ Future<SessionPlatformCapabilities> createDefaultSessionPlatformCapabilities({
     coordinator: coordinator,
     transport: transport,
   );
+  final recovery = await SecureLocalAccountStore(
+    materials,
+  ).reconcileForStartup();
   await materials.probe();
   return SessionPlatformCapabilities(
     credentialVault: PlatformCredentialVault(
       store: MaterialCredentialStore(materials),
     ),
     secureMaterials: materials.isAvailable ? materials : null,
+    materialRecovery: recovery,
   );
 }
 
@@ -77,6 +85,7 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities({
     // 探测失败时不把不可用的句柄交给宿主，避免宿主把它误当成可用
     // 的本地账号仓库，随后所有加密缓存写入才会统一返回 unavailable。
     secureMaterials: session.secureMaterials,
+    materialRecovery: session.materialRecovery,
     photoPicker: photos.picker,
     permissionGateway: photos.permissions,
     locationProvider: locationProvider,

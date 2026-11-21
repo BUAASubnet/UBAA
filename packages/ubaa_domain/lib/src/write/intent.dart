@@ -47,7 +47,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.cgyySubmitReservation => '研讨室预约',
     WriteOperation.cgyyCancelOrder => '取消研讨室订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
-    WriteOperation.bhpan => '北航云盘',
+    WriteOperation.bhpan => '云盘',
   };
 
   bool get isIrreversible => switch (this) {

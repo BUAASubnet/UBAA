@@ -22,7 +22,7 @@ pub const CLI_JSON_SCHEMA_VERSION: u32 = 18;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
-    /// 北航云盘。
+    /// 云盘。
     Bhpan,
     /// 本机日程。
     Agenda,

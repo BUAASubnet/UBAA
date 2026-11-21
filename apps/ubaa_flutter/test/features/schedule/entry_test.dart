@@ -1,3 +1,5 @@
+import 'package:ubaa_test_support/privacy.dart';
+
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -43,6 +45,7 @@ void main() {
     final backend = _EntryBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),
@@ -112,6 +115,7 @@ void main() {
     backend.courses.complete();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),
@@ -133,6 +137,7 @@ void main() {
     backend.courses.complete();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),

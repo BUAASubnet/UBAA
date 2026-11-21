@@ -35,9 +35,11 @@ impl CampusClock {
             false,
         );
         let now = Arc::clone(&self.now);
-        AppService::open(&self.root, config, Surface::Gui, 3)
+        let service = AppService::open(&self.root, config, Surface::Gui, 3)
             .unwrap()
-            .with_runtime(move || *now.lock().unwrap(), false)
+            .with_runtime(move || *now.lock().unwrap(), false);
+        service.agree(3).unwrap();
+        service
     }
 }
 

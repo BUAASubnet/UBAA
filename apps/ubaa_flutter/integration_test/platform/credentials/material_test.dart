@@ -42,6 +42,8 @@ void main() {
       final first = await open();
       try {
         expect((await first.state()).available, isTrue);
+        expect((await first.state()).consent, BridgeAppServiceConsent.unasked);
+        await first.agree();
         await first.setTelemetry(enabled: false);
       } finally {
         first.dispose();

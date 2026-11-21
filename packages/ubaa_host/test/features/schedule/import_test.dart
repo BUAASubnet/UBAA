@@ -8,6 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:ubaa_test_support/recovery.dart' as startup;
 import 'package:ubaa_test_support/navigation.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final (currentWeek, destination) in [
@@ -22,6 +23,7 @@ void main() {
       final backend = _Backend()..currentWeek = currentWeek;
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: backend,
           localAccountStore: accounts,
           initialDestination: destination,
@@ -85,7 +87,11 @@ void main() {
     final accounts = await startup.widgetAccounts(tester);
     final backend = _Backend()..selectedTerm = false;
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        localAccountStore: accounts,
+      ),
     );
     await accounts.settle(tester);
     await tester.pumpAndSettle();
@@ -97,7 +103,11 @@ void main() {
     final accounts = await startup.widgetAccounts(tester);
     final backend = _Backend();
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        localAccountStore: accounts,
+      ),
     );
     await accounts.settle(tester);
     await tester.pumpAndSettle();

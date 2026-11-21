@@ -67,7 +67,7 @@ pub struct Cli {
 /// 顶层命令组。
 #[derive(Clone, Debug, Subcommand)]
 pub enum Command {
-    /// 北航云盘目录、管理、分享、个人秒传及下载准备。
+    /// 云盘目录、管理、分享、个人秒传及下载准备。
     Bhpan(BhpanArgs),
     /// 本机日程操作，不隐式认证或刷新学校来源。
     Agenda(AgendaArgs),

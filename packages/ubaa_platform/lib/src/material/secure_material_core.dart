@@ -16,6 +16,12 @@ class SecureMaterialException implements Exception {
   String toString() => '系统安全存储暂不可用';
 }
 
+final class MaterialTransactionUnrecoverable extends SecureMaterialException {
+  const MaterialTransactionUnrecoverable();
+  @override
+  String toString() => '本地安全数据需要重置，请清除应用数据后重新登录';
+}
+
 /// 跨进程协调失败；uncertain 表示必须保留材料并阻止后续恢复。
 final class SecureMaterialCoordinationException
     extends SecureMaterialException {
@@ -30,17 +36,23 @@ class SecureMaterialStore {
   SecureMaterialStore({
     required SecureMaterialTransport transport,
     required this.coordinator,
-    bool probeRequiresTransaction = true,
+    MaterialMutation? probeMutation = MaterialMutation.probe,
   }) : _transport = transport,
-       _probeRequiresTransaction = probeRequiresTransaction;
+       _probeMutation = probeMutation;
   final MaterialCoordinator coordinator;
-  // 整文件后端的探测可能影响业务材料；只有已知的单键后端可省略事务标记。
-  final bool _probeRequiresTransaction;
+  final MaterialMutation? _probeMutation;
 
   /// 账号多步骤操作借用同一保护；回调仅可进行短本机操作。
-  Future<T> coordinate<T>(Future<T> Function() action) async {
+  Future<T> coordinate<T>(Future<T> Function() action) =>
+      _coordinate(() => coordinator.run(action));
+
+  Future<T?> reconcileForStartup<T>(
+    Future<T> Function(MaterialMutation) action,
+  ) => _coordinate(() => coordinator.reconcile(action));
+
+  Future<T> _coordinate<T>(Future<T> Function() action) async {
     try {
-      return await coordinator.run(action);
+      return await action();
     } on MaterialCoordinationException catch (error) {
       throw SecureMaterialCoordinationException(error.uncertain);
     } on FileSystemException {
@@ -68,7 +80,9 @@ class SecureMaterialStore {
       await coordinate(() async {
         // 读取失败时没有发出写入，不应留下未完成的事务标记。
         await _transport.read(capabilityKey);
-        if (_probeRequiresTransaction) await coordinator.beforeMutation();
+        if (_probeMutation case final mutation?) {
+          await coordinator.beforeMutation(mutation);
+        }
         try {
           await _transport.write(capabilityKey, _capabilityValue);
           if (await _transport.read(capabilityKey) != _capabilityValue) {
@@ -98,7 +112,7 @@ class SecureMaterialStore {
     _validateKey(key);
     try {
       final value = await _transport.read('$_prefix$key');
-      if (value != null && value.length > 65536) {
+      if (value != null && value.length > 65536 && !coordinator.isReconciling) {
         throw const SecureMaterialException();
       }
       return value;
@@ -107,11 +121,15 @@ class SecureMaterialStore {
     }
   });
 
-  Future<void> write(String key, String value) => coordinate(() async {
+  Future<void> write(
+    String key,
+    String value, {
+    MaterialMutation mutation = MaterialMutation.save,
+  }) => coordinate(() async {
     _validateKey(key);
     if (value.length > 65536) throw const SecureMaterialException();
     try {
-      await coordinator.beforeMutation();
+      await coordinator.beforeMutation(mutation);
       await _transport.write('$_prefix$key', value);
       // 原生 API 无错误返回仍需确认实际可读，防止权限/签名问题静默丢失。
       if (await _transport.read('$_prefix$key') != value) {
@@ -125,7 +143,7 @@ class SecureMaterialStore {
   Future<void> delete(String key) => coordinate(() async {
     _validateKey(key);
     try {
-      await coordinator.beforeMutation();
+      await coordinator.beforeMutation(MaterialMutation.remove);
       await _transport.delete('$_prefix$key');
       if (await _transport.read('$_prefix$key') != null) {
         throw const SecureMaterialException();
@@ -136,7 +154,7 @@ class SecureMaterialStore {
   });
 
   void _validateKey(String key) {
-    if (!_available ||
+    if ((!_available && !coordinator.isReconciling) ||
         key.isEmpty ||
         key.length > 256 ||
         !RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(key)) {

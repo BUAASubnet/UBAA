@@ -363,6 +363,7 @@ class AppController extends ControllerState
 
   AppController({
     required UbaaBackend backend,
+    bool privacyAccepted = true,
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     LocalAccountStore? localAccountStore,
@@ -371,6 +372,7 @@ class AppController extends ControllerState
     void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace,
   }) : super(
          backend: backend,
+         privacyAccepted: privacyAccepted,
          backendFactory: backendFactory,
          credentialVault: credentialVault,
          localAccountStore: localAccountStore,

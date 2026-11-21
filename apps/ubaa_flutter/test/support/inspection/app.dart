@@ -6,6 +6,7 @@ Widget createInspectionApp({
   Set<FeatureId>? failingReads,
   Future<void> Function()? beforeRead,
 }) => UbaaFlutterApp(
+  preferenceValues: acceptedPrivacyPreferences(),
   backend: _InspectionBackend(
     state: state,
     failingReads: failingReads,

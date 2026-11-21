@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../diagnostic_operation.dart';
 import 'credentials.dart';
 import 'infrastructure/preferences.dart';
+import 'local_accounts.dart';
 import 'secure_material.dart';
 import 'media.dart';
 import 'infrastructure/agenda_file.dart';
@@ -77,7 +78,7 @@ final class DiagnosticRecord {
 
   final String issueId;
   final DiagnosticOperation operation;
-  final UbaaErrorCode code;
+  final UbaaErrorCode? code;
   final UbaaErrorKind kind;
   final bool retryable;
   final DiagnosticCause cause;
@@ -101,7 +102,7 @@ final class DiagnosticRecord {
   Map<String, Object?> toJson() => {
     'issue_id': issueId,
     'operation': operation.name,
-    'code': code.wireName,
+    if (code case final code?) 'code': code.wireName,
     'kind': kind.name,
     'retryable': retryable,
     'cause': cause.name,
@@ -169,17 +170,21 @@ final class LocalDiagnostics {
         final operation = DiagnosticOperation.values
             .where((v) => v.name == item['operation'])
             .firstOrNull;
+        final reconciled =
+            !item.containsKey('code') &&
+            operation == DiagnosticOperation.initialization &&
+            item['local_reason'] == 'material_transaction_reconciled';
         if (time == null ||
             time.isBefore(
               DateTime.now().toUtc().subtract(const Duration(days: 7)),
             ) ||
-            code == null ||
+            (code == null && !reconciled) ||
             operation == null) {
           continue;
         }
         _history.add({
           'time': time.toUtc().toIso8601String(),
-          'code': code.wireName,
+          if (code != null) 'code': code.wireName,
           'operation': operation.name,
           for (final key in ['issue_id', 'related_issue_id'])
             if (item[key] is String &&
@@ -305,6 +310,41 @@ final class LocalDiagnostics {
 
   List<DiagnosticRecord> get records => List.unmodifiable(_records);
 
+  /// 记录已提交的启动对账，返回撤销后应显示的登录提示。
+  UiError? recordMaterialRecovery(
+    MaterialTransactionRecovery recovery, {
+    required DiagnosticInitializationStage stage,
+  }) {
+    if (recovery == MaterialTransactionRecovery.reconciled) {
+      _append(
+        DiagnosticRecord._(
+          issueId: 'UBAA-$_runId-${++_sequence}',
+          operation: DiagnosticOperation.initialization,
+          code: null,
+          kind: UbaaErrorKind.internal,
+          retryable: false,
+          cause: DiagnosticCause.none,
+          localReason: 'material_transaction_reconciled',
+          initializationStage: stage,
+          timestamp: DateTime.now().toUtc(),
+          source: const [],
+        ),
+      );
+      return null;
+    }
+    return record(
+      operation: DiagnosticOperation.initialization,
+      initializationStage: stage,
+      cause: recovery,
+      error: const UiError(
+        code: UbaaErrorCode.authenticationRequired,
+        kind: UbaaErrorKind.authentication,
+        title: '请重新登录',
+        message: '本地登录状态已失效，请重新登录',
+      ),
+    );
+  }
+
   UiError record({
     required DiagnosticOperation operation,
     required UiError error,
@@ -320,7 +360,7 @@ final class LocalDiagnostics {
     DiagnosticInitializationStage? initializationStage,
   }) {
     final issueId = 'UBAA-$_runId-${++_sequence}';
-    _records.add(
+    _append(
       DiagnosticRecord._(
         issueId: issueId,
         operation: operation,
@@ -353,11 +393,15 @@ final class LocalDiagnostics {
         source: _safeSource(stackTrace),
       ),
     );
+    return error.withIssueId(issueId);
+  }
+
+  void _append(DiagnosticRecord record) {
+    _records.add(record);
     while (_records.length > _capacity) {
       _records.removeFirst();
     }
     _persist();
-    return error.withIssueId(issueId);
   }
 
   String exportText({String? issueId}) {
@@ -423,6 +467,9 @@ final _localReasons = <String>{
       'permission_${permission.name}_${status.name}',
   for (final code in CredentialVaultErrorCode.values) 'credential_${code.name}',
   'material_transaction_uncertain',
+  'material_transaction_unrecoverable',
+  'material_transaction_reconciled',
+  'material_transaction_reset',
   'material_coordination_unavailable',
   'agenda_file_save_failed',
   for (final failure in AgendaFailure.values) 'agenda_${failure.name}',
@@ -432,6 +479,8 @@ String? _localReason(Object? cause) => switch (cause) {
   PlatformCapabilityException(:final permission, :final status) =>
     'permission_${permission.name}_${status.name}',
   CredentialVaultException(:final code) => 'credential_${code.name}',
+  MaterialTransactionUnrecoverable() => 'material_transaction_unrecoverable',
+  MaterialTransactionRecovery.reset => 'material_transaction_reset',
   SecureMaterialCoordinationException(:final uncertain) ||
   MaterialCoordinationException(:final uncertain) =>
     uncertain
@@ -449,6 +498,7 @@ DiagnosticCause _classify(Object? cause) => switch (cause) {
   AgendaException() => DiagnosticCause.agenda,
   AgendaFileException() => DiagnosticCause.file,
   MaterialCoordinationException() => DiagnosticCause.secureMaterial,
+  MaterialTransactionRecovery.reset => DiagnosticCause.secureMaterial,
   CredentialVaultException() => DiagnosticCause.credentialStorage,
   SecureMaterialException() => DiagnosticCause.secureMaterial,
   TimeoutException() => DiagnosticCause.timeout,

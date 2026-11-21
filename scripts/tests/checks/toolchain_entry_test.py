@@ -83,6 +83,47 @@ exit 73
                     with self.assertRaises(ValueError):
                         versions.check_cargokit_toolchains(self.root, '1.95.0')
 
+    def test_ActionSHA仅允许夜间复用的精确dev工作流引用(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('tool_versions', ROOT / 'scripts/check/tool_versions.py')
+        versions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(versions)
+        root = self.root / 'action-reference-check'
+        (root / '.github/workflows').mkdir(parents=True)
+        (root / 'crates/ubaa_flutter_bridge').mkdir(parents=True)
+        (root / 'packages/ubaa_bindings').mkdir(parents=True)
+        (root / 'docs/protocol').mkdir(parents=True)
+        (root / 'Cargo.toml').write_text('[workspace.package]\nedition = "2024"\n')
+        (root / 'rust-toolchain.toml').write_text('[toolchain]\nchannel = "1.95.0"\n')
+        (root / 'crates/ubaa_flutter_bridge/Cargo.toml').write_text(
+            '[dependencies]\nflutter_rust_bridge = "2.13.0"\n')
+        cargo_modes = {mode: {'toolchain': '1.95.0'} for mode in ('debug', 'profile', 'release')}
+        (root / 'crates/ubaa_flutter_bridge/cargokit.yaml').write_text(json.dumps({'cargo': cargo_modes}))
+        (root / 'packages/ubaa_bindings/pubspec.yaml').write_text('  flutter_rust_bridge: 2.13.0\n')
+        values = {
+            'RUST_EDITION': '2024', 'RUST_VERSION': '1.95.0', 'FRB_VERSION': '2.13.0',
+            'UBAA_OLD_COMMIT': 'a' * 40, 'BUAA_API_COMMIT': 'b' * 40,
+            'UBAA_OLD_REMOTE': 'https://example.invalid/old.git',
+            'BUAA_API_REMOTE': 'https://example.invalid/api.git',
+        }
+        (root / 'docs/protocol/references.md').write_text('\n'.join(values.values()))
+        references = [
+            ('BUAASubnet/UBAA/.github/workflows/ci.yml@dev', True),
+            ('BUAASubnet/UBAA/.github/workflows/other.yml@dev', False),
+            ('other/repo/.github/workflows/ci.yml@dev', False),
+            ('BUAASubnet/UBAA/.github/workflows/ci.yml@main', False),
+        ]
+        with patch.object(versions, 'ROOT', root), patch.object(versions, 'read_values', return_value=values):
+            for reference, accepted in references:
+                with self.subTest(reference=reference):
+                    workflow = root / '.github/workflows/actions.yml'
+                    workflow.write_text(f'uses: {reference}\n')
+                    if accepted:
+                        versions.main()
+                    else:
+                        with self.assertRaisesRegex(ValueError, '未锁定 SHA'):
+                            versions.main()
+
     def test_POSIX无转换器时盘符在安装前被拒绝(self):
         self.configure()
         for name in ('scripts/bootstrap/setup.sh', 'scripts/bootstrap/quality-tools.sh',

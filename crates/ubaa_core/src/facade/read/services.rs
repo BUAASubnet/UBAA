@@ -2,15 +2,24 @@
 
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
-    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyVenueSite,
-    ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule, LibBookBookingsPage,
-    LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeSource, CgyyPurposeType, CgyyPurposeTypes,
+    CgyyVenueSite, ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule,
+    LibBookBookingsPage, LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview,
+    YgdkRecordsPage,
 };
 use crate::features::user;
 
 use super::super::client::UbaaClient;
 use super::super::routing::{invalid_input, routed_error};
 use super::super::types::{CallerPinned, Operation, RoutedResult};
+
+fn confirms_cgyy_purposes(
+    result: &crate::error::Result<(Vec<CgyyPurposeType>, CgyyPurposeSource)>,
+) -> bool {
+    result
+        .as_ref()
+        .is_ok_and(|(_, source)| *source == CgyyPurposeSource::Upstream)
+}
 
 impl UbaaClient {
     /// 通过默认路线策略获取用户中心资料。
@@ -148,9 +157,11 @@ impl UbaaClient {
         let (resolution, result) = crate::facade::routing::read_with_fallback!(
             self,
             resolution,
-            crate::features::cgyy::get_purpose_types(self.runtime_for(resolution.mode)).await
+            confirms_cgyy_purposes,
+            crate::features::cgyy::get_purpose_types_with_source(self.runtime_for(resolution.mode))
+                .await
         );
-        self.finish_routed(resolution, result)
+        self.finish_routed(resolution, result.map(|(items, _)| items))
     }
 
     /// 查询研讨室用途并保留上游或静态回退来源诊断。
@@ -160,9 +171,14 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn cgyy_purpose_types_diagnostics(&mut self) -> RoutedResult<CgyyPurposeTypes> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
-        let result =
+        self.log_cgyy_route(resolution, "purposes.list");
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            confirms_cgyy_purposes,
             crate::features::cgyy::get_purpose_types_with_source(self.runtime_for(resolution.mode))
-                .await;
+                .await
+        );
         self.finish_routed(
             resolution,
             result.map(|(items, source)| CgyyPurposeTypes { items, source }),

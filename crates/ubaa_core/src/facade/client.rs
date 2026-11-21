@@ -39,6 +39,12 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// 是否存在可尝试恢复的本机会话。不验证会话，也不访问网络。
+    #[must_use]
+    pub fn has_saved_session(&self) -> bool {
+        self.direct_runtime.has_local_session() || self.webvpn_runtime.has_local_session()
+    }
+
     #[cfg(all(test, feature = "test-contract"))]
     pub(crate) fn business_cache_for_test(
         &self,

@@ -1,5 +1,68 @@
 part of 'ubaa_app_host.dart';
 
+const _acceptedPrivacyVersionKey =
+    'flutter.ubaa.preferences.accepted_privacy_version';
+
+extension _UbaaAppHostPrivacy on _UbaaAppHostState {
+  Future<void> _initializeWithPrivacy() async {
+    final version = bundledPrivacyPolicy.version.toString();
+    String? accepted;
+    try {
+      accepted = await _preferences.read(_acceptedPrivacyVersionKey);
+    } on Object {
+      // 无法确认版本时仍要求用户同意。
+    }
+    if (_disposed) return;
+    if (accepted == version) _allowHostPrivacy();
+    unawaited(_attemptAppService(force: true, startup: true));
+    unawaited(_controller.refreshAppBootstrap(force: true));
+    await _controller.initialize(
+      materialRecovery: widget.materialRecovery,
+      requestPrivacyAgreement: () async {
+        final view = await _controller.refreshAppService();
+        await WidgetsBinding.instance.endOfFrame;
+        final context = _navigatorKey.currentContext;
+        if (_disposed || context == null) return false;
+        return uiShowPrivacyAgreement(
+          context,
+          appServiceAvailable: view.available,
+          onAgree: _acceptHostPrivacy,
+        );
+      },
+    );
+  }
+
+  void _allowHostPrivacy() {
+    _controller.allowHostPrivacy();
+    _updateStartup(() => _privacyAccepted = true);
+  }
+
+  Future<void> _acceptHostPrivacy() async {
+    if (_privacyAccepted) return;
+    await _preferences.write(
+      _acceptedPrivacyVersionKey,
+      bundledPrivacyPolicy.version.toString(),
+    );
+    if (_disposed) return;
+    final view = await _controller.refreshAppService();
+    if (_disposed) return;
+    if (view.available && view.consent != AppServiceConsent.basic) {
+      final state = await _controller.agreePrivacyPolicy();
+      if (_disposed) return;
+      if (state.consent == AppServiceConsent.agreed &&
+          state.telemetryAllowed &&
+          !state.telemetryEnabled) {
+        await _controller.setProductTelemetryEnabled(true);
+      }
+    }
+    if (_disposed) return;
+    _allowHostPrivacy();
+    if (!view.available || view.consent == AppServiceConsent.basic) return;
+    unawaited(_attemptAppService(force: true, startup: true));
+    unawaited(_controller.refreshAppBootstrap(force: true));
+  }
+}
+
 /// 应用服务的隐私选择与设置接线。
 ///
 /// 控制器操作不抛错，返回 Core 实际保存的状态；这里把“没有达到预期状态”

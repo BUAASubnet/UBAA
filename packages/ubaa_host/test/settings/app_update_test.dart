@@ -6,6 +6,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 final _updateUrl = Uri.parse('https://example.invalid/update');
 final _detailUrl = Uri.parse('https://example.invalid/detail');
@@ -161,7 +162,11 @@ void main() {
       gate: false,
     )..announcements = [_announcement('banner-2', AppAnnouncementLevel.banner)];
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, urlOpener: (_) async => false),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        urlOpener: (_) async => false,
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('查看详情'));
@@ -194,7 +199,7 @@ Future<void> _mount(
 class _GateBackend extends DemoBackend implements AppBootstrapBackend {
   _GateBackend({this.gate = true, this.available = false});
   final bool available;
-  final preferences = MemoryPreferenceValues();
+  final preferences = acceptedPrivacyPreferences();
   String latestVersion = '2.0.0+20';
   final dismissed = <String>[];
   final bool gate;

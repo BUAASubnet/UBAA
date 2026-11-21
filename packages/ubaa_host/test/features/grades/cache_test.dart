@@ -7,13 +7,18 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/grades.dart' as fixtures;
 import 'package:ubaa_test_support/recovery.dart' as startup;
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('宿主刷新统计时先交付本地集合，恢复失败保留内容', (tester) async {
     final accounts = await startup.widgetAccounts(tester);
     final backend = _Backend();
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        localAccountStore: accounts,
+      ),
     );
     await accounts.settle(tester);
     await backend.localHomeRead.future;

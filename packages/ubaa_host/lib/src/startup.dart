@@ -6,6 +6,7 @@ extension _BackendStartup on _UbaaAppHostState {
       configDirectory: directory,
       surface: BridgeAppServiceSurface.gui,
       release: kReleaseMode,
+      pendingHostPrivacy: true,
       readVersion: (widget.appInformation ?? SystemAppInformation()).version,
     ),
   );
@@ -91,7 +92,8 @@ UiError _recordStartupError(
   Object error,
   StackTrace stackTrace,
 ) {
-  final safe = error is InitializationException
+  final safe =
+      error is InitializationException || error is SecureMaterialException
       ? error
       : const InitializationException(
           InitializationFailure.componentUnavailable,
@@ -135,11 +137,15 @@ class _StartupFailure extends StatelessWidget {
     this.onRetry,
     required this.stage,
     required this.diagnostics,
+    this.retryLabel = '重新打开',
+    this.showRestartHint = true,
   });
   final UiError error;
   final VoidCallback? onRetry;
   final DiagnosticInitializationStage stage;
   final LocalDiagnostics diagnostics;
+  final String retryLabel;
+  final bool showRestartHint;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -169,8 +175,8 @@ class _StartupFailure extends StatelessWidget {
               SelectableText('诊断编号：${error.issueId}'),
               const SizedBox(height: 12),
               if (onRetry != null)
-                FilledButton(onPressed: onRetry, child: const Text('重新打开'))
-              else
+                FilledButton(onPressed: onRetry, child: Text(retryLabel))
+              else if (showRestartHint)
                 const Text('请关闭应用后重新打开。'),
               TextButton.icon(
                 onPressed: () =>

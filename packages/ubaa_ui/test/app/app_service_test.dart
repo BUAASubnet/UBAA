@@ -107,6 +107,33 @@ Future<void> _pushConsent(
 }
 
 void main() {
+  testWidgets('离线政策保留密码等敏感信息的加粗样式', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PrivacyPolicyPage(policy: bundledPrivacyPolicy)),
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('登录所需的账号、密码与验证码', findRichText: true),
+      200,
+    );
+    bool containsBold(TextSpan span) {
+      if (span.style?.fontWeight == FontWeight.bold &&
+          (span.text ?? '').contains('账号、密码与验证码')) {
+        return true;
+      }
+      return span.children?.whereType<TextSpan>().any(containsBold) ?? false;
+    }
+
+    expect(
+      tester
+          .widgetList<RichText>(find.byType(RichText))
+          .where(
+            (richText) => richText.text.toPlainText().contains('账号、密码与验证码'),
+          )
+          .any((richText) => containsBold(richText.text as TextSpan)),
+      isTrue,
+    );
+  });
+
   group('隐私选择弹窗', () {
     testWidgets('未作选择时返回键和点击外部都不能关闭', (tester) async {
       await _pushConsent(

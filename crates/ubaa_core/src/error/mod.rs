@@ -135,6 +135,62 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    pub(crate) fn campus_network_required(status: u16) -> Self {
+        Self::new(
+            ErrorCode::NetworkError,
+            ErrorKind::Network,
+            false,
+            "该服务当前仅限校园网访问，可切换到 WebVPN 后重试",
+        )
+        .with_diagnostic("network", "campus_network_required")
+        .with_http_status(status)
+    }
+
+    pub(crate) fn campus_network_unattempted(status: u16) -> Self {
+        Self::new(
+            ErrorCode::NetworkError,
+            ErrorKind::Network,
+            false,
+            "未发送：该服务当前仅限校园网访问，可切换到 WebVPN 后重试",
+        )
+        .with_diagnostic("network", "campus_network_required")
+        .with_http_status(status)
+    }
+
+    pub(crate) fn write_unattempted() -> Self {
+        Self::new(
+            ErrorCode::NetworkError,
+            ErrorKind::Network,
+            false,
+            "未尝试：前一项结果待核对，本批次已停止",
+        )
+        .with_diagnostic("write", "operation_not_attempted")
+    }
+
+    pub(crate) fn campus_network_write_unknown(status: u16) -> Self {
+        Self::new(
+            ErrorCode::OutcomeUnknown,
+            ErrorKind::Upstream,
+            false,
+            "结果未知，请先刷新核对；该服务当前仅限校园网访问",
+        )
+        .with_diagnostic("network", "campus_network_required")
+        .with_http_status(status)
+    }
+
+    pub(crate) fn is_campus_network_required(&self) -> bool {
+        self.diagnostic.reason.as_deref() == Some("campus_network_required")
+    }
+
+    pub(crate) fn facade_retryable(&self) -> bool {
+        self.retryable && !self.is_campus_network_required()
+    }
+
+    pub(crate) fn for_facade(mut self) -> Self {
+        self.retryable = self.facade_retryable();
+        self
+    }
+
     /// 返回与展示文案分离的安全诊断信息。
     #[must_use]
     pub fn diagnostic(&self) -> &ErrorDiagnostic {
@@ -473,7 +529,7 @@ impl UbaaError {
                 ErrorCode::PermissionDenied,
                 ErrorKind::Input,
                 false,
-                "北航云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
+                "云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
             )
             .with_diagnostic("route", "route_unverified")
         }
@@ -571,6 +627,24 @@ mod tests {
                 "local session changed in another process",
             )
             .is_session_conflict()
+        );
+    }
+
+    #[test]
+    fn 校园网提示按发送边界区分确定失败与未知结果() {
+        let before_send = UbaaError::campus_network_required(200);
+        assert_eq!(before_send.code, ErrorCode::NetworkError);
+        assert!(!before_send.retryable);
+        assert_eq!(
+            before_send.diagnostic().reason.as_deref(),
+            Some("campus_network_required")
+        );
+        let after_send = UbaaError::campus_network_write_unknown(200);
+        assert_eq!(after_send.code, ErrorCode::OutcomeUnknown);
+        assert!(!after_send.retryable);
+        assert_eq!(
+            after_send.diagnostic().reason.as_deref(),
+            Some("campus_network_required")
         );
     }
 

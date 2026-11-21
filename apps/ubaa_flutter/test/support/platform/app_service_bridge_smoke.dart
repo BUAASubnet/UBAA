@@ -73,6 +73,12 @@ void main() {
         return;
       }
 
+      expect(
+        (await gui.refreshAppService()).consent,
+        AppServiceConsent.unasked,
+      );
+      expect((await command.state()).consent, BridgeAppServiceConsent.unasked);
+      await (backend as AppServiceBackend).agreeAppService();
       expect((await gui.refreshAppService()).consent, AppServiceConsent.agreed);
       expect(gui.appService.telemetryEnabled, isTrue);
       expect((await command.state()).consent, BridgeAppServiceConsent.agreed);

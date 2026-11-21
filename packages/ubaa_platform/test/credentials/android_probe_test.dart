@@ -113,7 +113,7 @@ void main() {
       throwsA(isA<SecureMaterialException>()),
     );
     final state = File('${directory.path}/transaction.v1');
-    expect(await state.readAsString(), 'UBAA1:B');
+    expect(await state.readAsString(), 'UBAA1:B:save');
     expect(values['ubaa.material.v2.fixture-new'], 'synthetic-new');
     final count = calls.length;
     failure = null;
@@ -121,17 +121,120 @@ void main() {
     await reopened.probe();
     expect(reopened.isAvailable, isFalse);
     expect(calls, hasLength(count));
-    expect(await state.readAsString(), 'UBAA1:B');
+    expect(await state.readAsString(), 'UBAA1:B:save');
   });
 
   test('Android 启动探测保留已有未完成业务事务并阻止插件访问', () async {
     final state = File('${directory.path}/transaction.v1');
     await state.writeAsString('UBAA1:B', flush: true);
     final materials = open();
+    await expectLater(
+      materials.coordinator.run(() async => fail('普通事务不能进入 B')),
+      throwsA(
+        isA<MaterialCoordinationException>().having(
+          (e) => e.uncertain,
+          'uncertain',
+          isTrue,
+        ),
+      ),
+    );
     await materials.probe();
     expect(materials.isAvailable, isFalse);
     expect(calls, isEmpty);
     expect(await state.readAsString(), 'UBAA1:B');
     expect(values, {'ubaa.material.v2.fixture-business': 'synthetic-business'});
   });
+
+  test('Android 冷启动工厂先在 B 对账，再在 C 探测安全存储', () async {
+    const paths = MethodChannel('plugins.flutter.io/path_provider');
+    const photos = MethodChannel('plugins.flutter.io/image_picker');
+    messenger.setMockMethodCallHandler(paths, (_) async => directory.path);
+    messenger.setMockMethodCallHandler(photos, (_) async => null);
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(paths, null);
+      messenger.setMockMethodCallHandler(photos, null);
+    });
+    final materials = open();
+    await materials.probe();
+    final accounts = SecureLocalAccountStore(materials);
+    final saved = await accounts.retain('fixture-user', retainSession: true);
+    await accounts.cacheKey(saved.account!);
+    final state = File('${directory.path}/transaction.v1');
+    await state.writeAsString('UBAA1:B:save', flush: true);
+    final startupCalls = <(String, bool, String)>[];
+    messenger.setMockMethodCallHandler(plugin, (call) async {
+      final args = call.arguments as Map;
+      final key = args['key'] as String;
+      final probe = key.startsWith('ubaa.material.v2.capability.');
+      startupCalls.add((call.method, probe, state.readAsStringSync()));
+      switch (call.method) {
+        case 'read':
+          return values[key];
+        case 'write':
+          values[key] = args['value'] as String;
+        case 'delete':
+          values.remove(key);
+      }
+      return null;
+    });
+    final capabilities = await createDefaultPlatformCapabilities(
+      coordinator: MaterialCoordinator(directory: directory),
+      transport: const PlatformSecureMaterialTransport(
+        operatingSystem: 'android',
+      ),
+    );
+    expect(
+      capabilities.materialRecovery,
+      MaterialTransactionRecovery.reconciled,
+    );
+    expect(startupCalls, [
+      ('read', false, 'UBAA1:B:save'),
+      ('read', false, 'UBAA1:B:save'),
+      ('read', true, 'UBAA1:C'),
+      ('write', true, 'UBAA1:C'),
+      ('read', true, 'UBAA1:C'),
+      ('delete', true, 'UBAA1:C'),
+      ('read', true, 'UBAA1:C'),
+    ]);
+    final reopened = SecureLocalAccountStore(capabilities.secureMaterials!);
+    expect((await reopened.read())?.account?.id, saved.account!.id);
+  });
+  for (final step in [
+    'write_before',
+    'write_after',
+    'readback',
+    'delete',
+    'verify_delete',
+  ]) {
+    test('首次启动探测 $step 中断后再次启动直接提交 probe 标记', () async {
+      const paths = MethodChannel('plugins.flutter.io/path_provider');
+      messenger.setMockMethodCallHandler(paths, (_) async => directory.path);
+      addTearDown(() => messenger.setMockMethodCallHandler(paths, null));
+      // 使用有事务标记的后端，复用上述五个传输故障点。
+      Future<SessionPlatformCapabilities> start() =>
+          createDefaultSessionPlatformCapabilities(
+            coordinator: MaterialCoordinator(directory: directory),
+            transport: const PlatformSecureMaterialTransport(
+              operatingSystem: 'ios',
+            ),
+          );
+      final marker = File('${directory.path}/transaction.v1');
+      failure = step;
+      expect((await start()).secureMaterials, isNull);
+      expect(await marker.readAsString(), 'UBAA1:B:probe');
+      expect(
+        await File('${directory.path}/account-generation.v1').exists(),
+        isFalse,
+      );
+      expect(values, isNot(contains('ubaa.material.v2.account-index.v1')));
+      failure = null;
+      final capabilities = await start();
+      expect(
+        capabilities.materialRecovery,
+        MaterialTransactionRecovery.reconciled,
+      );
+      expect(await capabilities.createAccountStore()!.read(), isNull);
+      expect(await marker.readAsString(), 'UBAA1:C');
+    });
+  }
 }
