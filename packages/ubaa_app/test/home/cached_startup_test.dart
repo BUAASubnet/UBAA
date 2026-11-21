@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -6,9 +7,16 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart';
 import '../support/controller/clock_accounts.dart';
 
+void _testWithCampusClock(String description, Future<void> Function() body) {
+  test(
+    description,
+    () => withClock(Clock.fixed(DateTime.utc(2026, 9, 22, 12)), body),
+  );
+}
+
 void main() {
   for (final empty in [false, true]) {
-    test('认证前恢复实际展示的明日课表，空课表=$empty', () async {
+    _testWithCampusClock('认证前恢复实际展示的明日课表，空课表=$empty', () async {
       final backend = _Backend()..emptyDay = empty;
       final controller = AppController(
         backend: backend,
@@ -27,7 +35,7 @@ void main() {
       expect(backend.readCalls, 0);
     });
   }
-  test('缓存首屏同时带待办与按今天日期确定的周次，认证尚未发送', () async {
+  _testWithCampusClock('缓存首屏同时带待办与按今天日期确定的周次，认证尚未发送', () async {
     final backend = _Backend();
     final controller = AppController(
       backend: backend,
@@ -74,7 +82,7 @@ class _Backend extends FakeRecoveryBackend
         activeRoutes: [ConnectionMode.webvpn],
       );
   LocalAccount? account;
-  final fetched = DateTime.now().subtract(const Duration(minutes: 10));
+  final fetched = clock.now().subtract(const Duration(minutes: 10));
   @override
   Future<void> openOfflineAccount(LocalAccount value, List<int> key) async {
     account = value;
@@ -110,12 +118,8 @@ class _Backend extends FakeRecoveryBackend
     RoutePolicy policy,
   ) async {
     policies.add(policy);
-    if (query.view == FeatureQueryView.scheduleWeeks) {
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-    }
-    final today = homeCampusTime(DateTime.now());
+    final today = homeCampusTime(clock.now());
     if (query.view == FeatureQueryView.scheduleWeek) {
-      await Future<void>.delayed(const Duration(milliseconds: 30));
       return OfflineQueryRead(
         cached(
           feature,

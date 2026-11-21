@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
@@ -54,21 +56,29 @@ void main() {
     );
   });
 
-  testWidgets('串行网络下签到在第二次读取后显示，不排在无关功能之后', (tester) async {
+  test('串行网络下签到在第二次读取后显示，不排在无关功能之后', () async {
+    final schedule = Completer<void>();
+    final signin = Completer<void>();
+    final remaining = Completer<void>();
     final backend = _HomeLoadingBackend(
-      serialDelay: const Duration(seconds: 1),
+      waitBeforeRead: (feature) => switch (feature) {
+        FeatureId.schedule => schedule.future,
+        FeatureId.signin => signin.future,
+        _ => remaining.future,
+      },
     );
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
-    await controller.initialize();
-    await tester.pump();
     try {
-      await tester.pump(const Duration(seconds: 1));
+      await controller.initialize();
+      schedule.complete();
+      await Future<void>.delayed(Duration.zero);
       expect(
         controller.homeSnapshots[FeatureId.schedule]!.status,
         FeatureLoadStatus.success,
       );
-      await tester.pump(const Duration(seconds: 1));
+      signin.complete();
+      await Future<void>.delayed(Duration.zero);
       expect(
         controller.homeSnapshots[FeatureId.signin]!.status,
         FeatureLoadStatus.success,
@@ -78,18 +88,18 @@ void main() {
         FeatureLoadStatus.loading,
       );
     } finally {
-      // 清理合成网络队列；虚拟时间不代表真实校园网络耗时。
-      for (var i = 0; i < FeatureId.values.length; i++) {
-        await tester.pump(const Duration(seconds: 1));
+      for (final gate in [schedule, signin, remaining]) {
+        if (!gate.isCompleted) gate.complete();
       }
+      await Future<void>.delayed(Duration.zero);
     }
   });
 }
 
 class _HomeLoadingBackend extends DemoBackend {
-  _HomeLoadingBackend({this.serialDelay = Duration.zero});
+  _HomeLoadingBackend({this.waitBeforeRead});
 
-  final Duration serialDelay;
+  final Future<void> Function(FeatureId feature)? waitBeforeRead;
   final reads = <FeatureId>[];
   Future<void> _tail = Future.value();
 
@@ -104,7 +114,7 @@ class _HomeLoadingBackend extends DemoBackend {
   Future<FeatureResult> loadFeature(FeatureId feature) {
     reads.add(feature);
     final pending = _tail.then((_) async {
-      if (serialDelay != Duration.zero) await Future<void>.delayed(serialDelay);
+      await waitBeforeRead?.call(feature);
       return FeatureResult.success(
         details: [FeatureDetail(title: '合成${feature.title}')],
         resolvedRoute: ConnectionMode.direct,

@@ -9,6 +9,29 @@ void main() {
   for (final entry in probe.cases.entries) {
     test(entry.key, entry.value);
   }
+  late String worker;
+  setUpAll(() async {
+    final directory = await Directory.systemTemp.createTemp(
+      'ubaa_recovery_worker_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    worker = '${directory.path}/worker${Platform.isWindows ? '.exe' : ''}';
+    var repository = Directory.current.absolute;
+    while (!File('${repository.path}/justfile').existsSync()) {
+      repository = repository.parent;
+    }
+    final compilation = await Process.run('just', [
+      'dart',
+      'compile',
+      'exe',
+      'packages/ubaa_app/test/runtime/shared_recovery_worker.dart',
+      '-o',
+      worker,
+    ], workingDirectory: repository.path);
+    expect(compilation.exitCode, 0, reason: '${compilation.stderr}');
+  });
+  Future<Child> start(Directory root, String mode) =>
+      Child.start(worker, root, mode);
   late Directory root;
   setUp(() async {
     root = await probe.fixture();
@@ -17,8 +40,7 @@ void main() {
     await root.delete(recursive: true);
   });
   test('真实双进程同时恢复：继任客户端复用已发布会话，只提交一次密码', () async {
-    final a = await Child.start(root, 'hold'),
-        b = await Child.start(root, 'normal');
+    final a = await start(root, 'hold'), b = await start(root, 'normal');
     try {
       a.send('GO');
       await a.next('LOGIN');
@@ -36,7 +58,7 @@ void main() {
   });
   for (final action in ['退出', '切号', '退出重登', '撤销许可']) {
     test('真实双进程恢复中$action：旧任务不能交付', () async {
-      final a = await Child.start(root, 'hold');
+      final a = await start(root, 'hold');
       try {
         a.send('GO');
         await a.next('LOGIN');
@@ -67,8 +89,7 @@ void main() {
     });
   }
   test('真实恢复进程中途被 SIGKILL，等待者获得 OS 锁并完成恢复', () async {
-    final a = await Child.start(root, 'hold'),
-        b = await Child.start(root, 'normal');
+    final a = await start(root, 'hold'), b = await start(root, 'normal');
     try {
       a.send('GO');
       await a.next('LOGIN');
@@ -89,7 +110,7 @@ void main() {
     }
   });
   test('会话已写入但发布前崩溃：新客户端先复用会话，不再次提交密码', () async {
-    final a = await Child.start(root, 'hold');
+    final a = await start(root, 'hold');
     Child? b;
     try {
       a.send('GO');
@@ -98,7 +119,7 @@ void main() {
       await File('${root.path}/session').writeAsString('合成已提交会话', flush: true);
       Process.killPid(a.pid, ProcessSignal.sigkill);
       await a.process.exitCode;
-      b = await Child.start(root, 'normal');
+      b = await start(root, 'normal');
       b.send('GO');
       await b.next('DONE');
       await b.finished();
@@ -129,18 +150,8 @@ class Child {
   final StreamIterator<String> lines;
   final int pid;
   final Future<String> errors;
-  static Future<Child> start(Directory root, String mode) async {
-    var repo = Directory.current.absolute;
-    while (!File('${repo.path}/justfile').existsSync()) {
-      repo = repo.parent;
-    }
-    final process = await Process.start('just', [
-      'dart',
-      'run',
-      'packages/ubaa_app/test/runtime/shared_recovery_worker.dart',
-      root.path,
-      mode,
-    ], workingDirectory: repo.path);
+  static Future<Child> start(String worker, Directory root, String mode) async {
+    final process = await Process.start(worker, [root.path, mode]);
     final lines = StreamIterator(
       utf8.decoder.bind(process.stdout).transform(const LineSplitter()),
     );
