@@ -47,7 +47,7 @@ just doctor
 just flutter doctor -v
 ```
 
-所有 Dart/Flutter 命令都通过 `just dart`、`just flutter` 调用，不直接使用 PATH 中的 Flutter，原因见 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)。
+所有 Dart/Flutter 命令都通过 `just dart`、`just flutter` 调用，不直接使用 PATH 中的 Flutter，原因见 [工具链调用规则](setup.md#工具链调用规则)。
 
 ## 4. 构建并运行客户端
 

@@ -209,7 +209,7 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 #### 1. 约束与来源索引
 
 
-当时任务允许本专项有来源的 typed 只读补齐，该历史范围不提供当前授权；长期要求见 [AGENTS 来源对照门禁](../../../AGENTS.md#来源对照门禁)。尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
+当时任务允许本专项有来源的 typed 只读补齐，该历史范围不提供当前授权；长期要求见[协议依据目录](../README.md#逐操作对照列)。尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
 
 下文定位均相对此工作树；O 前缀统一为 ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e；E 前缀统一为 examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a。
 

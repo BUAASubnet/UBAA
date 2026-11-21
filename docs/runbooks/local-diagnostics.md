@@ -111,7 +111,7 @@ Flutter 本地报告包含操作、源码位置以及随错误传递的传输阶
 - 旧的 `includeTechnicalDetail` 参数只为兼容保留，不再把外部 message 当作“已脱敏”内容保留。普通诊断只能扩充允许字段；原始字符串只通过主动分享的完整诊断出口传递。
 - 新错误场景先写从真实适配器或控制器到最终状态的失败测试，并检查原文只进入完整诊断，不进入普通 UI、日志、摘要存储或遥测。
 - 检查按[检查选择与完成条件](../development/commands.md#检查选择与完成条件)执行，日志字段按[日志与诊断脱敏](../development/conventions.md#日志与诊断脱敏)处理。
-- 全量门禁、宿主 integration、本地回环和真实学校验证的结果分别记录。真实 App 与 Core-live 按 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)运行。
+- 全量门禁、宿主 integration、本地回环和真实学校验证的结果分别记录。真实 App 与 Core-live 按 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)运行。
 
 ## 结构化错误上下文
 

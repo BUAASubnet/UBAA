@@ -12,7 +12,7 @@
 ## 前提
 
 - 已按[检查选择与完成条件](../development/commands.md#检查选择与完成条件)完成对应检查。
-- 具有 [AGENTS 规定的当前会话授权](../../AGENTS.md#真实账号与验收范围)，覆盖要运行的功能和路线。
+- 具有 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)，覆盖要运行的功能和路线。
 - 在被忽略的根目录 `.env` 中设置非空的 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容旧名 `UBAA_USERNAME`、`UBAA_PASSWORD`）。凭据经 stdin 传递，不打印，也不出现在命令参数中。
 
 运行时的分工：

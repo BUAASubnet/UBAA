@@ -89,7 +89,7 @@ flowchart TD
 | 某个业务的协议实现 | `crates/ubaa_core/src/features/<领域>/` |
 | 界面组件 | `packages/ubaa_ui/lib/src/features/<领域>/` |
 
-改动前先读对应领域的[合同](../contracts/)；认证、读取或写入改动还要遵守 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)。
+改动前先读对应领域的[合同](../contracts/)；认证、读取或写入改动还要遵守[协议依据目录](../protocol/README.md)。
 
 ## 证据的独立性
 

@@ -12,7 +12,7 @@
 | 知道该跑哪些检查 | [开发命令](development/commands.md) |
 | 看懂文档里的术语 | [术语表](development/glossary.md) |
 | 了解项目进展 | [项目现状](project/status.md)、[当前目标](project/goal.md)、[路线图](project/roadmap.md) |
-| 修改校园协议 | 先读 [AGENTS.md 来源对照门禁](../AGENTS.md#来源对照门禁)，再到[协议依据](protocol/README.md)找对应功能 |
+| 修改校园协议 | 先读[协议依据目录](protocol/README.md)，再到[协议依据](protocol/README.md)找对应功能 |
 
 ## 按修改内容定位代码
 

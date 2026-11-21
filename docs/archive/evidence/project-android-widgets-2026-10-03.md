@@ -1,6 +1,6 @@
 # Android桌面课表、原生启动与最终候选验证
 
-日期：2026-10-03。基础提交 `02d68d19`，当前分支 `codex/project-completion-20261001`。双来源、字段与宿主裁决见[来源对照](../source-parity-android-widgets-2026-10-03.md)。整体合同仍执行中，不将Android结果代替macOS真实按钮验收。
+日期：2026-10-03。基础提交 `02d68d19`，当前分支 `work/project-completion-20261001`。双来源、字段与宿主裁决见[来源对照](../source-parity-android-widgets-2026-10-03.md)。整体合同仍执行中，不将Android结果代替macOS真实按钮验收。
 
 ## 实现
 

@@ -1,6 +1,6 @@
 # F01—F07 工程质量整改
 
-日期：2026-10-11。状态：F01—F07 工程整改已完成。基线 a0a1736031e9e380eedb9c70b27e26224a5f5793；分支 codex/engineering-quality-20261011。
+日期：2026-10-11。状态：F01—F07 工程整改已完成。基线 a0a1736031e9e380eedb9c70b27e26224a5f5793；分支 work/engineering-quality-20261011。
 
 ## 基线事实
 
@@ -56,7 +56,7 @@ Windows 严格 Clippy 修复后首次真正执行测试，又检出 readback_tes
 
 ## 最终源码候选
 
-平台补修提交为 `0cf097fa6d34994552f842d1a09eadcdd3b0329a`，三个实现提交 `f6bd5159`、`6d70a81f`、`0cf097fa` 均已推送到 `codex/engineering-quality-20261011`。本地另提交 `goal.md`、`status.md` 与本记录的验收收尾，不改源码；文档提交与被验证源码 SHA 分开记录。
+平台补修提交为 `0cf097fa6d34994552f842d1a09eadcdd3b0329a`，三个实现提交 `f6bd5159`、`6d70a81f`、`0cf097fa` 均已推送到 `work/engineering-quality-20261011`。本地另提交 `goal.md`、`status.md` 与本记录的验收收尾，不改源码；文档提交与被验证源码 SHA 分开记录。
 
 - [CI 38139830762](https://github.com/BUAASubnet/UBAA/actions/runs/38139830762)：全部成功，合同、Flutter、macOS Rust、Windows Rust 均通过。Windows 格式、Clippy `-D warnings`、完整测试、构建和文档步骤全部实际执行成功，没有以跳过代替通过。
 - [原生矩阵 38139888742](https://github.com/BUAASubnet/UBAA/actions/runs/38139888742)：全部成功，Linux/Windows/macOS/iOS simulator/Android APK 的产物和输入材料均上传。Linux 作业日志确认不可用和可用会话各通过 1 项真实插件测试。

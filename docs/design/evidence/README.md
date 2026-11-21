@@ -27,7 +27,7 @@
 
 ## 路径与本机标识
 
-`UBAA_UI_EVIDENCE_DIR` 指向 `.ubaa_local/` 中的任务子目录，例如 `<repo-root>/.ubaa_local/ui_evidence/<run-id>/`。工具配置和调用遵守 [AGENTS 工具链规则](../../../AGENTS.md#项目工具链入口)。`ui_render.dart` 在任何写入前解析实际路径（包括尚未创建目录的现有父目录与符号链接），只允许写入实际位于 `.ubaa_local/` 下的任务子目录。
+`UBAA_UI_EVIDENCE_DIR` 指向 `.ubaa_local/` 中的任务子目录，例如 `<repo-root>/.ubaa_local/ui_evidence/<run-id>/`。工具配置和调用遵守 [工具链调用规则](../../development/setup.md#工具链调用规则)。`ui_render.dart` 在任何写入前解析实际路径（包括尚未创建目录的现有父目录与符号链接），只允许写入实际位于 `.ubaa_local/` 下的任务子目录。
 
 受跟踪的说明只记录 `.ubaa_local/<任务>/<批次>/<文件名>`、内容摘要、采集方式与实际验收结论，不写个人家目录绝对路径。
 

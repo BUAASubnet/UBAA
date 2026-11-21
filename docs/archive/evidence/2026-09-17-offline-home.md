@@ -4,7 +4,7 @@
 
 2026-09-17：源工作区 `ubaa2 @ d7c37f73` 干净。`git merge-base --is-ancestor` 确认 `7273283a` 与 `db4e198d` 均已包含。既有引用管理、UI、图标和查询更改已分别提交于 `f63e6d06`、`8f66ce7e`、`d7c37f73`，实施分支完整继承，不冒充新成果。源目录保留原样。
 
-隔离区 `.worktrees/offline-home-20260917`、分支 `codex/offline-home-20260917`，只读复用源目录冻结引用。源和实施区 冻结来源校验 均退出 0，SHA 与 references.md 一致。无凭据复制、无运行会话修改、无真实学校写入。
+隔离区 `.worktrees/offline-home-20260917`、分支 `work/offline-home-20260917`，只读复用源目录冻结引用。源和实施区 冻结来源校验 均退出 0，SHA 与 references.md 一致。无凭据复制、无运行会话修改、无真实学校写入。
 
 ## 接续前已提交候选证据（截至P2-O）
 
@@ -259,7 +259,7 @@ P4-D 最终门禁：`just check` 退出 0，Core 默认/测试注入配置各 24
 
 ## P4-E：首页待办 Bridge/App 接线（2026-09-22）
 
-实施基线为 `6351f9e7`，仅在 `codex/offline-home-20260917` 隔离区修改；源工作区仍为 `ubaa2@d7c37f73`，干净、ahead 7。沿 P4-D 已核对的四个 Core 操作，新增 Bridge v17 typed 本地与在线入口，SPOC、签到、阳光恢复到本地首页；SPOC 单详情进入精确查询缓存。签到缓存没有资格或 target，跨日不生成当天待办，同日只读导航。在线部分结果与旧完整内容分别管理，阳光本次记录页不会被旧统计覆盖。
+实施基线为 `6351f9e7`，仅在 `work/offline-home-20260917` 隔离区修改；源工作区仍为 `ubaa2@d7c37f73`，干净、ahead 7。沿 P4-D 已核对的四个 Core 操作，新增 Bridge v17 typed 本地与在线入口，SPOC、签到、阳光恢复到本地首页；SPOC 单详情进入精确查询缓存。签到缓存没有资格或 target，跨日不生成当天待办，同日只读导航。在线部分结果与旧完整内容分别管理，阳光本次记录页不会被旧统计覆盖。
 
 RED：`<private-evidence>/legacy-tmp/ubaa-p4e-bridge-red.log` 记录尚无本地首页 Bridge 入口；`<private-evidence>/legacy-tmp/ubaa-p4e-app-red.log` 记录缺少明确签到既定回读能力；`<private-evidence>/legacy-tmp/ubaa-p4e-domain-red.log` 中跨日签到仍生成待办及部分统计仍生成未达标提醒两项失败；`<private-evidence>/legacy-tmp/ubaa-p4e-state-red.log` 中 complete=false/error=null 被标为 success；`<private-evidence>/legacy-tmp/ubaa-p4e-ui-red.log` 中未出现“统计尚未确认”。编译过程中两次工作目录错误、一次诊断布尔表达式编辑错误已修正，不作为行为 RED。
 

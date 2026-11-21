@@ -1,6 +1,6 @@
 # 原生集成与可见窗口审查
 
-日期：2026-10-02。阶段起点 `1b2dac45`，工作分支 `codex/project-completion-20261001`。所有运行日志、截图和操作轨迹保存在仓库外私有目录 `~/Library/Application Support/UBAA-private-evidence/project-review-20261002-resume`。下列文件名均相对此目录，不提交原始运行材料。
+日期：2026-10-02。阶段起点 `1b2dac45`，工作分支 `work/project-completion-20261001`。所有运行日志、截图和操作轨迹保存在仓库外私有目录 `~/Library/Application Support/UBAA-private-evidence/project-review-20261002-resume`。下列文件名均相对此目录，不提交原始运行材料。
 
 ## 发现与修复
 

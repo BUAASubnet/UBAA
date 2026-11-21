@@ -10,7 +10,7 @@
 
 冻结来源和源优先级、`facade`/typed Bridge/`WriteCoordinator` 边界沿 `AGENTS.md`。认证和只读修改前记录双来源；缺失协议不能猜。真实账号只从已有 `.env.local` 安全读取，不打印，不保存密码。新建独立配置目录；运行媒体与原始输出保存在仓库外私有目录，不进入 Git。真实学校业务写入仍按原合同通过合成 backend 验证，生产读取和界面操作独立记账。
 
-现有工作区 `SECURITY.md` 删除及另一个 `ui-button-parity` worktree 均保留。本专项在 `codex/macos-ui-20260915` 操作，逐阶段提交并在验收后整合。实现串行；只读源码审计与实际 UI 操作可独立并行。
+现有工作区 `SECURITY.md` 删除及另一个 `ui-button-parity` worktree 均保留。本专项在 `work/macos-ui-20260915` 操作，逐阶段提交并在验收后整合。实现串行；只读源码审计与实际 UI 操作可独立并行。
 
 ### Task 1: 冻结旧版与当前按钮接线审计
 

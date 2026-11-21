@@ -128,7 +128,7 @@
 - 远端 [CI](https://github.com/BUAASubnet/UBAA/actions/runs/38139830762) 全部通过：合同、Flutter、macOS Rust、Windows Rust；Windows 格式、Clippy、测试、构建与文档均实际执行成功。
 - 远端[原生矩阵](https://github.com/BUAASubnet/UBAA/actions/runs/38139888742)：Linux、Windows、macOS、iOS simulator、Android APK 全部通过；Linux 安全存储可用/不可用与 macOS 原生回归均实际执行。
 - 干净候选 preflight 通过；Windows 已上传材料经下载复核，UTF-8/LF、候选 SHA 与两份清单摘要均吻合。
-- 三个实现提交已推送到 `codex/engineering-quality-20261011`；本地另提交收尾验收文档，上述证据绑定源码候选而非文档提交。
+- 三个实现提交已推送到 `work/engineering-quality-20261011`；本地另提交收尾验收文档，上述证据绑定源码候选而非文档提交。
 
 ## 保留的发布边界
 

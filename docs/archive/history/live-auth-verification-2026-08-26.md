@@ -1,6 +1,6 @@
 # 实时认证验证
 
-当前脚本化认证入口、双路线验收和真实账号授权见[开发命令](../development/commands.md#来源对照与真实验证)、[只读手册](live-readonly-verification.md)及 [AGENTS](../../AGENTS.md#真实账号与验收范围)。下文为 2026-08-26 验证器与输出合同的历史记录，不作为当前 launcher 行为或授权依据。
+当前脚本化认证入口、双路线验收和真实账号授权见[开发命令](../development/commands.md#来源对照与真实验证)、[只读手册](live-readonly-verification.md)及 [来源对照与真实验证](../../development/commands.md#来源对照与真实验证)。下文为 2026-08-26 验证器与输出合同的历史记录，不作为当前 launcher 行为或授权依据。
 
 状态：本地验证器已实现并通过确定性测试。修正后的 2026-08-26 HEAD 已通过 Direct 和
 WebVPN 认证检查；更早的 2026-08-17、2026-08-23 结果仅作历史观察。

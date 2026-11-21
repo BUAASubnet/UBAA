@@ -85,7 +85,7 @@ Core 在一次新鲜的在线读取中签发的 typed 字段，例如 `cancelEli
 
 ### 来源对照
 
-修改认证、读取或写入功能前，逐个操作核对 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见 [协议依据目录](../protocol/README.md#协议门禁)，记录见[来源对照索引](../protocol/README.md)。
+修改认证、读取或写入功能前，逐个操作核对 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见[协议依据目录](../protocol/README.md)，记录见[来源对照索引](../protocol/README.md)。
 
 ### Fixture / Mock
 

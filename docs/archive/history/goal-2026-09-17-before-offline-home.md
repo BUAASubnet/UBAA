@@ -88,7 +88,7 @@
 
 ### P0：建立可执行基线
 
-- [x] 运行 `git status --short --branch`、冻结来源校验，记录开始 SHA、已有改动与当前工作区。需要隔离时自主创建 `codex/` 工作分支或 worktree，并确保新合同和锁定引用可用。
+- [x] 运行 `git status --short --branch`、冻结来源校验，记录开始 SHA、已有改动与当前工作区。需要隔离时自主创建 `work/` 工作分支或 worktree，并确保新合同和锁定引用可用。
 - [x] 核实 Flutter、Dart、Rust、模拟器和可用设备；执行现有 `scripts/check/flutter-toolchains.sh official`，列出手机、平板和 macOS 的实际可运行目标，不以安装过 SDK 推断模拟器可用。
 - [x] 阅读全部范围材料，确认安全 backend 注入方法、生产启动路径、测试私有目录、模拟器安装方式；复用既有测试入口。
 - [x] 运行 `just flutter-check` 建立现有回归基线。失败先记录和定位，区分环境、既有缺陷与本轮改动，不删除失败测试。

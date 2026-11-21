@@ -503,7 +503,7 @@ Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChange
 | Bykc、Cgyy、Evaluation | [博雅](../protocol/parity/bykc.md)、[场馆](../protocol/parity/cgyy.md)、[直接写操作与评教](../protocol/parity/write-actions.md) |
 
 bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、Header、加密、缓存或重试逻辑。
-新增 bridge DTO 不授权改变 Core 协议；若 facade 字段发生变化，必须先按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)更新来源
+新增 bridge DTO 不授权改变 Core 协议；若 facade 字段发生变化，必须先按[协议依据目录](../protocol/README.md)更新来源
 对照、失败测试和 Core 合同，再更新本文件与生成绑定。
 
 ## 8. 验收门禁
