@@ -93,4 +93,4 @@ flowchart TD
 
 ## 证据的独立性
 
-实现、确定性测试、原生合成测试、Core-live、真实 App、设备和正式发布是相互独立的证据，一种通过不能代替另一种。当前结果见[状态页](../project/status.md)，旧版架构说明见[归档](../archive/history/architecture-before-maintainability-2026-10-07.md)。
+实现、确定性测试、原生合成测试、Core-live、真实 App、设备和正式发布是相互独立的证据，一种通过不能代替另一种。当前结果见[项目现状](../project/status.md)。

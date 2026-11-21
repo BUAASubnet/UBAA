@@ -28,4 +28,4 @@ App 层持有首页各来源、当前展示日期课表和待办投影，界面�
 
 ## 验证边界
 
-原生覆盖范围见[测试策略](../development/testing.md)。首次实施时的测试与原生运行记录见[2026-10-25 实施与验证](../archive/history/2026-10-25-home-layout-validation.md)。
+原生覆盖范围见[测试策略](../development/testing.md)。

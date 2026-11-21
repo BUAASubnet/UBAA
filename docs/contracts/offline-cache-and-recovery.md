@@ -2,7 +2,7 @@
 
 本合同供修改业务缓存、离线首页、会话恢复与读取调度的开发者使用，定义缓存键、加密存储、代次栅栏、不可写投影和各领域的缓存接线规则。
 
-本合同落实[离线首页设计](../archive/history/2026-09-17-offline-home-and-background-sync.md)。桌面 GUI 与命令入口共用原账号映射、凭据、会话、加密缓存和独立明文日程，并共用无感恢复；账号别名和缓存密钥保留，命令结束与全局退出分开，跨进程协调及 Linux SSH 接线详见[共享服务计划](../design/desktop-shared-state.md)。
+桌面 GUI 与命令入口共用原账号映射、凭据、会话、加密缓存和独立明文日程，并共用无感恢复；账号别名和缓存密钥保留，命令结束与全局退出分开，跨进程协调及 Linux SSH 接线详见[共享服务计划](../design/desktop-shared-state.md)。
 
 ## 版本和所有权
 
@@ -522,7 +522,7 @@ Bridge v33 在既有安全错误上增加可选本地故障分类。持久计划
 
 ### 2026-10-07 插件统一与开发材料空间
 
-当前材料键前缀为 `ubaa.material.v2.`；用户明确无需迁移旧开发数据，旧材料不读入也不删除。官方五端密码/账号索引/缓存密钥均经flutter_secure_storage 10.0.0；OHOS使用社区HUKS插件适配及标准2.x平台接口。macOS credentials.*与OHOS secure-material宿主通道已移除，原生代码只存在于对应插件边界。业务AES-GCM缓存与Session2合同不变。原生、构建及未验证设备范围见[本轮证据](../archive/evidence/unified-secure-storage-2026-10-07.md)。
+当前材料键前缀为 `ubaa.material.v2.`；用户明确无需迁移旧开发数据，旧材料不读入也不删除。官方五端密码/账号索引/缓存密钥均经flutter_secure_storage 10.0.0；OHOS使用社区HUKS插件适配及标准2.x平台接口。macOS credentials.*与OHOS secure-material宿主通道已移除，原生代码只存在于对应插件边界。业务AES-GCM缓存与Session2合同不变。
 
 ### 门户资料、校园账户与网费流量快照
 

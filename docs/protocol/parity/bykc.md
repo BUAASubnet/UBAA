@@ -113,7 +113,7 @@ CAS/service、跳转及最终 URL、Cookie/Token 作用域、HTTP 方法与参�
 
 ### 2026-10-26 博雅详情与选课
 
-详情空报名人数的双来源对照、列表人数展示和写前复核规则见[博雅修复记录](../../archive/history/bykc-detail-2026-10-26.md)。
+详情空报名人数的双来源对照、列表人数展示和写前复核规则见博雅修复记录（`bykc-detail-2026-10-26.md`）。
 
 ### 博雅统计与阳光留空默认值核对（2026-10-24）
 
@@ -204,7 +204,7 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 旧账号保存回调不能写入后来登录的账号。
 
 本批已在d4507adbec6e460459475cce7f497fad5670659f提交，完整Flutter865项与仓库门禁、独立规范/质量审查通过。
-永久记录见[偏好证据](../../archive/evidence/2026-09-15-macos-ui-bykc-preferences.md)；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
+永久记录见偏好证据（`2026-09-15-macos-ui-bykc-preferences.md`）；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
 
 #### 1. 约束与来源索引
 

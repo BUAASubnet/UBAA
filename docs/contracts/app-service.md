@@ -2,7 +2,7 @@
 
 本合同供修改应用服务客户端或服务端的开发者使用，定义客户端（Rust Core `app_service` 模块及其宿主）与 Node.js 应用服务（`services/app_service/`）之间的行为。
 
-接口载荷版本以 [`APP_SERVICE_SCHEMA_VERSION`](../../crates/ubaa_core/src/app_service/mod.rs) 为准，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。决策依据见 [ADR 0010](../adr/0010-app-service-worker.md)，实际验收结果见[应用服务验收记录](../archive/evidence/app-service-acceptance-2026-11-11.md)。
+接口载荷版本以 [`APP_SERVICE_SCHEMA_VERSION`](../../crates/ubaa_core/src/app_service/mod.rs) 为准，[JSON Schema](app-service.schema.json) 纳入 `just contract-version-check`。决策依据见 [ADR 0010](../adr/0010-app-service-worker.md)。
 
 ## 1. 范围
 

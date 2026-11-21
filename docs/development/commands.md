@@ -252,10 +252,7 @@ just verify-live mode=webvpn
 
 `docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。
 
-- `docs/archive/` 和 `docs/design/evidence/` 保持历史内容，检查器不检查这些快照内部的链接。锁定的 Cargokit 上游文档同样不改写。
+- 锁定的 Cargokit 上游文档不纳入检查。
 - 协议对照中的旧来源路径和待更新的 `AGENTS.md` 来源索引保留原文。检查器跳过这些已删除的历史目标。
-- 当前文档指向这些目录的链接和锚点仍然检查。
-
-范围决定见[决策记录](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。
 
 带参数的项目 recipe 同时接受位置参数和 `key=value`，关键字可换序，重复或未知参数失败；例如 `just flutter-build mode=debug platform=linux`。Dart/Flutter 的自由参数仍原样透传。

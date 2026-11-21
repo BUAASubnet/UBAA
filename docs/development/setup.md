@@ -174,7 +174,7 @@ Android 使用 `ANDROID_STORE_FILE`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_AL
 | `UBAA_TEST_SHELLCHECK_LOG`、`UBAA_TEST_SHELLCHECK_EXIT` | 假 ShellCheck 的调用记录和退出码 |
 | `UBAA_TEST_CODESIGN_LOG`、`UBAA_TEST_PLIST_LOG`、`UBAA_TEST_ENTITLEMENTS` | 假签名程序的日志与 entitlements 样本选择 |
 
-真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。媒体、日志的归档写法见[证据存储规则](../design/evidence/README.md)。
+真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。运行媒体和调试日志按[贡献规则](../../AGENTS.md#底线)存放。
 
 ## HarmonyOS 的 GitHub 托管构建
 

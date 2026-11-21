@@ -5,7 +5,7 @@
 取代：无
 被取代：无。后续状态提交、缓存所有权和验证闭包的细化见 [ADR 0007](0007-operation-scopes-and-verification.md)，本决定的显式 library 和公共出口规则继续有效。
 
-依据为[可持续开发性审查](../archive/history/maintainability-audit-2026-10-07.md)，实施与验证见[实施记录](../archive/history/maintainability-implementation-2026-10-07.md)。
+依据为可持续开发性审查（`maintainability-audit-2026-10-07.md`），实施与验证见实施记录（`maintainability-implementation-2026-10-07.md`）。
 
 ## 决定
 

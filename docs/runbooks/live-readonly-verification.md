@@ -116,4 +116,4 @@ count=<safe-count-or-none> reason=<dependency-code-or-none> exit_code=<n>
 
 ## auto 的确定性验证
 
-`auto` 只在 Core/Mock 路由测试中验证网络探测、解析和 WebVPN-only 会话。`verify-live` 与 `core-live` 都拒绝 `auto`，不执行真实登录矩阵。早期基于 CLI 的认证验证器说明见[归档](../archive/history/live-auth-verification-2026-08-26.md)。
+`auto` 只在 Core/Mock 路由测试中验证网络探测、解析和 WebVPN-only 会话。`verify-live` 与 `core-live` 都拒绝 `auto`，不执行真实登录矩阵。

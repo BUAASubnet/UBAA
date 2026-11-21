@@ -68,4 +68,4 @@ macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事�
 
 开发验证使用合成材料与 Mock 学校 HTTP，真实操作遵循 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)。运行证据与交接放私有 `.ubaa_local/`。
 
-运行路线的选择依据是 2026-11-01 的 H0 样机，原始证据见[H0 样机记录](../archive/design/desktop-shared-state-h0-evidence.md#h0-运行路线与样机证据)。
+运行路线的选择依据是 2026-11-01 的 H0 样机记录，详见 Git 历史。

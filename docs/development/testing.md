@@ -4,7 +4,7 @@
 
 ## 检查入口
 
-要运行的命令、完整确定性清单、原生专项、真实验证和 CI 范围见[开发命令](commands.md)。CLI 与 Bridge 的版本常量、JSON Schema、Dart 接受版本与合同文档由 `just contract-version-check` 同步检查，当前版本见 [CLI 合同](../contracts/auth-and-user.md)和 [Bridge 合同](../contracts/flutter-bridge.md)。旧升级流水见[历史指南](../archive/history/testing-before-2026-10-07.md)。
+要运行的命令、完整确定性清单、原生专项、真实验证和 CI 范围见[开发命令](commands.md)。CLI 与 Bridge 的版本常量、JSON Schema、Dart 接受版本与合同文档由 `just contract-version-check` 同步检查，当前版本见 [CLI 合同](../contracts/auth-and-user.md)和 [Bridge 合同](../contracts/flutter-bridge.md)。
 
 ## 各层的独立责任
 
@@ -81,7 +81,7 @@ Host 与 Flutter 宿主需要同时覆盖真实账号集成和虚拟业务时钟
 
 宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。原生缓存入口还核对云盘能力 DTO、同步进度与取消句柄，以及固定 Direct 缺会话时在网络前返回认证错误，不请求学校。
 
-合成全流程、软键盘专项、真实账号 UI 和常驻预览按用户决定不保留。普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，单元测试不导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。
+合成全流程、软键盘专项、真实账号 UI 和常驻预览按用户决定不保留。普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，单元测试不导入原生入口。
 
 Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 

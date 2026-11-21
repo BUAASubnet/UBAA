@@ -230,7 +230,7 @@ H0 按锁定 Flutter `3.41.9`、Dart `3.11.5` 和 FRB `2.13.0` 的实际源码�
 
 所有原生入口均在窗口及 GUI 单实例逻辑前分流。GUI 只识别 GUI 角色，避免命令运行期间阻止用户启动窗口。命令的输出通道独立于 Engine 日志，保留继承管道和实际退出码。Linux AOT 只改变运行组件，不新增账号索引或业务状态。账号、目录、凭据许可和恢复规则在同一公共服务中维护，旧 alias、CacheKey、业务缓存加密及日程明文继续保留。
 
-H1-a 先在现有 `ubaa_app` 提供纯 Dart 窄入口，提取所需路线恢复服务和最小 Bridge 适配，保留 GUI 的调度、写入等待与展示。跨进程代次、锁和全局退出在 H1-b 单独验证。Windows 本机没有可用运行环境，平台源码核对不计为原生通过。完整路线、样机范围、失败结果与下一单元文件见[实施计划](../archive/design/desktop-shared-state-h0-evidence.md#h0-运行路线与样机证据)。本轮只提交文档，继承的旧 CLI worker 与公共身份修复实验保持原样，逐项去向写入私有交接。
+H1-a 先在现有 `ubaa_app` 提供纯 Dart 窄入口，提取所需路线恢复服务和最小 Bridge 适配，保留 GUI 的调度、写入等待与展示。跨进程代次、锁和全局退出在 H1-b 单独验证。Windows 本机没有可用运行环境，平台源码核对不计为原生通过。完整路线、样机范围、失败结果与下一单元文件见实施计划（`desktop-shared-state-h0-evidence.md`）。本轮只提交文档，继承的旧 CLI worker 与公共身份修复实验保持原样，逐项去向写入私有交接。
 
 ## 2026-11-01：日程关闭先收束已交付写入
 
@@ -462,17 +462,11 @@ Core 会话文件锁和 resourceBusy 提示保留为兜底（例如无会话总�
 
 [应用签名配置](../runbooks/app-signing.md)统一本机私有材料目录、原生工具配置和旧 CI secret 映射，分别说明官方更新与二次开发。当前阶段提供配置方法，不新增自动签名或上传流水线，不生成或替换官方密钥。构建号、签名有效性和旧版数据迁移仍是正式发布前的独立检查项。
 
-本页维护现行决策入口与新增记录。阶段 3 及以前的 282 个记录标题已建立[完整索引](../archive/history/2026-10-30-decision-index.md)，正文[原样归档](../archive/history/2026-10-30-decisions-through-quality-phase3.md)，顺序、文字和既有链接均未改写。更早的历史汇总仍见原记录中的归档入口。历史授权与测试结果只适用于记录时的范围，不能提供当前操作授权。
+早期决策见 Git 历史。历史授权与测试结果只适用于记录时的范围，不能提供当前操作授权。
 
 ## 2026-10-30：阶段 4 文档分工与历史保留
 
-状态页改为当前快照，旧时间线完整迁入 history。decision-log 原文件通过 git mv 原样归档，以完整标题索引和近期决定表保留每条入口。既有记录不删改，也不把历史成功改写成当前候选结果。
-
-已完成的 superpowers 计划、9 月 UI 设计/审计/执行记录和 macOS 逐按钮记录归入 history，按日期前缀命名。现行 design 只保留维护中的界面、配色与首页规格；migration 保存来源对照、当前结果与历史入口；两类 evidence 保存各自的验证文字和采集元数据，分工见[文档索引](../README.md#文档目录)。
-
-沿用阶段 3 的链接检查范围：history 内部保留原始相对链接和旧路径，便于按原提交与原位置追溯，豁免原因是历史语义与记录完整性。归档内部链接不承诺按当前目录可点击；[历史目录说明](../archive/history/README.md)提供当前入口与原位置映射。现行文档指向归档的文件与标题仍必须通过断链检查。不增加逐链接 allow、基线或脚本豁免。现行规格和来源对照中的源码链接已按当前目录修正；补充来源中无法共享的原材料继续明确为不可复现的历史证据。
-
-约 4000 个 UI 证据 JSON 继续保留在 docs/design/evidence，实际受跟踪 JSON 为 3967 个。本阶段不删除、不移动、不改写 JSON，也不重算历史采集摘要。两类 evidence 不合并，以免丢失原批次和提交映射。
+状态页只记录当前事实。现行规格、来源对照和历史记录的分工见[文档索引](../README.md#文档目录)。
 
 主题已由 ThemePreferenceStore 通过 PreferenceValues 保存为设备偏好，键为 `flutter.ubaa.preferences.theme`；Host 在启动时恢复并防止迟到读取覆盖用户新选择。无效值或读取失败回退到 system，普通偏好写失败不打断本次选择。现行规格、配置与隐私说明同步；旧设计中的“仅本次运行”保留为当时方案。
 
@@ -546,7 +540,7 @@ OHOS 使用锁定的 `3.41.10-ohos-1.0.1` fork，宿主和三个 `*_ohos` 插件
 
 ### 共享测试夹具
 
-新增 `packages/ubaa_test_support`，集中 recovery、backend rebuild、grades、write cache、门锁展示和 navigation 夹具。原单元测试的断言逐条保留，跨包 `test/` 直接导入为 0；domain/platform/app/UI/bindings/host/official app 全量测试均通过。support 包本身使用同一分析配置并完成分析检查。没有移动 `docs/design/evidence` 下的 JSON。
+新增 `packages/ubaa_test_support`，集中 recovery、backend rebuild、grades、write cache、门锁展示和 navigation 夹具。原单元测试的断言逐条保留，跨包 `test/` 直接导入为 0；domain/platform/app/UI/bindings/host/official app 全量测试均通过。support 包本身使用同一分析配置并完成分析检查。
 
 ### 布局和构建配置
 
@@ -612,17 +606,13 @@ Android 自动读取被忽略的 `.sign/android/signing.properties`，使用 AND
 
 阶段 4 曾决定 3967 个历史 UI JSON 原位保留。复核后，这些文件只描述已移到仓库外的截图（尺寸、时间、`pngSaved`），
 占当前文档行数约四分之三，却没有现行流程读取它们，反而拖慢检索与全仓扫描。本次移除这些 JSON 和 40 份 SHA256SUMS，
-只保留批次文字说明、原型、`external-archive.json` 与 `prototype-manifest.json`。原文在 `7348b8b3` 及更早提交中完整可取，
-恢复方式写入[批次索引](../design/evidence/batches.md)。新批次的逐图元数据与截图一起留在 `UBAA_UI_EVIDENCE_DIR`，
-仓库只提交文字摘要。验收分类、外部归档和提交映射均不变。
+原文在 `7348b8b3` 及更早提交中完整可取。逐图元数据与截图一起留在 `UBAA_UI_EVIDENCE_DIR`。
 
 ## 2026-10-30：记录只跟随事实变化
 
 此前开发循环要求每轮都更新状态页和决策记录，结果近 60 个提交中 `docs/migration` 的改动次数超过 Core，
 状态页也变成按日期追加的流水。现在状态页只保留当前实现、未解决事项和最近一次完整验证；单轮验证写提交说明，
-日志留在 `.ubaa_local/`，决策记录只收会影响后续判断的取舍。原状态流水原样移入
-[历史目录](../archive/history/2026-10-30-status-log-through-signing.md)，单轮任务报告同样归档。来源对照门禁、
-真实账号授权和完成条件不变。
+日志留在 `.ubaa_local/`，决策记录只收会影响后续判断的取舍。旧状态流水和单轮任务报告见 Git 历史。
 
 ## 2026-10-30：发布前置只保留许可证材料
 
@@ -714,17 +704,6 @@ Cargokit 固定使用 `rustup run stable` 而非 `rust-toolchain.toml` 的 1.95.
 
 - 时区：产品先把当前时刻转成校园时间（UTC+8）再比较，测试却用运行机器的本地时间构造“现在”和替身数据。CI 机器使用 UTC，相差 8 小时，`ubaa_ui` 有 5 个首页用例失败，`ubaa_flutter` 有 2 个首页导航用例失败；本机设 `TZ=UTC` 可以复现。现在固定时钟一律写成带 `+08:00` 的时刻，替身后端先转换为校园时间；在 UTC、Asia/Shanghai、America/Los_Angeles 下均通过。
 - golden：6 张基准图在 CI 最近 4 次运行中全部失败，差异稳定在 0.00% 至 0.05%（11 至 178 像素），本机全部通过，属于字体抗锯齿差别。全部删除会失去颜色、间距、暗色模式等外观回归的唯一自动覆盖，所以保留基准。改为在 `ubaa_ui` 包级测试配置中使用带 0.2% 容差的比较器，约为实测最大差异的 4 倍；超出容差时照常写出差异图。自测用合成图片验证：默认比较器拒绝 0.1% 的差异，容差比较器放过 0.1%，仍拒绝 0.5%。
-
-## 归档决策索引
-
-| 时间与主题 | 记录 |
-|---|---|
-| 阶段 1：工具链、脱敏、许可证与证据保留 | [2026-10-29 阶段 1](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29阶段-1-去除个人机器依赖) |
-| 阶段 2：权威入口与冻结引用换钉 | [2026-10-29 阶段 2](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29阶段-2-统一权威来源与规范) |
-| 原生集成删减、每项覆盖缺口与保留理由 | [原生能力范围决定](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力) |
-| 工具版本、配置解析、CI 与文档链接范围 | [门禁与 CI](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一) |
-| 阶段 3 最终本机验证与未运行事项 | [2026-10-30 验收](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-30阶段-3-验收结果) |
-| 主题等设备偏好与文档站 | [2026-10-29 文档站迁移](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29将-ubaa-v20-文档站迁入开发分支) |
 
 ## 2026-11-16 错误诊断的来源与传递
 

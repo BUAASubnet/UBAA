@@ -113,8 +113,7 @@ Flutter 手动登录、已授权的自动登录与会话恢复使用 Bridge v54 
 - 固定路线就绪后复用该结果进入。Auto 在校园网只认证 Direct，校外并发认证两条独立路线。
 - 校外任一路线就绪即可进入应用，不因另一条路线的验证码阻塞；业务按[域名路线规则](route-policy.md)选择。
 
-细节与证据见[整合来源](../protocol/parity/auth-session.md)与[阶段验证](../archive/evidence/project-interactive-auth-2026-10-02.md)。
-
+细节与证据见[整合来源](../protocol/parity/auth-session.md)。
 
 ## H1-a 的恢复操作控制前置单元
 

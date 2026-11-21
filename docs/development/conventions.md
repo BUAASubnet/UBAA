@@ -6,7 +6,7 @@
 
 自有目录使用下划线，例外沿用[目录命名](directories.md)。文件按语言工具约定：Rust/Python 模块用 snake_case，Dart 文件用 lower_snake_case，Kotlin/Swift 类型文件使用 UpperCamelCase；Shell 入口沿用现有 kebab-case。命令名、Cargo/pub 包名、框架固定路径和第三方文件不随自有目录规则改名。
 
-新增长期文档用小写 ASCII kebab-case，不附日期。ADR 用四位顺序编号加主题。只有跨模块整改需要长期追溯时才新增阶段记录，命名为 `YYYY-MM-DD-topic.md`，放入 `docs/archive/`；普通任务不新建阶段记录。重命名既有历史文件时必须同步链接，不因命名规则删除来源或证据。
+新增长期文档用小写 ASCII kebab-case，不附日期。ADR 用四位顺序编号加主题。重命名文件时同步更新链接。
 
 默认 UTF-8、LF、结尾换行和空格缩进；Dart/JSON/YAML/Markdown/TS/Shell/Swift 默认 2 空格，Rust/Python/Kotlin 与 justfile recipe 为 4 空格。以 `.editorconfig` 和对应语言 formatter 为准，不手动格式化第三方或机械生成代码。Markdown 保留有语义的行尾空格，修改时仍须通过差异检查。
 
@@ -39,9 +39,8 @@
 | agent | [AGENTS.md](../../AGENTS.md) | 长期规则、安全边界和开发循环 |
 | 所有人 | `docs/project/` | 当前目标、路线图和实现与验证状态 |
 | 协议依据 | `docs/protocol/` | 来源对照和决策记录 |
-| 历史 | `docs/archive/` | 已完成的计划、旧状态流水和证据，不再更新 |
 
-文档按实际用途放入上表目录，不用本地工具目录充当正式文档入口。已完成的设计与实施计划移入 `docs/archive/`，现行规则保留在规格或合同中。
+文档按实际用途放入上表目录，不用本地工具目录充当正式文档入口。现行规则保留在规格或合同中，旧计划和状态见 Git 历史。
 
 ## 分支与提交
 
@@ -120,8 +119,8 @@ FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库�
 
 本机材料的处理：
 
-- 本机家目录、设备 UUID、截图/录屏、会话和真实响应按[证据规则](../design/evidence/README.md)处理；共享文字使用明确的逻辑占位。
-- 调试材料和运行媒体保存在被忽略的 `.ubaa_local/` 任务子目录。
+- 共享文字对本机路径和设备标识使用明确的占位符，不包含会话或学校原始响应。
+- 调试材料和运行媒体按[贡献规则](../../AGENTS.md#底线)存放在 `.ubaa_local/` 下权限为 `0700` 的任务子目录。
 - 检查类 CI 不接收真实凭据，普通测试使用合成数据。生产部署 SSH 密钥只配置在[应用服务部署环境](../runbooks/app-service.md#部署应用)，所有 GitHub 作业都不接收学校账号。
 - 禁止全局 trace，不以关闭 TLS、扩大日志或保存原始正文换取调试便利。
 
