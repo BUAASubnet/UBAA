@@ -131,7 +131,7 @@ _rust-shell-contracts:
 check-sensitive:
     bash ./scripts/check/sensitive.sh
 
-# 结构 checker 与当前违例 baseline；合同测试由 just check 独立执行。
+# 检查目录命名和结构违例；脚本合同由 just script-check 执行。
 layout-check:
     bash ./scripts/check/layout.sh
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/check/directory_names.py
@@ -143,7 +143,7 @@ contract-version-check:
 # 用锁定依赖构建应用服务，并在隔离 PostgreSQL 中验证接口合同。
 app-service-check:
     python3 scripts/check/app_service/enums.py
-    npm --prefix services/app_service ci --no-audit --no-fund
+    bash scripts/check/app_service/npm-install.sh services/app_service
     npm --prefix services/app_service run check
 
 # 显式启动回环 Node.js 服务，联调 Core、Bridge 和宿主；不进入 CI。
@@ -152,7 +152,7 @@ app-service-e2e:
 
 # 校验发布内容，并用合成内容构建网站、用假 CLI 验证发布边界。
 app-service-content-check:
-    npm ci --no-audit --no-fund
+    bash scripts/check/app_service/npm-install.sh .
     node scripts/check/app_service/content.mjs
     node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
 
@@ -245,41 +245,13 @@ flutter-test *args:
 source-files:
     rg --files apps crates packages scripts -g '!**/cargokit/**' -g '!**/frb_generated.rs' -g '!**/lib/src/rust/**'
 
+prune-target:
+    python3 scripts/build/cache.py prune-target
+
 # 不访问学校或设备的 Python 行为合同。
 script-test:
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/command_build_test.py
-    python3 scripts/tests/release/ci_selection_test.py
-    python3 scripts/tests/release/acceptance_test.py
-    python3 scripts/tests/release/metadata_test.py
-    python3 scripts/tests/release/distribute_test.py
-    python3 scripts/tests/release/server_deploy_test.py
-    python3 scripts/tests/release/download_manifest_test.py
-    python3 scripts/tests/release/ios_privacy_test.py
-    bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
-    python3 scripts/tests/app_service/enums_test.py
-    bash scripts/tools/python.sh scripts/tests/app_service/privacy_policy_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/app_service_dashboard_test.py
-    python3 scripts/tests/integration_catalog_test.py
-    python3 scripts/tests/checks/native_bindings_test.py
-    python3 scripts/tests/checks/ohos_native_library_test.py
-    python3 scripts/tests/checks/codegen_gate_test.py
-    python3 scripts/tests/checks/docs_links_test.py
-    python3 scripts/tests/checks/environment_test.py
-    python3 scripts/tests/checks/recipe_args_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/cargo_locks_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/build_cache_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/repo_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/release_preflight_test.py
-    bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/build_record_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/doctor_test.py
+    bash scripts/tools/python.sh scripts/tools/run_python_tests.py
     node --test scripts/tests/checks/ohos_hvigor_test.cjs
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。
 quality-tools-bootstrap:
