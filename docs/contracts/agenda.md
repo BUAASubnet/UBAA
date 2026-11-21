@@ -125,7 +125,7 @@
 - 错误状态保留，不自发重试。
 - 账号、路线或客户端生命周期变化拒绝旧结果，界面不显示内部协议版本。
 
-CLI 继续采用 JSON schema v13，结果的 `meta.feature=agenda`、`meta.operation=sync` 与 `pendingCount/changedCount` 保留。未验证返回退出 6，结果未知返回退出 5；自动同步许可通过 Bridge v51 的本机读取接口交付，启用操作绑定已确认的账号与路线。
+CLI 使用当前的 [JSON Schema](cli-json.schema.json)，结果的 `meta.feature=agenda`、`meta.operation=sync` 与 `pendingCount/changedCount` 保留。未验证返回退出 6，结果未知返回退出 5；自动同步许可通过 Bridge v51 的本机读取接口交付，启用操作绑定已确认的账号与路线。
 
 ## 学校投影与合并查询
 
@@ -330,7 +330,7 @@ UID 使用编码元组的 SHA-256 摘要：
 
 文件导出先在目标同目录写入私有临时文件，完成写入和同步后核对固定共享代次，再原子交付。默认不覆盖原件，明确 `--overwrite` 才替换普通文件。写入、权限、覆盖或共享身份失败均不返回成功。stdout 的实际写入或刷新失败也返回非零退出码。
 
-CLI v13 的本机信封只有 `feature=agenda`、具体 `operation` 和 `accountState=active/unavailable`，不包含 `resolvedRoute`：
+CLI 的本机信封只有 `feature=agenda`、具体 `operation` 和 `accountState=active/unavailable`，不包含 `resolvedRoute`：
 
 - JSON 写 stdout，human 错误写 stderr。
 - 稳定错误包括 `registration_required/material_unavailable/material_corrupt/storage/stale_identity/cache_key_missing/cache_missing/cache_corrupt/agenda_corrupt/invalid_input/not_found`。

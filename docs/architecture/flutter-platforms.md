@@ -78,9 +78,9 @@
 
 ### 4.2 安全材料
 
-- 官方五平台使用固定的 `flutter_secure_storage 10.0.0`；OHOS 通过本仓库的 HUKS 插件适配走相同的插件接口。
+- 官方宿主锁定 `flutter_secure_storage 11.2.0`。Windows 和 Linux 的适配层分别直接调用 DPAPI 和 Secret Service；OHOS 通过本仓库的 HUKS 插件适配走相同的插件接口。
 - 凭据、账号索引和随机业务缓存密钥使用独立命名空间，不枚举或导出已有密钥。
-- macOS 使用系统登录钥匙串；固定 darwin 0.2.0 的参数拼写差异在适配层显式兼容，避免误启用需要开发证书的数据保护钥匙串。
+- macOS 使用系统登录钥匙串；锁定 `flutter_secure_storage_darwin 0.4.3`，适配层直接传入 `MacOsOptions(usesDataProtectionKeychain: false, accessibility: null)`，避免误启用需要开发证书的数据保护钥匙串。
 - Android 禁止自动备份，iOS 配置 Keychain 权限。
 
 Linux 安全存储的依赖：

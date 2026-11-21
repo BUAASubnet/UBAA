@@ -18,7 +18,7 @@
 
 ## 外观与设备偏好
 
-主题可选 system、light、dark，由 [ThemePreferenceStore](../../packages/ubaa_platform/lib/src/infrastructure/place_preferences.dart) 通过 PreferenceValues 保存设备偏好，键为 `flutter.ubaa.preferences.theme`。Host 在启动时恢复，读取失败或值无效时跟随系统；迟到的恢复结果不能覆盖本次新选择。主题不随退出或清除账号删除。普通偏好写失败不打断本次选择，因此无法保证失败后的下次启动仍恢复同一主题。账号凭据继续使用独立安全存储。
+主题可选 system、light、dark，由 [ThemePreferenceStore](../../packages/ubaa_platform/lib/src/infrastructure/place_preferences.dart) 通过 PreferenceValues 保存设备偏好，外观模式使用 `flutter.ubaa.preferences.theme`。主题色使用 `flutter.ubaa.preferences.accent`，通过 `readAccent` 和 `writeAccent` 读取、保存。Host 在启动时恢复，读取失败或值无效时跟随系统；迟到的恢复结果不能覆盖本次新选择。主题不随退出或清除账号删除。普通偏好写失败不打断本次选择，因此无法保证失败后的下次启动仍恢复同一主题。账号凭据继续使用独立安全存储。
 
 ## 照片与拍照
 
@@ -77,7 +77,7 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 
 ## 错误诊断
 
-错误卡显示本次诊断编号并可主动复制稳定字段；登录失败页和“我的”均可查看本次运行诊断。诊断默认仅在有界内存保存，不自动上传。错误码、重试标志和失败路线完整保留，展示模板由 platform 统一拥有，详见[本地排障手册](../runbooks/local-diagnostics.md)。
+错误卡显示可用的诊断编号和错误码，提示通过“设置 › 诊断信息”分享完整报告。宿主通过普通偏好存储保留最多 100 条安全诊断记录，重载时只恢复最近 7 天的记录。原始学校请求记录只在本次运行的内存中保留。报告由用户主动分享，不会自动上传。错误码、重试标志和失败路线完整保留，展示模板由 platform 统一拥有，详见[本地排障手册](../runbooks/local-diagnostics.md)。
 
 ## 无障碍与交互约束
 

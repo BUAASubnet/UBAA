@@ -15,14 +15,14 @@
 | 绝对、协议相对、根相对和路径相对跳转均从当前 URL 解析 | `LocalConnectionAuth.kt::resolveRedirectUrl` | 跳转表测试 |
 | 认证跳转仅允许 SSO、用户中心和网关主机 | 本地安全策略 [AuthHostPolicy](../../crates/ubaa_core/src/connection.rs)，不从阶段目标继承协议事实 | [主机允许列表及未验证主机拒绝测试](../../crates/ubaa_core/src/connection/contract_tests.rs) |
 | 主机校验后只接受 HTTP 或 HTTPS 认证跳转 | `LocalConnectionAuth.kt::resolveRedirectUrl`、WebVPN 协议段测试 | 非 HTTP 跳转拒绝测试 |
-| Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
+| Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`buaa-api/src/store/cookies.rs` | [Cookie 测试](../../crates/ubaa_core/src/session/cookies/tests.rs) |
 | 显式失效清理会话，超时/5xx 保留会话 | `validateLocalConnectionSession`、`getAuthStatus` | `tests/session.rs` 策略测试 |
 
 自动路由选择同样属于 Core 所有的连接状态：
 
 - 生产探测器只连接 `gw.buaa.edu.cn:80` 解析出的 `10.0.0.0/8` IPv4 地址的 TCP。
 - 单个 500 ms 总期限包含域名解析和所有地址尝试。
-- 三态结果在 facade 进程内以 single-flight 方式缓存 60 秒。
+- 三态结果在 facade 进程内合并并行探测并缓存 3 秒。
 - 探测器不发送 HTTP/TLS 正文，也不读取 Cookie 或凭据。
 
 完整策略和错误映射详见[路由策略合同](route-policy.md)。

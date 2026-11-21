@@ -14,13 +14,13 @@
 
 固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 列出学校 API；其中 `api/app/{core,opt,data}.rs` 使用北航 App 的 CAS 和考试接口。`api/sso/auth.rs`、`api/user/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 和 `error.rs` 提供学校认证与请求支持。该提交没有 UBAA 客户端自身的更新、公告、遥测或删除操作。
 
-应用服务是 UBAA 自己的 Cloudflare Worker。下表四项操作的学校 CAS 与 service、跳转与最终地址、Cookie/会话/Token、方法与参数、请求头与正文、加密与签名、DTO 与解析、缓存与重试、错误与产品语义均不适用；表中接口和行为均指 UBAA 应用服务。旧版只作为产品行为参考。决定见 [ADR 0008](../../adr/0008-app-service-worker.md)，行为见[应用服务合同](../../contracts/app-service.md)。
+应用服务是 UBAA 自己的 Node.js 服务。下表四项操作的学校 CAS 与 service、跳转与最终地址、Cookie/会话/Token、方法与参数、请求头与正文、加密与签名、DTO 与解析、缓存与重试、错误与产品语义均不适用；表中接口和行为均指 UBAA 应用服务。旧版只作为产品行为参考。决定见 [ADR 0010](../../adr/0010-app-service-worker.md)，行为见[应用服务合同](../../contracts/app-service.md)。
 
 | 操作 | 旧版行为 | buaa-api | CAS/service、重定向、Cookie/会话、加密 | 方法、参数与 DTO | 缓存、并发、重试与错误 |
 | --- | --- | --- | --- | --- | --- |
-| 更新检查 | 中转服务器 `GET /api/v1/app/version?clientVersion=`，返回状态、单一下载地址和缓存的 Release 说明；客户端失败时返回 null | 不适用 | 不适用，不携带学校 Cookie | 新接口 `GET /v1/bootstrap`，按渠道返回版本与链接，增加最低可用版本 | Worker 缓存 300 秒；失败时静默；只有成功的响应才能改变门控 |
-| 公告 | 服务器 `announcement.json` 单条公告；客户端按 ID 记录已读 | 不适用 | 不适用 | 并入 `GET /v1/bootstrap`，支持多条、定向和两级展示 | 已读状态只在本机；来源改为仓库 Markdown 同步到 KV |
-| 活跃统计 | 登录成功后在服务端对学号做无密钥哈希，写入 Redis HyperLogLog，按窗口和路线计数 | 不适用 | 不适用；改为客户端加盐哈希，再由 Worker 做 HMAC | 新接口 `POST /v1/telemetry`，按天聚合，字段按白名单 | `batch_id` 去重；D1 精确去重；明细按保留期清理 |
+| 更新检查 | 中转服务器 `GET /api/v1/app/version?clientVersion=`，返回状态、单一下载地址和缓存的 Release 说明；客户端失败时返回 null | 不适用 | 不适用，不携带学校 Cookie | 新接口 `GET /v1/bootstrap`，按渠道返回版本与链接，增加最低可用版本 | 服务端缓存 300 秒；失败时静默；只有成功的响应才能改变门控 |
+| 公告 | 服务器 `announcement.json` 单条公告；客户端按 ID 记录已读 | 不适用 | 不适用 | 并入 `GET /v1/bootstrap`，支持多条、定向和两级展示 | 已读状态只在本机；公告从仓库 Markdown 发布到服务器的 `/var/lib/ubaa/content.json` |
+| 活跃统计 | 登录成功后在服务端对学号做无密钥哈希，写入 Redis HyperLogLog，按窗口和路线计数 | 不适用 | 不适用；改为客户端加盐哈希，再由服务端做 HMAC | 新接口 `POST /v1/telemetry`，按天聚合，字段按白名单 | `batch_id` 去重；PostgreSQL 精确去重；明细按保留期清理 |
 | 删除统计 | 无按安装 ID 删除操作 | 不适用 | 不适用 | 新接口 `POST /v1/telemetry/erase`，只接收合同版本与安装 ID | 幂等；用墓碑阻止晚到批次重新写入 |
 
 
@@ -28,7 +28,7 @@
 
 评教批次与读取沿用[评教逐操作对照](write-actions.md#ubaa2-直接写操作与评教2026-08-28)，研讨室活动类型、阳光打卡概览、SPOC 课程补充与认证回查、Judge 认证回查分别沿用[场馆对照](cgyy.md#场馆预约只读查询)、[阳光打卡只读查询](ygdk.md#阳光打卡只读查询)、[SPOC 列表](coursework.md#spoc-列表)、[SPOC 认证](coursework.md#spoc-认证)和 [Judge 批量与缓存](coursework.md#judge-批量与缓存)。这些操作的可选数据回退不吞掉本机更新拒绝。评教批次已经交付写入后，保留已确认结果，遇到门控后停止并将剩余课程标记为未尝试。
 
-应用服务客户端收到 `410` 时，只将合同机器码 `install_erased` 视为已删除；其他 `410` 保留原批次重试。手动删除记入 GUI 与命令模式共享的最近交付时间；用户可以立即手动重试，自动前台与命令模式继续使用六小时间隔。定时任务按校园日汇总 D1 并清理明细，不请求学校。主动刷新若复用写后核对的在途读取，仍收到同一次门控拒绝提示；自动核对保持静默，学校读取协议不变。本地 HTTP 与 D1 结果见[应用服务验收对照](../../archive/evidence/app-service-acceptance-2026-11-11.md#应用服务验收对照2026-11-11)。
+应用服务客户端收到 `410` 时，只将合同机器码 `install_erased` 视为已删除；其他 `410` 保留原批次重试。手动删除记入 GUI 与命令模式共享的最近交付时间；用户可以立即手动重试，自动前台与命令模式继续使用六小时间隔。定时任务按校园日汇总 PostgreSQL 中的数据并清理明细，不请求学校。主动刷新若复用写后核对的在途读取，仍收到同一次门控拒绝提示；自动核对保持静默，学校读取协议不变。本地 HTTP 与 D1 结果见[应用服务验收对照](../../archive/evidence/app-service-acceptance-2026-11-11.md#应用服务验收对照2026-11-11)。
 
 复审后的本机协调仍使用上表的操作边界：读取门控失败时放行本次学校请求并保留门控记录，GUI 定期复查共享状态，Core 继续按最近尝试时间节流上传、删除和启动配置。旧版 `AnnouncementRoutes.kt` 与服务端 `AnnouncementService.kt` 只读取单条公告且没有版本筛选，固定 buaa-api 没有对应操作。公告上限缺省构建号时包含同版全部构建，沿用原启动配置的请求、响应字段和缓存规则。
 

@@ -318,7 +318,7 @@ ID/分页字段：
 博雅课程列表与首页待办沿 `bykcDetail` 读取完整详情。已选详情的 `courseId` 只在 App 组合读取中使用，
 不增加上游筛选参数；两次读取路线不同或任何读取失败均不返回完整成功。UI 仍按父已选帧的
 `(recordId,courseId)` 唯一定位，补查考勤不能覆盖另一条记录或生成动作；普通详情的签到路径先进入独立已选读取。
-当前帧三维筛选在面板开关、详情返回和当前查询刷新时保留，账号切换清除；跨重启存储由 Task3D2 实施。
+当前帧三维筛选在开关面板、从详情返回和刷新时保留。跨重启的筛选偏好按账号存放在[本机偏好存储](../../packages/ubaa_platform/lib/src/bykc_filters.dart)中。
 
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw
@@ -490,18 +490,17 @@ Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChange
 研讨室预约的本地表单门禁还要求联系电话、主题、活动内容和参与人文本非空，用途编号与参与人数为正；
 这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和研讨室预约的 `request_digest` 只对非敏感形状做
 规范化（结构 ID、文本存在/长度、照片字节数/MIME、布尔值），不写入或哈希返回电话、主题、参与人、
-活动正文、地点、照片文件名和照片字节，避免敏感材料穿过 intent 投影；对应回归记录在
-`docs/protocol/source-parity.md`。
+活动正文、地点、照片文件名和照片字节，避免敏感材料穿过 intent 投影。逐操作对照见[协议依据](../protocol/README.md)。
 
 ## 7. 来源对照与安全边界
 
 | bridge 领域 | 协议对照权威 |
 |---|---|
-| 认证、用户资料、Session、路线 | `source-parity.md` 的“网关探测”“双路线加载/保存/退出”“准备/登录”“用户资料”“CLI 与配置” |
-| 课表、考试、成绩、空教室 | “未改变的课表/考试证据”“未改变的成绩证据”“空教室会话同步/查询” |
-| SPOC、Judge | “SPOC 认证/列表/详情”“Judge 列表/详情/批量与缓存” |
-| Signin、Ygdk、LibBook | “课堂签到今日查询”“阳光打卡只读查询”“图书馆座位只读查询”及直接写操作表 |
-| Bykc、Cgyy、Evaluation | “博雅课程只读查询”“场馆预约只读查询”及直接写操作表 |
+| 认证、用户资料、Session、路线 | [认证、连接与会话](../protocol/parity/auth-session.md)、[应用命令与配置](../protocol/parity/app-commands.md) |
+| 课表、考试、成绩、空教室 | [学业查询](../protocol/parity/academic.md) |
+| SPOC、Judge | [作业](../protocol/parity/coursework.md) |
+| Signin、Ygdk、LibBook | [课堂签到](../protocol/parity/signin.md)、[阳光打卡](../protocol/parity/ygdk.md)、[图书馆座位](../protocol/parity/libbook.md)、[直接写操作](../protocol/parity/write-actions.md) |
+| Bykc、Cgyy、Evaluation | [博雅](../protocol/parity/bykc.md)、[场馆](../protocol/parity/cgyy.md)、[直接写操作与评教](../protocol/parity/write-actions.md) |
 
 bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、Header、加密、缓存或重试逻辑。
 新增 bridge DTO 不授权改变 Core 协议；若 facade 字段发生变化，必须先按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)更新来源

@@ -29,7 +29,7 @@ flowchart TD
 
 - 所有生产调用都经过 Core facade。Dart 和平台宿主不读取 Core 内部状态，不拼接学校 URL，也不处理原始响应。
 - GUI 和桌面命令模式复用同一套应用服务实现。每个进程持有自己的客户端与资源，通过共同的资料空间和持久状态协调账号与数据，设计见[桌面共享状态](../design/desktop-shared-state.md)。
-- 应用服务（遥测、更新、公告）的 Cloudflare Worker 不在图中，它与学校服务无关，见[应用服务合同](../contracts/app-service.md)。
+- 应用服务（遥测、更新、公告）由独立的 Node.js 服务提供，未在图中列出，它与学校服务无关，见[应用服务合同](../contracts/app-service.md)。
 
 ## 各层职责
 

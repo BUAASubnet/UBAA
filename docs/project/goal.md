@@ -2,16 +2,16 @@
 
 本页写给维护者和执行任务的 agent，说明当前阶段要交付什么、怎样才算完成。长期规则见 [AGENTS.md](../../AGENTS.md)，长期方向见[路线图](roadmap.md)。本页不提供任何额外授权。
 
-更新：2026-11-11。状态：工程实现和本地端到端验收已完成，生产部署尚未执行，详见[项目现状](status.md)。
+状态：应用服务已部署到生产环境，详见[项目现状](status.md)。
 
 ## 交付范围
 
 - Rust Core 中独立的应用服务模块与安装级共享状态
-- TypeScript Worker 与 D1/KV
+- Node.js（TypeScript）应用服务与 PostgreSQL
 - GUI 与命令模式接线：隐私政策、设置入口、更新门控、公告
 - 统计汇总与清理、自动检查、部署与发布工具
 
-产品行为以[应用服务合同](../contracts/app-service.md)和 [ADR 0008](../adr/0008-app-service-worker.md)为准。实施步骤见[应用服务实施计划](../archive/design/app-service-implementation.md)。
+产品行为以[应用服务合同](../contracts/app-service.md)为准。原始设计见 [ADR 0010](../adr/0010-app-service-worker.md)。实施步骤见[应用服务实施计划](../archive/design/app-service-implementation.md)。
 
 ## 完成条件
 

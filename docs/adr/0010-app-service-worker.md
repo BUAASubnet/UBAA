@@ -1,9 +1,10 @@
-# ADR 0008：应用服务 Worker 承载遥测、更新检查与公告
+# ADR 0010：应用服务 Worker 承载遥测、更新检查与公告
 
 日期：2026-11-10
 状态：已实施
+服务端实现已迁移到 Node.js + PostgreSQL，现行说明见[应用服务部署手册](../runbooks/app-service.md)和[应用服务合同](../contracts/app-service.md)。
 取代：无。本记录取代[统计开关对照](../protocol/parity/app-service.md)中“不新增网络接收端”的单轮范围限制，该记录的“无可用客户端时不得误报开启”规则继续有效。
-被取代：无
+被取代：部分被取代
 
 ## 问题与证据
 

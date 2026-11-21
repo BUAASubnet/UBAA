@@ -8,7 +8,7 @@ UBAA 2 不再扩展旧版 KMP 工程，而是重构为“Rust 核心 + 多种宿
 
 | 宿主 | 平台 | 状态 |
 |---|---|---|
-| 图形界面 | Android、iOS、HarmonyOS、Windows、macOS、Linux | 已实现，准备发布 v2.0.0 |
+| 图形界面 | Android、iOS、HarmonyOS、Windows、macOS、Linux | 已实现，v2.x 已发布 |
 | 桌面命令模式 | 随 Windows、macOS、Linux 应用提供，与图形界面共用账号和本机数据；Linux 支持没有图形界面的 SSH 环境 | 已实现 |
 | SDK | Rust、Flutter/Dart，以后可能扩展到 Node.js、Kotlin、Swift、ArkTS | 长期方向 |
 | MCP Server | 供本地 Agent 调用 | 长期方向 |
@@ -29,8 +29,8 @@ UBAA 2 不再扩展旧版 KMP 工程，而是重构为“Rust 核心 + 多种宿
 | 统一命令模式 | 图形界面与终端共用账号和数据 | 已实现 |
 | 北航云盘 | 浏览、管理、上传下载、分享与回收站 | 已实现 |
 | 日程同步 | 多台设备经云盘合并自建事项和本地标记 | 已实现，默认关闭 |
-| 应用服务 | 更新检查、定向公告、经同意的产品改进统计（[ADR 0008](../adr/0008-app-service-worker.md)） | 已实现，待生产部署 |
-| v2.0.0 发布 | 六平台正式安装包 | 进行中，见[发布流程](../runbooks/flutter-release.md) |
+| 应用服务 | 更新检查、定向公告、经同意的产品改进统计（[ADR 0010](../adr/0010-app-service-worker.md)） | 已部署到生产环境 |
+| v2.x 发布 | 安装包与商店分发 | v2.0.0 至 v2.0.2 已发布。iOS 2.0.3 已上架 App Store，HarmonyOS 待上架 AppGallery |
 
 以后的范围：本地通知、自然语言添加日程、多语言 SDK、MCP Server。
 

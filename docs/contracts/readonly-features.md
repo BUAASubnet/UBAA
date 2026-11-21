@@ -28,7 +28,7 @@ CLI 只通过 Core facade 访问下列标准和扩展只读方法：
 
 原始 Cookie、CAS ticket、配置 ID、跳转 URL、上游消息与 HTML 不进入 DTO。在线网络免费剩余包含所属产品内各套餐的可用流量，并返回 `remainingExcludesPackages=false`；旧缓存的 `true` 表示尚未计入套餐。计费剩余仍不含套餐。混合流量单位采用客户端 1024 进制显示约定，合计保留最多六位小数。图书只有数量，不推断书目和到期日。
 
-三个命令为兼容性新增，沿用 CLI JSON schema v14 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../protocol/parity/campus.md)。
+三个命令为兼容性新增，使用当前 CLI [JSON Schema](cli-json.schema.json) 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../protocol/parity/campus.md)。
 
 ## 标准只读功能
 

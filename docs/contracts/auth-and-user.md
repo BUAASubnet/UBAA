@@ -13,7 +13,7 @@ GUI 与 App 命令模式共用凭据策略、会话及无感恢复，同机退�
 `UbaaClient` 是普通的聚合 Core facade，拥有：
 
 - 经过校验的路由配置；
-- 围绕 `gw.buaa.edu.cn:80` TCP 探测的进程内 60 秒缓存；
+- 围绕 `gw.buaa.edu.cn:80` TCP 探测的进程内 3 秒缓存；
 - 相互独立的 Direct/WebVPN runtime；
 - 一个原子双路线会话协调器，以及路线专属功能状态。
 
@@ -74,7 +74,7 @@ CLI envelope 版本不改变 `config.toml` 或 `session.json` 的版本化迁移
 
 ## CLI 宿主
 
-`ubaa-cli` 二进制暴露认证、用户信息、全部标准只读命令组和扩展只读命令；扩展写命令仍要求显式确认并受真实验证器阻止。普通 `auth login` 会尝试两条路线；隐藏的 `--mode`、`spoc diagnostics` 和 `judge diagnostics` 仅供测试与实时验证，不属于稳定用户命令合同。人类模式可以提示用户名，除非选择 `--password-stdin`，否则使用隐藏密码输入。JSON 模式绝不执行隐藏交互。需要交互式验证的登录页会安全返回 `upstream_changed`；CLI 没有验证码选项、图片路径、提示或挑战持久化能力。
+`ubaa-cli` 命令入口提供认证、用户信息、全部标准只读命令组和扩展只读命令；扩展写命令仍要求显式确认并受真实验证器阻止。普通 `auth login` 会尝试两条路线；隐藏的 `--mode`、`spoc diagnostics` 和 `judge diagnostics` 仅供测试与实时验证，不属于稳定用户命令合同。人类模式可以提示用户名，除非选择 `--password-stdin`，否则使用隐藏密码输入。JSON 模式绝不执行隐藏交互。需要交互式验证的登录页会安全返回 `upstream_changed`；CLI 没有验证码选项、图片路径、提示或挑战持久化能力。
 
 `--json` 对命令成功、命令失败或参数解析失败都只向 stdout 写入一个带版本 envelope；help 和
 version 保留普通文本行为。无效参数文本会归约为安全的 `invalid_input` envelope，不回显调用
@@ -138,5 +138,5 @@ CLI JSON envelope 的早期版本依次承载以下合同，当前输出只使�
 | v9 | Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读 |
 | v10 | Evaluation typed target、四态批量结果与 caller-pinned 回读 |
 | v16 | 更新门控错误与评教批次 `unattempted` 后缀 |
-| v18 | 新增 `business_rejected`，用于学校服务按预期格式拒绝操作 |
 | v17 | 网络免费剩余包含套餐可用流量，保留是否含套餐的布尔标志 |
+| v18 | 新增 `business_rejected`，用于学校服务按预期格式拒绝操作 |

@@ -19,6 +19,8 @@
 
 首轮方案偏灰，用户要求更多体现应用图标的主题色。统计 `packages/ubaa_ui/assets/icons/app_icon.png` 的不透明蓝色像素，主色为 `#1976D2`，因此将品牌种子与浅色 primary 统一为该色。深色主题提高同色系蓝色亮度，正文与状态标签保留不同强调级别。
 
+`UbaaAccent` 提供图标蓝、靛蓝、青碧、紫罗兰、玫红和石墨六套预设。图标蓝是默认主题色，其他预设通过 `retint` 调整色相与饱和度，保留原色的亮度层级。
+
 实现入口：`packages/ubaa_ui/lib/src/theme.dart`。页面继续使用 ColorScheme 角色。
 
 | 用途 | 浅色 | 深色 |

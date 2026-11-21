@@ -126,7 +126,7 @@ judge = "auto"
 
 ## 路线诊断元数据
 
-Schema-v7 只读 CLI 成功结果和路线解析后的错误都暴露相同的安全诊断元数据：`routePolicy`、`networkState`、`initialRoute`、`resolvedRoute`、`usedFallback` 和 `feature`。
+只读 CLI 成功结果和路线解析后的错误都暴露相同的安全诊断元数据：`routePolicy`、`networkState`、`initialRoute`、`resolvedRoute`、`usedFallback` 和 `feature`。
 
 - 显式 Direct/WebVPN 策略不运行网关探测，因此其 `networkState` 为 `unknown`；这表示“未探测或不确定”，不等于校外。
 - 宿主将 facade 返回的不可变诊断直接交给渲染层。Core facade 负责配置加载、探测缓存、路线解析、就绪预检和业务执行；宿主不能重建或覆盖普通路线选择。

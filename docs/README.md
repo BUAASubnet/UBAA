@@ -27,7 +27,7 @@
 | 功能页面 | [UI features](../packages/ubaa_ui/lib/src/features/) | [UI 领域测试](../packages/ubaa_ui/test/features/) |
 | 导航、查询与通用展示 | [UI app](../packages/ubaa_ui/lib/src/app/)、[common](../packages/ubaa_ui/lib/src/common/) | [query](../packages/ubaa_ui/test/query/)、[navigation](../packages/ubaa_ui/test/navigation/)、[visual](../packages/ubaa_ui/test/visual/) |
 | 平台能力与宿主接线 | [Host](../packages/ubaa_host/lib/)、[Platform](../packages/ubaa_platform/lib/) | 各包测试；[原生能力清单](../scripts/integration-tests.json)与[覆盖边界](development/testing.md) |
-| 应用服务 Worker | [services/app_service](../services/app_service/) | Worker 测试，见[应用服务手册](runbooks/app-service.md) |
+| 应用服务 | [services/app_service](../services/app_service/) | 应用服务测试，见[应用服务手册](runbooks/app-service.md) |
 
 ## 文档目录
 
@@ -57,5 +57,6 @@
 | [0005](adr/0005-flutter-frb-six-platforms.md) | Flutter + FRB 六平台宿主 |
 | [0006](adr/0006-explicit-dart-modules.md) | 显式 Dart 模块 |
 | [0007](adr/0007-operation-scopes-and-verification.md) | 操作作用域与验证闭包 |
-| [0008](adr/0008-app-service-worker.md) | 应用服务 Worker |
+| [0008](adr/0008-internal-state-ownership.md) | 应用活动、恢复结果与内部流程状态的所有权 |
 | [0009](adr/0009-minute-telemetry-counts.md) | 登录与功能加载的匿名分钟级计数 |
+| [0010](adr/0010-app-service-worker.md) | 应用服务 Worker |
