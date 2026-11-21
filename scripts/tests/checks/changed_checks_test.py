@@ -289,6 +289,11 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertIn(['just', 'privacy-policy-check'], gates.commands(plan))
         self.assertIn(['npm', 'run', 'docs:build'], gates.commands(plan))
         self.assertNotIn(['just', 'app-service-check'], gates.commands(plan))
+        for path in ('packages/ubaa_domain/lib/src/privacy/bundled_policy.dart',
+                     'scripts/check/app_service/privacy_policy.py'):
+            self.assertIn(['just', 'privacy-policy-check'], gates.commands(self.plan(path)))
+        self.assertNotIn(['just', 'privacy-policy-check'],
+                         gates.commands(self.plan('scripts/check/example.py')))
 
     def test_app_service_content_and_release_changes_select_only_local_checks(self):
         for path in [

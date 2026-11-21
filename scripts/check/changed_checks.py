@@ -233,6 +233,8 @@ APP_SERVICE_INPUTS = {
 PRIVACY_POLICY_INPUTS = {
     'docs/site/tech/privacy-policy.md',
     'packages/ubaa_domain/lib/src/privacy/bundled_policy.dart',
+    'scripts/check/app_service/privacy_policy.py',
+    'scripts/tests/app_service/privacy_policy_test.py',
 }
 SITE_INPUTS = {
     'package.json', 'package-lock.json', 'docs/contracts/app-service.schema.json',

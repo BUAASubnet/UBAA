@@ -99,13 +99,13 @@ _script-contracts:
     just layout-check
     just module-check
     just contract-version-check
-    just privacy-policy-check
     just tool-version-check
     just version-check
     git diff --check
 
 _script-specialized:
     bash ./scripts/tests/maintenance-gates.sh
+    just privacy-policy-check
     just docs-link-check
     just cargo-lock-check
     bash ./scripts/tests/live-launchers.sh
