@@ -5,6 +5,7 @@ import unittest
 import subprocess
 import tempfile
 import zipfile
+from unittest.mock import patch
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('ci_plan', ROOT / 'scripts/check/ci/plan.py')
@@ -15,6 +16,26 @@ changes = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(changes)
 
 class SelectionTest(unittest.TestCase):
+    def test_夜间只跳过同一dev提交实际通过的运行(self):
+        spec = importlib.util.spec_from_file_location('ci_nightly', ROOT / 'scripts/check/ci/nightly.py')
+        nightly = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(nightly)
+        repository = 'example/repo'
+        sha = 'a' * 40
+        ci_path = f'{repository}/.github/workflows/ci.yml@refs/heads/dev'
+        runs = [{'workflow_runs': [
+            {'id': 10, 'conclusion': 'success', 'referenced_workflows': [{'path': ci_path, 'sha': 'b' * 40}]},
+            {'id': 11, 'conclusion': 'failure', 'referenced_workflows': [{'path': ci_path, 'sha': sha}]},
+            {'id': 12, 'conclusion': 'success', 'referenced_workflows': [{'path': ci_path, 'sha': sha}]},
+        ]}]
+        skipped = [{'jobs': [{'name': 'verify', 'conclusion': 'skipped'}]}]
+        accepted = [{'jobs': [{'name': 'verify / main-required', 'conclusion': 'success'}]}]
+        for gate, expected in [(skipped, False), (accepted, True)]:
+            with self.subTest(expected=expected), patch.object(nightly, 'api_pages', side_effect=[runs, gate]) as api:
+                self.assertEqual(nightly.previously_accepted(repository, sha), expected)
+                self.assertIn('/actions/runs/12/jobs', api.call_args.args[0])
+                self.assertEqual(api.call_count, 2)
+
     def test_dev选择Flutter改动包及其消费者(self):
         selected = changes.select(['packages/ubaa_ui/lib/src/app/shell.dart'])
         self.assertTrue(selected['flutter'])

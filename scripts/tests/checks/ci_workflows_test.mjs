@@ -82,6 +82,48 @@ test("dev Flutter 在静态分析后把选中的包传给非 golden 测试入口
   ]);
   assert.equal(commands[1].env.FLUTTER_PACKAGES, "${{ needs.changes.outputs.flutter_packages }}");
 });
+test("dev 夜间定时或手动运行，以只读权限复用 dev 的完整验收", () => {
+  const nightly = workflow("dev-nightly");
+  assert.deepEqual(Object.keys(nightly.on).sort(), ["schedule", "workflow_dispatch"]);
+  assert.equal(nightly.on.schedule.length, 1);
+  assert.match(nightly.on.schedule[0].cron, /^\d+ \d+ \* \* \*$/);
+  assert.deepEqual(nightly.permissions, { contents: "read", actions: "read" });
+  assert.doesNotMatch(JSON.stringify(nightly), /\bsecrets\b/);
+  assert.deepEqual(Object.keys(nightly.jobs).sort(), ["prepare", "verify"]);
+  assert.equal(nightly.jobs.prepare.steps[0].with.ref, "refs/heads/dev");
+  assert.equal(nightly.jobs.prepare.steps[0].with["persist-credentials"], false);
+  const verify = nightly.jobs.verify;
+  assert.equal(verify.needs, "prepare");
+  assert.equal(verify.if, "needs.prepare.outputs.accepted == 'false'");
+  assert.equal(verify.uses, "BUAASubnet/UBAA/.github/workflows/ci.yml@dev");
+  assert.deepEqual(verify.with, { checkout_ref: "${{ needs.prepare.outputs.sha }}", local_macos: false });
+});
+test("夜间候选传给完整验收及原生子流程，现有调用默认检出保持不变", () => {
+  const full = workflow("ci");
+  const native = workflow("flutter-platforms");
+  for (const caller of [full, native]) {
+    assert.equal(caller.on.workflow_call.inputs.checkout_ref.default, "");
+    for (const job of Object.values(caller.jobs)) {
+      for (const step of job.steps ?? []) {
+        if (step.uses?.startsWith("actions/checkout@")) {
+          assert.equal(step.with.ref, "${{ inputs.checkout_ref }}");
+        }
+      }
+    }
+  }
+  assert.equal(full.jobs.native.with.checkout_ref, "${{ inputs.checkout_ref }}");
+  assert.equal(workflow("release").jobs.verify.with.checkout_ref, undefined);
+  const plan = full.jobs.plan.steps.find((step) => step.id === "plan");
+  const sha = "a".repeat(40);
+  for (const [checkoutRef, workflowSha, status] of [["", undefined, 0], [sha, sha, 0], [sha, "b".repeat(40), 1]]) {
+    const result = spawnSync("bash", ["-euo", "pipefail", "-c", plan.run], {
+      env: { ...process.env, BASE_SHA: "", CHECKOUT_REF: checkoutRef,
+        WORKFLOW_JOB: JSON.stringify({ workflow_sha: workflowSha }), GITHUB_OUTPUT: "/dev/null" },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, status, result.stderr);
+  }
+});
 test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
   const release = workflow("release");
   for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {
