@@ -57,7 +57,7 @@ void main() {
 }
 
 final class _SigninQrClient extends FixtureContractVersionClient {
-  _SigninQrClient() : super(78);
+  _SigninQrClient() : super(currentBridgeContractVersion);
 
   final requests = <(String, int)>[];
   bool requiresAuth = false;
