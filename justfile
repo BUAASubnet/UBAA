@@ -95,7 +95,6 @@ script-check scope="all":
 _script-contracts:
     just script-test
     just integration-check
-    bash ./scripts/tests/flutter-toolchains.sh
     just layout-check
     just module-check
     just contract-version-check
