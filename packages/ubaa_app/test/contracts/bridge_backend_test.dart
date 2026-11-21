@@ -12,11 +12,12 @@ import '../support/bridge/fixtures.dart'
         FixtureFakeCgyyDayClient,
         FixtureFakeClassroomClient,
         FixtureFakeComplexWriteClient,
-        FixtureFakeYgdkRecordsClient;
+        FixtureFakeYgdkRecordsClient,
+        currentBridgeContractVersion;
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(78);
+    final client = FixtureContractVersionClient(currentBridgeContractVersion);
 
     final backend = BridgeBackend(client);
 

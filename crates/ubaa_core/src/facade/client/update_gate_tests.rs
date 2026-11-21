@@ -53,7 +53,7 @@ struct Bootstrap;
 impl HttpTransport for Bootstrap {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let body = serde_json::json!({
-            "schema": 1,
+            "schema": crate::app_service::APP_SERVICE_SCHEMA_VERSION,
             "update": {
                 "status": "update_required",
                 "latest_version": "3.0.0+1",

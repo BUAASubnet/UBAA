@@ -1,4 +1,5 @@
 import { env, exports } from "./runtime";
+import { APP_SERVICE_SCHEMA_VERSION } from "../src/schema";
 import { createWaitContext, waitOnWaitContext } from "./runtime";
 import { bootstrap as readBootstrap } from "../src/bootstrap";
 import { beforeAll, expect, it } from "vitest";
@@ -26,7 +27,7 @@ it("上报接口拒绝未知字段并只返回机器码", async () => {
 
 it("对不存在的安装删除也返回 204", async () => {
   const response = await send("/v1/telemetry/erase", {
-    schema: 1,
+    schema: APP_SERVICE_SCHEMA_VERSION,
     install_id: crypto.randomUUID(),
   });
   expect(response.status).toBe(204);
@@ -148,7 +149,7 @@ it("启动配置按 IP 限流，其他 IP 不受影响", async () => {
     const context = createWaitContext();
     const response = await readBootstrap(
       new Request(
-        "https://app-service.invalid/v1/bootstrap?schema=1&platform=android&channel=github&version=2.0.0",
+        `https://app-service.invalid/v1/bootstrap?schema=${APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=2.0.0`,
         { headers: { "X-Real-IP": ip } },
       ),
       bindings,

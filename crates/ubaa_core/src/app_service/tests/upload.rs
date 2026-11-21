@@ -1,8 +1,8 @@
 use super::{AppService, BatchDisposition, EraseAttempt, UploadAttempt};
 use crate::{
     app_service::{
-        AppServiceConfig, Consent, CounterDimensions, CounterEvent, CounterResult, Feature,
-        Platform, Route, Surface, TelemetryEvent,
+        APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Consent, CounterDimensions, CounterEvent,
+        CounterResult, Feature, Platform, Route, Surface, TelemetryEvent,
     },
     error::{ErrorCode, ErrorKind, Result, UbaaError},
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
@@ -379,7 +379,7 @@ async fn 基础模式删除结果未知后重启仅图形宿主重试() {
         let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
         assert_eq!(
             body,
-            serde_json::json!({"schema": 1, "install_id": old_install})
+            serde_json::json!({"schema": APP_SERVICE_SCHEMA_VERSION, "install_id": old_install})
         );
         // 图形宿主已发送、尚未收到响应时启动独立命令进程。
         child(&root.0, "parallel-command");

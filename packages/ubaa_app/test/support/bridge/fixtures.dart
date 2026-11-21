@@ -1,5 +1,19 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+
+final currentBridgeContractVersion = _readCurrentBridgeContractVersion();
+
+int _readCurrentBridgeContractVersion() {
+  const relative = 'lib/src/bridge/bridge_backend.dart';
+  final local = File(relative);
+  final source = local.existsSync()
+      ? local
+      : File('packages/ubaa_app/$relative');
+  final declaration = RegExp(r'const _supportedBridgeContractVersion = (\d+);');
+  return int.parse(declaration.firstMatch(source.readAsStringSync())![1]!);
+}
 
 class FixtureContractVersionClient implements BridgeClient {
   FixtureContractVersionClient(this.version);

@@ -57,8 +57,7 @@ fn canonical_order() -> Value {
 }
 
 #[test]
-fn cli_场馆取消合同升级为唯一_schema_v10() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
+fn cli_场馆取消合同仅接受当前_schema() {
     for definition in [
         "resolvedRoutedEnvelope",
         "unresolvedRoutedFailure",
@@ -66,7 +65,10 @@ fn cli_场馆取消合同升级为唯一_schema_v10() {
         "aggregateLogoutEnvelope",
     ] {
         let schema = &contract_schema()["$defs"][definition];
-        assert_eq!(schema["properties"]["schemaVersion"]["const"], 18);
+        assert_eq!(
+            schema["properties"]["schemaVersion"]["const"],
+            CLI_JSON_SCHEMA_VERSION
+        );
     }
 }
 
@@ -208,7 +210,7 @@ async fn 场馆取消未确认或非正目标均在路由后端前拒绝() {
 
         assert_eq!(exit, 2);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.cgyy_cancel_calls, 0);
         assert!(backend.cgyy_last_cancel_request.is_none());
@@ -229,7 +231,7 @@ async fn 场馆取消路由后端只调用一次并固定安全成功结果() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], true);
     assert_eq!(value["data"]["message"], "研讨室订单已取消");
@@ -265,7 +267,7 @@ async fn 场馆取消outcome_unknown退出5且只调用一次并隐藏原始正�
 
     assert_eq!(exit, 5);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["error"]["code"], "outcome_unknown");
     assert_eq!(value["error"]["retryable"], false);
     assert_eq!(

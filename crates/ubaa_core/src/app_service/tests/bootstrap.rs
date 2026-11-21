@@ -1,6 +1,6 @@
 use super::{AppBootstrapView, AppService, AppUpdateStatus, compare_versions, parse_response};
 use crate::{
-    app_service::{AppServiceConfig, Channel, Platform, Surface},
+    app_service::{APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Channel, Platform, Surface},
     error::Result,
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
@@ -236,7 +236,9 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
         assert_eq!(request.method, HttpMethod::Get);
         assert_eq!(
             request.url,
-            "http://127.0.0.1:8787/v1/bootstrap?schema=1&platform=android&channel=github&version=1.9.0%2B9"
+            format!(
+                "http://127.0.0.1:8787/v1/bootstrap?schema={APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=1.9.0%2B9"
+            )
         );
         assert_eq!(request.headers.len(), 0);
         assert_eq!(request.body.len(), 0);

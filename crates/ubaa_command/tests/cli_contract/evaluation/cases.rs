@@ -129,7 +129,7 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 
     assert_eq!(exit, 0, "确定性部分失败仍是已知业务结果");
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], false);
     assert_eq!(value["data"]["outcomeUnknown"], false);
@@ -261,7 +261,7 @@ async fn outcome_unknown_使用带安全_batch_数据的失败信封并固定路
 
     assert_eq!(exit, 5);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "outcome_unknown");
     assert_eq!(value["data"]["outcomeUnknown"], true);
@@ -328,7 +328,7 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
 }
 
 #[tokio::test]
-async fn 评教读取只输出安全课程投影且符合_schema_v10() {
+async fn 评教读取只输出安全课程投影且符合当前_schema() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "evaluation", "all"]).unwrap();
     let mut backend = EvaluationBackend {
         courses: vec![pending_course(
@@ -343,7 +343,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     let course = &value["data"]["courses"][0];
     assert_eq!(course["submitEligibility"], "allowed");
     assert_eq!(course["submitTarget"]["rwid"], "safe-rwid");
@@ -368,7 +368,6 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
 #[test]
 fn cli_评教失败仅在结果未知或更新门控中止批次时携带数据() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../docs/contracts/cli-json.schema.json"
     ))
@@ -544,7 +543,7 @@ fn authentication_required() -> UbaaError {
 
 fn unknown_envelope() -> serde_json::Value {
     serde_json::json!({
-        "schemaVersion": 18,
+        "schemaVersion": CLI_JSON_SCHEMA_VERSION,
         "ok": false,
         "data": {
             "items": [{

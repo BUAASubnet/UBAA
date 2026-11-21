@@ -1,4 +1,5 @@
 import { env, exports, migrate } from "./runtime";
+import { APP_SERVICE_SCHEMA_VERSION } from "../src/schema";
 export { migrate };
 export function uploadRequest(payload: unknown) {
   return new Request("https://app-service.invalid/v1/telemetry", {
@@ -18,7 +19,10 @@ export function erase(installId: string) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schema: 1, install_id: installId }),
+      body: JSON.stringify({
+        schema: APP_SERVICE_SCHEMA_VERSION,
+        install_id: installId,
+      }),
     },
   );
 }
@@ -31,7 +35,7 @@ export function relativeDay(offset: number) {
 
 export function createBatch() {
   return {
-    schema: 1,
+    schema: APP_SERVICE_SCHEMA_VERSION,
     batch_id: crypto.randomUUID(),
     install_id: crypto.randomUUID(),
     platform: "linux",
