@@ -17,8 +17,8 @@
 | 产品版本 | `2.0.1`，构建号 `2011`；官方 Flutter 与 OHOS 宿主均为 `2.0.1+2011` | [version.toml](../../version.toml)，用 `just version` 同步 |
 | 工具链 | Rust `1.100.0`、Node.js `26`、Android API `37.2` 与 NDK `30.0.16248370` | [版本清单](../../scripts/tools/versions.env) |
 | 官方 Flutter / Dart | Flutter `3.50.0` / Dart `3.14.0`；OHOS 保持独立工具链 | [开发环境](../development/setup.md) |
-| 命令输出 | CLI JSON schema v18 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
-| Rust 与 Dart 之间的接口 | Flutter bridge contract v78 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
+| 命令输出 | 以 [`CLI_JSON_SCHEMA_VERSION`](../../crates/ubaa_command/src/io/schema.rs) 为准 | [认证与用户合同](../contracts/auth-and-user.md)、[JSON Schema](../contracts/cli-json.schema.json) |
+| Rust 与 Dart 之间的接口 | 以 [`BRIDGE_CONTRACT_VERSION`](../../crates/ubaa_flutter_bridge/src/api/client.rs) 为准 | [Flutter Bridge 合同](../contracts/flutter-bridge.md) |
 | 应用服务 | 接口 Schema v1，安装级 SQLite v5，隐私政策 v8 | [应用服务合同](../contracts/app-service.md) |
 | 本机存储 | Session v2，配置 v1，业务缓存 v8，日程 v4 | [离线缓存与恢复](../contracts/offline-cache-and-recovery.md)、[日程合同](../contracts/agenda.md) |
 | 应用标识 | 各平台统一为 `cn.edu.ubaa`；最低 macOS 12.0、iOS 15.0 | [签名手册](../runbooks/app-signing.md) |

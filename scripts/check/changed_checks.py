@@ -213,7 +213,7 @@ DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'crates/ubaa_command/', 'tool
 SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.mjs', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
 APP_SERVICE_INPUTS = {
     'docs/contracts/app-service.schema.json', 'docs/contracts/app-service.md',
-    'scripts/check/contract-versions.sh', 'scripts/tests/contract-versions.sh',
+    'scripts/check/contract-versions.sh', 'scripts/tests/checks/contract_versions_test.py',
     'scripts/check/changed_checks.py', 'scripts/tests/checks/changed_checks_test.py',
     'crates/ubaa_core/src/error/mod.rs', 'packages/ubaa_domain/lib/src/feature/catalog.dart',
     '.github/workflows/ci.yml', '.github/actions/versions/action.yml',

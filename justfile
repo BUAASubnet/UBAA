@@ -95,7 +95,6 @@ _script-contracts:
     just script-test
     just integration-check
     bash ./scripts/tests/layout.sh
-    bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/flutter-toolchains.sh
     bash ./scripts/tests/maintenance-gates.sh
     just layout-check

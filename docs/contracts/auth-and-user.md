@@ -28,7 +28,7 @@ GUI 与 App 命令模式共用凭据策略、会话及无感恢复，同机退�
 
 ## CLI JSON envelope 版本
 
-稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v18；CLI 不再输出 schema-v9 或更早 envelope。
+稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和隐藏诊断结果都使用当前 CLI JSON Schema，版本以 [`CLI_JSON_SCHEMA_VERSION`](../../crates/ubaa_command/src/io/schema.rs) 为准。CLI 不再输出 schema-v9 或更早的 envelope。
 
 v17 允许网络流量的 `remainingExcludesPackages=false`，免费剩余包含套餐可用流量。
 
@@ -70,7 +70,7 @@ CLI envelope 版本不改变 `config.toml` 或 `session.json` 的版本化迁移
 
 研讨室预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。对照所用的旧版 UBAA 和 `buaa-api` 均无等价实现。证据见[来源对照](../protocol/README.md)与[决策记录](../protocol/decision-log.md)。
 
-CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:16`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
+消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。文件中的 `$id` 是当前版本的 URN，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
 
 ## CLI 宿主
 
