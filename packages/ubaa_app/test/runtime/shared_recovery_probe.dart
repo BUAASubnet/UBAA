@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:ubaa_app/runtime.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
+import '../../../ubaa_platform/test/support/test_tmp.dart';
 import '../../../ubaa_platform/test/support/shared_account_worker.dart'
     show syntheticWindowsMaterials;
 import 'session_recovery_probe.dart'
@@ -102,17 +103,16 @@ Future<RecoveryResult> ensure(
   deadline: DateTime.now().add(const Duration(seconds: 15)),
 );
 Future<Directory> fixture() async {
-  var repo = Directory.current.absolute;
-  while (!File('${repo.path}/justfile').existsSync()) {
-    repo = repo.parent;
+  final root = createTestTempDirectory('ubaa_app_shared_recovery');
+  try {
+    await (await openAccounts(
+      root,
+    )).retain(profile.username, retainSession: true);
+    return root;
+  } catch (_) {
+    await root.delete(recursive: true);
+    rethrow;
   }
-  final base = Directory('${repo.path}/.ubaa_local/command_mode_h1b3');
-  await base.create(recursive: true);
-  final root = await base.createTemp('synthetic_');
-  await (await openAccounts(
-    root,
-  )).retain(profile.username, retainSession: true);
-  return root.absolute;
 }
 
 final cases = <String, Future<void> Function()>{

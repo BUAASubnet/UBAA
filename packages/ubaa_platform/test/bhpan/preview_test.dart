@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../support/test_tmp.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -13,11 +14,7 @@ void main() {
   late Directory root;
 
   setUp(() async {
-    final base = Directory(
-      '${Directory.current.path}/../../.ubaa_local/bhpan_delivery/integration/platform_tests',
-    );
-    await base.create(recursive: true);
-    root = await base.createTemp('preview_');
+    root = createTestTempDirectory('ubaa_platform_bhpan_preview');
   });
 
   tearDown(() async {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../support/test_tmp.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,9 +54,7 @@ void main() {
   }
 
   test('桌面取消不写入；选择后按原样保存；失败不暴露路径', () async {
-    final root = Directory('../../.ubaa_local/iclass_qr/checks')
-      ..createSync(recursive: true);
-    final scratch = await root.createTemp('gallery-');
+    final scratch = createTestTempDirectory('ubaa_platform_gallery');
     addTearDown(() => scratch.delete(recursive: true));
     final file = File('${scratch.path}/$name');
     final cancelled = DesktopGalleryImageSaver(
