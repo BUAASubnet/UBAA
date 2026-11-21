@@ -51,8 +51,12 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-content-check
       - name: 检查应用服务合同与 PostgreSQL
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-check
       - name: 构建云盘发布工具
         uses: ./.github/actions/toolchain

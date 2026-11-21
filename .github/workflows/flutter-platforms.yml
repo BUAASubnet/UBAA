@@ -166,16 +166,22 @@ jobs:
       - name: 验证桌面命令入口
         if: contains(fromJSON('["linux", "windows", "macos"]'), matrix.platform)
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: python3 scripts/tests/platform/desktop_command.py "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
       - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just integration-test
 
       - name: 验证 Linux 安全存储可用与不可用会话
         if: matrix.platform == 'linux'
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: bash scripts/tests/linux-secure-storage.sh
 
       - name: 关联候选输入与实际产物
@@ -217,10 +223,13 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet
           bash scripts/bootstrap/ohos.sh
       - name: 验证 Hvigor 签名密码格式
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/release/ohos_signing_test.mjs
       - name: 检查并构建 HarmonyOS
         env:
           UBAA_OHOS_NO_CODESIGN: '1'
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just ohos-check mode=debug
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

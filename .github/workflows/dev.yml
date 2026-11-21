@@ -49,6 +49,8 @@ jobs:
           just quality-tools-bootstrap
           npm ci --no-audit --no-fund
       - name: 检查脚本、合同和敏感材料
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
           just check-sensitive
           just script-check
@@ -64,6 +66,8 @@ jobs:
         with:
           kind: tests
       - name: 检查 Rust 格式、Clippy 和测试
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
           cargo fmt --all -- --check
           cargo clippy --locked --workspace --all-targets -- -D warnings
@@ -85,6 +89,7 @@ jobs:
       - name: 测试受影响的 Flutter 包（排除 golden）
         env:
           FLUTTER_PACKAGES: ${{ needs.changes.outputs.flutter_packages }}
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: bash scripts/check/flutter-workspace.sh test-non-golden "$FLUTTER_PACKAGES"
 
   worker:
@@ -99,6 +104,8 @@ jobs:
           rust: false
       - *setup_node
       - name: 检查 Worker 与发布内容
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
           just app-service-content-check
           just app-service-check

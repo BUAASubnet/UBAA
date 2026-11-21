@@ -53,6 +53,8 @@ jobs:
         run: |
           just quality-tools-bootstrap
       - name: 通用脚本、格式、文档和敏感材料检查
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |
           just check-sensitive
           just script-check
@@ -74,6 +76,8 @@ jobs:
           kind: checks
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: 默认 feature 与测试注入边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         shell: bash
         run: |
           cargo check --locked -p ubaa-core --no-default-features --all-targets
@@ -116,6 +120,8 @@ jobs:
         with:
           kind: tests
       - name: Core 与其余工作区完整测试
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         shell: bash
         run: |
           cargo test --locked -p ubaa-core --features test-contract --all-targets
@@ -211,6 +217,8 @@ jobs:
       - uses: ./.github/actions/flutter
       - run: just flutter-dependencies
       - name: 运行完整测试分组
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: python3 scripts/check/ci/plan.py test "${{ matrix.package }}" "${{ matrix.group }}"
       - name: 保存失败的脱敏视觉差异
         if: failure() && matrix.group == 'golden'
@@ -239,14 +247,22 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-content-check
       - name: 检查 Worker 部署触发条件与发布顺序
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/app_service/deploy_workflow_test.mjs
       - name: 检查工作流触发条件和合并门禁
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/checks/ci_workflows_test.mjs
       - name: 构建文档站并检查链接
         run: npm run docs:build
       - name: 检查应用服务合同与本地 Worker
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-check
 
   native:

@@ -34,6 +34,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - name: 校验渠道配置与正式公告
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-content-check
   app-content-deploy:
     name: 发布渠道与公告

@@ -4,6 +4,8 @@
 
 项目自有目录统一用下划线分隔单词，例如 `crates/ubaa_core`、`crates/ubaa_flutter_bridge`、`scripts/live/offline_startup`。新目录也遵循这条规则。文件名、Cargo 包名、发布名称、命令名和外部链接不属于目录命名，不随目录迁移改名。
 
+测试临时文件放在 `target/test_tmp/<测试套件>/<运行>/`。每次运行创建独立目录，并在测试结束时只清理自己的目录。可通过 `UBAA_TEST_TMP` 指定根目录；CI 将其设为 `$RUNNER_TEMP/ubaa_test_tmp`，避免临时文件进入 Rust 缓存。
+
 以下路径保留原名：
 
 - `packages/ubaa_bindings/cargokit/` 是第三方工具源码。
