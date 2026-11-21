@@ -8,6 +8,7 @@ import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 import '../support/host/fakes.dart' show fixtureCapabilities;
+import 'package:ubaa_test_support/privacy.dart';
 
 Future<void> _bootstrap(
   Future<ThemeMode> Function() read,
@@ -26,7 +27,7 @@ void main() {
   testWidgets('保存深色时启动页、宿主等待页和登录首帧使用深色', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final preferences = MemoryPreferenceValues();
+    final preferences = acceptedPrivacyPreferences();
     final store = ThemePreferenceStore(values: preferences);
     await store.write('dark');
     final apps = <Widget>[];
@@ -123,7 +124,7 @@ void main() {
   testWidgets('保存的主题色在启动页、宿主与初始化失败页首帧生效', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final preferences = MemoryPreferenceValues();
+    final preferences = acceptedPrivacyPreferences();
     await ThemePreferenceStore(values: preferences).writeAccent('teal');
     final expected = UbaaTheme.light(accent: UbaaAccent.teal).colorScheme;
     for (final fail in [false, true]) {

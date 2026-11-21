@@ -12,6 +12,11 @@ abstract interface class AppServiceBackend {
   Future<void> recordAppService(TelemetryRecord record);
 }
 
+/// 将宿主的政策接受结果交给本进程的应用服务句柄。
+abstract interface class HostPrivacyAppServiceBackend {
+  void allowHostPrivacy();
+}
+
 /// 与统计交付独立，状态和公告偏好仍由同一个 Core 句柄持有。
 abstract interface class AppBootstrapBackend implements AppServiceBackend {
   Future<void> refreshAppBootstrap({required bool force});

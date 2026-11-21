@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
 import 'package:flutter/material.dart';
@@ -65,6 +66,7 @@ void main() {
 
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: CourseworkBackend(),
         credentialVault: MemoryCredentialVault(),
       ),

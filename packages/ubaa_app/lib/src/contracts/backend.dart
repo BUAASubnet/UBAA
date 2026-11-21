@@ -3,6 +3,11 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 /// Core 当前认证状态的最小表示。
 enum AuthStatus { signedOut, signedIn }
 
+/// 仅检查是否有可恢复的本机会话，不执行学校请求。
+abstract interface class SavedSessionBackend {
+  Future<bool> hasSavedSession();
+}
+
 /// Bridge/Core 错误的安全边界。`detail` 只能记录脱敏诊断，不得传给 UI。
 class BackendException implements Exception {
   const BackendException(

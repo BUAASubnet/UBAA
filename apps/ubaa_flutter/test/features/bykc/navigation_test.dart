@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -95,6 +96,7 @@ Future<BoyaBackend> _open(WidgetTester tester, {bool chosen = true}) async {
   final backend = BoyaBackend();
   await tester.pumpWidget(
     UbaaFlutterApp(
+      preferenceValues: acceptedPrivacyPreferences(),
       backend: backend,
       credentialVault: MemoryCredentialVault(),
       initialDestination: UiDestination.study,

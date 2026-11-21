@@ -13,6 +13,14 @@ mixin ControllerAppService on ControllerState {
   Future<void> _stateTail = Future.value();
   Timer? _announcementTimer;
 
+  void allowHostPrivacy() {
+    if (internalDisposed) return;
+    if (internalBackend case final HostPrivacyAppServiceBackend backend) {
+      backend.allowHostPrivacy();
+    }
+    internalPrivacyAccepted = true;
+  }
+
   AppServiceView get appService => internalAppServiceView;
   PrivacyPolicyDocument get privacyPolicy => bundledPrivacyPolicy;
   AppUpdateView? get appUpdate =>
@@ -116,7 +124,10 @@ mixin ControllerAppService on ControllerState {
   /// 网络等待与同意状态的写入分开，撤回不会等待启动配置请求完成。
   Future<void> refreshAppBootstrap({bool force = false}) async {
     final service = _service;
-    if (service is! AppBootstrapBackend || internalDisposed) return;
+    if (!internalPrivacyAccepted ||
+        service is! AppBootstrapBackend ||
+        internalDisposed)
+      return;
     try {
       await service.refreshAppBootstrap(force: force);
     } on Object {
@@ -223,6 +234,11 @@ mixin ControllerAppService on ControllerState {
 
   /// 启动和移动端进入后台时使用 force；前台定时交由 Core 校验六小时。
   Future<void> uploadAppService({bool force = false}) {
+    if (!internalPrivacyAccepted &&
+        (appService.erase != AppServiceEraseStatus.pending ||
+            _service is! HostPrivacyAppServiceBackend)) {
+      return Future.value();
+    }
     if (_upload case final pending?) return pending;
     if (_manualErase case final pending?) return pending.then<void>((_) {});
     final service = _service;

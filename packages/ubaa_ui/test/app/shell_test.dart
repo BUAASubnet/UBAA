@@ -31,6 +31,8 @@ void _registerShellTests() {
           onRememberPasswordChanged: (_) {},
           onAutoLoginChanged: (_) {},
           onSubmit: () {},
+          privacyAccepted: true,
+          onAcceptPrivacy: () async {},
         ),
       ),
     );

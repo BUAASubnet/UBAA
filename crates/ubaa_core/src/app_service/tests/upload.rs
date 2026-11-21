@@ -294,6 +294,62 @@ async fn 上传重试测试子进程() {
 }
 
 #[tokio::test]
+async fn 新政策未接受时只重试已有删除且不交付统计() {
+    let root = TestDirectory::new();
+    let first = root.open_with(Surface::Gui, false, Some(ORIGIN), 7);
+    let no_requests = ScriptedTransport::new([]);
+    assert_eq!(first.snapshot().unwrap().consent, Consent::Unasked);
+    assert_eq!(
+        first.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    first.agree(7).unwrap();
+    enqueue(&first);
+    let upgraded = root.open_with(Surface::Gui, false, Some(ORIGIN), 8);
+    let command = root.open_with(Surface::Command, false, Some(ORIGIN), 8);
+    assert_eq!(
+        command.snapshot().unwrap().consent,
+        Consent::ReconsentRequired(8)
+    );
+    assert_eq!(
+        upgraded.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    assert_eq!(
+        command.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    let install = upgraded.begin_erase().unwrap().unwrap();
+    let pending = root
+        .open_with(Surface::Gui, false, Some(ORIGIN), 8)
+        .with_pending_host_privacy();
+    let transport = ScriptedTransport::new([Some(204)]);
+    assert_eq!(
+        pending.upload_with(&transport).await.unwrap().erase,
+        EraseAttempt::Completed
+    );
+    let requests = transport.take_requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].url, format!("{ORIGIN}/v1/telemetry/erase"));
+    assert_eq!(requests[0].method, HttpMethod::Post);
+    assert_ne!(pending.snapshot().unwrap().install_id, Some(install));
+    pending.agree(8).unwrap();
+    assert!(pending.freeze_next().unwrap().is_none());
+    assert!(!pending.snapshot().unwrap().can_telemetry());
+    pending.allow_host_privacy();
+    enqueue(&pending);
+    let transport = ScriptedTransport::new([Some(204)]);
+    assert_eq!(
+        pending.upload_with(&transport).await.unwrap().batches_sent,
+        1
+    );
+    assert_eq!(
+        transport.take_requests()[0].url,
+        format!("{ORIGIN}/v1/telemetry")
+    );
+}
+
+#[tokio::test]
 async fn 基础模式删除结果未知后重启仅图形宿主重试() {
     let root = TestDirectory::new();
     let gui = root.open(Surface::Gui, false);

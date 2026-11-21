@@ -1,3 +1,5 @@
+import 'package:ubaa_test_support/privacy.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -7,6 +9,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
@@ -24,6 +27,7 @@ void main() {
     await tester.pumpWidget(
       UbaaAppHost(
         backend: backend,
+        preferenceValues: acceptedPrivacyPreferences(),
         localAccountStore: await fixtures.savedAccounts(),
         networkChanges: events.stream,
       ),

@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 // 这个 Widget 测试放在 store/，只由宣传图命令显式运行。
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
@@ -106,7 +107,7 @@ Future<ui.Image> _renderScreen(
         backend: PromoBackend(),
         credentialVault: MemoryCredentialVault(),
         localAccountStore: const PromoAccountStore(),
-        preferenceValues: MemoryPreferenceValues(),
+        preferenceValues: acceptedPrivacyPreferences(),
         initialThemeMode: ThemeMode.light,
         initialDestination: scene.destination,
       ),

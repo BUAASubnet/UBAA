@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final route in ConnectionMode.values) {
@@ -14,7 +15,11 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final backend = _SchoolBackend(route);
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, initialDestination: UiDestination.agenda),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          initialDestination: UiDestination.agenda,
+        ),
       );
       await tester.pumpAndSettle();
       final login = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
@@ -79,7 +84,11 @@ void main() {
       ..signedIn = true
       ..weekGate = Completer<FeatureResult>();
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, initialDestination: UiDestination.agenda),
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+        initialDestination: UiDestination.agenda,
+      ),
     );
     await tester.pumpAndSettle();
     var completed = false;

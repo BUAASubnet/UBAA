@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -12,6 +13,7 @@ void main() {
     final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
         reminderStore: await _enabledReminderStore(backend),
@@ -79,6 +81,7 @@ void main() {
     final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
         reminderStore: await _enabledReminderStore(backend),

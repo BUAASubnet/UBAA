@@ -6,6 +6,7 @@ extension _BackendStartup on _UbaaAppHostState {
       configDirectory: directory,
       surface: BridgeAppServiceSurface.gui,
       release: kReleaseMode,
+      pendingHostPrivacy: true,
       readVersion: (widget.appInformation ?? SystemAppInformation()).version,
     ),
   );

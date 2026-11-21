@@ -1,5 +1,5 @@
 use super::{
-    AppServiceError, Surface,
+    AppServiceError,
     sqlite::{DATABASE_NAME, Store},
 };
 use rusqlite::Connection;
@@ -16,7 +16,16 @@ fn 系统祖先目录链接可以首次建库并重开原安装() {
     std::fs::create_dir(&real).unwrap();
     symlink(&real, root.join("system-alias")).unwrap();
     let config = root.join("system-alias/UBAA");
-    let first = Store::open(&config, Some(1), Surface::Gui).unwrap();
+    let first = Store::open(&config, Some(1)).unwrap();
+    first
+        .write(|tx| {
+            tx.execute(
+                "UPDATE app_service_state SET install_id = ?1",
+                [uuid::Uuid::new_v4().to_string()],
+            )?;
+            Ok(())
+        })
+        .unwrap();
     let install = first
         .read(|tx| {
             Ok(
@@ -27,7 +36,7 @@ fn 系统祖先目录链接可以首次建库并重开原安装() {
         })
         .unwrap();
     drop(first);
-    let reopened = Store::open(&real.join("UBAA"), Some(1), Surface::Gui).unwrap();
+    let reopened = Store::open(&real.join("UBAA"), Some(1)).unwrap();
     assert_eq!(
         reopened
             .read(|tx| Ok(
@@ -57,7 +66,7 @@ fn 应用目录和数据库文件链接仍然拒绝() {
     let alias = root.join("UBAA");
     symlink(&real, &alias).unwrap();
     assert!(matches!(
-        Store::open(&alias, None, Surface::Gui),
+        Store::open(&alias, None),
         Err(AppServiceError::StorageUnavailable)
     ));
     for suffix in ["", "-journal", "-wal", "-shm"] {
@@ -66,7 +75,7 @@ fn 应用目录和数据库文件链接仍然拒绝() {
         let file = real.join(format!("{DATABASE_NAME}{suffix}"));
         symlink(&target, &file).unwrap();
         assert!(matches!(
-            Store::open(&real, None, Surface::Gui),
+            Store::open(&real, None),
             Err(AppServiceError::StorageUnavailable)
         ));
         assert_eq!(std::fs::read(&target).unwrap(), b"synthetic-preserved");
@@ -88,7 +97,7 @@ fn failed_migration_leaves_both_databases_intact() {
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch("CREATE TABLE app_service_pending (value INTEGER); INSERT INTO app_service_pending VALUES (9)").unwrap();
 
-    assert!(Store::open(&root, None, Surface::Gui).is_err());
+    assert!(Store::open(&root, None).is_err());
     assert_eq!(
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
@@ -115,7 +124,7 @@ fn failed_migration_leaves_both_databases_intact() {
         .pragma_update(None, "user_version", 99)
         .unwrap();
     assert!(matches!(
-        Store::open(&root, None, Surface::Gui),
+        Store::open(&root, None),
         Err(AppServiceError::UnsupportedSchema)
     ));
     assert_eq!(

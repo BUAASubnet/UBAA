@@ -88,7 +88,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 77;
+const _supportedBridgeContractVersion = 78;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -149,7 +149,9 @@ class BridgeBackend
         SharedAccountBackend,
         SharedAccountLogoutBackend,
         AppBootstrapBackend,
-        ConfirmedAppServiceAccountBackend {
+        ConfirmedAppServiceAccountBackend,
+        HostPrivacyAppServiceBackend,
+        SavedSessionBackend {
   BridgeBackend(
     BridgeClient client, {
     String? configDirectory,
@@ -309,6 +311,9 @@ class BridgeBackend
       return AppServiceEraseOutcome.unavailable;
     return bridgeAppServiceErase(await service.erase());
   }
+
+  @override
+  void allowHostPrivacy() => _appService?.allowHostPrivacy();
 
   @override
   Future<void> uploadAppService({required bool force}) async {
@@ -611,6 +616,9 @@ class BridgeBackend
       bridgeDiscardInteractiveCaptcha(_context, route);
   @override
   void cancelInteractiveLogin() => bridgeCancelInteractiveLogin(_context);
+
+  @override
+  Future<bool> hasSavedSession() => _context.client.hasSavedSession();
 
   @override
   Future<AuthStatus> authStatus() => bridgeAuthStatus(_context);

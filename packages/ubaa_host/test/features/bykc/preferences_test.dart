@@ -8,6 +8,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final clearAccount in [false, true]) {
@@ -225,6 +226,7 @@ void main() {
     var factories = 0;
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () {
           factories++;
           return _BykcBackend(session: state);
@@ -326,6 +328,7 @@ Widget _host(
   CredentialVault? vault,
   GradeScoreStore? grades,
 }) => UbaaAppHost(
+  preferenceValues: acceptedPrivacyPreferences(),
   backend: backend,
   initialDestination: UiDestination.study,
   credentialVault: vault ?? MemoryCredentialVault(),

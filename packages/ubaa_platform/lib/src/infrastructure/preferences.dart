@@ -12,6 +12,23 @@ abstract interface class PreferenceValues {
   Future<void> remove(String key);
 }
 
+/// 合成宿主使用的普通偏好端口。
+final class MemoryPreferenceValues implements PreferenceValues {
+  final _values = <String, String>{};
+  Future<void>? _accountPreferencesTail;
+  @override
+  Future<String?> read(String key) async => _values[key];
+  @override
+  Future<void> write(String key, String value) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _values.remove(key);
+  }
+}
+
 /// 将旧学号键中的普通偏好移到本机账号的稳定键。
 abstract interface class AccountPreferenceMigration {
   Future<bool> migrateAccount(String previous, String current);
@@ -57,7 +74,8 @@ final class PluginPreferenceValues implements PreferenceValues {
   }
 }
 
-/// 账号独立键，不进行整表读改写；同一 isolate 的全部偏好实例共享顺序，兼容桌面插件的文件后端。
+/// 账号独立键，不进行整表读改写。文件后端的实例共享顺序，合成内存
+/// 后端只与使用同一份内存的实例共享顺序。
 final class AccountPreferences<T> {
   AccountPreferences({
     required this.scope,
@@ -82,8 +100,21 @@ final class AccountPreferences<T> {
     Future<R> Function(String) action,
   ) async {
     final key = _key(account);
-    final next = _tail.then((_) => action(key));
-    _tail = next.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    final storage = values;
+    final memory = storage is MemoryPreferenceValues ? storage : null;
+    final tail = memory == null
+        ? _tail
+        : memory._accountPreferencesTail ?? Future<void>.value();
+    final next = tail.then((_) => action(key));
+    final completion = next.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    if (memory == null) {
+      _tail = completion;
+    } else {
+      memory._accountPreferencesTail = completion;
+    }
     return next;
   }
 

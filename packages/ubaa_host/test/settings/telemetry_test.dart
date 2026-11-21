@@ -10,10 +10,16 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_host/src/crash_handlers.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('未配置统计服务的生产接线保持关闭并说明不可用', (tester) async {
-    await tester.pumpWidget(UbaaAppHost(backend: _Backend()));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: _Backend(),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
@@ -23,7 +29,12 @@ void main() {
 
   testWidgets('服务拒绝或挂起时仍可进入首页，前台定时重试待删除标记', (tester) async {
     final backend = _ServiceBackend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(backend.uploads, [true]);
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
@@ -45,7 +56,12 @@ void main() {
 
   testWidgets('启动配置启动和前台刷新，不等待统计且不在后台刷新', (tester) async {
     final backend = _ServiceBackend()..consent = AppServiceConsent.agreed;
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(backend.uploads, [true]);
     expect(backend.bootstraps, [true]);
@@ -68,7 +84,12 @@ void main() {
     final now = tester.binding.clock.now;
     final started = now();
     final backend = _ThrottledServiceBackend(now);
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pump(_ThrottledServiceBackend.startupClaimDelay);
     await tester.pumpAndSettle();
 
@@ -94,7 +115,12 @@ void main() {
     final backend = _ServiceBackend()
       ..failStateReads = true
       ..firstUpload.complete();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(backend.stateReads, greaterThan(0));
     expect(backend.uploads, isEmpty);
@@ -109,7 +135,12 @@ void main() {
 
   testWidgets('默认启用后可直接进入设置并关闭统计', (tester) async {
     final backend = _ConsentBackend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
@@ -131,7 +162,12 @@ void main() {
     final backend = _ServiceBackend()
       ..consent = AppServiceConsent.agreed
       ..firstUpload.complete();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     backend.rejectRecovery = true;
     for (var i = 1; i <= 2; i++) {
@@ -148,7 +184,12 @@ void main() {
   testWidgets('旧版基础模式重启后保持关闭，可从开关确认后重新启用', (tester) async {
     final backend = _ConsentBackend()..consent = AppServiceConsent.basic;
     for (var startup = 0; startup < 2; startup++) {
-      await tester.pumpWidget(UbaaAppHost(backend: backend));
+      await tester.pumpWidget(
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
@@ -180,7 +221,12 @@ void main() {
       final backend = _ConsentBackend()
         ..consent = consent
         ..telemetryEnabled = false;
-      await tester.pumpWidget(UbaaAppHost(backend: backend));
+      await tester.pumpWidget(
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();

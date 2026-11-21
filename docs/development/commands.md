@@ -99,7 +99,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just app-service-check` | 检查 `feature` 与 `error_kind` 枚举，按 应用服务 独立锁文件安装 npm 依赖，运行格式、类型、构建、Schema 样例与隔离 PostgreSQL 测试。使用 `scripts/tools/versions.env` 中的 Node 主版本 |
 | `just app-service-content-check` | 按站点 npm 锁文件安装依赖，校验渠道配置与正式公告；用合成公告验证网站构建和列表，用假 Wrangler 验证发布、部署的写入前置条件 |
 | `just privacy-policy-check` | 使用固定 Python 工具只读核对网站政策的版本、正文摘要、变更要点和应用内生成物；由按改动检查、`script-check` 与 `check-strict` 调用 |
-| `just privacy-policy-generate` | 更新应用内的 Dart 政策常量，供各宿主编译使用。修改正文后按校验提示更新来源摘要，按[合同第 3.1 节](../contracts/app-service.md#31-状态)判断是否升版，再生成并提交。正文使用标题、段落、无序列表及普通行内标记；外部链接地址作为可读文字保留 |
+| `just privacy-policy-generate` | 更新应用内的 Dart 政策常量，供各宿主编译使用。修改正文后按校验提示更新来源摘要，按[合同第 3.1 节](../contracts/app-service.md#31-状态)判断是否升版，再生成并提交。正文使用标题、段落、无序列表及普通行内标记；加粗样式和外部链接的可读地址均保留 |
 | `just app-service-e2e` | 显式联调 Core、真实 Dart FFI 与宿主。先准备锁定 Node 主版本、应用服务 依赖（`just app-service-check`）和 Flutter 依赖（`just flutter-dependencies`）。用 Debug 构建、回环 HTTP 和隔离的本地 PostgreSQL/JSON 配置 验证上传、丢响应重试、关闭清理、删除交错、跨进程重启、更新门控及公告已读；用本机 `openssl` 生成自签证书检查 TLS 拒绝。`CI` 非空或 `UBAA_TELEMETRY=0` 时直接失败，普通检查和 CI 不调用 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just cargo-lock-check` | 静态扫描文档、Shell、workflow 与 justfile 中的 Cargo 命令锁定要求，与 CLI 二进制合同使用相同范围和规则，无需编译 Rust |

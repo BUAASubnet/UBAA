@@ -8,6 +8,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('首页首帧后无需点击即开始恢复，挂起期间三入口仍可用', (tester) async {
@@ -22,7 +23,11 @@ void main() {
       await accounts.retain('fixture-user', retainSession: true);
       final backend = _Backend();
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, localAccountStore: accounts),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          localAccountStore: accounts,
+        ),
       );
       await pumpRecoveryUntil(tester, () => backend.authCalls == 1);
       expect(find.byType(UbaaMainShell), findsOneWidget);
@@ -42,7 +47,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('记住密码'), findsOneWidget);
       expect(find.text('自动登录'), findsOneWidget);
-      expect(find.byType(Checkbox), findsNWidgets(2));
       await tester.enterText(find.byType(TextField).at(1), 'fixture-secret');
       await tester.pump();
       final login = find.widgetWithText(FilledButton, '登录');
@@ -68,7 +72,11 @@ void main() {
       );
       final backend = _Backend()..gate.complete(AuthStatus.signedOut);
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, localAccountStore: accounts),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          localAccountStore: accounts,
+        ),
       );
       await pumpRecoveryUntil(
         tester,

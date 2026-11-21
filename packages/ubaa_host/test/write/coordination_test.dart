@@ -12,11 +12,17 @@ import '../support/host/fakes.dart'
         fixtureHostYgdkIntent,
         fixtureSafeHostPhoto;
 import '../support/host/recording_backend.dart' show FixtureRecordingBackend;
+import 'package:ubaa_test_support/privacy.dart';
 
 void _registerWriteCoordinationTests() {
   testWidgets('共享宿主通过同一协调器发布确认状态并消费一次', (tester) async {
     final backend = FixtureRecordingBackend()..signedIn = true;
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.writeState.phase, WritePhase.idle);
@@ -53,6 +59,7 @@ void _registerWriteCoordinationTests() {
     final location = _DeferredHostLocation();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         locationProvider: location,
         permissionGateway: MemoryPermissionGateway(
@@ -92,6 +99,7 @@ void _registerWriteCoordinationTests() {
     final picker = _DeferredHostPhotoPicker();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         photoPicker: picker,
         permissionGateway: MemoryPermissionGateway(

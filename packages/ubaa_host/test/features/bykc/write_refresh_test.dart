@@ -6,6 +6,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/src/common/read_navigator.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 import 'package:ubaa_test_support/navigation.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final failRefresh in [false, true]) {
@@ -17,7 +18,11 @@ void main() {
       final accounts = await support.widgetAccounts(tester);
       final backend = _Backend()..failRefresh = failRefresh;
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, localAccountStore: accounts),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          localAccountStore: accounts,
+        ),
       );
       await accounts.settle(tester);
       await tester.pumpAndSettle();

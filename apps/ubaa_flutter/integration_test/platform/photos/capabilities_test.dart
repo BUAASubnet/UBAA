@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 
 import 'dart:io';
@@ -30,6 +31,7 @@ void main() {
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       await tester.pumpWidget(
         UbaaFlutterApp(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: backend,
           credentialVault: MemoryCredentialVault(),
           photoPicker: capabilities.picker,

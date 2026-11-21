@@ -6,13 +6,18 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/navigation.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('二维码面板经宿主在线查询，签到后关闭并更新课程状态', (tester) {
     return withClock(Clock.fixed(DateTime.utc(2026, 11, 19, 0, 10)), () async {
       final backend = _Backend();
       await tester.pumpWidget(
-        UbaaAppHost(backend: backend, initialDestination: UiDestination.study),
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+          initialDestination: UiDestination.study,
+        ),
       );
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.signin);

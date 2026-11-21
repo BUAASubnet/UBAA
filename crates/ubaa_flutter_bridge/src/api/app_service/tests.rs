@@ -27,6 +27,7 @@ impl TestDirectory {
             false,
             surface,
             policy,
+            None,
         )
         .await
         .unwrap()
@@ -55,7 +56,11 @@ impl Drop for TestDirectory {
 async fn 共享状态投影包含实际同意版本和独立开关() {
     let directory = TestDirectory::new();
     let gui = directory.open(BridgeAppServiceSurface::Gui, 1, true).await;
-    let agreed = gui.state().await.unwrap();
+    let initial = gui.state().await.unwrap();
+    assert_eq!(initial.consent, BridgeAppServiceConsent::Unasked);
+    assert!(!initial.telemetry_enabled);
+    assert!(gui.refresh_bootstrap(true).await.unwrap().update.is_none());
+    let agreed = gui.agree().await.unwrap();
     assert_eq!(agreed.consent, BridgeAppServiceConsent::Agreed);
     assert_eq!(agreed.agreed_policy_version, Some(1));
     assert!(agreed.telemetry_enabled);
@@ -93,8 +98,13 @@ async fn 共享状态投影包含实际同意版本和独立开关() {
     let next = directory.open(BridgeAppServiceSurface::Gui, 2, true).await;
     let state = next.state().await.unwrap();
     assert_eq!(state.policy_version, 2);
-    assert_eq!(state.consent, BridgeAppServiceConsent::Agreed);
-    assert_eq!(state.agreed_policy_version, Some(2));
+    assert_eq!(state.consent, BridgeAppServiceConsent::ReconsentRequired);
+    assert_eq!(state.agreed_policy_version, Some(1));
+    assert!(next.refresh_bootstrap(true).await.unwrap().update.is_none());
+    assert_eq!(
+        next.agree().await.unwrap().consent,
+        BridgeAppServiceConsent::Agreed
+    );
     assert!(!state.telemetry_enabled);
     assert_eq!(
         next.enter_basic().await.unwrap().consent,

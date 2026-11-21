@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final keepAccount in [true, false]) {
@@ -20,6 +21,7 @@ void main() {
       final backend = _Backend();
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: backend,
           localAccountStore: accounts,
           initialDestination: UiDestination.agenda,

@@ -6,6 +6,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/host/recording_backend.dart' show FixtureRecordingBackend;
 import '../support/host/fakes.dart' show FixtureHostReadOnlyBackend;
+import 'package:ubaa_test_support/privacy.dart';
 
 void _registerCallbackTests() {
   testWidgets('共享宿主完整连接登录页与主界面回调', (tester) async {
@@ -29,6 +30,7 @@ void _registerCallbackTests() {
 
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: vault,
         photoPicker: picker,
@@ -470,6 +472,7 @@ void main() {
     final previewer = _Previewer();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: FixtureHostReadOnlyBackend(),
         bhpanFilePreviewer: previewer,
       ),

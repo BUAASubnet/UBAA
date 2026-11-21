@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import '../../backend/unavailable.dart';
+import '../../contracts/app_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -176,6 +177,7 @@ mixin ControllerActions on ControllerState, ControllerAppService {
 
   Future<void> initialize({
     MaterialTransactionRecovery? materialRecovery,
+    Future<bool> Function()? requestPrivacyAgreement,
   }) async {
     unawaited(refreshAppService().then((_) => internalRecordAppOpen()));
     final startupLoginNotice =
@@ -191,9 +193,59 @@ mixin ControllerActions on ControllerState, ControllerAppService {
       internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
       internalSetPhase(AppPhase.login);
     } else {
+      if (!internalPrivacyAccepted) {
+        await _preparePrivateStartup(requestPrivacyAgreement);
+        if (!internalPrivacyAccepted || internalDisposed) return;
+      }
       await internalInitializeController();
     }
     internalRecordColdStart();
+  }
+
+  Future<void> _preparePrivateStartup(
+    Future<bool> Function()? requestAgreement,
+  ) async {
+    Credential? saved;
+    var canResume = false;
+    try {
+      final index = await internalLocalAccountStore?.read();
+      if (internalCredentialVault.isAvailable) {
+        saved = await internalCredentialVault.read();
+      }
+      if (index != null) {
+        canResume = index.canRestore && index.account != null;
+      } else {
+        canResume =
+            saved?.isUsable == true &&
+            (saved!.autoLogin || internalLocalAccountStore != null);
+        if (internalBackend case final SavedSessionBackend backend
+            when !canResume) {
+          canResume = await backend.hasSavedSession();
+        }
+      }
+    } on Object catch (error, stackTrace) {
+      if (internalDisposed) return;
+      internalRecordFailure(
+        error,
+        DiagnosticOperation.initialization,
+        stackTrace: stackTrace,
+        initializationStage: DiagnosticInitializationStage.localAccountRestore,
+      );
+    }
+    if (internalDisposed) return;
+    if (canResume && requestAgreement != null && await requestAgreement())
+      return;
+    if (internalDisposed) return;
+    if (saved != null && saved.isUsable && internalLoginFormRevision == 0) {
+      internalLoginForm = internalLoginForm.copyWith(
+        username: saved.username,
+        password: saved.password,
+        rememberPassword: true,
+        autoLogin: saved.autoLogin,
+      );
+    }
+    internalInitialized = true;
+    internalSetPhase(AppPhase.login);
   }
 
   /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
@@ -203,7 +255,8 @@ mixin ControllerActions on ControllerState, ControllerAppService {
   Future<bool> rebuildBackend() async {
     final factory = internalBackendFactory;
     final forManualLogin = internalBackendNeedsRebuild;
-    if (factory == null ||
+    if (!internalPrivacyAccepted ||
+        factory == null ||
         internalDisposed ||
         (forManualLogin && !internalAppForeground) ||
         internalRebuildingBackend ||
@@ -263,6 +316,10 @@ mixin ControllerActions on ControllerState, ControllerAppService {
       }
       internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
+      if (internalPrivacyAccepted &&
+          replacement is HostPrivacyAppServiceBackend) {
+        (replacement as HostPrivacyAppServiceBackend).allowHostPrivacy();
+      }
       internalBackendNeedsRebuild = false;
       unawaited(refreshAppService());
       internalReplaceWriteCoordinator(replacement);
@@ -363,65 +420,67 @@ mixin ControllerActions on ControllerState, ControllerAppService {
       internalUserSchoolAction(() => internalSetRoutePolicyController(value));
 
   Future<void> submitLogin({bool preserveHome = false}) =>
-      internalUserSchoolAction(() async {
-        if (internalDisposed) return;
-        if (internalAppServiceView.consent == AppServiceConsent.agreed &&
-            internalAppServiceView.update?.gateActive == true) {
-          final view = await internalReadAppService();
+      !internalPrivacyAccepted
+      ? Future.value()
+      : internalUserSchoolAction(() async {
           if (internalDisposed) return;
-          if (view != null &&
-              view.consent == AppServiceConsent.agreed &&
-              view.update?.gateActive == true) {
-            internalError = internalRecordFailure(
-              const BackendException(
-                UbaaErrorCode.updateRequired,
-                retryable: false,
-              ),
-              DiagnosticOperation.login,
-            );
-            internalNotify();
-            return;
-          }
-        }
-        if (internalBackendNeedsRebuild) {
-          final rebuilding = internalBackendRebuildCompletion;
-          if (rebuilding != null) {
-            await rebuilding.future;
-          } else if (!await rebuildBackend()) {
-            if (!internalDisposed &&
-                !internalIsSigningOut &&
-                internalError == null) {
+          if (internalAppServiceView.consent == AppServiceConsent.agreed &&
+              internalAppServiceView.update?.gateActive == true) {
+            final view = await internalReadAppService();
+            if (internalDisposed) return;
+            if (view != null &&
+                view.consent == AppServiceConsent.agreed &&
+                view.update?.gateActive == true) {
               internalError = internalRecordFailure(
                 const BackendException(
-                  UbaaErrorCode.internalError,
-                  clientDisposed: true,
+                  UbaaErrorCode.updateRequired,
+                  retryable: false,
                 ),
                 DiagnosticOperation.login,
               );
               internalNotify();
+              return;
             }
-            return;
           }
-          if (internalDisposed ||
-              internalIsSigningOut ||
-              internalBackendNeedsRebuild)
-            return;
-        }
-        if (internalBackend case final InteractiveLoginBackend backend) {
-          if (internalDisposed ||
-              internalIsSigningOut ||
-              internalRebuildingBackend ||
-              internalSessionRecoveryFuture != null ||
-              internalWriteCoordinator.hasPendingOperation ||
-              internalActivities.hasActive)
-            return Future.value();
-          if (!internalInteractiveEngaged)
-            internalInteractiveInPlace =
-                preserveHome && internalPhase == AppPhase.home;
-          return internalSubmitInteractiveLogin(backend);
-        }
-        return internalSubmitLoginController(preserveHome: preserveHome);
-      });
+          if (internalBackendNeedsRebuild) {
+            final rebuilding = internalBackendRebuildCompletion;
+            if (rebuilding != null) {
+              await rebuilding.future;
+            } else if (!await rebuildBackend()) {
+              if (!internalDisposed &&
+                  !internalIsSigningOut &&
+                  internalError == null) {
+                internalError = internalRecordFailure(
+                  const BackendException(
+                    UbaaErrorCode.internalError,
+                    clientDisposed: true,
+                  ),
+                  DiagnosticOperation.login,
+                );
+                internalNotify();
+              }
+              return;
+            }
+            if (internalDisposed ||
+                internalIsSigningOut ||
+                internalBackendNeedsRebuild)
+              return;
+          }
+          if (internalBackend case final InteractiveLoginBackend backend) {
+            if (internalDisposed ||
+                internalIsSigningOut ||
+                internalRebuildingBackend ||
+                internalSessionRecoveryFuture != null ||
+                internalWriteCoordinator.hasPendingOperation ||
+                internalActivities.hasActive)
+              return Future.value();
+            if (!internalInteractiveEngaged)
+              internalInteractiveInPlace =
+                  preserveHome && internalPhase == AppPhase.home;
+            return internalSubmitInteractiveLogin(backend);
+          }
+          return internalSubmitLoginController(preserveHome: preserveHome);
+        });
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({

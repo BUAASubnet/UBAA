@@ -32,6 +32,9 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
       onCaptchaChanged: _controller.setCaptcha,
       onRememberPasswordChanged: _controller.setRememberPassword,
       onAutoLoginChanged: _controller.setAutoLogin,
+      privacyAccepted: _privacyAccepted,
+      onAcceptPrivacy: _acceptHostPrivacy,
+      appServiceAvailable: _controller.appService.available,
       onSubmit: () => unawaited(() async {
         await _controller.submitLogin(preserveHome: inPlace);
         if (!_disposed &&
