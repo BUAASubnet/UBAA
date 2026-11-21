@@ -1,9 +1,7 @@
 use super::*;
 #[test]
 fn 配置路径为文件时在请求密码前拒绝() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/input_tests");
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_input").unwrap();
     let file = root.join(uuid::Uuid::new_v4().to_string());
     std::fs::write(&file, "合成普通文件").unwrap();
     let command = BridgeCommand::parse(
@@ -156,10 +154,7 @@ async fn 无效本机参数与输入在打开材料前拒绝() {
 
 #[tokio::test]
 async fn 写入结果在交付前到期时保留核对提示() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/output_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_output").unwrap();
     let cache = crate::api::offline::BridgeOfflineCache::open(
         root.to_string_lossy().into(),
         "0123456789abcdef0123456789abcdef".into(),
@@ -240,6 +235,9 @@ async fn 写入结果在交付前到期时保留核对提示() {
 
 #[tokio::test]
 async fn 密码与阳光请求在材料初始化前完整校验() {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_input").unwrap();
+    let missing_photo = root.join("missing.jpg");
+    let missing_photo = missing_photo.to_str().unwrap();
     for (arguments, input) in [
         (
             vec![
@@ -284,7 +282,7 @@ async fn 密码与阳光请求在材料初始化前完整校验() {
                 "--end-time",
                 "bad-time",
                 "--photo",
-                ".ubaa_local/command_delivery/missing.jpg",
+                missing_photo,
                 "--confirm-write",
             ],
             vec![],
@@ -302,7 +300,7 @@ async fn 密码与阳光请求在材料初始化前完整校验() {
                 "--end-time",
                 "2026-11-05 09:00",
                 "--photo",
-                ".ubaa_local/command_delivery/missing.jpg",
+                missing_photo,
                 "--confirm-write",
             ],
             vec![],

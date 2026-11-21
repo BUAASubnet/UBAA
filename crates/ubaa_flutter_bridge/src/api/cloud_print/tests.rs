@@ -164,10 +164,8 @@ fn client(
     policy: RoutePolicy,
     sessions: bool,
     transport: &Transport,
-) -> (BridgeClient, std::path::PathBuf) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/cloud_print_route/tests")
-        .join(uuid::Uuid::new_v4().to_string());
+) -> (BridgeClient, ubaa_test_support::TestTempDir) {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_cloud_print").unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     if sessions {
         let slot = RouteSessionSnapshot {

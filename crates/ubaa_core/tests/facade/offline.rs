@@ -341,10 +341,7 @@ impl HttpTransport for LateCacheTransport {
 }
 
 fn assert_late_cache_change_is_rejected(judge: bool, change: LateCacheChange) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("offline-late-change").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_offline").unwrap();
     let cache = OfflineCache::open(
         &root,
         "0123456789abcdef0123456789abcdef",
@@ -358,7 +355,7 @@ fn assert_late_cache_change_is_rejected(judge: bool, change: LateCacheChange) {
         LateCacheTransport {
             inner: OfflineTransport(Arc::new(std::sync::Mutex::new(Vec::new()))),
             cache: cache.clone(),
-            root: root.clone(),
+            root: root.to_path_buf(),
             change,
             judge,
         },
@@ -392,10 +389,7 @@ fn 今日读取期间退出后拒绝迟到结果() {
 }
 
 fn assert_shared_today_recovery(change: LateCacheChange, expected_classes: usize) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("offline-today-recovery").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_offline").unwrap();
     let cache = OfflineCache::open(
         &root,
         "0123456789abcdef0123456789abcdef",
@@ -410,7 +404,7 @@ fn assert_shared_today_recovery(change: LateCacheChange, expected_classes: usize
         LateCacheTransport {
             inner: OfflineTransport(requests.clone()),
             cache: cache.clone(),
-            root: root.clone(),
+            root: root.to_path_buf(),
             change,
             judge: false,
         },
@@ -466,10 +460,7 @@ fn 希冀读取期间退出后拒绝迟到结果() {
 
 #[test]
 fn 希冀普通摘要被另一连接取代后只重试保存() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("offline-judge-recovery").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_offline").unwrap();
     let cache = OfflineCache::open(
         &root,
         "0123456789abcdef0123456789abcdef",
@@ -484,7 +475,7 @@ fn 希冀普通摘要被另一连接取代后只重试保存() {
         LateCacheTransport {
             inner: OfflineTransport(requests.clone()),
             cache: cache.clone(),
-            root: root.clone(),
+            root: root.to_path_buf(),
             change: LateCacheChange::NewerRead,
             judge: true,
         },

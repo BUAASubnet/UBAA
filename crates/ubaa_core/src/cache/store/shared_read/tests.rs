@@ -3,26 +3,13 @@ use crate::{
     cache::{CacheInvalidation, CacheKey, CacheLimits, CachePayload},
     domain::{ConnectionMode, TodayClass},
 };
-use std::{
-    path::PathBuf,
-    sync::atomic::{AtomicUsize, Ordering},
-};
 
 const ACCOUNT: &str = "0123456789abcdef0123456789abcdef";
 
-struct Fixture(PathBuf);
+struct Fixture(crate::test_tmp::TestTempDir);
 impl Fixture {
     fn new() -> Self {
-        static NEXT: AtomicUsize = AtomicUsize::new(0);
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/shared_profile_phase2")
-            .join(format!(
-                "shared-read-{}-{}",
-                std::process::id(),
-                NEXT.fetch_add(1, Ordering::Relaxed)
-            ));
-        std::fs::create_dir_all(&root).unwrap();
-        Self(root)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_cache_shared_read").unwrap())
     }
 
     fn open(&self) -> OfflineRepository {
@@ -33,12 +20,6 @@ impl Fixture {
             CacheLimits::default(),
         )
         .unwrap()
-    }
-}
-
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 

@@ -138,10 +138,7 @@ impl HttpTransport for CountingTransport {
 }
 
 async fn waiting_stop(stop: &'static str) {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_internal_runtime_shared").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),

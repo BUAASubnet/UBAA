@@ -135,10 +135,12 @@ impl HttpTransport for Transport {
 fn fixture(
     mode: ConnectionMode,
     scenario: Scenario,
-) -> (ClientRuntime, Arc<Mutex<Scenario>>, std::path::PathBuf) {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/finance_integration/tests")
-        .join(uuid::Uuid::new_v4().to_string());
+) -> (
+    ClientRuntime,
+    Arc<Mutex<Scenario>>,
+    crate::test_tmp::TestTempDir,
+) {
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_features_finance").unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     let version = store.load_versioned().unwrap();
     store
@@ -419,10 +421,7 @@ fn finance_加密快照跨路线复用且失败保留旧值() {
         CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload, CacheQuery, CacheScope,
         OfflineRepository,
     };
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/finance_integration/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_features_finance").unwrap();
     let mut repo = OfflineRepository::open(
         &root,
         "0123456789abcdef0123456789abcdef",

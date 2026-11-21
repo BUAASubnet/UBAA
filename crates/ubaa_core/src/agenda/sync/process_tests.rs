@@ -150,7 +150,8 @@ fn delayed_process_publication_preserves_another_process_completed_deletion() {
         "较高发布序号须包含另一进程已确认的删除"
     );
     assert!(document.items.iter().all(|v| v.item.id != id));
-    let replica = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let replica_root = root();
+    let replica = AgendaStore::open(&replica_root, ACCOUNT).unwrap();
     let scope = replica.sync_snapshot().unwrap();
     replica.merge_sync(&scope, document).unwrap();
     assert_eq!(replica.sync_snapshot().unwrap().document().items.len(), 0);

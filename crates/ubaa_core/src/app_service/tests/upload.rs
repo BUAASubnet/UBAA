@@ -8,27 +8,16 @@ use crate::{
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
 use async_trait::async_trait;
-use std::{
-    collections::VecDeque,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Mutex,
-    time::Duration,
-};
+use std::{collections::VecDeque, path::Path, process::Command, sync::Mutex, time::Duration};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 const ORIGIN: &str = "http://127.0.0.1:8787";
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_upload")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_upload").unwrap())
     }
 
     fn open(&self, surface: Surface, hard_closed: bool) -> AppService {
@@ -49,15 +38,9 @@ impl TestDirectory {
             Platform::Macos,
             false,
         );
-        AppService::open(&self.0, config, surface, policy)
+        AppService::open(self.0.path(), config, surface, policy)
             .unwrap()
             .with_runtime(|| "2026-11-11T00:00:00Z".parse().unwrap(), hard_closed)
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 

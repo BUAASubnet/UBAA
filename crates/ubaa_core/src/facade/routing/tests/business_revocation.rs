@@ -15,15 +15,9 @@ impl HttpTransport for NoRequests {
     }
 }
 
-fn setup(name: &str, config: RouteConfig) -> (std::path::PathBuf, UbaaClient) {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local")
-        .join(if name.starts_with("session-only-") {
-            "session_only_login"
-        } else {
-            "biz_cache_p2"
-        })
-        .join(format!("{name}-{}", uuid::Uuid::new_v4()));
+fn setup(_name: &str, config: RouteConfig) -> (crate::test_tmp::TestTempDir, UbaaClient) {
+    let path =
+        crate::test_tmp::test_temp_dir("ubaa_core_facade_routing_business_revocation").unwrap();
     let store = FileSessionStore::new(&path).unwrap();
     let client =
         UbaaClient::with_routing(NoRequests, NoRequests, store, config, SystemGatewayProbe)
@@ -70,7 +64,7 @@ fn 修复三_仅移除有效功能路线覆盖也全量撤销() {
         RouteConfig::parse("[route]\ndefault = \"direct\"\n[route.features]\nspoc = \"webvpn\"\n")
             .unwrap();
     let (path, mut client) = setup("feature-route", config);
-    client.config_dir = Some(path.clone());
+    client.config_dir = Some(path.to_path_buf());
     client.clear_business_session_cache();
     let file = path.join("business_session.json");
     let before: serde_json::Value = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
@@ -167,7 +161,7 @@ fn persist_identity(client: &mut UbaaClient) {
 #[test]
 fn 保留标记_r3_公开路线切换后的读组不写盘() {
     let (path, mut client) = setup("session-only-reopen", RouteConfig::default());
-    client.config_dir = Some(path.clone());
+    client.config_dir = Some(path.to_path_buf());
     prepare_identity_read(&mut client);
     persist_identity(&mut client);
     drop(client);

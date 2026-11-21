@@ -1,15 +1,10 @@
 use super::*;
-use uuid::Uuid;
 
-pub(in crate::api) struct TestDirectory(std::path::PathBuf);
+pub(in crate::api) struct TestDirectory(ubaa_test_support::TestTempDir);
 
 impl TestDirectory {
     pub(in crate::api) fn new() -> Self {
-        Self(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.ubaa_local/app_service/test_bridge")
-                .join(Uuid::new_v4().to_string()),
-        )
+        Self(ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_app_service").unwrap())
     }
 
     pub(in crate::api) async fn open(
@@ -43,12 +38,6 @@ pub(in crate::api) fn panic_payload(service: &BridgeAppService) -> Vec<u8> {
         }
         assert!(std::time::Instant::now() < deadline, "panic 应进入本机队列");
         std::thread::sleep(Duration::from_millis(5));
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 

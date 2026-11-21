@@ -13,7 +13,6 @@ use crate::{
     },
 };
 use async_trait::async_trait;
-use std::path::PathBuf;
 struct NeverNetwork;
 #[async_trait]
 impl HttpTransport for NeverNetwork {
@@ -27,17 +26,13 @@ impl GatewayProbe for NeverProbe {
         panic!("固定路线不得探测")
     }
 }
-fn root() -> PathBuf {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_sync_dev")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    root
+fn root() -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_facade_agenda_sync").unwrap()
 }
 fn now() -> AgendaTime {
     AgendaTime::new(chrono::DateTime::parse_from_rfc3339("2026-03-01T00:00:00+08:00").unwrap())
 }
-fn fixture() -> (PathBuf, AgendaStore, UbaaClient) {
+fn fixture() -> (crate::test_tmp::TestTempDir, AgendaStore, UbaaClient) {
     let root = root();
     for (name, value) in [
         ("materials.lock", ""),
@@ -60,7 +55,7 @@ fn fixture() -> (PathBuf, AgendaStore, UbaaClient) {
     )
     .unwrap();
     client.bind_shared_account(Some(owner));
-    client.config_dir = Some(root.clone());
+    client.config_dir = Some(root.to_path_buf());
     (root, store, client)
 }
 #[test]
@@ -243,7 +238,7 @@ async fn 显式切换webvpn后确认按实际云盘路线拒绝且不探测网�
     let original = client.resolve_bhpan_route().unwrap().resolution.mode;
     assert_eq!(original, ConnectionMode::Direct);
     // 零 TTL 模拟确认发起后，原 Direct 观察已经过期。
-    client.config_dir = Some(root.clone());
+    client.config_dir = Some(root.to_path_buf());
     client
         .set_default_route_policy(RoutePolicy::WebVpn)
         .unwrap();
@@ -383,7 +378,7 @@ async fn 显式转为webvpn后读取旧直连版本返回未验证能力() {
         client.resolve_bhpan_route().unwrap().resolution.mode,
         ConnectionMode::Direct
     );
-    client.config_dir = Some(root.clone());
+    client.config_dir = Some(root.to_path_buf());
     client
         .set_default_route_policy(RoutePolicy::WebVpn)
         .unwrap();

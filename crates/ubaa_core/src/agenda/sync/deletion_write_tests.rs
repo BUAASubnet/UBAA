@@ -2,7 +2,7 @@ use super::{AgendaSyncDocument, AgendaSyncOverlayDeletion};
 use crate::{
     agenda::{
         AgendaStore,
-        sync::tests::root,
+        sync::tests::{open, root},
         tests::{ACCOUNT, t},
     },
     cache::CacheError,
@@ -51,7 +51,7 @@ fn overlay(now: AgendaTime, note: &str) -> SchoolAgendaOverlay {
 
 #[test]
 fn imported_deletion_rejects_backward_clock_without_saving_or_advancing_sequence() {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let store = open();
     import_deletion(&store, Uuid::from_u128(1));
     let before = store.sync_snapshot().unwrap();
     let sequence = store
@@ -75,7 +75,7 @@ fn imported_deletion_rejects_backward_clock_without_saving_or_advancing_sequence
 
 #[test]
 fn imported_deletion_rejects_same_second_when_remote_device_sorts_later() {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let store = open();
     import_deletion(&store, Uuid::from_u128(u128::MAX));
     let before = store.sync_snapshot().unwrap();
     let now = t("2026-03-01T10:00:00+08:00");
@@ -106,14 +106,14 @@ fn assert_saved_survives_merge(
 
 #[test]
 fn imported_deletion_allows_later_time_and_preserves_overlay_on_merge() {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let store = open();
     let deletion = import_deletion(&store, Uuid::from_u128(u128::MAX));
     assert_saved_survives_merge(&store, &deletion, t("2026-03-01T10:00:01+08:00"));
 }
 
 #[test]
 fn imported_deletion_allows_same_second_when_local_device_sorts_later() {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let store = open();
     let deletion = import_deletion(&store, Uuid::from_u128(1));
     assert_saved_survives_merge(&store, &deletion, t("2026-03-01T10:00:00+08:00"));
 }

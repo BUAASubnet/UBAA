@@ -1,6 +1,10 @@
 mod reconciliation;
 
-use super::{coordinator::*, publication::Publication, tests::root};
+use super::{
+    coordinator::*,
+    publication::Publication,
+    tests::{OpenedStore, open, root},
+};
 use crate::{
     agenda::{
         AgendaStore,
@@ -175,10 +179,9 @@ fn remote_for(server: Arc<Mutex<Server>>) -> Remote {
         fail_read: false,
     }
 }
-fn setup() -> (AgendaStore, Remote, Arc<Mutex<Server>>) {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+fn setup() -> (OpenedStore, Remote, Arc<Mutex<Server>>) {
     let server = Arc::new(Mutex::new(Server::default()));
-    (store, remote_for(server.clone()), server)
+    (open(), remote_for(server.clone()), server)
 }
 fn now() -> crate::domain::agenda::AgendaTime {
     t("2026-03-01T00:00:00+08:00")
@@ -213,7 +216,7 @@ fn unverified_sync_performs_no_remote_operation() {
         let (store, mut remote, server) = setup();
         store.create(event()).unwrap();
         remote.unverified = true;
-        let report = SyncCoordinator::new(store, remote)
+        let report = SyncCoordinator::new(store.clone(), remote)
             .run(AgendaSyncAction::Pull, now())
             .await
             .unwrap();
@@ -314,7 +317,7 @@ fn confirmed_snapshot_is_not_uploaded_again_without_any_change() {
     runtime().block_on(async {
         let (store, remote, server) = setup();
         store.create(event()).unwrap();
-        let mut d = SyncCoordinator::new(store, remote);
+        let mut d = SyncCoordinator::new(store.clone(), remote);
         d.run(AgendaSyncAction::Push, now()).await.unwrap();
         assert_eq!(
             d.run(AgendaSyncAction::Push, now()).await.unwrap().status,
@@ -329,7 +332,7 @@ fn unknown_location_does_not_create_or_publish_even_when_confirmed() {
         let (store, mut remote, server) = setup();
         store.create(event()).unwrap();
         remote.unknown_location = true;
-        let mut d = SyncCoordinator::new(store, remote);
+        let mut d = SyncCoordinator::new(store.clone(), remote);
         for action in [
             AgendaSyncAction::Pull,
             AgendaSyncAction::Push,
@@ -353,7 +356,7 @@ fn route_change_or_same_account_relogin_during_read_does_not_merge_or_publish() 
             let local = event();
             let id = local.id;
             store.create(local).unwrap();
-            let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
+            let other = open();
             let incoming = event();
             let remote_id = incoming.id;
             other.create(incoming).unwrap();
@@ -396,7 +399,7 @@ fn two_devices_publish_independently_and_merge_both_changes() {
         let item = event();
         let first_id = item.id;
         first.create(item).unwrap();
-        let second = AgendaStore::open(&root(), ACCOUNT).unwrap();
+        let second = open();
         let item = event();
         let second_id = item.id;
         second.create(item).unwrap();

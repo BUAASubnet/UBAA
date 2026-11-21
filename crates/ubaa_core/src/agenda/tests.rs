@@ -9,10 +9,7 @@ fn d(raw: &str) -> NaiveDate {
 }
 #[test]
 fn 清除在同一事务核对另一句柄新增的未同步数量() {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_agenda").unwrap();
     let alias = "0123456789abcdef0123456789abcdef";
     let one = AgendaStore::open(&root, alias).unwrap();
     let two = AgendaStore::open(&root, alias).unwrap();
@@ -30,7 +27,6 @@ fn 清除在同一事务核对另一句柄新增的未同步数量() {
     assert_eq!(one.clear_local_data_if_unsynced(2).unwrap(), 2);
     assert_eq!(two.unsynced_count().unwrap(), 0);
     drop((one, two));
-    std::fs::remove_dir_all(root).unwrap();
 }
 pub(super) fn event() -> AgendaItem {
     AgendaItem::new(
@@ -90,12 +86,8 @@ fn teaching_even_weeks_and_holiday() {
         vec![d("2026-03-04"), d("2026-04-01"), d("2026-04-15")]
     );
 }
-pub(super) fn root() -> std::path::PathBuf {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_plaintext/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    root.canonicalize().unwrap()
+pub(super) fn root() -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_agenda_plaintext").unwrap()
 }
 pub(super) const ACCOUNT: &str = "00000000000000000000000000000001";
 #[test]
@@ -109,8 +101,23 @@ fn persistent_account_data_survives_reopen() {
     let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     assert_eq!(store.get(id).unwrap(), Some(item));
 }
-fn opened() -> AgendaStore {
-    AgendaStore::open(&root(), ACCOUNT).unwrap()
+struct OpenedStore {
+    store: AgendaStore,
+    _temp: crate::test_tmp::TestTempDir,
+}
+
+impl std::ops::Deref for OpenedStore {
+    type Target = AgendaStore;
+
+    fn deref(&self) -> &Self::Target {
+        &self.store
+    }
+}
+
+fn opened() -> OpenedStore {
+    let temp = root();
+    let store = AgendaStore::open(temp.path(), ACCOUNT).unwrap();
+    OpenedStore { store, _temp: temp }
 }
 fn repeated() -> AgendaItem {
     let mut i = event();

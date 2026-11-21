@@ -268,10 +268,7 @@ impl OutputWriter {
 #[cfg(test)]
 #[test]
 fn 已排队正文在消费者取得前仍核对固定共享代次() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/output_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_command_output").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),

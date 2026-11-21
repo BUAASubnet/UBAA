@@ -434,9 +434,7 @@ async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
 
 #[test]
 fn invalid_config_is_rejected_before_prompting_for_password() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_mode_h2_common_a/tests");
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_command_boundary").unwrap();
     let config = root.join(format!("invalid_config_{}", uuid::Uuid::new_v4()));
     std::fs::write(&config, "合成普通文件").unwrap();
     let plan = parse([

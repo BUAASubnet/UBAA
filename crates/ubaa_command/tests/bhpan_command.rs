@@ -179,12 +179,12 @@ struct Fixture {
     root: std::path::PathBuf,
     client: UbaaClient,
     transport: Transport,
+    _temp: ubaa_test_support::TestTempDir,
 }
 impl Fixture {
     fn new(transport: Transport, route: &str) -> Self {
-        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/bhpan_delivery/integration/command_tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let temp = ubaa_test_support::test_temp_dir("ubaa_command_bhpan").unwrap();
+        let root = temp.path().to_path_buf();
         let store = FileSessionStore::new(&root).unwrap();
         let session = RouteSessionSnapshot {
             cookies: vec![],
@@ -206,6 +206,7 @@ impl Fixture {
         )
         .unwrap();
         Self {
+            _temp: temp,
             root,
             client,
             transport,
@@ -232,9 +233,7 @@ impl Fixture {
         (code, value)
     }
     fn finish(self) {
-        let root = self.root.clone();
         drop(self);
-        std::fs::remove_dir_all(root).unwrap();
     }
 }
 #[tokio::test]

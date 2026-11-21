@@ -893,10 +893,8 @@ fn 阳光打卡安全收据schema拒绝false_raw与敏感扩展字段() {
 
 #[tokio::test]
 async fn 阳光执行使用准备时照片快照且不重新读取文件() {
-    let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/photo_snapshots")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&directory).unwrap();
+    let temp = ubaa_test_support::test_temp_dir("ubaa_command_ygdk_photo").unwrap();
+    let directory = temp.path();
     let photo = directory.join("合成照片.jpg");
     std::fs::write(&photo, b"synthetic-photo").unwrap();
     let plan = ubaa_command::parse([
@@ -931,5 +929,4 @@ async fn 阳光执行使用准备时照片快照且不重新读取文件() {
         backend.ygdk_last_submit_request.unwrap().photo.bytes,
         b"synthetic-photo"
     );
-    std::fs::remove_dir_all(directory).unwrap();
 }

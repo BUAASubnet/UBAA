@@ -18,10 +18,7 @@ impl HttpTransport for BearerTransport {
 }
 
 async fn stopped_while_waiting(write: bool, cancel: bool, transfer_cancel: bool) {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/integration/runtime_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_internal_runtime_bearer").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),
@@ -123,9 +120,7 @@ async fn bearer写入等待材料锁后取消保持零发送() {
 
 #[tokio::test]
 async fn bearer请求隔离导航cookie且已到期写入零发送() {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/integration/runtime_tests")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_internal_runtime_bearer").unwrap();
     let calls = Arc::new(AtomicUsize::new(0));
     let mut runtime = ClientRuntime::new(
         ConnectionMode::Direct,

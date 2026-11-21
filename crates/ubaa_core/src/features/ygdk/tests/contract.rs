@@ -64,9 +64,7 @@ async fn 记录页拒绝原样返回错误并清掉当前业务凭据() {
 
     for (status, message) in [(200, "阳光打卡业务会话已失效"), (401, "阳光打卡：需要认证")]
     {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/biz_cache_p2")
-            .join(uuid::Uuid::new_v4().to_string());
+        let path = crate::test_tmp::test_temp_dir("ubaa_core_features_ygdk_contract").unwrap();
         let calls = Arc::new(AtomicUsize::new(0));
         let mut runtime = ClientRuntime::new(
             ConnectionMode::Direct,
