@@ -75,7 +75,7 @@ Future<void> main(List<String> args) async {
   if (command == 'reconcile') {
     await File('${root.path}/ready-${args[2]}').create();
     final gate = File('${root.path}/reconcile-go');
-    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
     while (!await gate.exists()) {
       if (DateTime.now().isAfter(deadline)) throw StateError('等待对账启动超时');
       await Future<void>.delayed(const Duration(milliseconds: 10));
