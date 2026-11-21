@@ -245,6 +245,7 @@ APP_SERVICE_CONTENT_PATHS = (
 def select_checks(root, paths, mode='commit', previous=None):
     if mode not in {'commit', 'full'}:
         raise ValueError('检查模式只接受 commit 或 full')
+    paths = tuple(paths)
     selected, production = set(), set()
     rust_paths, risk_paths, native_checks = set(), set(), set()
     rust_crates = set()
@@ -385,6 +386,7 @@ def select_checks(root, paths, mode='commit', previous=None):
     return {'rust': bool(rust_paths) or full, 'rust_crates': sorted(rust_crates),
             'rust_workspace': bool(rust_paths & {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}),
             'scripts': scripts, 'docs': docs, 'full': full, 'risk': risk and not full,
+            'cargo_lock': scripts or any(path.endswith('.md') for path in paths),
             'native': [['just', 'integration-test']] if full else [
                 ['just', 'integration-test', f'suite={suite}', f'platform={platform}']
                 for suite, platform in sorted(native_checks)],
@@ -411,9 +413,11 @@ def commands(plan):
         if plan['risk']:
             result.append(['just', 'check-risk', *crates])
         if plan['scripts']:
-            result.append(['just', 'script-check'])
+            result.append(['just', 'script-check', 'scoped'])
         elif plan['docs']:
             result.append(['just', 'docs-link-check'])
+        if plan['cargo_lock']:
+            result.append(['just', 'cargo-lock-check'])
         if plan['privacy_policy']:
             result.append(['just', 'privacy-policy-check'])
     if plan['packages']:

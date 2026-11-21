@@ -87,9 +87,10 @@ check-strict:
     just _rust-shell-contracts
 
 # 文档、脚本与工作流使用独立轻检查，不编译 Rust 或原生宿主。
-script-check:
+script-check scope="all":
     just shell-check-strict
     just _script-contracts
+    if [ "{{scope}}" = all ]; then just _script-specialized; fi
 
 _script-contracts:
     just script-test
@@ -103,12 +104,15 @@ _script-contracts:
     just docs-link-check
     just tool-version-check
     just version-check
-    just cargo-lock-check
     bash ./scripts/tests/live-launchers.sh
     git diff --check
 
+_script-specialized:
+    just cargo-lock-check
+
 _rust-shell-contracts:
     just _script-contracts
+    just _script-specialized
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings

@@ -47,10 +47,17 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_plain_docs_and_scripts_select_only_relevant_checks(self):
         common = [['just', 'check-sensitive'], ['git', 'diff', '--check']]
-        for path, recipe in [('docs/project/status.md', 'docs-link-check'),
-                             ('scripts/check/docs_links.py', 'script-check')]:
+        for path, command in [('docs/project/status.md', ['just', 'docs-link-check']),
+                              ('scripts/check/docs_links.py', ['just', 'script-check', 'scoped'])]:
             with self.subTest(path=path):
-                self.assertEqual(gates.commands(self.plan(path)), common + [['just', recipe]])
+                self.assertEqual(gates.commands(self.plan(path)), common + [command, ['just', 'cargo-lock-check']])
+
+    def test_cargo_lock_gate_is_selected_for_scripts_but_not_rust(self):
+        for path in ('scripts/check/example.py', 'justfile', '.github/workflows/ci.yml', 'README.md'):
+            with self.subTest(path=path):
+                self.assertIn(['just', 'cargo-lock-check'], gates.commands(self.plan(path)))
+        rust_commands = gates.commands(self.plan('crates/ubaa_core/src/domain/projection.rs'))
+        self.assertNotIn(['just', 'cargo-lock-check'], rust_commands)
 
     def test_l1_dart_runs_module_graph_gate(self):
         commands = gates.commands(self.plan('packages/ubaa_ui/lib/src/example.dart'))
@@ -77,7 +84,6 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertFalse(plan['rust'])
         self.assertEqual(plan['packages'], [])
         self.assertEqual(plan['extra'], [])
-        self.assertEqual(gates.commands(plan)[-1], ['just', 'docs-link-check'])
         self.assertIn(['just', 'docs-link-check'], gates.commands(plan))
 
     def test_ui_implementation_includes_consumers(self):
@@ -125,7 +131,7 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertFalse(plan['rust'])
                 self.assertEqual(plan['packages'], [])
                 self.assertEqual(plan['extra'], [])
-                self.assertIn(['just', 'script-check'], gates.commands(plan))
+                self.assertIn(['just', 'script-check', 'scoped'], gates.commands(plan))
 
     def test_unknown_paths_and_dependency_manifests_remain_conservative(self):
         for path in ['unexpected/file', 'crates/unknown/src/mod.rs', 'scripts/new_native.rs',
@@ -314,8 +320,8 @@ class ChangedChecksTest(unittest.TestCase):
                          'crates/ubaa_command/src/render/tables.rs')
         commands = gates.commands(plan)
         self.assertEqual(sum(command[:2] == ['just', 'check'] for command in commands), 1)
-        self.assertIn(['just', 'script-check'], commands)
-        self.assertNotIn(['just', 'cargo-lock-check'], commands)
+        self.assertIn(['just', 'script-check', 'scoped'], commands)
+        self.assertEqual(commands.count(['just', 'cargo-lock-check']), 1)
 
     def test_ohos_changes_require_explicit_native_followup(self):
         plan = self.plan('packages/package_info_plus_ohos/lib/channel.dart')
