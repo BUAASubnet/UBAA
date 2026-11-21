@@ -33,6 +33,15 @@ def anchors(path):
     return result
 
 
+def preserved_source_link(root, page, path):
+    parity = root / 'docs/protocol/parity'
+    if path == root / 'docs/protocol/references.md':
+        return page == root / 'AGENTS.md' or page.parent == parity
+    return page == parity / 'bhpan.md' and any(
+        path.is_relative_to(root / 'examples' / source) for source in ('ubaa_old', 'buaa-api')
+    )
+
+
 def check_file(root, page):
     text = prose(page.read_text())
     # 内联与引用式链接共用目标解析；嵌套括号允许常见的带括号文件名。
@@ -54,6 +63,8 @@ def check_file(root, page):
         else:
             path = (root / name.lstrip('/')) if name.startswith('/') else page.parent / name
         path = path.resolve() if name else page.resolve()
+        if preserved_source_link(root, page, path):
+            continue
         if not path.suffix and not path.exists() and page.is_relative_to(site):
             path = path.with_suffix('.md')
         if path.is_dir() and (path / 'index.md').exists():

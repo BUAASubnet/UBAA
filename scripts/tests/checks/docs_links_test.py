@@ -38,6 +38,22 @@ class DocsLinksTest(unittest.TestCase):
             self.assertEqual(len(errors), 1)
             self.assertIn('outside.md', errors[0])
 
+    def test_removed_source_links_only_allow_historical_targets(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            (root / 'docs/protocol/parity').mkdir(parents=True)
+            protocol = root / 'docs/protocol/parity/bhpan.md'
+            source = '/'.join(('..', '..', '..', 'examples', 'ubaa_old', 'src', 'auth.kt'))
+            protocol.write_text(f'[索引](../references.md)\n[来源]({source})\n[其他断链](missing.md)\n')
+            agents = root / 'AGENTS.md'
+            agents.write_text('[索引](docs/protocol/references.md)\n')
+            readme = root / 'README.md'
+            readme.write_text(agents.read_text())
+            self.assertEqual(len(links.check_file(root, protocol)), 1)
+            self.assertIn('missing.md', links.check_file(root, protocol)[0])
+            self.assertEqual(links.check_file(root, agents), [])
+            self.assertEqual(len(links.check_file(root, readme)), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

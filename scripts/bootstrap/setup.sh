@@ -48,7 +48,6 @@ install_cargo_tool cargo-expand "$CARGO_EXPAND_VERSION" cargo-expand
 install_cargo_tool flutter_rust_bridge_codegen "$FRB_VERSION" "${UBAA_FRB_CODEGEN:-flutter_rust_bridge_codegen}"
 install_cargo_tool cargo-deny "$CARGO_DENY_VERSION" cargo-deny
 
-just refs-bootstrap
 just quality-tools-bootstrap
 cargo fetch --locked
 just flutter-dependencies

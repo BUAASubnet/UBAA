@@ -21,7 +21,7 @@ class ReleasePreflightTest(unittest.TestCase):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
-        for name in ("scripts/lib/toolchain.sh", "scripts/check/references.sh", "scripts/check/sensitive.sh"):
+        for name in ("scripts/lib/toolchain.sh", "scripts/check/sensitive.sh"):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text("#!/usr/bin/env bash\nexit 0\n" if "/check/" in name else "# 合成工具链\n")

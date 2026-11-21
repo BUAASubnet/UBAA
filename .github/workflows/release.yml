@@ -333,7 +333,6 @@ jobs:
       - name: 准备发布许可材料
         shell: bash
         run: |-
-          just refs-bootstrap
           just quality-tools-bootstrap
           just flutter-dependencies
           (cd apps/ubaa_ohos && just flutter-ohos pub get --enforce-lockfile)

@@ -92,7 +92,6 @@ exit 73
         (root / '.github/workflows').mkdir(parents=True)
         (root / 'crates/ubaa_flutter_bridge').mkdir(parents=True)
         (root / 'packages/ubaa_bindings').mkdir(parents=True)
-        (root / 'docs/protocol').mkdir(parents=True)
         (root / 'Cargo.toml').write_text('[workspace.package]\nedition = "2024"\n')
         (root / 'rust-toolchain.toml').write_text('[toolchain]\nchannel = "1.95.0"\n')
         (root / 'crates/ubaa_flutter_bridge/Cargo.toml').write_text(
@@ -102,11 +101,7 @@ exit 73
         (root / 'packages/ubaa_bindings/pubspec.yaml').write_text('  flutter_rust_bridge: 2.13.0\n')
         values = {
             'RUST_EDITION': '2024', 'RUST_VERSION': '1.95.0', 'FRB_VERSION': '2.13.0',
-            'UBAA_OLD_COMMIT': 'a' * 40, 'BUAA_API_COMMIT': 'b' * 40,
-            'UBAA_OLD_REMOTE': 'https://example.invalid/old.git',
-            'BUAA_API_REMOTE': 'https://example.invalid/api.git',
         }
-        (root / 'docs/protocol/references.md').write_text('\n'.join(values.values()))
         references = [
             ('BUAASubnet/UBAA/.github/workflows/ci.yml@dev', True),
             ('BUAASubnet/UBAA/.github/workflows/other.yml@dev', False),

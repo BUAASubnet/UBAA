@@ -49,13 +49,11 @@ jobs:
           ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/shellcheck
-      - name: 准备冻结引用与脚本工具
+      - name: 准备脚本工具
         run: |
-          just refs-bootstrap
           just quality-tools-bootstrap
       - name: 通用脚本、格式、文档和敏感材料检查
         run: |
-          just refs
           just check-sensitive
           just script-check
           cargo fmt --all -- --check

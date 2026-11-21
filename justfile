@@ -45,13 +45,6 @@ version *args:
 version-check:
     python3 scripts/release/version.py --check
 
-refs:
-    bash ./scripts/check/references.sh
-
-# 唯一允许联网并创建缺失冻结引用的显式入口。
-refs-bootstrap:
-    bash ./scripts/bootstrap/references.sh
-
 fmt:
     cargo fmt --all -- --check
 
@@ -103,7 +96,6 @@ _script-contracts:
     just integration-check
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
-    bash ./scripts/tests/references.sh
     bash ./scripts/tests/flutter-toolchains.sh
     bash ./scripts/tests/maintenance-gates.sh
     just layout-check

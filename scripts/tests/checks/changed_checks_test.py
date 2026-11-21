@@ -46,7 +46,7 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertTrue(any(command[:2] == ['just', 'check-risk'] for command in gates.commands(plan)))
 
     def test_plain_docs_and_scripts_select_only_relevant_checks(self):
-        common = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check']]
+        common = [['just', 'check-sensitive'], ['git', 'diff', '--check']]
         for path, recipe in [('docs/project/status.md', 'docs-link-check'),
                              ('scripts/check/docs_links.py', 'script-check')]:
             with self.subTest(path=path):
@@ -57,7 +57,7 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_full_mode_command_snapshot(self):
         snapshot = [
-            ['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check'],
+            ['just', 'check-sensitive'], ['git', 'diff', '--check'],
             ['just', 'app-service-content-check'], ['just', 'app-service-check'], ['just', 'check-strict'],
             ['bash', 'scripts/check/flutter-workspace.sh', 'check', 'ubaa_domain', 'ubaa_platform', 'ubaa_app',
              'ubaa_ui', 'ubaa_bindings', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'],

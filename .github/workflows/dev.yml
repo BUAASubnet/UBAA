@@ -44,14 +44,12 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - uses: ./.github/actions/shellcheck
-      - name: 准备工具和冻结引用
+      - name: 准备工具
         run: |-
-          just refs-bootstrap
           just quality-tools-bootstrap
           npm ci --no-audit --no-fund
       - name: 检查脚本、合同和敏感材料
         run: |-
-          just refs
           just check-sensitive
           just script-check
           node --test scripts/tests/checks/ci_workflows_test.mjs

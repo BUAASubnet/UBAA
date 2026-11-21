@@ -397,7 +397,7 @@ def select_checks(root, paths, mode='commit', previous=None):
 
 
 def commands(plan):
-    result = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check']]
+    result = [['just', 'check-sensitive'], ['git', 'diff', '--check']]
     if plan['app_service_content']:
         result.append(['just', 'app-service-content-check'])
     if plan['app_service']:

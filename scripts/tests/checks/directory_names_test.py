@@ -15,9 +15,8 @@ class DirectoryNamesTest(unittest.TestCase):
             'scripts/live/offline-startup/run.py',
         ]), ['crates/ubaa-core', 'scripts/live/offline-startup'])
 
-    def test_frozen_and_framework_directories_keep_original_paths(self):
+    def test_framework_directories_keep_original_paths(self):
         self.assertEqual(find_violations([
-            'examples/buaa-api/src/lib.rs',
             'packages/ubaa_bindings/cargokit/third-party/file.rs',
             'docs/design/evidence/ui-ux/old-p5-native/info.json',
             'apps/ubaa_flutter/android/app/src/main/res/mipmap-hdpi/icon.png',

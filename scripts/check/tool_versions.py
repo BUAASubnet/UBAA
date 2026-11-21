@@ -39,10 +39,6 @@ def main():
                ('FRB Rust 依赖', frb.lstrip('='), values['FRB_VERSION'])]
     pubspec = (ROOT / 'packages/ubaa_bindings/pubspec.yaml').read_text()
     mirrors.append(('FRB Dart 依赖', re.search(r'^  flutter_rust_bridge: (.+)$', pubspec, re.M)[1], values['FRB_VERSION']))
-    references = (ROOT / 'docs/protocol/references.md').read_text()
-    for key in ['UBAA_OLD_COMMIT', 'BUAA_API_COMMIT', 'UBAA_OLD_REMOTE', 'BUAA_API_REMOTE']:
-        if values[key] not in references:
-            raise ValueError(f'冻结参考说明未同步 {key}')
     for label, actual, expected in mirrors:
         if actual != expected:
             raise ValueError(f'{label} 未同步唯一版本清单')
