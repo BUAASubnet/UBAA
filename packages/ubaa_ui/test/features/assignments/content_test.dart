@@ -34,7 +34,7 @@ void main() {
     expect(find.textContaining('分值'), findsOneWidget);
     expect(find.text('成绩'), findsNothing);
   });
-  testWidgets('签到缺少目标时明确说明且不从课程编号生成动作', (tester) async {
+  testWidgets('签到缺少目标时不从课程编号生成动作', (tester) async {
     await showFeature(tester, FeatureId.signin, [
       const FeatureDetail(
         title: '合成签到课',
@@ -46,10 +46,9 @@ void main() {
         ),
       ),
     ], []);
-    expect(find.text('未提供签到目标，请刷新课程后重试。'), findsNothing);
     expect(find.text('签到'), findsNothing);
   });
-  testWidgets('评教各端沿旧版课程行并保留未知资格说明', (tester) async {
+  testWidgets('宽屏评教使用课程行并提供详情入口', (tester) async {
     await showFeature(
       tester,
       FeatureId.evaluation,
@@ -68,10 +67,9 @@ void main() {
     );
     expect(find.byType(DataTable), findsNothing);
     expect(find.byTooltip('课程详情'), findsOneWidget);
-    expect(find.text('资格待确认'), findsNothing);
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
-    expect(find.text('当前评教资格无法确认，请刷新后重试。'), findsNothing);
+    expect(find.byType(Dialog), findsOneWidget);
   });
 
   for (final size in [const Size(390, 1000), const Size(834, 1210)]) {

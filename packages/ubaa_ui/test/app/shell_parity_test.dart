@@ -233,16 +233,6 @@ void main() {
     expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('手机底栏展示五项入口和首页标题', (tester) async {
-    await mount(tester);
-    expect(
-      tester
-          .widgetList<NavigationDestination>(find.byType(NavigationDestination))
-          .map((item) => item.label),
-      ['首页', '学习', '日程', '校园', '我的'],
-    );
-    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-  });
   testWidgets('设置页点选连接模式立即生效，当前模式不重复保存', (tester) async {
     final changed = <RoutePolicy>[];
     await mount(

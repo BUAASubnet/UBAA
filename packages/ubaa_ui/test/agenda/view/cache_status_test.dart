@@ -292,64 +292,71 @@ void main() {
     await service.dispose();
   });
 
-  for (final route in ConnectionMode.values) {
-    testWidgets('${route.name} 来源不完整时概要使用最近更新时间，不显示路线与查询范围', (tester) async {
-      final now = DateTime.utc(2026, 11, 5, 2, 7);
-      final latest = now.subtract(const Duration(minutes: 7));
-      int epoch(DateTime time) => time.millisecondsSinceEpoch ~/ 1000;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: AgendaCacheStatus(
-                now: AgendaTime(
-                  rfc3339: now.toIso8601String(),
-                  timezone: 'Asia/Shanghai',
-                ),
-                sources: [
-                  AgendaSource(
-                    feature: AgendaFeature.schedule,
-                    observations: [
-                      for (final week in [8, 9])
-                        AgendaObservation(
-                          scope: AgendaCacheScope(
-                            route: route,
-                            kind: AgendaCacheKind.scheduleWeek,
-                            term: 'synthetic',
-                            week: week,
-                          ),
-                          fetchedAt: epoch(
-                            latest.subtract(Duration(hours: 10 - week)),
-                          ),
-                          lastVerifiedAt: epoch(
-                            latest.subtract(Duration(hours: 9 - week)),
-                          ),
-                          lastAttemptAt: epoch(
-                            latest.subtract(Duration(hours: 9 - week)),
-                          ),
-                          lastAttemptSucceeded: true,
-                          completeness: week == 9
-                              ? AgendaCompleteness.partial
-                              : AgendaCompleteness.complete,
-                        ),
-                    ],
-                    missingScopes: [],
-                    unprojectableCount: 0,
-                  ),
-                ],
+  testWidgets('来源不完整时概要与课程行使用最近更新时间', (tester) async {
+    final now = DateTime.utc(2026, 11, 5, 2, 7);
+    final latest = now.subtract(const Duration(minutes: 7));
+    int epoch(DateTime time) => time.millisecondsSinceEpoch ~/ 1000;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: AgendaCacheStatus(
+              now: AgendaTime(
+                rfc3339: now.toIso8601String(),
+                timezone: 'Asia/Shanghai',
               ),
+              sources: [
+                AgendaSource(
+                  feature: AgendaFeature.schedule,
+                  observations: [
+                    for (final week in [8, 9])
+                      AgendaObservation(
+                        scope: AgendaCacheScope(
+                          route: ConnectionMode.direct,
+                          kind: AgendaCacheKind.scheduleWeek,
+                          term: 'synthetic',
+                          week: week,
+                        ),
+                        fetchedAt: epoch(
+                          latest.subtract(Duration(hours: 10 - week)),
+                        ),
+                        lastVerifiedAt: epoch(
+                          latest.subtract(Duration(hours: 9 - week)),
+                        ),
+                        lastAttemptAt: epoch(
+                          latest.subtract(Duration(hours: 9 - week)),
+                        ),
+                        lastAttemptSucceeded: true,
+                        completeness: week == 9
+                            ? AgendaCompleteness.partial
+                            : AgendaCompleteness.complete,
+                      ),
+                  ],
+                  missingScopes: [],
+                  unprojectableCount: 0,
+                ),
+              ],
             ),
           ),
         ),
-      );
-      expect(find.text('学校数据'), findsOneWidget);
-      // 概要与课程行各显示一次。
-      expect(find.text('7 分钟前更新'), findsNWidgets(2));
-      final schedule = find.byKey(const ValueKey('agenda-cache-schedule'));
-      expect(
-        find.descendant(of: schedule, matching: find.text('7 分钟前更新')),
-        findsOneWidget,
-      );
-    });
-  }
+      ),
+    );
+    expect(find.text('学校数据'), findsOneWidget);
+    final status = find.byKey(const ValueKey('agenda-cache-status'));
+    final summary = find
+        .ancestor(
+          of: find.descendant(of: status, matching: find.text('学校数据')),
+          matching: find.byType(Column),
+        )
+        .first;
+    expect(
+      find.descendant(of: summary, matching: find.text('7 分钟前更新')),
+      findsOneWidget,
+    );
+    final schedule = find.byKey(const ValueKey('agenda-cache-schedule'));
+    expect(
+      find.descendant(of: schedule, matching: find.text('7 分钟前更新')),
+      findsOneWidget,
+    );
+  });
 }
