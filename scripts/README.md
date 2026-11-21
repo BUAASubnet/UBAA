@@ -12,7 +12,6 @@
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器也在 tests 中 |
 | `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；根目录 `.env` 按入口白名单加载 |
 | `tools/` | Python 质量环境定位/执行、锁定 requirements 及其上游记录 |
-| `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
 
 `check/dart_sources.py` 是 Dart 指令与源码依赖闭包解析支持；`changed_checks.py` 编排检查计划，`module_graph.py`、`integration_catalog.py` 复用解析结果。`sensitive.py` 分别读取 index 和工作区，工具/读取错误失败关闭，不读取被忽略凭据。
 

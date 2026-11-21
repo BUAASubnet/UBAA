@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 批量检查 index 与工作树的手写源码规模，保留独立快照和精确 baseline。
+# 分别统计 index 与工作树的手写源码规模。
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)

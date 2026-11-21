@@ -52,6 +52,10 @@ class ChangedChecksTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(gates.commands(self.plan(path)), common + [['just', recipe]])
 
+    def test_l1_dart_runs_module_graph_gate(self):
+        commands = gates.commands(self.plan('packages/ubaa_ui/lib/src/example.dart'))
+        self.assertIn(['just', 'module-check'], commands)
+
     def test_unknown_path_keeps_full_mode(self):
         self.assertTrue(self.plan('unexpected/file')['full'])
 

@@ -417,6 +417,8 @@ def commands(plan):
         if plan['privacy_policy']:
             result.append(['just', 'privacy-policy-check'])
     if plan['packages']:
+        if not plan['full'] and not plan['scripts']:
+            result.append(['just', 'module-check'])
         result.append(['bash', 'scripts/check/flutter-workspace.sh', 'check', *plan['packages']])
     result.extend(plan['native'])
     result.extend(plan['extra'])
