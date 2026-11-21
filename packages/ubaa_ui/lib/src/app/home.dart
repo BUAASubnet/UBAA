@@ -484,7 +484,7 @@ class FeatureGridView extends StatelessWidget {
         ),
       if (onOpenBhpan != null)
         UiEntryCard(
-          title: '北航云盘',
+          title: '云盘',
           icon: Icons.cloud_outlined,
           subtitle: '文档库、文件管理、分享与回收站',
           onTap: onOpenBhpan!,

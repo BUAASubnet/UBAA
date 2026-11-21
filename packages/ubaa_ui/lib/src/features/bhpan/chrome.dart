@@ -26,7 +26,7 @@ String bhpanItemMeta(BhpanItem item, {String datePrefix = ''}) => [
   if (item.modifiedAt != null) '$datePrefix${bhpanShortDate(item.modifiedAt!)}',
 ].join(' · ');
 
-/// 将北航云盘条目映射为通用文件行，业务操作仍由云盘页面决定。
+/// 将云盘条目映射为通用文件行，业务操作仍由云盘页面决定。
 class BhpanItemTile extends StatelessWidget {
   const BhpanItemTile({
     super.key,

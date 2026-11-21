@@ -529,7 +529,7 @@ impl UbaaError {
                 ErrorCode::PermissionDenied,
                 ErrorKind::Input,
                 false,
-                "北航云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
+                "云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
             )
             .with_diagnostic("route", "route_unverified")
         }

@@ -94,7 +94,7 @@ pub(crate) fn status(response: &HttpResponse, write: bool) -> Result<()> {
             "云盘授权已失效，请重新打开云盘或分享",
         )
         .with_diagnostic("authentication", "bearer_session_required"),
-        403 => return Err(super::super::http::http_status_error(response, "北航云盘")),
+        403 => return Err(super::super::http::http_status_error(response, "云盘")),
         400 | 404 | 409 => UbaaError::new(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
@@ -103,7 +103,7 @@ pub(crate) fn status(response: &HttpResponse, write: bool) -> Result<()> {
         )
         .with_diagnostic("response", "http_client_error"),
         _ if write => unknown(),
-        _ => return Err(super::super::http::http_status_error(response, "北航云盘")),
+        _ => return Err(super::super::http::http_status_error(response, "云盘")),
     };
     Err(error.with_response(&response.body, Some(response.status)))
 }

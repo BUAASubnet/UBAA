@@ -46,7 +46,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
             generation == _accountGeneration &&
             policy == widget.routePolicy &&
             identical(service, widget.bhpanService) &&
-            _utilityPage == '北航云盘',
+            _utilityPage == '云盘',
       );
     } finally {
       if (mounted) _setDirectWriteActive(null);

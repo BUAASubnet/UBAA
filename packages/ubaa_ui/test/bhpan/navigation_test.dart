@@ -57,7 +57,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('北航云盘'));
+    await tester.tap(find.text('云盘'));
     await tester.pumpAndSettle();
     expect(find.text('报告.txt'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.arrow_back).first);
