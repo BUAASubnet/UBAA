@@ -101,7 +101,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
 
 ## 本地阶段证据
 
-- `9fbb83a` 上的阶段 10A 已通过 `just refs`、`just layout-check`、`just check-sensitive`、
+- `9fbb83a` 上的阶段 10A 已通过 冻结来源校验、`just layout-check`、`just check-sensitive`、
   `just flutter-codegen-check`、`just flutter-check`、完整 `just check` 与独立代码审查；结构 baseline 只剩
   `packages/ubaa_ui/lib/src/widgets.dart`。该结果是当前本地确定性证据，不等同于阶段 14 的最终候选验证。
 - `324979e` 上的阶段 10B 新增共享宿主、两个 27 行平台入口及完整 callback/lifecycle 竞态测试；本机重新通过
@@ -128,7 +128,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   prepare 与 commit 重读当前学期、课程与签到点配置；最终 POST 使用不可重放发送边界，发送后的 transport、
   Cookie、响应形状或会话竞态不会被误报为可重试失败。CLI envelope 显式升为 schema v3，磁盘 session
   仍为 schema v2。Core Bykc 12 项、Bridge 35 项、CLI E2E 16 项、CLI contract 33 项、Flutter Domain 10 项、
-  Platform 37 项、App 65 项、UI 58 项、Bindings 11 项、Host 11 项与官方 App 2 项通过；`just refs`、
+  Platform 37 项、App 65 项、UI 58 项、Bindings 11 项、Host 11 项与官方 App 2 项通过；冻结来源校验、
   `just layout-check`、694 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立
   Rust/Dart 复审均通过。该证据不包含原生位置 handler、真实签到、签名或设备验证。
 - `b988ae1` 上的阶段 11D 将 Signin `signStatus` 显式建模为可空 `i32`，由 Core 统一映射
@@ -136,7 +136,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   只越过一次不可重放发送边界。Flutter 只消费 typed action，CLI envelope 升为 schema v4，bridge contract
   升为 v3，磁盘 session 仍为 schema v2。Core 默认模式 173 项、Signin integration 9 项、Bridge 42 项、
   CLI binary E2E 16 项、CLI contract 38 项、Flutter Domain 11 项、Platform 38 项、App 65 项、UI 61 项、
-  Bindings 11 项、Host 11 项、官方 App 2 项及 macOS 宿主 integration 7 项通过；`just refs`、
+  Bindings 11 项、Host 11 项、官方 App 2 项及 macOS 宿主 integration 7 项通过；冻结来源校验、
   `just layout-check`、697 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立
   终审均通过。该证据未执行真实账号写入，不包含签名、实体设备或真实写后核对。
 - `445240d` 上的阶段 11E 将 LibBook 座位 `status` 显式建模为可空 `i32`，由 Core 严格映射
@@ -146,7 +146,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   envelope 升为 schema v5，bridge contract 升为 v4，磁盘 session 仍为 schema v2。Core 默认模式 176 项、
   LibBook integration 11 项、Bridge 50 项、CLI binary E2E 16 项、CLI contract 45 项、Flutter Domain 12 项、
   Platform 38 项、App 67 项、UI 65 项、Bindings 12 项、Host 11 项、官方 App 2 项及 macOS 脱敏宿主
-  integration 7 项通过；`just refs`、`just layout-check`、702 文件敏感扫描、完整 `just check`、FRB 零漂移、
+  integration 7 项通过；冻结来源校验、`just layout-check`、702 文件敏感扫描、完整 `just check`、FRB 零漂移、
   完整 `just flutter-check` 与独立终审均通过。该证据未执行真实预约，不包含签名、实体设备或真实写后核对。
 - `ef63d0a` 上的阶段 11F 将 LibBook booking `status` 显式建模为可空 `i32`，由 Core 严格映射
   `allowed/denied/unknown` 与稳定取消目标；typed action 保存 `id/page/limit`，prepare 与 commit 都重读
@@ -155,7 +155,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   `outcome_unknown`。CLI envelope 升为 schema v6，bridge contract 升为 v5。Core 默认模式 176 项、LibBook
   integration 25 项、Bridge 61 项、CLI binary E2E 16 项、CLI contract 50 项、Flutter Domain 13 项、Platform
   38 项、App 72 项、UI 66 项、Bindings 13 项、Host 11 项、官方 App 2 项及 macOS 脱敏宿主 integration 7 项
-  通过；`just refs`、`just layout-check`、705 文件敏感扫描、完整 `just check`、FRB 零漂移、完整
+  通过；冻结来源校验、`just layout-check`、705 文件敏感扫描、完整 `just check`、FRB 零漂移、完整
   `just flutter-check` 与两轮独立安全/正确性复核均通过。该证据未执行真实取消，不包含签名、实体设备或真实
   写后核对。
 - `40b7b4e` 上的阶段 11G 将 Cgyy 时段的 canonical 状态显式建模为可空值，由 Core 严格派生
@@ -165,7 +165,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   `outcome_unknown`。CLI envelope 升为 schema v7，bridge contract 升为 v6，Flutter 只消费 typed
   action。Core 默认模式 178 项、Cgyy integration 22 项、Bridge 67 项、CLI binary E2E 16 项、CLI contract
   56 项、Flutter Domain 14 项、Platform 38 项、App 74 项、UI 69 项、Bindings 13 项、Host 11 项、
-  官方 App 2 项及 macOS 脱敏宿主 integration 7 项通过；`just refs`、`just layout-check`、713 文件
+  官方 App 2 项及 macOS 脱敏宿主 integration 7 项通过；冻结来源校验、`just layout-check`、713 文件
   敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立终审均通过。该证据未执行
   真实场馆预约，不包含签名、实体设备或真实写后核对。
 - `f4e3137` 上的阶段 11H 将 Cgyy 订单取消资格统一收归 Core：只有 canonical 同 ID、允许状态与
@@ -174,7 +174,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   0-based 首页列表与同 ID 详情，只有两个本次局部结果都携带 strict `cancelledTarget` 才标记已核对。
   CLI envelope 升为 schema v8，bridge contract 升为 v7。Core 333 项、Bridge 81 项、CLI binary E2E
   16 项与 contract 66 项、Flutter Domain 15 项、Platform 38 项、App 79 项、UI 72 项、Bindings 15 项、
-  Host 11 项、官方 App 2 项和 macOS 脱敏宿主 integration 7 项通过；`just refs`、`just layout-check`、
+  Host 11 项、官方 App 2 项和 macOS 脱敏宿主 integration 7 项通过；冻结来源校验、`just layout-check`、
   719 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 及独立代码终审通过。
   Flutter 全量与宿主 integration 的首轮失败分别暴露两个测试 backend 未声明 caller-pinned 能力，以及取消
   后订单视图仍被误当作预约视图；修复测试宿主接口与操作顺序后均全量复跑通过。本阶段未执行真实场馆取消，
@@ -185,7 +185,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   `outcome_unknown`。确定成功与 unknown 都只在 intent 原路线独立执行一次 caller-pinned overview/records
   回读，且不得把 unknown 升级。CLI envelope 升为 schema v9，bridge contract 升为 v8。Core 364 项、Bridge
   93 项、CLI 116 项、Flutter Domain 16 项、Platform 42 项、App 98 项、UI 83 项、Bindings 15 项、Host 14 项、
-  官方 App 2 项及 macOS 脱敏宿主 integration 7 项通过；`just refs`、`just layout-check`、完整 `just check`、
+  官方 App 2 项及 macOS 脱敏宿主 integration 7 项通过；冻结来源校验、`just layout-check`、完整 `just check`、
   FRB 零漂移、完整 `just flutter-check`、敏感信息扫描和独立终审均通过。结构拆分后除 Phase 12 待处理的
   `widgets.dart` 精确 baseline 外没有其它超长文件或拥挤目录。本阶段未执行真实照片上传或账号写入，不包含
   签名、实体设备或真实写后核对。
@@ -280,7 +280,7 @@ Direct/WebVPN 各为 39 PASS、1 NOT_APPLICABLE、0 FAIL。
 
 以下证据只绑定 `4eaf1dd`，不能沿用为本次结构治理的最终候选 PASS：
 
-- `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
+- `4eaf1dd` 上的 冻结来源校验、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
   空教室、SPOC、Judge、课堂签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`；允许的详情

@@ -1,6 +1,6 @@
 # 学业与课堂签到旧版界面对照（O3-E，2026-09-09）
 
-基点 `eafa01f6`。冻结引用：ubaa_old `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，examples/buaa-api `efb7976bf513f38364b88aeb83d704586cff9b2a`。本记录在E1生产修改前建立；E2成绩尚待单独补齐，不视作已实现。
+基点 `eafa01f6`。冻结引用：ubaa_old `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，buaa-api `efb7976bf513f38364b88aeb83d704586cff9b2a`。本记录在E1生产修改前建立；E2成绩尚待单独补齐，不视作已实现。
 
 ## E1旧版依据—必要优化—当前实现
 

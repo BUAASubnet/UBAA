@@ -30,7 +30,7 @@
 
 | 检查 | 结果与证据范围 |
 |---|---|
-| `just refs` | 通过，两份冻结引用不变。 |
+| 冻结来源校验 | 通过，两份冻结引用不变。 |
 | `just layout-check` | 通过，0 个结构例外；同时包含在严格门禁中。 |
 | `just check-sensitive` | 通过；新增验收文档后再次执行，最终计数以输出为准。 |
 | `just check-strict` | 退出 0；实际执行 ShellCheck 0.11.0，无 SKIP；格式、Clippy、Core 双配置、CLI、Bridge、Mock、Shell、构建、文档和差异检查通过。 |
@@ -69,7 +69,7 @@ OHOS 产物为 `apps/ubaa_ohos/build/ohos/hap/entry-default-unsigned.hap`，只�
 普通开发使用 [开发命令](../../development/commands.md)；故障定位使用[本地诊断手册](../../runbooks/local-diagnostics.md)。完整源码验证使用固定工具链和以下入口：
 
 ```bash
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just check-sensitive
 just check-strict

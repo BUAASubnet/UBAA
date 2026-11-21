@@ -7,7 +7,7 @@
 ## 2026-09-17 工作区整理
 
 按用户要求分步保存既有改动：冻结引用配置与文档、首页和侧栏、查询与预约界面及测试。
-完整 UI/UX 目标继续暂停。本轮 `just refs`、`just layout-check`、`just check-sensitive`、
+完整 UI/UX 目标继续暂停。本轮 冻结来源校验、`just layout-check`、`just check-sensitive`、
 `just check`（含 CLI 端到端 16 项）和 `just flutter-check`（735 项测试及静态分析）通过。
 忽略规则已覆盖现有本地产物，无需新增规则；图标和 golden 基准属于工程资源，继续纳入 Git。
 详情及验收边界见[整理记录](evidence/2026-09-17-workspace-cleanup.md)。
@@ -79,7 +79,7 @@ P4-A新增四项资料同次投影、个人页本地展开/默认遮罩与手机
 ## 本次已核实
 
 - 起始工作区为 `ubaa2`，计划制定前 `git status --short --branch` 无未提交改动。
-- `just refs` 通过：冻结 `examples/ubaa_old` 为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，`examples/buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`；未改写冻结目录。
+- 冻结来源校验 通过：冻结 `ubaa_old` 为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，`buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`；未改写冻结目录。
 - 已阅读功能矩阵、现行 UI 规格、主题/首页与测试入口、平台矩阵及门禁脚本，确认共享 `ubaa_ui`、`ubaa_app`、`ubaa_host` 的实施定位；这不等于完成逐操作盘点或实际界面审查。
 - 现有文档声明 CLI JSON schema v10、Flutter bridge contract v32、`session.json` v2、`config.toml` v1；新合同要求执行前重新校验，禁止以 UI 改造静默改变公开合同。
 

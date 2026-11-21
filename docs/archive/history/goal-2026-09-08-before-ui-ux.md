@@ -8,7 +8,7 @@
 
 ## 已确认现状
 
-- 冻结引用仍为 `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与 `examples/buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a`。认证和只读行为变更继续先做逐操作来源对照。
+- 冻结引用仍为 `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与 `buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a`。认证和只读行为变更继续先做逐操作来源对照。
 - 稳定公开合同保持 CLI JSON schema v10、Flutter Bridge v9、`session.json` v2 和 `config.toml` v1。本轮不得借维护治理改变上游请求、TLS、写入次数、重试策略或公开 Rust 错误。
 - `0bd866c9ff5f205f2b1604bf5e72640a3e735018` 是 2026-09-05 代码组织历史验收所记录的源码 SHA。其脱敏计数和公开 CI 链接已整理到[仓库内历史摘要](docs/migration/evidence/2026-09-05-code-organization-summary.md)，仅表示当日证据，未在本轮重新在线核验。
 - macOS 主动联网权限修复源码提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`。此前合同记录了用户确认的基础登录和随后暂停的真实测试；本轮只将其作为历史来源，不读取凭据、会话、实时响应或个人数据。

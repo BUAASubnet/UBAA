@@ -24,7 +24,7 @@
 - 开始时主工作区干净，`ubaa2...origin/ubaa2 [ahead 120]`；未 fetch，ahead 是本机已知 remote-tracking ref 的差距，不代表远端最新状态。
 - 三个独立工作树均保留：`.worktrees/macos-ui-20260915` 位于 `31a7d750`，有生产、生成、测试和文档未提交修改；`.worktrees/offline-home-20260917` 位于 `e1af4360`，有四份合同/状态文档修改；`.worktrees/ui-button-parity` 位于 `ea288d4e`，有状态、合同和计划修改。均未写入、切换、清理或合并。
 - 已读取根 `AGENTS.md`、`goal.md`、README、现行架构/开发/测试指南、ADR 0006、F1—F7 报告与实施记录。`goal.md` 的上一轮整理状态为已完成；本轮服从新的“仅审查”范围，仅新增本报告，不改现行合同、状态页或决策记录。
-- `just refs` 本轮通过：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。未运行 `refs-bootstrap`，未修改冻结目录。
+- 冻结来源校验 本轮通过：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。未运行 `冻结来源准备命令`，未修改冻结目录。
 - CLI schema v11、Bridge v40、Session v2、配置 v1、缓存 v6 分别管理；本轮版本交叉检查通过。
 - 调查覆盖文件、近期 18 条提交、三个代表路径及高风险状态边界。`bb4378fd`、`815f343d`、`ff4affd2`、`d2e3d53f`、`06e4dfdb` 对应 UI、Bridge、Controller、测试/指南和收尾；近期修复 `e88ce9bf`、`283aa74c`、`02d68d19`、`6c759881` 说明身份、原生接线、筛选和解析都是实际变更热点。本轮不据文件最后一次移动推断缺陷引入提交。
 
@@ -45,7 +45,7 @@
 | 其他文档（仍含专项历史） | 122 | 权威入口、合同及运行指南抽样 |
 | 其余根配置 | 15 | 工具链、依赖与忽略规则定位 |
 
-分类按上述路径优先顺序归属，生成识别规则并非所有生态生成文件的语义识别器。冻结 `examples/`、三个 worktree、忽略的构建缓存、凭据、会话和仓库外媒体不在分母；未扫描敏感正文。文档数量高主要来自历史证据，不把它误报为生产模块臃肿。
+分类按上述路径优先顺序归属，生成识别规则并非所有生态生成文件的语义识别器。冻结 `examples`、三个 worktree、忽略的构建缓存、凭据、会话和仓库外媒体不在分母；未扫描敏感正文。文档数量高主要来自历史证据，不把它误报为生产模块臃肿。
 
 当前模块 checker 报 UI 63 个 library、最大 1,960 行；Bridge 45 个、最大 653 行；Controller 46 个、最大 731 行。它们只描述该脚本的三个扫描域；I07 证明“无环”不能扩展为全仓依赖图结论。清单 73 入口为 29 synthetic、8 platform、19 live、17 manual；默认 CI 选择三入口，不是 73 项全部执行。
 
@@ -294,7 +294,7 @@ prepared=Direct; committed=Some(WebVpn); direct_writes=0; webvpn_writes=1; succe
 |---|---|
 | `git status --short --branch`、`git rev-parse HEAD`、`git worktree list --porcelain`，逐 worktree status | 核对上述基线及各自未提交内容；未变更工作树 |
 | `git log -18 --format=... --date=short`、`git diff --stat 1e6935fe..HEAD`、路径清点/定向 rg/行号读取 | 区分最近机械整理、早期业务修复、生成及历史材料；无敏感正文输出 |
-| `just refs` | 两冻结引用通过，纯校验 |
+| 冻结来源校验 | 两冻结引用通过，纯校验 |
 | `just layout-check` | 通过，0 个精确 baseline 违例 |
 | `just contract-version-check` | 通过，CLI v11 / Bridge v40 |
 | `just check-sensitive` | 基线 5,783 文件通过；扫描器能力限制见 I02 |

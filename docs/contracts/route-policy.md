@@ -38,7 +38,7 @@ judge = "auto"
 
 结果由聚合 Core facade 在当前进程内以 single-flight 方式缓存 3 秒；探测器、时钟和缓存行为均可在测试中注入。CLI 不拥有解析器或缓存。探测器不发送 HTTP/TLS 请求、不读取凭据。
 
-目标、端口和时长来自 `examples/buaa-api/src/utils/net.rs`；单一总预算、`Unknown` 边界和 `10.0.0.0/8` 地址过滤是 UBAA 2 产品约束（见 2026-10-28 决策）。
+目标、端口和时长来自 `buaa-api/src/utils/net.rs`；单一总预算、`Unknown` 边界和 `10.0.0.0/8` 地址过滤是 UBAA 2 产品约束（见 2026-10-28 决策）。
 
 ## Auto 读取回退与写入
 

@@ -18,7 +18,7 @@ Bridge合同仍为本专项未发布v10，CLI10、Session2、配置1及写入权
 
 | 门禁 | 实际结果 |
 |---|---|
-| `just refs`、`just layout-check`、`just check-sensitive`、`just check` | 均退出0；结构baseline未改 |
+| 冻结来源校验、`just layout-check`、`just check-sensitive`、`just check` | 均退出0；结构baseline未改 |
 | Core博雅流程 | 20项通过，含旧读法、两路线及显示后再次写前核对 |
 | Bridge | 113项通过；2个既有子进程入口独立标记忽略 |
 | CLI端到端及合同 | 同一次`just check`内分别16项、94项通过 |

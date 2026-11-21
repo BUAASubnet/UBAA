@@ -53,7 +53,7 @@ git status --short --branch
 mkdir -p .ubaa_local/app_service
 test -f .ubaa_local/app_service/base || git rev-parse HEAD > .ubaa_local/app_service/base
 git worktree list --porcelain
-just refs
+# 当时另做了冻结来源校验
 ```
 
 - [ ] 核对本任务已有文档差异：`UBAA2.md`、`docs/development/conventions.md`、`docs/index.md`、`docs/migration/decision-log.md`、`docs/migration/source-parity.md`、ADR、合同、计划与 `goal.md`。在文档检查通过后按明确 pathspec 保存设计提交，保留无关改动。任务基线在后续提交后仍用于范围检查。

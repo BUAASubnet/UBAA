@@ -33,6 +33,6 @@
 
 ## 验证
 
-主目录首次完整 `just check` 通过。后续复跑受并行新增但尚未登记的预览入口影响，因此最终验收转到提交 `8d6703e3` 的隔离工作树。冻结引用通过只读符号链接复用，并运行纯校验的 `just refs`，没有重新下载或修改引用。
+主目录首次完整 `just check` 通过。后续复跑受并行新增但尚未登记的预览入口影响，因此最终验收转到提交 `8d6703e3` 的隔离工作树。冻结引用通过只读符号链接复用，并运行纯校验的 冻结来源校验，没有重新下载或修改引用。
 
-2026-10-29 收尾验收：隔离工作树的 `just check` 与 `just flutter-check` 均以退出码 0 完成。Flutter 七包静态分析通过，测试共 1493 项：Domain 60、Platform 93、App 676、UI 462、Bindings 20、Host 101、Flutter App 81。`just refs`、`just layout-check`、`just check-sensitive` 与 `git diff --check` 通过。验证摘要和 Flutter 完整日志保存在上述仓库外私有目录。未运行原生设备或真实账号验证，未推送远端。
+2026-10-29 收尾验收：隔离工作树的 `just check` 与 `just flutter-check` 均以退出码 0 完成。Flutter 七包静态分析通过，测试共 1493 项：Domain 60、Platform 93、App 676、UI 462、Bindings 20、Host 101、Flutter App 81。冻结来源校验、`just layout-check`、`just check-sensitive` 与 `git diff --check` 通过。验证摘要和 Flutter 完整日志保存在上述仓库外私有目录。未运行原生设备或真实账号验证，未推送远端。

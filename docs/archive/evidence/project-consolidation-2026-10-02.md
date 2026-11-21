@@ -12,7 +12,7 @@
 
 ## 当前门禁
 
-`just refs`、`just layout-check`、`just contract-version-check`、`just check-sensitive`、`just check`（含CLI二进制端到端16项）、`just flutter-check`、`just flutter-codegen-check`和macOS Debug构建全部通过。七包测试数为57/92/598/331/26/79/75，总计1258，静态分析无问题。macOS构建有系统legacy Keychain API弃用警告；不影响构建，未关闭交互策略保护或TLS。
+冻结来源校验、`just layout-check`、`just contract-version-check`、`just check-sensitive`、`just check`（含CLI二进制端到端16项）、`just flutter-check`、`just flutter-codegen-check`和macOS Debug构建全部通过。七包测试数为57/92/598/331/26/79/75，总计1258，静态分析无问题。macOS构建有系统legacy Keychain API弃用警告；不影响构建，未关闭交互策略保护或TLS。
 
 | 类别 | 仓库外日志 | SHA-256 |
 |---|---|---|

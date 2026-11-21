@@ -360,7 +360,7 @@ test('提交开始后双击确认只调用一次且未知异常消费意图', ()
 - [x] `scripts/check/flutter-workspace.sh` 在每个 package 的 cwd 执行 `pub get --enforce-lockfile`；已通过的完整 Flutter 日志包含 UI 的 lock 强制校验。
 - [x] 逐字比较 `4b0dcb0` 的 14 个原 UI 测试叶：只替换构造名称，原测试内容、断言、集合和顺序相同；26 张 golden 的名称、长度与 SHA-256 完全一致，PNG diff 为零。
 - [x] macOS integration 7 项通过，证明 `Flutter -> shared host -> coordinator -> AppController` 原宿主行为不回归。
-- [x] `just refs`、`just layout-check`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、`git diff --check` 全部通过。
+- [x] 冻结来源校验、`just layout-check`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、`git diff --check` 全部通过。
 - [x] FRB 生成零漂移；widgets baseline 按经审查的行为修改更新为 3883 行，Phase 12 再删除该唯一违例。
 - [x] macOS、Android APK、iOS simulator Debug 构建和三个产物结构检查通过；DevEco 26.0.0.821/API26、OHOS arm64 动态库与无签名 HAP 门禁通过。本阶段证据不代替最终候选 HEAD 的 Phase 14 证据。
 - [x] 独立复审确认唯一状态机、旧公共合同、生命周期 backend 绑定、回读顺序、无 fake 状态机、无新生产依赖和 golden 零差异；完整命令能力问题经三项 RED/GREEN 修复，无遗留高/中问题。

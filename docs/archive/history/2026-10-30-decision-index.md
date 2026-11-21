@@ -38,7 +38,7 @@
 - [2026-09-17：冻结 buaa-api 引用更新至最新上游](2026-10-30-decisions-through-quality-phase3.md#2026-09-17冻结-buaa-api-引用更新至最新上游)
 - [2026-09-17 课堂签到追加修复](2026-10-30-decisions-through-quality-phase3.md#2026-09-17-课堂签到追加修复)
 - [2026-09-17：整理时校正签到历史描述](2026-10-30-decisions-through-quality-phase3.md#2026-09-17整理时校正签到历史描述)
-- [2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples/](2026-10-30-decisions-through-quality-phase3.md#2026-09-17冻结旧版引用更新至最新上游并收纳至-examples)
+- [2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples](2026-10-30-decisions-through-quality-phase3.md#2026-09-17冻结旧版引用更新至最新上游并收纳至-examples)
 - [2026-09-07：贯通安全错误诊断并保持既有业务权威](2026-10-30-decisions-through-quality-phase3.md#2026-09-07贯通安全错误诊断并保持既有业务权威)
 - [2026-09-07：修复 macOS 沙箱主动联网权限](2026-10-30-decisions-through-quality-phase3.md#2026-09-07修复-macos-沙箱主动联网权限)
 - [2026-09-05：将既有视觉基线的宿主条件显式纳入 CI](2026-10-30-decisions-through-quality-phase3.md#2026-09-05将既有视觉基线的宿主条件显式纳入-ci)

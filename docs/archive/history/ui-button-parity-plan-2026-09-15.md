@@ -11,7 +11,7 @@
 ## 共同约束
 
 - 保持旧版信息架构及全部合理用户能力；按点击入口、前置条件、动作、结果、返回和失败恢复逐项比较。
-- 冻结来源为 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 和 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。旧版模拟器 1.7.6 / 1.7.2 的观察与冻结源码分别记账，版本差异不得悄然互换。
+- 冻结来源为 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 和 `buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。旧版模拟器 1.7.6 / 1.7.2 的观察与冻结源码分别记账，版本差异不得悄然互换。
 - 认证或读取行为修改前记录双来源逐操作对照；协议缺口不能凭 UI 或记忆推断。保持 `facade`、typed Bridge 和唯一 `WriteCoordinator` 的边界。
 - 不修改冻结引用、既有凭据或会话，不输出个人数据；真实学校写入继续依 `goal.md` 禁止，写入流程使用显式合成 backend。
 - 截图和录屏只放仓库外私有目录；仓库仅提交脱敏文字、元数据及测试。确定性、原生合成、真实只读证据分别记录。
@@ -40,7 +40,7 @@
 
 ### Task 6: 最终门禁与交付
 
-运行 `just refs`、`just layout-check`、`just check-sensitive`、`just check`（包括 CLI 端到端）、`just flutter-check`。按既有安全凭据路径执行 Direct/WebVPN Core-live 和可用的生产 App 只读；缺少凭据或上游条件时记录实际失败原因，继续独立验证，不伪造通过。完成整个分支的独立代码审查，更新 `goal.md`、迁移状态、逐按钮表和证据记录；将修复整合回用户当前工作区。
+运行 冻结来源校验、`just layout-check`、`just check-sensitive`、`just check`（包括 CLI 端到端）、`just flutter-check`。按既有安全凭据路径执行 Direct/WebVPN Core-live 和可用的生产 App 只读；缺少凭据或上游条件时记录实际失败原因，继续独立验证，不伪造通过。完成整个分支的独立代码审查，更新 `goal.md`、迁移状态、逐按钮表和证据记录；将修复整合回用户当前工作区。
 
 ## 进度
 

@@ -16,7 +16,7 @@
 
 ## 验证与打开结果
 
-- `just refs`、`just check-sensitive`、完整 `just check`（包含结构、Rust、Bridge、CLI端到端、构建和文档检查）通过。
+- 冻结来源校验、`just check-sensitive`、完整 `just check`（包含结构、Rust、Bridge、CLI端到端、构建和文档检查）通过。
 - 应用内关于页面4项回归通过。图标变更使现有视觉基线先出现预期差异；更新21张平板/桌面golden后，14项视觉基线测试全部通过。逐像素核对每张变化均限制在原侧栏36×36图标范围内，手机基线未改。失败图片已迁至仓库外。
 - `just flutter-build platform=macos mode=release` 通过，生产入口 `lib/main.dart`。产物Info.plist引用AppIcon，已从成品ICNS提取图像核对32/128/256px与源资源像素一致。构建仍有既有Keychain弃用警告，无构建错误。
 - 已启动新Release实例，使用容器内独立 `UBAA_CONFIG_DIR`。Computer Use确认生产首页可见、窗口已置前，侧栏显示蓝底白字UBAA。当前页面提示需要登录，部分待办显示加载失败，未登录或执行学校业务；此项仅证明新包启动与图标可见，交由用户检查。

@@ -3,12 +3,12 @@
 # Cgyy 路由与真实只读入口执行记录
 
 本记录对应 `goal.md` 本周期合同，协议事实来自冻结 `ubaa_old`、固定版本
-`examples/buaa-api`（Cgyy 无等价实现）和脱敏 Mock。所有修复均先有失败测试，
+`buaa-api`（Cgyy 无等价实现）和脱敏 Mock。所有修复均先有失败测试，
 再做最小实现；真实写操作不在本记录范围内。
 
 ## 已完成
 
-- [x] 记录基线：`just refs`、`just check-sensitive` 通过；Clippy 的可复制路线参数失败已记录并修复。
+- [x] 记录基线：冻结来源校验、`just check-sensitive` 通过；Clippy 的可复制路线参数失败已记录并修复。
 - [x] 用 WebVPN-only 会话复现 Cgyy 误走 Direct，保留失败输出，再修复 facade 路线选择。
 - [x] 为站点、用途、日期、订单、详情、锁码统一使用当前路线 runtime；业务认证失效最多清理、重登和重放一次。
 - [x] 为锁码公共序列化添加失败测试并收敛为 `{available: boolean}`，不把原始 data 放入 facade、CLI、Session 或日志。
@@ -21,7 +21,7 @@
 
 - [x] 运行并记录 Direct Core-live 完整只读矩阵（退出码 0，依赖空列表逐项标记 `NOT_APPLICABLE`）。
 - [x] 运行并记录 WebVPN Core-live 完整只读矩阵（依据 HAR 网关 Cookie 同步修复后退出码 0，Cgyy/Evaluation 逐项通过）。
-- [x] 运行 `just refs`、`just check-sensitive`、`just check`、CLI 全量 E2E 和 Shell 合同测试。
+- [x] 运行 冻结来源校验、`just check-sensitive`、`just check`、CLI 全量 E2E 和 Shell 合同测试。
 
 如果真实上游逐项失败、阻塞或不适用，必须记录对应 `route/feature/operation/status/error`
 和重跑条件；不能用聚合成功、Mock 或历史脚本结果代替。

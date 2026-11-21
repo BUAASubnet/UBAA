@@ -41,13 +41,12 @@
 just setup
 ```
 
-`just setup` 按 `versions.env` 克隆锁定的 Flutter、安装 Rust 工具链和 cargo-expand/FRB codegen/cargo-deny，并依次执行 refs-bootstrap、质量环境、`cargo fetch --locked` 与 Dart 依赖准备。已一致的工具直接跳过；已有 SDK 不是锁定提交时停止，不改写。具体步骤见 [setup.sh](../../scripts/bootstrap/setup.sh)，它也是手工安装的参考。
+`just setup` 按 `versions.env` 克隆锁定的 Flutter，安装 Rust 工具链、cargo-expand、FRB codegen 和 cargo-deny，再准备 Python 质量环境、Cargo 和 Dart 依赖。已符合锁定版本的工具会跳过。已有 SDK 版本不符时，命令会停止并保留该 SDK。手工安装可参考 [setup.sh](../../scripts/bootstrap/setup.sh)。
 
 之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
 
 后续维护：
 
-- 首次建立缺失冻结引用才执行 `just refs-bootstrap`，之后只用 `just refs` 只读校验。
 - 质量环境缺失或依赖锁变更时，显式重跑 `just quality-tools-bootstrap`。普通 checker 不会自动安装 Python 依赖。
 - Cargo 和 Flutter 检查可能补充依赖缓存，但都不访问学校服务。
 

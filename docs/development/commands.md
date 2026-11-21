@@ -16,7 +16,6 @@ just flutter-ohos --version
 |---|---|
 | `just setup` | 显式联网准备本机环境：依次安装缺失的锁定工具并执行下列准备命令，已一致项跳过；不改写已有 SDK 或 `.env` |
 | `just doctor` | 只读对照本机工具与 `versions.env`，不联网；必需项不符时退出 1 |
-| `just refs-bootstrap` | 仅首次缺少冻结引用时显式联网建立；已有路径只校验，不覆盖、不拉取 |
 | `just quality-tools-bootstrap` | 显式安装带版本与哈希锁的 Python 质量依赖 |
 | `cargo fetch --locked` | 显式预取锁定 Cargo 依赖 |
 | `just flutter-dependencies` | 准备根 Pub workspace 的八个成员（七个正式包、`ubaa_test_support`）锁定依赖，不运行测试 |
@@ -36,12 +35,12 @@ just check-changed base=<阶段开始提交>
 
 | 改动 | 提交前执行范围 |
 |---|---|
-| 根目录或已知工程目录中的 Markdown、文档图片 | refs、敏感扫描、差异空白、合同版本、文档断链、静态 Cargo 命令锁定扫描；文档站及其 npm 配置另运行站点构建 |
-| 普通脚本、justfile、workflow | refs、敏感扫描、差异空白和 `just script-check`，不启动 Rust、Flutter 或 FRB 编译 |
+| 根目录或已知工程目录中的 Markdown、文档图片 | 敏感扫描、差异空白、合同版本、文档断链、静态 Cargo 命令锁定扫描；文档站及其 npm 配置另运行站点构建 |
+| 普通脚本、justfile、workflow | 敏感扫描、差异空白和 `just script-check`，不启动 Rust、Flutter 或 FRB 编译 |
 | 应用服务 应用服务、配置、Schema、共享样例及相关门禁脚本 | 在原有检查范围上增加 `just app-service-check`；Schema 和共享样例仍触发完整验收 |
 | 公告来源、渠道配置、应用服务发布工具或内容校验及其依赖 | 运行 `just app-service-content-check`；公告来源、站点代码或共用解析器变化时另构建文档站 |
 | 网站隐私政策或应用内政策生成物 | 检查正文摘要、元数据和生成物；完整与脚本门禁已包含政策检查 |
-| 普通 Rust / CLI 展示代码 | refs、敏感扫描、差异空白和 `just check`；共用脚本、布局、版本与文档检查已包含其中 |
+| 普通 Rust / CLI 展示代码 | 敏感扫描、差异空白和 `just check`；共用脚本、布局、版本与文档检查已包含其中 |
 | 普通 Dart 展示代码、资源或测试 | 共用静态检查及布局检查；生产代码沿本地普通依赖和开发依赖选择消费者，普通测试只检查所属包 |
 | 原生平台目录或原生测试 | 提交前检查所属 Flutter 包，推送前或 CI 执行原生集成及对应平台专项；涉及 FFI 或安全边界时立即完整验收 |
 | 安全、协议、并发、存储、公共合同、跨语言边界、依赖配置或未知影响 | 提交前完整确定性验收，继续保守处理 |
@@ -76,7 +75,7 @@ just check-changed base=<阶段开始提交> mode=push
 just check-changed base=<阶段开始提交> mode=full
 ```
 
-该入口依次运行 refs、敏感扫描、差异空白、应用服务内容与 应用服务 检查、一次 `check-strict`、全部 Flutter 包、原生集成和一次 FRB 生成检查；文档站受影响时再构建站点。
+该入口依次运行敏感扫描、差异空白、应用服务内容与 应用服务 检查、一次 `check-strict`、全部 Flutter 包、原生集成和一次 FRB 生成检查；文档站受影响时再构建站点。
 
 - `check-strict` 已包含布局、脚本合同、版本及文档检查，不再另跑普通 `check`、`script-check` 或默认 `check-changed`。
 - 空工作树也可显式执行 `mode=full`。
@@ -88,7 +87,6 @@ just check-changed base=<阶段开始提交> mode=full
 
 | 入口 | 实际范围和失败条件 |
 |---|---|
-| `just refs` | 只读校验两个固定参考的 remote、HEAD 和干净工作树；缺失或不匹配失败 |
 | `just layout-check` | 手写源码 1000 行/目录 16 文件棘轮、现有精确 baseline 及目录命名 |
 | `just check-sensitive` | 分别扫描 index blob 与未忽略工作区候选；读取或工具失败非零 |
 | `just docs-link-check` | 只读检查 Markdown 相对目标、站内路由及标题锚点；历史范围见下文 |
@@ -112,11 +110,11 @@ just check-changed base=<阶段开始提交> mode=full
 `script-check` 与 Rust 检查共用 `_script-contracts`。`check` 和 `check-strict` 在此基础上通过 `_rust-shell-contracts` 追加：
 
 - Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包；
-- layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本；
+- layout/contract-versions/flutter-toolchains/maintenance-gates/live-launchers 五个 Shell 合同脚本；
 - 实际布局与版本 checker、静态 Cargo 命令锁定扫描；
 - Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。
 
-其中 references 合同使用临时仓库，不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
+live launcher 合同使用假程序和虚构凭据，不请求学校。
 
 `just dependency-audit`（由 `scripts/release/dependency-audit.sh` 实现）是独立的联网入口：
 
@@ -237,7 +235,6 @@ just verify-live mode=webvpn
 ## 网络与写入边界
 
 - `just version` 更新根产品配置和自有版本声明。只改构建号时不调用包管理器；产品版本变化时，Cargo/pub 使用本机缓存，CocoaPods 只更新本地绑定包且不刷新仓库索引。缺少工具或缓存时按错误提示准备后重跑，不运行测试或构建。`just version-check` 始终只读。
-- 实际 refs 校验不联网、不改冻结目录；只有 refs-bootstrap 可以联网建立缺失冻结引用。已有目录错误时停止，不清理或重置敏感参考。
 - 普通检查不访问学校服务。Cargo/Rustup/Flutter 可能补齐工具或依赖缓存，flutter-check 会执行锁定 pub get；依赖源访问与学校请求分别管理。质量 Python 工具缺失时明确失败，安装只经显式 bootstrap。
 - `just app-service-check` 的 `npm ci` 可以访问 npm registry，重建 `services/app_service/node_modules/`。构建生成校验器，测试只运行本地 Node.js、PostgreSQL 与 JSON 配置，不访问或写入 Cloudflare 资源。
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
@@ -254,6 +251,7 @@ just verify-live mode=webvpn
 `docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。
 
 - `docs/archive/` 和 `docs/design/evidence/` 保持历史内容，检查器不检查这些快照内部的链接。锁定的 Cargokit 上游文档同样不改写。
+- 协议对照中的旧来源路径和待更新的 `AGENTS.md` 来源索引保留原文。检查器跳过这些已删除的历史目标。
 - 当前文档指向这些目录的链接和锚点仍然检查。
 
 范围决定见[决策记录](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29门禁基础逻辑与-ci-统一)。

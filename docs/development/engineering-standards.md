@@ -6,7 +6,7 @@
 
 Rust Core 负责协议事实、路由、会话/Cookie 作用域、密码学、解析、缓存和并发。生产宿主只能调用 facade 或专用 bridge，不检查上游响应、不读取内部 Session、不拼接 URL、不保存业务 Token。
 
-认证、读取或写入功能变更按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)执行；固定提交见[冻结参考](../protocol/references.md)，不能从历史记录继承版本或授权。
+认证、读取或写入功能变更按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)执行；来源提交和文件定位见[协议依据目录](../protocol/README.md)，不能从历史记录继承版本或授权。
 
 ## TDD 与变更边界
 
@@ -94,7 +94,7 @@ Cgyy 预约：
 
 ## 安全与提交
 
-`examples/`、`.env`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建缓存只读，不进入 diff；完整清单与暂存步骤见 [AGENTS 安全边界](../../AGENTS.md#安全边界)和[开发循环](../../AGENTS.md#开发循环)。不以关闭 TLS、放宽 parser/lint、删除测试或手改生成文件换取通过。
+`.env`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建缓存只读，不进入 diff；完整清单与暂存步骤见 [AGENTS 安全边界](../../AGENTS.md#安全边界)和[开发循环](../../AGENTS.md#开发循环)。不以关闭 TLS、放宽 parser/lint、删除测试或手改生成文件换取通过。
 
 ## 日志与日常约定
 

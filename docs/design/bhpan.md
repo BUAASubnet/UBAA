@@ -10,7 +10,7 @@
 
 - 协议与缺口：[来源对照](../protocol/parity/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。
 - 宿主与 Core 的实现边界：[云盘合同](../contracts/bhpan.md)。
-- 相关设计与规则：[日程设计](agenda.md)、[冻结参考](../protocol/references.md)、[工程规范](../development/engineering-standards.md)。
+- 相关设计与规则：[日程设计](agenda.md)、[协议依据目录](../protocol/README.md)、[工程规范](../development/engineering-standards.md)。
 
 ## 范围与来源
 

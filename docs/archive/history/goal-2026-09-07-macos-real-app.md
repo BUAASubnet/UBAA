@@ -54,7 +54,7 @@ App/Core-live 请求，只完成文档、确定性检查、提交与推送。后
 冻结引用保持：
 
 - `ubaa_old`：`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`。
-- `examples/buaa-api`：`efb7976bf513f38364b88aeb83d704586cff9b2a`。
+- `buaa-api`：`efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
 权限与回归修复提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`。状态文档随后单独提交，最终推送结果以 Git 历史和仓库外记录为准，不称其为原先干净候选。新 Debug App 使用现有构建流程生成，相同相对路径 checker SHA-256 为 `37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`，大小 188944384 字节；不沿用旧产物摘要。
 
@@ -74,7 +74,7 @@ App/Core-live 请求，只完成文档、确定性检查、提交与推送。后
 ### P0：计划、工作树与产物预检
 
 - [x] 记录初始 `git status --short --branch` 与源码基线；初始工作树干净。
-- [x] 执行 `just refs`，两份冻结引用通过。
+- [x] 执行 冻结来源校验，两份冻结引用通过。
 - [x] 全量替换 `goal.md` 为本专项计划。
 - [x] 执行 `just check-sensitive`、`just contract-version-check`、`git diff --check`，确认仅有预期文档差异。
 - [x] 检查现有 App 结构，记录路径、大小、SHA-256、架构、生产入口与实际签名 entitlements。
@@ -153,7 +153,7 @@ MACOS-001 已修复，基础登录获得用户确认；本节尚未逐项验收�
 真实 App 是本专项主入口。现有 Runbook 的“唯一网络入口”描述限定其 CLI 验证体系；本专项明确授权正常 App 登录读取，并允许 Core-live 作为独立对照。
 
 - [x] 建立同期最小认证基线：分别执行 `feature=auth route=direct` 与 `feature=auth route=webvpn`；未运行完整业务矩阵。
-- [x] 执行 Core-live 前完成 `just refs`、`just check-sensitive`、`just check`。后者退出 0，但本机未安装 ShellCheck，该子检查为 SKIP，不计为静态审计通过。
+- [x] 执行 Core-live 前完成 冻结来源校验、`just check-sensitive`、`just check`。后者退出 0，但本机未安装 ShellCheck，该子检查为 SKIP，不计为静态审计通过。
 - [x] 使用现有启动器从 `.env.local` 安全读取凭据并经 stdin 传入；两路线串行，各 prepare/login/status 三项 PASS。
 - [x] Core-live 与 App 分别记账；认证对照不替代尚未执行的 App 测试。
 

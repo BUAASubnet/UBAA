@@ -88,7 +88,7 @@
 
 ### P0：建立可执行基线
 
-- [x] 运行 `git status --short --branch`、`just refs`，记录开始 SHA、已有改动与当前工作区。需要隔离时自主创建 `codex/` 工作分支或 worktree，并确保新合同和锁定引用可用。
+- [x] 运行 `git status --short --branch`、冻结来源校验，记录开始 SHA、已有改动与当前工作区。需要隔离时自主创建 `codex/` 工作分支或 worktree，并确保新合同和锁定引用可用。
 - [x] 核实 Flutter、Dart、Rust、模拟器和可用设备；执行现有 `scripts/check/flutter-toolchains.sh official`，列出手机、平板和 macOS 的实际可运行目标，不以安装过 SDK 推断模拟器可用。
 - [x] 阅读全部范围材料，确认安全 backend 注入方法、生产启动路径、测试私有目录、模拟器安装方式；复用既有测试入口。
 - [x] 运行 `just flutter-check` 建立现有回归基线。失败先记录和定位，区分环境、既有缺陷与本轮改动，不删除失败测试。
@@ -222,7 +222,7 @@ P5-A局部进展：统一确认取消/返回/期限保护已实现，三端合�
 以下根级命令从仓库根执行。先核实脚本副作用与锁定工具链；已完成的包含性门禁不为凑次数重复运行。`just check-strict` 包含 `just check` 的 Rust/Shell 合同集合并增加严格 ShellCheck，最终运行严格入口时记录其覆盖关系。
 
 ```sh
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just check-sensitive
 just contract-version-check

@@ -31,7 +31,7 @@ Flutter使用 `just flutter`。
 | 存储 | `packages/ubaa_platform`：`flutter test test/bykc_filters_test.dart` | 退出0，14项 | `green-platform.log` |
 | 宿主及登录生命周期 | `packages/ubaa_host`：`flutter test test/bykc_preferences_test.dart test/login_buttons_regression_test.dart test/lifecycle_test.dart` | 退出0，32项，其中新增10项 | `green-host-v2.log` |
 | UI、详情与资料 | `packages/ubaa_ui`：`flutter test test/navigation/bykc_preferences_test.dart test/navigation/bykc_full_detail_test.dart test/profile_details_test.dart` | 退出0，20项，其中新增8项 | `green-ui-v2.log` |
-| 冻结引用、结构、敏感扫描 | 根目录：分别运行 `just refs`、`just layout-check`、`just check-sensitive` | 均退出0 | `refs-final.log`、`layout-final.log`、`sensitive-final.log` |
+| 冻结引用、结构、敏感扫描 | 根目录：分别运行 冻结来源校验、`just layout-check`、`just check-sensitive` | 均退出0 | `refs-final.log`、`layout-final.log`、`sensitive-final.log` |
 | Rust、CLI与脚本 | 根目录：`just check` | 退出0，含CLI端到端16项 | `check-final.log` |
 | 完整Flutter | 根目录：`just flutter-check` | 退出0，865项，七包分析无警告 | `flutter-check-v3.log` |
 

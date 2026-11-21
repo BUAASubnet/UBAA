@@ -79,7 +79,7 @@
 ## 任务 6：整合、复审和阶段提交
 
 - [x] 每个独立任务完成后检查差异与 focused 证据；复审发现由原实现者修复并定向复验。
-- [x] 运行 `just refs`、`just layout-check`、`just check-sensitive`、严格 `just check`、完整 Flutter、FRB 零漂移；CLI E2E 包含在 Rust 工作区检查中。
+- [x] 运行 冻结来源校验、`just layout-check`、`just check-sensitive`、严格 `just check`、完整 Flutter、FRB 零漂移；CLI E2E 包含在 Rust 工作区检查中。
 - [x] 运行 macOS Debug 构建、实际产物门禁及脱敏宿主 integration。其它平台按变更和工具可用性执行并明确范围。
 - [x] 独立全量审查本轮 diff，关闭高/中风险问题；不为评分添加无实际收益的抽象。
 - [x] 分阶段检查 staged 文件并提交；最终源码提交验证结果与后续文档记录分开标记。

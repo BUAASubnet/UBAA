@@ -4,7 +4,7 @@
 
 2026-09-17：源工作区 `ubaa2 @ d7c37f73` 干净。`git merge-base --is-ancestor` 确认 `7273283a` 与 `db4e198d` 均已包含。既有引用管理、UI、图标和查询更改已分别提交于 `f63e6d06`、`8f66ce7e`、`d7c37f73`，实施分支完整继承，不冒充新成果。源目录保留原样。
 
-隔离区 `.worktrees/offline-home-20260917`、分支 `codex/offline-home-20260917`，只读复用源目录冻结引用。源和实施区 `just refs` 均退出 0，SHA 与 references.md 一致。无凭据复制、无运行会话修改、无真实学校写入。
+隔离区 `.worktrees/offline-home-20260917`、分支 `codex/offline-home-20260917`，只读复用源目录冻结引用。源和实施区 冻结来源校验 均退出 0，SHA 与 references.md 一致。无凭据复制、无运行会话修改、无真实学校写入。
 
 ## 接续前已提交候选证据（截至P2-O）
 

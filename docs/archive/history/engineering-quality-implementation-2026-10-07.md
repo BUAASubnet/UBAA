@@ -6,7 +6,7 @@
 
 I01—I09 已实现且相关确定性/原生/构建门禁、阶段提交和干净候选材料预检均完成。保留唯一 WriteCoordinator、单个 ChangeNotifier、在线资格/离线数据分离、固定来源、现有独有测试和 golden。没有升级产品依赖、改变 CLI v11/Bridge v40/Session v2/配置v1/缓存v6；网络插件只是把现有6.1.5加入官方宿主dev依赖，锁文件版本/摘要不变。
 
-冻结引用均通过纯 `just refs`。三个独立工作树的起始 HEAD、status、diff 和未跟踪文件内容摘要已保存在仓库外，收尾逐项比较。无真实账号读取、Direct/WebVPN 请求、学校写入、推送、签名或发布；原 B2/C2/C3/D 欠验继续保留。
+冻结引用均通过纯 冻结来源校验。三个独立工作树的起始 HEAD、status、diff 和未跟踪文件内容摘要已保存在仓库外，收尾逐项比较。无真实账号读取、Direct/WebVPN 请求、学校写入、推送、签名或发布；原 B2/C2/C3/D 欠验继续保留。
 
 来源对照均先于生产实现建立：
 
@@ -52,7 +52,7 @@ Rust `UbaaError` 新私有cause不进入JSON/FRB/磁盘。`UbaaError::new`和四
 
 | 入口 | 当前结果 | 证据 |
 |---|---|---|
-| just refs / layout-check / contract-version-check / check-sensitive | 通过；当前合同版本未变；敏感扫描同时检查index与工作区 | 最终门禁日志 |
+| 冻结来源校验 / layout-check / contract-version-check / check-sensitive | 通过；当前合同版本未变；敏感扫描同时检查index与工作区 | 最终门禁日志 |
 | just script-test | 48项：catalog13、module13、sensitive6、release9、启动统计7，通过 | 最终门禁日志 |
 | just flutter-check | 七包分析/格式与1340项全部通过，187.96秒 | flutter-check.log |
 | 七包分项 | Domain57、Platform83、App647、UI353、Bindings31、Host94、官方宿主75 | 同上 |

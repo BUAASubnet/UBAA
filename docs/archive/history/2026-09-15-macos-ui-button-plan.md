@@ -26,7 +26,7 @@
 
 ### Task 4: 完整门禁与交付
 
-运行 `just refs`、`just layout-check`、`just check-sensitive`、`just check`（含CLI端到端）、`just flutter-check`，以及 Direct/WebVPN `just verify-live`。核对每个清单条目已有充分且适用证据，完成分支审查、更新状态/决策/合同并整合到当前项目。真实上游不可用保留具体失败，不伪称全部可用。
+运行 冻结来源校验、`just layout-check`、`just check-sensitive`、`just check`（含CLI端到端）、`just flutter-check`，以及 Direct/WebVPN `just verify-live`。核对每个清单条目已有充分且适用证据，完成分支审查、更新状态/决策/合同并整合到当前项目。真实上游不可用保留具体失败，不伪称全部可用。
 
 ## 进度
 

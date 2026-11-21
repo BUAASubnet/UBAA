@@ -17,7 +17,7 @@ Just/Bash 引用合同差异，并显式固定 Flutter 视觉基线的 CI 宿主
 
 ## 1. 不可变条件
 
-- `examples/ubaa_old/`、`examples/`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
+- `ubaa_old/`、`examples`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
 - 上游协议、公开 DTO、CLI schema、FRB schema、golden、用户文案、key、semantics 和网络调用顺序不得因
   文件移动而改变。本轮已登记例外是 Phase 11C 的行为合同：Bykc 未知签到状态需要破坏性 typed 表达，故
   CLI envelope 从 v2 显式升为 v3、bridge contract 从 v1 显式升为 v2；不得在旧版本号下静默改变字段，且
@@ -31,7 +31,7 @@ Just/Bash 引用合同差异，并显式固定 Flutter 视觉基线的 CI 宿主
   typed 批量结果提升为当前 CLI schema v10 / bridge v9。Phase 11K 及之后的机械整理不再改变版本。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
-- 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：`just refs`、
+- 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：冻结来源校验、
   `just layout-check`、`just check-sensitive`、focused test、`just check`、
   `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、`git diff --check`。
 - 每次提交只用明确 pathspec 暂存，禁止 `git add .`；提交前执行 `git diff --cached --name-only` 和
@@ -127,11 +127,11 @@ baseline、陈旧 baseline、tracked/staged/untracked、ignored/generated/vendor
 实现：
 
 - 新增 `scripts/check/layout.sh` 与 `scripts/layout-baseline.txt`；初始精确登记设计中的 15 个文件和 2 个目录。
-- 拆 `scripts/ensure-references.sh` 为可联网的 `scripts/bootstrap/references.sh` 与纯只读
-  `scripts/check/references.sh`；`just refs-bootstrap` 指向前者，`just refs` 指向后者。
-- 更新 CI：全新 runner checkout 后先以独立 setup step 执行 `just refs-bootstrap`，再以 gate step 执行纯
-  `just refs`；checker/baseline 本地合同全绿后，同一阶段把 `just layout-check` 接入 CI。本地验证与
-  `release-preflight` 只能调用纯 `just refs`，缺少引用时失败并提示人工运行 bootstrap，不得隐式联网。
+- 拆 原来的引用准备脚本 为可联网的 引用准备脚本 与纯只读
+  引用校验脚本；`冻结来源准备命令` 指向前者，冻结来源校验 指向后者。
+- 更新 CI：全新 runner checkout 后先以独立 setup step 执行 `冻结来源准备命令`，再以 gate step 执行纯
+  冻结来源校验；checker/baseline 本地合同全绿后，同一阶段把 `just layout-check` 接入 CI。本地验证与
+  `release-preflight` 只能调用纯 冻结来源校验，缺少引用时失败并提示人工运行 bootstrap，不得隐式联网。
 - 移动脚本：
   - `check-sensitive.sh` → `check/sensitive.sh`
   - `check-flutter-toolchains.sh` → `check/flutter-toolchains.sh`

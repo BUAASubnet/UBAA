@@ -159,7 +159,7 @@ apps/ubaa_flutter/integration_test/
 ## 本次验证与限制
 
 - 已核对分支、HEAD、工作区和 worktree；旧工作树未改动。
-- `just refs` 通过：ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
+- 冻结来源校验 通过：ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
 - `just layout-check` 通过，精确 baseline 违例为 0。
 - 固定官方 Flutter SDK 下，`ubaa_app` 的 `public_api_contract_test.dart`、`write_controller_test.dart`、`write_coordinator_test.dart` 合计 41 项通过；`ubaa_ui/test/query_panel_test.dart` 1 项通过。命令采用 `flutter test --no-pub --reporter expanded` 加对应文件路径。
 - `PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py`：7 项通过。

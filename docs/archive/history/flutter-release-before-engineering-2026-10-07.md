@@ -15,11 +15,11 @@ Cookie、token 或签名私钥。没有项目所有者对具体平台账号和�
 
 在发布分支的干净工作树执行无签名 RC 门禁：
 
-首次准备 runner 时可显式运行一次 `just refs-bootstrap`；它不是发布验收门禁。以下流程及
-`release-preflight` 只调用纯只读的 `just refs`。
+首次准备 runner 时可显式运行一次 `冻结来源准备命令`；它不是发布验收门禁。以下流程及
+`release-preflight` 只调用纯只读的 冻结来源校验。
 
 ```text
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just check-sensitive
 just check

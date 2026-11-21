@@ -61,7 +61,7 @@
 - 提交 `0fa5ec0` 新增 `CallbackPermissionGateway` 与 `CallbackPhotoPicker`，把原生权限/照片 SDK 回调
   收敛为稳定 typed 状态；异常不会把平台正文、路径或令牌带入 Dart。`PermissionedPhotoPicker` 现可
   显式选择相册或桌面文件权限，平台回调、文件权限和图书馆预约取消 widget 回归均已通过。
-- 当前 HEAD 已通过 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
+- 当前 HEAD 已通过 冻结来源校验、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 和 macOS 宿主集成 3/3；API26 无签名 OHOS 门禁在
   `UBAA_OHOS_NO_CODESIGN=1` 下通过并确认 HAP 含 arm64 `libubaa_bindings.so`。OHOS HAP 未签名、未安装、
   未上传，原生安全存储插件和设备权限仍为后置 `BLOCKED`。
@@ -114,7 +114,7 @@
 - 当前 HEAD（文档提交 `f67f95f`）以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试 FRB 零漂移，
   `cargo-expand` 调用 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断；进程已清理且工作树无生成漂移，故本次仍记为“未完成运行”，
   不能从其它 CI 或历史成功推导当前本机门禁通过。
-- 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight <private-evidence>/legacy-tmp/ubaa-release-preflight-final.qLoG85`
+- 最终审计提交 `7e6a4ea` 后，冻结来源校验、`just check-sensitive`、`just release-preflight <private-evidence>/legacy-tmp/ubaa-release-preflight-final.qLoG85`
   与 `git diff --check` 均成功；`HEAD` 与 `origin/ubaa2` 一致，工作树干净。OHOS 无签名 HAP 与 arm64 临时生成物已移出仓库，
   不含凭据、原始响应或个人数据。
 
@@ -257,7 +257,7 @@
 
 ## 2026-09-02 当前提交状态与 API26 复核
 
-- 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均通过；新增空结果失败状态回归后，Flutter 全量测试仍通过，工作树仅保留本段文档待提交变更。
+- 当前代码提交 `8e11c31` 的 冻结来源校验、`just check-sensitive`、`just check` 和 `just flutter-check` 均通过；新增空结果失败状态回归后，Flutter 全量测试仍通过，工作树仅保留本段文档待提交变更。
 - 以 `$UBAA_DEVECO_HOME` 执行当前提交的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：DevEco `26.0.0.821`、OpenHarmony API26、OHOS Flutter fork、Node/ohpm/Hvigor/hdc/Java、Rust `aarch64-unknown-linux-ohos` 及 Dart/native 前置均为 0 失败/0 警告；HAP assemble 在调试签名配置处按门禁停止，未产生签名 HAP、未连接设备。临时输出已移出工作树。
 
 ## 2026-09-02 `8e11c31` 远端 CI 终态
@@ -291,7 +291,7 @@
 
 ## 2026-09-02 当前 HEAD 最终本地门禁
 
-- 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均退出码 0；Rust 全量测试、doc-test、verify-live shell、Flutter 各 package/宿主 analyze 与 widget 测试均通过。
+- 当前 HEAD `ef83cb9` 的 冻结来源校验、`just check-sensitive`、`just check` 和 `just flutter-check` 均退出码 0；Rust 全量测试、doc-test、verify-live shell、Flutter 各 package/宿主 analyze 与 widget 测试均通过。
 - 首次默认增量执行 FRB 生成在 `cargo-expand` 的展开阶段长时间无输出后安全中断；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 重试成功并报告“FRB 生成零漂移”，未产生源码漂移或工作树改动。
 
 ## 2026-09-02 最终文档提交 CI 终态
@@ -360,7 +360,7 @@
 ## 2026-09-02 阳光打卡记录图片地址不跨 FFI
 
 - 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露 `images` 地址列表，加入失败禁曝回归后，将 Rust bridge 投影收窄为有界 `imageCount`；UI 继续显示图片数量，不再接触地址或其中可能的业务令牌。
-- Core 冻结解析仍保留内部图片列表供协议/业务使用；失败回归、修复后的 schema/bridge 聚焦测试、`just refs`、`just check-sensitive`、`just check`、`just flutter-check` 及提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过，未改变上游协议或执行真实写入，P1/P4/P5/P6 仍未完成。
+- Core 冻结解析仍保留内部图片列表供协议/业务使用；失败回归、修复后的 schema/bridge 聚焦测试、冻结来源校验、`just check-sensitive`、`just check`、`just flutter-check` 及提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过，未改变上游协议或执行真实写入，P1/P4/P5/P6 仍未完成。
 
 ## 2026-09-02 初始化阶段的生命周期重建竞态
 
@@ -376,7 +376,7 @@
 
 - 先在生成 Dart schema 快照中加入博雅已选课程与场馆时段状态的失败禁曝断言，旧绑定实际暴露作业正文/附件/签到附注及交易号、订单号、占用审核字段；随后收窄 Rust bridge 结构和映射并重新生成 FRB。
 - `BridgeBykcChosenCourse` 现在只保留课程、签到和公开配置字段；`BridgeCgyySlotStatus` 只保留时段、状态、日期和可预约性，内部材料不会跨 FFI。Core 冻结 DTO 与上游解析保持不变，页面既有行为不变。
-- 失败回归、修复后的 schema/bridge 单元测试、`just refs`、`just check-sensitive`、`just check`、`just flutter-check` 和提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过。本轮不改变上游协议、不执行真实写入，P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
+- 失败回归、修复后的 schema/bridge 单元测试、冻结来源校验、`just check-sensitive`、`just check`、`just flutter-check` 和提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过。本轮不改变上游协议、不执行真实写入，P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
 
 ## 2026-09-02 场馆提交收据的订单编号核对
 
@@ -420,7 +420,7 @@
 
 ## 2026-09-01 `5998d6d` 当前提交门禁与实时复核
 
-- 当前 HEAD `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 与 `just flutter-check` 均退出码 0；Flutter UI 全量回归 32 项通过，生成检查报告零漂移。
+- 当前 HEAD `5998d6d` 的根级 冻结来源校验、`just check-sensitive`、`just check`、`just flutter-codegen-check` 与 `just flutter-check` 均退出码 0；Flutter UI 全量回归 32 项通过，生成检查报告零漂移。
 - `just verify-live mode=direct` 与 `mode=webvpn` 在当前 HEAD 串行完成，认证、用户资料、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`；SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
 - `$UBAA_DEVECO_HOME` 上的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug` 通过 API26/工具链、Dart/widget 与 native 前置检查并进入 HAP assemble，在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、未连接设备，生成输出已移出工作树。
 - 提交 `85deca3` 的合同 CI `33504585524`（合同门禁、macOS/Windows Rust）与 Flutter 原生五平台 CI `33504585537`（Windows、macOS、Linux、Android APK、iOS simulator）均终态成功；文档提交 `5998d6d` 的 CI `33505133780`（合同门禁、macOS/Windows Rust）亦成功。上述 CI 不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E。
@@ -461,7 +461,7 @@
 
 ## 2026-09-01 评教批量入口后的门禁与实时复核
 
-- 评教批量入口提交 `0626fa0` 后，根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check` 均通过；Flutter UI 全量测试为 31 项通过，工作树生成的 OHOS 临时输出已移出。
+- 评教批量入口提交 `0626fa0` 后，根级 冻结来源校验、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check` 均通过；Flutter UI 全量测试为 31 项通过，工作树生成的 OHOS 临时输出已移出。
 - 当前提交在 CLI API26 路径执行 `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME just ohos-check mode=debug`：工具链、Dart/widget、native 前置均为 0 失败/0 警告，HAP assemble 在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
 - 当前提交串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口。
 - 远端合同 CI `33502775133`、Flutter 原生五平台 CI `33502775143` 和文档 CI `33502786574` 均已成功；原生构建仍不包含 OHOS HAP、正式签名/公证、实体设备或真实 App→FRB→Core E2E。
@@ -482,7 +482,7 @@
 - 提交 `3e16d6f` 的远端合同 CI `33496873082` 已成功；Flutter native `33496873088` 的 Windows、macOS、Linux、Android APK
   和 iOS simulator 五个 job 也全部成功，Android job 最后完成。
 - 该组仍只提供 debug 原生构建与上传产物，不包含 OHOS 签名 HAP、正式签名/公证、实体设备或真实 Flutter→FRB→Core E2E；
-  本地 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check` 通过，OHOS 双布局
+  本地 冻结来源校验、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check` 通过，OHOS 双布局
   前置通过但签名处阻断。
 
 ## 2026-09-01 写入成功后只读核对钩子
@@ -769,7 +769,7 @@
 已按新的 `goal.md` 开始 P0。开始时工作树包含用户已有的 Flutter/OHOS 探索骨架、
 共享 Dart package、版本矩阵与 ADR，均先按未验收输入保留。冻结引用验证通过：
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
 本轮基线事实：
 
@@ -904,7 +904,7 @@
 
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
-基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`
+基线命令 `git status --short --branch`、冻结来源校验、`just check-sensitive`、`just check`
 均已重新执行并通过。当前实现新增了 `core-live` 的显式 `auth/prepare` 证据（映射到登录
 内部已保存的准备状态，不重复发起请求）、完整的 SPOC/Judge 诊断矩阵行、认证失败后的完整
 依赖阻断矩阵，以及禁止猜测周次的依赖处理。Cgyy 现在按 facade 解析出的 Direct/WebVPN/auto
@@ -991,7 +991,7 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 
 ## 2026-08-31 本周期基线检查
 
-本周期开始时工作树包含既有未提交改动，按合同作为基线保留。`just refs` 和
+本周期开始时工作树包含既有未提交改动，按合同作为基线保留。冻结来源校验 和
 `just check-sensitive` 已通过；`just check` 在 Clippy 阶段失败，具体为
 `crates/ubaa_core/src/facade/mod.rs:592` 的 `RouteResolution`（可复制小类型）
 仍按引用传递，触发 `clippy::trivially-copy-pass-by-ref`。该失败是基线事实，
@@ -1060,7 +1060,7 @@ WebVPN Cgyy 没有回退到 Direct；上述 `authentication_required` 是当前�
 
 ## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果（HAR 网关 Cookie 修复后的历史快照）
 
-依据 `examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har` 的脱敏证据，Core 在 WebVPN Cgyy SSO
+依据 `BUAA-CGYY/d.buaa.edu.cn.cgyy.har` 的脱敏证据，Core 在 WebVPN Cgyy SSO
 重定向后读取网关 Cookie 快照；令牌只在内存中作为 `Sso-Token` 使用。以下为重新执行的
 单路线、串行、只读结果，凭据仅经 stdin 注入，未调用任何真实写方法。
 
@@ -1104,7 +1104,7 @@ Judge 数量随上游快照变化（本次 WebVPN 为 `80/48/48`，早先同日�
 以下命令在 HAR 修复、测试和文档更新后再次执行并通过：
 
 ```text
-just refs                         PASS（冻结引用版本匹配）
+冻结来源校验                         PASS（冻结引用版本匹配）
 just check-sensitive              PASS（168 个仓库文件）
 just check                        PASS（fmt、Clippy、全工作区测试、构建、文档、Shell、diff）
 cargo test --locked -p ubaa-cli --all-targets       PASS（13 个二进制 E2E、23 个 CLI 合同、2 个 Core-live 运行时）
@@ -1113,7 +1113,7 @@ bash ./scripts/test-verify-live.sh                  PASS
 ```
 
 各主题提交前均通过 `git diff --check`；Cgyy 协议提交只暂存 Core 实现、脱敏 Mock 和
-迁移记录，文档收口提交只涉及合同与历史矩阵。HAR、`ubaa_old`、`examples/buaa-api`、
+迁移记录，文档收口提交只涉及合同与历史矩阵。HAR、`ubaa_old`、`buaa-api`、
 `.env.local` 及任何运行时会话材料均未暂存。真实 Direct/WebVPN 只读矩阵曾在同一批次
 单路线客户端内串行完成；顶部最近一次运行发现图书馆分区详情业务 `code=500`，不被本节
 历史快照覆盖。所有写操作仍仅有 Mock、向量和 CLI 阻止证据。
@@ -1244,7 +1244,7 @@ bash ./scripts/test-verify-live.sh                  PASS
 Mock/向量和 CLI 确认保护，但真实账号永不执行写操作。当前验收以本文件顶部的
 2026-08-31 Core-live Direct/WebVPN 逐操作记录为准，历史失败和上游波动不覆盖当前结论。
 
-- 基线分支为 `ubaa2`；冻结 `ubaa_old/` 与 `examples/buaa-api/` 的提交分别为
+- 基线分支为 `ubaa2`；冻结 `ubaa_old/` 与 `buaa-api/` 的提交分别为
   `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 和
   `efb7976bf513f38364b88aeb83d704586cff9b2a`。参考目录只读，`.env.local` 不进入输出、
   日志、暂存或持久化。
@@ -1263,7 +1263,7 @@ Mock/向量和 CLI 确认保护，但真实账号永不执行写操作。当前�
 ## 历史阶段门槛
 
 历史运行曾通过格式、Clippy、工作区测试、构建、文档、差异检查、CLI E2E、Shell 合同、
-`just refs` 和敏感扫描。它们只能说明对应提交的确定性状态；最终结果必须以本周期最后一次
+冻结来源校验 和敏感扫描。它们只能说明对应提交的确定性状态；最终结果必须以本周期最后一次
 串行 `just check`、CLI 测试、Shell 测试、敏感扫描和 Core-live 实时运行重新确认。
 ## 2026-08-26：修正后的实时矩阵历史摘要
 
@@ -1274,13 +1274,13 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - 认证历史：2026-08-23 的 Direct、WebVPN `auth_status` 均退出 0，只能证明当时认证路线可用，不能证明注销原子性、交互验证边界或任何业务端点。
 - 旧版只读聚合：课表、考试、成绩、空教室、SPOC、Judge 曾在三路线命令中退出 0，但当时的 SPOC 可能未真正发送全局空 `kcid` 请求，Judge 详情未覆盖完整题目/分数/状态语义，自动路由还由宿主实现，因此这些结果不再作为当前门槛。
 - 路线波动：历史 Judge 曾出现 Direct 65、WebVPN 17 等不同数量，也曾返回 `timeout`、`upstream_changed` 或找不到过期 ID。这些是上游快照变化，不用于固定路线或放宽解析器。
-- 旧版确定性门禁：历史 `cargo test --locked --workspace`、Clippy、CLI 二进制测试、测试辅助库测试、Shell 合同、`just refs`、`just check-sensitive` 和 `just check` 均曾通过；它们只描述修复前实现，当前结果以本文件顶部和最终命令为准。
+- 旧版确定性门禁：历史 `cargo test --locked --workspace`、Clippy、CLI 二进制测试、测试辅助库测试、Shell 合同、冻结来源校验、`just check-sensitive` 和 `just check` 均曾通过；它们只描述修复前实现，当前结果以本文件顶部和最终命令为准。
 - 2026-08-28 至 2026-08-29 的扩展读取记录了 Signin、Ygdk、Bykc、Cgyy 和 Evaluation 的多次业务认证、上游不可用或语义不符；没有从失败响应猜测新 URL、参数或字段，也没有调用真实写接口。
 - 当前验收边界：所有历史聚合摘要均不覆盖逐操作失败；Core-live 只接受显式 Direct/WebVPN，`auto` 只做确定性路由测试，真实写操作永久排除。
 
 ## 2026-08-26：历史确定性门槛摘要
 
-- `just refs`：冻结参考提交匹配。
+- 冻结来源校验：冻结参考提交匹配。
 - `just check-sensitive`：未发现凭据、Cookie、令牌、验证码或原始实时材料。
 - `just check`：历史运行包含格式、Clippy（`-D warnings`）、工作区测试、Shell 合同、构建、文档和差异检查。
 - CLI 二进制和验证器测试均有历史通过记录；这些记录不替代本周期最终串行门禁。
@@ -1304,7 +1304,7 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 
 ## 后续重跑交接
 
-1. 上游变化后，从整合工作树重新运行 `just refs`、`just check-sensitive`、`just check`、CLI 二进制 E2E 和验证器回归。
+1. 上游变化后，从整合工作树重新运行 冻结来源校验、`just check-sensitive`、`just check`、CLI 二进制 E2E 和验证器回归。
 2. 如需比较 Judge 摘要，只在当前 Shell 生成一次临时 `UBAA_VERIFY_DIGEST_SALT`，绝不记录其值。
 3. 在 Direct 和 WebVPN 重跑 `feature=auth`、`feature=all route=auto`、两条显式路线的每项功能以及两个完整聚合；每个多请求功能必须保持同一解析路线。
 4. SPOC 要求 `global_page_count >= 1`，非空时再要求一个详情；Judge 要求课程、原始锚点、过滤后、当前和截止数量，并在有数据时验证一个语义详情。
@@ -1627,7 +1627,7 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 ## 2026-09-02 `4938a61` CI 终态
 
 - 合同 CI run `33605940388` 已终态 `success`：`contract-gates`、Windows Rust 和 macOS Rust 三个 job
-  全部成功，覆盖 `just refs`、敏感扫描、Rust 全量检查、无签名 RC 前置报告与文档门禁。
+  全部成功，覆盖 冻结来源校验、敏感扫描、Rust 全量检查、无签名 RC 前置报告与文档门禁。
 - Flutter 原生 CI run `33605940357` 已终态 `success`：Android APK、iOS simulator、macOS、Linux、
   Windows Debug 五个 job 全部成功并完成无签名产物结构检查；macOS job 还完成官方宿主 integration smoke。
   两个 run 均不包含签名、实体设备安装、原生安全存储或真实账号写入。
@@ -1666,7 +1666,7 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 
 ## 2026-09-02 `f711f02` 无签名门禁复核
 
-- 取消入口状态修复提交 `f711f02` 已推送；随后 `just refs`、`just check-sensitive`、`just check`、FRB 零漂移、`just flutter-check` 和无签名 RC 前置报告全部通过。
+- 取消入口状态修复提交 `f711f02` 已推送；随后 冻结来源校验、`just check-sensitive`、`just check`、FRB 零漂移、`just flutter-check` 和无签名 RC 前置报告全部通过。
 - macOS Debug 宿主构建与产物结构摘要通过（产物大小/摘要仅作安全元数据）；OHOS API26 无签名 Debug HAP 复核通过，包内含 `libs/arm64-v8a/libubaa_bindings.so`。HAP 未签名、未安装、未上传，生成输出已清理。
 - 本轮继续不执行真实账号取消或其它写入；原生安全存储 handler、实体设备权限/生命周期、签名发布和 P3/P4/P5/P6 其余完整门禁仍未完成。
 

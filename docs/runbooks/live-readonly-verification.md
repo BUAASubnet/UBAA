@@ -88,14 +88,14 @@ route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|
 
 ### 记录结果
 
-只把摘要字段及日期、固定引用提交和退出码记入[状态页](../project/status.md)，不保存 stderr 或上游正文，也不把原始输出、会话文件、Cookie、验证材料或完整资料字段附到 issue 或提交中。
+只把摘要字段及日期、候选提交和退出码记入[状态页](../project/status.md)，不保存 stderr 或上游正文，也不把原始输出、会话文件、Cookie、验证材料或完整资料字段附到 issue 或提交中。
 
 ## 故障处理
 
 失败按以下格式逐操作记录：
 
 ```text
-date=<YYYY-MM-DD> commit=<client-commit> refs=<old-commit>,<example-commit>
+date=<YYYY-MM-DD> commit=<client-commit>
 command=just verify-live mode=<direct|webvpn>
 route=<direct|webvpn> feature=<name> operation=<name>
 status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> error=<stable-code-or-none>

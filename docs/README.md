@@ -41,7 +41,7 @@
 | [design/](design/) | 现行产品与界面规格 | 贡献者 |
 | [runbooks/](runbooks/) | 操作手册：签名、发布、部署、真实验证、本地诊断 | 维护者 |
 | [project/](project/) | 当前目标、路线图、项目现状 | 维护者 |
-| [protocol/](protocol/README.md) | 协议来源对照、冻结参考、决策记录 | 改协议的开发者与 agent |
+| [protocol/](protocol/README.md) | 协议来源对照、决策记录 | 改协议的开发者与 agent |
 | [archive/](archive/README.md) | 已被取代的计划、状态快照和验收证据，只用于追溯 | 追溯历史时 |
 
 写文档前请读[文档规范](development/conventions.md#文档规范)。

@@ -70,7 +70,7 @@ LibBook booking 的公开 `status` 为 nullable int，并由 Core 派生 `cancel
 - 实现严格沿用冻结只读路径，包括 AAS CAS 激活、课表表单、SPOC 加密全局分页、业务认证失效的一次刷新、东八区时间、可选回退、HTML 文本化以及 Judge 详情/题目解析。
 - SPOC HTML 不进入公共 DTO。
 - Fixture/Mock 只证明请求形状；真实证据以[状态页](../project/status.md)中 Core-live 的 Direct/WebVPN 逐操作记录为准。
-- `examples/buaa-api` 的其它协议不能替代本地 API。
+- `buaa-api` 的其它协议不能替代本地 API。
 - 任何提交、上传、预约、签到、评教或其它写操作都不在只读入口中。
 
 ## 仅供验证的诊断

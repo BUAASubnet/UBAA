@@ -40,8 +40,8 @@ macOS Debug 已重建并通过产物结构与签名权限检查。实际宽屏�
 
 生产修改前已核对以下来源：
 
-- `examples/ubaa_old @ 1f4b8f8412272b6a423d4ad92b396e3db721e6f3`：`shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt`、`api/local/LocalBykcApi.kt`、`LocalBykcCrypto.kt`、`model/dto/Bykc.kt`，以及 `LocalBykcApiBackendTest.kt`。旧版课程人数为可空整数，空值不阻止选课。Compose 的 `BykcTimeFormatters.kt` 结合列表快照判断人数已满，`BykcTimeFormattersTest.kt` 覆盖此行为；`BykcCourseDetailScreen.kt` 按实际字段显示适用范围和签到配置。
-- `examples/buaa-api @ a63712fa2ae0a6c8066197063ddee98e3a6b5b81`：`src/api/boya/{core,opt,data}.rs` 和 `src/store/{cookies,cred}.rs`。`Capacity.current` 的注释明确指出单项详情返回空人数，反序列化将其置零。UBAA2 保留空值，避免把未知人数显示为零。该来源不提供旧版完整联系信息、范围和考勤展示规则。
+- `ubaa_old @ 1f4b8f8412272b6a423d4ad92b396e3db721e6f3`：`shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt`、`api/local/LocalBykcApi.kt`、`LocalBykcCrypto.kt`、`model/dto/Bykc.kt`，以及 `LocalBykcApiBackendTest.kt`。旧版课程人数为可空整数，空值不阻止选课。Compose 的 `BykcTimeFormatters.kt` 结合列表快照判断人数已满，`BykcTimeFormattersTest.kt` 覆盖此行为；`BykcCourseDetailScreen.kt` 按实际字段显示适用范围和签到配置。
+- `buaa-api @ a63712fa2ae0a6c8066197063ddee98e3a6b5b81`：`src/api/boya/{core,opt,data}.rs` 和 `src/store/{cookies,cred}.rs`。`Capacity.current` 的注释明确指出单项详情返回空人数，反序列化将其置零。UBAA2 保留空值，避免把未知人数显示为零。该来源不提供旧版完整联系信息、范围和考勤展示规则。
 
 ## 逐操作对照
 

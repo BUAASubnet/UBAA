@@ -1,6 +1,6 @@
 # 空教室旧版节次表对照（O3-E3a）
 
-2026-09-09，实施基点78602e30（旧源码审查与行为RED先于图书馆补验提交）。冻结ubaa_old 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e、examples/buaa-api efb7976bf513f38364b88aeb83d704586cff9b2a。本文在生产修改前建立，不代表实现/验收完成。
+2026-09-09，实施基点78602e30（旧源码审查与行为RED先于图书馆补验提交）。冻结ubaa_old 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e、buaa-api efb7976bf513f38364b88aeb83d704586cff9b2a。本文在生产修改前建立，不代表实现/验收完成。
 
 已逐页完整读取旧ClassroomQueryScreen.kt、ClassroomViewModel.kt及全部ViewModelTest，以及shared的ClassroomApi/LocalClassroomApi/Classroom DTO/LocalClassroomApiBackendTest；交叉复读示例api/class/core.rs和api/app/core.rs、主source-parity.md空教室两操作与B1/B2展示记录。当前UI为classroom_content.dart/academic_content.dart/classroom_queries.dart、detail_list.dart；公开数据来自ClassroomPresentation，原roomId/floorId/floorName/availableSections/queryDate/campus均保留。
 

@@ -34,6 +34,6 @@ UBAA2 的 Reqwest 已关闭自动跳转，主登录已有有界 UC 激活与最�
 
 - 按 `just check-plan` 选择完整相关门禁；最终 `just check` 通过，包含 Rust 编译、Clippy、Core/Bridge/CLI/集成测试、CLI 二进制端到端和 Shell 合同。
 - `just flutter-check` 七包 1326 项测试及格式/分析通过；`just flutter-codegen-check` 零漂移。
-- `just refs`、结构/模块检查、敏感扫描和差异检查通过；macOS Debug 构建、深度签名及 Sandbox/network.client 产物检查通过，仍使用原固定开发签名。
+- 冻结来源校验、结构/模块检查、敏感扫描和差异检查通过；macOS Debug 构建、深度签名及 Sandbox/network.client 产物检查通过，仍使用原固定开发签名。
 - 首轮检查发现一个布尔表达式及测试辅助函数长度规范问题，均已修正；代码生成与差异检查曾交叉读取临时生成状态，生成恢复零漂移后串行重跑完整仓库门禁通过，没有放宽检查。
 - 所有新增测试使用合成值，原 HAR 与运行截图不进入仓库。实际验证为 Rust 生产协议层与 macOS 构建，不宣称 Flutter 界面或其他实体设备登录已重新验收；当前运行的桌面进程未被本轮主动重启。

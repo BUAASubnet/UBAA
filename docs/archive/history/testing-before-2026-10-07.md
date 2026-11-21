@@ -12,7 +12,7 @@
 | Rust Mock 集成 | `crates/ubaa_test_support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
 | CLI 合同 | `apps/ubaa_cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v11、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa_cli/tests/binary_e2e.rs`、`apps/ubaa_cli/tests/core_live_runtime.rs`、`apps/ubaa_cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
-| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`flutter-toolchains.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、工具链完整输出与失败退出码、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
+| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`引用校验脚本`、`flutter-toolchains.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、工具链完整输出与失败退出码、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
 | FRB bridge | `crates/ubaa_flutter_bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
 | 写入协调与宿主接线 | `packages/ubaa_app/test/write_coordinator_test.dart`、`app_write_lifecycle_test.dart`、`write_readback_reentry_test.dart`；`packages/ubaa_host/test/`；`packages/ubaa_ui/test/write_coordination_test.dart` | 唯一状态机、单次消费、取消/过期、注销/重建失效、回读重入与 UI 命令完整性 |
@@ -24,7 +24,7 @@
 ## 确定性门禁
 
 ```bash
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just contract-version-check
 just check-sensitive

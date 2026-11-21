@@ -2,7 +2,7 @@
 
 ## 实施前来源核对
 
-基线 `36f04aad`；冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，`just refs` 通过。
+基线 `36f04aad`；冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，冻结来源校验 通过。
 
 旧版 `JudgeViewModel.kt` 的 `buildVisibleAssignments`：默认隐藏已截止，仅显示 unsubmitted/partial；课程名与标题忽略大小写搜索；按截止时间升序，可切换开始时间/降序；未知日期不算截止；日期相等以课程名、标题排序；未知时间升序末尾、降序开头。显示已截止会关闭仅未完成，关闭后不自动恢复。`JudgeAssignmentsScreen.kt` 按课程分组；无批量选择入口。摘要隐藏未知状态、缺失时间和零题进度，分数合并展示。
 

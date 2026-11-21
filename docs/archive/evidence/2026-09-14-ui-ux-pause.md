@@ -34,7 +34,7 @@
 
 | 命令或核对 | 结果 | 证据边界 |
 |---|---|---|
-| `just refs` | 退出0 | `ubaa_old`为`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`examples/buaa-api`为`efb7976bf513f38364b88aeb83d704586cff9b2a` |
+| 冻结来源校验 | 退出0 | `ubaa_old`为`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`buaa-api`为`efb7976bf513f38364b88aeb83d704586cff9b2a` |
 | `just layout-check` | 退出0，0个精确baseline违例 | 含P5-F暂存候选；不是设备运行 |
 | `just check-sensitive` | 退出0 | 整理前9120、P5-F暂存时9121个候选文件通过；不提交凭据、会话或真实照片 |
 | `git diff --cached --check` | 退出0 | P5-F暂存差异格式通过 |

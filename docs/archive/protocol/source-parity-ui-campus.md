@@ -48,7 +48,7 @@
 - 博雅API：old `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt:16`至`:30`；DTO `model/dto/Bykc.kt:62`课程、`:99`详情、`:171`已选、`:206`签到配置、`:237`资料、`:255`统计；`api/local/LocalBykcApi.kt`五读映射/当前学期选择/资格及 `LocalBykcCrypto.kt`。测试`LocalBykcApiBackendTest.kt:71`列表资料、`:307`详情已选统计、`:435`写、`:526`WebVPN；本轮只读不执行。
 - examples的`api/boya/opt.rs:19`课程页、`:37`详情、`:50`已选、`:63`统计为最近同端点交叉证据；其调用方传Semester和简单写方法不能替代旧本地产品的学期选择、加密及资格。`docs/protocol/source-parity.md:541`五读九列已完整说明CAS/service、跳转、Cookie/token、每操作精确方法参数、编码/签名、DTO、缓存与错误；`:331`及`:529`解释签到/签退窗口/位置规则，`:590`Bridge附件/内部字段收窄。只复用，不重开协议。
 - 阳光API：old `api/feature/YgdkApi.kt:21`概览、`:23`记录、`:25`提交；DTO `model/dto/Ygdk.kt:6`统计、`:20`项目、`:28`概览、`:38`记录、`:53`分页；`api/local/LocalYgdkApi.kt:63`、`:82`、`:107`三操作。测试`LocalYgdkApiBackendTest.kt:63`概览、`:113`记录、`:182`提交、`:249`会话复用。旧DTO有图片集合不代表当前Bridge可以公开图片。
-- examples/buaa-api无阳光等价模块，不借app/spoc上传协议。`source-parity.md:256`九列记录OAuth/独立uid-token/分类-项目-汇总/分页参数/表单/DTO/缓存/错误；`:457`写入九列保留照片上传和最后提交边界。OAuth完整允许主机集合仍为既有未决项，不在展示批次猜补，不将历史live陈述当本候选PASS。
+- buaa-api无阳光等价模块，不借app/spoc上传协议。`source-parity.md:256`九列记录OAuth/独立uid-token/分类-项目-汇总/分页参数/表单/DTO/缓存/错误；`:457`写入九列保留照片上传和最后提交边界。OAuth完整允许主机集合仍为既有未决项，不在展示批次猜补，不将历史live陈述当本候选PASS。
 
 ## 下一批关键RED（尚未执行）
 

@@ -12,7 +12,7 @@
 
 | 项目 | 当前事实 | 边界 |
 |---|---|---|
-| 冻结引用 | `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`examples/buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a` | 认证和只读行为变更仍须逐操作来源对照。 |
+| 冻结引用 | `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a` | 认证和只读行为变更仍须逐操作来源对照。 |
 | 稳定版本 | CLI JSON schema v10；Flutter bridge contract v9；`session.json` v2；`config.toml` v1 | 本轮不得静默变更公开合同。 |
 | 历史源码验收 | `0bd866c9ff5f205f2b1604bf5e72640a3e735018` | 这是 2026-09-05 的历史 verified 源码 SHA；摘要在[仓库内证据](evidence/2026-09-05-code-organization-summary.md)，本轮未重新在线核验。 |
 | macOS 历史修复 | `cf5d431338d22d18c0e24245bb0ad1fd16709dde` 补齐 DebugProfile/Release 的主动联网权限 | 来源为归档合同；基础登录有用户确认，完整真实 App 验收仍暂停。 |

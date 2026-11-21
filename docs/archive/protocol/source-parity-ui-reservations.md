@@ -51,8 +51,8 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 
 | 领域 | 冻结API/DTO/本地实现/测试 | examples与已有parity列 |
 |---|---|---|
-| 图书馆 | old `shared/.../api/feature/LibBookApi.kt:23`、`:25`、`:31`、`:33`、`:42`五读；`model/dto/LibBook.kt:7`、`:16`、`:24`、`:35`、`:43`、`:51`、`:84`、`:92`；`api/local/LocalLibBookApi.kt:54`、`:57`、`:66`、`:69`、`:109`及`:466`日期投影；`shared/src/commonTest/.../LocalLibBookApiBackendTest.kt:68`含单日期times脱敏例，`:307`取消已结束错误；LibBookBookingStatusTest与LibBookReserveScreenLogicTest供状态/选择交叉来源 | 固定examples/buaa-api没有booking.lib/v4等价模块；不借其它预约API。`docs/protocol/source-parity.md:264`九列覆盖基址、CAS跳转、独立token、五POST JSON方法参数、headers、只读无AES、DTO、缓存、错误；写入AES与preflight沿已有写合同，不重做无关协议。 |
-| 研讨室 | old `api/feature/CgyyApi.kt`、`model/dto/Cgyy.kt`；`api/local/LocalCgyyApi.kt:58`站点、`:63`用途、`:69`日期空间、`:182`订单、`:194`详情、`:207`锁；`:339`slot状态、`:477`day请求；对应LocalCgyyApiBackendTest、CgyyOrderDateDisplayTest、CgyyOrderCancellationTest、CgyyOrderStatusTest | examples/buaa-api无venue-zhjs-server等价实现；已有HAR说明是历史受控证据，本文未读取HAR/响应。`source-parity.md:594`逐操作九列覆盖站点/用途/日期空间/订单/详情/锁；`:278`及写批次矩阵描述提交边界；`:590`Bridge禁止交易号/内部占用审计等公开。不得由旧DTO含字段就向Host加字段。 |
+| 图书馆 | old `shared/.../api/feature/LibBookApi.kt:23`、`:25`、`:31`、`:33`、`:42`五读；`model/dto/LibBook.kt:7`、`:16`、`:24`、`:35`、`:43`、`:51`、`:84`、`:92`；`api/local/LocalLibBookApi.kt:54`、`:57`、`:66`、`:69`、`:109`及`:466`日期投影；`shared/src/commonTest/.../LocalLibBookApiBackendTest.kt:68`含单日期times脱敏例，`:307`取消已结束错误；LibBookBookingStatusTest与LibBookReserveScreenLogicTest供状态/选择交叉来源 | 固定buaa-api没有booking.lib/v4等价模块；不借其它预约API。`docs/protocol/source-parity.md:264`九列覆盖基址、CAS跳转、独立token、五POST JSON方法参数、headers、只读无AES、DTO、缓存、错误；写入AES与preflight沿已有写合同，不重做无关协议。 |
+| 研讨室 | old `api/feature/CgyyApi.kt`、`model/dto/Cgyy.kt`；`api/local/LocalCgyyApi.kt:58`站点、`:63`用途、`:69`日期空间、`:182`订单、`:194`详情、`:207`锁；`:339`slot状态、`:477`day请求；对应LocalCgyyApiBackendTest、CgyyOrderDateDisplayTest、CgyyOrderCancellationTest、CgyyOrderStatusTest | buaa-api无venue-zhjs-server等价实现；已有HAR说明是历史受控证据，本文未读取HAR/响应。`source-parity.md:594`逐操作九列覆盖站点/用途/日期空间/订单/详情/锁；`:278`及写批次矩阵描述提交边界；`:590`Bridge禁止交易号/内部占用审计等公开。不得由旧DTO含字段就向Host加字段。 |
 
 ## 实施顺序与关键RED（尚未执行）
 
@@ -95,7 +95,7 @@ D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间
 
 基点8498d97f，冻结引用未变。WebVPN两轮生产UI分区列表成功2项，却无法自动进入详情；Direct安全结构计数确认两项premisesId/storeyId均为空，而请求本身已有馆/楼层，Core-live双路线五类读取通过。没有输出真实ID、名称、预约或响应正文。
 
-复读冻结LocalLibBookApi.getAreas/mapArea（194–211、453–464）、LibBookAreaDto默认空字符串、LibBookViewModel.loadAreas（307–335）和主source-parity.md图书馆表：原POST space/pick请求premisesIds/storeyIds/date，解析两个父标识允许空；旧UI选返回列表中的原唯一area.id进入Space/map，未要求响应重复父标识。固定examples/buaa-api没有等价LibBook模块。现UI新增的非空父字段相等条件错误地把可缺省字段当成必需，不是认证或HTTP协议变化。
+复读冻结LocalLibBookApi.getAreas/mapArea（194–211、453–464）、LibBookAreaDto默认空字符串、LibBookViewModel.loadAreas（307–335）和主source-parity.md图书馆表：原POST space/pick请求premisesIds/storeyIds/date，解析两个父标识允许空；旧UI选返回列表中的原唯一area.id进入Space/map，未要求响应重复父标识。固定buaa-api没有等价LibBook模块。现UI新增的非空父字段相等条件错误地把可缺省字段当成必需，不是认证或HTTP协议变化。
 
 必要修复只在当前已接受分区查询的原数据上：父标识为空允许沿该请求的原馆/楼层继续读取原唯一area.id；非空且冲突仍不自动进入。绝不回填或伪造DTO父标识，仍保留queryDate与迟到/生命周期保护；座位查询仍须明确日期/原时段，预约资格与prepare/commit不变。URL/service、重定向、Cookie/token、POST方法/JSON字段、Header/编码、加密、Core解析/缓存/并发/错误均沿原合同；仅UI自动只读顺序恢复旧实现。先以明确缺省父标识合成失败测试复现，再修复并三端/生产双路线复验。
 

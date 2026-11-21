@@ -13,7 +13,7 @@
 
 | 基线命令 | 退出码/范围 |
 |---|---|
-| just refs | 0，两个引用 |
+| 冻结来源校验 | 0，两个引用 |
 | just flutter-check | 0，723项：54/59/270/248/15/23/54 |
 | just verify-live mode=direct | 0，40 PASS |
 | just verify-live mode=webvpn | 0，38 PASS；希冀单项和批量详情因父列表无作业ID，2 NOT_APPLICABLE |

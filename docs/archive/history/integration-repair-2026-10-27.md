@@ -6,7 +6,7 @@
 
 接手工作树 `claude/gallant-mcclintock-c3344c`，基线 `8079f2ef`。起点有 37 个未提交集成测试文件，主要调整旧的查询表单和主导航定位。本轮继续修复夹具、异步等待、原生定位和陈旧断言；不改生产 UI、认证协议或学校写操作。
 
-工作树缺失冻结引用，已显式运行 `just refs-bootstrap` 建立固定引用，再运行 `just refs` 校验。`ubaa_old` 固定为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，`buaa-api` 固定为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
+工作树原先缺少参考项目，补齐后通过了冻结来源校验。`ubaa_old` 固定为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，`buaa-api` 固定为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
 
 ## 失败证据与修复
 
@@ -39,7 +39,7 @@
 
 | 检查或入口 | 结果 |
 | --- | --- |
-| `just refs`、`just layout-check`、`just check-sensitive` | 通过；两份冻结引用正确，目录与布局检查通过，敏感扫描未输出正文。 |
+| 冻结来源校验、`just layout-check`、`just check-sensitive` | 通过；两份冻结引用正确，目录与布局检查通过，敏感扫描未输出正文。 |
 | `just integration-check` | 76 个入口分类与路径完整。 |
 | `just check` | 完整通过，包含 Shell/Python 合同、Rust 格式、Clippy、测试、构建、文档与差异检查。 |
 | `just flutter-check` | 前六包通过；官方应用包发现 3 处多余空断言和 1 处缺少括号，修正后从 `bash scripts/check/flutter-workspace.sh check ubaa_flutter` 续跑通过。七包共 1481 项：领域 60、平台 87、App 676、UI 454、绑定 20、Host 101、官方应用 83。静态分析全部通过。 |

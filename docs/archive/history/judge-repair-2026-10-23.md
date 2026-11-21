@@ -17,7 +17,7 @@
 - Core 原生登录路径/按钮标记分别验证直连和网关地址；两路线重认证恢复、跨课程详情键顺序另有补充回归。
 - facade 的 31 项 Judge 相关回归通过，包括渐进取消/换账号、强制刷新绕过内存 TTL、历史缓存重查和新作业出现在旧项之后。
 - 原历史排除缓存的容量/失效断言随已删除状态移除；课程、作业、详情缓存容量和代次失效覆盖保留，新增混合历史/近期及重复读取覆盖取代旧跳过假设。原请求序列测试仅将 service 同步为官网 HTTPS 地址，冻结目录不改。
-- `just refs`、`just check`（含结构/敏感/CLI E2E、Rust/Shell）、完整七包 `just flutter-check`（1331 项）、严格 Clippy 与 FRB 零漂移通过。macOS Debug 重建及严格签名检查通过。
+- 冻结来源校验、`just check`（含结构/敏感/CLI E2E、Rust/Shell）、完整七包 `just flutter-check`（1331 项）、严格 Clippy 与 FRB 零漂移通过。macOS Debug 重建及严格签名检查通过。
 
 ## 真实只读证据
 

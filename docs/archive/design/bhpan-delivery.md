@@ -10,7 +10,7 @@
 
 架构：Core 负责认证、路线、文件与分享操作及传输状态。Bridge 只投影稳定类型，平台层提供文件选择和保存能力，App 负责交互编排。日程同步调用 Core 网盘接口，不另行处理 Token、拼接 URL 或维护上传协议。
 
-依据：[日程设计](../../design/agenda.md)、[冻结参考](../../protocol/references.md)、[工程规范](../../development/engineering-standards.md)和[开发命令](../../development/commands.md)。
+依据：[日程设计](../../design/agenda.md)、[协议依据目录](../../protocol/README.md)、[工程规范](../../development/engineering-standards.md)和[开发命令](../../development/commands.md)。
 
 具体协议与缺口见[来源对照](../../protocol/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。下文 B0—B5 用于定位既有技术范围和证据，对外按浏览、文件管理、传输、分享和同步等用户流程验收。
 

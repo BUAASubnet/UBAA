@@ -32,7 +32,6 @@
 
 ### 环境准备
 
-- 冻结引用：首次缺失时显式执行 `just refs-bootstrap`，之后只运行 `just refs`。
 - 质量工具：显式执行 `just quality-tools-bootstrap`。
 - 依赖：首次用 `cargo fetch --locked` 预取所有目标，用 `just flutter-dependencies` 准备八个 Pub workspace 成员。
 - preflight 不会隐式联网安装。官方 Flutter/OHOS、Rust、FRB 的固定版本及路径见[平台矩阵](../architecture/flutter-platforms.md)。
@@ -75,7 +74,7 @@ just release-preflight /项目绝对路径/UBAA2/.ubaa_local/release/license_rep
 
 `release-preflight`：
 
-- 要求工作树干净、报告目录为空；只运行纯 refs/敏感检查，并生成 Dart/OHOS 许可证材料。
+- 要求工作树干净、报告目录为空；只运行纯敏感检查，并生成 Dart/OHOS 许可证材料。
 - 许可材料列出锁定来源、许可证证据及缺失项；包名/版本清单不等于许可批准。
 - 默认严格模式遇到材料缺口时保留报告，以状态 3 阻断发布。仅报告模式仍列出缺口，但不能用于判定发布通过。日常 CI 不运行此入口。参数见[构建与发布命令](../development/commands.md#构建与发布命令)。
 - Rust 依赖的许可与安全公告由 `just dependency-audit`（cargo-deny）检查，发布前单独运行。

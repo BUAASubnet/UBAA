@@ -27,7 +27,7 @@ Dart 和 Flutter 命令一律通过 `just dart`、`just flutter` 调用，不直
 
 - [架构导读](docs/architecture/overview.md)：Rust Core 负责校园协议和业务，Flutter 负责界面，两者经 flutter_rust_bridge 连接。
 - [开发者文档首页](docs/README.md)：按“我要改什么”找到代码和测试入口。
-- [术语表](docs/development/glossary.md)：文档里常见的“候选”“门禁”“冻结参考”“路线”等词是什么意思。
+- [术语表](docs/development/glossary.md)：文档里常见的“候选”“门禁”“来源记录”“路线”等词是什么意思。
 - [项目现状](docs/project/status.md)：哪些功能已经实现、在哪里验证过。
 
 ## 3. 开发
@@ -36,7 +36,7 @@ Dart 和 Flutter 命令一律通过 `just dart`、`just flutter` 调用，不直
 
 **先写失败的测试**：修复缺陷或改变行为时，先写一个能复现问题的测试，再做最小改动让它通过。纯文案、样式和文档改动可以复用已有测试。测试分层和 golden 更新方法见[测试策略](docs/development/testing.md)。
 
-**协议改动要先做来源对照**：改认证、读取或写入学校系统的代码之前，必须把同一操作在两个冻结参考（旧版 UBAA 和 buaa-api）中的行为逐项对比，并记录到 [`docs/protocol/`](docs/protocol/README.md)。规则见 [AGENTS.md 来源对照门禁](AGENTS.md#来源对照门禁)。这是本项目最重要的约束：上游字段、URL 和加密参数都必须有证据，不能凭经验补齐。
+**协议改动要先做来源对照**：改认证、读取或写入学校系统的代码之前，必须逐项核对已有协议来源记录并补充文件定位和结论，记录到 [`docs/protocol/`](docs/protocol/README.md)。规则见 [AGENTS.md 来源对照门禁](AGENTS.md#来源对照门禁)。这是本项目最重要的约束：上游字段、URL 和加密参数都必须有证据，不能凭经验补齐。
 
 **测试数据**：Fixture 只保留最小的协议结构，并使用明显虚构的值。不要把学校的原始响应复制成 Fixture。
 

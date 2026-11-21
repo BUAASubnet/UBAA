@@ -4,7 +4,7 @@
 
 用户提供 2026—2027 学年校历和当前应用截图，要求统一宽度、减弱周次条背景、去掉重复周次、补全时间轴、区分课程颜色和仅保留选择学期入口。校历图片只作为用户提供的公开时间依据，应用截图不纳入 Git。
 
-`just refs` 核对旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。重新阅读旧版 ScheduleScreen、ScheduleViewModel.selectTerm/fetchWeeks、ScheduleApi、LocalScheduleApi 与既有仓库测试；另一来源阅读 aas/{core,opt,data}.rs。旧版选择学期即清除旧周次并读取该学期周列表，界面取用上游颜色；本轮按用户要求替换重复配色，并沿用学期→教学周→周课表的现有流程。唯一当前周不明确时保留周次选择，不借用旧版 firstOrNull 猜测。
+冻结来源校验 核对旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。重新阅读旧版 ScheduleScreen、ScheduleViewModel.selectTerm/fetchWeeks、ScheduleApi、LocalScheduleApi 与既有仓库测试；另一来源阅读 aas/{core,opt,data}.rs。旧版选择学期即清除旧周次并读取该学期周列表，界面取用上游颜色；本轮按用户要求替换重复配色，并沿用学期→教学周→周课表的现有流程。唯一当前周不明确时保留周次选择，不借用旧版 firstOrNull 猜测。
 
 逐操作协议继承[已完成的课表对照](../source-parity-schedule-default-2026-10-23.md)：学期索引 GET schoolCalendars.do 无参数、教学周 GET getTermWeeks.do 带 termCode、周课表 POST getMyScheduleDetail.do 使用 form-urlencoded 的 termCode/type=week/week；每项继续原 currentUser 前置检查、AAS CAS service、最终地址校验、实际路线 Cookie、AJAX Accept/X-Requested-With/Referer、DTO、加密签名、完整保存、并发取消和错误映射。本轮不新增请求字段或协议。buaa-api 的 query/campusCode/type=term 仍不采用；不存在对应 Flutter UI 或持久学期仓库，不从其实现推断界面行为。
 
@@ -41,7 +41,7 @@
 
 - 实施前复现：本科编码无标准作息时只生成 12 节、缺失中间时间；重复上游颜色在明暗主题下无法区分课程；顶栏没有直接选学期入口。对应反例已转为通过。
 - 七包格式、分析和测试通过：Domain 53、Platform 84、App 660、UI 365、Bindings 20、Host 101、官方宿主 76，共 1359 项。
-- `just check`、`just refs`、`just layout-check`、`just check-sensitive` 通过，FRB 生成零漂移。首次全量检查发现测试构造的 const 错误，修正后重跑受影响包；旧人工巡检入口引用随原生测试重构恢复后，官方宿主重新分析和测试通过。
+- `just check`、冻结来源校验、`just layout-check`、`just check-sensitive` 通过，FRB 生成零漂移。首次全量检查发现测试构造的 const 错误，修正后重跑受影响包；旧人工巡检入口引用随原生测试重构恢复后，官方宿主重新分析和测试通过。
 - macOS 原生合成检查覆盖 24 个场景，明暗主题共 34 张截图；包括正常学期/周次选择、长名称、空周、初次失败、刷新失败、加载、当前学期不明确、当前周不明确、重复周编号、非连续周和选项重试。首轮学期不明确用例仍按旧交互要求再次选周，修正为明确选择学期后采用唯一当前周，再次完整运行通过。
 - 原生窗口为 1512×827 逻辑像素，按真实字体检查标题、同宽内容、透明周次条、配色和末节时间；手机/平板的 390、834、1280 宽度与大字通过组件回归。两张课表 golden 更新为新样式，其余基准保持。
 - macOS 生产 Debug 已重新构建并按原检查配置打开。真实学校专项验收、其他系统本轮设备验收未执行；截图和运行日志仅在仓库外私有目录，旧预览保持 Git 忽略。

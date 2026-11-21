@@ -79,13 +79,13 @@ Core 在一次新鲜的在线读取中签发的 typed 字段，例如 `cancelEli
 
 ## 来源与验证
 
-### 冻结参考
+### 来源记录
 
-来源对照使用的两个本地只读参考仓库：`examples/ubaa_old/`（旧版 UBAA）和 `examples/buaa-api/`，各自固定在一个提交。`just refs` 只读校验它们，`just refs-bootstrap` 只在首次缺失时联网建立。固定提交见[冻结参考](../protocol/references.md)。
+来源对照记录保存在[协议依据目录](../protocol/README.md)及各功能逐操作文件中，包含来源提交、文件定位和结论。新增认证、读取或写入行为前，必须先补齐对应的来源证据。
 
 ### 来源对照
 
-修改认证、读取或写入功能前，逐个操作比较两个冻结参考的 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)，记录见[来源对照索引](../protocol/README.md)。
+修改认证、读取或写入功能前，逐个操作核对 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)，记录见[来源对照索引](../protocol/README.md)。
 
 ### Fixture / Mock
 

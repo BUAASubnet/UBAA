@@ -10,11 +10,11 @@
 
 | 层次 | 确切来源 | 已核对事实及限制 |
 |---|---|---|
-| 冻结 API | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt:11`、`:13`、`:33`、`:43` | getTodayClasses 返回今日 DTO；performSignin 参数为 courseId。没有通用 eligibility enum。 |
-| 冻结 DTO | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Signin.kt:12`、`:15` | 明确 signStatus 0=未签到、1=已签到；课程安排 ID、课程名称、开始/结束时间、Int 状态。 |
-| 冻结本地 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt:268`、`:280`；写结果`:153` | 今日从 id/courseName/classBeginTime/classEndTime/signStatus 映射；数字/数字字符串兼容。旧 flexibleIntValue 缺失/无法转整数返回0，此处不能照搬为UI默认未签到；当前 Core 已显式 unknown。提交结果才读取 result.stuSignStatus，不能把它当今日列表字段。 |
-| 冻结测试 | `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt:64`、`:358`、`:408`、`:412`、`:470` | 今日数字0、字符串1→整数1；提交嵌套字符串1成功。证明字段兼容，不证明缺失状态可安全写入。 |
-| examples 等价模块 | `examples/buaa-api/src/api/class/data.rs:119`、`:136`、`:157`、`:179`；`api/class/{core,opt}.rs` | Schedule.id 明确是签到用安排ID，另有 course_id 用于查课程；status 仅把字符串1/0转 bool，其它拒绝。没有 typed资格模型，不能借此把所有 denied 或 unknown 变成状态事实。examples 不是缺失，但入口/方法的历史差异按已有 parity 决策处理，本轮不改。 |
+| 冻结 API | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt:11`、`:13`、`:33`、`:43` | getTodayClasses 返回今日 DTO；performSignin 参数为 courseId。没有通用 eligibility enum。 |
+| 冻结 DTO | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Signin.kt:12`、`:15` | 明确 signStatus 0=未签到、1=已签到；课程安排 ID、课程名称、开始/结束时间、Int 状态。 |
+| 冻结本地 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt:268`、`:280`；写结果`:153` | 今日从 id/courseName/classBeginTime/classEndTime/signStatus 映射；数字/数字字符串兼容。旧 flexibleIntValue 缺失/无法转整数返回0，此处不能照搬为UI默认未签到；当前 Core 已显式 unknown。提交结果才读取 result.stuSignStatus，不能把它当今日列表字段。 |
+| 冻结测试 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt:64`、`:358`、`:408`、`:412`、`:470` | 今日数字0、字符串1→整数1；提交嵌套字符串1成功。证明字段兼容，不证明缺失状态可安全写入。 |
+| examples 等价模块 | `buaa-api/src/api/class/data.rs:119`、`:136`、`:157`、`:179`；`api/class/{core,opt}.rs` | Schedule.id 明确是签到用安排ID，另有 course_id 用于查课程；status 仅把字符串1/0转 bool，其它拒绝。没有 typed资格模型，不能借此把所有 denied 或 unknown 变成状态事实。examples 不是缺失，但入口/方法的历史差异按已有 parity 决策处理，本轮不改。 |
 | 当前 Core | `crates/ubaa_core/src/domain/signin.rs:8`；`features/signin.rs:456` | 原始值保留 Option<i32>；数字或数字字符串可解析且在i32范围内才保留。trim后非空id产生 target；(target,0)=allowed，(target,1)=denied，其它unknown。 |
 | 当前 Core 预检 | `crates/ubaa_core/src/features/signin.rs:77`、`:85`、`:94` | 每次以目标重读今日列表，恰一项才继续；目标消失/重复分别返回错误。只有 allowed 可准备写入；denied 明确不可重复签到，unknown 缺少必要字段。列表存在重复并不自动改每项eligibility，预检才挡重复，UI不可推断成功。 |
 | 当前 Core 测试 | `crates/ubaa_core/src/features/signin/contract_tests.rs:5`、`:20`、`:32`、`:53`；`crates/ubaa_core/tests/signin/write_authority.rs:56`、`:89` | 分别覆盖0/1、缺失/null/bool/object/小数/坏字符串/越界/2→unknown、空目标、denied/unknown拒绝、目标消失/重复；本轮仅阅读未执行。 |
@@ -39,7 +39,7 @@
 | 作业列表 | old `model/dto/Spoc.kt:23`；`api/local/LocalSpocApi.kt:34`、`:40`、`:56`；Core `domain/spoc.rs:21`、`:47`；Bridge `api/read/mod.rs:144`、`:157`和`read/mappers.rs:167`、`:181` | 保留assignmentId/courseId/courseName/teacherName/title/startTime/dueTime/score/submissionStatus/submissionStatusText；列表整体termCode/termName也已公开，App当前`:13`只遍历assignments而未展示学期，可放列表说明，不能伪造每项学期字段。 |
 | 查看详情导航 | old `api/local/LocalSpocApi.kt:37`、`:82`、`:86`、`:202`；Core `facade/read/assignments.rs:56`、`features/spoc/detail.rs:17`、`:29`、`:52`；App `bridge/read/assignments.dart:37` | 精确 assignmentId 即足够；Core先从全局列表匹配，再确认详情返回id一致。列表typed导航应填 view=spocDetail + assignmentId，课程ID只展示归属，不增加详情query参数、不按标题猜作业。 |
 | 详情字段 | old `model/dto/Spoc.kt:38`；Core `domain/spoc.rs:69`；Bridge `read/mod.rs:163`、`read/mappers.rs:188`；App`:46` | 除摘要字段增加contentPlainText、submittedAt。old还有contentHtml但当前Core/Bridge故意只有纯文本，不补HTML/WebView、附件下载或提交按钮。分数为可选字符串，不转数字或靠分数判断提交状态。 |
-| examples nearest | `examples/buaa-api/src/api/spoc/opt.rs:54`、`:65`、`data.rs:178`、`:224` | 列表按课程GET queryXsZyList，与当前权威全局分页不等价；详情queryKczyInfoByid?id与旧同端点，仅作交叉证据；提交查询在opt.rs:97仅注释，不能当等价实现。examples已有写/上传不属于当前只读facade，P4-C不得接入。 |
+| examples nearest | `buaa-api/src/api/spoc/opt.rs:54`、`:65`、`data.rs:178`、`:224` | 列表按课程GET queryXsZyList，与当前权威全局分页不等价；详情queryKczyInfoByid?id与旧同端点，仅作交叉证据；提交查询在opt.rs:97仅注释，不能当等价实现。examples已有写/上传不属于当前只读facade，P4-C不得接入。 |
 | 已有parity与测试 | `docs/protocol/source-parity.md:142`、`:154`；old `LocalSpocApiBackendTest.kt:72`、`:285`；Core `features/spoc/tests.rs:194`、`:204`、`:224`、`:292`；`crates/ubaa_test_support/tests/readonly/spoc/detail.rs` | 既有九列/详情逐操作十列表已覆盖全局列表与详情、可选提交补充。测试名明确ID/纯文本/回退/详情不能替换摘要身份。UI只复用公开字段及既有详情query，不重开无关认证协议。 |
 
 当前App `assignments.dart:16`、`:46`仅通用fields，无typed presentation和readNavigation；P4-C应从Bridge对象当场投影身份、enum与文案并附typed导航，原有字段不丢。deadline/score不能自行推出submitted或overdue业务状态。
@@ -53,7 +53,7 @@
 | 详情与题目 | old `model/dto/Judge.kt:58`、`:70`；Core `domain/judge.rs:101`、`:117`；Bridge `read/mod.rs:206`、`:214`、`read/mappers.rs:228`、`:237` | 详情含全部摘要字段、problems、contentPlainText。每题name/score/maxScore/status/statusText；公开题目无problemId/URL/独立题目查询参数。题目必须嵌套在其父作业组，或typed题目presentation明确携带父courseId+assignmentId；不得按相邻列表位置或题名寻找父项。 |
 | 单项/批量操作 | Core `facade/read/assignments.rs:110`、`:130`；`features/judge/batch.rs:127`、`:163`、`:249`；App `assignments.dart:99`、`:141` | 单项两个非空ID；批量使用显式judgeKeys，Core过滤空键/去重后恢复调用方规范化顺序，无单独上游批量接口。UI已有空批量拒绝，不替换成新语义；批量返回逐父作业组，不把题目全局混排。 |
 | 当前App缺口 | `packages/ubaa_app/lib/src/bridge/read/assignments.dart:107`、`:119`、`:155`、`:173` | 单项/批量都将题目摊平为FeatureDetail，只有题名与三展示字段，父归属和typed状态丢失；即使顺序现在相邻，搜索/分页也会割裂，不能让UI靠位置还原。应由App在映射item.problems时注入父二元键或整个嵌套列表。没有依据增加题目点击跳转到上游页面。 |
-| examples | 固定 `examples/buaa-api/src/api`目录及`api/spoc` | 没有Judge等价模块。SPOC虽同属作业功能，ID、HTML解析、选课Cookie与请求不等价，不借参数或DTO。 |
+| examples | 固定 `buaa-api/src/api`目录及`api/spoc` | 没有Judge等价模块。SPOC虽同属作业功能，ID、HTML解析、选课Cookie与请求不等价，不借参数或DTO。 |
 | 已有parity与测试 | `docs/protocol/source-parity.md:183`、`:195`、`:201`；old `LocalJudgeApiBackendTest.kt:580`、`:628`、`:693`；Core `features/judge/tests.rs:105`、`:166`、`:198`、`:225`；`crates/ubaa_test_support/tests/readonly/judge/read.rs`、`isolation.rs` | 详情九列已包含题目表、PARTIAL、分数、缓存键；批量九列明确去重、课程分组、调用方顺序、路线/账户隔离。当前Core最高/本人分数、提交数量和enum都已计算，UI无需再次解析文本。历史截止课程ID与诊断计数是Core状态/证据内部能力，不应新增产品操作。 |
 
 ## 下一批最小验收建议（未执行）

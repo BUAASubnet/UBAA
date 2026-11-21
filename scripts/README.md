@@ -4,7 +4,7 @@
 
 | 目录或文件 | 职责 |
 |---|---|
-| `bootstrap/` | 显式安装 CI 固定 Flutter、建立缺失冻结引用、带版本/哈希锁的 Python 质量环境，本机一站式 `setup.sh`，以及只读核对版本的 `doctor.py` |
+| `bootstrap/` | 显式安装 CI 固定 Flutter 和带版本及哈希锁的 Python 质量环境，提供本机安装入口 `setup.sh` 与只读版本检查 `doctor.py` |
 | `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
 | `build/` | 官方 Flutter 平台与 OHOS HAP 构建，以及构建缓存占用查看与分范围清理 `cache.py` |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
@@ -22,7 +22,7 @@
 
 `tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `.ubaa_local/app_service/` 下创建私有临时目录，写入合成本地配置、迁移 D1、填充 KV、启动回环 Worker、查询 D1，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
 
-`tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
+`tools/versions.env` 集中记录工具与原生组件版本。`tools/flutter-packages.json` 集中记录七个正式包，根 Pub workspace 还包含 `packages/ubaa_test_support`，检查通过共享包清单覆盖八个成员。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
 根 `version.toml` 维护产品版本与构建号。`release/version.py` 由 `just version` 调用，同步自有声明并按需交给 Cargo、pub 和 CocoaPods 刷新锁文件；`just version-check` 使用同一份同步规则进行只读核对。工具链与第三方插件版本继续独立维护。
 

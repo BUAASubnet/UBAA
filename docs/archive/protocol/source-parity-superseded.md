@@ -15,7 +15,7 @@ P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、
 
 ## 2026-09-08 P4-B 学业展示模型与只读导航（实现前合同）
 
-本段范围仅 domain 新展示类型、FeatureDetail 可空展示/导航字段、App academic 投影及确定性测试；不改 Core、Bridge v9、UI 或宿主。`just refs` 本轮退出 0，两来源固定提交与本文件一致。字段直接核对生成 `packages/ubaa_bindings/lib/src/rust/api/read.dart`、冻结旧版 `Schedule.kt/Grade.kt/Classroom.kt` 与 `LocalScheduleApi.kt/LocalGradeApi.kt/LocalClassroomApi.kt`；交叉来源为固定 `examples/buaa-api/src/api/aas/{core,opt,data}.rs` 与 `api/app/{core,opt,data}.rs`。后者成绩/空教室不等价，不借用字段或协议。
+本段范围仅 domain 新展示类型、FeatureDetail 可空展示/导航字段、App academic 投影及确定性测试；不改 Core、Bridge v9、UI 或宿主。冻结来源校验 本轮退出 0，两来源固定提交与本文件一致。字段直接核对生成 `packages/ubaa_bindings/lib/src/rust/api/read.dart`、冻结旧版 `Schedule.kt/Grade.kt/Classroom.kt` 与 `LocalScheduleApi.kt/LocalGradeApi.kt/LocalClassroomApi.kt`；交叉来源为固定 `buaa-api/src/api/aas/{core,opt,data}.rs` 与 `api/app/{core,opt,data}.rs`。后者成绩/空教室不等价，不借用字段或协议。
 
 | 操作 | URL/service、重定向、Cookie/Session | 方法参数、Header/编码、加密 | DTO 与新增展示 | 缓存/并发、错误/退出 |
 |---|---|---|---|---|
@@ -41,7 +41,7 @@ P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、
 
 ## 2026-09-08 P4-B2 独立学期选项与教室参数归属（实现前合同）
 
-本段复用“学期”已核验冻结 LocalScheduleApi/Schedule DTO 与示例 aas 适用性，以及“空教室”LocalClassroomApi/Classroom DTO；`just refs`再次退出0。URL/service、重定向、Cookie、方法/参数、Header/编码、加密、Core排序/缓存/错误码全部不变。App仅在用户明确请求时经 FeatureQueryBackend.loadFeatureQuery(schedule,scheduleTerms)读取，新增独立当前会话选项缓存和同代在途合并，不借写全局schedule snapshot。成功结果可复用，force绕过成功缓存；错误不缓存；生命周期、backend、路线及readCacheEpoch变化后不返回旧成功，迟到返回安全operationConflict。该App选项缓存不是上游缓存改变。
+本段复用“学期”已核验冻结 LocalScheduleApi/Schedule DTO 与示例 aas 适用性，以及“空教室”LocalClassroomApi/Classroom DTO；冻结来源校验再次退出0。URL/service、重定向、Cookie、方法/参数、Header/编码、加密、Core排序/缓存/错误码全部不变。App仅在用户明确请求时经 FeatureQueryBackend.loadFeatureQuery(schedule,scheduleTerms)读取，新增独立当前会话选项缓存和同代在途合并，不借写全局schedule snapshot。成功结果可复用，force绕过成功缓存；错误不缓存；生命周期、backend、路线及readCacheEpoch变化后不返回旧成功，迟到返回安全operationConflict。该App选项缓存不是上游缓存改变。
 
 ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch调用的同一日期字符串与校区变量投影，不重新读取时钟、不添加上游筛选参数。模型/回调骨架后新增五项App行为及一项metadata断言实际RED，原82项通过；不是编译失败。Core/Bridge v9和UI均未修改，本记录不声称原生或实时通过。
 

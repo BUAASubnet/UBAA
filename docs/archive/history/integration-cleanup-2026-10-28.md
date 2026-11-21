@@ -27,4 +27,4 @@
 
 ## 验证
 
-`just refs`、`just layout-check`、`just check-sensitive`、`just check` 与 `just flutter-check` 通过；七包静态分析无问题，1481 项测试数与删除前一致（领域 60、平台 87、App 676、UI 454、绑定 20、Host 101、官方应用 83），`just integration-check` 确认 17 个入口分类与路径完整。未运行 FRB codegen 检查（无 Rust 或绑定改动），未在设备上执行保留的原生入口，也未运行真实账号验证。
+冻结来源校验、`just layout-check`、`just check-sensitive`、`just check` 与 `just flutter-check` 通过；七包静态分析无问题，1481 项测试数与删除前一致（领域 60、平台 87、App 676、UI 454、绑定 20、Host 101、官方应用 83），`just integration-check` 确认 17 个入口分类与路径完整。未运行 FRB codegen 检查（无 Rust 或绑定改动），未在设备上执行保留的原生入口，也未运行真实账号验证。

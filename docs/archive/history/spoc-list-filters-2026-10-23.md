@@ -1,6 +1,6 @@
 # SPOC 列表筛选与展示对齐
 
-基线 `0a550f58`。冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`；实施前 `just refs` 通过。
+基线 `0a550f58`。冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`；实施前 冻结来源校验 通过。
 
 ## 来源与范围
 

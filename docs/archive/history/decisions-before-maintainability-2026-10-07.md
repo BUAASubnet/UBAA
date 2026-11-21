@@ -35,9 +35,9 @@
 用户要求将 `buaa-api` 引用更新至最新版。
 
 - 冻结引用从 `efb7976bf513f38364b88aeb83d704586cff9b2a` 更新至上游 `main` 分支最新提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`（“refactor(class): Refresh token early in `ClassAPI` when VPN mode”）。
-- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标预期提交。
+- 引用校验脚本 与 引用准备脚本 同步更新目标预期提交。
 - `docs/migration/references.md`、`docs/migration/status.md` 及 `THIRD_PARTY_NOTICES.md` 同步更新声明。
-- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
+- 纯只读校验门禁 冻结来源校验 与引用合同测试 引用脚本测试 已完成 RED-GREEN 验证并全量通过。
 
 ## 2026-09-17 课堂签到追加修复
 
@@ -49,14 +49,14 @@
 本次统一引用[逐操作修正记录](../source-parity-signin-2026-09-17.md)：采用旧版业务登录和严格会话，
 保留 Direct/WebVPN 端口与路径差异，不将两份来源的不同协议拼接，也不扩大既有实时验证结论。
 
-## 2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples/
+## 2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples
 
-用户明确要求将冻结旧版代码库 `ubaa_old` 更新至 GitHub 上游最新并移至 `examples/` 目录下。
+用户明确要求将冻结旧版代码库 `ubaa_old` 更新至 GitHub 上游最新并移至 `examples` 目录下。
 
-- 目标路径由根目录 `ubaa_old/` 调整为 `examples/ubaa_old/`，根目录下重复的 `ubaa_old/` 予以清理。
+- 目标路径由根目录 `ubaa_old/` 调整为 `ubaa_old/`，根目录下重复的 `ubaa_old/` 予以清理。
 - 冻结引用从 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 更新至上游 `main` 分支最新提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`（标签 `v1.8.0`，“修复课表在线加载与本地化并重新发布 1.8.0”）。
-- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标检查与 bootstrap 路径及预期提交。
-- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
+- 引用校验脚本 与 引用准备脚本 同步更新目标检查与 bootstrap 路径及预期提交。
+- 纯只读校验门禁 冻结来源校验 与引用合同测试 引用脚本测试 已完成 RED-GREEN 验证并全量通过。
 
 ## 2026-09-07：贯通安全错误诊断并保持既有业务权威
 
@@ -85,7 +85,7 @@ Fixture/Mock 和宿主 integration 不替代真实系统或正式发布。
 按 Apple 的客户端网络 entitlement 定义，仅在 DebugProfile 与 Release 配置补齐该布尔权限，保留沙箱及其它权限。
 
 冻结 `ubaa_old` 在固定提交的 `composeApp/build.gradle.kts` 使用 Compose Desktop/JVM 分发，未提供
-等价 Flutter macOS entitlement；固定 `examples/buaa-api/Cargo.toml` 是 Rust API 库，同样没有等价宿主配置。
+等价 Flutter macOS entitlement；固定 `buaa-api/Cargo.toml` 是 Rust API 库，同样没有等价宿主配置。
 本次不改变任何 CAS/service URL、跳转、Cookie/Session 范围、方法/参数、Header/正文、加密、DTO、缓存并发或错误协议，
 继续沿用既有来源矩阵；不得从平台权限修复类推上游协议。
 
@@ -248,7 +248,7 @@ Host 注入 immutable state 与 prepare/cancel/confirm 三个安全命令；UI �
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `EvaluationService.kt`、
 `LocalEvaluationService.kt`、`EvaluationModel.kt`、`LocalEvaluationServiceBackendTest.kt`、旧 server
 `EvaluationClient.kt`、`EvaluationService.kt` 及其测试。交叉来源为
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `api/tes/{auth,data,opt}.rs`。
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `api/tes/{auth,data,opt}.rs`。
 完整逐操作九列见
 [source-parity.md 的 Phase 11J 表](../source-parity.md#phase-11j-evaluation-提交逐操作九列2026-09-05)。
 
@@ -304,7 +304,7 @@ caller-pinned `evaluationAll` 回读；该回读仅刷新状态，绝不把 unkn
 [source-parity.md 的 Phase 11I 表](../source-parity.md#phase-11i-ygdk-提交逐操作九列2026-09-05)。适用来源为
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
 `LocalYgdkApi.kt`、`Ygdk.kt`、API/backend 测试、Ygdk ViewModel 与旧 server client/service/tests。
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的固定模块清单没有 Ygdk、Clockin、
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的固定模块清单没有 Ygdk、Clockin、
 `campusAppLogin` 或照片上传等价协议，URL、跳转、Cookie/会话、请求参数、Header/编码、加密、DTO、并发和
 错误九列全部 N/A 且不等价；不得从示例的通用 SSO、credential、上传或其它业务错误类比补值。
 
@@ -385,7 +385,7 @@ target/request、单次 expected-route 原子提交入口和 caller-pinned overv
 确定性测试满足本条，但不表示真实账号写入已经验证。重新核对冻结
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `CgyyApi.kt`、`LocalCgyyApi.kt`、
 `LocalCgyySigner.kt`、`Cgyy.kt`、Cgyy 订单取消状态/时间测试以及旧 server 实现。固定
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
 `venue-zhjs`、`cgAuthorization` 或场馆订单协议，九列均为“不适用且不等价”；不得从 Boya 课程取消、
 通用 SSO/VPN、credential、Cookie 或错误类型类比补字段。
 
@@ -435,7 +435,7 @@ fixture/Mock 完成严格 ID、状态、上海时间边界、双 fresh、单 POS
 本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
 `LocalCgyyApi.kt`、`LocalCgyySigner.kt`、`LocalCgyyCaptchaSupport.kt`、`Cgyy.kt`、
 `CgyyViewModel.kt` 及其测试。固定
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `src/api.rs` 与 `src/lib.rs`
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `src/api.rs` 与 `src/lib.rs`
 没有 Cgyy、`venue-zhjs`、`cgAuthorization` 或场馆验证码协议；其通用 SSO/VPN、可落盘 credential 与 raw
 response 错误只属于其它 API，九列均为“不适用且不等价”，不得类比补 service、Cookie、字段、加密或错误。
 
@@ -483,7 +483,7 @@ fixture/Mock，不执行真实场馆预约，也不授权其它真实写操作�
 `shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/LibBook.kt`、
 `shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/LibBookBookingStatusTest.kt` 和
 `shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalLibBookApiBackendTest.kt`。固定
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
 `src/api.rs` 模块清单没有 LibBook、图书馆座位或 `booking.lib.buaa.edu.cn` 协议，因此 URL、重定向、
 Cookie/会话、方法/参数、Header/编码、加密、DTO、并发/重试和错误语义九列均为“不适用且不等价”，不得从
 其通用 SSO 或其它模块类比补值。
@@ -518,7 +518,7 @@ trust-all certificate/hostname verifier 违反当前 TLS 安全边界，明确�
 
 ## 2026-09-04：Phase 11E 图书馆预约 typed 资格与发送边界（当前有效）
 
-固定 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 没有 LibBook、座位或预约
+固定 `buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 没有 LibBook、座位或预约
 协议，九列均为“不适用且不等价”；不得类比其 URL、字段、会话、加密或错误。Phase 11E 只采用冻结
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的适用本地产品实现：先以
 `Space/map` 当前详情核对日期、唯一时段 ID 与起止时间，再以 `Space/seat` 当前结果核对唯一座位。座位
@@ -584,7 +584,7 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 本轮在把 Flutter 写入口从中文展示字段迁移到 typed action eligibility 前，重新逐操作核对了
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。审查发现既有
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。审查发现既有
 `source-parity.md` 把固定示例中的 Bykc、Class/Signin 和 Evaluation 等价实现误记为不适用，并有若干
 合成测试固定了错误字段。处理原则如下：
 
@@ -672,9 +672,9 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 ## 2026-08-31：Cgyy WebVPN 网关 Cookie 同步证据
 
-用户提供的 `examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har`（仅读）记录了完整的 WebVPN 浏览器流程。脱敏审阅确认：Cgyy `manageLogin` 在 WebVPN 包装地址上经两次 302 到 `/venue-zhjs`，没有 HTTP `Set-Cookie`；浏览器随后调用 `d.buaa.edu.cn/wengine-vpn/cookie` 的 `method=get` 接口，按 `host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前时间戳读取纯文本 Cookie 快照，其中包含 `sso_buaa_zhjs_token` 名称。前端把该值作为 `Sso-Token` 头发送到包装后的 `POST /venue-zhjs-server/api/login`，成功信封仍为 `code/data/message`，再以 `cgAuthorization` 继续业务读取。
+用户提供的 `BUAA-CGYY/d.buaa.edu.cn.cgyy.har`（仅读）记录了完整的 WebVPN 浏览器流程。脱敏审阅确认：Cgyy `manageLogin` 在 WebVPN 包装地址上经两次 302 到 `/venue-zhjs`，没有 HTTP `Set-Cookie`；浏览器随后调用 `d.buaa.edu.cn/wengine-vpn/cookie` 的 `method=get` 接口，按 `host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前时间戳读取纯文本 Cookie 快照，其中包含 `sso_buaa_zhjs_token` 名称。前端把该值作为 `Sso-Token` 头发送到包装后的 `POST /venue-zhjs-server/api/login`，成功信封仍为 `code/data/message`，再以 `cgAuthorization` 继续业务读取。
 
-此前 Core 只等待 Cgyy 响应的 `Set-Cookie`，因此 WebVPN 实时矩阵安全返回 `authentication_required`。先添加 `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 脱敏 Mock 并观察到预期失败，再实现网关 Cookie 同步；同步响应只在当前请求内存中解析，令牌不进入 Session、日志或文件。该证据不改变冻结 `ubaa_old` 的 Direct Cgyy URL、参数、签名、DTO 或错误语义，`examples/buaa-api` 仍无等价 Cgyy 模块；本地 Core WebVPN-only 回归和敏感扫描需在真实重跑前通过。
+此前 Core 只等待 Cgyy 响应的 `Set-Cookie`，因此 WebVPN 实时矩阵安全返回 `authentication_required`。先添加 `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 脱敏 Mock 并观察到预期失败，再实现网关 Cookie 同步；同步响应只在当前请求内存中解析，令牌不进入 Session、日志或文件。该证据不改变冻结 `ubaa_old` 的 Direct Cgyy URL、参数、签名、DTO 或错误语义，`buaa-api` 仍无等价 Cgyy 模块；本地 Core WebVPN-only 回归和敏感扫描需在真实重跑前通过。
 
 ## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑（历史快照）
 
@@ -693,11 +693,11 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 
-本周期先对照冻结 `ubaa_old`、固定版本 `examples/buaa-api` 和现有脱敏 Mock。原有 WebVPN Cgyy 测试复现了业务请求误走 Direct 的失败：WebVPN-only 会话无法完成站点读取，且写入口也固定访问 Direct。新增失败测试后，Core facade 将每个 Cgyy 公共操作分别绑定到解析出的路线 runtime；WebVPN 现在只使用 WebVPN URL，Direct 会话缺失不会触发偷偷回退。相同批次内业务令牌仍只在当前客户端内存复用，认证失效最多清理、重登并重放一次。
+本周期先对照冻结 `ubaa_old`、固定版本 `buaa-api` 和现有脱敏 Mock。原有 WebVPN Cgyy 测试复现了业务请求误走 Direct 的失败：WebVPN-only 会话无法完成站点读取，且写入口也固定访问 Direct。新增失败测试后，Core facade 将每个 Cgyy 公共操作分别绑定到解析出的路线 runtime；WebVPN 现在只使用 WebVPN URL，Direct 会话缺失不会触发偷偷回退。相同批次内业务令牌仍只在当前客户端内存复用，认证失效最多清理、重登并重放一次。
 
-冻结旧版 `LocalWebVpnSupport.localCgyyUpstreamUrl` 曾返回直连地址，`examples/buaa-api` 没有等价实现；该冻结行为与本周期明确的 WebVPN-only 路线合同冲突。冲突边界以脱敏 WebVPN-only 失败/修复测试和当前路线安全要求为依据，未从示例协议借用任何 URL、字段或令牌；后续真实 WebVPN 结果必须逐操作记录，若上游不支持该路线则记录失败而不回退 Direct。
+冻结旧版 `LocalWebVpnSupport.localCgyyUpstreamUrl` 曾返回直连地址，`buaa-api` 没有等价实现；该冻结行为与本周期明确的 WebVPN-only 路线合同冲突。冲突边界以脱敏 WebVPN-only 失败/修复测试和当前路线安全要求为依据，未从示例协议借用任何 URL、字段或令牌；后续真实 WebVPN 结果必须逐操作记录，若上游不支持该路线则记录失败而不回退 Direct。
 
-锁码解析另以脱敏失败测试复现了 CLI 序列化原始 `data` 的泄漏，现已收敛为 Core/CLI 公共结果 `{available: boolean}`；锁码正文不会进入 Session、日志或文件。以上修复均通过 focused Cgyy 测试、敏感扫描和确定性检查；协议 URL、参数、签名常量仍只取冻结实现，`examples/buaa-api` 无对应 Cgyy 实现，未作类比推断。
+锁码解析另以脱敏失败测试复现了 CLI 序列化原始 `data` 的泄漏，现已收敛为 Core/CLI 公共结果 `{available: boolean}`；锁码正文不会进入 Session、日志或文件。以上修复均通过 focused Cgyy 测试、敏感扫描和确定性检查；协议 URL、参数、签名常量仍只取冻结实现，`buaa-api` 无对应 Cgyy 实现，未作类比推断。
 
 真实验证入口已拆为单批次 `core-live` 与薄 `verify-live`：Core-live 一次创建固定路线 `RouteClient`，从 stdin 读取凭据并串行执行只读 facade 操作，逐项输出路线、操作、`PASS/FAIL/BLOCKED/NOT_APPLICABLE` 和稳定错误码；不调用任何写方法。`verify-live` 仅校验参数、临时读取 `.env.local`、锁定构建并转发，拒绝 `auto`；`auto` 只保留 Mock/确定性路由证据。Direct/WebVPN 的真实结果必须在本周期重新逐项记录，不能沿用旧脚本聚合摘要。
 
@@ -717,7 +717,7 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 历史记录：本轮先以脱敏 Mock 固定上述失败行为，再完成最小修复：所有 Cgyy 业务 GET/POST 统一经过一次认证重试，写请求头恢复使用业务 `access_token`。当时的 WebVPN Direct 兼容分支已被本周期路线校正 supersede；当前 facade 读写均使用解析出的路线 runtime。日期接口严格要求 `code=200` 且 `data` 存在并为 JSON 对象（允许空对象）；锁码接口严格要求成功代码，缺失 `data` 映射为空值，保持旧版可空语义。
 
-确定性证据为 Core Cgyy 集成测试 12/12、CLI 合同测试 23/23，以及 Cgyy facade 路由回归测试通过。实时只读证据仅确认两条路线的站点列表各返回 7 个；日期、订单和锁码在不同日期/路线出现 `upstream_unavailable` 或 `invalid_semantics`，部分日期结构探针曾返回正常对象，因此需把上游窗口/限流不稳定与本地协议错误分开处理。本轮没有调用预约、验证码校验、提交或取消写接口。`examples/buaa-api` 在冻结提交中没有等价 Cgyy 协议，未借用其 URL、字段或错误语义。
+确定性证据为 Core Cgyy 集成测试 12/12、CLI 合同测试 23/23，以及 Cgyy facade 路由回归测试通过。实时只读证据仅确认两条路线的站点列表各返回 7 个；日期、订单和锁码在不同日期/路线出现 `upstream_unavailable` 或 `invalid_semantics`，部分日期结构探针曾返回正常对象，因此需把上游窗口/限流不稳定与本地协议错误分开处理。本轮没有调用预约、验证码校验、提交或取消写接口。`buaa-api` 在冻结提交中没有等价 Cgyy 协议，未借用其 URL、字段或错误语义。
 
 ## 2026-08-17 至 2026-08-29：已归档历史决策摘要
 
@@ -746,7 +746,7 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 `cgyy.buaa.edu.cn` 公网可达，任何连接模式下都使用直连 URL；冻结
 `LocalCgyyApi.ensureBusinessLogin` 进一步固定使用 Direct Cookie 存储和直连客户端
 完成 SSO 跳转，再从场馆域 Cookie 取得 `sso_buaa_zhjs_token`。
-`examples/buaa-api` 没有等价协议，不能提供替代路线。
+`buaa-api` 没有等价协议，不能提供替代路线。
 
 当前 Rust 实现将场馆登录、业务登录和查询统一交给所选路线的
 `ClientRuntime`。当路线为 WebVPN 时，`runtime.url` 会包装场馆 URL，且 Cookie
@@ -1022,12 +1022,12 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 - 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt` 的 `parseSignConfig` 通过序列化器解析 `LocalBykcSignConfig`；签到点 `lat/lng` 为必填，单点解码异常会使 `runCatching` 返回空配置。
 - 原 Core 使用 `filter_map` 丢弃坏点并保留配置，与冻结错误语义不一致。新增无效坐标脱敏测试先失败，再改为列表与点字段整体严格校验。
-- `examples/buaa-api` 无等价 Bykc 签到配置协议，不参与字段或错误推断；未执行真实写操作。
+- `buaa-api` 无等价 Bykc 签到配置协议，不参与字段或错误推断；未执行真实写操作。
 
 ## 2026-08-29 Ygdk 记录时间戳
 
 - 冻结证据：`ubaa_old/.../LocalYgdkApi.kt` 的记录字段 `startTime/endTime` 为 `Long?`，映射时调用 `timestampToDateTimeText`，使用固定 `LOCAL_YGDK_TIME_ZONE`（东八区）输出分钟精度文本。
-- 原 Core 仅读取字符串，数值时间会变为空。新增数值时间脱敏测试先失败，再增加固定东八区转换；未从 `examples/buaa-api` 借用协议。
+- 原 Core 仅读取字符串，数值时间会变为空。新增数值时间脱敏测试先失败，再增加固定东八区转换；未从 `buaa-api` 借用协议。
 
 ## 2026-08-29 Ygdk 记录图片字段
 
@@ -1119,19 +1119,19 @@ CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 ## 2026-09-03 Ygdk 路线状态失效代数
 
 - 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt` 以独立 `sessionCache` 保存业务会话，并用同一个 `sessionMutex` 保护缓存读取、认证失效删除和 `currentSession` 的最终 `getOrPut`；但会话创建发生在最终锁外，`clearCache` 也没有加锁，因此冻结实现本身不能证明失效代数语义。
-- 固定提交的 `examples/buaa-api` 没有 Ygdk 等价实现，不能据此类比 URL、字段、令牌流程或错误语义。
+- 固定提交的 `buaa-api` 没有 Ygdk 等价实现，不能据此类比 URL、字段、令牌流程或错误语义。
 - 当前 `source-parity.md` 已明确决定使用路线内单飞登录与失效代数，使清理前启动的旧登录不能在清理后重新填充凭据；这是 Core 进程内缓存的本地并发合同，不是从冻结实现补出的上游协议字段，也不改变请求 URL、参数、请求头、正文编码、DTO 或错误分类。
 - 当前 Rust 状态的无条件 `set` 可与 `clear` 交错，使清理前启动的旧登录在清理后回写凭据。本轮先增加确定性竞态测试与仅测试暂停点，要求失效后旧结果不得重新填充；生产修复必须沿用既有路线隔离与脱敏边界。
 
 ## 2026-09-03 Ygdk OAuth 跳转主机约束冲突
 
-- 冻结 `LocalYgdkApi.kt` 的 `fetchOauthCode` 最多跟随十次 `Location`，会从 query 或 fragment query 提取 code，但没有逐跳 host 校验；固定 `examples/buaa-api` 没有 Ygdk 等价实现。
+- 冻结 `LocalYgdkApi.kt` 的 `fetchOauthCode` 最多跟随十次 `Location`，会从 query 或 fragment query 提取 code，但没有逐跳 host 校验；固定 `buaa-api` 没有 Ygdk 等价实现。
 - 当前 Core `features/ygdk.rs::oauth_code` 与 `code_from_url` 同样接受任意 host 的绝对/相对跳转。原 `source-parity.md` 曾写“仅允许已记录的 BUAA 主机”，但没有给出完整允许集合对应的冻结实现、测试或安全实时观察，因此该表述不能作为已实现事实。
 - 决策：把主机限制明确标为既有未决 parity gap。2026-09-03 的目录整理只原样移动当前跳转逻辑，不借结构提交增加猜测白名单；后续必须先取得适用冻结实现或脱敏实时跳转链证据，记录具体 host 集合并增加未知 host 的 RED 测试，才能单独收紧生产行为。
 
 ## 2026-09-03 Bykc 认证失效重试差异
 
-- 冻结 `LocalBykcApi.kt` 的 `doCallApiRaw` 会识别登录重定向，以及解密正文中的“会话已失效”或“未登录”；后者先清空业务令牌，再由 `callApiRaw` 强制刷新登录并最多重试一次。固定 `examples/buaa-api/src/api/boya` 只能作为同一业务端点的交叉证据，不能替代该冻结错误与重试语义。
+- 冻结 `LocalBykcApi.kt` 的 `doCallApiRaw` 会识别登录重定向，以及解密正文中的“会话已失效”或“未登录”；后者先清空业务令牌，再由 `callApiRaw` 强制刷新登录并最多重试一次。固定 `buaa-api/src/api/boya` 只能作为同一业务端点的交叉证据，不能替代该冻结错误与重试语义。
 - 当前 Core `features/bykc.rs::request_api` 只处理非 200 状态与响应 envelope，没有识别上述确定性认证失效，也不会清理路线凭据并重试，与主来源矩阵中“CAS/令牌失效清理业务状态并最多刷新一次”的既有要求不一致。
 - 决策：2026-09-03 的目录化提交仍只移动现有行为；该差异另立脱敏 Mock RED 测试与行为提交。修复只允许对有冻结证据的认证失效信号清理并重试一次，不得把网络异常、任意非 200 或不明确业务失败纳入重试，尤其不得冒险重复真实写操作。
 
@@ -1784,7 +1784,7 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 
 本批仅变更分支引用和文档，不改变生产代码、冻结来源或学校协议，因此不新增行为测试或实时学校请求。已有功能欠验继续保留，分支整理完成不等于项目验收完成。
 
-本次验证：`just refs`、`just layout-check`、`just check-sensitive`、完整 `just check`（含Core、Bridge、CLI端到端、构建及文档门禁）均通过；生产代码与原整合候选一致，仅提交6份文档。日志保存于上述私有备份目录的 `check.log`。Flutter和真实网络/桌面验收未重跑，不继承为本次通过。
+本次验证：冻结来源校验、`just layout-check`、`just check-sensitive`、完整 `just check`（含Core、Bridge、CLI端到端、构建及文档门禁）均通过；生产代码与原整合候选一致，仅提交6份文档。日志保存于上述私有备份目录的 `check.log`。Flutter和真实网络/桌面验收未重跑，不继承为本次通过。
 
 
 ## 2026-10-07：应用图标沿用冻结旧版资源

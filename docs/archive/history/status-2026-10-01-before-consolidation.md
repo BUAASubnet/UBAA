@@ -28,4 +28,4 @@ P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增
 
 P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。提交`75faa85c`前后的合成证据见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。三端111项原生矩阵和P5-B2性能轮次均已在后续提交复验；Direct上游可达性和实体/发布设备仍未闭合。
 
-P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1113项（57/75/563/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`、`just check`均已通过。三端30次结果、新App双路线状态和外部阻碍已记录在[测量证据](evidence/offline-startup-measurement-2026-09-24.md)；设计15类场景的确定性/原生矩阵已通过，实体设备、发布模式 iOS、Windows/Linux/OHOS 和 Direct 上游可达性仍未闭合。
+P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1113项（57/75/563/287/23/53/55），7包分析无问题；冻结来源校验、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`、`just check`均已通过。三端30次结果、新App双路线状态和外部阻碍已记录在[测量证据](evidence/offline-startup-measurement-2026-09-24.md)；设计15类场景的确定性/原生矩阵已通过，实体设备、发布模式 iOS、Windows/Linux/OHOS 和 Direct 上游可达性仍未闭合。

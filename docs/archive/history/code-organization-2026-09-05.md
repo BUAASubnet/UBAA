@@ -113,9 +113,9 @@ HTTP helper 在 `features/http.rs`；`ports/mod.rs`（130 行）持有 DTO/trait
 
 ### 2.1 原始基线
 
-本轮先执行了 `git status --short --branch`、`just refs` 和完整 `just check`。工作树基线干净，冻结引用
+本轮先执行了 `git status --short --branch`、冻结来源校验 和完整 `just check`。工作树基线干净，冻结引用
 分别为 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与
-`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`，完整 Rust/CLI/Shell 确定性门禁通过。
+`buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`，完整 Rust/CLI/Shell 确定性门禁通过。
 Flutter 独立审查同时运行了当前 `just flutter-check`，6 个 package/app 范围静态分析通过，140 个普通
 Flutter 测试通过；该结果不包含宿主 integration、原生构建、签名或设备证据。
 
@@ -430,7 +430,7 @@ UBAA/
 │   └── readonly/                            # 本轮保留现有路径，registry 覆盖全部 fixture
 ├── scripts/
 │   ├── README.md                            # 每个入口的副作用、网络与凭据要求
-│   ├── bootstrap/references.sh              # 可联网建立缺失冻结引用
+│   ├── bootstrap/                               # 当时包含引用准备脚本
 │   ├── check/{references,layout,sensitive,contract-versions,flutter-toolchains,flutter-codegen,flutter-workspace}.sh
 │   ├── build/{flutter,ohos}.sh
 │   ├── live/{verify,core-live}.sh
@@ -456,9 +456,9 @@ Rust integration test 的薄入口使用显式 `#[path = "auth/login.rs"] mod lo
 Cargo 会从 `tests/auth.rs` 自动解析 `tests/auth/mod.rs`。Dart 测试拆分为同一 library 的 `part` 文件，只有根
 `*_test.dart` 被 test runner 独立发现，子文件不使用 `_test.dart` 后缀。
 
-`just refs-bootstrap` 是唯一可以联网并创建缺失引用的入口；`just refs` 改为纯校验，只接受两个引用目录已
+`冻结来源准备命令` 是唯一可以联网并创建缺失引用的入口；冻结来源校验 改为纯校验，只接受两个引用目录已
 存在、HEAD 为锁定提交且工作树干净，不联网、不写目录。AGENTS、setup、CI、release-preflight 与开发文档
-统一使用这两个不同语义的 recipe，任何验证阶段都只调用纯校验的 `just refs`。
+统一使用这两个不同语义的 recipe，任何验证阶段都只调用纯校验的 冻结来源校验。
 
 ## 6. 稳定接口与依赖方向
 
@@ -609,7 +609,7 @@ Header/编码、加密/签名、DTO/解析容错、缓存/并发、重试、错�
 
 ```text
 git status --short --branch
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just check-sensitive
 <本阶段 focused tests>
@@ -619,7 +619,7 @@ just flutter-check
 git diff --check
 ```
 
-暂存前检查文件名与 diff，禁止包含 `ubaa_old/`、`examples/`、`.env.local`、session、Cookie、token、验证码、
+暂存前检查文件名与 diff，禁止包含 `ubaa_old/`、`examples`、`.env.local`、session、Cookie、token、验证码、
 个人数据、原始响应、构建缓存或签名材料。
 
 ### 10.2 Rust/CLI/Core 阶段
@@ -664,7 +664,7 @@ OHOS 门禁必须确认 DevEco `26.0.0.821`、OpenHarmony API26、arm64 动态�
 ### 10.4 最终门禁
 
 ```text
-just refs
+# 当时另做了冻结来源校验
 just layout-check
 just check-sensitive
 just check
