@@ -41,6 +41,24 @@ test("开发提交不会触发完整验收和原生矩阵", () => {
   assert.equal(native.on.pull_request, undefined);
   assert.ok(Object.hasOwn(native.on, "workflow_call"));
 });
+test("dev 的每次推送独立运行，同一个 PR 取消旧运行", () => {
+  const { group, "cancel-in-progress": cancelInProgress } = workflow("dev").concurrency;
+  const evaluate = (expression, github) => new Function("github", `return ${expression}`)(github);
+  const groupFor = (github) => group.replace(/\$\{\{(.+?)\}\}/g, (_, expression) => evaluate(expression, github));
+  const cancels = (github) => typeof cancelInProgress === "boolean"
+    ? cancelInProgress
+    : evaluate(cancelInProgress.slice(3, -2), github);
+  const pushes = ["1", "2", "3"].map((run_id) => ({ event_name: "push", ref: "refs/heads/dev", run_id }));
+  for (const push of pushes) assert.equal(cancels(push), false);
+  assert.equal(new Set(pushes.map(groupFor)).size, pushes.length);
+  const pr = { event_name: "pull_request", ref: "refs/pull/8/merge", run_id: "4" };
+  assert.equal(cancels(pr), true);
+  assert.equal(groupFor(pr), groupFor({ ...pr, run_id: "5" }));
+  assert.notEqual(groupFor(pr), groupFor({ ...pr, ref: "refs/pull/9/merge", run_id: "6" }));
+  const manual = { ...pushes[0], event_name: "workflow_dispatch", run_id: "7" };
+  assert.equal(cancels(manual), false);
+  assert.ok(!pushes.map(groupFor).includes(groupFor(manual)));
+});
 test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
   const release = workflow("release");
   for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {

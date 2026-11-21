@@ -10,8 +10,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: dev-check-${{ github.ref }}
-  cancel-in-progress: true
+  group: dev-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   changes:
     runs-on: ubuntu-latest
