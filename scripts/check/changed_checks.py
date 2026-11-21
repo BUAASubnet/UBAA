@@ -236,6 +236,11 @@ PRIVACY_POLICY_INPUTS = {
     'scripts/check/app_service/privacy_policy.py',
     'scripts/tests/app_service/privacy_policy_test.py',
 }
+TOOL_VERSION_INPUTS = {
+    'scripts/tools/versions.env', 'scripts/check/tool_versions.py', 'scripts/lib/environment.py',
+    'Cargo.toml', 'rust-toolchain.toml', 'crates/ubaa_flutter_bridge/Cargo.toml',
+    'crates/ubaa_flutter_bridge/cargokit.yaml', 'packages/ubaa_bindings/pubspec.yaml',
+}
 SITE_INPUTS = {
     'package.json', 'package-lock.json', 'docs/contracts/app-service.schema.json',
     'scripts/check/app_service/content.mjs', 'services/app_service/src/version.mjs',
@@ -405,6 +410,9 @@ def select_checks(root, paths, mode='commit', previous=None):
             'maintenance': maintenance,
             'live_launchers': any(path.startswith('scripts/live/') or path in LIVE_LAUNCHER_INPUTS
                                   for path in paths),
+            'tool_versions': any(path in TOOL_VERSION_INPUTS
+                                 or (path.startswith('.github/') and path.endswith('.yml'))
+                                 for path in paths),
             'native': [['just', 'integration-test']] if full else [
                 ['just', 'integration-test', f'suite={suite}', f'platform={platform}']
                 for suite, platform in sorted(native_checks)],
@@ -442,6 +450,8 @@ def commands(plan):
             result.append(['bash', './scripts/tests/live-launchers.sh'])
         if plan['privacy_policy']:
             result.append(['just', 'privacy-policy-check'])
+        if plan['tool_versions']:
+            result.append(['just', 'tool-version-check'])
     if plan['packages']:
         if not plan['full'] and not plan['scripts']:
             result.append(['just', 'module-check'])
