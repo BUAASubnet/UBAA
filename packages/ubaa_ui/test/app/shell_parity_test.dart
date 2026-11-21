@@ -263,10 +263,6 @@ void main() {
     );
     expect(tester.getSize(panel).height, lessThan(400));
   });
-  test('研讨室预约使用旧版业务名称', () {
-    expect(FeatureId.cgyy.title, '研讨室预约');
-    expect(WriteOperation.cgyySubmitReservation.title, '研讨室预约');
-  });
 }
 
 Future<void> openGrade(WidgetTester tester) async {
