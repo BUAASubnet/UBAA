@@ -217,6 +217,11 @@ MAINTENANCE_INPUTS = {
     'scripts/release/macos-entitlements.sh', 'scripts/release/platforms/apple_signing.py',
     'scripts/release/platforms/ohos_signing.mjs', 'scripts/tools/versions.env',
 }
+LIVE_LAUNCHER_INPUTS = {
+    'scripts/tests/live-launchers.sh', 'scripts/lib/environment.py',
+    'scripts/lib/live-features.sh', 'scripts/lib/repo.sh', 'scripts/lib/toolchain.sh',
+    'scripts/lib/toolchain.py',
+}
 APP_SERVICE_INPUTS = {
     'docs/contracts/app-service.schema.json', 'docs/contracts/app-service.md',
     'scripts/check/contract-versions.sh', 'scripts/tests/checks/contract_versions_test.py',
@@ -396,6 +401,8 @@ def select_checks(root, paths, mode='commit', previous=None):
             'scripts': scripts, 'docs': docs, 'full': full, 'risk': risk and not full,
             'cargo_lock': scripts or any(path.endswith('.md') for path in paths),
             'maintenance': maintenance,
+            'live_launchers': any(path.startswith('scripts/live/') or path in LIVE_LAUNCHER_INPUTS
+                                  for path in paths),
             'native': [['just', 'integration-test']] if full else [
                 ['just', 'integration-test', f'suite={suite}', f'platform={platform}']
                 for suite, platform in sorted(native_checks)],
@@ -429,6 +436,8 @@ def commands(plan):
             result.append(['just', 'cargo-lock-check'])
         if plan['maintenance']:
             result.append(['bash', './scripts/tests/maintenance-gates.sh'])
+        if plan['live_launchers']:
+            result.append(['bash', './scripts/tests/live-launchers.sh'])
         if plan['privacy_policy']:
             result.append(['just', 'privacy-policy-check'])
     if plan['packages']:

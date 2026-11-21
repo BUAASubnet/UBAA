@@ -103,12 +103,12 @@ _script-contracts:
     just docs-link-check
     just tool-version-check
     just version-check
-    bash ./scripts/tests/live-launchers.sh
     git diff --check
 
 _script-specialized:
     bash ./scripts/tests/maintenance-gates.sh
     just cargo-lock-check
+    bash ./scripts/tests/live-launchers.sh
 
 _rust-shell-contracts:
     just _script-contracts

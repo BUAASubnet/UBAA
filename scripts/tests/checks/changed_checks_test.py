@@ -72,6 +72,12 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertIn(command, gates.commands(self.plan(path)))
         self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
 
+    def test_live_launcher_gate_runs_for_launchers_and_environment_inputs(self):
+        command = ['bash', './scripts/tests/live-launchers.sh']
+        for path in ('scripts/live/verify.sh', 'scripts/lib/environment.py'):
+            self.assertIn(command, gates.commands(self.plan(path)))
+        self.assertNotIn(command, gates.commands(self.plan('scripts/check/example.py')))
+
     def test_unknown_path_keeps_full_mode(self):
         self.assertTrue(self.plan('unexpected/file')['full'])
 
