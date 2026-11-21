@@ -59,6 +59,29 @@ test("dev 的每次推送独立运行，同一个 PR 取消旧运行", () => {
   assert.equal(cancels(manual), false);
   assert.ok(!pushes.map(groupFor).includes(groupFor(manual)));
 });
+test("dev Rust 执行 Clippy、Core 合同及其余工作区测试", () => {
+  const { steps } = workflow("dev").jobs.rust;
+  assert.equal(steps.find((step) => step.uses === "./.github/actions/rust_cache").with.kind, "tests");
+  const commands = steps.flatMap((step) => step.run?.split("\n") ?? []);
+  assert.deepEqual(commands, [
+    "cargo fmt --all -- --check",
+    "cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "just core-test-contract",
+    "cargo test --locked --workspace --exclude ubaa-core",
+  ]);
+});
+test("dev Flutter 在静态分析后把选中的包传给非 golden 测试入口", () => {
+  const { changes, flutter } = workflow("dev").jobs;
+  assert.equal(flutter["runs-on"], "ubuntu-latest");
+  assert.equal(flutter.needs, "changes");
+  assert.equal(changes.outputs.flutter_packages, "${{ steps.paths.outputs.flutter_packages }}");
+  const commands = flutter.steps.filter((step) => step.run);
+  assert.deepEqual(commands.map(({ run }) => run), [
+    "bash scripts/check/flutter-workspace.sh analyze",
+    'bash scripts/check/flutter-workspace.sh test-non-golden "$FLUTTER_PACKAGES"',
+  ]);
+  assert.equal(commands[1].env.FLUTTER_PACKAGES, "${{ needs.changes.outputs.flutter_packages }}");
+});
 test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
   const release = workflow("release");
   for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {

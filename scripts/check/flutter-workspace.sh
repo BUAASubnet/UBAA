@@ -11,8 +11,11 @@ repo_root=$(ubaa_repo_root)
 source "$script_dir/../lib/toolchain.sh"
 check_mode=${1:-check}
 if [[ $# -gt 0 ]]; then shift; fi
+if [[ "$check_mode" == test-non-golden ]]; then
+  exec python3 "$script_dir/ci/plan.py" "$check_mode" "$@"
+fi
 if [[ "$check_mode" != check && "$check_mode" != dependencies && "$check_mode" != analyze ]]; then
-  printf '%s\n' 'error: 只接受 check、analyze 或 dependencies 模式' >&2
+  printf '%s\n' 'error: 只接受 check、analyze、dependencies 或 test-non-golden 模式' >&2
   exit 2
 fi
 # 单个 flutter test 已按核数并发执行测试文件；8 核本机实测 3 包并行比串行更慢，
