@@ -15,36 +15,6 @@ use crate::io::input::{
 use crate::io::render::render_startup_error;
 use crate::io::schema::{AggregateJsonEnvelope, CliFeature};
 
-/// 通过双路门面执行普通聚合登录流程。
-pub async fn run_dual_login<R, O, E>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    input: &mut R,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32
-where
-    R: BufRead,
-    O: Write,
-    E: Write,
-{
-    let code = run_dual_login_impl(cli, backend, input, stdout, stderr).await;
-    crate::runtime::finish_output(code, stdout, stderr)
-}
-
-async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    input: &mut R,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    let cli_json = cli.json;
-    execute_login(cli, backend, input, stderr)
-        .await
-        .render(cli_json, stdout, stderr)
-}
-
 pub(crate) async fn execute_login<R: BufRead, E: Write>(
     cli: Cli,
     backend: &mut UbaaClient,
@@ -84,40 +54,6 @@ pub(crate) async fn execute_login<R: BufRead, E: Write>(
         route_policy,
         registration,
     }
-}
-
-/// 执行普通聚合认证状态流程。
-async fn run_dual_status_unflushed<O, E>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32
-where
-    O: Write,
-    E: Write,
-{
-    let json = cli.json;
-    execute_auth(cli, backend, &mut std::io::empty())
-        .await
-        .render(json, stdout, stderr)
-}
-
-/// 使用固定的聚合路由元数据退出两个路由槽位。
-async fn run_dual_logout_unflushed<O, E>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32
-where
-    O: Write,
-    E: Write,
-{
-    let json = cli.json;
-    execute_auth(cli, backend, &mut std::io::empty())
-        .await
-        .render(json, stdout, stderr)
 }
 
 pub(crate) fn validate_login_arguments(json: bool, args: &LoginArgs) -> Result<()> {
@@ -292,27 +228,6 @@ fn render_aggregate_input_error<O: Write, E: Write>(
     stderr: &mut E,
 ) -> i32 {
     render_startup_error(json_mode, CliFeature::Auth, error, stdout, stderr)
-}
-
-/// 聚合认证状态复用原结果，交付前刷新两条流。
-pub async fn run_dual_status<O: Write, E: Write>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    let code = run_dual_status_unflushed(cli, backend, stdout, stderr).await;
-    crate::runtime::finish_output(code, stdout, stderr)
-}
-/// 聚合退出不重放，交付前刷新两条流。
-pub async fn run_dual_logout<O: Write, E: Write>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    let code = run_dual_logout_unflushed(cli, backend, stdout, stderr).await;
-    crate::runtime::finish_output(code, stdout, stderr)
 }
 
 pub(crate) enum AggregateResult {

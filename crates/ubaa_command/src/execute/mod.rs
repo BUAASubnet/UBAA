@@ -3,18 +3,12 @@
 use serde::Serialize;
 use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
 
-use crate::command::command_feature;
 use crate::io::input::internal_error;
 use crate::io::schema::{CliFeature, CommandOutput};
 
 pub(crate) mod aggregate;
 mod features;
-pub(crate) mod fixed;
 pub(crate) mod routed;
-
-pub use aggregate::{run_dual_login, run_dual_logout, run_dual_status};
-pub use fixed::{run_with_backend, run_with_backend_with_route};
-pub use routed::run_with_routed_backend;
 
 pub(in crate::execute) fn routed_map<T>(
     result: RoutedResult<T>,
