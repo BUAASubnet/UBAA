@@ -1,3 +1,4 @@
+use super::lock_unpoisoned;
 use super::{Body, BridgeCommandResult};
 use std::sync::{Arc, Mutex};
 use ubaa_command::runtime::{OutputReader, bounded_output};
@@ -11,12 +12,10 @@ pub struct BridgeCommandDelivery {
     completion: tokio::sync::Mutex<Option<tokio::task::JoinHandle<i32>>>,
 }
 impl BridgeCommandResult {
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     // FRB 需要在 Tokio worker 内启动输出任务。
     #[allow(clippy::unused_async, clippy::unused_async_trait_impl)]
     pub async fn deliver(&self) -> BridgeCommandDelivery {
-        let body = self.body.lock().unwrap().take();
+        let body = lock_unpoisoned(&self.body).take();
         let known =
             matches!(body.as_ref(),Some(Body::Result(result)) if result.write_result_known());
         let hints = self.hints.clone();
@@ -111,15 +110,13 @@ impl BridgeCommandDelivery {
             err.fail();
         }
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub async fn finish(&self) -> i32 {
         let code = match self.completion.lock().await.take() {
             Some(task) => task.await.unwrap_or(7),
             None => 7,
         };
         if !matches!(code, 5 | 7) && self.known {
-            let hints = std::mem::take(&mut *self.hints.lock().unwrap());
+            let hints = std::mem::take(&mut *lock_unpoisoned(&self.hints));
             let _ = tokio::task::spawn_blocking(move || {
                 for (cache, id) in hints {
                     let _ = cache.dismiss_write_readback(&id);

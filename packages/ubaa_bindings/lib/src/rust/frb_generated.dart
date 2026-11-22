@@ -48170,8 +48170,6 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
 
   /// # Errors
   /// 身份凭证已消费或不属于当前认证代次时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<String> commandLoginUsername({
     required BridgeCommandLoginIdentity identity,
   }) => RustLib.instance.api.crateApiClientBridgeClientCommandLoginUsername(
@@ -48200,8 +48198,6 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
 
   /// # Errors
   /// 身份凭证已消费或认证代次已变化时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> consumeCommandLoginIdentity({
     required BridgeCommandLoginIdentity identity,
   }) => RustLib.instance.api
@@ -49311,8 +49307,6 @@ class BridgeCommandDeliveryImpl extends RustOpaque
   Future<void> fail() => RustLib.instance.api
       .crateApiCommandOutputBridgeCommandDeliveryFail(that: this);
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<int> finish() => RustLib.instance.api
       .crateApiCommandOutputBridgeCommandDeliveryFinish(that: this);
 
@@ -49349,8 +49343,6 @@ class BridgeCommandImpl extends RustOpaque implements BridgeCommand {
   void cancel() =>
       RustLib.instance.api.crateApiCommandBridgeCommandCancel(that: this);
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult?> earlyResult() =>
       RustLib.instance.api.crateApiCommandBridgeCommandEarlyResult(that: this);
 
@@ -49369,8 +49361,6 @@ class BridgeCommandImpl extends RustOpaque implements BridgeCommand {
   /// 复用 GUI 的 Core 同步服务，作业内不进入会话恢复重跑器。
   /// # Errors
   /// 计划已消费或客户端已关闭时拒绝，业务结果由统一命令输出交付。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> executeAgendaSync({
     required BridgeClient client,
     required BridgeAgendaStore agenda,
@@ -49403,8 +49393,6 @@ class BridgeCommandImpl extends RustOpaque implements BridgeCommand {
         authentication: authentication,
       );
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> failure({
     required BridgeCommandFailure failure,
   }) => RustLib.instance.api.crateApiCommandBridgeCommandFailure(
@@ -49415,8 +49403,6 @@ class BridgeCommandImpl extends RustOpaque implements BridgeCommand {
   /// 原生每次只读取所请求的输入；无效用户名不能提前消耗密码。
   /// # Errors
   /// 输入流或命令状态不能继续时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandInput> inputRequest({
     required List<int> input,
     required bool eof,
@@ -49426,8 +49412,6 @@ class BridgeCommandImpl extends RustOpaque implements BridgeCommand {
     eof: eof,
   );
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> prepare({required List<int> input}) => RustLib.instance.api
       .crateApiCommandBridgeCommandPrepare(that: this, input: input);
 
@@ -49496,18 +49480,12 @@ class BridgeCommandResultImpl extends RustOpaque
         .rust_arc_decrement_strong_count_BridgeCommandResultPtr,
   );
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<bool> authenticationSucceeded() => RustLib.instance.api
       .crateApiCommandBridgeCommandResultAuthenticationSucceeded(that: this);
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandDelivery> deliver() => RustLib.instance.api
       .crateApiCommandBridgeCommandResultDeliver(that: this);
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> recoveryFailed({
     required BridgeCommandFailure failure,
   }) => RustLib.instance.api.crateApiCommandBridgeCommandResultRecoveryFailed(
@@ -49515,13 +49493,9 @@ class BridgeCommandResultImpl extends RustOpaque
     failure: failure,
   );
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> registrationFailed() => RustLib.instance.api
       .crateApiCommandBridgeCommandResultRegistrationFailed(that: this);
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> registrationSucceeded() => RustLib.instance.api
       .crateApiCommandBridgeCommandResultRegistrationSucceeded(that: this);
 }

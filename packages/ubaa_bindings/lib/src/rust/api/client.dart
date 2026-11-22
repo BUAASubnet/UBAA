@@ -515,8 +515,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或不属于当前认证代次时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<String> commandLoginUsername({
     required BridgeCommandLoginIdentity identity,
   });
@@ -534,8 +532,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或认证代次已变化时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> consumeCommandLoginIdentity({
     required BridgeCommandLoginIdentity identity,
   });

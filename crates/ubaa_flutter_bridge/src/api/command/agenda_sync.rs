@@ -1,4 +1,5 @@
 use super::{Body, BridgeCommand, BridgeCommandResult, command, core, stopped};
+use super::{lock_unpoisoned, write_unpoisoned};
 use crate::api::{
     agenda::BridgeAgendaStore,
     client::{BridgeClient, BridgeError, disposed_error},
@@ -12,8 +13,6 @@ impl BridgeCommand {
     /// 复用 GUI 的 Core 同步服务，作业内不进入会话恢复重跑器。
     /// # Errors
     /// 计划已消费或客户端已关闭时拒绝，业务结果由统一命令输出交付。
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub async fn execute_agenda_sync(
         &self,
         client: &BridgeClient,
@@ -46,7 +45,7 @@ impl BridgeCommand {
             return Err(disposed_error());
         }
         let client = guard.as_mut().ok_or_else(|| disposed_error())?;
-        *self.close.write().unwrap() = Some(client.close_control());
+        *write_unpoisoned(&self.close) = Some(client.close_control());
         let capabilities = client.bhpan_capabilities();
         if capabilities.direct_metadata == core::BhpanCapability::Available
             && capabilities.object_transfer == core::BhpanCapability::Available
@@ -56,7 +55,7 @@ impl BridgeCommand {
                 Err(error) => error.resolution,
             };
             if let Some(resolution) = resolution {
-                *self.sent.lock().unwrap() =
+                *lock_unpoisoned(&self.sent) =
                     Some((Arc::new(client.observe_write_boundary()), resolution));
             }
         }

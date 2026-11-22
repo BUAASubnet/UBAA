@@ -1,4 +1,39 @@
 use super::*;
+
+#[test]
+fn 锁污染后仍能查询进度取消并读取结果() {
+    fn poison<T>(lock: &Mutex<T>) {
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _guard = lock.lock().unwrap();
+                panic!("合成锁污染");
+            }))
+            .is_err()
+        );
+    }
+
+    let command = BridgeCommand::parse(["ubaa-cli", "--help"].map(str::to_owned).to_vec(), 120_000);
+    let transfer = core::bhpan::BhpanTransfer::new();
+    *command.transfer.lock().unwrap() = Some(transfer.clone());
+    poison(&command.transfer);
+    poison(&command.early);
+    assert!(command.transfer_progress_line().is_some());
+    command.cancel();
+    assert_eq!(
+        transfer.progress().phase,
+        core::BhpanTransferPhase::Cancelled
+    );
+
+    let result = command.early_result().expect("应保留未读取的结果");
+    assert!(command.early_result().is_none());
+    poison(&result.body);
+    assert!(!result.authentication_succeeded());
+    let recovered = result.registration_failed();
+    assert!(matches!(
+        recovered.body.lock().unwrap().as_ref(),
+        Some(Body::Parse(_))
+    ));
+}
 #[test]
 fn 配置路径为文件时在请求密码前拒绝() {
     let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_input").unwrap();
