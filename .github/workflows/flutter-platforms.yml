@@ -184,6 +184,16 @@ jobs:
           UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: bash scripts/tests/linux-secure-storage.sh
 
+      - name: 收集复核用构建产物
+        id: debug-artifact
+        shell: bash
+        run: |
+          source="${{ matrix.artifact }}"
+          destination="dist/flutter_debug/${{ matrix.artifact_id || matrix.platform }}"
+          mkdir -p "$destination"
+          cp -RP "$source" "$destination/"
+          printf 'path=%s/%s\n' "$destination" "${source##*/}" >> "$GITHUB_OUTPUT"
+
       - name: 关联候选输入与实际产物
         shell: bash
         run: >-
@@ -203,7 +213,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}
-          path: ${{ matrix.artifact }}
+          path: ${{ steps.debug-artifact.outputs.path }}
           if-no-files-found: error
           retention-days: 14
 
@@ -231,9 +241,14 @@ jobs:
           UBAA_OHOS_NO_CODESIGN: '1'
           UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just ohos-check mode=debug
+      - name: 收集 HarmonyOS 调试产物
+        shell: bash
+        run: |
+          mkdir -p dist/flutter_debug/ohos
+          cp apps/ubaa_ohos/build/ohos/hap/*.hap dist/flutter_debug/ohos/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ubaa-ohos-debug-${{ github.run_id }}
-          path: apps/ubaa_ohos/build/ohos/hap/*.hap
+          path: dist/flutter_debug/ohos/*.hap
           if-no-files-found: error
           retention-days: 3

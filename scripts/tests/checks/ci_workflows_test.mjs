@@ -200,6 +200,19 @@ test("HarmonyOS 商店产物与公开安装包分别上传", () => {
   assert.equal(download.with.path, "dist/release/public");
 });
 
+test("Flutter 原生调试产物先收集到 dist 再上传", () => {
+  const jobs = workflow("flutter-platforms").jobs;
+  const native = jobs["native-debug"];
+  const collect = native.steps.find((step) => step.name === "收集复核用构建产物");
+  assert.equal(collect.shell, "bash");
+  assert.match(collect.run, /dist\/flutter_debug\/\$\{\{ matrix\.artifact_id \|\| matrix\.platform \}\}/);
+  const upload = native.steps.find((step) => step.with?.name === "ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}");
+  assert.equal(upload.with.path, "${{ steps.debug-artifact.outputs.path }}");
+  const ohos = jobs["native-ohos"];
+  assert.match(ohos.steps.find((step) => step.name === "收集 HarmonyOS 调试产物").run, /dist\/flutter_debug\/ohos/);
+  assert.equal(ohos.steps.find((step) => step.uses?.startsWith("actions/upload-artifact@")).with.path, "dist/flutter_debug/ohos/*.hap");
+});
+
 test("发布作业始终清理 runner 临时签名和商店密钥", () => {
   const { jobs } = workflow("release");
   for (const name of ["android", "ohos", "app-store", "store-access"]) {
