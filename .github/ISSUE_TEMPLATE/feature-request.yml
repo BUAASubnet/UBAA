@@ -4,7 +4,6 @@ body:
   - type: markdown
     attributes:
       value: |
-        **UBAA 当前处于功能冻结期。建议会被记录，但暂不实施。**
         Issue 公开可见，请勿粘贴账号、密码、Cookie、Token 或截图中的个人信息。
   - type: textarea
     id: scenario
