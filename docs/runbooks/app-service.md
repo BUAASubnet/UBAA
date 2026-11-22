@@ -2,6 +2,8 @@
 
 应用服务运行在 `ssh ubaa` 对应的 Debian 服务器，通过 Nginx 提供 HTTPS。数据库使用 PostgreSQL 17，应用运行时使用 Node.js 26。客户端接口与请求 Schema 见[应用服务合同](../contracts/app-service.md)。
 
+相关资料包括[应用服务合同样例](../../fixtures/app_service/README.md)和[匿名分钟计数的决策](../adr/0009-minute-telemetry-counts.md)。
+
 ## 入口与目录
 
 | 用途 | 地址或目录 |

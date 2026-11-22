@@ -42,6 +42,8 @@ flowchart TD
 | 宿主与平台 | `apps/*`、`packages/ubaa_host`、`packages/ubaa_platform` | 入口、生命周期接线、安全存储、路径、文件与照片选择 | 业务状态机 |
 | 界面 | `packages/ubaa_ui` | 用户输入、状态和结果呈现，消费不可变模型与回调 | 从文案推断写资格 |
 
+Core 的选型依据见 [Serde 与传输接口](../adr/0002-serde-and-injectable-transport.md)、[URL、加密与会话](../adr/0003-url-crypto-cookie-session.md)和 [HTTP 与 HTML 解析](../adr/0004-verified-http-and-html-parser.md)。六平台的宿主选型见 [Flutter + FRB](../adr/0005-flutter-frb-six-platforms.md)。
+
 客户端、账号绑定、取消和关闭控制由各自现有的资源所有者统一更新。替换 Core 客户端时必须同时处理关联状态，不能由多个互不知情的对象各自维护一份“当前客户端”。
 
 ## 一次读取如何流转

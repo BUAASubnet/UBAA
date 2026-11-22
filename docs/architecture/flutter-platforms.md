@@ -102,6 +102,7 @@ Linux 安全存储的依赖：
 
 ### 4.4 宿主入口与写入
 
+- 修改 iOS 启动画面时，参见[启动图资源说明](../../apps/ubaa_flutter/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md)。
 - 两个平台的 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host` 负责 AppController 生命周期与回调接线。
 - 生产默认通过 `createProductionBackend()` 打开 `BridgeBackend`，打开失败才使用 `UnavailableBackend`。Demo 只用于显式注入的测试或预览。
 - 写入状态由应用层 `WriteCoordinator` 唯一持有。平台位置获取期间发生会话失效时，不继续准备旧操作。
@@ -125,6 +126,7 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 
 ## 6. FRB 生成边界
 
+- 接线说明和历史版本见 [Bindings 说明](../../packages/ubaa_bindings/README.md)和 [Bindings 更新日志](../../packages/ubaa_bindings/CHANGELOG.md)。
 - `packages/ubaa_bindings/lib/src/rust/` 与 `crates/ubaa_flutter_bridge/src/frb_generated.rs` 是 FRB 2.13.0 的机械生成输出，禁止手改。
 - 生成的 FFI 编解码需要 `unsafe`。仓库只在私有 `frb_generated` 模块上局部允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块保持 `unsafe_code=deny` 和严格 Clippy。
 - `just flutter-codegen-check` 重新生成，以锁定 Rust toolchain 机械执行 `cargo fmt --all`，并要求零漂移，防止例外扩散到业务代码。

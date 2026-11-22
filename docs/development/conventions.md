@@ -30,17 +30,7 @@
 
 ### 按读者划分的文档
 
-| 读者 | 入口 | 内容 |
-|---|---|---|
-| 用户 | [docs/site](../site/index.md)（[www.ubaa.top](https://www.ubaa.top)） | 安装、功能使用、隐私政策、公告与更新日志 |
-| 贡献者 | [CONTRIBUTING](../../CONTRIBUTING.md)、[文档首页](../README.md)、`docs/development/` | 开发环境、命令与检查、约定、测试、术语 |
-| 贡献者（设计） | `docs/architecture/`、`docs/contracts/`、`docs/design/`、`docs/adr/` | 架构、稳定合同、现行产品规格和长期决定 |
-| 维护者 | `docs/runbooks/` | 发布、签名、部署、真实验证和排障操作 |
-| agent | [AGENTS.md](../../AGENTS.md) | 长期规则、安全边界和开发循环 |
-| 所有人 | `docs/project/` | 当前目标、路线图和实现与验证状态 |
-| 协议依据 | `docs/protocol/` | 来源对照和决策记录 |
-
-文档按实际用途放入上表目录，不用本地工具目录充当正式文档入口。现行规则保留在规格或合同中，旧计划和状态见 Git 历史。
+按读者查找已有文档，见[文档首页](../README.md)。新增文档按实际用途放入[目录规范](directories.md)指定的位置，不用本地工具目录充当正式文档入口。现行规则保留在规格或合同中，旧计划和状态见 Git 历史。
 
 ## 分支与提交
 
