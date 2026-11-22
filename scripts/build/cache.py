@@ -41,7 +41,8 @@ def directories(root, patterns):
     for pattern in patterns:
         for path in sorted(root.glob(pattern)):
             # ** 也会匹配 Gradle 等工具的同名目录，只认 Cargo profile 目录下的增量缓存。
-            if path.name == 'incremental' and '**' in pattern and not (path.parent / '.fingerprint').is_dir():
+            if path.name == 'incremental' and '**' in pattern and not (
+                    (path.parent / '.cargo-lock').is_file() or (path.parent / '.fingerprint').is_dir()):
                 continue
             if path.is_dir() or path.is_symlink():
                 found.append(path)
