@@ -40,20 +40,9 @@ async fn 元数据必须给出同对象非空基版且篡改或关闭后的快�
     let version = baseline(&mut f).await;
     let mut changed = version.clone();
     changed.rev = "other".into();
-    let path = f.source(5);
-    assert!(
-        f.client
-            .bhpan_prepare_version_upload(&changed, path.clone(), BhpanTransfer::new())
-            .await
-            .is_err()
-    );
+    assert!(f.client.version_authority(&changed).is_err());
     f.client.close_control().close();
-    assert!(
-        f.client
-            .bhpan_prepare_version_upload(&version, path, BhpanTransfer::new())
-            .await
-            .is_err()
-    );
+    assert!(f.client.version_authority(&version).is_err());
     assert_eq!(f.transport.business_calls.load(Ordering::SeqCst), 1);
     f.finish();
 }
@@ -79,9 +68,18 @@ async fn 条件更新开始和最终登记始终比较_r而使用新_u登记并�
                 b"{}"
             },
         );
+        let authority = f.client.version_authority(&version).unwrap();
+        let transfer = BhpanTransfer::new();
+        transfer.claim().unwrap();
         let p = f
             .client
-            .bhpan_prepare_version_upload(&version, path, BhpanTransfer::new())
+            .prepare_object_upload(
+                authority,
+                path.into(),
+                &version.name,
+                transfer,
+                Some(version.clone()),
+            )
             .await
             .unwrap();
         let outcome = f
@@ -130,7 +128,7 @@ async fn 条件更新开始和最终登记始终比较_r而使用新_u登记并�
     }
 }
 #[tokio::test]
-async fn 下载缺少或返回不同版本时不请求对象且未知列表不声明缺失() {
+async fn 下载返回不同版本时不请求对象() {
     let mut f = Fixture::new();
     let version = baseline(&mut f).await;
     f.transport.script.add(
@@ -152,25 +150,6 @@ async fn 下载缺少或返回不同版本时不请求对象且未知列表不�
     );
     assert!(!target.exists());
     assert_eq!(f.transport.object_calls.load(Ordering::SeqCst), 0);
-    f.transport.script.add(
-        HttpMethod::Get,
-        "/api/efast/v1/owned-doc-lib",
-        None,
-        br#"[{"id":"gns://fixture/target","name":"root"}]"#,
-    );
-    f.transport.script.add(
-        HttpMethod::Post,
-        "/api/efast/v1/dir/list",
-        Some(json!({"docid":"gns://fixture/target","by":"name","sort":"asc"})),
-        br#"{"dirs":[],"files":[]}"#,
-    );
-    assert!(matches!(
-        f.client
-            .bhpan_lookup_personal_path(&["UBAA".into(), "agenda.json".into()])
-            .await
-            .unwrap(),
-        crate::domain::bhpan::BhpanPathLookup::Unknown { .. }
-    ));
     f.finish();
 }
 #[tokio::test]

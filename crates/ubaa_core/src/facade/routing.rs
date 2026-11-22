@@ -249,6 +249,7 @@ impl UbaaClient {
     /// # Errors
     ///
     /// 会话所有权已失效或解析出的路线尚未认证时返回错误。
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn resolve_route_for_feature(
         &mut self,
         feature: ReadonlyFeature,

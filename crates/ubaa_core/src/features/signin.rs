@@ -111,7 +111,6 @@ pub(crate) async fn preflight_signin(
 }
 
 /// 提交课堂签到请求。该接口有意保持低层；宿主调用前必须要求显式写操作确认。
-#[allow(dead_code)]
 pub(crate) async fn perform_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     course_id: &str,

@@ -2,8 +2,7 @@
 use super::{BhpanTransfer, UbaaClient, parse, state::Authority, wire};
 use crate::{
     domain::bhpan::{
-        BhpanFileVersion, BhpanItemKind, BhpanPathLookup, BhpanPreparedWrite,
-        BhpanVersionDownloadReceipt, BhpanVersionUploadOutcome,
+        BhpanFileVersion, BhpanItemKind, BhpanVersionDownloadReceipt, BhpanVersionUploadOutcome,
     },
     error::{ErrorCode, Result, UbaaError},
     ports::HttpMethod,
@@ -21,41 +20,6 @@ struct Metadata {
 }
 
 impl UbaaClient {
-    /// 从明确个人库逐层定位，未知范围的未找到结果保留 Unknown。
-    /// # Errors
-    /// 非法名称、歧义、非目录或认证与路线错误时拒绝。
-    pub async fn bhpan_lookup_personal_path(
-        &mut self,
-        components: &[String],
-    ) -> Result<BhpanPathLookup> {
-        for component in components {
-            super::write::name(component)?;
-        }
-        let mut current = self
-            .bhpan_personal_root()
-            .await?
-            .items
-            .into_iter()
-            .next()
-            .ok_or_else(parse::invalid)?;
-        for (index, name) in components.iter().enumerate() {
-            let page = self.bhpan_list(&current.handle).await?;
-            let mut matched = page.items.into_iter().filter(|item| item.name == *name);
-            let next = matched.next();
-            if matched.next().is_some() {
-                return Err(UbaaError::invalid_input("个人路径存在同名歧义"));
-            }
-            let Some(next) = next else {
-                return Ok(BhpanPathLookup::Unknown {
-                    parent: current,
-                    remaining: components[index..].to_vec(),
-                    range: page.range,
-                });
-            };
-            current = next;
-        }
-        Ok(BhpanPathLookup::Found(current))
-    }
     pub(super) fn publish_bhpan_version(
         &mut self,
         mut authority: Authority,
@@ -83,7 +47,7 @@ impl UbaaClient {
             .insert(handle, (version.clone(), authority));
         version
     }
-    fn version_authority(&mut self, version: &BhpanFileVersion) -> Result<Authority> {
+    pub(super) fn version_authority(&mut self, version: &BhpanFileVersion) -> Result<Authority> {
         self.bhpan_scope()?;
         self.bhpan
             .versions
@@ -212,27 +176,6 @@ impl UbaaClient {
             version: version.clone(),
             download,
         })
-    }
-    /// 以已签发基版 R 准备条件更新，开始与最终登记均保留 R。
-    /// # Errors
-    /// 旧快照、非个人文件或本机文件无效时拒绝。
-    pub async fn bhpan_prepare_version_upload(
-        &mut self,
-        version: &BhpanFileVersion,
-        path: PathBuf,
-        transfer: BhpanTransfer,
-    ) -> Result<BhpanPreparedWrite> {
-        transfer.claim()?;
-        let authority = self.version_authority(version)?;
-        authority.personal()?;
-        self.prepare_object_upload(
-            authority,
-            path.into(),
-            &version.name,
-            transfer,
-            Some(version.clone()),
-        )
-        .await
     }
     /// 消费同一上传意图，明确交付最终登记结果以及已经取得的新版本 U。
     /// # Errors
