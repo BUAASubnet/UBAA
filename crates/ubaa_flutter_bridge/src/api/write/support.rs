@@ -194,13 +194,9 @@ pub(super) fn map_evaluation_preflight_error(error: &domain::RoutedError) -> Bri
             "教学评教资格核对响应无效",
         );
     }
-    routed_local_error(
-        error,
-        error.error.code.into(),
-        error.error.kind.into(),
-        error.error.retryable,
-        "教学评教准备失败",
-    )
+    let mut projected = BridgeError::from_routed(error.clone());
+    "教学评教准备失败".clone_into(&mut projected.message);
+    projected
 }
 
 pub(super) fn map_commit_error(
@@ -332,16 +328,11 @@ pub(super) fn map_commit_error(
             "write outcome is unknown; refresh status before retrying",
         );
     }
+    let mut projected = BridgeError::from_routed(error);
     if matches!(operation, BridgeWriteOperation::EvaluationSubmitCourses) {
-        return routed_local_error(
-            &error,
-            error.error.code.into(),
-            error.error.kind.into(),
-            error.error.retryable,
-            "教学评教提交失败",
-        );
+        "教学评教提交失败".clone_into(&mut projected.message);
     }
-    BridgeError::from_routed(error)
+    projected
 }
 
 pub(super) fn routed_local_error(

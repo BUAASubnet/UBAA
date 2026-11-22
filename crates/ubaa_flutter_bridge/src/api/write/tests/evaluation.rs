@@ -251,6 +251,30 @@ fn 校园网停止原因投影保留固定安全文案() {
 }
 
 #[test]
+fn 评教预检和提交保留客户端状态分类() {
+    let projected = domain::testing::client_lifecycle_errors().map(|error| {
+        let routed = domain::RoutedError {
+            error,
+            resolution: None,
+        };
+        let preflight = map_evaluation_preflight_error(&routed);
+        let commit = map_commit_error(BridgeWriteOperation::EvaluationSubmitCourses, routed);
+        assert_eq!(preflight.message, "教学评教准备失败");
+        assert_eq!(commit.message, "教学评教提交失败");
+        (preflight.code, commit.code)
+    });
+    assert_eq!(
+        projected,
+        [
+            BridgeErrorCode::ClientDisposed,
+            BridgeErrorCode::CaptchaRequired,
+            BridgeErrorCode::OperationConflict,
+        ]
+        .map(|code| (code, code)),
+    );
+}
+
+#[test]
 fn 评教准备与提交错误固定脱敏文案() {
     let raw = "RAW-UPSTREAM token=PRIVATE account=PRIVATE";
     let preflight = map_evaluation_preflight_error(&domain::RoutedError {
