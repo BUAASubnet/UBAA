@@ -28,9 +28,10 @@ import 'features/profile/profile.dart' show ControllerProfile;
 import 'features/refresh.dart' show ControllerRefresh;
 import 'features/schedule/import.dart' show ControllerScheduleImport;
 import 'features/schedule/widgets.dart' show ControllerScheduleWidgets;
-import 'lifecycle/actions.dart' show ControllerActions;
+import 'lifecycle/actions.dart' show ControllerLifecycleActions;
 import 'lifecycle/app_service.dart' show ControllerAppService;
 import 'lifecycle/diagnostics.dart' show ControllerDiagnostics;
+import 'reads/actions.dart' show ControllerReadActions;
 import 'reads/progressive.dart' show ControllerProgressive;
 import 'reads/readback.dart' show ControllerReadbackDispatch;
 import 'reads/session.dart' show ControllerScheduledSession;
@@ -47,12 +48,14 @@ import 'recovery/startup.dart' show ControllerOfflineStartup;
 import 'recovery/network.dart' show ControllerNetworkRecovery;
 import 'session/completion.dart' show ControllerAuthenticationCompletion;
 import 'session/authentication.dart' show ControllerAuthentication;
+import 'session/form_actions.dart' show ControllerFormActions;
 import 'session/interactive.dart' show ControllerInteractiveAuthentication;
 import 'session/logout.dart' show ControllerLocalData, ControllerLogout;
 import 'session/settings.dart' show ControllerSettings;
 import 'state/grade_baseline.dart';
 import 'state/read_scope.dart' show PendingFeatureRead;
 import 'state/state.dart' show ControllerState, LocalDataOwnerScope;
+import 'write/actions.dart' show ControllerWriteActions;
 import 'write/lifecycle.dart' show ControllerWriteLifecycle;
 import 'write/memory.dart' show ControllerWriteCache;
 import 'write/readback.dart' show ControllerWriteReadbacks;
@@ -102,7 +105,10 @@ class AppController extends ControllerState
         ControllerAuthenticationCompletion,
         ControllerSettings,
         ControllerInteractiveAuthentication,
-        ControllerActions {
+        ControllerLifecycleActions,
+        ControllerFormActions,
+        ControllerReadActions,
+        ControllerWriteActions {
   int _homeProjectionGeneration = 0;
 
   /// 本地投影可以与会话恢复并行，交付时仍核对账号和读取范围。
