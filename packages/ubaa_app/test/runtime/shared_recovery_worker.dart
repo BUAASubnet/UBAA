@@ -31,6 +31,6 @@ Future<void> main(List<String> args) async {
     release.complete();
   }
   stdout.writeln(await observed);
-  await service.close();
+  await probe.closeAndSettle(service);
   await input.cancel();
 }

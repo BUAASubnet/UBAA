@@ -308,10 +308,11 @@ final class _RecoveryJob {
         consumers.remove(consumer);
       }
     } finally {
+      watcher?.cancel();
       login?.leave(this);
       consumers.clear();
-      watcher?.cancel();
       stopAccepting();
+      await validation;
       owner._draining.remove(this);
       owner._completedLogins.removeWhere(
         (key, _) => !owner._draining.any((job) => job.scope.key == key.$1),

@@ -8,9 +8,12 @@ import '../../../ubaa_platform/test/support/shared_account_worker.dart'
 import 'session_recovery_probe.dart'
     show check, failure, saved, profile, expired;
 
-Future<SecureLocalAccountStore> openAccounts(Directory root) async {
+Future<SecureLocalAccountStore> openAccounts(
+  Directory root, {
+  SecureMaterialTransport? transport,
+}) async {
   final materials = SecureMaterialStore(
-    transport: syntheticWindowsMaterials(root),
+    transport: transport ?? syntheticWindowsMaterials(root),
     coordinator: MaterialCoordinator(directory: Directory('${root.path}/lock')),
   );
   await materials.probe();
@@ -35,6 +38,8 @@ class FileBackend implements RequiredSessionBackend {
     this.root, {
     this.loginGate,
     this.loginEntered,
+    this.loginFinished,
+    this.loginFailure,
     this.recoveryError,
     this.loginError,
   }) {
@@ -45,6 +50,8 @@ class FileBackend implements RequiredSessionBackend {
   final BackendException? loginError;
   final Future<void>? loginGate;
   final void Function()? loginEntered;
+  final void Function()? loginFinished;
+  final Object? loginFailure;
   late String revision;
   File get session => File('${root.path}/session');
   void owned() {
@@ -81,6 +88,8 @@ class FileBackend implements RequiredSessionBackend {
     if (loginError case final error?) throw error;
     revision = '会话-$pid';
     await session.writeAsString(revision, flush: true);
+    loginFinished?.call();
+    if (loginFailure case final error?) throw error;
     return const RecoveredRouteSession(
       route: ConnectionMode.direct,
       profile: profile,
@@ -94,6 +103,38 @@ RequiredSessionRecovery service(Directory root, {FileBackend? backend}) =>
       credentials: MemoryCredentialVault(initial: saved),
       rebuildBackend: (_) async => FileBackend(root),
     );
+
+Future<void> closeAndSettle(RequiredSessionRecovery recovery) async {
+  await recovery.close();
+  await recovery.settlement;
+}
+
+final class _PausingValidationRead implements SecureMaterialTransport {
+  _PausingValidationRead(this.delegate);
+
+  final SecureMaterialTransport delegate;
+  final entered = Completer<void>();
+  final release = Completer<void>();
+  bool armed = false;
+
+  @override
+  Future<String?> read(String key) async {
+    final value = await delegate.read(key);
+    if (armed && key.endsWith('account-index.v1')) {
+      armed = false;
+      entered.complete();
+      await release.future;
+    }
+    return value;
+  }
+
+  @override
+  Future<void> write(String key, String value) => delegate.write(key, value);
+
+  @override
+  Future<void> delete(String key) => delegate.delete(key);
+}
+
 Future<RecoveryResult> ensure(
   RequiredSessionRecovery recovery,
   RecoveryScope scope,
@@ -143,8 +184,8 @@ final cases = <String, Future<void> Function()>{
       );
       check(!(await a.read())!.canRestore, '被拒密码必须撤销持久恢复许可');
     } finally {
-      await one.close();
-      await two.close();
+      await closeAndSettle(one);
+      await closeAndSettle(two);
       await root.delete(recursive: true);
     }
   },
@@ -182,7 +223,7 @@ final cases = <String, Future<void> Function()>{
       );
     } finally {
       if (!release.isCompleted) release.complete();
-      await recovery.close();
+      await closeAndSettle(recovery);
       await root.delete(recursive: true);
     }
   },
@@ -210,7 +251,7 @@ final cases = <String, Future<void> Function()>{
         '通用冲突不能兑换新客户端',
       );
     } finally {
-      await recovery.close();
+      await closeAndSettle(recovery);
       await root.delete(recursive: true);
     }
   },
@@ -225,7 +266,7 @@ final cases = <String, Future<void> Function()>{
       );
       check(identical(result.backend, recovery.backend), '恢复结果必须携带实际客户端');
     } finally {
-      await recovery.close();
+      await closeAndSettle(recovery);
       await root.delete(recursive: true);
     }
   },
@@ -289,8 +330,8 @@ final cases = <String, Future<void> Function()>{
         );
       } finally {
         if (!release.isCompleted) release.complete();
-        await first.close();
-        await second.close();
+        await closeAndSettle(first);
+        await closeAndSettle(second);
         await root.delete(recursive: true);
       }
     },
@@ -314,8 +355,45 @@ final cases = <String, Future<void> Function()>{
         '密码只提交一次',
       );
     } finally {
-      await one.close();
-      await two.close();
+      await closeAndSettle(one);
+      await closeAndSettle(two);
+      await root.delete(recursive: true);
+    }
+  },
+  '恢复结算等待后台账号校验完成': () async {
+    final root = await fixture();
+    final transport = _PausingValidationRead(syntheticWindowsMaterials(root));
+    final accounts = await openAccounts(root, transport: transport);
+    final finished = Completer<void>();
+    final release = Completer<void>();
+    final recovery = service(
+      root,
+      backend: FileBackend(
+        root,
+        loginGate: release.future,
+        loginEntered: () => transport.armed = true,
+        loginFinished: finished.complete,
+        loginFailure: StateError('合成登录失败'),
+      ),
+    );
+    try {
+      final pending = failure(ensure(recovery, await capture(accounts)));
+      await transport.entered.future.timeout(const Duration(seconds: 5));
+      await recovery.close(grace: Duration.zero);
+      var settled = false;
+      final settlement = recovery.settlement.then((_) => settled = true);
+      release.complete();
+      check(await pending is RecoveryInterrupted, '关闭后消费者必须结束');
+      await finished.future;
+      await Future<void>.value();
+      await Future<void>.value();
+      check(!settled, '结算必须等待进行中的账号校验');
+      transport.release.complete();
+      await settlement;
+    } finally {
+      if (!release.isCompleted) release.complete();
+      if (!transport.release.isCompleted) transport.release.complete();
+      await closeAndSettle(recovery);
       await root.delete(recursive: true);
     }
   },
@@ -344,8 +422,7 @@ final cases = <String, Future<void> Function()>{
         check(await result is RecoveryInterrupted, '持久变更后旧任务必须停止');
       } finally {
         if (!release.isCompleted) release.complete();
-        await recovery.close();
-        await recovery.settlement;
+        await closeAndSettle(recovery);
         await root.delete(recursive: true);
       }
     },
