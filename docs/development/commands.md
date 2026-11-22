@@ -188,12 +188,12 @@ Rust 编译缓存按操作系统、架构、工具链、锁文件和检查用途
 | `just cache`、`just cache-clean <范围…>` | 只读显示仓库内构建缓存占用；按范围删除可重建产物（如 `rust-incremental`、`flutter-macos`、`ohos`），任一目录受跟踪或未被忽略时整体拒绝；`.ubaa_local` 只显示不清理 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
 | `just flutter-artifact-check macos <私有绝对路径>/UBAA.app` | 只读检查产物；macOS 从真实签名读取并要求 `Sandbox=false` 与客户端联网权限，不修改或重签 |
-| `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
-| `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
-| `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `.ubaa_local/store_screenshots/` 输出原图和 RGB PNG；`--appgallery` 和 `--appgallery-tablet` 分别生成 AppGallery 手机图和平板图，`--all-sizes` 生成全部规格。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
+| `just release-preflight [绝对报告路径]` | 默认 `mode=strict`，要求工作树干净、报告目录为空。省略路径时在 `dist/release/licenses.*/` 生成临时报告，材料缺口保留报告并以状态 3 阻止发布 |
+| `just release-preflight mode=report` | 收集 Dart/OHOS 许可证材料并保留报告，列明材料缺口与发布阻塞项。材料缺口不改变退出码，生成错误仍会失败 |
+| `bash scripts/release/store-screenshots.sh` | 无头绘制手机、平板和桌面三组宣传图，在 `dist/store_screenshots/` 输出原图和 RGB PNG；`--appgallery` 和 `--appgallery-tablet` 分别生成 AppGallery 手机图和平板图，`--all-sizes` 生成全部规格。见[生成商店宣传图](../runbooks/flutter-release.md#生成商店宣传图) |
 | `just app-service-publish` | 校验渠道和公告，触发 dev 的内容发布工作流 |
 | `just app-service-deploy` | 校验公告与渠道配置后，触发 main 的服务器部署工作流；配置见[应用服务部署手册](../runbooks/app-service.md) |
-| `just app-service-dashboard` | 生成 PostgreSQL 数据源的 Grafana 使用情况看板 JSON，默认写入 `.ubaa_local/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
+| `just app-service-dashboard` | 生成 PostgreSQL 数据源的 Grafana 使用情况看板 JSON，默认写入 `dist/app_service_dashboard/`；不联网，部署见[应用服务部署手册](../runbooks/app-service.md#使用情况看板) |
 | `just app-service-diagnostics-dashboard` | 生成维护者专用的错误诊断看板 JSON，默认写入同一目录；不联网 |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS embedding HAR 的许可证从锁定的 OHOS Flutter SDK 推导，规则见[OHOS 原生依赖材料](../runbooks/flutter-release.md#ohos-原生依赖材料)，仓库内类型声明单独记录；实际 HAP、动态库与签名仍需产物验收。
@@ -242,7 +242,7 @@ just verify-live mode=webvpn
 - `just app-service-content-check` 的 `npm ci` 可以访问 npm registry，重建根目录 `node_modules/`。公告校验读取版本库内容，站点测试使用隔离夹具和构建目录，发布测试只调用假 CLI。
 - `just docs-download-sync <tag> <构建号>` 只读访问 `https://download.ubaa.top:10443` 上该构建的公开 `release.json`，校验通过后改写 `docs/site/download.json`；校验失败时不写入。普通检查和 CI 不调用。
 - `just app-service-publish` 和 `just app-service-deploy` 校验内容并通过 GitHub CLI 分别触发 dev 内容发布和 main 应用部署。应用部署作业使用受保护环境中的 SSH 密钥发送短期产物 URL，服务器直连下载；内容发布直接随运行描述发送渠道和公告。普通检查不调用部署入口。
-- `just app-service-e2e` 在 `.ubaa_local/app_service/` 创建私有隔离配置、本地 PostgreSQL 和 JSON 配置，临时监听回环地址。脚本只用合成数据，不访问学校或生产服务器；`CI` 非空或遥测硬关闭时直接失败。
+- `just app-service-e2e` 在 `target/test_tmp/` 创建私有隔离配置、本地 PostgreSQL 和 JSON 配置，临时监听回环地址。脚本只用合成数据，不访问学校或生产服务器；`CI` 非空或遥测硬关闭时直接失败。
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存；FRB 生成检查的写入副作用见上表，并非所有 check 都只读。
 - 门禁 recipe 统一设置 `CARGO_INCREMENTAL=0`，不积累只用一次的增量缓存；日常 Rust 与 Flutter 运行保留增量。开发构建只带行号调试信息，需要查看变量时临时设 `CARGO_PROFILE_DEV_DEBUG=true`。
 - 日志、stdout/stderr 和报告遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，禁止全局 trace。仅在已获授权的窄范围诊断使用 RUST_LOG，原始 stderr 不进入共享文档。

@@ -9,6 +9,7 @@ export default defineConfig({
   description: siteDescription,
   lang: 'zh-CN',
   base,
+  outDir: '../../dist/docs_site',
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }],
     ['meta', { name: 'theme-color', content: '#1976d2' }],

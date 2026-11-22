@@ -29,6 +29,7 @@ class CommandBuildTest(unittest.TestCase):
                         return
                     target = Path(arguments[arguments.index('-o') + 1])
                     if arguments[3] == 'kernel':
+                        self.assertEqual(target.parent.parent, ROOT / 'target/command_build')
                         self.assertIn('--packages=.dart_tool/package_config.json', arguments)
                         self.assertIn('apps/ubaa_flutter/bin/ubaa.dart', arguments)
                         self.assertIn(f'-DUBAA_COMMAND_RELEASE={str(mode == "release").lower()}', arguments)
@@ -49,6 +50,22 @@ class CommandBuildTest(unittest.TestCase):
                     command.compile_linux(output, environment, mode, standalone=True)
                 self.assertEqual((output / 'ubaa-cli').read_bytes(), b'compiled kernel')
                 self.assertTrue(all(not path.exists() for path in kernels))
+
+    def test_Linux独立命令默认交付到dist(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            library = root / 'target/release/libubaa_flutter_bridge.so'
+            library.parent.mkdir(parents=True)
+            library.touch()
+            with patch.object(command, 'ROOT', root), \
+                 patch.object(command.sys, 'platform', 'linux'), \
+                 patch.object(command.sys, 'argv', ['command.py', 'linux']), \
+                 patch.object(command, 'load_environment', return_value={}), \
+                 patch.object(command, 'run'), patch.object(command, 'compile_linux') as compile_linux:
+                command.main()
+            output = root / 'dist/command/linux'
+            compile_linux.assert_called_once_with(output, {}, 'release', standalone=True)
+            self.assertTrue((output / 'lib/libubaa_flutter_bridge.so').is_file())
 
 
 if __name__ == '__main__':

@@ -17,7 +17,8 @@ fi
 keep_output=1
 preserve_output=0
 if [[ -z "$output_dir" ]]; then
-  output_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-release-preflight.XXXXXX")
+  mkdir -p "$repo_root/dist/release"
+  output_dir=$(mktemp -d "$repo_root/dist/release/licenses.XXXXXX")
   keep_output=0
 fi
 if [[ "$output_dir" != /* ]]; then

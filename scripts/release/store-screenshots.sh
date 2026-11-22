@@ -25,8 +25,8 @@ if ! command -v magick >/dev/null; then
   exit 1
 fi
 
-mkdir -p .ubaa_local/store_screenshots
-run_dir=$(mktemp -d "$PWD/.ubaa_local/store_screenshots/run.XXXXXX")
+mkdir -p dist/store_screenshots
+run_dir=$(mktemp -d "$PWD/dist/store_screenshots/run.XXXXXX")
 raw_dir="$run_dir/raw"
 ready_dir="$run_dir/ready"
 mkdir -p "$raw_dir" "$ready_dir"
@@ -34,7 +34,7 @@ printf '本次渲染目录：%s\n' "$run_dir"
 
 (
   cd apps/ubaa_flutter
-  TZ=Asia/Shanghai UBAA_UI_EVIDENCE_DIR="$raw_dir" \
+  TZ=Asia/Shanghai UBAA_STORE_SCREENSHOT_DIR="$raw_dir" \
     just flutter test --no-pub --concurrency=1 --reporter expanded --name "$test_name" store/screenshots_test.dart
 )
 

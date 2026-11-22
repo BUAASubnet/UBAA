@@ -12,8 +12,7 @@ import shutil
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parents[3]
-PRIVATE = ROOT / '.ubaa_local/release/signing'
+PRIVATE = Path(os.environ['RUNNER_TEMP']) / 'ubaa_release_signing'
 
 
 def security(*args):

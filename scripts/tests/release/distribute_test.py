@@ -31,7 +31,7 @@ class DistributionTest(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.enterContext(chdir(self.root))
-        self.folder = Path('.ubaa_local/release/public')
+        self.folder = Path('dist/release/public')
         self.folder.mkdir(parents=True)
         for suffix in ('android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
                        'windows-x64.exe', 'linux-x64.tar.gz', 'linux-arm64.tar.gz',

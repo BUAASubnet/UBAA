@@ -116,7 +116,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-android-${{ matrix.abi }}
-          path: .ubaa_local/release/public/*
+          path: dist/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -124,7 +124,7 @@ jobs:
         name: 清理签名材料
         if: ${{ always() }}
         shell: bash
-        run: rm -rf .ubaa_local/release/signing .ubaa_local/release/apple_api
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_release_signing" "${RUNNER_TEMP:?}/ubaa_store_api"
     strategy:
       fail-fast: false
       matrix:
@@ -155,12 +155,12 @@ jobs:
         run: |-
           just flutter-build platform=linux mode=release
           bash scripts/release/verify-flutter-artifact.sh linux "apps/ubaa_flutter/build/linux/${{ matrix.arch }}/release/bundle"
-          mkdir -p .ubaa_local/release/public
-          tar -czf ".ubaa_local/release/public/UBAA-${RELEASE_VERSION}-linux-${{ matrix.arch }}.tar.gz" -C "apps/ubaa_flutter/build/linux/${{ matrix.arch }}/release" bundle
+          mkdir -p dist/release/public
+          tar -czf "dist/release/public/UBAA-${RELEASE_VERSION}-linux-${{ matrix.arch }}.tar.gz" -C "apps/ubaa_flutter/build/linux/${{ matrix.arch }}/release" bundle
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-linux-${{ matrix.arch }}
-          path: .ubaa_local/release/public/*
+          path: dist/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -198,7 +198,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-windows-x64
-          path: .ubaa_local/release/public/*
+          path: dist/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -234,14 +234,14 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: notarization-${{ matrix.arch }}
-          path: .ubaa_local/release/macos/*.json
+          path: dist/release/macos/*.json
           if-no-files-found: ignore
           retention-days: 7
           include-hidden-files: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-macos-${{ matrix.arch }}
-          path: .ubaa_local/release/public/*
+          path: dist/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -297,7 +297,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-ios
-          path: .ubaa_local/release/store/*.ipa
+          path: dist/release/store/*.ipa
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -337,15 +337,15 @@ jobs:
           just flutter-dependencies
           (cd apps/ubaa_ohos && just flutter-ohos pub get --enforce-lockfile)
           (cd packages/ubaa_bindings/cargokit/build_tool && just dart pub get --enforce-lockfile)
-          just release-preflight "$GITHUB_WORKSPACE/.ubaa_local/release/licenses"
-          mkdir -p .ubaa_local/release/public
-          (cd .ubaa_local/release/licenses && zip -qr ../public/licenses.zip .)
+          just release-preflight "$GITHUB_WORKSPACE/dist/release/licenses"
+          mkdir -p dist/release/public
+          (cd dist/release/licenses && zip -qr ../public/licenses.zip .)
       - name: 保存发布许可材料
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: license-materials
-          path: .ubaa_local/release/licenses
+          path: dist/release/licenses
           if-no-files-found: ignore
           retention-days: 7
           include-hidden-files: true
@@ -365,14 +365,14 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: public-harmonyos
-          path: .ubaa_local/release/public/*
+          path: dist/release/public/*
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-harmonyos
-          path: .ubaa_local/release/store/*.app
+          path: dist/release/store/*.app
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -408,7 +408,7 @@ jobs:
         with:
           pattern: public-*
           merge-multiple: true
-          path: .ubaa_local/release/public
+          path: dist/release/public
       - name: 准备 GitHub Release 草稿与服务器分发清单
         env:
           GH_TOKEN: ${{ github.token }}
@@ -420,6 +420,9 @@ jobs:
           UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
           UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
         run: python3 scripts/server/notify.py release
+      - name: 清理部署材料
+        if: ${{ always() }}
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_server_notify"
     if: >-
       ${{ !cancelled() &&
           needs.metadata.result == 'success' &&
@@ -445,17 +448,17 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: store-ios
-          path: .ubaa_local/release/store
+          path: dist/release/store
       - name: 上传并等待 Apple 处理
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-        run: node scripts/release/stores/apple.mjs upload ".ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+        run: node scripts/release/stores/apple.mjs upload "dist/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-store-result
-          path: .ubaa_local/appstore_result.json
+          path: dist/store_results/appstore_result.json
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -476,16 +479,16 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: store-harmonyos
-          path: .ubaa_local/release/store
+          path: dist/release/store
       - name: 上传并等待 AppGallery 处理
         env:
           APPGALLERY_APP_ID: ${{ secrets.APPGALLERY_APP_ID }}
           APPGALLERY_SERVICE_ACCOUNT_JSON: ${{ secrets.APPGALLERY_SERVICE_ACCOUNT_JSON }}
-        run: node scripts/release/stores/huawei.mjs upload ".ubaa_local/release/store/UBAA-${RELEASE_VERSION}-harmonyos-arm64.app"
+        run: node scripts/release/stores/huawei.mjs upload "dist/release/store/UBAA-${RELEASE_VERSION}-harmonyos-arm64.app"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: appgallery-result
-          path: .ubaa_local/appgallery_result.json
+          path: dist/store_results/appgallery_result.json
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -513,7 +516,7 @@ jobs:
           node scripts/release/stores/huawei.mjs probe
       - name: 清理上传密钥
         if: ${{ always() }}
-        run: rm -rf .ubaa_local/release/apple_api
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_store_api"
   acceptance:
     needs: metadata
     runs-on: ubuntu-latest

@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 platform = sys.argv[1]
-private = Path('.ubaa_local/release/signing').resolve()
+private = Path(os.environ['RUNNER_TEMP']).resolve() / 'ubaa_release_signing'
 private.mkdir(parents=True, exist_ok=True, mode=0o700)
 os.umask(0o077)
 fields = {'ANDROID_KEYSTORE_BASE64': ('android.jks', 'ANDROID_STORE_FILE')} if platform == 'android' else {

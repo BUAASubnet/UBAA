@@ -169,13 +169,13 @@ jobs:
       - id: frb-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .ubaa_local/ci_tools/frb
+          path: target/ci_tools/frb
           key: frb-${{ runner.os }}-${{ runner.arch }}-${{ steps.tools.outputs.rust }}-${{ steps.tools.outputs.frb }}
       - name: 准备固定 FRB codegen
         shell: bash
         run: |
           source scripts/tools/versions.env
-          root="$GITHUB_WORKSPACE/.ubaa_local/ci_tools/frb"
+          root="$GITHUB_WORKSPACE/target/ci_tools/frb"
           if [[ ! -x "$root/bin/flutter_rust_bridge_codegen" ]]; then
             cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION" --root "$root"
           fi
@@ -290,7 +290,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: merge-acceptance
-          path: .ubaa_local/ci/acceptance.json
+          path: dist/ci/acceptance.json
           if-no-files-found: error
           include-hidden-files: true
           overwrite: true

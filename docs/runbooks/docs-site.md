@@ -33,7 +33,7 @@ npm run docs:preview
 
 - 基础路径默认为 `/`，与正式站点一致。配置仍支持通过 `DOCS_BASE` 环境变量指定其他基础路径。
 - 站内链接使用网站路由；源码链接使用 `blob/main` 或 `tree/main`；旧版引用使用 `ubaa1` 或固定提交。
-- `node_modules`、VitePress 缓存和生成的静态文件不提交。预览截图保存在 `.ubaa_local/` 的任务目录。
+- `npm run docs:build` 将静态网站写入 `dist/docs_site/`。预览截图保存在 `.ubaa_local/` 的任务目录。
 
 ### 部署到服务器
 

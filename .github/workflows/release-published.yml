@@ -29,3 +29,6 @@ jobs:
           UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
           UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
         run: python3 scripts/server/notify.py publish
+      - name: 清理部署材料
+        if: ${{ always() }}
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_server_notify"

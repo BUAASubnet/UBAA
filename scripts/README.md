@@ -19,7 +19,7 @@
 
 `check/app_service/content.mjs` 校验渠道配置与正式公告，发布脚本和文档站共用公告解析器。内容检查使用合成公告和假 CLI，不写入远端。
 
-`tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `.ubaa_local/app_service/` 下创建私有临时目录，写入合成本地配置、迁移 D1、填充 KV、启动回环 Worker、查询 D1，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
+`tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `target/test_tmp/` 下创建私有临时目录，写入合成本地配置，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
 
 `tools/versions.env` 集中记录工具与原生组件版本。`tools/flutter-packages.json` 集中记录七个正式包，根 Pub workspace 还包含 `packages/ubaa_test_support`，检查通过共享包清单覆盖八个成员。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
@@ -33,7 +33,7 @@
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
-`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `.ubaa_local/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。`release/site-images.sh` 从已审阅的网站宣传图和横版宣传图生成截图页 WebP 与 1200×630 分享图，只写 `docs/site/public/`。
+`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `dist/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。`release/site-images.sh` 从已审阅的网站宣传图和横版宣传图生成截图页 WebP 与 1200×630 分享图，只写 `docs/site/public/`。
 
 `release/download_manifest.py` 是 `just docs-download-sync` 的入口：读取 R2 上指定构建的公开清单，按 `distribute.py` 的公开安装包列表校验文件、大小和地址，再原样写入文档站下载页数据；`tests/release/download_manifest_test.py` 只用合成清单，不联网。
 

@@ -37,7 +37,7 @@ PUBLIC_SUFFIXES = (
 
 
 def main():
-    folder = Path('.ubaa_local/release/public')
+    folder = Path('dist/release/public')
     version, tag, sha, build = (os.environ[key] for key in ('RELEASE_VERSION', 'RELEASE_TAG', 'RELEASE_SHA', 'RELEASE_BUILD'))
     names = [f'UBAA-{version}-{suffix}' for suffix in PUBLIC_SUFFIXES]
     files = [folder / name for name in names]

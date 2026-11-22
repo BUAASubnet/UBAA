@@ -68,6 +68,7 @@ session.json
 
 # 项目本地工作区：审计报告、监督记录等不提交的项目资料
 /.ubaa_local/
+/dist/
 
 # Playwright MCP 本地输出。
 /.playwright-mcp/
