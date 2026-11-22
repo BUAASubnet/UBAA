@@ -1,11 +1,10 @@
-use std::io::Cursor;
-
+use crate::common::run_command;
 use clap::Parser;
 use serde_json::{Value, json};
-use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli, run_with_backend, run_with_routed_backend};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli};
 use ubaa_core::facade::{ActionEligibility, CgyyCancelOrderTarget, CgyyOrder};
 
-use crate::common::{CgyyCancelFixtureResult, FakeBackend, FakeRoutedBackend, assert_cli_schema};
+use crate::common::{CgyyCancelFixtureResult, FakeRoutedBackend, assert_cli_schema};
 
 fn contract_schema() -> Value {
     serde_json::from_str(include_str!(
@@ -205,7 +204,7 @@ async fn 场馆取消未确认或非正目标均在路由后端前拒绝() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2);
@@ -225,7 +224,7 @@ async fn 场馆取消路由后端只调用一次并固定安全成功结果() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
@@ -261,7 +260,7 @@ async fn 场馆取消outcome_unknown退出5且只调用一次并隐藏原始正�
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
@@ -291,7 +290,7 @@ async fn 场馆取消发送前结构变化使用固定安全错误且只调用�
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
@@ -307,19 +306,12 @@ async fn 场馆取消发送前结构变化使用固定安全错误且只调用�
 }
 
 #[tokio::test]
-async fn 固定路线场馆取消同样校验typed请求且只调用一次() {
+async fn 场馆取消输入边界校验typed请求且只调用一次() {
     let invalid = Cli::try_parse_from(cancel_arguments(0, true)).unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
-        invalid,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(invalid, &mut backend, &mut stdout, &mut stderr).await;
     assert_eq!(exit, 2);
     assert_eq!(backend.cgyy_cancel_calls, 0);
     assert!(backend.cgyy_last_cancel_request.is_none());
@@ -327,14 +319,7 @@ async fn 固定路线场馆取消同样校验typed请求且只调用一次() {
     let valid = Cli::try_parse_from(cancel_arguments(42, true)).unwrap();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
-        valid,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(valid, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
@@ -369,21 +354,14 @@ async fn 固定路线场馆取消错误也固定脱敏且只调用一次() {
         ),
     ] {
         let cli = Cli::try_parse_from(cancel_arguments(42, true)).unwrap();
-        let mut backend = FakeBackend {
+        let mut backend = FakeRoutedBackend {
             cgyy_cancel_result: fixture,
-            ..FakeBackend::default()
+            ..FakeRoutedBackend::default()
         };
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_backend(
-            cli,
-            &mut backend,
-            &mut Cursor::new(Vec::<u8>::new()),
-            &mut stdout,
-            &mut stderr,
-        )
-        .await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
         let serialized = String::from_utf8(stdout).unwrap();
 

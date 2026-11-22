@@ -1,5 +1,13 @@
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn bhpan_execute(
+        &mut self,
+        args: &ubaa_command::BhpanArgs,
+        input: &ubaa_command::bhpan::BhpanPreparedInput,
+    ) -> RoutedResult<ubaa_command::bhpan::BhpanOutput> {
+        let client = self.bhpan_client.as_mut().expect("云盘契约需要合成客户端");
+        ubaa_command::bhpan::execute_bhpan(client, args, input).await
+    }
     async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> { Ok(Routed { data: campus_profile(), resolution: direct_resolution() }) }
     async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> { Ok(Routed { data: campus_metrics(), resolution: direct_resolution() }) }
     async fn finance_incomes(&mut self) -> RoutedResult<ubaa_core::facade::FinanceIncomes> { Ok(Routed { data: ubaa_core::facade::FinanceIncomes { entries: vec![], total: 0 }, resolution: direct_resolution() }) }

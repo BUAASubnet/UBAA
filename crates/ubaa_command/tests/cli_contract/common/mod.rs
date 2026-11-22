@@ -1,17 +1,17 @@
 use async_trait::async_trait;
 mod campus;
+pub(crate) mod login;
 pub(crate) use campus::{campus_metrics, campus_network, campus_profile};
-use ubaa_command::{CliBackend, RoutedCliBackend};
+use ubaa_command::{Cli, CommandControl, RoutedCliBackend, execute_attempt, prepare_input};
 use ubaa_core::facade::*;
 use ubaa_core::facade::{
-    ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyCancelOrderRequest,
-    CgyyCancelOrderResult, ConnectionMode, ErrorCode, ErrorKind, FeatureResult,
-    JudgeAssignmentsDiagnostics, LibBookBooking, LibBookBookingsPage, LibBookCancelRequest,
-    LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
-    NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError,
-    RoutedResult, SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics,
-    Term, UbaaError, UserProfile, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
-    YgdkRecordsPage,
+    ActionEligibility, BykcActionResult, BykcSignRequest, CgyyCancelOrderRequest,
+    CgyyCancelOrderResult, ConnectionMode, ErrorCode, ErrorKind, JudgeAssignmentsDiagnostics,
+    LibBookBooking, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, NetworkState, Result,
+    RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
+    SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError,
+    UserProfile, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -23,27 +23,34 @@ pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
     assert!(validator.is_valid(value), "invalid CLI envelope: {value}");
 }
 
-#[derive(Default)]
-pub(crate) struct FakeBackend {
-    pub(crate) login_calls: usize,
-    pub(crate) schedule_success: bool,
-    pub(crate) signin_perform_calls: usize,
-    pub(crate) libbook_reserve_calls: usize,
-    pub(crate) libbook_cancel_calls: usize,
-    pub(crate) libbook_last_cancel_request: Option<LibBookCancelRequest>,
-    pub(crate) libbook_cancel_error: Option<UbaaError>,
-    pub(crate) cgyy_cancel_calls: usize,
-    pub(crate) cgyy_last_cancel_request: Option<CgyyCancelOrderRequest>,
-    pub(crate) cgyy_cancel_result: CgyyCancelFixtureResult,
-    pub(crate) ygdk_submit_calls: usize,
-    pub(crate) ygdk_last_submit_request: Option<YgdkClockinSubmitRequest>,
-    pub(crate) ygdk_submit_result: YgdkSubmitFixtureResult,
-    pub(crate) ygdk_readback_overview_calls: usize,
-    pub(crate) ygdk_readback_overview_routes: Vec<ConnectionMode>,
-    pub(crate) ygdk_readback_overview_fails: bool,
-    pub(crate) ygdk_readback_records_calls: usize,
-    pub(crate) ygdk_readback_records_requests: Vec<(ConnectionMode, i32, i32)>,
-    pub(crate) ygdk_readback_records_fails: bool,
+pub(crate) async fn run_command(
+    cli: Cli,
+    backend: &mut (impl RoutedCliBackend + Send),
+    stdout: &mut impl std::io::Write,
+    stderr: &mut impl std::io::Write,
+) -> i32 {
+    run_command_with_input(cli, backend, &mut std::io::empty(), stdout, stderr).await
+}
+
+pub(crate) async fn run_command_with_input(
+    cli: Cli,
+    backend: &mut (impl RoutedCliBackend + Send),
+    input: &mut impl std::io::BufRead,
+    stdout: &mut impl std::io::Write,
+    stderr: &mut impl std::io::Write,
+) -> i32 {
+    let control = CommandControl::default();
+    let (json, feature) = (cli.json, cli.feature());
+    let prepared = match prepare_input(cli.into(), input, &control) {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            return ubaa_command::render_startup_error(json, feature, error, stdout, stderr);
+        }
+    };
+    execute_attempt(&prepared, backend, &control)
+        .await
+        .into_result()
+        .render(&control, stdout, stderr)
 }
 
 #[derive(Clone, Copy, Default)]
@@ -84,6 +91,7 @@ pub(crate) enum YgdkSubmitFixtureResult {
 
 #[derive(Default)]
 pub(crate) struct FakeRoutedBackend {
+    pub(crate) bhpan_client: Option<UbaaClient>,
     pub(crate) fail_schedule: bool,
     pub(crate) cgyy_cancel_calls: usize,
     pub(crate) cgyy_last_cancel_request: Option<CgyyCancelOrderRequest>,
@@ -115,7 +123,6 @@ pub(crate) struct FakeRoutedBackend {
 }
 
 include!("routed.rs");
-include!("fixed.rs");
 
 fn direct_resolution() -> RouteResolution {
     route_resolution(

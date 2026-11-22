@@ -147,22 +147,21 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 }
 
 #[tokio::test]
-async fn 单路线后端同样使用_typed_目标并在原路线回读一次() {
-    let mut backend = FixedEvaluationBackend {
+async fn direct_评教使用_typed_目标并在原路线回读一次() {
+    let mut backend = EvaluationBackend {
         courses: vec![pending_course(
             "fixed",
             ActionEligibility::Allowed,
             Some(target("fixed", None)),
         )],
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -174,6 +173,7 @@ async fn 单路线后端同样使用_typed_目标并在原路线回读一次() {
     assert_eq!(value["data"]["success"], true);
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
+    assert_eq!(backend.readback_routes, vec![ConnectionMode::Direct]);
     assert_eq!(backend.submitted.unwrap().targets[0].kcdm, "fixed-kcdm");
     assert_eq!(stderr.len(), 0);
 }
@@ -205,23 +205,22 @@ async fn commit_阶段错误保持主分类且只回读原路线不重提() {
 }
 
 #[tokio::test]
-async fn 单路线_commit_错误同样回读一次且保持主错误() {
-    let mut backend = FixedEvaluationBackend {
+async fn direct_commit_错误同样回读一次且保持主错误() {
+    let mut backend = EvaluationBackend {
         courses: vec![pending_course(
             "fixed-auth-failure",
             ActionEligibility::Allowed,
             Some(target("fixed-auth-failure", None)),
         )],
         commit_auth_fails: true,
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -233,6 +232,7 @@ async fn 单路线_commit_错误同样回读一次且保持主错误() {
     assert_eq!(value["error"]["code"], "authentication_required");
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
+    assert_eq!(backend.readback_routes, vec![ConnectionMode::Direct]);
     assert_eq!(stderr.len(), 0);
 }
 
@@ -307,17 +307,16 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
     assert_eq!(routed.submit_calls, 1);
     assert_eq!(routed.readback_routes, vec![route]);
 
-    let mut fixed = FixedEvaluationBackend {
+    let mut fixed = EvaluationBackend {
         courses,
         batch: BatchFixture::UpdateRequired,
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut fixed,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -325,6 +324,7 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
     assert_gated_batch(exit, &serde_json::from_slice(&stdout).unwrap(), &stderr);
     assert_eq!(fixed.submit_calls, 1);
     assert_eq!(fixed.readback_calls, 1);
+    assert_eq!(fixed.readback_routes, vec![ConnectionMode::Direct]);
 }
 
 #[tokio::test]
@@ -419,7 +419,7 @@ fn cli_评教失败仅在结果未知或更新门控中止批次时携带数据(
 async fn run_json(cli: Cli, backend: &mut EvaluationBackend) -> (i32, serde_json::Value, Vec<u8>) {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_routed_backend(cli, backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, backend, &mut stdout, &mut stderr).await;
     let value = serde_json::from_slice(&stdout).unwrap();
     (exit, value, stderr)
 }
