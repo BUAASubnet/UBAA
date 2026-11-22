@@ -46,6 +46,8 @@ import 'account/campus_account_loader.dart';
 
 part 'shell_write.dart';
 part 'shell_navigation.dart';
+part 'shell_reminders.dart';
+part 'shell_feature_pages.dart';
 
 part 'shell_sync.dart';
 part 'bykc_preferences.dart';
@@ -302,34 +304,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   YgdkReminderSettings? _reminderSettings;
-  YgdkReminderSettings? get _effectiveReminder => _reminderSettings == null
-      ? null
-      : effectiveYgdkReminder(_reminderSettings!, _ygdkSchedule.hasPe);
   final _ygdkSchedule = YgdkScheduleCheck();
-  void _checkYgdkSchedule() => unawaited(
-    _ygdkSchedule.update(
-      owner:
-          widget.cacheAccountId ??
-          widget.user?.accountScope ??
-          widget.user?.username,
-      epoch: (widget.agendaEpoch, widget.businessCacheEpoch),
-      service: widget.agenda.service,
-      policy: widget.routePolicy,
-      active: widget.activeRoutes,
-      schoolRoute: widget.agendaSchoolRoute,
-      term: widget.agenda.term,
-      now: (widget.homeClock ?? clock).now(),
-      changed: () {
-        if (mounted) setState(_publishReminder);
-      },
-    ),
-  );
   bool? _publishedReminderEnabled;
-  void _publishReminder() {
-    final value = _effectiveReminder;
-    _publishedReminderEnabled = value?.enabled;
-    widget.onHomeReminderChanged?.call(value);
-  }
 
   String? _reminderError;
   int _reminderRevision = 0;
@@ -495,72 +471,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _publishedReminderEnabled != _effectiveReminder?.enabled) {
       _publishReminder();
     }
-  }
-
-  Future<void> _loadReminderSettings() async {
-    final generation = _accountGeneration;
-    final revision = _reminderRevision;
-    final load = widget.onLoadYgdkReminder;
-    if (load == null) {
-      _reminderSettings = const YgdkReminderSettings();
-      _publishReminder();
-      return;
-    }
-    try {
-      final value = await load();
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision) {
-        setState(() => _reminderSettings = value);
-        _publishReminder();
-      }
-    } on Object {
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision)
-        setState(() => _reminderError = '提醒设置读取失败');
-    }
-  }
-
-  Future<void> _saveReminderSettings(YgdkReminderSettings value) async {
-    final save = widget.onSaveYgdkReminder;
-    if (save == null) return;
-    final before = _reminderSettings, generation = _accountGeneration;
-    final revision = ++_reminderRevision;
-    setState(() {
-      _reminderSettings = value;
-      _publishReminder();
-      _reminderError = null;
-    });
-    try {
-      await save(value);
-    } on Object {
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision) {
-        setState(() {
-          _reminderSettings = before;
-          _publishReminder();
-          _reminderError = '提醒设置保存失败，请重试';
-        });
-      }
-    }
-  }
-
-  void _setReminderEnabled(bool enabled) {
-    final current = _reminderSettings;
-    if (current != null)
-      unawaited(
-        _saveReminderSettings(
-          current.copyWith(enabled: enabled, manualEnabled: enabled),
-        ),
-      );
-  }
-
-  void _observeHomeProgress(WeekPresentation week, YgdkOverview overview) {
-    if (_effectiveReminder?.enabled != true) return;
-    final next = observedReminderProgress(_reminderSettings, week, overview);
-    if (next != null) unawaited(_saveReminderSettings(next));
   }
 
   void _openGradeNotice() {
@@ -809,138 +719,4 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   final _refreshes = <Object, Future<void>>{};
-
-  Widget _buildFeaturePage(FeatureId feature) => FeatureReadNavigator(
-    key: _readPageKeys.putIfAbsent(
-      feature,
-      () => GlobalKey<FeatureReadNavigatorState>(),
-    ),
-    initialHomeTarget: _pendingHomeTarget?.feature == feature
-        ? _pendingHomeTarget
-        : null,
-    onVisibleSnapshot: (snapshot, title) {
-      if (_openedFeature == feature &&
-          _visiblePage.value != (snapshot, title)) {
-        _visiblePage.value = (snapshot, title);
-      }
-    },
-    snapshot: widget.snapshots[feature]!,
-    cacheEpoch: widget.readCacheEpoch,
-    businessCacheEpoch: _contentEpoch,
-    onExit: () => setState(() => _openedFeature = null),
-    onDepthChanged: (depth) {
-      _readDepths[feature] = depth;
-      _depthRevision.value++;
-    },
-    onRetry: () => widget.onRetryFeature(feature),
-    onQuery: widget.onFeatureQuery == null
-        ? null
-        : (query) =>
-              feature == FeatureId.cgyy &&
-                  query.view == FeatureQueryView.cgyyLockCode
-              ? Future<void>.value()
-              : widget.onFeatureQuery!(feature, query),
-    pageBuilder: (page) => PullToRefresh(
-      onRefresh: () => _pull(() => _refreshFeature(feature)),
-      enabled:
-          _openedFeature == feature &&
-          page.isCurrent &&
-          widget.writeState.intent == null &&
-          !(feature == FeatureId.cgyy &&
-              page.query?.view == FeatureQueryView.cgyyLockCode),
-      child: FeatureDetailView(
-        key: page.pageKey,
-        isLanding: page.isLanding,
-        onOpenLockDisplay: widget.onOpenLockDisplay,
-        onReadLockDisplay: widget.onReadLockDisplay,
-        lockRefreshRevision: _lockRefreshRevision,
-        visible: _openedFeature == feature && page.isCurrent,
-        onLoadAllGrades: widget.onLoadAllGrades,
-        isBykcChosenDetail: page.isBykcChosenDetail,
-        bykcListCourse: page.bykcListCourse,
-        bykcPendingCourseId: _bykcWriteActive?.$2,
-        writeBusy: _directWriteActive != null,
-        onOpenBykcChosen: page.onOpenBykcChosen,
-        bykcFilters: _bykcFilters,
-        bykcAgenda: _bykcAgendaContext,
-        bykcFilterError: _bykcFilterError,
-        onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
-        ygdkRecordsReadback: widget.ygdkRecordsReadback,
-        reminderSettings: _effectiveReminder,
-        reminderError: _reminderError,
-        onReminderChanged: widget.onSaveYgdkReminder == null
-            ? null
-            : _setReminderEnabled,
-        feature: feature,
-        snapshot: page.snapshot,
-        paginationGeneration: page.paginationGeneration,
-        loadingMore: page.loadingMore,
-        moreError: page.moreError,
-        hasMore: page.hasMore,
-        onLoadMore: page.onLoadMore,
-        query: page.query,
-        backLabel: page.backLabel,
-        onBack: page.onBack,
-        onRetry: page.onRetry,
-        onQuery: page.onQuery,
-        onNavigate: page.onNavigate,
-        onSwitchView: page.onSwitchView,
-        onLoadAcademicTerms: widget.onLoadAcademicTerms,
-        onLoadExamTerms: widget.onLoadExamTerms,
-        onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
-        scheduleImports: widget.scheduleImports,
-        onSaveScheduleSemester: widget.onSaveScheduleSemester,
-        onCancelScheduleImport: widget.onCancelScheduleImport,
-        onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
-        onLoadCgyyDefaults: widget.onLoadCgyyDefaults,
-        cgyyOnlyAvailable: _cgyyOnlyAvailable,
-        onCgyyShowAll: () => setState(() => _cgyyOnlyAvailable = false),
-        onSaveCgyyDefaults: widget.onSaveCgyyDefaults,
-        onScheduleTitle: page.onScheduleTitle,
-        readCacheEpoch: _contentEpoch,
-        onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
-            ? null
-            : _startBykcWrite,
-        onBykcSignWrite:
-            !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
-            ? null
-            : _startBykcSignWrite,
-        onFetchSigninQr: widget.onFetchSigninQr,
-        onSaveSigninQr: widget.onSaveSigninQr,
-        onCheckSigninStatus: widget.onCheckSigninStatus,
-        onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-            ? null
-            : _startSigninWrite,
-        onCgyyCancelWrite:
-            !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
-            ? null
-            : _startCgyyCancelWrite,
-        onLibbookReserveWrite:
-            !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
-            ? null
-            : _startLibbookReserveWrite,
-        onLibbookCancelWrite:
-            !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
-            ? null
-            : _startLibbookCancelWrite,
-        onEvaluationWrite:
-            !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
-            ? null
-            : _startEvaluation,
-        onCgyySubmitWrite:
-            !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
-            ? null
-            : _startCgyySubmitWrite,
-        onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
-            ? null
-            : _startYgdkSubmitWrite,
-        onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
-            ? widget.onCaptureYgdkPhoto
-            : null,
-        onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
-            ? widget.onPickYgdkPhoto
-            : null,
-      ),
-    ),
-  );
 }
