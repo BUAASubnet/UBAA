@@ -62,23 +62,13 @@ struct ScheduleTimelineProvider: TimelineProvider {
         var inClass = false
         var updatedAt: String?
         if let snapshot {
-            updatedAt = snapshot.semesters
-                .first { $0.termCode == ScheduleWidgetParser.selectWeek(
-                    semesters: snapshot.semesters, today: today)?.semester.termCode
-                }?.updatedAt
             todayAgenda = ScheduleWidgetParser.savedAgenda(
                 semesters: snapshot.semesters, today: today, days: 1)
             upcomingAgenda = ScheduleWidgetParser.savedAgenda(
                 semesters: snapshot.semesters, today: today, days: 3)
-            let offset = WeekOffsetStore.current(today: today)
-            let base = ScheduleWidgetParser.selectWeek(semesters: snapshot.semesters, today: today)
-            if let base, offset != 0 {
-                let weeks = base.semester.weeks
-                let index = weeks.firstIndex { $0.serialNumber == base.week.serialNumber } ?? 0
-                let target = weeks.indices.contains(index + offset) ? weeks[index + offset] : base.week
-                selected = SelectedWeek(semester: base.semester, week: target)
-            } else {
-                selected = base
+            if let base = ScheduleWidgetParser.selectWeek(semesters: snapshot.semesters, today: today) {
+                updatedAt = base.semester.updatedAt
+                selected = WeekOffsetStore.shared.selectedWeek(from: base, today: today)
             }
             (nextCourse, inClass) = ScheduleTimeline.nextCourse(agenda: todayAgenda, now: time)
         }

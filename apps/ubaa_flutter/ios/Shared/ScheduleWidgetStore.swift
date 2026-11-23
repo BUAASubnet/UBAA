@@ -114,6 +114,7 @@ final class ScheduleWidgetStore {
             throw StoreError.unavailable
         }
         #endif
+        WeekOffsetStore(directory: directory).clear()
         if let fileURL { try? removeItem(fileURL) }
     }
 

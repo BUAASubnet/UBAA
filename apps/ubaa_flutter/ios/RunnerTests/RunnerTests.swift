@@ -247,20 +247,71 @@ private extension Array {
 }
 
 final class WeekOffsetStoreTests: XCTestCase {
+    private func fixture() throws -> (URL, WeekOffsetStore, SelectedWeek) {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        let firstDay = try LocalDate.parse("2026-11-09")
+        let weeks = (1...3).map { number in
+            let start = firstDay.adding(days: (number - 1) * 7)
+            return WidgetWeek(serialNumber: number, name: "第\(number)周", startDate: start,
+                              endDate: start.adding(days: 6), arrangedList: [], times: [])
+        }
+        let semester = WidgetSemester(termCode: "合成学期", updatedAt: "", weeks: weeks, name: "合成学期")
+        return (directory, WeekOffsetStore(directory: directory), SelectedWeek(semester: semester, week: weeks[1]))
+    }
+
     func test零步长回到本周而非停留() throws {
-        let today = try XCTUnwrap(LocalDate.parse("2026-11-18"))
-        WeekOffsetStore.bump(delta: 2, today: today)
-        XCTAssertEqual(WeekOffsetStore.current(today: today), 2)
-        // 对齐 Android step=0：回到本周。
-        WeekOffsetStore.bump(delta: 0, today: today)
-        XCTAssertEqual(WeekOffsetStore.current(today: today), 0)
+        let (_, offset, base) = try fixture()
+        let today = base.week.startDate
+        offset.bump(delta: 1, from: base, today: today)
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 3)
+        offset.bump(delta: 0, from: base, today: today)
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 2)
     }
 
     func test跨周边界自动回到本周() throws {
-        let today = try XCTUnwrap(LocalDate.parse("2026-11-18"))
-        WeekOffsetStore.bump(delta: 3, today: today)
-        let nextWeek = try XCTUnwrap(LocalDate.parse("2026-11-25"))
-        XCTAssertEqual(WeekOffsetStore.current(today: nextWeek), 0)
+        let (_, offset, base) = try fixture()
+        let today = base.week.startDate
+        offset.bump(delta: -1, from: base, today: today)
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 1)
+        let nextWeek = base.semester.weeks[2]
+        let nextBase = SelectedWeek(semester: base.semester, week: nextWeek)
+        XCTAssertEqual(offset.selectedWeek(from: nextBase, today: nextWeek.startDate).week.serialNumber, 3)
+    }
+
+    func test首末周重复翻页仍停在边界() throws {
+        let (_, offset, base) = try fixture()
+        let today = base.week.startDate
+        offset.bump(delta: -1, from: base, today: today)
+        offset.bump(delta: -1, from: base, today: today)
+        let first = offset.selectedWeek(from: base, today: today)
+        XCTAssertEqual(first.week.serialNumber, 1)
+        XCTAssertFalse(first.canGoBack)
+        XCTAssertTrue(first.canGoForward)
+        offset.bump(delta: 1, from: base, today: today)
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 2)
+        offset.bump(delta: 1, from: base, today: today)
+        offset.bump(delta: 1, from: base, today: today)
+        let last = offset.selectedWeek(from: base, today: today)
+        XCTAssertEqual(last.week.serialNumber, 3)
+        XCTAssertTrue(last.canGoBack)
+        XCTAssertFalse(last.canGoForward)
+    }
+
+    func test刷新同一账号保留偏移而换账号和退出归零() throws {
+        let (directory, offset, base) = try fixture()
+        let today = base.week.startDate
+        let store = ScheduleWidgetStore(directory: directory)
+        _ = try store.begin(owner: "合成甲")
+        offset.bump(delta: 1, from: base, today: today)
+        _ = try store.begin(owner: "合成甲")
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 3)
+        _ = try store.begin(owner: "合成乙")
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 2)
+        offset.bump(delta: -1, from: base, today: today)
+        _ = try store.begin(owner: nil)
+        XCTAssertEqual(offset.selectedWeek(from: base, today: today).week.serialNumber, 2)
     }
 }
 

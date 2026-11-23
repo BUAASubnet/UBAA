@@ -80,6 +80,7 @@ struct WeekFullContent: View {
                     .font(.system(size: 11, weight: .bold))
                     .frame(width: 30, height: 22)
             }
+            .disabled(entry.selected?.canGoBack != true)
             Button(intent: WeekBumpIntent(delta: 0)) {
                 Text("本周")
                     .font(.system(size: 11, weight: .semibold))
@@ -90,6 +91,7 @@ struct WeekFullContent: View {
                     .font(.system(size: 11, weight: .bold))
                     .frame(width: 30, height: 22)
             }
+            .disabled(entry.selected?.canGoForward != true)
         }
         .buttonStyle(.plain)
         .foregroundStyle(palette.accent)

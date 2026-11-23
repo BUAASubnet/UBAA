@@ -17,7 +17,11 @@ struct WeekBumpIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        WeekOffsetStore.bump(delta: delta, today: .today())
+        let today = LocalDate.today()
+        if let snapshot = ScheduleWidgetStore.shared.readState().snapshot,
+           let base = ScheduleWidgetParser.selectWeek(semesters: snapshot.semesters, today: today) {
+            WeekOffsetStore.shared.bump(delta: delta, from: base, today: today)
+        }
         return .result()
     }
 }

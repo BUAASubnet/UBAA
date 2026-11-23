@@ -125,6 +125,10 @@ struct WidgetSnapshot {
 struct SelectedWeek {
     var semester: WidgetSemester
     var week: WidgetWeek
+
+    var index: Int? { semester.weeks.firstIndex { $0.serialNumber == week.serialNumber } }
+    var canGoBack: Bool { index.map { $0 > 0 } ?? false }
+    var canGoForward: Bool { index.map { $0 + 1 < semester.weeks.count } ?? false }
 }
 
 struct SavedAgendaItem {
