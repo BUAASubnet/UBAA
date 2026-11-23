@@ -189,7 +189,7 @@ class _FinanceViewState extends State<FinanceView> {
               Expanded(
                 child: UiSearchField(
                   controller: _search,
-                  hintText: '搜索项目或摘要',
+                  hintText: '搜索项目、摘要或部门',
                   onChanged: (value) => setState(() => _keyword = value),
                 ),
               ),
@@ -317,6 +317,18 @@ String _title(FinanceIncome e) =>
 /// 项目名之外的摘要；没有项目名时摘要已作为标题，不再重复。
 String? _subtitle(FinanceIncome e) =>
     uiNonBlank(e.project) == null ? null : uiNonBlank(e.description);
+
+/// 列表行的次要信息：录入日期在前保证可见，项目名称和部门用于区分同名发放项目，
+/// 超长时整行截断；与标题重复的项目名称不再显示。
+String? _rowMeta(FinanceIncome e, DateTime? date) {
+  final projectName = uiNonBlank(e.projectName);
+  final parts = [
+    if (date != null) '${uiDay(date, now: uiCampusNow())}录入',
+    if (projectName != null && projectName != _title(e)) projectName,
+    ?uiNonBlank(e.department),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
 
 final _datePattern = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})');
 DateTime? _parseDate(String? raw) {
