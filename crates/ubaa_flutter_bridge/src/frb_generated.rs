@@ -28856,6 +28856,7 @@ impl SseDecode for crate::api::app_service::models::BridgeTelemetryCounter {
             4 => crate::api::app_service::models::BridgeTelemetryCounter::RouteResolved,
             5 => crate::api::app_service::models::BridgeTelemetryCounter::FeatureLoaded,
             6 => crate::api::app_service::models::BridgeTelemetryCounter::WriteCompleted,
+            7 => crate::api::app_service::models::BridgeTelemetryCounter::FeatureOpened,
             _ => unreachable!("Invalid variant for BridgeTelemetryCounter: {}", inner),
         };
     }
@@ -43758,6 +43759,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::app_service::models::BridgeTe
             Self::RouteResolved => 4.into_dart(),
             Self::FeatureLoaded => 5.into_dart(),
             Self::WriteCompleted => 6.into_dart(),
+            Self::FeatureOpened => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -49957,6 +49959,7 @@ impl SseEncode for crate::api::app_service::models::BridgeTelemetryCounter {
                 crate::api::app_service::models::BridgeTelemetryCounter::RouteResolved => 4,
                 crate::api::app_service::models::BridgeTelemetryCounter::FeatureLoaded => 5,
                 crate::api::app_service::models::BridgeTelemetryCounter::WriteCompleted => 6,
+                crate::api::app_service::models::BridgeTelemetryCounter::FeatureOpened => 7,
                 _ => {
                     unimplemented!("");
                 }

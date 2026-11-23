@@ -215,6 +215,7 @@ enum BridgeTelemetryCounter {
   routeResolved,
   featureLoaded,
   writeCompleted,
+  featureOpened,
 }
 
 enum BridgeTelemetryError {
