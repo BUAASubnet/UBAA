@@ -278,3 +278,41 @@ final class ScheduleDisplayTests: XCTestCase {
         XCTAssertNil(ScheduleDisplay.teacher(from: "1-16周"))
     }
 }
+
+final class ScheduleTimelineTests: XCTestCase {
+    private func time(_ value: String) throws -> Date {
+        try XCTUnwrap(ISO8601DateFormatter().date(from: value))
+    }
+
+    private func item(_ name: String, start: String, end: String?) throws -> SavedAgendaItem {
+        SavedAgendaItem(
+            date: try LocalDate.parse("2026-11-23"),
+            course: WidgetCourse(courseName: name, dayOfWeek: 1, beginSection: 1, endSection: 2,
+                                 beginTime: start, endTime: end, placeName: nil, weeksAndTeachers: nil))
+    }
+
+    func test七点五十五生成开课下课和上海午夜() throws {
+        let agenda = [try item("合成甲", start: "08:00", end: "09:35")]
+        let now = try time("2026-11-23T07:55:00+08:00")
+        let start = try time("2026-11-23T08:00:00+08:00")
+        let end = try time("2026-11-23T09:35:00+08:00")
+        let midnight = try time("2026-11-24T00:00:00+08:00")
+        let dates = ScheduleTimeline.dates(now: now, agenda: agenda)
+        XCTAssertEqual(dates, [now, start, end, midnight])
+        XCTAssertEqual(LocalDate.today(now: try XCTUnwrap(dates.last)).formatted(), "2026-11-24")
+        XCTAssertFalse(ScheduleTimeline.nextCourse(agenda: agenda, now: "07:55").1)
+        XCTAssertTrue(ScheduleTimeline.nextCourse(agenda: agenda, now: "08:00").1)
+        XCTAssertNil(ScheduleTimeline.nextCourse(agenda: agenda, now: "09:35").0)
+    }
+
+    func test缺结束时间最多进行到下一节或午夜() throws {
+        let first = try item("合成甲", start: "08:00", end: nil)
+        let second = try item("合成乙", start: "10:00", end: nil)
+        let agenda = [first, second]
+        XCTAssertEqual(ScheduleTimeline.nextCourse(agenda: agenda, now: "09:59").0?.course.courseName, "合成甲")
+        XCTAssertEqual(ScheduleTimeline.nextCourse(agenda: agenda, now: "10:00").0?.course.courseName, "合成乙")
+        XCTAssertTrue(ScheduleTimeline.nextCourse(agenda: agenda, now: "23:59").1)
+        XCTAssertTrue(ScheduleTimeline.hasEnded(first, today: first.date, clock: "10:00", agenda: agenda))
+        XCTAssertTrue(ScheduleTimeline.hasEnded(second, today: second.date.adding(days: 1), clock: "00:00", agenda: []))
+    }
+}

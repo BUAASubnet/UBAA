@@ -117,13 +117,6 @@ private func relativeDay(_ date: LocalDate, today: LocalDate) -> String {
     return date.monthDay
 }
 
-/// 当日钟点已过课程结束时间。时间字符串与 `HH:mm` 同形，可直接比较。
-private func courseEnded(_ item: SavedAgendaItem, today: LocalDate, clock: String) -> Bool {
-    if item.date < today { return true }
-    guard item.date == today, let end = item.course.endTime, !end.isEmpty else { return false }
-    return end < clock
-}
-
 // MARK: - 共用部件
 
 struct ScheduleWidgetEmpty: View {
@@ -388,10 +381,13 @@ struct UpcomingScheduleWidgetView: View {
     private func visibleAgenda() -> (items: [SavedAgendaItem], extra: Int) {
         let limit = 2
         let today = LocalDate.today(now: entry.date)
-        let clock = ScheduleTimelineProvider.clock(now: entry.date)
+        let clock = ScheduleTimeline.clock(now: entry.date)
         let all = entry.upcomingAgenda
-        let upcoming = all.filter { !courseEnded($0, today: today, clock: clock) }
-        let finished = all.filter { courseEnded($0, today: today, clock: clock) }
+        let ended = { (item: SavedAgendaItem) in
+            ScheduleTimeline.hasEnded(item, today: today, clock: clock, agenda: entry.todayAgenda)
+        }
+        let upcoming = all.filter { !ended($0) }
+        let finished = all.filter(ended)
         let items: [SavedAgendaItem]
         if upcoming.count >= limit {
             items = Array(upcoming.prefix(limit))
@@ -406,7 +402,7 @@ struct UpcomingScheduleWidgetView: View {
 
     private func rows(_ items: [SavedAgendaItem]) -> some View {
         let today = LocalDate.today(now: entry.date)
-        let clock = ScheduleTimelineProvider.clock(now: entry.date)
+        let clock = ScheduleTimeline.clock(now: entry.date)
         return VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 let focused = isFocus(item)
@@ -416,7 +412,8 @@ struct UpcomingScheduleWidgetView: View {
                     showsDay: index == 0 || items[index - 1].date != item.date,
                     focused: focused
                 )
-                .opacity(courseEnded(item, today: today, clock: clock) && !focused ? 0.42 : 1)
+                .opacity(ScheduleTimeline.hasEnded(item, today: today, clock: clock, agenda: entry.todayAgenda)
+                         && !focused ? 0.42 : 1)
             }
         }
     }

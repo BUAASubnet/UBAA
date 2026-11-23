@@ -209,10 +209,7 @@ struct ScheduleConfiguredProvider: AppIntentTimelineProvider {
     func timeline(
         for configuration: ScheduleWidgetConfig, in context: Context
     ) async -> Timeline<ScheduleEntry> {
-        let now = Date()
-        let single = entry(now: now, theme: configuration.theme?.theme ?? .ocean)
-        let next = Calendar.current.date(byAdding: .minute, value: 30, to: now)!
-        return Timeline(entries: [single], policy: .after(next))
+        ScheduleTimelineProvider().timeline(now: Date(), theme: configuration.theme?.theme ?? .ocean)
     }
 
     private func entry(now: Date, theme: ScheduleTheme) -> ScheduleEntry {
