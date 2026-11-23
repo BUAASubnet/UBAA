@@ -39,7 +39,7 @@
 | 研究生系统 | [gsmis.md](parity/gsmis.md) | GSMIS 课表、当前学期、作息方案、门户身份分流 |
 | SPOC 与希冀作业 | [coursework.md](parity/coursework.md) | SPOC 认证/列表/详情、希冀列表/详情/批量缓存、正文预算、读取去重 |
 | 博雅课程 | [bykc.md](parity/bykc.md) | 列表与详情、按需分页、退选截止、统计默认值、完整详情与筛选 |
-| 课堂签到 | [signin.md](parity/signin.md) | 今日查询、签到端口与时间戳、2026-09-17 修复 |
+| 每日课程 | [signin.md](parity/signin.md) | 今日查询、上课端口与时间戳、2026-09-17 修复 |
 | 阳光打卡 | [ygdk.md](parity/ygdk.md) | OAuth 与 SSO 中间跳转、概览与记录、旧版界面依据 |
 | 图书馆座位 | [libbook.md](parity/libbook.md) | 座位查询、日期与时段、自动加载 |
 | 图书馆当前借阅与续借 | [campus.md](parity/campus.md#当前借阅与续借) | 图书馆会话、借阅列表、续借条件、单本提交与结果核对 |

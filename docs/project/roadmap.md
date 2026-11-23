@@ -42,4 +42,4 @@ MCP Server 复用 Rust Core，不重新实现业务 API。第一阶段只提供�
 Agent -> stdio -> ubaa-mcp -> Rust Core -> 直连 / WebVPN
 ```
 
-选课、签到、预约、评教提交等有副作用的操作，必须单独设计确认机制，默认不允许 Agent 执行。
+选课、上课、预约、评教提交等有副作用的操作，必须单独设计确认机制，默认不允许 Agent 执行。
