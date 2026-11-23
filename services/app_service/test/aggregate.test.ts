@@ -251,6 +251,26 @@ function insertCounters(day: string) {
   ];
 }
 
+it("每日汇总保留功能打开次数和去重安装数，不混入加载", async () => {
+  await env.DB.prepare(
+    `INSERT INTO counter_days VALUES
+    ('2025-11-29','a','2.0.0','feature_opened','schedule','none','success','linux','github',3),
+    ('2025-11-29','b','2.0.0','feature_opened','schedule','none','success','linux','github',1),
+    ('2025-11-29','c','2.0.0','feature_loaded','schedule','direct','success','linux','github',5)`,
+  ).run();
+  await scheduled("2025-11-29T19:00:00Z");
+  expect(
+    (
+      await env.DB.prepare(
+        "SELECT event, count, devices FROM counter_daily ORDER BY event",
+      ).all()
+    ).results,
+  ).toEqual([
+    { event: "feature_loaded", count: 5, devices: 1 },
+    { event: "feature_opened", count: 4, devices: 2 },
+  ]);
+});
+
 async function column<T extends string | number = string>(
   table: string,
   name: string,
