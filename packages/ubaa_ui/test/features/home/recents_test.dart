@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/common/read_navigator.dart';
+import 'package:ubaa_ui/src/features/health_cloud/view.dart';
 import 'package:ubaa_ui/src/shared/refresh.dart';
 
 Future<void> mount(
@@ -13,6 +14,7 @@ Future<void> mount(
   Future<List<FeatureId>> Function() load,
   Future<void> Function(List<FeatureId>) save, {
   ValueChanged<String>? onOpened,
+  ReadHealthCloud? healthCloudRead,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -31,6 +33,7 @@ Future<void> mount(
         onLoadRecentFeatures: load,
         onSaveRecentFeatures: save,
         onFeatureOpened: onOpened,
+        healthCloudRead: healthCloudRead,
       ),
     ),
   );
@@ -97,6 +100,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(opened.last, 'bhpan');
     expect(opened, hasLength(4));
+  });
+
+  testWidgets('从校园每次进入健康云只计一次打开，页内读取不计', (tester) async {
+    const latest = HealthCloudYear(2026, '2026-2027_1');
+    const earlier = HealthCloudYear(2025, '2025-2026_1');
+    final opened = <String>[];
+    final reads = <String?>[];
+    await mount(
+      tester,
+      'fixture',
+      () async => [],
+      (_) async {},
+      onOpened: opened.add,
+      healthCloudRead: (year) async {
+        reads.add(year);
+        if (reads.length == 3) throw StateError('合成读取失败');
+        return HealthCloudPage(
+          years: const [latest, earlier],
+          selectedYear: year ?? latest.key,
+          report: null,
+          route: ConnectionMode.direct,
+        );
+      },
+    );
+    await tester.tap(find.byIcon(UiDestination.campus.icon).hitTestable());
+    await tester.pumpAndSettle();
+    expect(opened, isEmpty);
+
+    final entry = find.text(healthCloudTitle);
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.byType(HealthCloudView), findsOneWidget);
+    expect(opened, ['health_cloud']);
+
+    await tester.tap(find.text('${earlier.year}'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('刷新体测成绩'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(reads, [null, earlier.key, earlier.key, earlier.key]);
+    expect(opened, ['health_cloud']);
+
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(reads.last, isNull);
+    expect(opened, ['health_cloud', 'health_cloud']);
   });
 
   testWidgets('同一本机账号资料更新保留常用功能，不重新读取偏好', (tester) async {

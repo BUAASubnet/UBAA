@@ -28902,6 +28902,7 @@ impl SseDecode for crate::api::app_service::models::BridgeTelemetryFeature {
             17 => crate::api::app_service::models::BridgeTelemetryFeature::Portal,
             18 => crate::api::app_service::models::BridgeTelemetryFeature::Network,
             19 => crate::api::app_service::models::BridgeTelemetryFeature::Finance,
+            20 => crate::api::app_service::models::BridgeTelemetryFeature::HealthCloud,
             _ => unreachable!("Invalid variant for BridgeTelemetryFeature: {}", inner),
         };
     }
@@ -43823,6 +43824,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::app_service::models::BridgeTe
             Self::Portal => 17.into_dart(),
             Self::Network => 18.into_dart(),
             Self::Finance => 19.into_dart(),
+            Self::HealthCloud => 20.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -50013,6 +50015,7 @@ impl SseEncode for crate::api::app_service::models::BridgeTelemetryFeature {
                 crate::api::app_service::models::BridgeTelemetryFeature::Portal => 17,
                 crate::api::app_service::models::BridgeTelemetryFeature::Network => 18,
                 crate::api::app_service::models::BridgeTelemetryFeature::Finance => 19,
+                crate::api::app_service::models::BridgeTelemetryFeature::HealthCloud => 20,
                 _ => {
                     unimplemented!("");
                 }

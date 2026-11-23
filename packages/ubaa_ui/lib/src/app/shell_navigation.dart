@@ -48,6 +48,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
         '云盘' => 'bhpan',
         'iHome' => 'ihome',
         '财务查询' => 'finance',
+        healthCloudTitle => 'health_cloud',
         _ => null,
       },
     );

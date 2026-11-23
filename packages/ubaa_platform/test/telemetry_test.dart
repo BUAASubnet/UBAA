@@ -24,6 +24,25 @@ void main() {
       });
     });
 
+    test('健康云打开事件仅保留固定维度', () async {
+      final client = MockTelemetryClient();
+      await client.track(
+        TelemetryEvents.featureOpened,
+        properties: const {
+          'feature': 'health_cloud',
+          'route': 'direct',
+          'result': 'failure',
+          'bucket': 'lt_250',
+          'year': '2026',
+        },
+      );
+      expect(client.records.single.properties, {
+        'feature': 'health_cloud',
+        'route': 'none',
+        'result': 'success',
+      });
+    });
+
     test('无参客户端默认关闭且不调用 sink', () async {
       var calls = 0;
       final client = TelemetryClient(sink: (_) async => calls++);

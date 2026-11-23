@@ -69,6 +69,32 @@ fn app_service_minutes_功能打开分别累加到日和分钟() {
 }
 
 #[test]
+fn app_service_minutes_健康云打开入队后同时生成日和分钟计数() {
+    let clock = CampusClock::new();
+    let service = clock.open(VERSION);
+    let mut daily = json!({
+        "event":"feature_opened", "feature":"health_cloud", "route":"none", "result":"success"
+    });
+    let opened = TelemetryEvent::Counter(serde_json::from_value(daily.clone()).unwrap());
+    track(&service, &opened);
+    let mut loaded = daily.clone();
+    loaded["event"] = json!("feature_loaded");
+    let loaded = TelemetryEvent::Counter(serde_json::from_value(loaded).unwrap());
+    assert!(!service.enqueue(&loaded, None).unwrap());
+
+    let batch = service.freeze_next().unwrap().unwrap();
+    let group = &days(&batch)[0];
+    daily["count"] = json!(1);
+    assert_eq!(group["counters"], json!([daily]));
+    assert_eq!(
+        minute_items(group),
+        &[json!({
+            "minute":0, "event":"feature_opened", "feature":"health_cloud", "result":"success", "count":1
+        })]
+    );
+}
+
+#[test]
 fn app_service_minutes_同分钟累加并在校园午夜从零起算() {
     let clock = CampusClock::new();
     clock.advance(TimeDelta::hours(24) - TimeDelta::seconds(2));

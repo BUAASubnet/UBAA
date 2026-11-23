@@ -132,6 +132,7 @@ wire_enum! {
         Portal,
         Network,
         Finance,
+        HealthCloud,
     }
 }
 
@@ -267,6 +268,14 @@ impl TelemetryEvent {
                 Feature::App | Feature::Auth | Feature::Portal | Feature::Network
             ) && counter.route == Route::None
                 && counter.result == CounterResult::Success;
+        }
+        let feature = match self {
+            Self::Counter(counter) => counter.feature,
+            Self::Error(error) => error.feature,
+            Self::Timing(timing) => timing.feature,
+        };
+        if feature == Feature::HealthCloud {
+            return false;
         }
         let Self::Error(error) = self else {
             return true;

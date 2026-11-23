@@ -44,7 +44,8 @@ FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("
             ("libbook", "图书馆"), ("signin", "课堂签到"), ("cgyy", "场馆预约"),
             ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用"),
             ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "i 北航"),
-            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务")]
+            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务"),
+            ("health_cloud", "健康云")]
 
 
 def case(col, pairs, default=None):

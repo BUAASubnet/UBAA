@@ -35,7 +35,7 @@
       "enum": [
         "app", "auth", "schedule", "exam", "grades", "bykc", "classroom", "spoc",
         "judge", "libbook", "signin", "cgyy", "ygdk", "evaluation",
-        "cloud_print", "bhpan", "ihome", "portal", "network", "finance"
+        "cloud_print", "bhpan", "ihome", "portal", "network", "finance", "health_cloud"
       ]
     },
     "route": {"type": "string", "enum": ["direct", "webvpn", "none"]},
@@ -70,7 +70,8 @@
       "then": {"properties": {
         "feature": {"not": {"enum": ["app", "auth", "portal", "network"]}},
         "route": {"const": "none"}, "result": {"const": "success"}
-      }}
+      }},
+      "else": {"properties": {"feature": {"not": {"const": "health_cloud"}}}}
     },
     "counter": {
       "$ref": "#/$defs/openedDimensions",
@@ -304,7 +305,7 @@
       "properties": {
         "diagnostic": {"$ref": "#/$defs/diagnostic"},
         "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "write_failed", "ui_error_shown", "crash"]},
-        "feature": {"$ref": "#/$defs/feature"},
+        "feature": {"$ref": "#/$defs/feature", "not": {"const": "health_cloud"}},
         "route": {"$ref": "#/$defs/route"},
         "error_code": {"type": "string"},
         "error_kind": {"$ref": "#/$defs/errorKind"},
@@ -326,7 +327,7 @@
       "required": ["metric", "feature", "route", "bucket", "count"],
       "properties": {
         "metric": {"type": "string", "enum": ["cold_start", "first_content", "auth", "feature_load"]},
-        "feature": {"$ref": "#/$defs/feature"},
+        "feature": {"$ref": "#/$defs/feature", "not": {"const": "health_cloud"}},
         "route": {"$ref": "#/$defs/route"},
         "bucket": {
           "type": "string",

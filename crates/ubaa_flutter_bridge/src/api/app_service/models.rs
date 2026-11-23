@@ -90,6 +90,7 @@ pub enum BridgeTelemetryFeature {
     Portal,
     Network,
     Finance,
+    HealthCloud,
 }
 
 impl From<BridgeTelemetryFeature> for core::Feature {
@@ -115,6 +116,7 @@ impl From<BridgeTelemetryFeature> for core::Feature {
             BridgeTelemetryFeature::Portal => Self::Portal,
             BridgeTelemetryFeature::Network => Self::Network,
             BridgeTelemetryFeature::Finance => Self::Finance,
+            BridgeTelemetryFeature::HealthCloud => Self::HealthCloud,
         }
     }
 }

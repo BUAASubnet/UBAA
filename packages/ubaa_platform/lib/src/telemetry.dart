@@ -114,6 +114,7 @@ final _openedFeatures = {
   'bhpan',
   'ihome',
   'finance',
+  'health_cloud',
 };
 const _results = {'success', 'empty', 'failure'};
 const _errorKinds = {
