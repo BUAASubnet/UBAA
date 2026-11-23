@@ -115,7 +115,7 @@ final class ScheduleWidgetParserTests: XCTestCase {
         var badVersion = snapshotJSON()
         badVersion["version"] = 2
         XCTAssertThrowsError(try ScheduleWidgetParser.parseSnapshot(badVersion))
-        var badDay = snapshotJSON(day: 8)
+        let badDay = snapshotJSON(day: 8)
         XCTAssertThrowsError(try ScheduleWidgetParser.parseSnapshot(badDay))
         var emptyOwner = snapshotJSON()
         emptyOwner["owner"] = ""
@@ -193,11 +193,15 @@ final class WeekOffsetStoreTests: XCTestCase {
 
 final class ScheduleDisplayTests: XCTestCase {
     func test从周次教师串提取教师名() {
-        XCTAssertEqual(ScheduleDisplay.teacher(from: "1-16周 张明"), "张明")
-        XCTAssertEqual(ScheduleDisplay.teacher(from: "3-14周 王强 李强"), "王强 李强")
-        XCTAssertEqual(ScheduleDisplay.teacher(from: "张明"), "张明")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "1周,4-6周[理论]/合成教师[主讲]"), "合成教师[主讲]")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "1-16周/合成甲"), "合成甲")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: " 1-16周 / 合成甲 \n"), "合成甲")
+        XCTAssertEqual(ScheduleDisplay.teacher(from: "合成甲"), "合成甲")
+        XCTAssertNil(ScheduleDisplay.teacher(from: "1-16周 合成甲"))
+        XCTAssertNil(ScheduleDisplay.teacher(from: "1-3周/甲/乙"))
+        XCTAssertNil(ScheduleDisplay.teacher(from: "1-3周/ "))
         XCTAssertNil(ScheduleDisplay.teacher(from: nil))
-        XCTAssertNil(ScheduleDisplay.teacher(from: "  "))
+        XCTAssertNil(ScheduleDisplay.teacher(from: " \n\t "))
         XCTAssertNil(ScheduleDisplay.teacher(from: "1-16周"))
     }
 }

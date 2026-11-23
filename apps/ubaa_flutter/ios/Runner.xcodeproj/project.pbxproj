@@ -17,6 +17,8 @@
 		AB5C1D0100000000000000B7 /* ScheduleTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */; };
 		AB5C1D0100000000000000B8 /* ScheduleWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */; };
 		AB5C1D0100000000000000B9 /* WeekOffsetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */; };
+		AB5C1D0100000000000000BC /* WeekOffsetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */; };
+		AB5C1D0100000000000000BD /* WeekBumpIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000AC /* WeekBumpIntent.swift */; };
 		AB5C1D0100000000000000BA /* ScheduleWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AB5C1D0100000000000000AA /* ScheduleWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A24BFD311FD8A001E741B6C3 /* BhpanPreviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24BFD321FD8A001E741B6C3 /* BhpanPreviewPlugin.swift */; };
 		4A204F32B18C4B8D972C7361 /* AgendaFilePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F273312B41347A1AB62D27B /* AgendaFilePlugin.swift */; };
@@ -85,6 +87,7 @@
 		AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTimelineProvider.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleWidgetViews.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekOffsetStore.swift; sourceTree = "<group>"; };
+		AB5C1D0100000000000000AC /* WeekBumpIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekBumpIntent.swift; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB5C1D0100000000000000A9 /* ScheduleWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ScheduleWidget.entitlements; sourceTree = "<group>"; };
 		AB5C1D0100000000000000AA /* ScheduleWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScheduleWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -161,6 +164,7 @@
 			children = (
 				AB5C1D0100000000000000A1 /* ScheduleWidgetModels.swift */,
 				AB5C1D0100000000000000A2 /* ScheduleWidgetStore.swift */,
+				AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -172,7 +176,7 @@
 				AB5C1D0100000000000000AB /* ScheduleTheme.swift */,
 				AB5C1D0100000000000000A5 /* ScheduleTimelineProvider.swift */,
 				AB5C1D0100000000000000A6 /* ScheduleWidgetViews.swift */,
-				AB5C1D0100000000000000A7 /* WeekOffsetStore.swift */,
+				AB5C1D0100000000000000AC /* WeekBumpIntent.swift */,
 				AB5C1D0100000000000000A8 /* Info.plist */,
 				AB5C1D0100000000000000A9 /* ScheduleWidget.entitlements */,
 			);
@@ -559,6 +563,7 @@
 				AB5C1D0100000000000000B7 /* ScheduleTimelineProvider.swift in Sources */,
 				AB5C1D0100000000000000B8 /* ScheduleWidgetViews.swift in Sources */,
 				AB5C1D0100000000000000B9 /* WeekOffsetStore.swift in Sources */,
+				AB5C1D0100000000000000BD /* WeekBumpIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,6 +585,7 @@
 				AB5C1D0100000000000000B1 /* ScheduleWidgetPlugin.swift in Sources */,
 				AB5C1D0100000000000000B2 /* ScheduleWidgetModels.swift in Sources */,
 				AB5C1D0100000000000000B3 /* ScheduleWidgetStore.swift in Sources */,
+				AB5C1D0100000000000000BC /* WeekOffsetStore.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

@@ -5,20 +5,17 @@ import Foundation
 /// 本文件由 Runner 与 ScheduleWidget 扩展共同编译。
 
 enum ScheduleDisplay {
-    /// `weeksAndTeachers`（如 "1-16周 张三"）中提取教师名。
+    /// 详情页可显示未拆分的原文；组件空间有限，只显示能可靠提取的教师名。
     static func teacher(from weeksAndTeachers: String?) -> String? {
-        guard let raw = weeksAndTeachers?.trimmingCharacters(in: .whitespaces),
+        guard let raw = weeksAndTeachers?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty
         else { return nil }
-        if let space = raw.firstIndex(of: " ") {
-            let head = String(raw[..<space])
-            if head.contains("周") || head.contains(where: \.isNumber) {
-                let tail = String(raw[raw.index(after: space)...])
-                    .trimmingCharacters(in: .whitespaces)
-                return tail.isEmpty ? nil : tail
-            }
+        let parts = raw.components(separatedBy: "/")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if parts.count == 2, parts[0].contains("周"), !parts[1].isEmpty {
+            return parts[1]
         }
-        return raw
+        return parts.count == 1 && !raw.contains("周") ? raw : nil
     }
 }
 

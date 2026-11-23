@@ -1,4 +1,3 @@
-import AppIntents
 import Foundation
 
 /// 周课表翻周偏移，存放在 App Group 容器；以当周周一为锚点，跨周自动回到本周。
@@ -32,27 +31,5 @@ enum WeekOffsetStore {
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return }
         try? data.write(to: fileURL, options: [.atomic])
-    }
-}
-
-@available(iOS 17.0, *)
-struct WeekBumpIntent: AppIntent {
-    static var title: LocalizedStringResource = "切换周次"
-    static var description = IntentDescription("在桌面课表上切换到上一周或下一周。")
-
-    @Parameter(title: "步长")
-    var delta: Int
-
-    init(delta: Int) {
-        self.delta = delta
-    }
-
-    init() {
-        self.delta = 1
-    }
-
-    func perform() async throws -> some IntentResult {
-        WeekOffsetStore.bump(delta: delta, today: .today())
-        return .result()
     }
 }
