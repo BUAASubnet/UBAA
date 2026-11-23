@@ -345,7 +345,7 @@ void _verifierTests() {
   });
 
   test('续借原因只进入本次提交反馈，诊断仍使用通用提示', () async {
-    const reason = 'META-403060: 不允许续借,未达到到期前续借天数';
+    const reason = '尚未进入续借窗口，请稍后再试';
     final client = _RenewalRejectionClient(
       const BridgeError(
         code: BridgeErrorCode.businessRejected,

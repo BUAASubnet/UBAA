@@ -192,10 +192,7 @@ async fn 借阅续借业务拒绝仅返回目标的学校原因() {
         .await
         .expect_err("学校拒绝续借");
     assert_eq!(error.code, BridgeErrorCode::BusinessRejected);
-    assert_eq!(
-        error.message,
-        "META-403060: 不允许续借,未达到到期前续借天数"
-    );
+    assert_eq!(error.message, "尚未进入续借窗口，请稍后再试");
     let diagnostic = error.diagnostic_json.as_deref().unwrap();
     assert!(!diagnostic.contains("META-403060"));
     assert!(!diagnostic.contains("到期前"));

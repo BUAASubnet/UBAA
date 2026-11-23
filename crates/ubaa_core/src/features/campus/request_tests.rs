@@ -875,15 +875,15 @@ fn 续借业务拒绝与结果未知分别归类() {
         let cases = [
             (
                 200,
-                r#"{"code":0,"msg":"不得公开的外层说明","data":{"loan-1":"还未到续借时间"}}"#,
+                r#"{"code":0,"msg":"不得公开的外层说明","data":{"loan-1":"META-403060: 不允许续借,未达到到期前续借天数"}}"#,
                 BusinessRejected,
-                Some("还未到续借时间"),
+                Some("尚未进入续借窗口，请稍后再试"),
             ),
             (
                 200,
-                r#"{"code":1001,"msg":"续借服务暂时关闭","data":null}"#,
+                r#"{"code":1001,"msg":"读者测试甲当前不能续借","data":null}"#,
                 BusinessRejected,
-                Some("续借服务暂时关闭"),
+                None,
             ),
             (
                 200,

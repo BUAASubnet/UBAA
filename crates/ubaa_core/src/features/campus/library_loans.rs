@@ -439,11 +439,11 @@ pub(crate) async fn renew(
         _ => return Err(unknown_write()),
     };
     if code.as_i64() != Some(0) {
-        return Err(renew_rejection(object.get("msg"), &loan_id));
+        return Err(renew_rejection(object.get("msg")));
     }
     match object.get("data") {
         Some(Value::Object(failures)) if failures.contains_key(&loan_id) => {
-            Err(renew_rejection(failures.get(&loan_id), &loan_id))
+            Err(renew_rejection(failures.get(&loan_id)))
         }
         Some(Value::Null) => Ok(LibraryLoanRenewResult {
             loan_id,
@@ -457,38 +457,17 @@ pub(crate) async fn renew(
     }
 }
 
-fn renew_rejection(reason: Option<&Value>, loan_id: &str) -> UbaaError {
+fn renew_rejection(reason: Option<&Value>) -> UbaaError {
     let error = UbaaError::new(
         ErrorCode::BusinessRejected,
         ErrorKind::Upstream,
         false,
         "学校未接受本次续借，请刷新后查看借阅记录",
     );
-    match reason
-        .and_then(Value::as_str)
-        .and_then(|reason| renew_display_reason(reason, loan_id))
-    {
-        Some(reason) => error
+    match reason.and_then(Value::as_str).map(str::trim) {
+        Some("META-403060: 不允许续借,未达到到期前续借天数") => error
             .with_diagnostic("response", "library_renew_rejected_with_message")
-            .with_private_display_message(reason.to_owned()),
-        None => error.with_diagnostic("response", "library_renew_rejected"),
+            .with_private_display_message("尚未进入续借窗口，请稍后再试".to_owned()),
+        _ => error.with_diagnostic("response", "library_renew_rejected"),
     }
-}
-
-/// 只接受简短的单行说明，过滤可能带有凭据、标识或标记的文本。
-fn renew_display_reason<'a>(raw: &'a str, loan_id: &str) -> Option<&'a str> {
-    use std::sync::LazyLock;
-    static UNSAFE: LazyLock<regex::Regex> = LazyLock::new(|| {
-        regex::Regex::new(
-            r"(?i)[<>@&=/\\]|[0-9]{7,}|[a-z0-9_-]{24,}|\p{Cf}|\p{Zl}|\p{Zp}|\b(cookie|token|password|authorization|ticket|session|barcode|loanid)\b|密码|令牌|条码|证件号|身份证|学号|工号|手机号",
-        )
-        .expect("静态续借提示筛选规则有效")
-    });
-    let reason = raw.trim();
-    (!reason.is_empty()
-        && reason.chars().count() <= 160
-        && !raw.chars().any(char::is_control)
-        && !reason.contains(loan_id)
-        && !UNSAFE.is_match(reason))
-    .then_some(reason)
 }
