@@ -146,7 +146,7 @@ struct WeekGrid: View {
 
     var body: some View {
         GeometryReader { geo in
-            let left: CGFloat = 36
+            let left: CGFloat = 46
             let top: CGFloat = 34
             let periods = max(week.times.count, 1)
             let column = (geo.size.width - left) / 7
@@ -230,17 +230,21 @@ struct WeekGrid: View {
         return day >= 5 ? palette.tertiary : palette.secondary
     }
 
+    /// 节次和开始时间排在同一行：大组件里每节只有十几点高，上下两行会压到相邻节次。
     private func timeGutter(left: CGFloat, top: CGFloat, row: CGFloat) -> some View {
         ForEach(Array(week.times.enumerated()), id: \.offset) { index, slot in
-            VStack(alignment: .trailing, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text("\(slot.section)")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
+                    .monospacedDigit()
                     .foregroundStyle(palette.ink.opacity(0.8))
                 Text(slot.start ?? "")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 8.5, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(palette.secondary)
             }
+            // 字号固定、不随动态字体缩放；按理想宽度排，各行时间字号一致。
+            .fixedSize()
             .frame(width: left - 4, alignment: .trailing)
             .position(x: (left - 4) / 2, y: top + row * (CGFloat(index) + 0.5))
         }
