@@ -14,11 +14,14 @@ just flutter build ios --release --config-only --no-codesign \
 (cd ios && pod install)
 ruby -rxcodeproj -e '
 project = Xcodeproj::Project.open("ios/Runner.xcodeproj")
-project.targets.find { |target| target.name == "Runner" }.build_configurations.each do |config|
-  config.build_settings["DEVELOPMENT_TEAM"] = ENV.fetch("APPLE_TEAM_ID")
-  config.build_settings["CODE_SIGN_STYLE"] = "Manual"
-  config.build_settings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = ENV.fetch("APPLE_SIGNING_IDENTITY")
-  config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV.fetch("IOS_PROFILE_UUID")
+{"Runner" => "IOS_PROFILE_UUID", "ScheduleWidget" => "IOS_WIDGET_PROFILE_UUID"}.each do |name, variable|
+  target = project.targets.find { |candidate| candidate.name == name } or abort "找不到 iOS 签名目标 #{name}"
+  target.build_configurations.each do |config|
+    config.build_settings["DEVELOPMENT_TEAM"] = ENV.fetch("APPLE_TEAM_ID")
+    config.build_settings["CODE_SIGN_STYLE"] = "Manual"
+    config.build_settings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = ENV.fetch("APPLE_SIGNING_IDENTITY")
+    config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV.fetch(variable)
+  end
 end
 project.save
 '

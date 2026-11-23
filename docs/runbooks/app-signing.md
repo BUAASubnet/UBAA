@@ -53,7 +53,7 @@ Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。
 | 平台 | 准备的材料 | 保存位置 |
 |---|---|---|
 | Android | 原发布 keystore、store password、key alias、key password | `.sign/android/`；密码配置见下一节 |
-| iOS | Apple Distribution 证书和对应私钥、Team、匹配 Bundle ID 的分发 Profile | 本机 Keychain 和 Xcode；CI 使用加密导出的 `.p12` 与密码 |
+| iOS | Apple Distribution 证书和对应私钥、Team，以及 `cn.edu.ubaa` 和 `cn.edu.ubaa.widget` 各自的 App Store Profile；两个 Profile 都须包含 App Group `group.cn.edu.ubaa` 并使用同一分发证书 | 本机 Keychain 和 Xcode；CI 使用加密导出的 `.p12` 与密码 |
 | macOS 官网分发 | Developer ID Application 证书及私钥、公证认证方式 | Keychain；公证凭据通过 Keychain profile 或 CI secret 管理 |
 | OHOS | `.p12`、别名和密码、发布 `.cer`、发布 `.p7b` | `.sign/ohos/`，由 DevEco 导入 |
 | Windows 可信签名 | 受信代码签名证书及其私钥访问方式，或签名服务 | 系统证书存储、硬件设备或服务，不要求必须存在可导出的 PFX |
@@ -157,7 +157,8 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 | `ANDROID_KEYSTORE_BASE64` | Android keystore，解码后将文件路径传给 `ANDROID_STORE_FILE` |
 | `ANDROID_STORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` | Android keystore 密码、密钥别名和密钥密码 |
 | `IOS_CERTIFICATE_P12_BASE64`、`IOS_CERTIFICATE_PASSWORD` | 导入 Apple 分发证书及私钥 |
-| `IOS_PROVISIONING_PROFILE_BASE64` | 安装对应应用和渠道的 Profile |
+| `IOS_PROVISIONING_PROFILE_BASE64` | 主应用 `cn.edu.ubaa` 的 App Store Profile |
+| `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` | 课表组件扩展 `cn.edu.ubaa.widget` 的 App Store Profile |
 | `APPSTORE_KEY_ID`、`APPSTORE_ISSUER_ID`、`APPSTORE_PRIVATE_KEY` | App Store Connect 上传认证 |
 | `MACOS_CERTIFICATE_P12_BASE64`、`MACOS_CERTIFICATE_PASSWORD` | 导入 macOS Developer ID 分发证书及私钥 |
 | `OHOS_KEYSTORE_BASE64`、`OHOS_CERTIFICATE_BASE64`、`OHOS_PROFILE_BASE64` | 还原 HarmonyOS 发布签名文件 |

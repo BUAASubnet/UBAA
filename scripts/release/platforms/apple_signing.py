@@ -13,6 +13,10 @@ import subprocess
 import sys
 
 PRIVATE = Path(os.environ['RUNNER_TEMP']) / 'ubaa_release_signing'
+IOS_PROFILES = (
+    ('cn.edu.ubaa', 'IOS_PROVISIONING_PROFILE_BASE64', 'IOS_PROFILE_UUID'),
+    ('cn.edu.ubaa.widget', 'IOS_WIDGET_PROVISIONING_PROFILE_BASE64', 'IOS_WIDGET_PROFILE_UUID'),
+)
 
 
 def security(*args):
@@ -22,7 +26,46 @@ def security(*args):
         raise RuntimeError('临时 Keychain 操作失败，请检查签名材料')
 
 
+def validate_ios_profile(profile, team, bundle):
+    entitlements = profile.get('Entitlements', {})
+    if entitlements.get('application-identifier') != f'{team}.{bundle}':
+        raise ValueError(f'{bundle} 的 iOS Profile 应用或 Team 不匹配')
+    if entitlements.get('get-task-allow') or 'ProvisionedDevices' in profile or profile.get('ProvisionsAllDevices'):
+        raise ValueError(f'{bundle} 必须使用 App Store Profile')
+    if 'group.cn.edu.ubaa' not in entitlements.get('com.apple.security.application-groups', []):
+        raise ValueError(f'{bundle} 的 iOS Profile 缺少 App Group group.cn.edu.ubaa')
+
+
+def install_ios_profiles(team, identity, values):
+    profiles = {}
+    copies = {}
+    profile_directory = Path.home() / 'Library/Developer/Xcode/UserData/Provisioning Profiles'
+    for bundle, secret, variable in IOS_PROFILES:
+        profile_file = PRIVATE / f'{bundle}.mobileprovision'
+        profile_file.write_bytes(base64.b64decode(os.environ[secret]))
+        decoded = subprocess.run(['security', 'cms', '-D', '-i', str(profile_file)], capture_output=True)
+        if decoded.returncode:
+            raise ValueError(f'无法解码 {secret} 中的 iOS Profile')
+        profile = plistlib.loads(decoded.stdout)
+        validate_ios_profile(profile, team, bundle)
+        uuid = profile['UUID']
+        profiles[bundle] = values[variable] = uuid
+        copies[profile_file] = profile_directory / f'{uuid}.mobileprovision'
+    profile_directory.mkdir(parents=True, exist_ok=True)
+    (PRIVATE / 'installed_profiles.json').write_text(json.dumps([str(path) for path in copies.values()]))
+    for source, installed in copies.items():
+        shutil.copy2(source, installed)
+    options = {'method': 'app-store-connect', 'destination': 'export', 'signingStyle': 'manual',
+               'teamID': team, 'signingCertificate': identity, 'provisioningProfiles': profiles,
+               'manageAppVersionAndBuildNumber': False, 'stripSwiftSymbols': True, 'uploadSymbols': True}
+    (PRIVATE / 'ExportOptions.plist').write_bytes(plistlib.dumps(options))
+
+
 def prepare(platform):
+    if platform == 'ios':
+        for bundle, secret, _ in IOS_PROFILES:
+            if not os.environ.get(secret, '').strip():
+                raise ValueError(f'缺少 {secret}，请为 {bundle} 配置 App Store Profile secret')
     os.umask(0o077)
     PRIVATE.mkdir(parents=True, exist_ok=True)
     prefix = 'IOS' if platform == 'ios' else 'MACOS'
@@ -53,22 +96,7 @@ def prepare(platform):
     values = {'APPLE_SIGNING_IDENTITY': identity[0], 'APPLE_TEAM_ID': team,
               'API_PRIVATE_KEYS_DIR': str(PRIVATE), 'APPLE_KEYCHAIN': str(keychain)}
     if platform == 'ios':
-        profile_file = PRIVATE / 'profile.mobileprovision'
-        profile_file.write_bytes(base64.b64decode(os.environ['IOS_PROVISIONING_PROFILE_BASE64']))
-        profile = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(profile_file)]))
-        if profile['Entitlements']['application-identifier'] != team + '.cn.edu.ubaa':
-            raise ValueError('iOS Profile 的应用或 Team 不匹配')
-        if profile['Entitlements'].get('get-task-allow') or 'ProvisionedDevices' in profile:
-            raise ValueError('iOS 必须使用 App Store Profile')
-        installed = Path.home() / 'Library/Developer/Xcode/UserData/Provisioning Profiles' / (profile['UUID'] + '.mobileprovision')
-        installed.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(profile_file, installed)
-        (PRIVATE / 'installed_profile.txt').write_text(str(installed))
-        options = {'method': 'app-store-connect', 'destination': 'export', 'signingStyle': 'manual',
-                   'teamID': team, 'signingCertificate': identity[0], 'provisioningProfiles': {'cn.edu.ubaa': profile['UUID']},
-                   'manageAppVersionAndBuildNumber': False, 'stripSwiftSymbols': True, 'uploadSymbols': True}
-        (PRIVATE / 'ExportOptions.plist').write_bytes(plistlib.dumps(options))
-        values['IOS_PROFILE_UUID'] = profile['UUID']
+        install_ios_profiles(team, identity[0], values)
     with Path(os.environ['GITHUB_ENV']).open('a') as output:
         for key, value in values.items():
             output.write(f'{key}={value}\n')
@@ -82,9 +110,10 @@ def cleanup():
     keychain = PRIVATE / 'release.keychain-db'
     if keychain.exists():
         security('delete-keychain', str(keychain))
-    profile = PRIVATE / 'installed_profile.txt'
-    if profile.exists():
-        Path(profile.read_text()).unlink(missing_ok=True)
+    profiles = PRIVATE / 'installed_profiles.json'
+    if profiles.exists():
+        for path in json.loads(profiles.read_text()):
+            Path(path).unlink(missing_ok=True)
     shutil.rmtree(PRIVATE, ignore_errors=True)
 
 
