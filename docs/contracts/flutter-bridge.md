@@ -21,10 +21,16 @@ Flutter 与 OHOS 宿主通过 FRB 的 typed 接口调用 Rust Core facade。Brid
 
 - **财务收入。** `BridgeFinanceIncome` 通过 `department`、`projectCode` 和 `projectName` 提供可空的部门名称、项目编号和项目名称。在线结果和离线快照使用同一种投影。
 
+### 图书续借
+
+- `currentLibraryLoans` 返回 typed 借阅明细，`prepareLibraryLoanRenew` 在 Core 重读完整范围后为唯一的记录签发意图，已知续借次数用尽时拒绝。意图携带 `loanId`、`dueDate` 和 `renewTimes` 作为核对基线。
+- 确定成功或结果未知后，`currentLibraryLoansOnRoute` 在意图路线核对一次。只有同一条记录的已知应还日期变化或续借次数增加，才把未知结果标记为已核对。借阅明细不进入首页自动读取或业务缓存。
+
 ## 错误语义
 
 <a id="3-错误合同"></a>
 
 - Core 错误码、类别、重试标志和已解析路线经 Bridge 保留，定义以 [Core 错误类型](../../crates/ubaa_core/src/error/mod.rs) 和 [Bridge 类型与映射](../../crates/ubaa_flutter_bridge/src/api/) 为准。宿主按稳定码选文案，不用原始正文，也不把解析失败归为协议变化或自行推导可重试性。未知 Core 码和普通 panic 归为安全的内部错误。
+- 图书续借在确定业务拒绝时允许在当次反馈展示 Core 筛选过的学校说明。诊断只保留固定原因标记，通用错误详情和遥测继续使用应用模板。
 - 会话不足交给所需路线恢复；凭据拒绝或需人工验证交给登录界面。网络、超时与业务不可用可按返回标记刷新只读数据；权限、业务拒绝、解析失败、更新门控分别呈现。业务不可用只用于已确认的业务状态或时段。
 - 句柄关闭、缺少确认、确认过期、资源冲突与普通网络失败分开处理。重新准备需要最新在线目标和用户确认。写入结果未知不得自动重试，先在原路线只读核对；发送后的 panic 也按未知结果收尾。尚未逐项明确发送边界的旧提交入口可能保守返回未知，调用方仍应禁止重发。

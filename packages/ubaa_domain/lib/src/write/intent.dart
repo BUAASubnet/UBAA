@@ -5,6 +5,7 @@ import '../common/route.dart';
 import '../common/cache_management.dart';
 import '../feature/catalog.dart';
 import '../feature/query.dart';
+import '../feature/library/loans.dart';
 
 /// 应用写操作。各 typed Bridge 共用同一个写入协调器。
 enum WriteOperation {
@@ -18,6 +19,7 @@ enum WriteOperation {
   cgyySubmitReservation,
   cgyyCancelOrder,
   evaluationSubmitCourses,
+  libraryLoanRenew,
   bhpan,
 }
 
@@ -33,6 +35,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
     WriteOperation.ygdkSubmit => FeatureId.ygdk,
     WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+    WriteOperation.libraryLoanRenew => null,
     WriteOperation.bhpan => null,
   };
 
@@ -47,6 +50,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.cgyySubmitReservation => '研讨室预约',
     WriteOperation.cgyyCancelOrder => '取消研讨室订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
+    WriteOperation.libraryLoanRenew => '图书续借',
     WriteOperation.bhpan => '云盘',
   };
 
@@ -70,6 +74,7 @@ class WriteIntent {
     required this.expiresAt,
     required this.requestDigest,
     this.readbackQuery,
+    this.libraryLoanRenewTarget,
   });
 
   final String intentId;
@@ -83,6 +88,9 @@ class WriteIntent {
   /// 仅供确定成功或结果未知后的只读核对使用，不参与 Bridge commit。
   final FeatureQuery? readbackQuery;
 
+  /// 单本续借的核对基线；只用于判定同一记录是否已更新，不参与 Bridge commit。
+  final LibraryLoanRenewTarget? libraryLoanRenewTarget;
+
   bool isExpired([DateTime? now]) =>
       !(expiresAt.isAfter(now ?? DateTime.now()));
 
@@ -95,6 +103,7 @@ class WriteIntent {
     expiresAt: expiresAt,
     requestDigest: requestDigest,
     readbackQuery: query,
+    libraryLoanRenewTarget: libraryLoanRenewTarget,
   );
 }
 

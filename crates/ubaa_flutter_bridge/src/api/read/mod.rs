@@ -802,6 +802,11 @@ pub struct BridgePinnedLibbookBookings {
     pub pinned_route: super::client::BridgeConnectionMode,
 }
 #[derive(Clone, Debug)]
+pub struct BridgePinnedLibraryLoans {
+    pub data: crate::api::campus::BridgeLibraryLoans,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}
+#[derive(Clone, Debug)]
 pub struct BridgePinnedSigninClasses {
     pub data: Vec<BridgeSigninClass>,
     pub pinned_route: super::client::BridgeConnectionMode,

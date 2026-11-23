@@ -25,6 +25,7 @@ export 'src/agenda/sync.dart';
 export 'src/agenda/export.dart';
 
 export 'src/finance/service.dart';
+export 'src/feature/library/loans.dart';
 
 export 'src/privacy/bundled_policy.dart';
 export 'src/privacy/policy.dart';

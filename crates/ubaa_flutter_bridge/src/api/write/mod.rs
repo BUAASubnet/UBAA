@@ -29,6 +29,7 @@ pub enum BridgeWriteOperation {
     SigninPerform,
     LibbookReserve,
     LibbookCancelBooking,
+    LibraryLoanRenew,
     YgdkSubmit,
     CgyySubmitReservation,
     CgyyCancelOrder,
@@ -44,6 +45,15 @@ pub struct BridgeWriteIntent {
     pub warnings: Vec<String>,
     pub expires_at: i64,
     pub request_digest: String,
+    pub library_loan_renew_target: Option<BridgeLibraryLoanRenewTarget>,
+}
+
+/// 续借预检读取的同一条记录，用于写后核对。
+#[derive(Clone, Debug)]
+pub struct BridgeLibraryLoanRenewTarget {
+    pub loan_id: String,
+    pub due_date: Option<String>,
+    pub renew_times: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -75,6 +85,10 @@ pub struct BridgeLibbookCancelBookingRequest {
     pub id: String,
     pub page: i32,
     pub limit: i32,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeLibraryLoanRenewRequest {
+    pub loan_id: String,
 }
 #[derive(Clone)]
 pub struct BridgePhotoUpload {
@@ -200,6 +214,7 @@ pub(crate) enum PendingWrite {
     Signin(BridgeSigninPerformRequest),
     LibbookReserve(BridgeLibbookReserveRequest),
     LibbookCancel(BridgeLibbookCancelBookingRequest),
+    LibraryLoanRenew(BridgeLibraryLoanRenewRequest),
     Ygdk(ubaa_core::facade::YgdkClockinSubmitRequest),
     CgyyReserve(ubaa_core::facade::CgyyReservationSubmitRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),
@@ -225,6 +240,7 @@ impl PendingWrite {
             Self::Signin(_) => BridgeWriteOperation::SigninPerform,
             Self::LibbookReserve(_) => BridgeWriteOperation::LibbookReserve,
             Self::LibbookCancel(_) => BridgeWriteOperation::LibbookCancelBooking,
+            Self::LibraryLoanRenew(_) => BridgeWriteOperation::LibraryLoanRenew,
             Self::Ygdk(_) => BridgeWriteOperation::YgdkSubmit,
             Self::CgyyReserve(_) => BridgeWriteOperation::CgyySubmitReservation,
             Self::CgyyCancel(_) => BridgeWriteOperation::CgyyCancelOrder,
@@ -250,6 +266,9 @@ impl PendingWrite {
                 request.end_time,
             ),
             Self::LibbookCancel(request) => format!("libbook-cancel:{}", request.id.trim()),
+            Self::LibraryLoanRenew(request) => {
+                format!("library-loan-renew:{}", request.loan_id.trim())
+            }
             Self::Ygdk(request) => format!(
                 "ygdk:{}:{}:{}:{}",
                 request.target.classify_id,

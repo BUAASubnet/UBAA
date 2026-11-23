@@ -10,7 +10,7 @@ import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `conflict_key`, `conflicts_with`, `evaluation_target_conflict_key`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCourseRequest {
   final PlatformInt64 courseId;
@@ -329,6 +329,47 @@ class BridgeLibbookReserveRequest {
           endTime == other.endTime;
 }
 
+class BridgeLibraryLoanRenewRequest {
+  final String loanId;
+
+  const BridgeLibraryLoanRenewRequest({required this.loanId});
+
+  @override
+  int get hashCode => loanId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeLibraryLoanRenewRequest &&
+          runtimeType == other.runtimeType &&
+          loanId == other.loanId;
+}
+
+/// 续借预检读取的同一条记录，用于写后核对。
+class BridgeLibraryLoanRenewTarget {
+  final String loanId;
+  final String? dueDate;
+  final int? renewTimes;
+
+  const BridgeLibraryLoanRenewTarget({
+    required this.loanId,
+    this.dueDate,
+    this.renewTimes,
+  });
+
+  @override
+  int get hashCode => loanId.hashCode ^ dueDate.hashCode ^ renewTimes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeLibraryLoanRenewTarget &&
+          runtimeType == other.runtimeType &&
+          loanId == other.loanId &&
+          dueDate == other.dueDate &&
+          renewTimes == other.renewTimes;
+}
+
 class BridgePhotoUpload {
   final Uint8List bytes;
   final String fileName;
@@ -424,6 +465,7 @@ class BridgeWriteIntent {
   final List<String> warnings;
   final PlatformInt64 expiresAt;
   final String requestDigest;
+  final BridgeLibraryLoanRenewTarget? libraryLoanRenewTarget;
 
   const BridgeWriteIntent({
     required this.intentId,
@@ -433,6 +475,7 @@ class BridgeWriteIntent {
     required this.warnings,
     required this.expiresAt,
     required this.requestDigest,
+    this.libraryLoanRenewTarget,
   });
 
   @override
@@ -443,7 +486,8 @@ class BridgeWriteIntent {
       resolvedRoute.hashCode ^
       warnings.hashCode ^
       expiresAt.hashCode ^
-      requestDigest.hashCode;
+      requestDigest.hashCode ^
+      libraryLoanRenewTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -456,7 +500,8 @@ class BridgeWriteIntent {
           resolvedRoute == other.resolvedRoute &&
           warnings == other.warnings &&
           expiresAt == other.expiresAt &&
-          requestDigest == other.requestDigest;
+          requestDigest == other.requestDigest &&
+          libraryLoanRenewTarget == other.libraryLoanRenewTarget;
 }
 
 enum BridgeWriteOperation {
@@ -466,6 +511,7 @@ enum BridgeWriteOperation {
   signinPerform,
   libbookReserve,
   libbookCancelBooking,
+  libraryLoanRenew,
   ygdkSubmit,
   cgyySubmitReservation,
   cgyyCancelOrder,

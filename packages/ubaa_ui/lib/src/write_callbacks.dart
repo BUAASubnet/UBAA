@@ -113,3 +113,9 @@ typedef CgyyReservationPreparer =
 
 /// 研讨室预约启动回调。
 typedef CgyyReservationStarter = Future<void> Function(CgyySubmitInput input);
+
+/// 图书续借启动回调；确认、一次性意图和提交由应用层统一写入协调器完成。
+typedef LibraryLoanRenewStarter = Future<WriteOutcome?> Function(String loanId);
+
+/// 图书续借准备回调；只传递当前账号读取结果中的记录标识。
+typedef LibraryLoanRenewPreparer = Future<WriteIntent> Function(String loanId);

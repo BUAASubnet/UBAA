@@ -19,6 +19,7 @@ class MeView extends StatelessWidget {
     this.onOpenAbout,
     this.onLogout,
     this.onOpenBhpan,
+    this.onOpenLibraryLoans,
   });
 
   final UserSummary? user;
@@ -27,7 +28,7 @@ class MeView extends StatelessWidget {
   /// 窄屏没有侧边栏，在页尾提供设置、关于和退出。
   final bool showShortcuts;
   final VoidCallback? onOpenProfile, onOpenSettings, onOpenAbout, onLogout;
-  final VoidCallback? onOpenBhpan;
+  final VoidCallback? onOpenBhpan, onOpenLibraryLoans;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +45,11 @@ class MeView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园账户'),
-        _MetricsPanel(section: overview.metrics, onOpenBhpan: onOpenBhpan),
+        _MetricsPanel(
+          section: overview.metrics,
+          onOpenBhpan: onOpenBhpan,
+          onOpenLibraryLoans: onOpenLibraryLoans,
+        ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园网流量'),
         _NetworkPanel(section: overview.network),
@@ -246,9 +251,13 @@ String _decimal(String raw, {bool fixed = false}) {
 }
 
 class _MetricsPanel extends StatelessWidget {
-  const _MetricsPanel({required this.section, this.onOpenBhpan});
+  const _MetricsPanel({
+    required this.section,
+    this.onOpenBhpan,
+    this.onOpenLibraryLoans,
+  });
   final CampusSection<CampusMetrics> section;
-  final VoidCallback? onOpenBhpan;
+  final VoidCallback? onOpenBhpan, onOpenLibraryLoans;
 
   _TileValue _amount(CampusMetric<CampusAmount>? metric, {bool money = false}) {
     return switch (metric) {
@@ -315,6 +324,7 @@ class _MetricsPanel extends StatelessWidget {
         icon: Icons.menu_book_outlined,
         label: '待还图书',
         value: _count(metrics?.borrowedBooks, '本'),
+        onTap: onOpenLibraryLoans,
       ),
       _MetricTile(
         key: const ValueKey('me-metric-cloud'),

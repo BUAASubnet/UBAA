@@ -117,7 +117,11 @@ final class DiagnosticRecord {
     if (recoveryAttempts != null) 'recovery_attempts': recoveryAttempts,
     if ((feature?.wireName ??
             operation.serviceFeature ??
-            (writeOperation == WriteOperation.bhpan ? 'bhpan' : null))
+            (writeOperation == WriteOperation.bhpan
+                ? 'bhpan'
+                : writeOperation == WriteOperation.libraryLoanRenew
+                ? 'library_loans'
+                : null))
         case final name?)
       'feature': name,
     if (writeOperation != null) 'write_operation': writeOperation!.name,

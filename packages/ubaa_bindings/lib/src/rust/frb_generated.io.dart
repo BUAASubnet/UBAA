@@ -1047,6 +1047,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_libbook_reserve_request(dynamic raw);
 
   @protected
+  BridgeLibraryLoanRenewRequest
+  dco_decode_box_autoadd_bridge_library_loan_renew_request(dynamic raw);
+
+  @protected
+  BridgeLibraryLoanRenewTarget
+  dco_decode_box_autoadd_bridge_library_loan_renew_target(dynamic raw);
+
+  @protected
   BridgeNetworkUsage dco_decode_box_autoadd_bridge_network_usage(dynamic raw);
 
   @protected
@@ -2256,6 +2264,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibraryLoan dco_decode_bridge_library_loan(dynamic raw);
+
+  @protected
+  BridgeLibraryLoanRenewRequest dco_decode_bridge_library_loan_renew_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewTarget dco_decode_bridge_library_loan_renew_target(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibraryLoanStatus dco_decode_bridge_library_loan_status(dynamic raw);
+
+  @protected
+  BridgeLibraryLoans dco_decode_bridge_library_loans(dynamic raw);
+
+  @protected
+  BridgeLibraryLoansResult dco_decode_bridge_library_loans_result(dynamic raw);
+
+  @protected
   BridgeLoginOutcome dco_decode_bridge_login_outcome(dynamic raw);
 
   @protected
@@ -2288,6 +2318,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgePinnedLibbookBookings dco_decode_bridge_pinned_libbook_bookings(
     dynamic raw,
   );
+
+  @protected
+  BridgePinnedLibraryLoans dco_decode_bridge_pinned_library_loans(dynamic raw);
 
   @protected
   BridgePinnedSigninClasses dco_decode_bridge_pinned_signin_classes(
@@ -2954,6 +2987,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeLibraryLoan> dco_decode_list_bridge_library_loan(dynamic raw);
+
+  @protected
   List<BridgeNetworkProductUsage> dco_decode_list_bridge_network_product_usage(
     dynamic raw,
   );
@@ -3355,6 +3391,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibBookAreaSchedule?
   dco_decode_opt_box_autoadd_bridge_lib_book_area_schedule(dynamic raw);
+
+  @protected
+  BridgeLibraryLoanRenewTarget?
+  dco_decode_opt_box_autoadd_bridge_library_loan_renew_target(dynamic raw);
 
   @protected
   BridgeNetworkUsage? dco_decode_opt_box_autoadd_bridge_network_usage(
@@ -4441,6 +4481,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibbookReserveRequest
   sse_decode_box_autoadd_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewRequest
+  sse_decode_box_autoadd_bridge_library_loan_renew_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewTarget
+  sse_decode_box_autoadd_bridge_library_loan_renew_target(
     SseDeserializer deserializer,
   );
 
@@ -6036,6 +6088,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibraryLoan sse_decode_bridge_library_loan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewRequest sse_decode_bridge_library_loan_renew_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewTarget sse_decode_bridge_library_loan_renew_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanStatus sse_decode_bridge_library_loan_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoans sse_decode_bridge_library_loans(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoansResult sse_decode_bridge_library_loans_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLoginOutcome sse_decode_bridge_login_outcome(
     SseDeserializer deserializer,
   );
@@ -6082,6 +6164,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePinnedLibbookBookings sse_decode_bridge_pinned_libbook_bookings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePinnedLibraryLoans sse_decode_bridge_pinned_library_loans(
     SseDeserializer deserializer,
   );
 
@@ -6954,6 +7041,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeLibraryLoan> sse_decode_list_bridge_library_loan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeNetworkProductUsage> sse_decode_list_bridge_network_product_usage(
     SseDeserializer deserializer,
   );
@@ -7471,6 +7563,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibBookAreaSchedule?
   sse_decode_opt_box_autoadd_bridge_lib_book_area_schedule(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibraryLoanRenewTarget?
+  sse_decode_opt_box_autoadd_bridge_library_loan_renew_target(
     SseDeserializer deserializer,
   );
 
@@ -8707,6 +8805,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_libbook_reserve_request(
     BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_library_loan_renew_request(
+    BridgeLibraryLoanRenewRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_library_loan_renew_target(
+    BridgeLibraryLoanRenewTarget self,
     SseSerializer serializer,
   );
 
@@ -10682,6 +10792,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_library_loan(
+    BridgeLibraryLoan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_library_loan_renew_request(
+    BridgeLibraryLoanRenewRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_library_loan_renew_target(
+    BridgeLibraryLoanRenewTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_library_loan_status(
+    BridgeLibraryLoanStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_library_loans(
+    BridgeLibraryLoans self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_library_loans_result(
+    BridgeLibraryLoansResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_login_outcome(
     BridgeLoginOutcome self,
     SseSerializer serializer,
@@ -10738,6 +10884,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_pinned_libbook_bookings(
     BridgePinnedLibbookBookings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_pinned_library_loans(
+    BridgePinnedLibraryLoans self,
     SseSerializer serializer,
   );
 
@@ -11810,6 +11962,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_library_loan(
+    List<BridgeLibraryLoan> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_network_product_usage(
     List<BridgeNetworkProductUsage> self,
     SseSerializer serializer,
@@ -12382,6 +12540,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_lib_book_area_schedule(
     BridgeLibBookAreaSchedule? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_library_loan_renew_target(
+    BridgeLibraryLoanRenewTarget? self,
     SseSerializer serializer,
   );
 

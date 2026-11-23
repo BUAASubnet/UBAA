@@ -18,6 +18,7 @@ pub enum WriteReadbackOperation {
     SigninPerform,
     LibbookReserve,
     LibbookCancelBooking,
+    LibraryLoanRenew,
     YgdkSubmit,
     CgyySubmitReservation,
     CgyyCancelOrder,

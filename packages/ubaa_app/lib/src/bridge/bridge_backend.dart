@@ -70,7 +70,12 @@ import 'features/ygdk/reader.dart'
 import 'home/reader.dart' show bridgeReadCachedHome;
 import 'read/cache_query.dart' show bridgeReadCachedQuery;
 import 'read/dispatch.dart' show bridgeLoadFeatureQuery;
-import 'support/mapping.dart' show bridgeDateOnly, bridgeMapError;
+import 'support/mapping.dart'
+    show
+        bridgeDateOnly,
+        bridgeMapError,
+        bridgeToBridgeConnectionMode,
+        bridgeToConnectionMode;
 import 'write/operations.dart'
     show
         bridgeCommitWrite,
@@ -84,6 +89,7 @@ import 'write/operations.dart'
         bridgePrepareEvaluationSubmitCourses,
         bridgePrepareLibbookCancelBooking,
         bridgePrepareLibbookReserve,
+        bridgePrepareLibraryLoanRenew,
         bridgePrepareSigninPerform,
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
@@ -93,7 +99,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 80;
+const _supportedBridgeContractVersion = 81;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -116,6 +122,9 @@ class BridgeBackend
         HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,
+        LibraryLoansBackend,
+        LibraryLoanWriteBackend,
+        LibraryLoanReadbackBackend,
         BhpanProvider,
         CloudPrintProvider,
         PinnedWriteReadbackBackend,

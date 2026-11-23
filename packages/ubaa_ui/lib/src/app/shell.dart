@@ -13,6 +13,7 @@ import '../shared/tab_navigation.dart'
 import '../features/ihome/view.dart';
 import '../features/health_cloud/view.dart';
 import '../features/finance/view.dart';
+import '../features/library_loans/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
@@ -110,6 +111,7 @@ class UbaaMainShell extends StatefulWidget {
     this.healthCloudRead,
     this.financeService,
     this.onOpenAppLink,
+    this.readLibraryLoans,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -150,6 +152,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareCgyyCancelWrite,
     this.onPrepareLibbookReserveWrite,
     this.onPrepareLibbookCancelWrite,
+    this.onPrepareLibraryLoanRenewWrite,
     this.onPrepareCgyySubmitWrite,
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
@@ -248,6 +251,7 @@ class UbaaMainShell extends StatefulWidget {
   /// 财务收入只读服务；为空时不显示入口。
   final FinanceService? financeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
+  final LibraryLoansReader? readLibraryLoans;
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -273,6 +277,7 @@ class UbaaMainShell extends StatefulWidget {
   final CgyyCancelPreparer? onPrepareCgyyCancelWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
+  final LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;

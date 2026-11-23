@@ -237,6 +237,7 @@ class WriteCoordinator extends ChangeNotifier {
       WriteCommitResult? result;
       UiError? error;
       UiError? resultError;
+      String? libraryLoanRejectionReason;
       UbaaErrorCode? code;
       try {
         result = await _commit(pending.intentId);
@@ -272,6 +273,11 @@ class WriteCoordinator extends ChangeNotifier {
         }
       } on Object catch (exception, stackTrace) {
         if (!_isCurrent(activity, generation)) return null;
+        if (pending.operation == WriteOperation.libraryLoanRenew &&
+            exception is BackendException &&
+            exception.code == UbaaErrorCode.businessRejected) {
+          libraryLoanRejectionReason = exception.libraryLoanRejectionReason;
+        }
         final unclassified =
             exception is! BackendException && exception is! UiError;
         code = unclassified
@@ -294,6 +300,7 @@ class WriteCoordinator extends ChangeNotifier {
         result: result,
         error: error,
         resultError: resultError,
+        libraryLoanRejectionReason: libraryLoanRejectionReason,
         isCurrent: () => _isCurrent(activity, generation),
         onReadbackError: (cause, stackTrace) {
           _safeError(

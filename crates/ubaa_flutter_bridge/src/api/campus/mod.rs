@@ -679,3 +679,93 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
     }
 }
+
+/// 图书馆借阅状态；上游未识别的值保持为“其他”。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BridgeLibraryLoanStatus {
+    Normal,
+    Soon,
+    Overdue,
+    Other,
+}
+impl From<domain::LibraryLoanStatus> for BridgeLibraryLoanStatus {
+    fn from(value: domain::LibraryLoanStatus) -> Self {
+        match value {
+            domain::LibraryLoanStatus::Normal => Self::Normal,
+            domain::LibraryLoanStatus::Soon => Self::Soon,
+            domain::LibraryLoanStatus::Overdue => Self::Overdue,
+            domain::LibraryLoanStatus::Other => Self::Other,
+        }
+    }
+}
+
+/// 一条当前借阅记录；标识只作为当前账号内的续借目标。
+#[derive(Clone, Debug)]
+pub struct BridgeLibraryLoan {
+    pub id: String,
+    pub title: String,
+    pub author: Option<String>,
+    pub loan_date: Option<String>,
+    pub due_date: Option<String>,
+    pub renew_times: Option<u32>,
+    pub can_renew_times: Option<u32>,
+    pub status: BridgeLibraryLoanStatus,
+    pub location: Option<String>,
+}
+impl From<domain::LibraryLoan> for BridgeLibraryLoan {
+    fn from(value: domain::LibraryLoan) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            author: value.author,
+            loan_date: value.loan_date,
+            due_date: value.due_date,
+            renew_times: value.renew_times,
+            can_renew_times: value.can_renew_times,
+            status: value.status.into(),
+            location: value.location,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeLibraryLoans {
+    pub entries: Vec<BridgeLibraryLoan>,
+    pub total: u32,
+}
+pub(crate) fn map_library_loans(value: domain::LibraryLoans) -> BridgeLibraryLoans {
+    value.into()
+}
+impl From<domain::LibraryLoans> for BridgeLibraryLoans {
+    fn from(value: domain::LibraryLoans) -> Self {
+        Self {
+            entries: value.entries.into_iter().map(Into::into).collect(),
+            total: value.total,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeLibraryLoansResult {
+    pub data: BridgeLibraryLoans,
+    pub route: BridgeRouteDecision,
+}
+
+impl BridgeClient {
+    /// 在线读取当前账号、当前路线的完整当前借阅范围。
+    pub async fn current_library_loans(&self) -> Result<BridgeLibraryLoansResult, BridgeError> {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let value = client
+                .current_library_loans()
+                .await
+                .map_err(BridgeError::from_routed)?;
+            Ok(BridgeLibraryLoansResult {
+                data: value.data.into(),
+                route: map_route(value.resolution),
+            })
+        })
+        .await
+    }
+}

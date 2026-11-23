@@ -116,13 +116,16 @@ class FixtureFakeYgdkRecordsClient extends FixtureCompatibleBridgeClient {
   }
 }
 
-BridgeWriteIntent fixtureWriteIntent(BridgeWriteOperation operation) =>
-    BridgeWriteIntent(
-      intentId: 'intent',
-      operation: operation,
-      targetSummary: 'typed',
-      resolvedRoute: BridgeConnectionMode.direct,
-      warnings: const <String>[],
-      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 120,
-      requestDigest: 'digest',
-    );
+BridgeWriteIntent fixtureWriteIntent(
+  BridgeWriteOperation operation, {
+  BridgeLibraryLoanRenewTarget? libraryLoanRenewTarget,
+}) => BridgeWriteIntent(
+  intentId: 'intent',
+  operation: operation,
+  targetSummary: 'typed',
+  resolvedRoute: BridgeConnectionMode.direct,
+  warnings: const <String>[],
+  expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 120,
+  requestDigest: 'digest',
+  libraryLoanRenewTarget: libraryLoanRenewTarget,
+);

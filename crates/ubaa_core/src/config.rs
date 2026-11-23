@@ -30,6 +30,7 @@ struct FeaturePolicies {
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
+    library: Option<RoutePolicy>,
     ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
@@ -70,6 +71,7 @@ struct RawFeatures {
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
+    library: Option<RoutePolicy>,
     ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
@@ -117,6 +119,7 @@ impl RouteConfig {
                 bykc: raw.route.features.bykc,
                 cgyy: raw.route.features.cgyy,
                 libbook: raw.route.features.libbook,
+                library: raw.route.features.library,
                 ygdk: raw.route.features.ygdk,
                 signin: raw.route.features.signin,
                 schedule: raw.route.features.schedule,
@@ -244,6 +247,7 @@ impl RouteConfig {
             ReadonlyFeature::Bykc => self.features.bykc,
             ReadonlyFeature::Cgyy => self.features.cgyy,
             ReadonlyFeature::LibBook => self.features.libbook,
+            ReadonlyFeature::Library => self.features.library,
             ReadonlyFeature::Ygdk => self.features.ygdk,
             ReadonlyFeature::Signin => self.features.signin,
             ReadonlyFeature::Schedule => self.features.schedule,
@@ -257,7 +261,7 @@ impl RouteConfig {
         .unwrap_or(self.default)
     }
 
-    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 17] {
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 18] {
         [
             (ReadonlyFeature::Portal, self.features.portal),
             (ReadonlyFeature::Network, self.features.network),
@@ -267,6 +271,7 @@ impl RouteConfig {
             (ReadonlyFeature::Bykc, self.features.bykc),
             (ReadonlyFeature::Cgyy, self.features.cgyy),
             (ReadonlyFeature::LibBook, self.features.libbook),
+            (ReadonlyFeature::Library, self.features.library),
             (ReadonlyFeature::Ygdk, self.features.ygdk),
             (ReadonlyFeature::Signin, self.features.signin),
             (ReadonlyFeature::Schedule, self.features.schedule),

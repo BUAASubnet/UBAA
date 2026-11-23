@@ -11,6 +11,7 @@ BackendException bridgeWriteCacheError(
 ) => BackendException(
   error.code,
   detail: error.detail,
+  libraryLoanRejectionReason: error.libraryLoanRejectionReason,
   kind: error.kind,
   retryable: error.retryable,
   resolvedRoute: error.resolvedRoute,
@@ -89,6 +90,14 @@ WriteIntent bridgeMapIntent(BridgeWriteIntent intent) => WriteIntent(
     int.parse(intent.expiresAt.toString()) * 1000,
   ),
   requestDigest: intent.requestDigest,
+  libraryLoanRenewTarget: switch (intent.libraryLoanRenewTarget) {
+    final target? => LibraryLoanRenewTarget(
+      loanId: target.loanId,
+      dueDate: target.dueDate,
+      renewTimes: target.renewTimes,
+    ),
+    null => null,
+  },
 );
 
 CgyyReservationReceipt? bridgeMapCgyyReceipt(
@@ -120,6 +129,7 @@ WriteOperation bridgeToWriteOperation(BridgeWriteOperation operation) =>
       BridgeWriteOperation.libbookReserve => WriteOperation.libbookReserve,
       BridgeWriteOperation.libbookCancelBooking =>
         WriteOperation.libbookCancelBooking,
+      BridgeWriteOperation.libraryLoanRenew => WriteOperation.libraryLoanRenew,
       BridgeWriteOperation.ygdkSubmit => WriteOperation.ygdkSubmit,
       BridgeWriteOperation.cgyySubmitReservation =>
         WriteOperation.cgyySubmitReservation,

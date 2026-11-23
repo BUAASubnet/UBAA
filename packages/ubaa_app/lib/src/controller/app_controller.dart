@@ -388,6 +388,49 @@ class AppController extends ControllerState
        );
 }
 
+extension AppControllerLibraryLoans on AppController {
+  bool get canReadLibraryLoans => internalBackend is LibraryLoansBackend;
+
+  bool get canPrepareLibraryLoanRenew =>
+      internalBackend is LibraryLoanWriteBackend;
+
+  Future<List<LibraryLoan>> readLibraryLoans() {
+    final session = internalCaptureSessionScope();
+    final backend = session.backend;
+    if (backend is! LibraryLoansBackend) {
+      throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
+    }
+    return internalReadService(
+      RecoveryTarget.library,
+      DiagnosticOperation.read,
+      () {
+        if (!session.isCurrent) {
+          throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
+        }
+        return (backend as LibraryLoansBackend).readLibraryLoans();
+      },
+    );
+  }
+
+  /// 准备单本续借的一次性意图；准备本身不发送写请求。
+  ///
+  /// Core 按记录标识重新读取目标资格与写后核对基线。
+  Future<WriteIntent> prepareLibraryLoanRenew(String loanId) =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! LibraryLoanWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        final normalized = loanId.trim();
+        if (normalized.isEmpty || normalized.length > 256) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        return (backend as LibraryLoanWriteBackend).prepareLibraryLoanRenew(
+          loanId: normalized,
+        );
+      });
+}
+
 extension AppControllerSigninQr on AppController {
   bool get canFetchSigninQr => internalBackend is SigninQrBackend;
 

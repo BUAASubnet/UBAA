@@ -118,6 +118,7 @@ BridgeRecoveryFeature _target(RecoveryTarget target) => switch (target) {
   RecoveryTarget.judge => BridgeRecoveryFeature.judge,
   RecoveryTarget.signin => BridgeRecoveryFeature.signin,
   RecoveryTarget.libbook => BridgeRecoveryFeature.libBook,
+  RecoveryTarget.library => BridgeRecoveryFeature.library_,
   RecoveryTarget.bykc => BridgeRecoveryFeature.bykc,
   RecoveryTarget.cgyy => BridgeRecoveryFeature.cgyy,
   RecoveryTarget.ygdk => BridgeRecoveryFeature.ygdk,

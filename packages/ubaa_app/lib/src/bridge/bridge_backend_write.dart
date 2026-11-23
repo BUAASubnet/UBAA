@@ -46,6 +46,9 @@ mixin BridgeBackendWrite {
   Future<WriteIntent> prepareSigninPerform({required String courseId}) =>
       bridgePrepareSigninPerform(_context, courseId: courseId);
 
+  Future<WriteIntent> prepareLibraryLoanRenew({required String loanId}) =>
+      bridgePrepareLibraryLoanRenew(_context, loanId: loanId);
+
   Future<WriteIntent> prepareLibbookReserve({
     required String areaId,
     required String seatId,

@@ -182,6 +182,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           : null,
       onLoadAppVersion: appInformation.version,
       onOpenAppLink: appInformation.open,
+      readLibraryLoans: _controller.canReadLibraryLoans
+          ? _controller.readLibraryLoans
+          : null,
       readCacheEpoch: _controller.readCacheEpoch,
       businessCacheEpoch: _controller.businessCacheEpoch,
       localPreferencesRevision: _preferenceRevision,
@@ -300,6 +303,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareCgyyCancelWrite: _controller.prepareCgyyCancelWrite,
       onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
       onPrepareLibbookCancelWrite: _controller.prepareLibbookCancelWrite,
+      onPrepareLibraryLoanRenewWrite: _controller.canPrepareLibraryLoanRenew
+          ? _controller.prepareLibraryLoanRenew
+          : null,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: hasYgdkSubmissionCapabilities
           ? _controller.prepareYgdkWrite
