@@ -427,7 +427,8 @@ class RustManifestTierTest(unittest.TestCase):
                                     for command in gates.commands(plan)))
 
     def test_bridge_codegen_is_skipped_for_unchanged_dependency_closure(self):
-        plan = gates.select_checks(ROOT, ['Cargo.lock'], previous=gates.previous_reader(ROOT))
+        unchanged_lock = (ROOT / 'Cargo.lock').read_text()
+        plan = gates.select_checks(ROOT, ['Cargo.lock'], previous=lambda _: unchanged_lock)
         self.assertTrue(plan['risk'])
         self.assertNotIn(gates.CODEGEN, gates.commands(plan))
 
