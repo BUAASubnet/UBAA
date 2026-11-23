@@ -30,11 +30,12 @@ Future<LibraryLoanRenewReadback?> controllerVerifyLibraryLoanRenew(
         .where((loan) => loan.id == target.loanId)
         .toList(growable: false);
     final after = matches.length == 1 ? matches.single : null;
-    final dueDateChanged =
-        after != null &&
-        after.dueDate != null &&
-        target.dueDate != null &&
-        after.dueDate != target.dueDate;
+    final beforeDate = _dueDate(target.dueDate);
+    final afterDate = _dueDate(after?.dueDate);
+    final dueDateExtended =
+        beforeDate != null &&
+        afterDate != null &&
+        afterDate.isAfter(beforeDate);
     final renewCountIncreased =
         after?.renewTimes != null &&
         target.renewTimes != null &&
@@ -43,7 +44,7 @@ Future<LibraryLoanRenewReadback?> controllerVerifyLibraryLoanRenew(
       loanId: target.loanId,
       loans: read.loans,
       route: read.resolvedRoute,
-      verified: dueDateChanged || renewCountIncreased,
+      verified: dueDateExtended || renewCountIncreased,
     );
   } on Object catch (error, stackTrace) {
     if (scope.isCurrent) {
@@ -56,4 +57,17 @@ Future<LibraryLoanRenewReadback?> controllerVerifyLibraryLoanRenew(
     }
     return null;
   }
+}
+
+final _dateFormat = RegExp(
+  r'^(\d{4})-(\d\d)-(\d\d)(?: (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d)?$',
+);
+
+DateTime? _dueDate(String? text) {
+  final match = text == null ? null : _dateFormat.firstMatch(text);
+  if (match == null) return null;
+  final month = int.parse(match[2]!);
+  final day = int.parse(match[3]!);
+  final date = DateTime.utc(int.parse(match[1]!), month, day);
+  return date.month == month && date.day == day ? date : null;
 }

@@ -61,6 +61,6 @@ class LibraryLoanRenewReadback {
   final List<LibraryLoan> loans;
   final ConnectionMode route;
 
-  /// 同一记录的两次已知应还日期不同，或续借次数增加时为 true。
+  /// 同一记录的应还日期延后，或续借次数增加时为 true。
   final bool verified;
 }

@@ -198,6 +198,32 @@ void main() {
     controller.dispose();
   });
 
+  test('核对只接受日期延后或次数增加', () async {
+    for (final (date, count, verified) in [
+      ('2026-12-01 12:30:45', 1, false),
+      ('2026-11-30', 1, false),
+      ('2027-02-29', 1, false),
+      ('2026-12-02 24:00:00', 1, false),
+      ('日期未知', 1, false),
+      ('2026-12-02 00:00:00', 1, true),
+      ('日期未知', 2, true),
+    ]) {
+      final backend = _ReadbackBackend(
+        LibraryLoanRouteRead(
+          loans: [_loan(dueDate: date, renewTimes: count)],
+          resolvedRoute: ConnectionMode.direct,
+        ),
+      );
+      final controller = AppController(backend: backend);
+      final read = await controllerVerifyLibraryLoanRenew(
+        controller,
+        _intent(ConnectionMode.direct),
+      );
+      controller.dispose();
+      expect(read?.verified, verified, reason: '$date / $count');
+    }
+  });
+
   test('记录未变化或回读路线不一致时保留未核对', () async {
     final unchanged = _ReadbackBackend(
       LibraryLoanRouteRead(
