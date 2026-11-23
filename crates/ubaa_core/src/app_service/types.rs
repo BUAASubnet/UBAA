@@ -156,6 +156,7 @@ wire_enum! {
         RouteResolved,
         FeatureLoaded,
         WriteCompleted,
+        FeatureOpened,
     }
 }
 
@@ -258,6 +259,15 @@ pub enum TelemetryEvent {
 
 impl TelemetryEvent {
     pub(super) fn is_valid(&self) -> bool {
+        if let Self::Counter(counter) = self
+            && counter.event == CounterEvent::FeatureOpened
+        {
+            return !matches!(
+                counter.feature,
+                Feature::App | Feature::Auth | Feature::Portal | Feature::Network
+            ) && counter.route == Route::None
+                && counter.result == CounterResult::Success;
+        }
         let Self::Error(error) = self else {
             return true;
         };

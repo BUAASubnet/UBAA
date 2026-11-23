@@ -50,6 +50,7 @@ pub enum BridgeTelemetryCounter {
     RouteResolved,
     FeatureLoaded,
     WriteCompleted,
+    FeatureOpened,
 }
 
 impl From<BridgeTelemetryCounter> for core::CounterEvent {
@@ -62,6 +63,7 @@ impl From<BridgeTelemetryCounter> for core::CounterEvent {
             BridgeTelemetryCounter::RouteResolved => Self::RouteResolved,
             BridgeTelemetryCounter::FeatureLoaded => Self::FeatureLoaded,
             BridgeTelemetryCounter::WriteCompleted => Self::WriteCompleted,
+            BridgeTelemetryCounter::FeatureOpened => Self::FeatureOpened,
         }
     }
 }

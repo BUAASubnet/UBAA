@@ -1,4 +1,4 @@
-//! 登录与功能加载的匿名分钟计数。
+//! 登录、功能打开与加载的匿名分钟计数。
 
 use super::{
     AppServiceResult, COUNT_AND_SEPARATOR_BYTES, COUNT_LIMIT, OptionalExtension, TelemetryEvent,
@@ -29,6 +29,7 @@ enum Event {
     AuthSucceeded,
     AuthFailed,
     FeatureLoaded,
+    FeatureOpened,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -51,6 +52,9 @@ impl Dimensions {
                 }
                 CounterEvent::FeatureLoaded => {
                     (Event::FeatureLoaded, counter.feature, counter.result)
+                }
+                CounterEvent::FeatureOpened => {
+                    (Event::FeatureOpened, counter.feature, counter.result)
                 }
                 _ => return None,
             },

@@ -47,6 +47,28 @@ fn minute_items(group: &Value) -> &[Value] {
 }
 
 #[test]
+fn app_service_minutes_功能打开分别累加到日和分钟() {
+    let service = CampusClock::new();
+    let service = service.open(VERSION);
+    let event =
+        json!({"event":"feature_opened","feature":"finance","route":"none","result":"success"});
+    let opened = TelemetryEvent::Counter(serde_json::from_value(event.clone()).unwrap());
+    track(&service, &opened);
+    track(&service, &opened);
+    let batch = service.freeze_next().unwrap().unwrap();
+    let group = &days(&batch)[0];
+    let mut daily = event;
+    daily["count"] = json!(2);
+    assert_eq!(group["counters"], json!([daily]));
+    assert_eq!(
+        minute_items(group),
+        &[
+            json!({"minute":0,"event":"feature_opened","feature":"finance","result":"success","count":2})
+        ]
+    );
+}
+
+#[test]
 fn app_service_minutes_同分钟累加并在校园午夜从零起算() {
     let clock = CampusClock::new();
     clock.advance(TimeDelta::hours(24) - TimeDelta::seconds(2));
