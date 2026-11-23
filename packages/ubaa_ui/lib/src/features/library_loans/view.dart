@@ -162,7 +162,10 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
           child: _error != null
               ? UiStatePanel(
                   icon: Icons.cloud_off_outlined,
-                  title: '借阅记录读取失败',
+                  // 权限类错误（如当前路线不支持）自带更准确的标题。
+                  title: _error!.code == UbaaErrorCode.permissionDenied
+                      ? _error!.title
+                      : '借阅记录读取失败',
                   detail: _error!.message,
                   action: '重试',
                   actionIcon: Icons.refresh,
@@ -354,26 +357,41 @@ class _LoanCard extends StatelessWidget {
             if (location != null && uiNonBlank(location) != null)
               _Detail(label: '馆藏地', value: location),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            // 待核对时续借不可用，主操作换成只读核对，避免同时出现两个入口。
+            Row(
               children: [
-                UiTag('续借 ${_count(loan.renewTimes)} 次'),
-                UiTag(_renewable(loan.canRenewTimes)),
-                if (pending) ...[
-                  const UiTag('待核对'),
-                  TextButton(onPressed: onRecheck, child: const Text('核对')),
-                ],
-                const SizedBox(width: 4),
-                FilledButton.tonalIcon(
-                  onPressed: renewEnabled ? onRenew : null,
-                  icon: Icon(
-                    renewing ? Icons.hourglass_top : Icons.autorenew,
-                    size: 18,
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      UiTag('续借 ${_count(loan.renewTimes)} 次'),
+                      UiTag(_renewable(loan.canRenewTimes)),
+                      if (pending) const UiTag('待核对', tone: UiTagTone.warning),
+                    ],
                   ),
-                  label: Text(renewing ? '处理中' : '续借'),
                 ),
+                const SizedBox(width: 8),
+                if (pending)
+                  FilledButton.tonalIcon(
+                    onPressed: onRecheck,
+                    icon: Icon(
+                      renewing
+                          ? Icons.hourglass_top
+                          : Icons.fact_check_outlined,
+                      size: 18,
+                    ),
+                    label: Text(renewing ? '核对中' : '核对'),
+                  )
+                else
+                  FilledButton.tonalIcon(
+                    onPressed: renewEnabled ? onRenew : null,
+                    icon: Icon(
+                      renewing ? Icons.hourglass_top : Icons.autorenew,
+                      size: 18,
+                    ),
+                    label: Text(renewing ? '处理中' : '续借'),
+                  ),
               ],
             ),
           ],

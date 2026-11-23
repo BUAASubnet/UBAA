@@ -224,13 +224,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '续借'))
-          .onPressed,
-      isNull,
-    );
-    await tester.tap(find.widgetWithText(TextButton, '核对'));
+    expect(find.widgetWithText(FilledButton, '续借'), findsNothing);
+    expect(find.text('待核对'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '核对'));
     await tester.pumpAndSettle();
     expect(checks, 1);
   });
