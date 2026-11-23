@@ -339,6 +339,7 @@ abstract class ControllerOperations extends ChangeNotifier {
 
   @internal
   Future<void> internalLoadWriteReadbacks({bool force = false});
+  bool internalReadbackCurrent(UbaaBackend backend, String account, int epoch);
   @internal
   Future<void> internalDismissControllerReadback(String id);
   @internal

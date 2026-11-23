@@ -24,7 +24,7 @@ Flutter 与 OHOS 宿主通过 FRB 的 typed 接口调用 Rust Core facade。Brid
 ### 图书续借
 
 - `currentLibraryLoans` 返回当前借阅。`prepareLibraryLoanRenew` 为仍可续借的唯一记录签发意图，向 Dart 返回 `loanId`、`dueDate` 和 `renewTimes`。Rust 同时保留可续借次数，提交前在确认路线上重读；记录消失、资格未知或用尽、基线变化、读取失败均不发送 POST。
-- `currentLibraryLoansOnRoute` 只在原路线核对。结果未知时，宿主在本次会话拦截同一记录的新续借。日期延后或次数增加表示成功；两项都能比较且未变表示未生效。两种结论均解除拦截。其余情况可再次只读核对。重启后只恢复通用提示，不保存借阅标识。
+- `currentLibraryLoansOnRoute` 只在原路线核对。结果未知时，宿主在本次会话拦截同一记录的新续借。日期延后或次数增加表示成功；两项都能比较且未变表示未生效。两种结论均解除拦截并关闭本次首页提示。其余情况可再次只读核对。重启后只恢复通用提示，不保存借阅标识。
 
 ## 错误语义
 

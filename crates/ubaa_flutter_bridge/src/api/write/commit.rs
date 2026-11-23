@@ -117,7 +117,9 @@ impl BridgeClient {
                 };
                 let mut error = panic_error();
                 let mut hint_finish_error = None;
+                let mut hint_id = None;
                 if observation.may_have_been_sent() {
+                    hint_id = hint.as_ref().map(|ticket| ticket.id().to_owned());
                     error.code = BridgeErrorCode::OutcomeUnknown;
                     error.message = "写入结果无法确认，请核对后再操作".into();
                     error.resolved_route = Some(route);
@@ -126,6 +128,7 @@ impl BridgeClient {
                         super::readback::finish_hint(cache, hint, &Err(error.clone())).await;
                 }
                 let mut result = finish_cached_commit(cache, impact, route, Err(error)).await;
+                result.readback_hint_id = hint_id;
                 result.cache_error = result
                     .cache_error
                     .or(hint_start_error)

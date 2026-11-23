@@ -9,6 +9,7 @@ import 'package:ubaa_app/src/contracts/recovery.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
+import 'package:ubaa_app/src/contracts/write_readback.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
 import 'package:ubaa_app/src/write/receipt_verifier.dart';
 import '../state/activity.dart';
@@ -20,6 +21,20 @@ mixin ControllerWriteLifecycle on ControllerState {
   WriteCoordinator internalCreateWriteCoordinator(UbaaBackend backend) =>
       WriteCoordinator(
         diagnostics: internalDiagnostics,
+        dismissVerifiedLibraryHint: (id) async {
+          final account = internalLocalAccount?.id;
+          final epoch = internalLifecycleEpoch;
+          if (backend is! WriteReadbackBackend ||
+              account == null ||
+              !internalReadbackCurrent(backend, account, epoch))
+            return;
+          await (backend as WriteReadbackBackend).dismissWriteReadbackHint(
+            id,
+            accountId: account,
+          );
+          if (internalReadbackCurrent(backend, account, epoch))
+            await internalLoadWriteReadbacks(force: true);
+        },
         recoverSigninSession: backend is RequiredSessionBackend
             ? _recoverSigninSession
             : null,

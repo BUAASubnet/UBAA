@@ -7,11 +7,15 @@ import '../support/mapping.dart' show bridgeToConnectionMode;
 
 BackendException bridgeWriteCacheError(
   BackendException error,
-  CacheMaintenanceFailure? failure,
-) => BackendException(
+  CacheMaintenanceFailure? failure, {
+  String? readbackHintId,
+}) => BackendException(
   error.code,
   detail: error.detail,
   libraryLoanRejectionReason: error.libraryLoanRejectionReason,
+  readbackHintId: error.code == UbaaErrorCode.outcomeUnknown
+      ? readbackHintId
+      : null,
   kind: error.kind,
   retryable: error.retryable,
   resolvedRoute: error.resolvedRoute,

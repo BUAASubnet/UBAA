@@ -25,6 +25,7 @@ class WriteCoordinator extends ChangeNotifier {
     required WriteCommitter commit,
     WriteDiscarder? discard,
     WriteReceiptVerifier? receiptVerifier,
+    this.dismissVerifiedLibraryHint,
     DateTime Function()? now,
     bool Function()? canStart,
     LocalDiagnostics? diagnostics,
@@ -42,6 +43,7 @@ class WriteCoordinator extends ChangeNotifier {
   final WriteCommitter _commit;
   final WriteDiscarder? _discard;
   final WriteReceiptVerifier _receiptVerifier;
+  final Future<void> Function(String id)? dismissVerifiedLibraryHint;
   final DateTime Function() _now;
   final bool Function()? _canStart;
   final LocalDiagnostics _diagnostics;
@@ -51,7 +53,7 @@ class WriteCoordinator extends ChangeNotifier {
   bool _disposed = false;
   int _generation = 0;
   Object? _activity;
-  final _pendingLibrary = <String, WriteIntent>{};
+  final _pendingLibrary = <String, ({WriteIntent intent, String? hintId})>{};
 
   Set<String> get pendingLibraryLoanIds => _pendingLibrary.keys.toSet();
 
@@ -260,6 +262,7 @@ class WriteCoordinator extends ChangeNotifier {
       UiError? error;
       UiError? resultError;
       String? libraryLoanRejectionReason;
+      String? readbackHintId;
       UbaaErrorCode? code;
       try {
         result = await _commit(pending.intentId);
@@ -295,6 +298,8 @@ class WriteCoordinator extends ChangeNotifier {
         }
       } on Object catch (exception, stackTrace) {
         if (!_isCurrent(activity, generation)) return null;
+        if (exception is BackendException)
+          readbackHintId = exception.readbackHintId;
         if (pending.operation == WriteOperation.libraryLoanRenew &&
             exception is BackendException &&
             exception.code == UbaaErrorCode.businessRejected) {
@@ -320,7 +325,7 @@ class WriteCoordinator extends ChangeNotifier {
       if (loanId != null &&
           (error?.code == UbaaErrorCode.outcomeUnknown ||
               result?.outcomeUnknown == true)) {
-        _pendingLibrary[loanId] = pending;
+        _pendingLibrary[loanId] = (intent: pending, hintId: readbackHintId);
       }
       _publish(WriteState(phase: WritePhase.readingBack, intent: pending));
       final outcome = await _receiptVerifier.complete(
@@ -341,7 +346,8 @@ class WriteCoordinator extends ChangeNotifier {
         },
       );
       if (!_isCurrent(activity, generation)) return null;
-      _settleLibraryReadback(pending, outcome);
+      await _settleLibraryReadback(pending, outcome);
+      if (!_isCurrent(activity, generation)) return null;
       _publish(WriteState(phase: WritePhase.idle, error: error));
       if (!_isCurrent(activity, generation)) return null;
       _recordResult(
@@ -370,7 +376,7 @@ class WriteCoordinator extends ChangeNotifier {
   }
 
   Future<WriteOutcome?> recheckLibraryLoan(String loanId) async {
-    final pending = _pendingLibrary[loanId];
+    final pending = _pendingLibrary[loanId]?.intent;
     if (pending == null || !_mayStart || hasPendingOperation) return null;
     final generation = _generation;
     final activity = _begin(WritePhase.readingBack, intent: pending);
@@ -381,7 +387,8 @@ class WriteCoordinator extends ChangeNotifier {
         isCurrent: () => _isCurrent(activity, generation),
       );
       if (!_isCurrent(activity, generation)) return null;
-      _settleLibraryReadback(pending, outcome);
+      await _settleLibraryReadback(pending, outcome);
+      if (!_isCurrent(activity, generation)) return null;
       _publish(const WriteState.idle());
       return outcome;
     } finally {
@@ -389,7 +396,10 @@ class WriteCoordinator extends ChangeNotifier {
     }
   }
 
-  void _settleLibraryReadback(WriteIntent intent, WriteOutcome outcome) {
+  Future<void> _settleLibraryReadback(
+    WriteIntent intent,
+    WriteOutcome outcome,
+  ) async {
     final target = intent.libraryLoanRenewTarget;
     final readback = outcome.libraryLoanRenewReadback;
     if (target != null &&
@@ -397,7 +407,19 @@ class WriteCoordinator extends ChangeNotifier {
         readback.loanId == target.loanId &&
         readback.route == intent.resolvedRoute &&
         readback.status != LibraryRenewStatus.unknown) {
-      _pendingLibrary.remove(target.loanId);
+      final id = _pendingLibrary.remove(target.loanId)?.hintId;
+      if (id != null) {
+        try {
+          await dismissVerifiedLibraryHint?.call(id);
+        } on Object catch (error, stackTrace) {
+          _safeError(
+            error,
+            DiagnosticOperation.readback,
+            stackTrace,
+            writeOperation: intent.operation,
+          );
+        }
+      }
     }
   }
 

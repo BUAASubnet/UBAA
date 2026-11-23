@@ -197,6 +197,9 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               hints: widget.writeReadbacks,
               error: widget.writeReadbackError,
               onDismiss: widget.onDismissWriteReadback,
+              onOpenLibraryLoans: widget.readLibraryLoans == null
+                  ? null
+                  : () => _openUtility('当前借阅'),
               onRefresh: widget.onRefreshWriteReadbacks,
               onOpenFeature: (feature) {
                 _changeNavigation(

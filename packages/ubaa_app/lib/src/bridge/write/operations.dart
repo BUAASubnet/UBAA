@@ -119,18 +119,23 @@ Future<WriteCommitResult> bridgeCommitWrite(
     return projected.withCacheFailure(cacheFailure);
   } on BridgeError catch (error, stack) {
     Error.throwWithStackTrace(
-      bridgeWriteCacheError(bridgeMapError(error), cacheFailure),
+      bridgeWriteCacheError(
+        bridgeMapError(error),
+        cacheFailure,
+        readbackHintId: hintId,
+      ),
       stack,
     );
   } on BackendException catch (error, stack) {
     Error.throwWithStackTrace(
-      bridgeWriteCacheError(error, cacheFailure),
+      bridgeWriteCacheError(error, cacheFailure, readbackHintId: hintId),
       stack,
     );
   } on Object {
     throw BackendException(
       UbaaErrorCode.outcomeUnknown,
       cacheFailure: cacheFailure,
+      readbackHintId: hintId,
     );
   }
 }

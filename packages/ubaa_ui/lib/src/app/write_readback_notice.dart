@@ -9,6 +9,7 @@ class WriteReadbackNotice extends StatefulWidget {
     required this.hints,
     required this.error,
     required this.onOpenFeature,
+    this.onOpenLibraryLoans,
     this.onDismiss,
     this.onRefresh,
     super.key,
@@ -16,6 +17,7 @@ class WriteReadbackNotice extends StatefulWidget {
   final List<WriteReadbackHint> hints;
   final UiError? error;
   final ValueChanged<FeatureId> onOpenFeature;
+  final VoidCallback? onOpenLibraryLoans;
   final Future<void> Function(String)? onDismiss;
   final Future<void> Function()? onRefresh;
 
@@ -117,7 +119,9 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
                 spacing: 8,
                 children: [
                   TextButton(
-                    onPressed: hint.feature == null
+                    onPressed: hint.operation == WriteOperation.libraryLoanRenew
+                        ? widget.onOpenLibraryLoans
+                        : hint.feature == null
                         ? null
                         : () => widget.onOpenFeature(hint.feature!),
                     child: const Text('去查看'),

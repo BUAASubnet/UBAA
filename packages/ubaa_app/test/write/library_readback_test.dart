@@ -126,13 +126,18 @@ void main() {
 
   test('未知续借在只读核对前拒绝再次签发同书意图', () async {
     var sends = 0;
+    final closed = <String>[];
     LibraryLoanRenewReadback? nextRead;
     final writes = WriteCoordinator(
       commit: (_) async {
         sends++;
-        throw const BackendException(UbaaErrorCode.outcomeUnknown);
+        throw const BackendException(
+          UbaaErrorCode.outcomeUnknown,
+          readbackHintId: 'this-hint',
+        );
       },
       discard: (_) async {},
+      dismissVerifiedLibraryHint: (id) async => closed.add(id),
       receiptVerifier: WriteReceiptVerifier(
         verifyLibraryLoanRenew: (_) async => nextRead,
       ),
@@ -154,6 +159,7 @@ void main() {
     writes.ensureLibraryLoanCanPrepare('loan-2');
     await writes.recheckLibraryLoan('loan-1');
     expect(writes.pendingLibraryLoanIds, {'loan-1'});
+    expect(closed, isEmpty);
     nextRead = const LibraryLoanRenewReadback(
       loanId: 'loan-1',
       loans: [],
@@ -162,6 +168,7 @@ void main() {
     );
     await writes.recheckLibraryLoan('loan-1');
     expect(writes.pendingLibraryLoanIds, isEmpty);
+    expect(closed, ['this-hint']);
     expect(await writes.prepare(() async => intent), intent);
     expect(sends, 1);
   });

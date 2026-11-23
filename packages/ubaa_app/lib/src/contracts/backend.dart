@@ -16,6 +16,7 @@ class BackendException implements Exception {
     this.code, {
     this.detail,
     this.libraryLoanRejectionReason,
+    this.readbackHintId,
     this.kind,
     this.retryable,
     this.resolvedRoute,
@@ -46,6 +47,7 @@ class BackendException implements Exception {
 
   /// 只在本次续借反馈里显示，通用错误和诊断沿用安全提示。
   final String? libraryLoanRejectionReason;
+  final String? readbackHintId;
   final UbaaErrorKind? kind;
   final bool? retryable;
   final ConnectionMode? resolvedRoute;
