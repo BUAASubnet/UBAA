@@ -32,7 +32,7 @@ pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> Bridg
             BridgeErrorCode::OperationConflict,
             BridgeErrorKind::Input,
             true,
-            "课程签到资格已变化，请刷新后重新准备",
+            "上课资格已变化，请刷新后重新准备",
         );
     }
     BridgeError::from_routed(error)
@@ -229,7 +229,7 @@ pub(super) fn map_commit_error(
         let message = match operation {
             BridgeWriteOperation::BykcSelectCourse => "课程当前不可选，请刷新课程详情后重试",
             BridgeWriteOperation::BykcDeselectCourse => "课程当前不可退选，请刷新课程详情后重试",
-            BridgeWriteOperation::SigninPerform => "课堂签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::SigninPerform => "每日课程资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookReserve => "图书馆预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookCancelBooking => {
                 "图书馆预约取消资格已变化，请刷新后重新准备"
@@ -241,7 +241,7 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::EvaluationSubmitCourses => {
                 "教学评教资格已变化，请刷新课程后重新准备"
             }
-            BridgeWriteOperation::BykcSignCourse => "课程签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::BykcSignCourse => "博雅上课资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
             &error,

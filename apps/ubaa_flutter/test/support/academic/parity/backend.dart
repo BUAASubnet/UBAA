@@ -107,8 +107,8 @@ class AcademicOldBackend extends CourseworkBackend {
       }
     } else if (feature == FeatureId.signin) {
       for (final (id, status, eligibility) in [
-        ('可签到', 0, ActionEligibility.allowed),
-        ('已签到', 1, ActionEligibility.denied),
+        ('可上课', 0, ActionEligibility.allowed),
+        ('已上课', 1, ActionEligibility.denied),
         ('未知状态', 8, ActionEligibility.unknown),
         ('缺少目标', 0, ActionEligibility.unknown),
       ]) {

@@ -9,7 +9,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
-  testWidgets('二维码面板经宿主在线查询，签到后关闭并更新课程状态', (tester) {
+  testWidgets('二维码面板经宿主在线查询，上课后关闭并更新课程状态', (tester) {
     return withClock(Clock.fixed(DateTime.utc(2026, 11, 19, 0, 10)), () async {
       final backend = _Backend();
       await tester.pumpWidget(
@@ -22,7 +22,7 @@ void main() {
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.signin);
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('签到二维码'));
+      await tester.tap(find.byTooltip('上课二维码'));
       await tester.pumpAndSettle();
       expect(backend.qrTargets, ['课次']);
       await tester.pump(const Duration(seconds: 3));

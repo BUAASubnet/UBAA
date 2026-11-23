@@ -212,7 +212,7 @@ FeatureResult bridgeProjectBykcChosen(
             bridgeField('地点', item.coursePosition),
             bridgeField('开始', item.courseStartDate),
             bridgeField('结束', item.courseEndDate),
-            bridgeField('签到状态', item.checkin?.toString()),
+            bridgeField('上课状态', item.checkin?.toString()),
             bridgeField('成绩', item.score?.toString()),
             bridgeField(
               '通过',
@@ -223,18 +223,18 @@ FeatureResult bridgeProjectBykcChosen(
                   : '否',
             ),
             if (!persisted)
-              bridgeField('可签到', _bykcEligibilityLabel(signEligibility)),
+              bridgeField('可上课', _bykcEligibilityLabel(signEligibility)),
             if (!persisted)
-              bridgeField('可签退', _bykcEligibilityLabel(signOutEligibility)),
+              bridgeField('可下课', _bykcEligibilityLabel(signOutEligibility)),
             bridgeField(
-              '签到时间',
+              '上课开放时间',
               _timeWindow(
                 item.signConfig?.signStartDate,
                 item.signConfig?.signEndDate,
               ),
             ),
             bridgeField(
-              '签退时间',
+              '下课开放时间',
               _timeWindow(
                 item.signConfig?.signOutStartDate,
                 item.signConfig?.signOutEndDate,
@@ -242,7 +242,7 @@ FeatureResult bridgeProjectBykcChosen(
             ),
             if (!persisted)
               bridgeField('位置要求', _locationRequirement(item.signConfig)),
-            bridgeField('签到类型', item.courseSignType?.toString()),
+            bridgeField('上课类型', item.courseSignType?.toString()),
           ]),
         );
       })
@@ -326,8 +326,8 @@ String? _timeWindow(String? start, String? end) {
 
 String? _locationRequirement(BridgeBykcSignConfig? config) {
   if (config == null) return '位置配置未知（需获取当前位置）';
-  if (config.signPoints.isEmpty) return '需获取当前位置（未返回可用签到范围）';
-  if (_requiresBykcCoordinates(config)) return '需获取当前位置（签到范围不完整）';
+  if (config.signPoints.isEmpty) return '需获取当前位置（未返回可用上课范围）';
+  if (_requiresBykcCoordinates(config)) return '需获取当前位置（上课范围不完整）';
   return '指定位置（${config.signPoints.length} 处）';
 }
 

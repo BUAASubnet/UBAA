@@ -208,7 +208,7 @@ FeatureResult _courseworkData(
         }
         rows.add(
           FeatureDetail(
-            title: title('合成签到课程$i'),
+            title: title('合成上课课程$i'),
             presentation: SigninPresentation(
               courseId: 'schedule-$i',
               classBeginTime: '08:00',
@@ -231,8 +231,8 @@ FeatureResult _courseworkData(
       }
       return FeatureResult.success(
         summary: query.view == FeatureQueryView.signinPending
-            ? '${empty ? 0 : rows.length} 门可签到课程'
-            : '合成签到记录',
+            ? '${empty ? 0 : rows.length} 门可上课课程'
+            : '合成上课记录',
         details: empty ? [] : rows,
         resolvedRoute: ConnectionMode.direct,
       );

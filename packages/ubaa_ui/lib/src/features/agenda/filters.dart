@@ -23,7 +23,7 @@ extension _AgendaFilters on AgendaViewState {
               '博雅',
               '考试',
               '研讨室',
-              '签到',
+              '每日课程',
               '阳光打卡',
               '我的',
             ])

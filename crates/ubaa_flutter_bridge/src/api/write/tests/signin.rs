@@ -33,7 +33,7 @@ async fn signin_prepare_reads_typed_authority_and_builds_safe_target_summary() {
         .expect("允许目标应签发意图");
 
     assert_eq!(intent.resolved_route, BridgeConnectionMode::Direct);
-    for expected in ["脱敏课堂", SCHEDULE_ID, "08:00", "09:40", "可签到"] {
+    for expected in ["脱敏课堂", SCHEDULE_ID, "08:00", "09:40", "可上课"] {
         assert!(
             intent.target_summary.contains(expected),
             "摘要缺少 {expected}"
@@ -201,7 +201,7 @@ async fn signin_commit_rechecks_fresh_authority_and_preserves_business_false() {
         .expect("明确业务 false 应作为确定结果返回");
 
     assert!(!result.success);
-    assert_eq!(result.message, "签到失败");
+    assert_eq!(result.message, "上课失败");
     assert!(!result.message.contains("当前尚不可签到"));
     assert!(!result.outcome_unknown);
     direct.assert_exhausted().expect("最终写请求必须恰好一次");

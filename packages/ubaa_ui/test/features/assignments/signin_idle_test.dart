@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/coursework/course_participation.dart';
 
 void main() {
-  testWidgets('签到页隐藏时停止定时重建，重新显示后恢复刷新', (tester) async {
+  testWidgets('上课页隐藏时停止定时重建，重新显示后恢复刷新', (tester) async {
     var reads = 0;
     final details = [_Signin(() => reads++)];
     Future<void> mount(bool visible) => tester.pumpWidget(
@@ -24,7 +24,7 @@ void main() {
     await mount(false);
     reads = 0;
     await tester.pump(const Duration(seconds: 31));
-    expect(reads, 0, reason: '隐藏页面不因签到计时器反复解析和重建');
+    expect(reads, 0, reason: '隐藏页面不因上课计时器反复解析和重建');
     await mount(true);
     reads = 0;
     await tester.pump(const Duration(seconds: 31));
@@ -34,7 +34,7 @@ void main() {
 }
 
 class _Signin extends FeatureDetail {
-  _Signin(this.onRead) : super(title: '合成签到');
+  _Signin(this.onRead) : super(title: '合成上课');
   final void Function() onRead;
   @override
   FeaturePresentation get presentation {

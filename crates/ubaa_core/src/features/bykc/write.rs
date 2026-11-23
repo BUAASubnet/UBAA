@@ -144,13 +144,13 @@ pub(crate) async fn preflight_sign_course(
     };
     match eligibility {
         ActionEligibility::Allowed => {}
-        ActionEligibility::Denied => return Err(unavailable("课程当前不允许执行该签到操作")),
-        ActionEligibility::Unknown => return Err(error("博雅签到资格缺少必要字段")),
+        ActionEligibility::Denied => return Err(unavailable("课程当前不允许执行该上课操作")),
+        ActionEligibility::Unknown => return Err(error("博雅上课资格缺少必要字段")),
     }
-    let config = config.ok_or_else(|| error("博雅签到配置缺少必要字段"))?;
+    let config = config.ok_or_else(|| error("博雅上课配置缺少必要字段"))?;
     let needs_fallback = sign_location_requires_fallback(&config);
     if needs_fallback && request.lat.is_none() {
-        return Err(invalid_input("未提供签到坐标且后端未返回签到范围"));
+        return Err(invalid_input("未提供上课坐标且后端未返回上课范围"));
     }
     let (window_start, window_end) = if request.sign_type == 1 {
         (config.sign_start_date.clone(), config.sign_end_date.clone())
@@ -162,7 +162,7 @@ pub(crate) async fn preflight_sign_course(
     };
     let (window_start, window_end) = window_start
         .zip(window_end)
-        .ok_or_else(|| error("博雅签到时间窗缺少必要字段"))?;
+        .ok_or_else(|| error("博雅上课时间窗缺少必要字段"))?;
     let preflight = BykcSignPreflight {
         course_id: chosen.course_id,
         course_name: chosen.course_name,
@@ -197,9 +197,9 @@ pub(crate) async fn sign_course(
             .or_else(|| value.get("msg"))
             .and_then(Value::as_str)
             .unwrap_or(if request.sign_type == 1 {
-                "签到成功"
+                "上课成功"
             } else {
-                "签退成功"
+                "下课成功"
             })
             .to_owned(),
     })
@@ -216,7 +216,7 @@ pub(super) fn sign_payload(request: &BykcSignRequest, lat: f64, lng: f64) -> Val
 
 fn validate_sign_request(request: &BykcSignRequest) -> Result<()> {
     if request.course_id <= 0 || !matches!(request.sign_type, 1 | 2) {
-        return Err(invalid_input("课程标识或签到类型无效"));
+        return Err(invalid_input("课程标识或上课类型无效"));
     }
     match (request.lat, request.lng) {
         (None, None) => Ok(()),
@@ -228,7 +228,7 @@ fn validate_sign_request(request: &BykcSignRequest) -> Result<()> {
         {
             Ok(())
         }
-        _ => Err(invalid_input("签到经纬度必须同时提供且位于有效范围")),
+        _ => Err(invalid_input("上课经纬度必须同时提供且位于有效范围")),
     }
 }
 
@@ -247,7 +247,7 @@ pub(super) fn resolve_sign_location(
     }
     fallback_lat
         .zip(fallback_lng)
-        .ok_or_else(|| invalid_input("未提供签到坐标且后端未返回签到范围"))
+        .ok_or_else(|| invalid_input("未提供上课坐标且后端未返回上课范围"))
 }
 
 pub(super) fn sign_location_requires_fallback(config: &BykcSignConfig) -> bool {

@@ -187,7 +187,7 @@ void main() {
       status: FeatureLoadStatus.success,
       details: [
         FeatureDetail(
-          title: '合成签到课程',
+          title: '合成上课课程',
           actions: [
             SigninPerformAction(
               scheduleId: 's',
@@ -216,7 +216,7 @@ void main() {
       ),
     );
     await mount(ready);
-    final button = find.widgetWithText(OutlinedButton, '签到');
+    final button = find.widgetWithText(OutlinedButton, '上课');
     final before = tester.getTopLeft(find.text('下方内容'));
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
     expect(tester.getTopLeft(find.text('下方内容')), before);
@@ -323,8 +323,8 @@ void main() {
         status: FeatureLoadStatus.empty,
       ),
     );
-    expect(find.text('今天没有需要签到的课程'), findsOneWidget);
-    final emptyPosition = tester.getTopLeft(find.text('今天没有需要签到的课程'));
+    expect(find.text('今天没有课程'), findsOneWidget);
+    final emptyPosition = tester.getTopLeft(find.text('今天没有课程'));
     await mount(
       FeatureSnapshot(
         feature: FeatureId.signin,
@@ -332,7 +332,7 @@ void main() {
         updatedAt: DateTime(2026, 10, 20),
       ),
     );
-    expect(tester.getTopLeft(find.text('今天没有需要签到的课程')), emptyPosition);
+    expect(tester.getTopLeft(find.text('今天没有课程')), emptyPosition);
   });
 
   testWidgets('成绩分期返回与同查询刷新不推移统计卡', (tester) async {

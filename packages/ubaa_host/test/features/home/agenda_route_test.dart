@@ -15,7 +15,7 @@ void main() {
     (RoutePolicy.direct, RoutePolicy.auto),
   ]) {
     for (final fails in [false, true]) {
-      testWidgets('$from→$to ${fails ? '回滚' : '成功'}后，相同来源也重新投影且旧签到只读', (
+      testWidgets('$from→$to ${fails ? '回滚' : '成功'}后，相同来源也重新投影且旧上课只读', (
         tester,
       ) async {
         final backend = _Backend(from);
@@ -28,7 +28,7 @@ void main() {
         await tester.pumpAndSettle();
         UbaaMainShell shell() =>
             tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-        expect(find.text('合成签到'), findsOneWidget);
+        expect(find.text('合成上课'), findsOneWidget);
         final source = shell().homeState!.sources[FeatureId.signin]!;
         final received = backend.projections;
         backend.waiting = Completer<void>();
@@ -36,7 +36,7 @@ void main() {
         await backend.started.future;
         await tester.pump();
         expect(shell().homeState!.projected, isFalse);
-        expect(find.text('合成签到'), findsNothing);
+        expect(find.text('合成上课'), findsNothing);
         expect(backend.projections, received, reason: '切换窗口不进入纯投影后端');
         if (fails) {
           backend.waiting!.completeError(
@@ -53,14 +53,14 @@ void main() {
         );
         expect(backend.projections, greaterThan(received), reason: '来源未变也恢复投影');
         final keepsSource = fails || to == RoutePolicy.auto;
-        expect(find.text('合成签到'), keepsSource ? findsOneWidget : findsNothing);
+        expect(find.text('合成上课'), keepsSource ? findsOneWidget : findsNothing);
         expect(
           shell().homeState!.todos.every((todo) => todo.signinAction == null),
           isTrue,
         );
         await shell().onRetryFeature(FeatureId.signin);
         await tester.pumpAndSettle();
-        expect(find.text('合成签到'), findsOneWidget);
+        expect(find.text('合成上课'), findsOneWidget);
         expect(
           shell().homeState!.todos.single.signinAction?.scheduleId,
           'synthetic-target',
@@ -115,7 +115,7 @@ class _Backend extends DemoBackend implements RouteSettingsBackend {
               : ConnectionMode.direct,
           details: const [
             FeatureDetail(
-              title: '合成签到',
+              title: '合成上课',
               presentation: SigninPresentation(
                 courseId: 'synthetic-course',
                 classBeginTime: '12:00',

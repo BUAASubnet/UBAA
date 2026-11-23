@@ -56,7 +56,7 @@ void main() {
     addTearDown(model.dispose);
     expect(withClock(Clock.fixed(fixed), model.clock), fixed);
   });
-  test('其他来源和本地日程更新期间保留签到操作，签到来源变化立即撤销', () async {
+  test('其他来源和本地日程更新期间保留上课操作，上课来源变化立即撤销', () async {
     const action = SigninPerformAction(
       scheduleId: 'synthetic-signin',
       eligibility: ActionEligibility.allowed,

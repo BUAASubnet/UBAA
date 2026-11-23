@@ -6,7 +6,7 @@ import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
 void _registerQueryTests() {
-  testWidgets('课堂签到筛选点选未签到即提交派生视图', (tester) async {
+  testWidgets('每日课程筛选点选未上课即提交派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -14,7 +14,7 @@ void _registerQueryTests() {
           status: FeatureLoadStatus.success,
           summary: '已加载',
           details: feature == FeatureId.signin
-              ? const <FeatureDetail>[FeatureDetail(title: '签到课程')]
+              ? const <FeatureDetail>[FeatureDetail(title: '上课课程')]
               : const <FeatureDetail>[],
         ),
     };
@@ -43,12 +43,12 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.signin);
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, '未签到'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '未上课'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.signinPending);
   });
 
-  testWidgets('课堂签到已完成时禁用重复签到入口', (tester) async {
+  testWidgets('每日课程已完成时禁用重复上课入口', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -58,10 +58,10 @@ void _registerQueryTests() {
           details: feature == FeatureId.signin
               ? const <FeatureDetail>[
                   FeatureDetail(
-                    title: '已完成签到课程',
+                    title: '已完成上课课程',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '误导目标'),
-                      FeatureField(label: '签到状态', value: '未签到'),
+                      FeatureField(label: '上课状态', value: '未上课'),
                     ],
                     actions: <FeatureAction>[
                       SigninPerformAction(
@@ -100,14 +100,14 @@ void _registerQueryTests() {
     await tester.pumpAndSettle();
 
     final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '签到'),
+      find.widgetWithText(OutlinedButton, '上课'),
     );
     expect(button.onPressed, isNull);
-    expect(find.text('该课程已签到，不能重复提交。'), findsOneWidget);
+    expect(find.text('该课程已上课，不能重复提交。'), findsOneWidget);
     expect(prepareCalls, 0);
   });
 
-  testWidgets('课堂签到 action 缺失或 unknown 时默认拒绝', (tester) async {
+  testWidgets('每日课程 action 缺失或 unknown 时默认拒绝', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -120,7 +120,7 @@ void _registerQueryTests() {
                     title: '缺失 action',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: 'legacy-target'),
-                      FeatureField(label: '签到状态', value: '未签到'),
+                      FeatureField(label: '上课状态', value: '未上课'),
                     ],
                   ),
                   FeatureDetail(
@@ -161,9 +161,9 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(OutlinedButton, '签到'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '上课'), findsOneWidget);
     final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '签到'),
+      find.widgetWithText(OutlinedButton, '上课'),
     );
     expect(button.onPressed, isNull);
     expect(prepareCalls, 0);

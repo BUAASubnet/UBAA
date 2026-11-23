@@ -279,7 +279,7 @@ class _SigninQrSheetState extends State<SigninQrSheet> {
                 dataModuleShape: QrDataModuleShape.square,
                 color: Colors.black,
               ),
-              semanticsLabel: '签到二维码',
+              semanticsLabel: '上课二维码',
             )
           : _failed
           ? Column(
@@ -306,7 +306,7 @@ class _SigninQrSheetState extends State<SigninQrSheet> {
     );
     return UiSheetBody(
       title: widget.courseTitle,
-      subtitle: '打开智慧教室扫码签到',
+      subtitle: '打开智慧教室扫码上课',
       primaryAction: _failed
           ? FilledButton.tonalIcon(
               onPressed: _retry,

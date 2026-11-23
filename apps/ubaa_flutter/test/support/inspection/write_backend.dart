@@ -67,8 +67,8 @@ final class _AllWritesIntegrationBackend
             const FeatureField(label: '课程 ID', value: '42'),
             FeatureField(label: '已选', value: _bykcSelected ? '是' : '否'),
             FeatureField(label: '状态', value: _bykcSelected ? '已选' : '可选'),
-            const FeatureField(label: '可签到', value: '是'),
-            const FeatureField(label: '可签退', value: '是'),
+            const FeatureField(label: '可上课', value: '是'),
+            const FeatureField(label: '可下课', value: '是'),
           ],
           actions: <FeatureAction>[
             BykcSelectAction(
@@ -103,7 +103,7 @@ final class _AllWritesIntegrationBackend
           title: '课堂集成课程',
           fields: <FeatureField>[
             FeatureField(label: '课程 ID', value: 'signin-course'),
-            FeatureField(label: '签到状态', value: '未签到'),
+            FeatureField(label: '上课状态', value: '未上课'),
           ],
           actions: <FeatureAction>[
             SigninPerformAction(

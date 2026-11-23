@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>用于将课堂签到二维码保存到系统相册。</string>
+	<string>用于将上课二维码保存到系统相册。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择照片，作为阳光打卡的提交图片。</string>
 	<key>ScheduleWidgetKeychainAccessGroup</key>

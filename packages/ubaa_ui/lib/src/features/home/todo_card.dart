@@ -15,7 +15,7 @@ String uiHomeFeatureLabel(FeatureId feature, {bool local = false}) =>
       (FeatureId.spoc, _) => 'SPOC',
       (FeatureId.judge, _) => '希冀',
       (FeatureId.cgyy, _) => '研讨室',
-      (FeatureId.signin, _) => '签到',
+      (FeatureId.signin, _) => '每日课程',
       (FeatureId.ygdk, _) => '阳光打卡',
       (_, _) => feature.title,
     };
@@ -56,7 +56,7 @@ class HomeTodoCard extends StatelessWidget {
         ? null
         : (upcomingSignin == null ? onSignin : null) ?? onRefreshSignin;
     final status = isSignin && signing
-        ? '签到处理中'
+        ? '上课处理中'
         : signinUncertain
         ? '结果未确认'
         : item.statusLabel;
@@ -169,10 +169,10 @@ class HomeTodoCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Center(
                   child: upcomingSignin != null
-                      ? UiTag('${uiClock(upcomingSignin)} 起可签')
+                      ? UiTag('${uiClock(upcomingSignin)} 起可上课')
                       : FilledButton(
                           onPressed: signinTap,
-                          child: Text(signing ? '处理中…' : '签到'),
+                          child: Text(signing ? '处理中…' : '上课'),
                         ),
                 ),
               ] else if (item.navigation != null)

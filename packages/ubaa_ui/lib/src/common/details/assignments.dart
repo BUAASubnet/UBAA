@@ -5,7 +5,7 @@ extension AssignmentsDetailActions on _FeatureDetailListState {
     BuildContext context,
     SigninPerformAction? signinAction,
     bool canSignin, {
-    String deniedMessage = '该课程已签到，不能重复提交。',
+    String deniedMessage = '该课程已上课，不能重复提交。',
   }) => <Widget>[
     if (widget.feature == FeatureId.signin &&
         widget.onSigninWrite != null &&
@@ -18,7 +18,7 @@ extension AssignmentsDetailActions on _FeatureDetailListState {
             ? () => widget.onSigninWrite!(signinAction)
             : null,
         icon: const Icon(Icons.how_to_reg),
-        label: const Text('签到'),
+        label: const Text('上课'),
       ),
       // 资格无法确认时只禁用按钮，不向用户解释内部状态。
       if (!canSignin && signinAction.eligibility == ActionEligibility.denied)

@@ -190,8 +190,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     await _runDirectWrite(
       prepare: () => prepare(action),
       failureMessage: action.kind == BykcSignKind.signOut
-          ? '签退失败，请刷新后重试'
-          : '签到失败，请刷新后重试',
+          ? '下课失败，请刷新后重试'
+          : '提交失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -201,7 +201,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '签到失败，请刷新后重试',
+      failureMessage: '提交失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -416,7 +416,7 @@ extension UbaaHomeSignin on _UbaaMainShellState {
       return outcome;
     } on Object catch (error) {
       if (mounted && generation == _accountGeneration) {
-        UbaaFeedback.showError(context, '签到失败，请刷新后重试', error);
+        UbaaFeedback.showError(context, '提交失败，请刷新后重试', error);
       }
       return null;
     } finally {

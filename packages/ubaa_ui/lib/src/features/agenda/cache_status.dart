@@ -18,7 +18,7 @@ class AgendaCacheStatus extends StatelessWidget {
     AgendaFeature.bykc => '博雅',
     AgendaFeature.spoc => 'SPOC作业',
     AgendaFeature.judge => '希冀作业',
-    AgendaFeature.signin => '签到',
+    AgendaFeature.signin => '每日课程',
     AgendaFeature.cgyy => '研讨室',
     AgendaFeature.ygdk => '阳光打卡',
   };

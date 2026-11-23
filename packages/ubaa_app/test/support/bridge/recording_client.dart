@@ -697,7 +697,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                 : const <BridgeSigninClass>[
                     BridgeSigninClass(
                       courseId: 'signin-read-1',
-                      courseName: '签到课程',
+                      courseName: '上课课程',
                       classBeginTime: '08:00',
                       classEndTime: '10:00',
                       signStatus: 0,

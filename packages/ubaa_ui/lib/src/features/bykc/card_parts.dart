@@ -28,7 +28,7 @@ class BykcCardTags extends StatelessWidget {
         runSpacing: 6,
         children: [
           for (final label in labels) _Tag(label),
-          if (selfSign) const _Tag('自主签到', icon: Icons.location_on_outlined),
+          if (selfSign) const _Tag('自主上课', icon: Icons.location_on_outlined),
         ],
       ),
     );

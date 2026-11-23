@@ -63,7 +63,7 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "签到响应返回了非成功状态",
+            "每日课程响应返回了非成功状态",
         )
         .with_diagnostic("today_courses", "business_status_rejected")
         .with_business_response(body.as_bytes(), None, "STATUS"));
@@ -98,15 +98,15 @@ pub(crate) async fn preflight_signin(
         .collect::<Vec<_>>();
     let [class] = matches.as_slice() else {
         return if matches.is_empty() {
-            Err(unavailable("今日签到目标已变化，请刷新后重新准备"))
+            Err(unavailable("今日课程目标已变化，请刷新后重新准备"))
         } else {
-            Err(upstream_error("今日签到响应包含重复课程安排标识"))
+            Err(upstream_error("今日课程响应包含重复课程安排标识"))
         };
     };
     match class.signin_eligibility {
         ActionEligibility::Allowed => Ok(class.clone()),
-        ActionEligibility::Denied => Err(unavailable("该课程当前不可重复签到")),
-        ActionEligibility::Unknown => Err(upstream_error("课堂签到资格缺少必要字段")),
+        ActionEligibility::Denied => Err(unavailable("该课程当前不可重复上课")),
+        ActionEligibility::Unknown => Err(upstream_error("每日课程资格缺少必要字段")),
     }
 }
 
@@ -137,7 +137,7 @@ pub(crate) async fn get_qr(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
             false,
-            "签到二维码时间偏移不能超过 60 秒",
+            "上课二维码时间偏移不能超过 60 秒",
         ));
     }
     super::require_session(runtime)?;
@@ -154,7 +154,7 @@ async fn get_timestamp(runtime: &mut crate::runtime::ClientRuntime) -> Result<Ve
     )?;
     let timestamp = runtime.request(HttpRequest::get(timestamp_url)).await?;
     if timestamp.status != 200 {
-        return Err(upstream_error("无法获取签到时间戳"));
+        return Err(upstream_error("无法获取每日课程时间戳"));
     }
     Ok(timestamp.body)
 }
@@ -169,7 +169,7 @@ fn qr_timestamp(body: &[u8], offset_ms: u32) -> Result<i64> {
         .parse::<i64>()
         .ok()
         .and_then(|timestamp| timestamp.checked_add(i64::from(offset_ms)))
-        .ok_or_else(|| UbaaError::parse_error("签到二维码时间戳不是有效的毫秒整数"))
+        .ok_or_else(|| UbaaError::parse_error("上课二维码时间戳不是有效的毫秒整数"))
 }
 
 fn signin_checkin_url(
@@ -276,9 +276,9 @@ fn parse_action_response(body: &[u8]) -> Result<SigninActionResult> {
         code: if success { 200 } else { 400 },
         success,
         message: if success {
-            "签到成功"
+            "上课成功"
         } else {
-            "签到未完成"
+            "上课未完成"
         }
         .to_owned(),
     })
@@ -306,8 +306,9 @@ fn final_url_is_authentication(value: &str) -> bool {
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
-    let value: Value = serde_json::from_slice(body)
-        .map_err(|cause| upstream_error("签到时间戳响应格式无效").with_json_error(&cause, body))?;
+    let value: Value = serde_json::from_slice(body).map_err(|cause| {
+        upstream_error("每日课程时间戳响应格式无效").with_json_error(&cause, body)
+    })?;
     value
         .get("timestamp")
         .and_then(|value| match value {
@@ -316,7 +317,7 @@ fn parse_timestamp(body: &[u8]) -> Result<String> {
             _ => None,
         })
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| upstream_error("签到时间戳为空"))
+        .ok_or_else(|| upstream_error("每日课程时间戳为空"))
 }
 
 fn build_today_request(
@@ -356,7 +357,7 @@ async fn get_today_once(
     )?;
     let response = runtime.request(request).await?;
     if response.status != 200 {
-        return Err(upstream_error("签到查询服务暂时不可用"));
+        return Err(upstream_error("每日课程查询服务暂时不可用"));
     }
     match parse_today(&super::body(&response))
         .map_err(|error| error.with_http_status(response.status))
@@ -391,7 +392,7 @@ async fn current_credential(
             ErrorCode::InternalError,
             ErrorKind::Internal,
             true,
-            "签到业务会话在登录期间已失效",
+            "每日课程业务会话在登录期间已失效",
         ));
     }
     Ok(credential)
@@ -408,26 +409,27 @@ async fn login(runtime: &mut crate::runtime::ClientRuntime) -> Result<SigninCred
         .append_pair("verificationUrl", "");
     let response = runtime.request(HttpRequest::get(url.to_string())).await?;
     if response.status != 200 {
-        return Err(upstream_error("无法建立签到业务会话"));
+        return Err(upstream_error("无法建立每日课程业务会话"));
     }
     parse_login_credential(&response.body)
 }
 
 fn parse_login_credential(body: &[u8]) -> Result<SigninCredential> {
-    let response: LoginResponse = serde_json::from_slice(body)
-        .map_err(|cause| upstream_error("签到登录响应格式无效").with_json_error(&cause, body))?;
+    let response: LoginResponse = serde_json::from_slice(body).map_err(|cause| {
+        upstream_error("每日课程登录响应格式无效").with_json_error(&cause, body)
+    })?;
     let result = response
         .result
         .filter(|_| success(&response.status))
-        .ok_or_else(|| upstream_error("签到业务登录失败"))?;
+        .ok_or_else(|| upstream_error("每日课程业务登录失败"))?;
     if result.id.trim().is_empty() {
-        return Err(upstream_error("签到登录响应缺少会话字段"));
+        return Err(upstream_error("每日课程登录响应缺少会话字段"));
     }
     let session_id = result
         .session_id
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| upstream_error("签到登录响应缺少会话字段"))?;
+        .ok_or_else(|| upstream_error("每日课程登录响应缺少会话字段"))?;
     Ok(SigninCredential {
         user_id: result.id,
         session_id,
@@ -449,12 +451,12 @@ async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Resu
         }
         let location = response
             .header_first("location")
-            .ok_or_else(|| upstream_error("签到登录跳转缺少目标地址"))?;
+            .ok_or_else(|| upstream_error("每日课程登录跳转缺少目标地址"))?;
         let target = crate::connection::business_redirect_target(&response.final_url, location)?;
         ensure_login_host(&target)?;
         direct_url = target.to_string();
     }
-    Err(upstream_error("签到登录跳转次数超过限制"))
+    Err(upstream_error("每日课程登录跳转次数超过限制"))
 }
 
 fn login_name_from_url(value: &str) -> Option<String> {
@@ -471,13 +473,13 @@ fn ensure_login_host(url: &url::Url) -> Result<()> {
     {
         Ok(())
     } else {
-        Err(upstream_error("签到登录跳转到未允许的主机"))
+        Err(upstream_error("每日课程登录跳转到未允许的主机"))
     }
 }
 
 #[track_caller]
 fn invalid_url() -> UbaaError {
-    upstream_error("签到服务地址无效")
+    upstream_error("每日课程服务地址无效")
 }
 
 #[track_caller]
@@ -508,7 +510,7 @@ fn write_outcome_unknown() -> UbaaError {
         ErrorCode::OutcomeUnknown,
         ErrorKind::Upstream,
         false,
-        "签到结果未知，请刷新今日状态后再决定是否重试",
+        "上课结果未知，请刷新今日状态后再决定是否重试",
     )
 }
 
@@ -558,7 +560,7 @@ fn parse_error() -> UbaaError {
         ErrorCode::ParseError,
         ErrorKind::Parse,
         false,
-        "签到响应格式无效",
+        "每日课程响应格式无效",
     )
 }
 
@@ -611,7 +613,7 @@ mod tests {
             "course-123",
             "1700000000000",
         )
-        .expect("直连签到提交地址应可构造");
+        .expect("直连上课提交地址应可构造");
         assert_eq!(
             direct_sign,
             "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
@@ -635,7 +637,7 @@ mod tests {
             "course-123",
             "1700000000000",
         )
-        .expect("WebVPN 签到提交地址应可构造");
+        .expect("WebVPN 上课提交地址应可构造");
         let vpn_sign_direct =
             crate::connection::from_webvpn_url(&vpn_sign).expect("WebVPN 应可反向解码");
         assert_eq!(

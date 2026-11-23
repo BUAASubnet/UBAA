@@ -4,7 +4,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  test('签到状态分组在缓存与在线一致，未知资格和缺目标仍只读', () {
+  test('上课状态分组在缓存与在线一致，未知资格和缺目标仍只读', () {
     final items = [
       for (final status in [0, 1, null])
         BridgeSigninClass(

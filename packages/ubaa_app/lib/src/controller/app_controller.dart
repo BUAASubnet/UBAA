@@ -528,7 +528,7 @@ extension AppControllerSigninQr on AppController {
         .toList(growable: false);
     if (details.isEmpty)
       return FeatureResult.empty(resolvedRoute: result.resolvedRoute);
-    final label = status == 1 ? '已签到' : '未签到';
+    final label = status == 1 ? '已上课' : '未上课';
     return FeatureResult.success(
       summary: '${details.length}门${label}课程',
       details: details,

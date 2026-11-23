@@ -7,7 +7,7 @@ import 'package:ubaa_test_support/recovery.dart' as startup;
 import '../../../reads/progressive_test.dart' show until;
 
 void main() {
-  test('无缓存生产Bridge投影首批后让位签到，后续详情才继续', () async {
+  test('无缓存生产Bridge投影首批后让位上课，后续详情才继续', () async {
     final events = <String>[];
     final client = _Client(events);
     final backend = _Backend(BridgeBackend(client), events);
@@ -28,7 +28,7 @@ void main() {
     await controller.initialize();
     await until(() => events.contains('详情') && signin != null);
     await signin;
-    expect(events, ['索引', '签到', '详情']);
+    expect(events, ['索引', '上课', '详情']);
     expect(client.legacyCalls, 0);
     expect(
       controller.homeSnapshots[FeatureId.judge]!.details.single.title,
@@ -65,7 +65,7 @@ class _Backend extends startup.FakeRecoveryBackend
     FeatureQuery query,
   ) async {
     expect(feature, FeatureId.signin);
-    events.add('签到');
+    events.add('上课');
     return const FeatureResult.empty();
   }
 }

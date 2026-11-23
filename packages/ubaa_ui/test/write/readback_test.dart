@@ -12,7 +12,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('暂无待还图书'), findsOneWidget);
   });
-  testWidgets('展开提示不计打开，去查看签到只计一次', (tester) async {
+  testWidgets('展开提示不计打开，去查看上课只计一次', (tester) async {
     final opened = <String>[];
     await mount(tester, onOpened: opened.add);
     await tester.tap(find.text('1 项操作需要你确认结果'));

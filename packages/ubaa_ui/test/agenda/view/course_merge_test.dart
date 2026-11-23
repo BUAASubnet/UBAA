@@ -38,7 +38,7 @@ AgendaEntry _school(
 }
 
 void main() {
-  test('同名同地点的连续小节合并为一段，跨过中间的签到条目', () {
+  test('同名同地点的连续小节合并为一段，跨过中间的上课条目', () {
     final first = _school(
       AgendaFeature.schedule,
       'a',
@@ -103,7 +103,7 @@ void main() {
     expect(agendaMergeCourses([first, moved, other, late]).length, 4);
   });
 
-  test('同名且时段重叠的签到归入课程，其余签到保留', () {
+  test('同名且时段重叠的上课归入课程，其余上课保留', () {
     final first = _school(
       AgendaFeature.schedule,
       'a',

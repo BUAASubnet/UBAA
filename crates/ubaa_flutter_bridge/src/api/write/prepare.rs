@@ -170,17 +170,17 @@ impl BridgeClient {
                 .await
                 .map_err(|error| PreparationError::mapped(error, map_bykc_sign_preflight_error))?;
             let action = if request.sign_type == 1 {
-                "签到"
+                "上课"
             } else {
-                "签退"
+                "下课"
             };
             let course_name = safe_summary_label(&current.data.course_name, "博雅课程");
             let location_warning = match current.data.location_requirement {
                 domain::BykcSignLocationRequirement::ConfiguredRange => {
-                    "位置要求：由 Core 在已验证签到范围内生成本次坐标"
+                    "位置要求：由 Core 在已验证上课范围内生成本次坐标"
                 }
                 domain::BykcSignLocationRequirement::ProvidedCoordinates => {
-                    "位置要求：本次已提供并校验经纬度；Core 将按完整签到点配置生成或回退"
+                    "位置要求：本次已提供并校验经纬度；Core 将按完整上课点配置生成或回退"
                 }
             };
             self.store_write_intent(
@@ -223,17 +223,17 @@ impl BridgeClient {
                 .preflight_signin_perform(&request.course_id)
                 .await
                 .map_err(PreparationError::from_routed)?;
-            let course_name = safe_summary_label(&current.data.course_name, "课堂签到课程");
+            let course_name = safe_summary_label(&current.data.course_name, "每日课程");
             let schedule_id = safe_summary_label(&request.course_id, "未知安排");
             let begin = safe_summary_label(&current.data.class_begin_time, "时间未知");
             let end = safe_summary_label(&current.data.class_end_time, "时间未知");
             let target_summary =
-                format!("{course_name}（安排 {schedule_id}）·{begin} 至 {end}·可签到");
+                format!("{course_name}（安排 {schedule_id}）·{begin} 至 {end}·可上课");
             self.store_write_intent(
                 BridgeWriteOperation::SigninPerform,
                 format!("course_id={}", request.course_id),
                 target_summary,
-                vec!["提交后请刷新今日签到状态确认结果".to_owned()],
+                vec!["提交后请刷新今日课程状态确认结果".to_owned()],
                 PendingWrite::Signin(request),
                 current.resolution,
             )

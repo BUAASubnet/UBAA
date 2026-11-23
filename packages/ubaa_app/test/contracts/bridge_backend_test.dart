@@ -99,7 +99,7 @@ void main() {
     });
   }
 
-  test('BridgeBackend 博雅已选课程投影签到时间和位置要求但不暴露坐标', () async {
+  test('BridgeBackend 博雅已选课程投影上课时间和位置要求但不暴露坐标', () async {
     final response = BridgeRoutedBykcChosenCourses(
       data: const <BridgeBykcChosenCourse>[
         BridgeBykcChosenCourse(
@@ -143,13 +143,13 @@ void main() {
       for (final field in result.details.single.fields)
         field.label: field.value,
     };
-    expect(fields['签到时间'], '2026-09-02 08:00–2026-09-02 10:00');
-    expect(fields['签退时间'], '2026-09-02 11:00–2026-09-02 12:00');
-    expect(fields['可签到'], '是');
-    expect(fields['可签退'], '未知');
-    expect(fields.containsKey('签到状态'), isFalse);
+    expect(fields['上课开放时间'], '2026-09-02 08:00–2026-09-02 10:00');
+    expect(fields['下课开放时间'], '2026-09-02 11:00–2026-09-02 12:00');
+    expect(fields['可上课'], '是');
+    expect(fields['可下课'], '未知');
+    expect(fields.containsKey('上课状态'), isFalse);
     expect(fields['位置要求'], '指定位置（2 处）');
-    expect(fields['签到类型'], '1');
+    expect(fields['上课类型'], '1');
     final actions = result.details.single.actions
         .whereType<BykcSignAction>()
         .toList(growable: false);
@@ -176,7 +176,7 @@ void main() {
     );
   });
 
-  test('BridgeBackend 仅在全部签到点坐标有效且半径有限为正时不要求调用方坐标', () async {
+  test('BridgeBackend 仅在全部上课点坐标有效且半径有限为正时不要求调用方坐标', () async {
     const eligibility = BridgeActionEligibility.allowed;
     const unknown = BridgeActionEligibility.unknown;
     final response = BridgeRoutedBykcChosenCourses(
@@ -319,7 +319,7 @@ void main() {
           .fields
           .singleWhere((field) => field.label == '位置要求')
           .value,
-      '需获取当前位置（未返回可用签到范围）',
+      '需获取当前位置（未返回可用上课范围）',
     );
     expect(
       result.details

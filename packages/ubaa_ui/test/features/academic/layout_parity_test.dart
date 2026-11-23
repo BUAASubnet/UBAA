@@ -187,10 +187,10 @@ void main() {
     expect(queries, isEmpty);
   });
 
-  testWidgets('签到已完成使用右侧状态图标，低频字段按需查看', (tester) async {
+  testWidgets('上课已完成使用右侧状态图标，低频字段按需查看', (tester) async {
     await showFeature(tester, FeatureId.signin, const [
       FeatureDetail(
-        title: '合成已签到课程',
+        title: '合成已上课课程',
         fields: [FeatureField(label: '原字段', value: '只在详情')],
         presentation: SigninPresentation(
           courseId: 'course',
@@ -206,16 +206,16 @@ void main() {
         ],
       ),
     ], []);
-    expect(find.text('已签到'), findsOneWidget);
+    expect(find.text('已上课'), findsOneWidget);
     expect(find.byType(Chip), findsNothing);
     expect(find.text('更多信息'), findsNothing);
-    final title = tester.getRect(find.text('合成已签到课程'));
-    final icon = tester.getRect(find.text('已签到'));
+    final title = tester.getRect(find.text('合成已上课课程'));
+    final icon = tester.getRect(find.text('已上课'));
     expect(icon.left, greaterThan(title.left));
     expect((icon.center.dy - title.center.dy).abs(), lessThan(60));
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
     expect(find.text('只在详情'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '签到'), findsNothing);
+    expect(find.widgetWithText(FilledButton, '上课'), findsNothing);
   });
 }

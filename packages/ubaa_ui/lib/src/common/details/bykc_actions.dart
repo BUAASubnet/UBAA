@@ -83,7 +83,7 @@ extension BykcDetailActions on _FeatureDetailListState {
             icon: Icon(
               action.kind == BykcSignKind.signIn ? Icons.login : Icons.logout,
             ),
-            label: Text(action.kind == BykcSignKind.signIn ? '签到' : '签退'),
+            label: Text(action.kind == BykcSignKind.signIn ? '上课' : '下课'),
           ),
       ],
     );
@@ -184,7 +184,7 @@ extension BykcDetailActions on _FeatureDetailListState {
                   ? () => widget.onBykcSignWrite!(bykcSignInAction)
                   : null,
               icon: const Icon(Icons.login),
-              label: const Text('博雅签到'),
+              label: const Text('博雅上课'),
             ),
           if (bykcSignOutAction != null)
             OutlinedButton.icon(
@@ -194,7 +194,7 @@ extension BykcDetailActions on _FeatureDetailListState {
                   ? () => widget.onBykcSignWrite!(bykcSignOutAction)
                   : null,
               icon: const Icon(Icons.logout),
-              label: const Text('博雅签退'),
+              label: const Text('博雅下课'),
             ),
         ],
       ),
@@ -203,7 +203,7 @@ extension BykcDetailActions on _FeatureDetailListState {
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            '部分签到操作当前不可用',
+            '部分上课操作当前不可用',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

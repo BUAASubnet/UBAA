@@ -14,7 +14,7 @@ const _signin = SigninPerformAction(
 );
 
 void main() {
-  test('每次在线检查读取新状态并更新签到快照', () async {
+  test('每次在线检查读取新状态并更新上课快照', () async {
     final (controller, backend) = await _start();
     expect(await controller.checkSigninSigned('课次'), isFalse);
     backend.next = () async => _result(1);
@@ -58,7 +58,7 @@ void main() {
     expect(backend.onlineReads, 1);
   });
 
-  test('签到提交成功仍通过原路线回读更新卡片数据', () async {
+  test('上课提交成功仍通过原路线回读更新卡片数据', () async {
     final (controller, backend) = await _start();
     final coordinator = controller.writeCoordinator;
     final intent = await _prepareSignin(controller);
@@ -69,7 +69,7 @@ void main() {
     expect(_status(controller), 1);
   });
 
-  test('WebVPN 签到预检需要认证时，自动登录后复核并仅提交一次', () async {
+  test('WebVPN 上课预检需要认证时，自动登录后复核并仅提交一次', () async {
     final (controller, backend) = await _startRecovery();
     final intent = await _prepareSignin(controller);
 
@@ -87,7 +87,7 @@ void main() {
     expect(backend.pinnedRoutes, [ConnectionMode.webvpn]);
   });
 
-  test('未开启自动登录时，签到预检不会使用已保存的密码', () async {
+  test('未开启自动登录时，上课预检不会使用已保存的密码', () async {
     final (controller, backend) = await _startRecovery(autoLogin: false);
 
     await expectLater(
@@ -104,7 +104,7 @@ void main() {
     UbaaErrorCode.invalidInput,
     UbaaErrorCode.authenticationRequired,
   ]) {
-    test('恢复后的签到预检失败时结束本次操作（${code.name}）', () async {
+    test('恢复后的上课预检失败时结束本次操作（${code.name}）', () async {
       final (controller, backend) = await _startRecovery();
       backend.afterLoginError = BackendException(
         code,

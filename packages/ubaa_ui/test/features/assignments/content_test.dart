@@ -34,19 +34,19 @@ void main() {
     expect(find.textContaining('分值'), findsOneWidget);
     expect(find.text('成绩'), findsNothing);
   });
-  testWidgets('签到缺少目标时不从课程编号生成动作', (tester) async {
+  testWidgets('上课缺少目标时不从课程编号生成动作', (tester) async {
     await showFeature(tester, FeatureId.signin, [
       const FeatureDetail(
-        title: '合成签到课',
+        title: '合成上课课',
         presentation: SigninPresentation(
-          courseId: '课程不是签到目标',
+          courseId: '课程不是上课目标',
           classBeginTime: '08:00',
           classEndTime: '09:40',
           signStatus: 0,
         ),
       ),
     ], []);
-    expect(find.text('签到'), findsNothing);
+    expect(find.text('上课'), findsNothing);
   });
   testWidgets('宽屏评教使用课程行并提供详情入口', (tester) async {
     await showFeature(
@@ -187,9 +187,9 @@ void main() {
     expect(find.textContaining('已评'), findsNothing);
     expect(searchField, findsNothing);
   });
-  testWidgets('课堂签到没有课程时隐藏搜索，筛选导致的空结果保留入口', (tester) async {
+  testWidgets('每日课程没有课程时隐藏搜索，筛选导致的空结果保留入口', (tester) async {
     await showFeature(tester, FeatureId.signin, [], []);
-    expect(find.text('今天没有需要签到的课程'), findsOneWidget);
+    expect(find.text('今天没有课程'), findsOneWidget);
     expect(searchField, findsNothing);
     await tester.pumpWidget(const SizedBox());
     await showFeature(

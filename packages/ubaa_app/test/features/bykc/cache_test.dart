@@ -130,7 +130,7 @@ void main() {
     );
     expect(
       chosen.details.single.fields.any(
-        (v) => v.label == '可签到' || v.label == '可签退',
+        (v) => v.label == '可上课' || v.label == '可下课',
       ),
       isFalse,
     );

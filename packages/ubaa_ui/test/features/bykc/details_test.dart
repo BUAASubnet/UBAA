@@ -284,7 +284,7 @@ void main() {
     );
   });
 
-  testWidgets('普通详情展示完整字段且签到路径必须经过独立已选读取', (tester) async {
+  testWidgets('普通详情展示完整字段且上课路径必须经过独立已选读取', (tester) async {
     final state = await _mount(tester);
     await openFeature(tester, FeatureId.bykc);
     await tester.tap(find.widgetWithText(Card, '合成美育沙河'));
@@ -296,21 +296,21 @@ void main() {
     expect(find.text('合成学院'), findsOneWidget);
     expect(find.text('合成年级'), findsOneWidget);
     expect(find.text('合成人群'), findsOneWidget);
-    await _show(tester, find.text('查看签到与签退'));
-    expect(find.text('博雅签到'), findsNothing);
-    await tester.tap(find.widgetWithText(OutlinedButton, '查看签到与签退'));
+    await _show(tester, find.text('查看上课与下课'));
+    expect(find.text('博雅上课'), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, '查看上课与下课'));
     await tester.pumpAndSettle();
     expect(state.queries.last.view, FeatureQueryView.bykcChosenCourses);
     await tester.tap(find.widgetWithText(Card, '合成已选记录'));
     await tester.pumpAndSettle();
-    await _show(tester, find.text('博雅签到'));
+    await _show(tester, find.text('博雅上课'));
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '博雅签到'))
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '博雅上课'))
           .onPressed,
       isNotNull,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, '博雅签到'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '博雅上课'));
     await tester.pumpAndSettle();
     expect(state.prepared.single.courseId, 71);
     expect(state.prepared.single.kind, BykcSignKind.signIn);
@@ -326,17 +326,17 @@ void main() {
       expect(state.queries.last.courseId, '71');
       expect(find.text('7002'), findsNothing);
       expect(find.text('合成联系人'), findsOneWidget);
-      await _show(tester, find.text('签到信息'));
-      expect(find.text('已签到、未签退'), findsOneWidget);
+      await _show(tester, find.text('上课信息'));
+      expect(find.text('已上课、未下课'), findsOneWidget);
       expect(find.text('考勤通过'), findsNothing);
       state.chosen = duplicate ? [_chosen, _chosen] : const [];
       await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pumpAndSettle();
-      expect(find.text('博雅签到'), findsNothing);
+      expect(find.text('博雅上课'), findsNothing);
       expect(find.text('退选'), findsNothing);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
-      expect(find.text('博雅签到'), findsNothing);
+      expect(find.text('博雅上课'), findsNothing);
     }
   });
 
@@ -347,7 +347,7 @@ void main() {
     await tester.tap(find.widgetWithText(Card, '合成已选记录'));
     await tester.pumpAndSettle();
     expect(find.textContaining('合成完整详情读取失败'), findsWidgets);
-    expect(find.text('博雅签到'), findsNothing);
+    expect(find.text('博雅上课'), findsNothing);
     expect(find.text('退选'), findsNothing);
   });
 
@@ -363,7 +363,7 @@ void main() {
     state.pendingFull!.complete();
     await tester.pumpAndSettle();
     expect(find.text('合成联系人'), findsNothing);
-    expect(find.text('博雅签到'), findsNothing);
+    expect(find.text('博雅上课'), findsNothing);
     state.update(() {
       state.username = 'synthetic-b';
       state.snapshot = state.make(const FeatureQuery());
@@ -394,7 +394,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('退选'), findsNothing);
-    expect(find.text('查看签到与签退'), findsNothing);
+    expect(find.text('查看上课与下课'), findsNothing);
     expect(find.textContaining('合成会话失效'), findsWidgets);
     expect(find.text('合成联系人'), findsOneWidget);
   });

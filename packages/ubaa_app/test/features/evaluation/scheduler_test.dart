@@ -6,7 +6,7 @@ import 'progressive_test.dart' as fixtures;
 import 'package:ubaa_test_support/recovery.dart' as startup;
 
 void main() {
-  test('当前评教读取在课程批次之间优先让位紧急签到', () async {
+  test('当前评教读取在课程批次之间优先让位紧急上课', () async {
     final events = <String>[];
     final client = _Client(events);
     final controller = AppController(
@@ -31,7 +31,7 @@ void main() {
       const FeatureQuery(),
     );
     await signin;
-    expect(events, ['课程1', '签到', '课程2']);
+    expect(events, ['课程1', '上课', '课程2']);
   });
 }
 
@@ -65,7 +65,7 @@ class _Backend extends startup.FakeRecoveryBackend
     FeatureQuery query,
   ) async {
     expect(feature, FeatureId.signin);
-    events.add('签到');
+    events.add('上课');
     return const FeatureResult.empty();
   }
 }

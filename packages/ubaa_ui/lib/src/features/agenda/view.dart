@@ -590,7 +590,7 @@ class AgendaViewState extends State<AgendaView> {
     '考试',
     '博雅',
     '研讨室',
-    '签到',
+    '每日课程',
     '阳光打卡',
     '我的',
   ];

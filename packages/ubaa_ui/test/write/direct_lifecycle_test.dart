@@ -57,7 +57,7 @@ void main() {
                 return WriteIntent(
                   intentId: 'synthetic-$prepares',
                   operation: WriteOperation.bykcSignCourse,
-                  targetSummary: '合成签到',
+                  targetSummary: '合成上课',
                   resolvedRoute: ConnectionMode.direct,
                   warnings: const [],
                   expiresAt: DateTime.now().add(
@@ -78,21 +78,21 @@ void main() {
         );
         await openFeature(tester, FeatureId.bykc);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('博雅签到'));
+        await tester.tap(find.text('博雅上课'));
         await tester.pump();
         if (expired) {
           await tester.pumpAndSettle();
           expect(prepares, 1);
           expect(commits, 0);
           expect(discarded, ['synthetic-1']);
-          expect(find.text('签到失败，请刷新后重试'), findsOneWidget);
-          await tester.tap(find.text('博雅签退'));
+          expect(find.text('提交失败，请刷新后重试'), findsOneWidget);
+          await tester.tap(find.text('博雅下课'));
           await tester.pumpAndSettle();
           expect(prepares, 2);
           expect(discarded, ['synthetic-1', 'synthetic-2']);
           expect(commits, 0);
         } else {
-          await tester.tap(find.text('博雅签退'));
+          await tester.tap(find.text('博雅下课'));
           await tester.pump();
           expect(prepares, 1);
           expect(commits, 1);
@@ -101,12 +101,12 @@ void main() {
             const WriteCommitResult(
               operation: WriteOperation.bykcSignCourse,
               success: true,
-              message: '合成签到成功',
+              message: '合成上课成功',
               outcomeUnknown: false,
             ),
           );
           await tester.pumpAndSettle();
-          expect(find.text('合成签到成功'), findsOneWidget);
+          expect(find.text('合成上课成功'), findsOneWidget);
         }
       },
     );

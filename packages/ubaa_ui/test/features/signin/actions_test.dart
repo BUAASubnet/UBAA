@@ -6,7 +6,7 @@ import '../../support/write_harness.dart';
 import '../../support/navigation.dart';
 
 void _registerSigninWriteResultTests() {
-  testWidgets('课堂签到明确业务失败消费意图且不显示成功或刷新', (tester) async {
+  testWidgets('每日课程明确业务失败消费意图且不显示成功或刷新', (tester) async {
     var commitCalls = 0;
     var refreshCalls = 0;
     await _pumpSigninResult(
@@ -16,7 +16,7 @@ void _registerSigninWriteResultTests() {
         return const WriteCommitResult(
           operation: WriteOperation.signinPerform,
           success: false,
-          message: '签到未完成',
+          message: '上课未完成',
           outcomeUnknown: false,
         );
       },
@@ -25,12 +25,12 @@ void _registerSigninWriteResultTests() {
 
     expect(commitCalls, 1);
     expect(refreshCalls, 0);
-    expect(find.text('签到未完成'), findsOneWidget);
-    expect(find.text('课堂签到已提交'), findsNothing);
-    expect(find.text('确认课堂签到'), findsNothing);
+    expect(find.text('上课未完成'), findsOneWidget);
+    expect(find.text('每日课程已提交'), findsNothing);
+    expect(find.text('确认每日课程'), findsNothing);
   });
 
-  testWidgets('课堂签到结果未知消费意图并刷新一次且只显示固定提示', (tester) async {
+  testWidgets('每日课程结果未知消费意图并刷新一次且只显示固定提示', (tester) async {
     var commitCalls = 0;
     var refreshCalls = 0;
     await _pumpSigninResult(
@@ -51,7 +51,7 @@ void _registerSigninWriteResultTests() {
     expect(refreshCalls, 1);
     expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
     expect(find.textContaining('secret-safe@example.test'), findsNothing);
-    expect(find.text('确认课堂签到'), findsNothing);
+    expect(find.text('确认每日课程'), findsNothing);
   });
 }
 
@@ -69,7 +69,7 @@ Future<void> _pumpSigninResult(
         details: feature == FeatureId.signin
             ? const <FeatureDetail>[
                 FeatureDetail(
-                  title: '课堂签到课程',
+                  title: '每日课程',
                   actions: <FeatureAction>[
                     SigninPerformAction(
                       scheduleId: 'schedule-result-safe',
@@ -84,7 +84,7 @@ Future<void> _pumpSigninResult(
   final intent = WriteIntent(
     intentId: 'signin-result-intent',
     operation: WriteOperation.signinPerform,
-    targetSummary: '课堂签到课程',
+    targetSummary: '每日课程',
     resolvedRoute: ConnectionMode.direct,
     warnings: const <String>[],
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),
@@ -112,7 +112,7 @@ Future<void> _pumpSigninResult(
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.signin);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('签到'));
+  await tester.tap(find.text('上课'));
   await tester.pumpAndSettle();
 }
 

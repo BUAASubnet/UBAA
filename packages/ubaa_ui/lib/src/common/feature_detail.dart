@@ -837,7 +837,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 : widget.snapshot.evidence?.complete == false
                 ? '暂时没有可显示的内容'
                 : switch (widget.feature) {
-                    FeatureId.signin => '今天没有需要签到的课程',
+                    FeatureId.signin => '今天没有课程',
                     FeatureId.evaluation when _noEvaluationCourses =>
                       '当前没有评教任务',
                     _ => '暂无${widget.feature.title}数据',

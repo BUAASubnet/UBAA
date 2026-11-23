@@ -42,8 +42,8 @@ extension WriteOperationText on WriteOperation {
   String get title => switch (this) {
     WriteOperation.bykcSelectCourse => '博雅选课',
     WriteOperation.bykcDeselectCourse => '博雅退选',
-    WriteOperation.bykcSignCourse => '博雅签到',
-    WriteOperation.signinPerform => '课堂签到',
+    WriteOperation.bykcSignCourse => '博雅上课',
+    WriteOperation.signinPerform => '上课',
     WriteOperation.libbookReserve => '图书馆预约',
     WriteOperation.libbookCancelBooking => '取消图书馆预约',
     WriteOperation.ygdkSubmit => '阳光打卡',

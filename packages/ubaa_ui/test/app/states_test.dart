@@ -227,7 +227,7 @@ void _registerBykcStateTests() {
     expect(prepareCalls, 0);
   });
 
-  testWidgets('博雅签到只使用 typed action 且展示字段改名不影响目标与协议类型', (tester) async {
+  testWidgets('博雅上课只使用 typed action 且展示字段改名不影响目标与协议类型', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -280,7 +280,7 @@ void _registerBykcStateTests() {
             return WriteIntent(
               intentId: 'typed-sign-${action.courseId}-${action.signType}',
               operation: WriteOperation.bykcSignCourse,
-              targetSummary: '博雅课程 ${action.courseId} 签到类型 ${action.signType}',
+              targetSummary: '博雅课程 ${action.courseId} 上课类型 ${action.signType}',
               resolvedRoute: ConnectionMode.direct,
               warnings: const <String>[],
               expiresAt: DateTime.now().add(const Duration(minutes: 2)),
@@ -298,22 +298,22 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final signIn = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '博雅签到'),
+      find.widgetWithText(OutlinedButton, '博雅上课'),
     );
     final signOut = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '博雅签退'),
+      find.widgetWithText(OutlinedButton, '博雅下课'),
     );
     expect(signIn.onPressed, isNotNull);
     expect(signOut.onPressed, isNotNull);
-    await tester.tap(find.text('博雅签到'));
+    await tester.tap(find.text('博雅上课'));
     await tester.pumpAndSettle();
     expect(calls, <(int, int, bool)>[(73, 1, false)]);
-    await tester.tap(find.text('博雅签退'));
+    await tester.tap(find.text('博雅下课'));
     await tester.pumpAndSettle();
     expect(calls, <(int, int, bool)>[(73, 1, false), (73, 2, true)]);
   });
 
-  testWidgets('博雅签到 action 资格 unknown 或 denied 时统一禁用', (tester) async {
+  testWidgets('博雅上课 action 资格 unknown 或 denied 时统一禁用', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -326,8 +326,8 @@ void _registerBykcStateTests() {
                     title: '资格未知',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '41'),
-                      FeatureField(label: '可签到', value: '是'),
-                      FeatureField(label: '可签退', value: '是'),
+                      FeatureField(label: '可上课', value: '是'),
+                      FeatureField(label: '可下课', value: '是'),
                     ],
                     actions: <FeatureAction>[
                       BykcSignAction(
@@ -348,8 +348,8 @@ void _registerBykcStateTests() {
                     title: '明确拒绝',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
-                      FeatureField(label: '可签到', value: '是'),
-                      FeatureField(label: '可签退', value: '是'),
+                      FeatureField(label: '可上课', value: '是'),
+                      FeatureField(label: '可下课', value: '是'),
                     ],
                     actions: <FeatureAction>[
                       BykcSignAction(
@@ -382,7 +382,7 @@ void _registerBykcStateTests() {
           onRetryFeature: (_) async {},
           onPrepareBykcSignWrite: (_) async {
             prepareCalls++;
-            throw StateError('不可签到课程不应触发准备回调');
+            throw StateError('不可上课课程不应触发准备回调');
           },
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
@@ -394,10 +394,10 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final signIns = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '博雅签到'),
+      find.widgetWithText(OutlinedButton, '博雅上课'),
     );
     final signOuts = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '博雅签退'),
+      find.widgetWithText(OutlinedButton, '博雅下课'),
     );
     expect(signIns, hasLength(2));
     expect(signIns.every((button) => button.onPressed == null), isTrue);
@@ -406,7 +406,7 @@ void _registerBykcStateTests() {
     expect(prepareCalls, 0);
   });
 
-  testWidgets('普通博雅摘要详情缺失签到 action 时不显示签到入口', (tester) async {
+  testWidgets('普通博雅摘要详情缺失上课 action 时不显示上课入口', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -419,8 +419,8 @@ void _registerBykcStateTests() {
                     title: '普通博雅课程详情',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
-                      FeatureField(label: '可签到', value: '是'),
-                      FeatureField(label: '可签退', value: '是'),
+                      FeatureField(label: '可上课', value: '是'),
+                      FeatureField(label: '可下课', value: '是'),
                     ],
                     actions: <FeatureAction>[
                       BykcSelectAction(
@@ -443,7 +443,7 @@ void _registerBykcStateTests() {
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onPrepareBykcSignWrite: (_) async =>
-              throw StateError('普通博雅摘要详情不应提供签到入口'),
+              throw StateError('普通博雅摘要详情不应提供上课入口'),
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
@@ -453,8 +453,8 @@ void _registerBykcStateTests() {
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
-    expect(find.text('博雅签到'), findsNothing);
-    expect(find.text('博雅签退'), findsNothing);
+    expect(find.text('博雅上课'), findsNothing);
+    expect(find.text('博雅下课'), findsNothing);
   });
 
   testWidgets('博雅课程写入口只服从 typed 资格且退选目标不依赖展示字段', (tester) async {
@@ -789,7 +789,7 @@ void _registerSharedStateTests() {
           case FeatureLoadStatus.empty:
             expect(
               find.text(switch (feature) {
-                FeatureId.signin => '今天没有需要签到的课程',
+                FeatureId.signin => '今天没有课程',
                 FeatureId.evaluation => '当前没有评教任务',
                 _ => '暂无${feature.title}数据',
               }),

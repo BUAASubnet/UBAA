@@ -16,7 +16,7 @@ HomeTodoRequest _request(ConnectionMode route, {int revision = 0}) =>
           readContext: FeatureReadContext(requestRevision: revision),
           details: const [
             FeatureDetail(
-              title: '合成签到',
+              title: '合成上课',
               actions: [
                 SigninPerformAction(
                   scheduleId: 'synthetic-target',

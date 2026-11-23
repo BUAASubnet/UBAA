@@ -56,7 +56,7 @@ FeatureDetail signin(
   int? state = 0,
   bool action = true,
 }) => FeatureDetail(
-  title: '合成签到 $id',
+  title: '合成上课 $id',
   presentation: SigninPresentation(
     courseId: id,
     actionTarget: id,
@@ -136,7 +136,7 @@ Future<void> probeHomeTodos(String directory) async {
     expect(tasks.first.signinAction, isNull);
   });
 
-  await scenario('已保存签到跨日失效，同日仅导航且不能恢复写资格', () async {
+  await scenario('已保存上课跨日失效，同日仅导航且不能恢复写资格', () async {
     FeatureSnapshot cached(String date) =>
         source(FeatureId.signin, [signin('cache', '12:05', '13:00')]).copyWith(
           evidence: DataEvidence(
@@ -182,7 +182,7 @@ Future<void> probeHomeTodos(String directory) async {
     );
   });
 
-  await scenario('后台刷新保留已显示待办但暂停原签到动作', () async {
+  await scenario('后台刷新保留已显示待办但暂停原上课动作', () async {
     final loading = source(
       FeatureId.signin,
       [signin('refresh', '12:05', '13:00')],
@@ -276,7 +276,7 @@ Future<void> probeHomeTodos(String directory) async {
     ));
     expect(items.map((e) => e.id), ['bykc:101', 'cgyy:4']);
   });
-  await scenario('签到开始前十分钟和结束边界，状态未知或缺资格不伪造动作', () async {
+  await scenario('上课开始前十分钟和结束边界，状态未知或缺资格不伪造动作', () async {
     final items = (await projectTodos(
       now: now,
       snapshots: {
@@ -292,7 +292,7 @@ Future<void> probeHomeTodos(String directory) async {
     ));
     expect(items.map((e) => e.id), ['signin:no-action', 'signin:visible']);
     expect(items.first.signinAction, isNull);
-    expect(items.last.statusLabel, '即将签到');
+    expect(items.last.statusLabel, '即将上课');
     final stale = (await projectTodos(
       now: now,
       snapshots: {
@@ -363,7 +363,7 @@ Future<void> probeHomeTodos(String directory) async {
     ));
     expect(items, isEmpty);
   });
-  await scenario('唯一在线目标不符、重复与跨日均撤销签到资格', () async {
+  await scenario('唯一在线目标不符、重复与跨日均撤销上课资格', () async {
     for (final (target, count, observed) in [
       ('wrong', 1, '2026-03-24'),
       ('s', 2, '2026-03-24'),
@@ -387,7 +387,7 @@ Future<void> probeHomeTodos(String directory) async {
             details: [
               for (var i = 0; i < count; i++)
                 FeatureDetail(
-                  title: '合成签到',
+                  title: '合成上课',
                   presentation: const SigninPresentation(
                     courseId: 's',
                     actionTarget: 's',

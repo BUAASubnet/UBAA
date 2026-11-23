@@ -9,7 +9,7 @@ import '../../support/home/backend.dart';
 import '../../support/home/scroll.dart';
 
 void main() {
-  testWidgets('首页四项预览保留签到与作业导航，今日课程按时间排序', (tester) async {
+  testWidgets('首页四项预览保留上课与作业导航，今日课程按时间排序', (tester) async {
     final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -20,7 +20,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    for (final title in ['合成签到待办', '合成博雅待办', '合成SPOC待办', '本周阳光打卡未达标']) {
+    for (final title in ['合成上课待办', '合成博雅待办', '合成SPOC待办', '本周阳光打卡未达标']) {
       await ensureHomeTodo(tester, find.text(title));
       expect(find.text(title), findsOneWidget);
     }
@@ -77,7 +77,7 @@ void main() {
     expect(find.text('合成下午课程'), findsOneWidget);
     expect(backend.commitCalls, 0);
   });
-  testWidgets('首页课堂签到使用原typed目标直接提交，未知结果保留待办且阳光提醒可关闭', (tester) async {
+  testWidgets('首页每日课程使用原typed目标直接提交，未知结果保留待办且阳光提醒可关闭', (tester) async {
     final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -88,12 +88,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await ensureHomeTodo(tester, find.widgetWithText(FilledButton, '签到'));
-    await tester.tap(find.widgetWithText(FilledButton, '签到'));
+    await ensureHomeTodo(tester, find.widgetWithText(FilledButton, '上课'));
+    await tester.tap(find.widgetWithText(FilledButton, '上课'));
     await tester.pumpAndSettle();
     expect(backend.preparedSignin, ['signin-target']);
     expect(backend.commitCalls, 1);
-    expect(find.text('合成签到待办'), findsOneWidget);
+    expect(find.text('合成上课待办'), findsOneWidget);
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     expect(backend.commitCalls, 1);

@@ -130,7 +130,7 @@ void registerCourseworkTests() {
     );
     expect((result.overview! as EvaluationProgressOverview).pendingCourses, 0);
   });
-  test('签到资格被拒绝的未签到课程仍属于未签到分组', () async {
+  test('上课资格被拒绝的未上课课程仍属于未上课分组', () async {
     final backend = BridgeBackend(_CourseworkClient());
     final completed = await backend.loadFeatureQuery(
       FeatureId.signin,
@@ -152,7 +152,7 @@ void registerCourseworkTests() {
       result.details.single.action<SigninPerformAction>()!.eligibility,
       ActionEligibility.denied,
     );
-    expect(result.details.single.fields.any((f) => f.value == '已签到'), isFalse);
+    expect(result.details.single.fields.any((f) => f.value == '已上课'), isFalse);
   });
 }
 

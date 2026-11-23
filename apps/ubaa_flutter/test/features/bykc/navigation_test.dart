@@ -55,7 +55,7 @@ void main() {
     ]);
 
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
-    expect(find.text('签到信息'), findsNothing);
+    expect(find.text('上课信息'), findsNothing);
     await tapVisible(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, '合成已选课 1'), findsNothing);
     expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);

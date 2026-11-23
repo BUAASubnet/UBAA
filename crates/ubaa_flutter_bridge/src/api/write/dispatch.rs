@@ -124,7 +124,7 @@ pub(crate) fn project(
             safe_message(match operation {
                 BridgeWriteOperation::BykcSelectCourse => "选课成功",
                 BridgeWriteOperation::BykcDeselectCourse => "退选成功",
-                _ => "签到成功",
+                _ => "上课成功",
             }),
             None,
             None,
@@ -133,9 +133,9 @@ pub(crate) fn project(
         WriteReceipt::BykcSign(_, kind) => (
             true,
             safe_message(if kind == 1 {
-                "签到成功"
+                "上课成功"
             } else {
-                "签退成功"
+                "下课成功"
             }),
             None,
             None,
@@ -144,9 +144,9 @@ pub(crate) fn project(
         WriteReceipt::Signin(v) => (
             v.success,
             safe_message(if v.success {
-                "签到成功"
+                "上课成功"
             } else {
-                "签到失败"
+                "上课失败"
             }),
             None,
             None,

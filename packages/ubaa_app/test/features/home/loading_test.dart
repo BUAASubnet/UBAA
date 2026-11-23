@@ -56,7 +56,7 @@ void main() {
     );
   });
 
-  test('串行网络下签到在第二次读取后显示，不排在无关功能之后', () async {
+  test('串行网络下上课在第二次读取后显示，不排在无关功能之后', () async {
     final schedule = Completer<void>();
     final signin = Completer<void>();
     final remaining = Completer<void>();

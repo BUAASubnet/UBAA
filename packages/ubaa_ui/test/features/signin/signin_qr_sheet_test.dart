@@ -65,7 +65,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('在途二维码请求切到后台后失败，签到状态查询次数保持为零', (tester) async {
+  testWidgets('在途二维码请求切到后台后失败，上课状态查询次数保持为零', (tester) async {
     final request = Completer<String>();
     var checks = 0;
     await _open(
@@ -91,7 +91,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('签到检查失败后继续，查询防重入，已签到关闭并停止计时', (tester) async {
+  testWidgets('上课检查失败后继续，查询防重入，已上课关闭并停止计时', (tester) async {
     final pending = Completer<bool>();
     var checks = 0;
     var fetches = 0;

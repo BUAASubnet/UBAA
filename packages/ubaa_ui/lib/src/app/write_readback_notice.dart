@@ -71,7 +71,7 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('操作结果暂未同步'),
-                    Text('最近的签到、选课或预约结果请到对应页面核对。', style: muted),
+                    Text('最近的上课、选课或预约结果请到对应页面核对。', style: muted),
                   ],
                 ),
               ),

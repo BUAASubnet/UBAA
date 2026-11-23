@@ -507,7 +507,7 @@ class _LifecycleBackend
     double? lat,
     double? lng,
     required int signType,
-  }) async => _intent('签到准备结果');
+  }) async => _intent('上课准备结果');
 
   @override
   Future<WriteCommitResult> commitWrite(String intentId) async {

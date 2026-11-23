@@ -533,7 +533,7 @@ class _SigninPill extends StatelessWidget {
     final done =
         signin.completed || signin.school?.upstreamStatus.completed == true;
     final status = signin.school?.statusLabel ?? '';
-    final label = done ? '已签到' : (status.contains('签到') ? status : '签到');
+    final label = done ? '已上课' : (status.contains('上课') ? status : '上课');
     final (fg, bg) = UiTag.colorsOf(
       context,
       tone: done ? UiTagTone.primary : UiTagTone.neutral,
@@ -541,7 +541,7 @@ class _SigninPill extends StatelessWidget {
     );
     return Semantics(
       button: true,
-      label: '课程签到：$label',
+      label: '每日课程：$label',
       excludeSemantics: true,
       child: Material(
         color: bg,
