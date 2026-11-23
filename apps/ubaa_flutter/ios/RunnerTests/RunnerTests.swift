@@ -316,3 +316,25 @@ final class ScheduleTimelineTests: XCTestCase {
         XCTAssertTrue(ScheduleTimeline.hasEnded(second, today: second.date.adding(days: 1), clock: "00:00", agenda: []))
     }
 }
+
+final class ScheduleWeekLaneTests: XCTestCase {
+    func test链式重叠共用道宽且无关课程占满列() {
+        let sections: [(Int, Int)] = [(1, 2), (2, 3), (3, 4), (6, 7)]
+        let courses = sections.map { begin, end in
+            WidgetCourse(courseName: "合成\(begin)", dayOfWeek: 1, beginSection: begin, endSection: end)
+        }
+        let placed = ScheduleWeekLanes.layout(courses)
+        XCTAssertEqual(placed.map(\.count), [2, 2, 2, 1])
+        XCTAssertEqual(placed.map(\.lane), [0, 1, 0, 0])
+        for (leftIndex, left) in placed.enumerated() {
+            for right in placed.dropFirst(leftIndex + 1) {
+                guard left.course.endSection! >= right.course.beginSection! else { continue }
+                let leftMin = Double(left.lane) / Double(left.count)
+                let leftMax = Double(left.lane + 1) / Double(left.count)
+                let rightMin = Double(right.lane) / Double(right.count)
+                let rightMax = Double(right.lane + 1) / Double(right.count)
+                XCTAssertTrue(leftMax <= rightMin || rightMax <= leftMin)
+            }
+        }
+    }
+}

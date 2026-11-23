@@ -319,7 +319,7 @@ struct WeekGrid: View {
     private func courseBlocks(
         left: CGFloat, top: CGFloat, column: CGFloat, row: CGFloat, periods: Int
     ) -> some View {
-        let lanes = Self.laneLayout(week.arrangedList)
+        let lanes = ScheduleWeekLanes.layout(week.arrangedList)
         return ForEach(Array(lanes.enumerated()), id: \.offset) { _, placed in
             let course = placed.0
             let lane = placed.1
@@ -365,41 +365,4 @@ struct WeekGrid: View {
         }
     }
 
-    /// 同时段课程分道并排，返回（课程, 道号, 同列道数）。
-    private static func laneLayout(_ courses: [WidgetCourse]) -> [(WidgetCourse, Int, Int)] {
-        var output: [(WidgetCourse, Int, Int)] = []
-        for day in 1...7 {
-            let items = courses
-                .filter { $0.dayOfWeek == day }
-                .sorted {
-                    (($0.beginSection ?? 1), ($0.endSection ?? 1))
-                        < (($1.beginSection ?? 1), ($1.endSection ?? 1))
-                }
-            var lanes: [Int] = []
-            let placed: [(WidgetCourse, Int)] = items.map { course in
-                let begin = course.beginSection ?? 1
-                var lane = lanes.firstIndex { $0 < begin } ?? -1
-                if lane < 0 {
-                    lane = lanes.count
-                    lanes.append(0)
-                }
-                lanes[lane] = course.endSection ?? begin
-                return (course, lane)
-            }
-            for (course, lane) in placed {
-                // 只和真正重叠的课分道。上午两门并排时，下午独自的课仍占满整列。
-                let concurrent = items.filter { Self.overlaps($0, course) }.count
-                output.append((course, lane, max(concurrent, lane + 1)))
-            }
-        }
-        return output
-    }
-
-    private static func overlaps(_ a: WidgetCourse, _ b: WidgetCourse) -> Bool {
-        let a0 = a.beginSection ?? 1
-        let a1 = max(a.endSection ?? a0, a0)
-        let b0 = b.beginSection ?? 1
-        let b1 = max(b.endSection ?? b0, b0)
-        return a0 <= b1 && b0 <= a1
-    }
 }

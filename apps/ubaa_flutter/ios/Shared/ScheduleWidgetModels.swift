@@ -132,6 +132,38 @@ struct SavedAgendaItem {
     var course: WidgetCourse
 }
 
+enum ScheduleWeekLanes {
+    typealias Placement = (course: WidgetCourse, lane: Int, count: Int)
+
+    static func layout(_ courses: [WidgetCourse]) -> [Placement] {
+        var output: [Placement] = []
+        for day in 1...7 {
+            let items = courses.filter { $0.dayOfWeek == day }.sorted {
+                (($0.beginSection ?? 1), ($0.endSection ?? 1))
+                    < (($1.beginSection ?? 1), ($1.endSection ?? 1))
+            }
+            var cluster: [(course: WidgetCourse, lane: Int)] = []
+            var laneEnds: [Int] = []
+            var clusterEnd = 0
+            for course in items {
+                let begin = course.beginSection ?? 1
+                let end = max(course.endSection ?? begin, begin)
+                if begin > clusterEnd {
+                    output += cluster.map { ($0.course, $0.lane, laneEnds.count) }
+                    cluster.removeAll(keepingCapacity: true)
+                    laneEnds.removeAll(keepingCapacity: true)
+                }
+                let lane = laneEnds.firstIndex { $0 < begin } ?? laneEnds.count
+                if lane == laneEnds.count { laneEnds.append(end) } else { laneEnds[lane] = end }
+                cluster.append((course, lane))
+                clusterEnd = max(clusterEnd, end)
+            }
+            output += cluster.map { ($0.course, $0.lane, laneEnds.count) }
+        }
+        return output
+    }
+}
+
 enum ScheduleWidgetParser {
     static func parseSnapshot(_ raw: [String: Any]) throws -> WidgetSnapshot {
         guard (raw["version"] as? Int) == 1 else { throw ScheduleWidgetModelError.invalidFormat }
