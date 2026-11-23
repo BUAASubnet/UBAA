@@ -44,7 +44,6 @@ struct TodayScheduleWidget: Widget {
             provider: ScheduleTimelineProvider()
         ) { entry in
             TodayWidgetContent(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("今日课程")
@@ -60,7 +59,6 @@ struct UpcomingScheduleWidget: Widget {
             provider: ScheduleTimelineProvider()
         ) { entry in
             UpcomingScheduleWidgetView(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("近日课程")
@@ -76,7 +74,6 @@ struct WeekScheduleWidget: Widget {
             provider: ScheduleTimelineProvider()
         ) { entry in
             WeekScheduleWidgetView(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("UBAA 周课表")
@@ -95,7 +92,6 @@ struct TodayConfiguredWidget: Widget {
             provider: ScheduleConfiguredProvider()
         ) { entry in
             TodayWidgetContent(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("今日课程")
@@ -112,7 +108,6 @@ struct UpcomingConfiguredWidget: Widget {
             provider: ScheduleConfiguredProvider()
         ) { entry in
             UpcomingScheduleWidgetView(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("近日课程")
@@ -129,7 +124,6 @@ struct WeekConfiguredWidget: Widget {
             provider: ScheduleConfiguredProvider()
         ) { entry in
             WeekScheduleWidgetView(entry: entry)
-                .widgetURL(URL(string: "ubaa://schedule"))
                 .scheduleWidgetChrome(theme: entry.theme)
         }
         .configurationDisplayName("UBAA 周课表")
