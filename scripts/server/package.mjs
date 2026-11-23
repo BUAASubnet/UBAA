@@ -1,9 +1,11 @@
 import { mkdirSync, cpSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
-import { loadContent } from "../check/app_service/content.mjs";
-const directory = resolve(".ubaa_local/server_package");
+import { serverContent } from "../check/app_service/content.mjs";
+const directory = resolve("target/server_package");
+const output = resolve("dist/app_service");
 mkdirSync(directory, { recursive: true });
+mkdirSync(output, { recursive: true });
 for (const name of [
   "package.json",
   "package-lock.json",
@@ -15,17 +17,10 @@ for (const name of [
   });
 }
 cpSync("scripts/server/deploy.py", `${directory}/deploy.py`);
-const { channels, announcements } = loadContent();
-writeFileSync(
-  `${directory}/content.json`,
-  JSON.stringify({
-    channels,
-    announcements: announcements.filter((item) => item.app),
-  }),
-);
+writeFileSync(`${directory}/content.json`, JSON.stringify(serverContent()));
 const result = spawnSync(
   "tar",
-  ["-czf", resolve(".ubaa_local/app_service.tar.gz"), "-C", directory, "."],
+  ["-czf", resolve(output, "app_service.tar.gz"), "-C", directory, "."],
   { stdio: "inherit" },
 );
 process.exitCode = result.status ?? 1;

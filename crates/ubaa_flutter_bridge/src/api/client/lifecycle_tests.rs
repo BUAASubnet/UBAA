@@ -2,14 +2,11 @@ use super::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeR
 use super::read_pool::ReadGroup;
 use super::shared_account::BridgeSharedAccount;
 use futures_util::FutureExt;
-use std::path::PathBuf;
 use ubaa_core::facade::testing::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
 
-fn fixture() -> PathBuf {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+fn fixture() -> ubaa_test_support::TestTempDir {
+    let root =
+        ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_client_lifecycle").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),
@@ -102,7 +99,7 @@ async fn 等待路线切换时关闭客户端不再保存策略() {
 async fn 路线重开保持原共享归属且外部撤销仍拒绝派生() {
     let root = fixture();
     let bridge = BridgeClient::open(root.join("core").to_string_lossy().into()).unwrap();
-    let scope = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1).unwrap();
+    let scope = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
     bridge.bind_shared_account(&scope).await.unwrap();
     bridge
         .set_default_route_policy(BridgeRoutePolicy::Direct)

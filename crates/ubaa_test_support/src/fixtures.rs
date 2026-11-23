@@ -17,6 +17,9 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
         "agenda_school.json" => Some(include_str!(
             "../../../fixtures/readonly/agenda_school.json"
         )),
+        "campus-network-required.html" => Some(include_str!(
+            "../../../fixtures/readonly/campus-network-required.html"
+        )),
         "schedule-terms.json" => Some(include_str!(
             "../../../fixtures/readonly/schedule-terms.json"
         )),

@@ -36,9 +36,7 @@ fn 校园快照端到端保留成功值且拒绝错误账号与退出后读取()
         .build()
         .unwrap()
         .block_on(async {
-            let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.ubaa_local/supervision/closeout_20261031")
-                .join(format!("campus-facade-{}", std::process::id()));
+            let root = crate::test_tmp::test_temp_dir("ubaa_core_campus_cache").unwrap();
             let store = FileSessionStore::new(&root).unwrap();
             store
                 .save(&SessionSnapshot {

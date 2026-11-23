@@ -48,7 +48,24 @@ void registerCgyyPresentationTests() {
       1,
       null,
     ]);
-    expect(slots.first.action<CgyyReserveAction>()?.timeOrdinal, 0);
+    expect(result.details.first.presentation, isA<CgyyDayPresentation>());
+    expect(slots.last.presentation, isA<CgyySlotPresentation>());
+    final action = slots.first.action<CgyyReserveAction>()!;
+    expect(action.venueSiteId, 7);
+    expect(action.reservationDate, '2026-09-04');
+    expect(action.spaceId, 4);
+    expect(action.timeId, 9);
+    expect(action.venueSpaceGroupId, 2);
+    expect(action.timeOrdinal, 7);
+    expect(action.eligibility, ActionEligibility.allowed);
+    final fields = {
+      for (final field in slots.first.fields) field.label: field.value,
+    };
+    expect(fields['站点 ID'], '7');
+    expect(fields['空间 ID'], '4');
+    expect(fields['时段 ID'], '9');
+    expect(fields['空间组 ID'], '2');
+    expect(fields['可预约'], '是');
     expect(slots.skip(1).every((d) => d.actions.isEmpty), isTrue);
     expect(result.summary, isNot(contains('可预约时段')));
     expect(client.calls, ['cgyyDayInfo:siteId=7,date=2026-09-04']);
@@ -193,7 +210,7 @@ class _RoomPresentationClient extends FixtureCharacterizationBridgeClient {
                     spaceId: 4,
                     timeId: 9,
                     venueSpaceGroupId: 2,
-                    timeOrdinal: 0,
+                    timeOrdinal: 7,
                   ),
                 ),
                 BridgeCgyySlotStatus(

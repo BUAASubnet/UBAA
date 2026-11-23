@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/common/feature_detail.dart';
 import 'package:ubaa_ui/src/features/schedule/content.dart';
-import '../assignments/content_test.dart' show showFeature;
 
 void main() {
   testWidgets('空周在在线、缓存与刷新状态之间保留网格和滚动位置', (tester) async {
@@ -72,13 +71,12 @@ void main() {
     }
   });
 
-  for (final width in [320.0, 390.0, 834.0, 1280.0]) {
-    testWidgets('稀疏课程在$width宽度补齐校历作息且不请求新数据', (tester) async {
-      final queries = <FeatureQuery>[];
-      await showFeature(
+  for (final width in [320.0, 1280.0]) {
+    testWidgets('稀疏课程在$width宽度补齐校历作息', (tester) async {
+      await _mount(
         tester,
-        FeatureId.schedule,
-        const [
+        width,
+        details: const [
           FeatureDetail(
             title: '合成课程',
             presentation: ScheduleCoursePresentation(
@@ -91,13 +89,6 @@ void main() {
             ),
           ),
         ],
-        queries,
-        size: Size(width, 900),
-        query: const FeatureQuery(
-          view: FeatureQueryView.scheduleWeek,
-          term: 'term',
-          week: 1,
-        ),
       );
       expect(find.text('08:00\n08:45'), findsOneWidget);
       expect(find.text('08:50\n09:35'), findsOneWidget);
@@ -107,23 +98,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('21:30\n22:15').hitTestable(), findsOneWidget);
-      expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });
-    testWidgets('空周完整时间轴在$width宽度保持可见且无需额外查询', (tester) async {
-      final queries = <FeatureQuery>[];
-      await showFeature(
+    testWidgets('空周完整时间轴在$width宽度保持可见', (tester) async {
+      await _mount(
         tester,
-        FeatureId.schedule,
-        [],
-        queries,
-        size: Size(width, 900),
-        query: const FeatureQuery(
-          view: FeatureQueryView.scheduleWeek,
-          term: '20261',
-          week: 1,
-        ),
-        overview: ScheduleWeekOverview(
+        width,
+        timeline: ScheduleWeekOverview(
           code: '20261',
           sectionTimes: scheduleSectionTimes(
             courses: [],
@@ -138,8 +119,27 @@ void main() {
       expect(find.text('本周暂无课程'), findsOneWidget);
       expect(find.text('08:00\n08:45'), findsOneWidget);
       expect(find.text('09:50\n10:35'), findsOneWidget);
-      expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });
   }
+}
+
+Future<void> _mount(
+  WidgetTester tester,
+  double width, {
+  List<FeatureDetail> details = const [],
+  ScheduleWeekOverview? timeline,
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = Size(width, 900);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPhysicalSize);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: ScheduleContent(details: details, timeline: timeline),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }

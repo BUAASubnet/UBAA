@@ -4,7 +4,7 @@
 
 | 目录或文件 | 职责 |
 |---|---|
-| `bootstrap/` | 显式安装 CI 固定 Flutter、建立缺失冻结引用、带版本/哈希锁的 Python 质量环境，本机一站式 `setup.sh`，以及只读核对版本的 `doctor.py` |
+| `bootstrap/` | 显式安装 CI 固定 Flutter 和带版本及哈希锁的 Python 质量环境，提供本机安装入口 `setup.sh` 与只读版本检查 `doctor.py` |
 | `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
 | `build/` | 官方 Flutter 平台与 OHOS HAP 构建，以及构建缓存占用查看与分范围清理 `cache.py` |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
@@ -12,7 +12,6 @@
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器也在 tests 中 |
 | `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；根目录 `.env` 按入口白名单加载 |
 | `tools/` | Python 质量环境定位/执行、锁定 requirements 及其上游记录 |
-| `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
 
 `check/dart_sources.py` 是 Dart 指令与源码依赖闭包解析支持；`changed_checks.py` 编排检查计划，`module_graph.py`、`integration_catalog.py` 复用解析结果。`sensitive.py` 分别读取 index 和工作区，工具/读取错误失败关闭，不读取被忽略凭据。
 
@@ -20,9 +19,9 @@
 
 `check/app_service/content.mjs` 校验渠道配置与正式公告，发布脚本和文档站共用公告解析器。内容检查使用合成公告和假 CLI，不写入远端。
 
-`tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `.ubaa_local/app_service/` 下创建私有临时目录，写入合成本地配置、迁移 D1、填充 KV、启动回环 Worker、查询 D1，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
+`tests/app_service/e2e.py` 是 `just app-service-e2e` 的显式联调入口，顺序执行 Core HTTP 和宿主 Bridge 两组场景。两组分别在 `target/test_tmp/` 下创建私有临时目录，写入合成本地配置，结束后清理。故障中继用来丢弃响应、延迟上报或注入 503，实际请求仍由 Core 发出。普通单元测试和 CI 不启动这套联调环境。
 
-`tools/versions.env` 集中工具和冻结版本，`tools/flutter-packages.json` 集中七个正式包清单；根 Pub workspace 另包含 `packages/ubaa_test_support`，由共享包清单自动纳入八个成员的门禁。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
+`tools/versions.env` 集中记录工具与原生组件版本。`tools/flutter-packages.json` 集中记录七个正式包，根 Pub workspace 还包含 `packages/ubaa_test_support`，检查通过共享包清单覆盖八个成员。`lib/recipe.py` 规范化 recipe 参数，`lib/environment.py` 提供 `.env` 的语法解析，`lib/deveco.sh` 和 `lib/checksum.sh` 提供平台布局与摘要兼容。`lib/native_bindings.py` 在关闭 Web 后机械选择 FRB 的 IO 导入。
 
 根 `version.toml` 维护产品版本与构建号。`release/version.py` 由 `just version` 调用，同步自有声明并按需交给 Cargo、pub 和 CocoaPods 刷新锁文件；`just version-check` 使用同一份同步规则进行只读核对。工具链与第三方插件版本继续独立维护。
 
@@ -34,13 +33,13 @@
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
-`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `.ubaa_local/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。`release/site-images.sh` 从已审阅的网站宣传图和横版宣传图生成截图页 WebP 与 1200×630 分享图，只写 `docs/site/public/`。
+`release/store-screenshots.sh` 用 Flutter 测试引擎和纯合成数据绘制商店宣传图，再用 ImageMagick 输出 RGB PNG。原图和待审成品留在 `dist/store_screenshots/`，成品的复核与更新见[发布手册](../docs/runbooks/flutter-release.md#生成商店宣传图)。`release/site-images.sh` 从已审阅的网站宣传图和横版宣传图生成截图页 WebP 与 1200×630 分享图，只写 `docs/site/public/`。
 
 `release/download_manifest.py` 是 `just docs-download-sync` 的入口：读取 R2 上指定构建的公开清单，按 `distribute.py` 的公开安装包列表校验文件、大小和地址，再原样写入文档站下载页数据；`tests/release/download_manifest_test.py` 只用合成清单，不联网。
 
 `release/app_service_dashboard.py` 生成 Grafana 使用情况看板，`--maintenance` 生成独立的受限错误诊断看板。不读取本地账号或联网。脚本测试核对枚举、布局与列顺序，应用服务测试在隔离 PostgreSQL 中运行查询。
 
-`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 同步有差异的 KV 内容，`just app-service-deploy` 迁移目标 D1 后部署 Worker。两者均须通过本地校验并提供目标配置和部署 Token。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
+`release/app_service/release.mjs` 实现应用服务的显式远端命令：`just app-service-publish` 触发 dev 的渠道与公告发布，`just app-service-deploy` 触发 main 的应用部署。两者均须先通过本地内容校验。检查作业只使用假 CLI 验证远端写入边界，受保护的 CD 作业才执行正式部署。`server/content.mjs` 生成内容发布要发送的渠道与应用内公告。操作顺序见[应用服务部署手册](../docs/runbooks/app-service.md)。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 

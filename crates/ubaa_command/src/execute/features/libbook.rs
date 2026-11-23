@@ -5,91 +5,11 @@ use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::{LibBookCancelRequest, LibBookReserveRequest};
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
-use crate::backend::{CliBackend, RoutedCliBackend};
+use crate::backend::RoutedCliBackend;
 use crate::command::{LibBookArgs, LibBookCommand};
 use crate::execute::routed_readonly;
 use crate::io::input::invalid_input;
-use crate::io::schema::{CommandOutput, readonly};
-
-pub(in crate::execute) async fn run_libbook<B: CliBackend + Send>(
-    arguments: LibBookArgs,
-    backend: &mut B,
-) -> Result<CommandOutput> {
-    match arguments.command {
-        LibBookCommand::Libraries { day } => backend
-            .libbook_libraries(&day)
-            .await
-            .and_then(|result| readonly(result, CliFeature::LibBook)),
-        LibBookCommand::Areas {
-            premises_id,
-            storey_id,
-            day,
-        } => backend
-            .libbook_areas(&premises_id, storey_id.as_deref(), &day)
-            .await
-            .and_then(|result| readonly(result, CliFeature::LibBook)),
-        LibBookCommand::AreaDetail { area_id } => backend
-            .libbook_area_detail(&area_id)
-            .await
-            .and_then(|result| readonly(result, CliFeature::LibBook)),
-        LibBookCommand::Seats {
-            area_id,
-            day,
-            start_time,
-            end_time,
-        } => backend
-            .libbook_seats(&area_id, &day, &start_time, &end_time)
-            .await
-            .and_then(|result| readonly(result, CliFeature::LibBook)),
-        LibBookCommand::Bookings { page, limit } => backend
-            .libbook_bookings(page, limit)
-            .await
-            .and_then(|result| readonly(result, CliFeature::LibBook)),
-        LibBookCommand::Reserve {
-            area_id,
-            seat_id,
-            day,
-            segment,
-            start_time,
-            end_time,
-            confirm_write,
-        } => {
-            if !confirm_write {
-                return Err(invalid_input("预约是写操作，必须显式指定 --confirm-write"));
-            }
-            let request = normalize_reserve_request(&LibBookReserveRequest {
-                area_id,
-                seat_id,
-                day,
-                segment,
-                start_time,
-                end_time,
-            })?;
-            backend
-                .libbook_reserve(request)
-                .await
-                .and_then(|result| readonly(result, CliFeature::LibBook))
-        }
-        LibBookCommand::Cancel {
-            booking_id,
-            page,
-            limit,
-            confirm_write,
-        } => {
-            if !confirm_write {
-                return Err(invalid_input(
-                    "取消预约是写操作，必须显式指定 --confirm-write",
-                ));
-            }
-            let request = normalize_cancel_request(&booking_id, page, limit)?;
-            backend
-                .libbook_cancel_booking(request)
-                .await
-                .map_err(sanitize_cancel_authority_error)
-                .and_then(|result| readonly(result, CliFeature::LibBook))
-        }
-    }
-}
+use crate::io::schema::CommandOutput;
 
 pub(in crate::execute) async fn run_routed_libbook<B: RoutedCliBackend + Send>(
     arguments: LibBookArgs,

@@ -41,6 +41,89 @@ test("开发提交不会触发完整验收和原生矩阵", () => {
   assert.equal(native.on.pull_request, undefined);
   assert.ok(Object.hasOwn(native.on, "workflow_call"));
 });
+test("dev 的每次推送独立运行，同一个 PR 取消旧运行", () => {
+  const { group, "cancel-in-progress": cancelInProgress } = workflow("dev").concurrency;
+  const evaluate = (expression, github) => new Function("github", `return ${expression}`)(github);
+  const groupFor = (github) => group.replace(/\$\{\{(.+?)\}\}/g, (_, expression) => evaluate(expression, github));
+  const cancels = (github) => typeof cancelInProgress === "boolean"
+    ? cancelInProgress
+    : evaluate(cancelInProgress.slice(3, -2), github);
+  const pushes = ["1", "2", "3"].map((run_id) => ({ event_name: "push", ref: "refs/heads/dev", run_id }));
+  for (const push of pushes) assert.equal(cancels(push), false);
+  assert.equal(new Set(pushes.map(groupFor)).size, pushes.length);
+  const pr = { event_name: "pull_request", ref: "refs/pull/8/merge", run_id: "4" };
+  assert.equal(cancels(pr), true);
+  assert.equal(groupFor(pr), groupFor({ ...pr, run_id: "5" }));
+  assert.notEqual(groupFor(pr), groupFor({ ...pr, ref: "refs/pull/9/merge", run_id: "6" }));
+  const manual = { ...pushes[0], event_name: "workflow_dispatch", run_id: "7" };
+  assert.equal(cancels(manual), false);
+  assert.ok(!pushes.map(groupFor).includes(groupFor(manual)));
+});
+test("dev Rust 执行 Clippy、Core 合同及其余工作区测试", () => {
+  const { steps } = workflow("dev").jobs.rust;
+  assert.equal(steps.find((step) => step.uses === "./.github/actions/rust_cache").with.kind, "tests");
+  const commands = steps.flatMap((step) => step.run?.split("\n") ?? []);
+  assert.deepEqual(commands, [
+    "cargo fmt --all -- --check",
+    "cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "just core-test-contract",
+    "cargo test --locked --workspace --exclude ubaa-core",
+  ]);
+});
+test("dev Flutter 在静态分析后把选中的包传给非 golden 测试入口", () => {
+  const { changes, flutter } = workflow("dev").jobs;
+  assert.equal(flutter["runs-on"], "ubuntu-latest");
+  assert.equal(flutter.needs, "changes");
+  assert.equal(changes.outputs.flutter_packages, "${{ steps.paths.outputs.flutter_packages }}");
+  const commands = flutter.steps.filter((step) => step.run);
+  assert.deepEqual(commands.map(({ run }) => run), [
+    "bash scripts/check/flutter-workspace.sh analyze",
+    'bash scripts/check/flutter-workspace.sh test-non-golden "$FLUTTER_PACKAGES"',
+  ]);
+  assert.equal(commands[1].env.FLUTTER_PACKAGES, "${{ needs.changes.outputs.flutter_packages }}");
+});
+test("dev 夜间定时或手动运行，以只读权限复用 dev 的完整验收", () => {
+  const nightly = workflow("dev-nightly");
+  assert.deepEqual(Object.keys(nightly.on).sort(), ["schedule", "workflow_dispatch"]);
+  assert.equal(nightly.on.schedule.length, 1);
+  assert.match(nightly.on.schedule[0].cron, /^\d+ \d+ \* \* \*$/);
+  assert.deepEqual(nightly.permissions, { contents: "read", actions: "read" });
+  assert.doesNotMatch(JSON.stringify(nightly), /\bsecrets\b/);
+  assert.deepEqual(Object.keys(nightly.jobs).sort(), ["prepare", "verify"]);
+  assert.equal(nightly.jobs.prepare.steps[0].with.ref, "refs/heads/dev");
+  assert.equal(nightly.jobs.prepare.steps[0].with["persist-credentials"], false);
+  const verify = nightly.jobs.verify;
+  assert.equal(verify.needs, "prepare");
+  assert.equal(verify.if, "needs.prepare.outputs.accepted == 'false'");
+  assert.equal(verify.uses, "BUAASubnet/UBAA/.github/workflows/ci.yml@dev");
+  assert.deepEqual(verify.with, { checkout_ref: "${{ needs.prepare.outputs.sha }}", local_macos: false });
+});
+test("夜间候选传给完整验收及原生子流程，现有调用默认检出保持不变", () => {
+  const full = workflow("ci");
+  const native = workflow("flutter-platforms");
+  for (const caller of [full, native]) {
+    assert.equal(caller.on.workflow_call.inputs.checkout_ref.default, "");
+    for (const job of Object.values(caller.jobs)) {
+      for (const step of job.steps ?? []) {
+        if (step.uses?.startsWith("actions/checkout@")) {
+          assert.equal(step.with.ref, "${{ inputs.checkout_ref }}");
+        }
+      }
+    }
+  }
+  assert.equal(full.jobs.native.with.checkout_ref, "${{ inputs.checkout_ref }}");
+  assert.equal(workflow("release").jobs.verify.with.checkout_ref, undefined);
+  const plan = full.jobs.plan.steps.find((step) => step.id === "plan");
+  const sha = "a".repeat(40);
+  for (const [checkoutRef, workflowSha, status] of [["", undefined, 0], [sha, sha, 0], [sha, "b".repeat(40), 1]]) {
+    const result = spawnSync("bash", ["-euo", "pipefail", "-c", plan.run], {
+      env: { ...process.env, BASE_SHA: "", CHECKOUT_REF: checkoutRef,
+        WORKFLOW_JOB: JSON.stringify({ workflow_sha: workflowSha }), GITHUB_OUTPUT: "/dev/null" },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, status, result.stderr);
+  }
+});
 test("商店上传只等待对应平台构建，失败或取消时不上传", () => {
   const release = workflow("release");
   for (const [store, platform] of [["app-store", "ios"], ["appgallery", "ohos"]]) {
@@ -105,12 +188,41 @@ test("本机 Release 路由覆盖 Apple 构建与验收，普通 CI 保留托管
 
 test("HarmonyOS 商店产物与公开安装包分别上传", () => {
   const uploads = workflow("release").jobs.ohos.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"));
-  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), [".ubaa_local/release/public/*"]);
-  assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, ".ubaa_local/release/store/*.app");
+  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), ["dist/release/public/*"]);
+  assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, "dist/release/store/*.app");
   const recovery = workflow("release-distribute");
   assert.deepEqual(Object.keys(recovery.on), ["workflow_dispatch"]);
   assert.equal(recovery.concurrency.group, workflow("release").jobs.distribute.concurrency.group);
   const job = recovery.jobs.distribute;
   assert.equal(job.environment, "release-production");
-  assert.equal(job.steps.find((step) => step.uses?.startsWith("actions/download-artifact@")).with["run-id"], "${{ inputs.source_run }}");
+  const download = job.steps.find((step) => step.uses?.startsWith("actions/download-artifact@"));
+  assert.equal(download.with["run-id"], "${{ inputs.source_run }}");
+  assert.equal(download.with.path, "dist/release/public");
+});
+
+test("Flutter 原生调试产物先收集到 dist 再上传", () => {
+  const jobs = workflow("flutter-platforms").jobs;
+  const native = jobs["native-debug"];
+  const collect = native.steps.find((step) => step.name === "收集复核用构建产物");
+  assert.equal(collect.shell, "bash");
+  assert.match(collect.run, /dist\/flutter_debug\/\$\{\{ matrix\.artifact_id \|\| matrix\.platform \}\}/);
+  const upload = native.steps.find((step) => step.with?.name === "ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}");
+  assert.equal(upload.with.path, "${{ steps.debug-artifact.outputs.path }}");
+  const ohos = jobs["native-ohos"];
+  assert.match(ohos.steps.find((step) => step.name === "收集 HarmonyOS 调试产物").run, /dist\/flutter_debug\/ohos/);
+  assert.equal(ohos.steps.find((step) => step.uses?.startsWith("actions/upload-artifact@")).with.path, "dist/flutter_debug/ohos/*.hap");
+});
+
+test("发布作业始终清理 runner 临时签名和商店密钥", () => {
+  const { jobs } = workflow("release");
+  for (const name of ["android", "ohos", "app-store", "store-access"]) {
+    const cleanup = jobs[name].steps.at(-1);
+    assert.equal(cleanup.if, "${{ always() }}");
+    assert.match(cleanup.run, /\$\{RUNNER_TEMP:\?\}\/ubaa_(release_signing|store_api)/);
+  }
+  for (const name of ["ios", "macos"]) {
+    const cleanup = jobs[name].steps.at(-1);
+    assert.equal(cleanup.if, "${{ always() }}");
+    assert.equal(cleanup.run, "python3 scripts/release/platforms/apple_signing.py cleanup");
+  }
 });

@@ -212,6 +212,69 @@ fn 评教批量结果完整保序映射四态并替换上游文案() {
 }
 
 #[test]
+fn 校园网停止原因投影保留固定安全文案() {
+    let core = domain::EvaluationBatchResult {
+        items: vec![
+            domain::EvaluationCourseResult {
+                target: domain::EvaluationSubmitTarget {
+                    rwid: "rw-1".into(),
+                    wjid: "wj-1".into(),
+                    kcdm: "kc-1".into(),
+                    bpdm: None,
+                },
+                course_name: "课程-1".into(),
+                outcome: domain::EvaluationCourseOutcome::Unattempted,
+                message: "未尝试：该服务当前仅限校园网访问，可切换到 WebVPN 后重试".into(),
+            },
+            domain::EvaluationCourseResult {
+                target: domain::EvaluationSubmitTarget {
+                    rwid: "rw-2".into(),
+                    wjid: "wj-2".into(),
+                    kcdm: "kc-2".into(),
+                    bpdm: None,
+                },
+                course_name: "课程-2".into(),
+                outcome: domain::EvaluationCourseOutcome::Unattempted,
+                message: "前序课程结果未知，本课程未尝试".into(),
+            },
+        ],
+        success: false,
+        outcome_unknown: false,
+    };
+
+    let mapped = map_evaluation_batch(core);
+    assert_eq!(
+        mapped.items[0].message,
+        "未尝试：该服务当前仅限校园网访问，可切换到 WebVPN 后重试"
+    );
+    assert_eq!(mapped.items[1].message, "请先更新客户端，本课程未尝试");
+}
+
+#[test]
+fn 评教预检和提交保留客户端状态分类() {
+    let projected = domain::testing::client_lifecycle_errors().map(|error| {
+        let routed = domain::RoutedError {
+            error,
+            resolution: None,
+        };
+        let preflight = map_evaluation_preflight_error(&routed);
+        let commit = map_commit_error(BridgeWriteOperation::EvaluationSubmitCourses, routed);
+        assert_eq!(preflight.message, "教学评教准备失败");
+        assert_eq!(commit.message, "教学评教提交失败");
+        (preflight.code, commit.code)
+    });
+    assert_eq!(
+        projected,
+        [
+            BridgeErrorCode::ClientDisposed,
+            BridgeErrorCode::CaptchaRequired,
+            BridgeErrorCode::OperationConflict,
+        ]
+        .map(|code| (code, code)),
+    );
+}
+
+#[test]
 fn 评教准备与提交错误固定脱敏文案() {
     let raw = "RAW-UPSTREAM token=PRIVATE account=PRIVATE";
     let preflight = map_evaluation_preflight_error(&domain::RoutedError {

@@ -10,11 +10,11 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
-pub(super) fn create_temporary_file(parent: &Path) -> Result<(PathBuf, File)> {
+pub(super) fn create_temporary_file(parent: &Path, file_name: &str) -> Result<(PathBuf, File)> {
     for _ in 0..MAX_TEMP_FILE_ATTEMPTS {
         let sequence = NEXT_TEMP_FILE.fetch_add(1, Ordering::Relaxed);
         let path = parent.join(format!(
-            ".session.json.{}.{sequence}.tmp",
+            ".{file_name}.{}.{sequence}.tmp",
             std::process::id()
         ));
         let mut options = OpenOptions::new();

@@ -1,3 +1,4 @@
+use super::super::lock_unpoisoned;
 use super::{CommandBackend, core, disposed_error, routed_bridge_error};
 use futures_util::FutureExt;
 use std::sync::{Arc, atomic::Ordering};
@@ -21,13 +22,13 @@ pub(super) async fn execute(
             error: super::internal_error("命令已停止"),
             resolution: Some(resolution),
         })?;
-        *command.sent.lock().unwrap() = Some((observation.clone(), resolution));
+        *lock_unpoisoned(&command.sent) = Some((observation.clone(), resolution));
     }
     let controlled;
     let input = if args.command.is_transfer() {
         let transfer = core::bhpan::BhpanTransfer::new();
         if let Some(command) = backend.command {
-            *command.transfer.lock().unwrap() = Some(transfer.clone());
+            *lock_unpoisoned(&command.transfer) = Some(transfer.clone());
         }
         controlled = input.with_transfer(transfer);
         &controlled

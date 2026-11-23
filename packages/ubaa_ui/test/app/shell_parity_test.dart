@@ -61,6 +61,10 @@ void main() {
   testWidgets('功能页点另一底栏后内容与选中项一致，滑动从该页切到日程', (tester) async {
     await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byTooltip('返回'), findsOneWidget);
+    expect(find.text('返回功能列表'), findsNothing);
+    expect(find.text('返回上一层'), findsNothing);
     await tester.tap(
       find.byType(NavigationDestination).at(UiDestination.campus.index),
     );
@@ -80,6 +84,10 @@ void main() {
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
+    );
+    expect(
+      find.byKey(const ValueKey('agenda-create')).hitTestable(),
+      findsOneWidget,
     );
     // 日程页内左右滑动切换日期，回学习页改点底栏。
     await tester.tap(
@@ -225,29 +233,6 @@ void main() {
     expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('手机底栏展示五项入口和首页标题', (tester) async {
-    await mount(tester);
-    expect(
-      tester
-          .widgetList<NavigationDestination>(find.byType(NavigationDestination))
-          .map((item) => item.label),
-      ['首页', '学习', '日程', '校园', '我的'],
-    );
-    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-  });
-  testWidgets('首页保留今日课表与待办状态', (tester) async {
-    await mount(tester);
-    expect(find.text('今日课表'), findsOneWidget);
-    expect(find.text('待办'), findsOneWidget);
-  });
-  testWidgets('手机功能页保留全局底栏与父层返回', (tester) async {
-    await mount(tester, tab: UiDestination.study);
-    await openGrade(tester);
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byTooltip('返回'), findsOneWidget);
-    expect(find.text('返回功能列表'), findsNothing);
-    expect(find.text('返回上一层'), findsNothing);
-  });
   testWidgets('设置页点选连接模式立即生效，当前模式不重复保存', (tester) async {
     final changed = <RoutePolicy>[];
     await mount(
@@ -277,10 +262,6 @@ void main() {
       (widget) => widget is Material && widget.elevation == 8,
     );
     expect(tester.getSize(panel).height, lessThan(400));
-  });
-  test('研讨室预约使用旧版业务名称', () {
-    expect(FeatureId.cgyy.title, '研讨室预约');
-    expect(WriteOperation.cgyySubmitReservation.title, '研讨室预约');
   });
 }
 

@@ -191,6 +191,14 @@ impl RouteConfig {
         self.features = FeaturePolicies::default();
     }
 
+    pub(crate) fn has_same_effective_routes(&self, other: &Self) -> bool {
+        self.default == other.default
+            && self
+                .explicit_feature_policies()
+                .into_iter()
+                .all(|(feature, _)| self.feature(feature) == other.feature(feature))
+    }
+
     /// 原子写入不含秘密信息的配置文件；在支持的平台上仅授予所有者权限。
     pub fn save(&self, config_dir: impl AsRef<Path>) -> Result<PathBuf> {
         let dir = config_dir.as_ref();

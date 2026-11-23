@@ -1,9 +1,42 @@
 use super::*;
+
+#[test]
+fn 锁污染后仍能查询进度取消并读取结果() {
+    fn poison<T>(lock: &Mutex<T>) {
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _guard = lock.lock().unwrap();
+                panic!("合成锁污染");
+            }))
+            .is_err()
+        );
+    }
+
+    let command = BridgeCommand::parse(["ubaa-cli", "--help"].map(str::to_owned).to_vec(), 120_000);
+    let transfer = core::bhpan::BhpanTransfer::new();
+    *command.transfer.lock().unwrap() = Some(transfer.clone());
+    poison(&command.transfer);
+    poison(&command.early);
+    assert!(command.transfer_progress_line().is_some());
+    command.cancel();
+    assert_eq!(
+        transfer.progress().phase,
+        core::BhpanTransferPhase::Cancelled
+    );
+
+    let result = command.early_result().expect("应保留未读取的结果");
+    assert!(command.early_result().is_none());
+    poison(&result.body);
+    assert!(!result.authentication_succeeded());
+    let recovered = result.registration_failed();
+    assert!(matches!(
+        recovered.body.lock().unwrap().as_ref(),
+        Some(Body::Parse(_))
+    ));
+}
 #[test]
 fn 配置路径为文件时在请求密码前拒绝() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/input_tests");
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_input").unwrap();
     let file = root.join(uuid::Uuid::new_v4().to_string());
     std::fs::write(&file, "合成普通文件").unwrap();
     let command = BridgeCommand::parse(
@@ -156,10 +189,7 @@ async fn 无效本机参数与输入在打开材料前拒绝() {
 
 #[tokio::test]
 async fn 写入结果在交付前到期时保留核对提示() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/output_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_output").unwrap();
     let cache = crate::api::offline::BridgeOfflineCache::open(
         root.to_string_lossy().into(),
         "0123456789abcdef0123456789abcdef".into(),
@@ -240,6 +270,9 @@ async fn 写入结果在交付前到期时保留核对提示() {
 
 #[tokio::test]
 async fn 密码与阳光请求在材料初始化前完整校验() {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_command_input").unwrap();
+    let missing_photo = root.join("missing.jpg");
+    let missing_photo = missing_photo.to_str().unwrap();
     for (arguments, input) in [
         (
             vec![
@@ -284,7 +317,7 @@ async fn 密码与阳光请求在材料初始化前完整校验() {
                 "--end-time",
                 "bad-time",
                 "--photo",
-                ".ubaa_local/command_delivery/missing.jpg",
+                missing_photo,
                 "--confirm-write",
             ],
             vec![],
@@ -302,7 +335,7 @@ async fn 密码与阳光请求在材料初始化前完整校验() {
                 "--end-time",
                 "2026-11-05 09:00",
                 "--photo",
-                ".ubaa_local/command_delivery/missing.jpg",
+                missing_photo,
                 "--confirm-write",
             ],
             vec![],

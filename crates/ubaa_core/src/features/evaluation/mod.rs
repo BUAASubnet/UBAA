@@ -45,13 +45,14 @@ pub(super) fn invalid_input(message: &'static str) -> UbaaError {
 }
 
 pub(super) fn must_propagate(error: &UbaaError) -> bool {
-    matches!(
-        error.code,
-        ErrorCode::AuthenticationRequired
-            | ErrorCode::InvalidCredentials
-            | ErrorCode::PermissionDenied
-            | ErrorCode::UpdateRequired
-    )
+    error.is_campus_network_required()
+        || matches!(
+            error.code,
+            ErrorCode::AuthenticationRequired
+                | ErrorCode::InvalidCredentials
+                | ErrorCode::PermissionDenied
+                | ErrorCode::UpdateRequired
+        )
 }
 
 #[cfg(test)]

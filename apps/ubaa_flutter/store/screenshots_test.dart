@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 // 这个 Widget 测试放在 store/，只由宣传图命令显式运行。
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
@@ -26,8 +27,8 @@ void main() {
   late Directory destination;
   var fontsLoaded = false;
   setUpAll(() async {
-    destination = checkedEvidenceDirectory(
-      Platform.environment['UBAA_UI_EVIDENCE_DIR'],
+    destination = checkedStoreScreenshotDirectory(
+      Platform.environment['UBAA_STORE_SCREENSHOT_DIR'],
     );
     if (await destination.exists() && !await destination.list().isEmpty) {
       throw StateError('宣传图输出目录必须为空，请使用新的任务子目录。');
@@ -106,7 +107,7 @@ Future<ui.Image> _renderScreen(
         backend: PromoBackend(),
         credentialVault: MemoryCredentialVault(),
         localAccountStore: const PromoAccountStore(),
-        preferenceValues: MemoryPreferenceValues(),
+        preferenceValues: acceptedPrivacyPreferences(),
         initialThemeMode: ThemeMode.light,
         initialDestination: scene.destination,
       ),

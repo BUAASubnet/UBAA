@@ -51,7 +51,7 @@ impl LoginState {
         self.authenticated_profile = None;
     }
 
-    pub(crate) fn remember_authenticated(&mut self, profile: UserProfile) {
+    fn remember_authenticated(&mut self, profile: UserProfile) {
         self.clear();
         self.authenticated_profile = Some(profile);
     }
@@ -155,16 +155,14 @@ impl AuthWorkflow {
                 "用户名和密码不能为空",
             ));
         }
-        if self.state.authenticated_ready() {
-            let profile = self.state.authenticated_profile.take().expect("已验证身份");
+        if let Some(profile) = self.state.authenticated_profile.take() {
             return Ok(self.finish_successful_login(runtime, profile));
         }
         if self.state.page().is_none() {
             self.prepare_login(runtime)
                 .await
                 .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage))?;
-            if self.state.authenticated_ready() {
-                let profile = self.state.authenticated_profile.take().expect("已验证身份");
+            if let Some(profile) = self.state.authenticated_profile.take() {
                 return Ok(self.finish_successful_login(runtime, profile));
             }
         }
@@ -232,7 +230,7 @@ impl AuthWorkflow {
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Redirect))?;
         let mut clear_workflow = || self.state.clear();
-        let status = sso_identity::validate_status(runtime, &mut clear_workflow)
+        let status = sso_identity::validate_login(runtime, &mut clear_workflow)
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::IdentityValidation))?;
         runtime.clear_feature_state();

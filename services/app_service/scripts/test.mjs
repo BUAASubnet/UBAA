@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, openSync, rmSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { closeSync, existsSync, openSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { createServer } from "node:net";
+import { createTestTempDirectory } from "../../../scripts/tests/test_tmp.cjs";
 const candidates = [
   "/opt/homebrew/opt/postgresql@17/bin",
   "/usr/lib/postgresql/17/bin",
@@ -10,23 +11,25 @@ const candidates = [
 ];
 const bin = candidates.find((path) => existsSync(join(path, "initdb")));
 if (!bin) throw new Error("请安装 PostgreSQL 17（测试也支持 16 或 18）");
-const parent = resolve("../../.ubaa_local/postgres_tests");
-mkdirSync(parent, { recursive: true, mode: 0o700 });
-const dir = mkdtempSync(join(parent, "run_"));
 const probe = createServer();
 await new Promise((done) => probe.listen(0, "127.0.0.1", done));
 const port = probe.address().port;
 await new Promise((done) => probe.close(done));
-const log = openSync(join(dir, "postgres.log"), "a", 0o600);
+const dir = createTestTempDirectory("postgres");
+const logPath = join(dir, "postgres.log");
+let log;
 function run(name, args) {
   const result = spawnSync(join(bin, name), args, {
     stdio: ["ignore", log, log],
   });
   if (result.status !== 0)
-    throw new Error(`PostgreSQL 测试启动失败，见 ${dir}/postgres.log`);
+    throw new Error(
+      `PostgreSQL ${name} 失败：\n${readFileSync(logPath, "utf8")}`,
+    );
 }
 let started = false;
 try {
+  log = openSync(logPath, "a", 0o600);
   run("initdb", [
     "-D",
     join(dir, "data"),
@@ -42,9 +45,9 @@ try {
     "-D",
     join(dir, "data"),
     "-l",
-    join(dir, "postgres.log"),
+    logPath,
     "-o",
-    `-h 127.0.0.1 -p ${port} -k ${dir}`,
+    `-h 127.0.0.1 -p ${port} -k ''`,
     "-w",
     "start",
   ]);
@@ -58,7 +61,11 @@ try {
   });
   process.exitCode = result.status ?? 1;
 } finally {
-  if (started)
-    run("pg_ctl", ["-D", join(dir, "data"), "-m", "fast", "-w", "stop"]);
-  if (!process.exitCode) rmSync(dir, { recursive: true, force: true });
+  try {
+    if (started)
+      run("pg_ctl", ["-D", join(dir, "data"), "-m", "fast", "-w", "stop"]);
+  } finally {
+    if (log !== undefined) closeSync(log);
+    rmSync(dir, { recursive: true, force: true });
+  }
 }

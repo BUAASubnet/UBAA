@@ -2,22 +2,17 @@ use super::*;
 use crate::app_service::{AppService, AppServiceConfig};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Value, json};
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 struct CampusClock {
-    root: PathBuf,
+    root: crate::test_tmp::TestTempDir,
     now: Arc<Mutex<DateTime<Utc>>>,
 }
 
 impl CampusClock {
     fn new() -> Self {
         Self {
-            root: Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.ubaa_local/minute_telemetry/core")
-                .join(Uuid::new_v4().to_string()),
+            root: crate::test_tmp::test_temp_dir("ubaa_core_app_service_minutes").unwrap(),
             now: Arc::new(Mutex::new("2026-11-10T16:00:00Z".parse().unwrap())),
         }
     }
@@ -35,15 +30,11 @@ impl CampusClock {
             false,
         );
         let now = Arc::clone(&self.now);
-        AppService::open(&self.root, config, Surface::Gui, 3)
+        let service = AppService::open(self.root.path(), config, Surface::Gui, 3)
             .unwrap()
-            .with_runtime(move || *now.lock().unwrap(), false)
-    }
-}
-
-impl Drop for CampusClock {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.root).unwrap();
+            .with_runtime(move || *now.lock().unwrap(), false);
+        service.agree(3).unwrap();
+        service
     }
 }
 

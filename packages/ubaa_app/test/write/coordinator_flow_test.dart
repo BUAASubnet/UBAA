@@ -80,17 +80,6 @@ void _registerFlowTests() {
     coordinator.dispose();
   });
 
-  test('写协调器使用唯一类型和状态', () {
-    final WriteCoordinator coordinator = WriteCoordinator(
-      commit: (_) async => fixtureResult(),
-      now: () => fixtureNow,
-    );
-    expect(coordinator.runtimeType, WriteCoordinator);
-    coordinator.setIntent(fixtureIntent());
-    expect(coordinator.intent, same(coordinator.state.intent));
-    coordinator.dispose();
-  });
-
   test('准备期间阻止重入并在返回后发布不可变待确认状态', () async {
     final prepared = Completer<WriteIntent>();
     var calls = 0;
@@ -113,6 +102,7 @@ void _registerFlowTests() {
     );
     prepared.complete(fixtureIntent());
     expect(await first, same(coordinator.intent));
+    expect(coordinator.state.intent, same(coordinator.intent));
     expect(calls, 1);
     expect(initial.phase, WritePhase.idle);
     expect(coordinator.state.phase, WritePhase.ready);

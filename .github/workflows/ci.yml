@@ -8,6 +8,10 @@ on:
         description: Release 使用本机 Apple runner
         type: boolean
         default: false
+      checkout_ref:
+        description: 夜间验收指定已选定的 dev 提交，留空沿用触发提交
+        type: string
+        default: ''
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,24 +28,34 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ inputs.checkout_ref }}
       - id: plan
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: python3 scripts/check/ci/plan.py plan
+          CHECKOUT_REF: ${{ inputs.checkout_ref }}
+          WORKFLOW_JOB: ${{ toJSON(job) }}
+        run: |
+          if [[ -n "$CHECKOUT_REF" ]] && ! jq -e --arg sha "$CHECKOUT_REF" '.workflow_sha == $sha' <<< "$WORKFLOW_JOB" >/dev/null; then
+            printf '%s\n' 'dev 检出提交与复用的工作流版本不同，请重新触发夜间验收。' >&2
+            exit 1
+          fi
+          python3 scripts/check/ci/plan.py plan
 
   scripts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/shellcheck
-      - name: 准备冻结引用与脚本工具
+      - name: 准备脚本工具
         run: |
-          just refs-bootstrap
           just quality-tools-bootstrap
       - name: 通用脚本、格式、文档和敏感材料检查
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |
-          just refs
           just check-sensitive
           just script-check
           cargo fmt --all -- --check
@@ -54,12 +68,16 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
           kind: checks
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: 默认 feature 与测试注入边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         shell: bash
         run: |
           cargo check --locked -p ubaa-core --no-default-features --all-targets
@@ -77,6 +95,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -93,11 +113,15 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
           kind: tests
       - name: Core 与其余工作区完整测试
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         shell: bash
         run: |
           cargo test --locked -p ubaa-core --features test-contract --all-targets
@@ -108,6 +132,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - id: tools
         run: |
@@ -125,6 +151,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - uses: ./.github/actions/rust_cache
         with:
@@ -141,13 +169,13 @@ jobs:
       - id: frb-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .ubaa_local/ci_tools/frb
+          path: target/ci_tools/frb
           key: frb-${{ runner.os }}-${{ runner.arch }}-${{ steps.tools.outputs.rust }}-${{ steps.tools.outputs.frb }}
       - name: 准备固定 FRB codegen
         shell: bash
         run: |
           source scripts/tools/versions.env
-          root="$GITHUB_WORKSPACE/.ubaa_local/ci_tools/frb"
+          root="$GITHUB_WORKSPACE/target/ci_tools/frb"
           if [[ ! -x "$root/bin/flutter_rust_bridge_codegen" ]]; then
             cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION" --root "$root"
           fi
@@ -164,6 +192,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
         with:
           rust: false
@@ -179,12 +209,16 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
         with:
           rust: false
       - uses: ./.github/actions/flutter
       - run: just flutter-dependencies
       - name: 运行完整测试分组
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: python3 scripts/check/ci/plan.py test "${{ matrix.package }}" "${{ matrix.group }}"
       - name: 保存失败的脱敏视觉差异
         if: failure() && matrix.group == 'golden'
@@ -199,6 +233,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - id: toolchain
         uses: ./.github/actions/toolchain
         with:
@@ -211,20 +247,29 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-content-check
       - name: 检查 Worker 部署触发条件与发布顺序
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/app_service/deploy_workflow_test.mjs
       - name: 检查工作流触发条件和合并门禁
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/checks/ci_workflows_test.mjs
       - name: 构建文档站并检查链接
         run: npm run docs:build
       - name: 检查应用服务合同与本地 Worker
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-check
 
   native:
     uses: ./.github/workflows/flutter-platforms.yml
     with:
       local_macos: ${{ inputs.local_macos || false }}
+      checkout_ref: ${{ inputs.checkout_ref }}
 
   main-required:
     name: main-required
@@ -233,6 +278,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - name: 确认全部验收成功
         env:
           NEEDS: ${{ toJSON(needs) }}
@@ -243,7 +290,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: merge-acceptance
-          path: .ubaa_local/ci/acceptance.json
+          path: dist/ci/acceptance.json
           if-no-files-found: error
           include-hidden-files: true
           overwrite: true

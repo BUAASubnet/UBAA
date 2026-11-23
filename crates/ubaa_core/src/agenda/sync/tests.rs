@@ -8,15 +8,27 @@ use crate::{
     domain::agenda::{AgendaEditScope, SchoolAgendaKey, SchoolAgendaOverlay},
 };
 use uuid::Uuid;
-pub(super) fn root() -> std::path::PathBuf {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_sync/tests")
-        .join(Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    root.canonicalize().unwrap()
+pub(super) fn root() -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_agenda_sync").unwrap()
 }
-fn open() -> AgendaStore {
-    AgendaStore::open(&root(), ACCOUNT).unwrap()
+
+pub(super) struct OpenedStore {
+    store: AgendaStore,
+    _temp: crate::test_tmp::TestTempDir,
+}
+
+impl std::ops::Deref for OpenedStore {
+    type Target = AgendaStore;
+
+    fn deref(&self) -> &Self::Target {
+        &self.store
+    }
+}
+
+pub(super) fn open() -> OpenedStore {
+    let temp = root();
+    let store = AgendaStore::open(temp.path(), ACCOUNT).unwrap();
+    OpenedStore { store, _temp: temp }
 }
 
 #[test]
@@ -320,7 +332,7 @@ fn clear_during_finalization_keeps_one_bodyless_attempt_and_rejects_late_confirm
     let entered = Arc::new(Barrier::new(2));
     let released = Arc::new(Barrier::new(2));
     let late = {
-        let root = root.clone();
+        let root = root.to_path_buf();
         let entered = entered.clone();
         let released = released.clone();
         std::thread::spawn(move || {

@@ -148,9 +148,9 @@ extension _BhpanTransfers on _BhpanViewState {
     final generation = _generation, activity = Object();
     final base = items.length == 1
         ? items.single.name.replaceAll(RegExp(r'[\\/\r\n]'), '_')
-        : '北航云盘下载';
+        : '云盘下载';
     final batch = items.length != 1 || items.single.isFolder;
-    final name = base.trim().isEmpty ? '北航云盘下载' : base;
+    final name = base.trim().isEmpty ? '云盘下载' : base;
     final suggested = batch ? '$name.zip' : name;
     BhpanDownloadDestination? destination;
     BhpanTransferTask? task;

@@ -48,7 +48,7 @@ final class GuardedBhpanService implements BhpanService {
       throw const UiError(
         code: UbaaErrorCode.operationConflict,
         title: '登录状态已变化',
-        message: '账号或网络已切换，请重新打开北航云盘',
+        message: '账号或网络已切换，请重新打开云盘',
       );
   }
 

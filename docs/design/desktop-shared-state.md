@@ -58,7 +58,7 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 | Windows | 独立的 `ubaa-cli.exe` 使用无 view 的 Flutter Engine；GUI 的单实例锁只约束 GUI |
 | Linux | 同一 Dart 服务编译为 AOT，直接加载生成的 FRB 与 Rust 库，复用 App 材料键和账号索引 |
 
-各平台已验证与未验证的范围见[状态页](../project/status.md#平台)。
+各平台已验证与未验证的范围见[状态页](../project/status.md#功能与平台)。
 
 macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事实见[状态页](../project/status.md)和[决策记录](../protocol/decision-log.md)。不因平台入口调整而隐含迁移真实材料、签名或发布。
 
@@ -66,6 +66,6 @@ macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事�
 
 每个可验收场景使用固定候选和对应证据。涉及身份、并发、存储和跨语言边界的实现继续执行[完整相关验收](../development/commands.md#检查选择与完成条件)及独立审查。相同候选和未变化输入的有效结果按现有规则复用，整合后的候选单独验收。
 
-开发验证使用合成材料与 Mock 学校 HTTP，真实操作遵循 [AGENTS.md](../../AGENTS.md#真实账号与验收范围)。运行证据与交接放私有 `.ubaa_local/`。
+开发验证使用合成材料与 Mock 学校 HTTP，真实操作遵循 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)。运行证据与交接放私有 `.ubaa_local/`。
 
-运行路线的选择依据是 2026-11-01 的 H0 样机，原始证据见[H0 样机记录](../archive/design/desktop-shared-state-h0-evidence.md#h0-运行路线与样机证据)。
+运行路线的选择依据是 2026-11-01 的 H0 样机记录，详见 Git 历史。

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class MetadataTest(unittest.TestCase):
     def test_发布候选与Tag(self):
-        parent = ROOT / '.ubaa_local/release_metadata_tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'metadata'
         parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=parent) as folder:
             root = Path(folder)

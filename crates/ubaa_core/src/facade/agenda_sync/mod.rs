@@ -9,8 +9,6 @@ use crate::{
         sync::coordinator::{Committed, SyncCoordinator},
     },
     cache::CacheError,
-    config::FeatureRouteConfig,
-    connection::{NetworkState, resolve_route_from_network},
     domain::{ConnectionMode, RoutePolicy, bhpan::BhpanFileVersion},
     facade::{AgendaSyncAction, AgendaSyncError, AgendaSyncReport, AgendaTime, UbaaClient},
 };
@@ -48,26 +46,19 @@ pub(super) fn confirmed_agenda_route() -> Option<ConnectionMode> {
 }
 
 impl UbaaClient {
-    /// 只使用固定策略或尚未过期的 Auto 观察，不发起探测或云盘请求。
+    /// Auto 和 Direct 下的云盘确认均绑定直连，不发起探测或云盘请求。
     /// # Errors
-    /// 当前路线无法确认或不支持创建时，调用方应先重新拉取。
+    /// 当前策略不支持创建或学校请求受限时拒绝。
     pub fn agenda_sync_scope(&self) -> Result<AgendaSyncScope, AgendaSyncError> {
         self.check_school_requests()
             .map_err(AgendaSyncError::Remote)?;
-        let policy = self.default_route_policy();
-        let network = if policy == RoutePolicy::Auto {
-            self.probe.cached_network().ok_or(CacheError::Superseded)?
-        } else {
-            NetworkState::Unknown
-        };
-        let mode =
-            resolve_route_from_network(policy, FeatureRouteConfig::SAFE_DEFAULT, network).mode;
-        if mode != ConnectionMode::Direct {
+        // 云盘未配置按域名切换路线，Auto 在校内、校外和网络未知时均选直连。
+        if self.default_route_policy() == RoutePolicy::WebVpn {
             return Err(CacheError::Superseded.into());
         }
         Ok(AgendaSyncScope {
             binding: Binding::capture(self),
-            mode,
+            mode: ConnectionMode::Direct,
         })
     }
 }

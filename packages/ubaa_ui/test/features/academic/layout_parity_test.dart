@@ -74,7 +74,11 @@ void main() {
         ),
       const FeatureDetail(
         title: '日期异常',
-        presentation: ExamPresentation(arranged: true, date: '教务待确认'),
+        presentation: ExamPresentation(
+          arranged: true,
+          date: '教务待确认',
+          startTime: '午后',
+        ),
       ),
       const FeatureDetail(
         title: '较晚考试',
@@ -89,11 +93,18 @@ void main() {
           startTime: '09:00',
         ),
       ),
+      const FeatureDetail(
+        title: '未安排课程',
+        presentation: ExamPresentation(arranged: false),
+      ),
     ], queries);
     expect(find.text('已结束考试 (24)'), findsOneWidget);
     expect(find.text('已结束0'), findsNothing);
     expect(find.byType(DataTable), findsNothing);
     expect(find.text('座位 A018'), findsOneWidget);
+    expect(find.text('09:00 开始'), findsOneWidget);
+    expect(find.text('未安排'), findsOneWidget);
+    expect(find.text('时间待定'), findsWidgets);
     expect(
       tester.getTopLeft(find.text('较早考试')).dy,
       lessThan(tester.getTopLeft(find.text('较晚考试')).dy),
@@ -114,6 +125,11 @@ void main() {
     await closeQueryPanel(tester);
     expect(find.text('已结束0'), findsOneWidget);
     expect(queries, isEmpty);
+    await tester.ensureVisible(find.text('日期异常'));
+    await tester.tap(find.text('日期异常'));
+    await tester.pumpAndSettle();
+    expect(find.text('教务待确认 · 午后 开始'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
   testWidgets('考试列表低频字段不占正文，本地详情保留完整日期和原字段', (tester) async {
     await showFeature(tester, FeatureId.exam, const [

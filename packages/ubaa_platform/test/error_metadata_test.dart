@@ -45,13 +45,9 @@ void main() {
     expect(error.actionLabel, '刷新状态');
   });
 
-  test('调试详情也不能保留短个人资料或原始响应', () {
+  test('界面错误不保留短个人资料或原始响应', () {
     for (final message in ['姓名：示例用户，学号：2099000000', '{"data":"原始正文"}']) {
-      final error = mapCoreError(
-        code: 'internal_error',
-        message: message,
-        includeTechnicalDetail: true,
-      );
+      final error = mapCoreError(code: 'internal_error', message: message);
       expect(error.technicalDetail, isNull);
     }
   });

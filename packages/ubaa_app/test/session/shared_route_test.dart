@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/src/bridge/auth/session.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../../ubaa_platform/test/support/test_tmp.dart';
 import '../runtime/shared_recovery_probe.dart' show openAccounts;
 import '../support/bridge/recording_client.dart';
 
@@ -17,16 +17,7 @@ class _Client extends FixtureCharacterizationBridgeClient {
 
 void main() {
   test('普通路线准备保留固定账号归属', () async {
-    var repository = Directory.current.absolute;
-    while (!File('${repository.path}/.git').existsSync() &&
-        !Directory('${repository.path}/.git').existsSync()) {
-      repository = repository.parent;
-    }
-    final parent = Directory(
-      '${repository.path}/.ubaa_local/command_delivery/tests',
-    );
-    await parent.create(recursive: true);
-    final root = await parent.createTemp('route_');
+    final root = createTestTempDirectory('ubaa_app_shared_route');
     final client = _Client();
     try {
       final accounts = await openAccounts(root);

@@ -66,10 +66,8 @@ impl Navigation {
         });
     }
 }
-fn runtime(n: Navigation) -> (ClientRuntime, std::path::PathBuf) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/auth_tests")
-        .join(uuid::Uuid::new_v4().to_string());
+fn runtime(n: Navigation) -> (ClientRuntime, crate::test_tmp::TestTempDir) {
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_features_bhpan_auth").unwrap();
     let runtime = ClientRuntime::new(
         ConnectionMode::Direct,
         n,

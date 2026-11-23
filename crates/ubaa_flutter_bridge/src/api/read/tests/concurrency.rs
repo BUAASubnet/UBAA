@@ -71,10 +71,8 @@ async fn 换网与手动切换丢弃在途网络读取并立即释放客户端�
     use crate::api::client::{BridgeErrorCode, BridgeRoutePolicy};
     use std::time::Duration;
     for manual in [false, true] {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/auto_route_review/tests")
-            .join(format!("read-cancel-{}-{manual}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
+        let root =
+            ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_read_concurrency").unwrap();
         std::fs::write(root.join("config.toml"), "[route]\ndefault = \"direct\"\n").unwrap();
         FileSessionStore::new(&root)
             .unwrap()
@@ -133,9 +131,8 @@ async fn 换网与手动切换丢弃在途网络读取并立即释放客户端�
 
 #[tokio::test]
 async fn 慢考试在途时签到和课表仍可完成() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/home_refresh_optimization")
-        .join(format!("read-parallel-{}", std::process::id()));
+    let root =
+        ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_read_concurrency").unwrap();
     let bridge = BridgeClient::open(root.to_string_lossy().into()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store

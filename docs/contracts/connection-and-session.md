@@ -1,56 +1,23 @@
 # 连接与会话合同
 
-本合同供修改 Core 连接、WebVPN 地址转换、Cookie 与会话持久化的开发者使用，列出每项行为的冻结证据、Rust 覆盖和持久化规则。
+## 概念
 
-## 证据映射
+Core 负责 Direct/WebVPN 地址转换、跳转、Cookie、主会话和可复用的业务认证材料。宿主调用 facade，不操作会话文件或业务令牌。地址和主机校验以[连接实现](../../crates/ubaa_core/src/connection.rs)及[地址转换](../../crates/ubaa_core/src/connection_codec.rs)为准，磁盘格式、权限与资源上限以[会话模块](../../crates/ubaa_core/src/session/)为准。学校协议依据见[认证对照](../protocol/parity/auth-session.md)。
 
-| 行为 | 冻结证据或本地安全规则 | Rust 覆盖 |
-|---|---|---|
-| Direct URL 保持直连 | `LocalWebVpnSupport.kt::localUpstreamUrl` | `tests/connection.rs` |
-| WebVPN 网关为 `d.buaa.edu.cn` | `LocalWebVpnSupport.kt`、`VpnCipher.kt`、`examples/buaa-api/src/api/sso/auth.rs` | `tests/connection.rs` |
-| 无端口使用协议名，有端口使用 `scheme-port` | `LocalWebVpnSupport.kt::toWebVpnUrl`、`VpnCipher.kt::toVpnUrl` | HTTP、HTTPS、默认端口和自定义端口测试 |
-| 主机编码使用 AES/CFB/NoPadding，协议常量 `wrdvpnisthebest!` 同时作密钥和初始向量 | `LocalWebVpnSupport.kt`、平台 AES 实现、`VpnCipher.kt` | URL 往返测试 |
-| 保留路径、查询和片段 | 两份冻结 WebVPN 实现及测试 | 路径/查询/片段往返测试 |
-| 已包装 URL 保持不变 | 两份冻结 WebVPN 实现 | 幂等测试 |
-| 绝对、协议相对、根相对和路径相对跳转均从当前 URL 解析 | `LocalConnectionAuth.kt::resolveRedirectUrl` | 跳转表测试 |
-| 认证跳转仅允许 SSO、用户中心和网关主机 | 本地安全策略 [AuthHostPolicy](../../crates/ubaa_core/src/connection.rs)，不从阶段目标继承协议事实 | [主机允许列表及未验证主机拒绝测试](../../crates/ubaa_core/src/connection/contract_tests.rs) |
-| 主机校验后只接受 HTTP 或 HTTPS 认证跳转 | `LocalConnectionAuth.kt::resolveRedirectUrl`、WebVPN 协议段测试 | 非 HTTP 跳转拒绝测试 |
-| Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
-| 显式失效清理会话，超时/5xx 保留会话 | `validateLocalConnectionSession`、`getAuthStatus` | `tests/session.rs` 策略测试 |
+## 不变量
 
-自动路由选择同样属于 Core 所有的连接状态：
+- **传输与 Cookie 隔离。** 严格校验 TLS，手动解析跳转并校验还原后的上游主机；已包装地址不得重复包装。Cookie 按域、路径、安全属性及实际有效期发送，只能在所属路线使用。正文预算同时约束声明长度和解压后长度，希冀详情的例外限于[有证据的请求范围](../protocol/parity/coursework.md#希冀作业详情正文预算)。
+- **主会话一次条件提交。** 一个私有快照保留两个独立路线槽位，在同一把锁内读取快照和修订，通过一次 compare-exchange 提交变更。旧单路线快照只迁至原路线。快照与锁使用私有目录及文件保护，替换保持原子。密码、登录准备材料和业务令牌不进入主会话文件。会话活动时间可以节流落盘，不延长 Cookie 有效期或创建空闲 TTL。
+- **退出和新会话的范围。** 远程注销尽力执行，随后只用原权属修订清理对应槽位。聚合注销清两条，固定路线操作只清目标。保存新核验的主会话在发布前尝试撤销对应旧材料；换号或此前身份未知撤销两条，同账号单路线登录一般只撤销目标。读取现有快照不轮换撤销令牌。
 
-- 生产探测器只连接 `gw.buaa.edu.cn:80` 解析出的 `10.0.0.0/8` IPv4 地址的 TCP。
-- 单个 500 ms 总期限包含域名解析和所有地址尝试。
-- 三态结果在 facade 进程内以 single-flight 方式缓存 60 秒。
-- 探测器不发送 HTTP/TLS 正文，也不读取 Cookie 或凭据。
+### 业务会话缓存
 
-完整策略和错误映射详见[路由策略合同](route-policy.md)。
+- **准入与复用。** 仅保存 Core 明确白名单内的业务材料。播种前须在本进程核验主会话账号，并匹配账号、实际路线、业务范围、路线生命周期和撤销令牌。不持久恢复的本次会话只在内存更新或拒绝业务材料。在线成功才写回该实际路线发生的变化；离线复用不产生写回。
+- **撤销与内容更新分开。** 失效事件在认领旧材料前产生墓碑；撤销轮换令牌，使在途旧任务不能回填。普通写回与匹配删除只改变内容版本，使其他进程重载，不撤销同路线其他范围。锁顺序是主会话在前、旁车在后；旁车内不反向拿锁，主会话锁不等待后台队列。文件结构及恢复规则以[业务缓存实现](../../crates/ubaa_core/src/session/business_cache/)为准。
+- **敏感材料不外流。** 业务令牌不进入公共结果、日志或普通诊断；任何诊断导出都不读取业务会话旁车。业务缓存与面向用户的[离线业务内容](offline-cache-and-recovery.md)互相独立。
 
-## 持久化
+## 错误语义
 
-每个聚合 facade 在 `<config-dir>/session.json` 中保存一个 schema-v2 双路线快照。Direct 与 WebVPN 槽位相互独立，包含过滤后的 Cookie、路线、认证时间和最后活动时间；不持久化用户名、密码、CAS execution、风险页面、不支持的交互步骤材料或业务令牌。旧版单路线快照只迁移到其记录的路线槽位。
-
-旁车文件 `.session.lock` 串行化访问并保存定宽单调 revision：
-
-- 初始双路线快照与 revision 在同一个临界区加载。
-- 共享协调器拥有内存双路线快照和 revision；每次路线替换或聚合清理构造完整候选，并且只执行一次 compare-exchange。
-- 过期进程返回安全的可重试冲突，不重新加载或采用外部 revision 来重试。
-- 聚合注销尽力请求两条远程路线，清除两个内存 runtime 和路线功能状态，随后尝试一次双槽持久化清理；冲突时保留更新后的两个槽位。
-
-文件写入与权限：
-
-- 写入使用同目录唯一且独占创建的临时文件，并在替换前同步。
-- 会话、锁和配置目标拒绝符号链接及非普通文件；最终打开会话/锁文件使用平台 no-follow 标志。
-- Unix 确定性测试覆盖符号链接拒绝、并发唯一临时写入、原子替换和 `0700`/`0600` 权限。
-- 会话读取上限为 1 MiB。
-- Windows 使用继承的目录 ACL；自定义配置目录的所有者 ACL 仍是发布审计项。
-
-HTTP 传输：
-
-- 原始 HTTP 传输保持 TLS 校验和手动重定向，完整缓冲的正文默认限制为 8 MiB。
-- 希冀 GET 作业详情在还原 Direct/WebVPN 地址后，只有精确主机 `judge.buaa.edu.cn`、路径 `/assignment/index.jsp` 且含非空数字 `assignID` 时使用 16 MiB；详情中的长代码文本需要完整 HTML 解析。
-- 正文预算同时检查声明长度和解压后的累计长度。会话文件与 HTTP 正文的限制都是内部资源预算，依据见[希冀来源对照](../protocol/parity/coursework.md#希冀作业详情正文预算)。
-- 固定认证端点使用 HTTPS。重定向只在主机策略校验后保留冻结客户端对 `http` 和 `https` 的兼容；Secure Cookie 不通过 HTTP 发送。
-
-Cookie 值是敏感 runtime 状态，虽然会话文件需要保存它们，但公共格式化、错误和日志绝不返回 Cookie 值。显式单路线失效只通过共享协调器替换对应槽位。只有 facade 仍持有加载时的 revision 时，聚合注销才会删除文件；冲突只清理当前进程内存，并保留更新后的完整持久化快照。
+- 明确的主会话失效撤销相关槽位；超时、网络故障或服务端暂不可用不撤销有效会话。主会话修订冲突返回安全错误，废弃旧内存状态，不采用新修订重试，也不改动胜出快照或旁车。
+- 业务材料被上游拒绝时，只删除仍匹配的材料并清理 worker 内存。可重新激活的读操作遵循各功能已有上限；例如阳光打卡概览可恢复，记录页拒绝后不新增重试。不能因此重发学校写入。
+- 旁车读写失败只记录脱敏诊断，不妨碍在线结果、登录或注销。撤销落盘失败时，绑定缓存的进程暂停旁车播种、写回和拒绝，直到合并补完所有待撤销路线；不能因另一条路线撤销成功而提前恢复使用。

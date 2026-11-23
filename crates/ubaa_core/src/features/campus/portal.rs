@@ -1,8 +1,9 @@
 //! 门户身份资料及五项独立指标。
 use super::{Service, activate, json, now, parser, persist, record};
 use crate::domain::{CampusAmount, CampusMetric, CampusMetrics, PortalProfile};
-use crate::error::Result;
+use crate::error::{ErrorCode, ErrorKind, Result};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::BusinessScope;
 use serde_json::Value;
 
 const BASE: &str = "https://it.buaa.edu.cn";
@@ -16,11 +17,26 @@ const KEYS: [&str; 5] = [
 ];
 
 async fn authenticated_info(runtime: &mut ClientRuntime) -> Result<Value> {
-    let mut payload = json(runtime, INFO).await?;
-    if payload.get("e").and_then(Value::as_i64) == Some(10013) {
+    let scope = BusinessScope::Portal;
+    let before = runtime.business_cookies_for_rejection(scope);
+    let first = json(runtime, INFO).await;
+    let requires_login = match &first {
+        Ok(payload) => payload.get("e").and_then(Value::as_i64) == Some(10013),
+        Err(error) => {
+            before.is_some()
+                && error.code == ErrorCode::UpstreamUnavailable
+                && error.kind == ErrorKind::Authentication
+        }
+    };
+    let payload = if requires_login {
+        if let Some(rejected) = before {
+            runtime.reject_business_session(scope, &rejected);
+        }
         activate(runtime, Service::Portal).await?;
-        payload = json(runtime, INFO).await?;
-    }
+        json(runtime, INFO).await?
+    } else {
+        first?
+    };
     parser::envelope(&payload)?;
     Ok(payload)
 }
@@ -93,6 +109,7 @@ async fn card(runtime: &mut ClientRuntime, items: &[Value]) -> Result<CampusMetr
     let result = match result {
         Err(error)
             if !error.is_session_conflict()
+                && !error.is_campus_network_required()
                 && error.code != crate::error::ErrorCode::AuthenticationRequired
                 && matches!(
                     error.kind,

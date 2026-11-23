@@ -9,6 +9,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 import 'package:ubaa_test_support/backend_rebuild.dart' as base;
+import 'package:ubaa_test_support/privacy.dart';
 
 const _settings = YgdkReminderSettings(
   enabled: false,
@@ -44,6 +45,7 @@ void main() {
     }
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         localAccountStore: accounts,
         credentialVault: vault,

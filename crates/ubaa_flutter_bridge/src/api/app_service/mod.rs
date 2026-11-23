@@ -45,6 +45,7 @@ impl BridgeAppService {
         release: bool,
         surface: BridgeAppServiceSurface,
         policy_version: u32,
+        pending_host_privacy: Option<bool>,
     ) -> Result<Self, BridgeError> {
         local_task(move || {
             let config = core::AppServiceConfig::from_build(
@@ -60,12 +61,19 @@ impl BridgeAppService {
                 surface.into(),
                 policy_version,
             )?;
+            let pending =
+                pending_host_privacy == Some(true) && surface == BridgeAppServiceSurface::Gui;
+            let service = if pending {
+                service.with_pending_host_privacy()
+            } else {
+                service
+            };
             let available = service.endpoint().is_some();
             let inner = Arc::new(Inner {
                 core: Arc::new(service),
                 account: Mutex::default(),
             });
-            if available {
+            if available && !pending {
                 panic_telemetry::register(&inner);
             }
             Ok(Self {
@@ -74,6 +82,15 @@ impl BridgeAppService {
             })
         })
         .await
+    }
+
+    /// 允许已接受当前政策的宿主按共享状态使用应用服务。
+    #[flutter_rust_bridge::frb(sync)]
+    pub fn allow_host_privacy(&self) {
+        self.inner.core.allow_host_privacy();
+        if self.inner.core.endpoint().is_some() {
+            panic_telemetry::register(&self.inner);
+        }
     }
 
     pub(super) fn core(&self) -> Arc<core::AppService> {

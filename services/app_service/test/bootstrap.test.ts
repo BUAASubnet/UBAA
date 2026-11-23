@@ -2,7 +2,10 @@ import { createWaitContext, env, waitOnWaitContext } from "./runtime";
 import { beforeEach, expect, it } from "vitest";
 import announcementVersions from "../../../fixtures/app_service/announcement_versions.json";
 import worker from "../src/index";
-import { validateBootstrapResponse } from "../src/schema";
+import {
+  APP_SERVICE_SCHEMA_VERSION,
+  validateBootstrapResponse,
+} from "../src/schema";
 
 const github = {
   latest_version: "2.1.0+15",
@@ -35,7 +38,7 @@ beforeEach(() => {
 });
 
 async function send(
-  query = "schema=1&platform=android&channel=github&version=2.0.0%2B12",
+  query = `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=2.0.0%2B12`,
   headers?: HeadersInit,
 ) {
   const ctx = createWaitContext();
@@ -58,7 +61,7 @@ it("无渠道配置返回 unknown，同时保留符合条件的公告", async ()
   const { response, payload } = await send();
   expect(response.status).toBe(200);
   expect(payload).toEqual({
-    schema: 1,
+    schema: APP_SERVICE_SCHEMA_VERSION,
     update: {
       status: "unknown",
       latest_version: null,
@@ -86,11 +89,11 @@ it("按版本决定更新状态，并按平台覆盖渠道配置", async () => {
   ];
   for (const [platform, version, status, minVersion, notes] of cases) {
     const { response, payload } = await send(
-      `schema=1&platform=${platform}&channel=github&version=${version}`,
+      `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=${platform}&channel=github&version=${version}`,
     );
     expect(response.status).toBe(200);
     expect(payload).toEqual({
-      schema: 1,
+      schema: APP_SERVICE_SCHEMA_VERSION,
       update: {
         ...github,
         status,
@@ -112,7 +115,7 @@ it.each([
 ])("接受 %s 正式商店的 HTTPS 链接", async (channel, url) => {
   await putConfig({ [channel]: { ...github, url } });
   const { response, payload } = await send(
-    `schema=1&platform=ohos&channel=${channel}&version=2.0.0`,
+    `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=ohos&channel=${channel}&version=2.0.0`,
   );
   expect(response.status).toBe(200);
   expect(payload).toHaveProperty("update.url", url);
@@ -135,7 +138,7 @@ it.each([
     },
   });
   const { response } = await send(
-    `schema=1&platform=android&channel=${channel}&version=2.0.0`,
+    `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=${channel}&version=2.0.0`,
   );
   expect(response.status).toBe(500);
   expect(response.headers.has("Cache-Control")).toBe(false);
@@ -190,7 +193,7 @@ it.each(announcementVersions)("$name", async ({ min, max, versions }) => {
   await putConfig({ github: null }, [announcement]);
   for (const [version, expected] of versions) {
     const { response, payload } = await send(
-      `schema=1&platform=android&channel=github&version=${encodeURIComponent(String(version))}`,
+      `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=${encodeURIComponent(String(version))}`,
     );
     expect(response.status).toBe(200);
     expect(payload).toHaveProperty(
@@ -209,7 +212,7 @@ it("按同一组四参数共用 300 秒缓存；平台、渠道和版本各自�
   );
   await putConfig({ github: { ...github, latest_version: "2.2.0" } });
   const reordered = await send(
-    "channel=github&version=2.0.0%2b12&platform=android&schema=1",
+    `channel=github&version=2.0.0%2b12&platform=android&schema=${APP_SERVICE_SCHEMA_VERSION}`,
   );
   expect(reordered.payload).toEqual(first.payload);
   for (const [platform, channel, version, latest] of [
@@ -218,18 +221,21 @@ it("按同一组四参数共用 300 秒缓存；平台、渠道和版本各自�
     ["android", "github", "2.0.0%2B13", "2.2.0"],
   ]) {
     const { payload } = await send(
-      `schema=1&platform=${platform}&channel=${channel}&version=${version}`,
+      `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=${platform}&channel=${channel}&version=${version}`,
     );
     expect(payload).toHaveProperty("update.latest_version", latest);
   }
 });
 
 it("拒绝额外参数、重复参数、学校 Cookie 与认证头", async () => {
-  const valid = "schema=1&platform=android&channel=github&version=2.0.0";
+  const valid = `schema=${APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=2.0.0`;
   for (const query of [
     `${valid}&install_id=example`,
     `${valid}&version=2.1.0`,
-    valid.replace("schema=1", "schema=2"),
+    valid.replace(
+      `schema=${APP_SERVICE_SCHEMA_VERSION}`,
+      `schema=${APP_SERVICE_SCHEMA_VERSION + 1}`,
+    ),
     valid.replace("&version=2.0.0", ""),
   ]) {
     expect((await send(query)).response.status).toBe(400);

@@ -7,12 +7,12 @@ use serde::Deserialize;
 
 #[track_caller]
 pub(crate) fn invalid() -> UbaaError {
-    UbaaError::upstream_changed("北航云盘响应不符合已核实格式")
+    UbaaError::upstream_changed("云盘响应不符合已核实格式")
         .with_diagnostic("parse", "response_shape_invalid")
 }
 pub(crate) fn json<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T> {
     serde_json::from_slice(bytes)
-        .map_err(|cause| UbaaError::json_error(&cause, "北航云盘响应无法解析", bytes))
+        .map_err(|cause| UbaaError::json_error(&cause, "云盘响应无法解析", bytes))
 }
 
 #[derive(Clone)]

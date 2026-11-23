@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_app/src/contracts/session_recovery.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/materials.dart';
@@ -28,6 +30,19 @@ void main() {
         controller.setAutoLogin(automatic);
         await controller.submitLogin();
         expect(controller.phase, AppPhase.home);
+        expect(controller.internalCurrentSessionGrant, isNull);
+        final persistentScope = await RecoveryScope.capture(
+          accounts: accounts,
+          snapshot: controller.internalSharedAccountSnapshot,
+          routeGeneration: 0,
+          backendGeneration: 0,
+          credentialGeneration: 0,
+          routePolicy: RoutePolicy.auto,
+          allowAutomaticLogin: automatic,
+          isCurrent: () => true,
+        );
+        expect(persistentScope.isShared, isTrue);
+        expect(persistentScope.sharedSnapshot?.state.canRestore, isTrue);
         await controller.logout();
 
         var login = controller;

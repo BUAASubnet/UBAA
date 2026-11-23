@@ -373,10 +373,7 @@ fn entered_transaction_commits_or_rolls_back_before_deactivation() {
     use std::sync::mpsc;
     use std::time::Duration;
     for fail in [false, true] {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/agenda_1c_a_write_fence/core_tests")
-            .join(uuid::Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&root).unwrap();
+        let root = crate::test_tmp::test_temp_dir("ubaa_core_agenda_storage").unwrap();
         let root = root.canonicalize().unwrap();
         let store = open(&root);
         let item = event();

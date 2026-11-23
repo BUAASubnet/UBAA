@@ -38,7 +38,7 @@ just setup
 just doctor
 ```
 
-- `just setup` 克隆锁定的 Flutter，安装 Rust 工具链、FRB codegen 等工具，并建立冻结参考、Python 质量环境、Cargo 和 Dart 依赖。已经一致的项目会跳过；已有 SDK 不是锁定版本时会停止，不会改写。
+- `just setup` 克隆锁定的 Flutter，安装 Rust 工具链和 FRB codegen 等工具，并准备 Python 质量环境及 Cargo、Dart 依赖。已符合锁定版本的工具会跳过。已有 SDK 版本不符时，命令会停止并保留该 SDK。
 - `just doctor` 只读核对本机工具与锁定版本，必需项不符时退出 1。
 
 然后确认本机平台的原生工具链：
@@ -47,7 +47,7 @@ just doctor
 just flutter doctor -v
 ```
 
-所有 Dart/Flutter 命令都通过 `just dart`、`just flutter` 调用，不直接使用 PATH 中的 Flutter，原因见 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)。
+所有 Dart/Flutter 命令都通过 `just dart`、`just flutter` 调用，不直接使用 PATH 中的 Flutter，原因见 [工具链调用规则](setup.md#工具链调用规则)。
 
 ## 4. 构建并运行客户端
 

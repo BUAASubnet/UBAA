@@ -125,9 +125,8 @@ mod tests {
 
     #[test]
     fn 过期身份能力拒绝登记() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/agenda_cli_a_fix")
-            .join(Uuid::new_v4().simple().to_string());
+        let root =
+            crate::test_tmp::test_temp_dir("ubaa_core_facade_auth_verified_identity").unwrap();
         let mut client = UbaaClient::open(&root).unwrap();
         let nonce = Uuid::new_v4();
         client.verified_login_generations = Some(client.login_generations());

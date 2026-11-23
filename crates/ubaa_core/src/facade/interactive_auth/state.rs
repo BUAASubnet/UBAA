@@ -118,6 +118,9 @@ pub(super) const fn route_index(route: ConnectionMode) -> usize {
 
 pub(super) fn safe_interactive_error(error: &UbaaError) -> SafeError {
     let mut safe = super::super::auth::safe_error(error);
+    if error.is_campus_network_required() {
+        return safe;
+    }
     // 不保留上游认证错误文本，防止其中回显答案、execution 或完整 HTML。
     safe.message = match safe.diagnostic.and_then(|value| value.reason) {
         Some(crate::error::AuthReason::IdentityMismatch) => "登录身份核对失败",

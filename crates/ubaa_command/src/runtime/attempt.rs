@@ -1,9 +1,6 @@
 use super::{CommandClass, CommandControl, CommandPlan, RecoveryTarget, StopReason};
-use crate::io::{
-    render::{render_result, render_routed_result},
-    schema::CommandOutput,
-};
-use crate::{CliBackend, CliFeature, ReadonlyRouteContext, RoutedCliBackend};
+use crate::io::{render::render_routed_result, schema::CommandOutput};
+use crate::{CliFeature, ReadonlyRouteContext, RoutedCliBackend};
 use std::io::{BufRead, Cursor, Write};
 use ubaa_core::facade::{
     ConnectionMode, ErrorCode, ErrorKind, RoutedError, RoutedResult, UbaaError,
@@ -22,7 +19,6 @@ pub struct ResultHandle {
     json: bool,
     feature: CliFeature,
     result: RoutedResult<CommandOutput>,
-    fixed: Option<(ConnectionMode, ReadonlyRouteContext)>,
     stop: Option<StopReason>,
     extra: Option<ExtraResult>,
     school_write: bool,
@@ -172,16 +168,6 @@ impl ResultHandle {
             match extra {
                 ExtraResult::Auth(result) => result.render(self.json, stdout, stderr),
             }
-        } else if let Some((mode, context)) = self.fixed {
-            render_result(
-                self.json,
-                mode,
-                self.feature,
-                context,
-                self.result.map(|r| r.data).map_err(|e| e.error),
-                stdout,
-                stderr,
-            )
         } else {
             render_routed_result(self.json, self.feature, self.result, stdout, stderr)
         };
@@ -353,45 +339,11 @@ pub async fn execute_attempt<B: RoutedCliBackend + Send>(
             prepared.bhpan_input.clone(),
         ))
         .await;
-    outcome(prepared, result, None)
-}
-/// 固定路线和显式诊断登录复用相同的结果、期限与交付接口。
-/// 交互输入由宿主提前安全准备，执行阶段不访问全局终端。
-pub async fn execute_fixed_attempt<B: CliBackend + Send>(
-    prepared: &PreparedCommand,
-    backend: &mut B,
-    control: &CommandControl,
-) -> AttemptOutcome {
-    let mode = backend.mode();
-    let context = ReadonlyRouteContext::explicit(mode);
-    let result = control
-        .run(crate::execute::fixed::execute_fixed(
-            prepared.plan.cli.clone(),
-            backend,
-            &mut Cursor::new(&prepared.input),
-            &mut std::io::sink(),
-            prepared.ygdk_request.clone(),
-        ))
-        .await;
-    outcome(
-        prepared,
-        result.map(|r| {
-            r.map(|data| ubaa_core::facade::Routed {
-                data,
-                resolution: context.resolution(mode),
-            })
-            .map_err(|error| RoutedError {
-                error,
-                resolution: Some(context.resolution(mode)),
-            })
-        }),
-        Some((mode, context)),
-    )
+    outcome(prepared, result)
 }
 fn outcome(
     prepared: &PreparedCommand,
     result: Result<RoutedResult<CommandOutput>, StopReason>,
-    fixed: Option<(ConnectionMode, ReadonlyRouteContext)>,
 ) -> AttemptOutcome {
     let stop = result.as_ref().err().copied();
     let result = result.unwrap_or_else(|reason| {
@@ -420,7 +372,6 @@ fn outcome(
         json: prepared.plan.cli.json,
         feature: prepared.plan.cli.feature(),
         result,
-        fixed,
         stop,
         extra: None,
         school_write: requirements.class == CommandClass::SchoolWrite,
@@ -443,7 +394,7 @@ fn outcome(
 /// 本机已核实账号的会话检查失败沿用相同命令元数据和恢复分类。
 #[must_use]
 pub fn preflight_failure(prepared: &PreparedCommand, error: RoutedError) -> AttemptOutcome {
-    outcome(prepared, Ok(Err(error)), None)
+    outcome(prepared, Ok(Err(error)))
 }
 
 /// 显式聚合认证沿自身语义执行，不进入认证过期重跑器。
@@ -492,7 +443,6 @@ pub async fn execute_auth_attempt(
                     resolution: Some(context.resolution(mode)),
                 })
             }),
-            Some((mode, context)),
         );
     }
     let result = control
@@ -517,7 +467,6 @@ fn extra_outcome(
             error: crate::io::input::invalid_input("命令执行未完成"),
             resolution: None,
         }),
-        fixed: None,
         stop,
         extra,
         school_write: false,

@@ -21,6 +21,8 @@ void main() {
     expect(tester.widget<FilledButton>(loginButton).onPressed, isNotNull);
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('同意'));
+    await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     expect(find.byTooltip('打开课表'), findsOneWidget);
     expect(find.text('学习'), findsOneWidget);

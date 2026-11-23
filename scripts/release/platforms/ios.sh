@@ -3,9 +3,9 @@
 set -euo pipefail
 repo_root=$(pwd)
 python3 scripts/release/platforms/ios_privacy.py apps/ubaa_flutter/ios/Runner/Info.plist
-signing="$repo_root/.ubaa_local/release/signing"
-output="$repo_root/.ubaa_local/release/ios"
-mkdir -p "$output" "$repo_root/.ubaa_local/release/store"
+signing="${RUNNER_TEMP:?}/ubaa_release_signing"
+output="$repo_root/target/release_ios"
+mkdir -p "$output" "$repo_root/dist/release/store"
 cd apps/ubaa_flutter
 just flutter pub get --enforce-lockfile
 just flutter build ios --release --config-only --no-codesign \
@@ -26,5 +26,5 @@ xcodebuild archive -workspace ios/Runner.xcworkspace -scheme Runner -configurati
   -destination 'generic/platform=iOS' -archivePath "$output/UBAA.xcarchive"
 xcodebuild -exportArchive -archivePath "$output/UBAA.xcarchive" \
   -exportPath "$output/export" -exportOptionsPlist "$signing/ExportOptions.plist"
-cp "$output/export/"*.ipa "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
-python3 "$repo_root/scripts/release/platforms/ios_privacy.py" "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+cp "$output/export/"*.ipa "$repo_root/dist/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+python3 "$repo_root/scripts/release/platforms/ios_privacy.py" "$repo_root/dist/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"

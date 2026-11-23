@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""检查项目自有目录使用下划线，保留冻结与工具规定的路径。"""
+"""检查项目自有目录使用下划线，保留工具规定的路径。"""
 from pathlib import Path
 import subprocess
 import re
@@ -11,11 +11,7 @@ from repo import ROOT
 
 
 
-# 这些目录保留上游命名或历史归档索引，不接受自有源码扩展。
-FROZEN = (
-    'examples/', 'packages/ubaa_bindings/cargokit/',
-    'docs/design/evidence/ui-ux/',
-)
+FROZEN = 'packages/ubaa_bindings/cargokit/'
 ANDROID_RESOURCE = re.compile(
     r'apps/ubaa_flutter/android/app/src/(?:main|debug|profile|test|androidTest)/res/'
     r'[a-z_]+(?:-[A-Za-z0-9]+)+$'

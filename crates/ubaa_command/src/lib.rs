@@ -7,7 +7,7 @@ pub use command::{
     BhpanShareOptions, bhpan_password,
 };
 mod backend;
-pub use backend::{CliBackend, RoutedCliBackend};
+pub use backend::RoutedCliBackend;
 mod command;
 pub use command::{
     AgendaArgs, AgendaCommand, AgendaCompletion, AgendaCompletionOverride, AgendaOverlayCommand,
@@ -20,10 +20,6 @@ pub use command::{
 };
 pub use command::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
 mod execute;
-pub use execute::{
-    run_dual_login, run_dual_logout, run_dual_status, run_with_backend,
-    run_with_backend_with_route, run_with_routed_backend,
-};
 mod io;
 pub use io::error::CliJsonError;
 pub use io::render::render_startup_error;
@@ -58,7 +54,7 @@ pub mod runtime;
 pub use runtime::{
     AttemptOutcome, CommandClass, CommandControl, CommandPlan, CommandRequirements,
     PreparedCommand, RecoveryTarget, ResultHandle, StopReason, execute_attempt,
-    execute_auth_attempt, execute_fixed_attempt, parse, prepare_input,
+    execute_auth_attempt, parse, prepare_input,
 };
 
 /// 渲染已知路线的执行错误，保持公共 JSON 和退出码。

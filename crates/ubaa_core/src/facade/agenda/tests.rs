@@ -71,7 +71,6 @@ fn cached_export_uses_existing_projection_and_preserves_route_evidence() {
     std::fs::remove_dir_all(root).unwrap();
 }
 use crate::facade::*;
-use std::path::PathBuf;
 const ACCOUNT: &str = "00000000000000000000000000000001";
 #[test]
 fn 未知学期保留按日期的学校缓存且跨路线共享() {
@@ -146,12 +145,8 @@ fn t(raw: &str) -> AgendaTime {
 fn d(raw: &str) -> NaiveDate {
     raw.parse().unwrap()
 }
-fn opened(account: &str) -> (PathBuf, OfflineCache, AgendaStore) {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_plaintext/query_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    let root = root.canonicalize().unwrap();
+fn opened(account: &str) -> (crate::test_tmp::TestTempDir, OfflineCache, AgendaStore) {
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_agenda").unwrap();
     let cache = OfflineCache::open(
         &root,
         account,
@@ -243,7 +238,7 @@ fn local(agenda: &AgendaStore) {
 }
 #[test]
 fn merged_query_expands_local_and_school_with_overlay_and_availability() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     local(&agenda);
     let mut q = query();
@@ -301,7 +296,7 @@ fn merged_query_expands_local_and_school_with_overlay_and_availability() {
 }
 #[test]
 fn submitted_school_item_can_reopen_locally_without_changing_upstream() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let scope = CacheScope {
         route: ConnectionMode::Direct,
@@ -411,7 +406,7 @@ fn 日程查询隔离账号退出与日期范围并跨路线共享() {
 }
 #[test]
 fn missing_cached_page_and_stale_observation_are_reported_without_network() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let q = query();
     let scope = CacheScope {
@@ -445,7 +440,7 @@ fn missing_cached_page_and_stale_observation_are_reported_without_network() {
 }
 #[test]
 fn imported_semester_projects_only_requested_dates_and_keeps_original_freshness() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     let q = query();
     let week = Week {
         term: q.term.clone(),
@@ -541,7 +536,7 @@ fn imported_semester_projects_only_requested_dates_and_keeps_original_freshness(
 }
 #[test]
 fn ordinary_week_cache_uses_real_dates_and_reports_partial_import_coverage() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let q = query();
     let schedule = WeeklySchedule {
@@ -598,7 +593,7 @@ fn ordinary_week_cache_uses_real_dates_and_reports_partial_import_coverage() {
 }
 #[test]
 fn date_range_keeps_intersecting_periods_and_excludes_deadline_at_end() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     local(&agenda);
     let mut q = query();
@@ -659,7 +654,7 @@ fn date_range_keeps_intersecting_periods_and_excludes_deadline_at_end() {
 }
 #[test]
 fn query_uses_exam_midnight_sort_without_changing_unknown_start() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let q = query();
     let scope = CacheScope {
@@ -694,7 +689,7 @@ fn query_uses_exam_midnight_sort_without_changing_unknown_start() {
 }
 #[test]
 fn separate_sections_do_not_mask_an_unprojectable_course() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let q = query();
     publish(
@@ -746,7 +741,7 @@ fn separate_sections_do_not_mask_an_unprojectable_course() {
 }
 #[test]
 fn ambiguous_keys_are_reported_and_do_not_apply_an_overlay_to_a_different_item() {
-    let (_, cache, agenda) = opened(ACCOUNT);
+    let (_root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let q = query();
     let scope = CacheScope {

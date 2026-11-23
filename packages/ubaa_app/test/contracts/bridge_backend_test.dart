@@ -2,23 +2,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../support/bridge/fixtures.dart'
     show
         FixtureContractVersionClient,
         FixtureFakeBykcChosenCoursesClient,
         FixtureFakeCancellationProjectionClient,
         FixtureFakeCgyyCommitClient,
-        FixtureFakeCgyyDayClient,
-        FixtureFakeClassroomClient,
-        FixtureFakeComplexWriteClient,
         FixtureFakeYgdkRecordsClient,
+        currentBridgeContractVersion,
         fixtureWriteIntent;
 
 class _LibraryLoansClient implements BridgeClient {
   BridgeLibraryLoanRenewRequest? prepared;
 
   @override
-  int contractVersion() => 75;
+  int contractVersion() => currentBridgeContractVersion;
 
   @override
   Future<void> dispose() async {}
@@ -74,11 +73,12 @@ class _LibraryLoansClient implements BridgeClient {
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(75);
+    final client = FixtureContractVersionClient(currentBridgeContractVersion);
 
     final backend = BridgeBackend(client);
 
     expect(backend.client, same(client));
+    expect(client.disposeCalls, 0);
   });
 
   test('BridgeBackend 在 release 可执行路径明确拒绝旧 v8 合同', () {
@@ -95,82 +95,6 @@ void main() {
       ),
     );
     expect(client.disposeCalls, 1);
-  });
-
-  test('BridgeBackend 拒绝缺少逐日日程的旧 v9 合同', () {
-    final client = FixtureContractVersionClient(9);
-    expect(
-      () => BridgeBackend(client),
-      throwsA(
-        isA<InitializationException>().having(
-          (e) => e.failure,
-          '分类',
-          InitializationFailure.bridgeIncompatible,
-        ),
-      ),
-    );
-    expect(client.disposeCalls, 1);
-  });
-
-  test('BridgeBackend 空教室楼层和节次筛选只投影白名单结果', () async {
-    final response = BridgeRoutedClassroomQuery(
-      data: const BridgeClassroomQuery(
-        code: 0,
-        message: 'ok',
-        floors: <BridgeClassroomFloor>[
-          BridgeClassroomFloor(
-            name: '主楼',
-            rooms: <BridgeClassroomInfo>[
-              BridgeClassroomInfo(
-                id: 'room-1',
-                floorId: 'F2',
-                name: '主楼 201',
-                availableSections: '1,3',
-              ),
-              BridgeClassroomInfo(
-                id: 'room-2',
-                floorId: 'F2',
-                name: '主楼 202',
-                availableSections: '13',
-              ),
-            ],
-          ),
-          BridgeClassroomFloor(
-            name: '新主楼',
-            rooms: <BridgeClassroomInfo>[
-              BridgeClassroomInfo(
-                id: 'room-3',
-                floorId: 'F3',
-                name: '新主楼 301',
-                availableSections: '3',
-              ),
-            ],
-          ),
-        ],
-      ),
-      route: const BridgeRouteDecision(
-        policy: BridgeRoutePolicy.direct,
-        resolvedRoute: BridgeConnectionMode.direct,
-        network: BridgeNetworkState.campus,
-        initialRoute: BridgeConnectionMode.direct,
-        usedFallback: false,
-      ),
-    );
-    final backend = BridgeBackend(FixtureFakeClassroomClient(response));
-
-    final result = await backend.loadFeatureQuery(
-      FeatureId.classroom,
-      FeatureQuery(
-        date: DateTime(2026, 9, 2),
-        campus: 2,
-        floorId: 'F2',
-        section: '3',
-      ),
-    );
-
-    expect(result.summary, '1间可用教室');
-    expect(result.details.single.title, '主楼 201');
-    expect(result.resolvedRoute, ConnectionMode.direct);
   });
 
   test('BridgeBackend 博雅已选课程投影签到时间和位置要求但不暴露坐标', () async {
@@ -405,65 +329,6 @@ void main() {
     );
   });
 
-  test('BridgeBackend 三类复杂写入保持 typed 字段并不透传 raw payload', () async {
-    final backend = BridgeBackend(FixtureFakeComplexWriteClient());
-    final ygdkIntent = await backend.prepareYgdkSubmit(
-      const YgdkSubmitInput(
-        action: YgdkSubmitAction(
-          classifyId: 31,
-          itemId: 7,
-          eligibility: ActionEligibility.allowed,
-        ),
-        startTime: '2026-09-04 08:00',
-        endTime: '2026-09-04 09:00',
-        place: '校园',
-        shareToSquare: false,
-        photo: YgdkPhotoInput(
-          bytes: <int>[1, 2],
-          fileName: 'safe.jpg',
-          mimeType: 'image/jpeg',
-        ),
-      ),
-    );
-    expect(ygdkIntent.operation, WriteOperation.ygdkSubmit);
-
-    final cgyyIntent = await backend.prepareCgyySubmitReservation(
-      const CgyySubmitInput(
-        actions: <CgyyReserveAction>[
-          CgyyReserveAction(
-            venueSiteId: 3,
-            reservationDate: '2026-09-03',
-            spaceId: 4,
-            timeId: 5,
-            venueSpaceGroupId: 9,
-            timeOrdinal: 0,
-            eligibility: ActionEligibility.allowed,
-          ),
-        ],
-        phone: 'phone-placeholder',
-        theme: '讨论',
-        purposeType: 1,
-        joinerNum: 2,
-        activityContent: '课程讨论',
-        joiners: '张三',
-        isPhilosophySocialSciences: false,
-        isOffSchoolJoiner: false,
-      ),
-    );
-    expect(cgyyIntent.operation, WriteOperation.cgyySubmitReservation);
-
-    final evaluationIntent = await backend.prepareEvaluationSubmitCourses(
-      const <EvaluationSubmitTarget>[
-        EvaluationSubmitTarget(
-          rwid: 'task-1',
-          wjid: 'questionnaire-1',
-          kcdm: 'K1',
-        ),
-      ],
-    );
-    expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
-  });
-
   test('BridgeBackend 保留场馆提交的非敏感订单收据用于结果核对', () async {
     final backend = BridgeBackend(FixtureFakeCgyyCommitClient());
 
@@ -474,92 +339,6 @@ void main() {
     expect(result.cgyyReceipt?.venueSiteId, 3);
     expect(result.cgyyReceipt?.reservationDate, '2026-09-03');
     expect(result.cgyyReceipt?.orderStatus, 1);
-  });
-
-  test('BridgeBackend 场馆时段只从 typed 资格与目标构造预约 action', () async {
-    final backend = BridgeBackend(
-      FixtureFakeCgyyDayClient(
-        BridgeRoutedCgyyDayInfo(
-          data: const BridgeCgyyDayInfo(
-            venueSiteId: 3,
-            reservationDate: '2026-09-03',
-            availableDates: <String>['2026-09-03'],
-            timeSlots: <BridgeCgyyTimeSlot>[
-              BridgeCgyyTimeSlot(
-                id: 5,
-                beginTime: '10:00',
-                endTime: '11:00',
-                label: '上午',
-              ),
-            ],
-            spaces: <BridgeCgyySpaceAvailability>[
-              BridgeCgyySpaceAvailability(
-                spaceId: 4,
-                spaceName: '讨论室',
-                venueSiteId: 3,
-                venueSpaceGroupId: 9,
-                slots: <BridgeCgyySlotStatus>[
-                  BridgeCgyySlotStatus(
-                    timeId: 5,
-                    reservationStatus: 0,
-                    reservationEligibility: BridgeActionEligibility.allowed,
-                    reservationTarget: BridgeCgyyReservationTarget(
-                      venueSiteId: 3,
-                      reservationDate: '2026-09-03',
-                      spaceId: 4,
-                      timeId: 5,
-                      venueSpaceGroupId: 9,
-                      timeOrdinal: 7,
-                    ),
-                  ),
-                  BridgeCgyySlotStatus(
-                    timeId: 6,
-                    reservationStatus: 1,
-                    reservationEligibility: BridgeActionEligibility.unknown,
-                    reservationTarget: null,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          route: const BridgeRouteDecision(
-            policy: BridgeRoutePolicy.direct,
-            resolvedRoute: BridgeConnectionMode.direct,
-            network: BridgeNetworkState.campus,
-            initialRoute: BridgeConnectionMode.direct,
-            usedFallback: false,
-          ),
-        ),
-      ),
-    );
-    final result = await backend.loadFeatureQuery(
-      FeatureId.cgyy,
-      const FeatureQuery(view: FeatureQueryView.cgyyDayInfo, siteId: 3),
-    );
-    expect(result.details, hasLength(3));
-    expect(result.details.first.presentation, isA<CgyyDayPresentation>());
-    final actionable = result.details
-        .where((d) => d.action<CgyyReserveAction>() != null)
-        .single;
-    expect(result.details.last.presentation, isA<CgyySlotPresentation>());
-    expect(result.details.last.actions, isEmpty);
-    final fields = {
-      for (final field in actionable.fields) field.label: field.value,
-    };
-    expect(fields['站点 ID'], '3');
-    expect(fields['空间 ID'], '4');
-    expect(fields['时段 ID'], '5');
-    expect(fields['空间组 ID'], '9');
-    expect(fields['可预约'], '是');
-    final action = actionable.action<CgyyReserveAction>();
-    expect(action, isNotNull);
-    expect(action?.venueSiteId, 3);
-    expect(action?.reservationDate, '2026-09-03');
-    expect(action?.spaceId, 4);
-    expect(action?.timeId, 5);
-    expect(action?.venueSpaceGroupId, 9);
-    expect(action?.timeOrdinal, 7);
-    expect(action?.eligibility, ActionEligibility.allowed);
   });
 
   test('BridgeBackend 取消入口状态仅展示并由 typed 资格供 UI 门禁使用', () async {

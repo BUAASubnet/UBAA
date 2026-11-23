@@ -15,8 +15,9 @@ bash "$repo_root/scripts/release/verify-flutter-artifact.sh" android-apk "$apk" 
 tools="$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS"
 "$tools/apksigner" verify "$apk"
 "$tools/zipalign" -c -P 16 4 "$apk"
-"$tools/aapt2" dump badging "$apk" > "$repo_root/.ubaa_local/release/android_badging.txt"
-python3 - "$apk" "$repo_root/.ubaa_local/release/android_badging.txt" <<'PY'
+badging="${RUNNER_TEMP:?}/ubaa_release_signing/android_badging.txt"
+"$tools/aapt2" dump badging "$apk" > "$badging"
+python3 - "$apk" "$badging" <<'PY'
 import os,sys,zipfile
 from pathlib import Path
 with zipfile.ZipFile(sys.argv[1]) as archive:
@@ -31,5 +32,5 @@ assert "versionCode='"+os.environ['RELEASE_BUILD']+"'" in badging
 assert 'application-debuggable' not in badging
 print('Android 应用标识、版本、单 ABI、签名和对齐检查通过')
 PY
-mkdir -p "$repo_root/.ubaa_local/release/public"
-cp "$apk" "$repo_root/.ubaa_local/release/public/UBAA-${RELEASE_VERSION}-android-${ANDROID_ABI}.apk"
+mkdir -p "$repo_root/dist/release/public"
+cp "$apk" "$repo_root/dist/release/public/UBAA-${RELEASE_VERSION}-android-${ANDROID_ABI}.apk"

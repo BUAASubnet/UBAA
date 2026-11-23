@@ -1,18 +1,17 @@
 // 使用锁定 Hvigor SDK 的解密器验证 CI 生成的签名密码和材料。
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
-import { delimiter, join, resolve } from "node:path";
+import { mkdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
+import { delimiter, join } from "node:path";
 import { test } from "node:test";
 import { preparePasswords } from "../../release/platforms/ohos_signing.mjs";
+import { createTestTempDirectory } from "../test_tmp.cjs";
 
 test("Hvigor 可以用生成的材料解密两个原始签名密码", (t) => {
   const home = process.env.UBAA_DEVECO_HOME;
   assert.ok(home, "请设置 UBAA_DEVECO_HOME，使用锁定的 Hvigor SDK 运行测试");
   const sdk = join(home, existsSync(join(home, "tools")) ? "tools/hvigor" : "hvigor");
-  const parent = resolve(".ubaa_local/tests");
-  mkdirSync(parent, { recursive: true, mode: 0o700 });
-  const directory = mkdtempSync(join(parent, "ohos_signing_"));
+  const directory = createTestTempDirectory("ohos_signing");
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const passwords = ["fixture123", "fixture key '$&!"];
   const encrypted = preparePasswords(directory, passwords);

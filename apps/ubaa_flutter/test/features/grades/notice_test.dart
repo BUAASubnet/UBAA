@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/privacy.dart';
 import 'package:flutter/material.dart';
 
 import 'dart:io';
@@ -14,6 +15,7 @@ void main() {
   testWidgets('成绩基线保存失败不打断在线首页，也不显示内部缓存故障', (tester) async {
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: GradeWatchBackend(),
         credentialVault: MemoryCredentialVault(),
         gradeScoreStore: _FailingBaselineStore(),
@@ -27,6 +29,7 @@ void main() {
   testWidgets('清除账号时成绩文件损坏也能退出，并明确提示本机未完全清除', (tester) async {
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: GradeWatchBackend(),
         credentialVault: MemoryCredentialVault(),
         gradeScoreStore: _FailingClearStore(),
@@ -61,6 +64,7 @@ void main() {
     final backend = GradeWatchBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),
@@ -82,6 +86,7 @@ void main() {
     final backend = GradeWatchBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),
@@ -126,6 +131,7 @@ void main() {
     final backend = GradeWatchBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
       ),

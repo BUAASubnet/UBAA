@@ -6,6 +6,7 @@ use crate::connection::{RouteResolution, resolve_route};
 use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::Invalidation;
 
 use super::client::UbaaClient;
 use super::types::{CallerPinned, Operation, Routed, RoutedError, RoutedResult};
@@ -13,7 +14,16 @@ pub(super) mod domains;
 
 /// 同一个只读表达式最多执行两次，每次使用独立路线运行时。
 macro_rules! read_with_fallback {
-    ($client:ident, $resolution:ident, $read:expr) => {{
+    ($client:ident, $resolution:ident, $read:expr) => {
+        $crate::facade::routing::read_with_fallback!(
+            $client,
+            $resolution,
+            |result: &crate::error::Result<_>| result.is_ok(),
+            $read
+        )
+    };
+    ($client:ident, $resolution:ident, $confirms_success:expr, $read:expr) => {{
+        let confirms_success = $confirms_success;
         let mut $resolution = $resolution;
         let initial_resolution = $resolution;
         $client
@@ -27,9 +37,19 @@ macro_rules! read_with_fallback {
             .run_read($resolution.mode, fast_connect, Box::pin(async { $read }))
             .await;
         if $resolution.mode == crate::domain::ConnectionMode::WebVpn {
-            $client.observe_webvpn_read(&result);
+            $client.observe_webvpn_read(&result, confirms_success(&result));
         }
-        match network
+        let campus_network_required = result
+            .as_ref()
+            .is_err_and(|error| error.is_campus_network_required());
+        let finish_fallback_error = |mut error: crate::error::UbaaError| {
+            // 保留 WebVPN 的失败原因，避免宿主把这一轮失败重新送回 Direct。
+            if campus_network_required {
+                error.retryable = false;
+            }
+            error
+        };
+        let (resolution, result) = match network
             .run_read(
                 $resolution.mode,
                 false,
@@ -47,11 +67,11 @@ macro_rules! read_with_fallback {
                 let fallback_result = network
                     .run_read($resolution.mode, false, Box::pin(async { $read }))
                     .await;
-                $client.observe_webvpn_read(&fallback_result);
+                $client.observe_webvpn_read(&fallback_result, confirms_success(&fallback_result));
                 if fallback_result.is_err() && result.is_ok() {
                     (initial_resolution, result)
                 } else {
-                    ($resolution, fallback_result)
+                    ($resolution, fallback_result.map_err(finish_fallback_error))
                 }
             }
             Ok(None) => ($resolution, result),
@@ -62,10 +82,14 @@ macro_rules! read_with_fallback {
                     $resolution.mode = crate::domain::ConnectionMode::WebVpn;
                     $resolution.diagnostic.mode = $resolution.mode;
                     $resolution.diagnostic.used_fallback = true;
-                    ($resolution, Err(error))
+                    ($resolution, Err(finish_fallback_error(error)))
                 }
             }
-        }
+        };
+        (
+            resolution,
+            result.map_err(crate::error::UbaaError::for_facade),
+        )
     }};
 }
 pub(super) use read_with_fallback;
@@ -86,8 +110,10 @@ impl<'a> RouteExecution<'a> {
             return self.runtime.sync_empty_session_revision();
         }
         if let Err(error) = self.runtime.ensure_session_revision() {
-            self.runtime.clear_memory();
-            self.auth.clear();
+            if self.runtime.ensure_primary_client().is_ok() {
+                self.runtime.clear_memory();
+                self.auth.clear();
+            }
             return Err(error);
         }
         Ok(())
@@ -124,12 +150,12 @@ impl<'a> RouteExecution<'a> {
 }
 
 impl UbaaClient {
-    pub(super) fn observe_webvpn_read<T>(&self, result: &Result<T>) {
+    pub(super) fn observe_webvpn_read<T>(&self, result: &Result<T>, confirms_success: bool) {
         let mut domains = self
             .domain_routes
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if result.is_ok() {
+        if result.is_ok() && confirms_success {
             domains.confirm_recovered(
                 &self.webvpn_runtime.reached_domains,
                 self.webvpn_runtime.network_failure_domain.as_deref(),
@@ -151,7 +177,7 @@ impl UbaaClient {
             || resolution.mode != ConnectionMode::Direct
             || result.as_ref().is_err_and(|error| {
                 error.is_network_changed()
-                    || !error.retryable
+                    || (!error.retryable && !error.is_campus_network_required())
                     || !matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
             })
         {
@@ -223,6 +249,7 @@ impl UbaaClient {
     /// # Errors
     ///
     /// 会话所有权已失效或解析出的路线尚未认证时返回错误。
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn resolve_route_for_feature(
         &mut self,
         feature: ReadonlyFeature,
@@ -392,10 +419,20 @@ impl UbaaClient {
 
     pub(super) fn guard_latest_session_ownership(&mut self) -> Result<()> {
         self.clear_on_session_conflict()?;
+        // 过期读组由读取池重新派生，不能通过清理运行时推进其他读组的父路线代次。
+        self.direct_runtime.ensure_readonly_generation()?;
+        self.webvpn_runtime.ensure_readonly_generation()?;
+        let primary = self.direct_runtime.ensure_primary_client().is_ok();
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
             let (runtime, auth) = self.route_parts_for(route);
             if let Err(error) = RouteExecution::new(runtime, auth).guard_session_ownership() {
-                self.clear_all_memory();
+                if self.clear_on_session_conflict().is_ok() && primary {
+                    if error.is_shared_account_conflict() {
+                        self.clear_runtime_memory();
+                    } else {
+                        self.clear_all_memory();
+                    }
+                }
                 return Err(error);
             }
         }
@@ -460,7 +497,9 @@ impl UbaaClient {
     ) -> Result<CallerPinned<T>> {
         self.cleanup_route_result(pinned_route, &result)?;
         self.clear_on_session_conflict()?;
-        result.map(|data| CallerPinned { data, pinned_route })
+        result
+            .map(|data| CallerPinned { data, pinned_route })
+            .map_err(UbaaError::for_facade)
     }
 
     /// 写请求跨越发送边界后，收尾检查只清理失效状态，不得覆盖确定或未知结果。
@@ -470,6 +509,7 @@ impl UbaaClient {
         result: Result<T>,
     ) -> RoutedResult<T> {
         let (runtime, auth) = self.route_parts_for(resolution.mode);
+        let result = runtime.finish_non_idempotent_result(result);
         if !RouteExecution::new(runtime, auth).cleanup_sent_write(&result) {
             return self.finish_routed(resolution, result);
         }
@@ -485,6 +525,17 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_all_memory(&mut self) {
+        if self
+            .business_sessions
+            .invalidate(Invalidation::RevokeAll)
+            .is_err()
+        {
+            tracing::warn!("全量撤销业务会话缓存失败");
+        }
+        self.clear_runtime_memory();
+    }
+
+    pub(super) fn clear_runtime_memory(&mut self) {
         *self.bhpan = super::bhpan::state::BhpanState::default();
         self.cloud_print = None;
         self.clear_interactive_context();
@@ -518,7 +569,7 @@ pub(super) fn invalid_input(message: impl Into<String>) -> UbaaError {
 
 pub(super) fn routed_error(error: UbaaError, resolution: RouteResolution) -> RoutedError {
     RoutedError {
-        error,
+        error: error.for_facade(),
         resolution: Some(resolution),
     }
 }
@@ -533,6 +584,9 @@ const fn alternate_route(route: ConnectionMode) -> ConnectionMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "test-contract")]
+    mod business_revocation;
 
     #[test]
     fn explicit_invalidation_clears_but_timeout_and_server_errors_preserve_session() {

@@ -2,6 +2,8 @@
 
 应用服务运行在 `ssh ubaa` 对应的 Debian 服务器，通过 Nginx 提供 HTTPS。数据库使用 PostgreSQL 17，应用运行时使用 Node.js 26。客户端接口与请求 Schema 见[应用服务合同](../contracts/app-service.md)。
 
+相关资料包括[应用服务合同样例](../../fixtures/app_service/README.md)和[匿名分钟计数的决策](../adr/0009-minute-telemetry-counts.md)。
+
 ## 入口与目录
 
 | 用途 | 地址或目录 |
@@ -28,9 +30,17 @@
 
 部署前再次核对 main 的最新提交。`app-service-production` 环境保存 `UBAA_DEPLOY_KEY` 和 `UBAA_DEPLOY_HOST_KEYS`。专用 `ubaa-deploy` 用户只能运行固定部署入口，不能取得交互 Shell。学校凭据不进入 GitHub Actions。
 
-服务器按顺序解包、安装生产依赖、以应用账号应用 PostgreSQL Schema、切换 `current`、重启应用并检查 `/healthz`。健康检查失败时恢复原应用指针。数据库变更采用可被上一应用版本读取的方式；回退应用不会自动撤销数据库变更。
+服务器按顺序解包、安装生产依赖、以应用账号应用 PostgreSQL Schema、切换 `current`、重启应用并检查 `/healthz`。健康检查失败时恢复原应用指针。数据库变更采用可被上一应用版本读取的方式；回退应用不会自动撤销数据库变更。应用部署不改写已发布的渠道和公告，只有服务器上还没有 `/var/lib/ubaa/content.json` 时才用包内内容初始化。
 
-维护者可以运行 `just app-service-deploy` 或 `just app-service-publish`，两者均校验本地内容并触发 main 的完整部署工作流。正式公告和渠道来源分别为 `docs/site/announcements/` 和 `services/app_service/config/channels.json`。
+维护者运行 `just app-service-deploy` 校验本地内容并触发 main 的完整部署工作流。
+
+## 发布渠道与公告
+
+正式公告和渠道来源分别为 `docs/site/announcements/` 和 `services/app_service/config/channels.json`，从 dev 发布，不必等待合入 main。[内容发布工作流](../../.github/workflows/app-content.yml)在 dev 的相关改动或手动触发时先运行 `just app-service-content-check`，再把渠道和应用内公告随运行描述发给服务器。维护者也可以运行 `just app-service-publish` 手动触发。
+
+服务器只替换 `/var/lib/ubaa/content.json` 中的渠道和公告，不更换应用代码，然后重启应用清空响应缓存并检查 `/healthz`，失败时恢复原内容。GitHub 渠道由正式发布事件维护；已有公开发布记录时，内容发布保留线上的 GitHub 渠道。
+
+内容发布与文档站共用只允许 dev 的 `docs-production` 环境和同一部署密钥。内容发布使用单独的 `app-content-production` 并发组，避免排队时被应用部署取消；服务器部署锁使两者串行。内容发布不跳过旧提交，因为后续不改内容的提交不会再次触发发布。服务器端的 `content` 操作随 main 的应用部署安装到 `/usr/local/lib/ubaa/deploy.py`，安装前内容发布会被服务器拒绝。
 
 ## PostgreSQL 与定时汇总
 
@@ -62,7 +72,7 @@ Grafana 使用内置 PostgreSQL 数据源。匿名访问和自行注册关闭，
 
 文件按 `v版本/构建号` 保存。旧版本保留，商店专用 IPA 和 HarmonyOS APP 不进入公开下载。上传前记录 pending，成功后记录 complete；未知结果先读取目录，不自动重复上传。再次分发已成功的文件时核对远端名称和长度并跳过。已有同名文件但缺少成功状态时停止，维护者核对后再恢复。
 
-服务器文件下载与云盘上传均完成后才写入 `distribution.json`。手动公开 GitHub Release 后，[发布同步工作流](../../.github/workflows/release-published.yml)核对公开 `release.json` 与服务器完整分发记录，再更新下载页和 GitHub 渠道。App Store 与 AppGallery 渠道仍在商店实际可下载后更新。
+服务器文件下载与云盘上传均完成后才写入 `distribution.json`。手动公开 GitHub Release 后，[发布同步工作流](../../.github/workflows/release-published.yml)核对公开 `release.json` 与服务器完整分发记录，再在线上内容的基础上更新下载页和 GitHub 渠道。App Store 与 AppGallery 渠道在商店实际可下载后修改 `channels.json`，从 dev 发布。
 
 ## 证书与网络
 

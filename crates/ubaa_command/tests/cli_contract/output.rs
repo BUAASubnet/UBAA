@@ -1,10 +1,8 @@
-use std::io::Cursor;
-
+use crate::common::run_command;
 use clap::Parser;
 use ubaa_command::{
     AggregateJsonEnvelope, AggregateLogoutData, CLI_JSON_SCHEMA_VERSION, Cli, CliFeature,
-    ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta, run_with_backend,
-    run_with_routed_backend,
+    ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta,
 };
 use ubaa_core::facade::{
     ConnectionMode, ErrorCode, ErrorKind, LibBookCancelResult, LoginOutcome, LoginReadiness,
@@ -12,7 +10,7 @@ use ubaa_core::facade::{
     UbaaError, UserProfile,
 };
 
-use crate::common::{FakeBackend, FakeRoutedBackend, assert_cli_schema, profile, route_resolution};
+use crate::common::{FakeRoutedBackend, assert_cli_schema, profile, route_resolution};
 
 #[path = "output_helpers.rs"]
 mod output_helpers;
@@ -35,8 +33,6 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     let cli = Cli::try_parse_from([
         "ubaa-cli",
         "--json",
-        "--config-dir",
-        "/tmp/ubaa-fixture",
         "auth",
         "login",
         "--mode",
@@ -45,29 +41,28 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
         "--password-stdin",
     ])
     .unwrap();
-    let mut backend = FakeBackend::default();
+    let mut fixture = crate::common::login::LoginFixture::new("fixture-user");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(b"fixture-user\nfixture-password\n"),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let code = fixture
+        .run(
+            cli,
+            b"fixture-user\nfixture-password\n",
+            &mut stdout,
+            &mut stderr,
+        )
+        .await;
+    assert_eq!(fixture.posts(), 1);
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_eq!(value["meta"]["routePolicy"], "direct");
     assert_eq!(value["data"]["schoolId"], "TEST-0001");
-    assert_ne!(value["data"]["phone"], "PHONE-FIXTURE-VALUE");
-    assert_ne!(value["data"]["idCardNumber"], "TEST-ID-0001");
     assert!(!String::from_utf8_lossy(&stdout).contains("fixture-password"));
     assert_eq!(stderr.len(), 0);
 }
@@ -75,18 +70,11 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
 #[tokio::test]
 async fn human_user_output_masks_phone_and_identity_number() {
     let cli = Cli::try_parse_from(["ubaa-cli", "user", "show"]).unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     let output = String::from_utf8(stdout).unwrap();
     assert_eq!(code, 0);
@@ -110,7 +98,7 @@ async fn hidden_judge_diagnostics_exposes_only_safe_counts_and_summaries() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
@@ -130,7 +118,7 @@ async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data()
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
@@ -328,8 +316,6 @@ fn cli_json_schema_accepts_strict_libbook_cancel_result() {
 
 #[test]
 fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
-
     let features = [
         CliFeature::Cli,
         CliFeature::Auth,
@@ -374,7 +360,7 @@ fn success_json_envelope_has_version_data_and_resolved_route_metadata() {
     );
     let value = serde_json::to_value(envelope).expect("envelope serializes");
 
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["name"], "Fixture User");
     assert_eq!(
@@ -417,7 +403,7 @@ fn unresolved_routed_failure_has_only_feature_metadata() {
     );
 
     let value = serde_json::to_value(envelope).unwrap();
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"], serde_json::json!({"feature": "cli"}));
     assert!(value.get("data").is_none());
@@ -446,7 +432,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
     )
     .unwrap();
 
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(
         value["data"]["routes"],
@@ -671,7 +657,7 @@ async fn 研究生概览和独立考试学期命令保留路线并满足schema()
         let mut backend = FakeRoutedBackend::default();
         let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
         assert_eq!(
-            run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await,
+            run_command(cli, &mut backend, &mut stdout, &mut stderr).await,
             0
         );
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();

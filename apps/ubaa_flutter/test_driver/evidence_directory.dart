@@ -1,19 +1,44 @@
 import 'dart:io';
 
 /// 在写入截图前确认目标位于项目本地的任务子目录。
-Directory checkedEvidenceDirectory(String? destination, {Directory? repoRoot}) {
+Directory checkedEvidenceDirectory(
+  String? destination, {
+  Directory? repoRoot,
+}) => _checkedOutputDirectory(
+  destination,
+  repoRoot,
+  '.ubaa_local/',
+  'UBAA_UI_EVIDENCE_DIR',
+);
+
+Directory checkedStoreScreenshotDirectory(
+  String? destination, {
+  Directory? repoRoot,
+}) => _checkedOutputDirectory(
+  destination,
+  repoRoot,
+  'dist/store_screenshots/',
+  'UBAA_STORE_SCREENSHOT_DIR',
+);
+
+Directory _checkedOutputDirectory(
+  String? destination,
+  Directory? repoRoot,
+  String relativeRoot,
+  String variable,
+) {
   if (destination == null || !Directory(destination).isAbsolute) {
-    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须是 .ubaa_local 下的私有绝对路径');
+    throw ArgumentError('$variable 必须是 $relativeRoot 下的私有绝对路径');
   }
   if (destination.split(RegExp(r'[/\\]')).contains('..')) {
     throw ArgumentError('证据目录不能包含父目录跳转');
   }
   final root = _resolvedDirectory(repoRoot ?? _findRepoRoot());
   final directory = _resolvedDirectory(Directory(destination));
-  final localRoot = root.uri.resolve('.ubaa_local/');
+  final localRoot = root.uri.resolve(relativeRoot);
   if (directory.uri == localRoot ||
       !directory.uri.toString().startsWith(localRoot.toString())) {
-    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须位于仓库 .ubaa_local 的任务子目录');
+    throw ArgumentError('$variable 必须位于仓库 $relativeRoot 的子目录');
   }
   return directory;
 }

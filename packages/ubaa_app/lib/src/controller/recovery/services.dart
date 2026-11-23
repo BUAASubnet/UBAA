@@ -184,6 +184,7 @@ mixin ControllerServiceRecovery on ControllerState {
         originalLatency = elapsed.elapsed;
         recoveryAttempts++;
         internalWriteCoordinator.invalidate();
+        var rebuild = false;
         try {
           final result = await internalRecoverTargetSession(
             backend as RequiredTargetSessionBackend,
@@ -197,9 +198,17 @@ mixin ControllerServiceRecovery on ControllerState {
           await internalRefreshRouteSettings();
           if (!current())
             throw const RecoveryInterrupted(RecoveryStopReason.superseded);
-          unawaited(internalLoadWriteReadbacks(force: true));
+          unawaited(
+            internalLoadWriteReadbacks(force: result.sharedBindingRebound),
+          );
         } on BackendException catch (failure) {
-          if (current() && failure.accountMismatch) {
+          if (current() && failure.clientDisposed) {
+            final ended = await internalEndDisposedCurrentSession(
+              backend,
+              current,
+            );
+            rebuild = ended || current();
+          } else if (current() && failure.accountMismatch) {
             await internalRejectMismatchedAccount();
           } else if (current() &&
               failure.captchaRequired &&
@@ -218,6 +227,7 @@ mixin ControllerServiceRecovery on ControllerState {
           rethrow;
         } finally {
           activity.finish();
+          if (rebuild && internalAppForeground) await rebuildBackend();
           internalDrainDeferredRecovery();
           internalPumpReadTasks();
           if (!internalDisposed) internalNotify();

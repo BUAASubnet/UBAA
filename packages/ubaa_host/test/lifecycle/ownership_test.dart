@@ -5,6 +5,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final background in [
@@ -23,6 +24,7 @@ void main() {
       var created = 0;
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backendFactory: () {
             created++;
             return backend;
@@ -51,7 +53,12 @@ void main() {
   }
   testWidgets('进行中的恢复合并多次前后台切换，不结束后再重建或重复检查', (tester) async {
     final backend = _Backend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     backend.authGate = Completer<void>();
     await cycle(tester, AppLifecycleState.paused);
@@ -69,6 +76,7 @@ void main() {
     var created = 0;
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () {
           created++;
           return backend;
@@ -89,7 +97,12 @@ void main() {
     final backend = _Backend()
       ..signedIn = false
       ..loginGate = Completer<void>();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     final view = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
     view.onUsernameChanged('fixture-user');
@@ -108,7 +121,12 @@ void main() {
   testWidgets('退出后重新登录的恢复等待新首页首帧', (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     final backend = _Backend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.widget<UbaaMainShell>(find.byType(UbaaMainShell)).onLogout();
     await tester.pumpAndSettle();

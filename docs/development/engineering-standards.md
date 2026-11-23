@@ -6,7 +6,7 @@
 
 Rust Core 负责协议事实、路由、会话/Cookie 作用域、密码学、解析、缓存和并发。生产宿主只能调用 facade 或专用 bridge，不检查上游响应、不读取内部 Session、不拼接 URL、不保存业务 Token。
 
-认证、读取或写入功能变更按 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)执行；固定提交见[冻结参考](../protocol/references.md)，不能从历史记录继承版本或授权。
+认证、读取或写入功能变更按[协议依据目录](../protocol/README.md)执行；来源提交和文件定位见[协议依据目录](../protocol/README.md)，不能从历史记录继承版本或授权。
 
 ## TDD 与变更边界
 
@@ -90,11 +90,11 @@ Cgyy 预约：
 - 确定成功至多附带安全收据；发送后的不确定结果统一为不可重试的 `outcome_unknown`。
 - 公开写结果和错误不包含验证码、完整订单、上游 raw message 或个人信息。
 
-真实写入不属于普通测试或 CI，授权规则见 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。无签名 Debug/HAP、Mock、golden、simulator 或 CI artifact 不能证明签名、安装、实体设备、硬件安全存储或正式发布。
+真实写入不属于普通测试或 CI，授权规则见 [来源对照与真实验证](commands.md#来源对照与真实验证)。无签名 Debug/HAP、Mock、golden、simulator 或 CI artifact 不能证明签名、安装、实体设备、硬件安全存储或正式发布。
 
 ## 安全与提交
 
-`examples/`、`.env`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建缓存只读，不进入 diff；完整清单与暂存步骤见 [AGENTS 安全边界](../../AGENTS.md#安全边界)和[开发循环](../../AGENTS.md#开发循环)。不以关闭 TLS、放宽 parser/lint、删除测试或手改生成文件换取通过。
+`.env`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建缓存只读，不进入 diff；完整清单与暂存步骤见 [底线](../../AGENTS.md#底线)和[日常循环](../../CONTRIBUTING.md#日常循环)。不以关闭 TLS、放宽 parser/lint、删除测试或手改生成文件换取通过。
 
 ## 日志与日常约定
 

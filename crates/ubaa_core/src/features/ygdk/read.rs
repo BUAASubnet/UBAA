@@ -3,6 +3,7 @@
 use crate::domain::{YgdkOverview, YgdkRecordsPage};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::{BusinessMaterial, BusinessScope};
 
 use super::auth::ensure_login;
 use super::http::{ensure_active_credential, is_pre_send_credential_error, post, post_with_query};
@@ -40,6 +41,14 @@ pub(crate) async fn get_overview_context(
 ) -> Result<YgdkOverviewContext> {
     match get_overview_context_once(runtime).await {
         Err(error) if error.code == ErrorCode::AuthenticationRequired => {
+            if !is_pre_send_credential_error(&error)
+                && let Some(credential) = runtime.feature_state().ygdk.credential()
+            {
+                runtime.reject_business_material(
+                    BusinessScope::Ygdk,
+                    BusinessMaterial::Ygdk(credential),
+                );
+            }
             runtime.feature_state().ygdk.clear();
             get_overview_context_once(runtime).await
         }
@@ -139,7 +148,8 @@ fn optional_success_response(response: Result<String>) -> Result<(String, bool)>
             if matches!(
                 error.code,
                 ErrorCode::AuthenticationRequired | ErrorCode::UpdateRequired
-            ) || is_pre_send_credential_error(&error) =>
+            ) || error.is_campus_network_required()
+                || is_pre_send_credential_error(&error) =>
         {
             Err(error)
         }
@@ -180,18 +190,35 @@ pub(crate) async fn get_records_in_context(
         ("classify_id", context.overview.classify_id.to_string()),
         ("user_id", context.credential.uid.to_string()),
     ];
-    let body = post_with_query(
+    let result = match post_with_query(
         runtime,
         "/api/Front/Clockin/Clockin/getList",
         &context.credential,
         context.generation,
         &params,
     )
-    .await?;
-    ensure_active_credential(runtime, context.generation, &context.credential)?;
-    let data = parse_records(&body, &context.overview.items, page, size)?;
-    let complete = super::parser::records_complete(&body, &data);
-    Ok((data, complete))
+    .await
+    {
+        Ok(body) => {
+            ensure_active_credential(runtime, context.generation, &context.credential)?;
+            parse_records(&body, &context.overview.items, page, size).map(|data| {
+                let complete = super::parser::records_complete(&body, &data);
+                (data, complete)
+            })
+        }
+        Err(error) => Err(error),
+    };
+    if let Err(error) = &result
+        && error.code == ErrorCode::AuthenticationRequired
+        && !is_pre_send_credential_error(error)
+    {
+        runtime.reject_business_material(
+            BusinessScope::Ygdk,
+            BusinessMaterial::Ygdk(context.credential.clone()),
+        );
+        runtime.feature_state().ygdk.clear();
+    }
+    result
 }
 
 #[cfg(test)]

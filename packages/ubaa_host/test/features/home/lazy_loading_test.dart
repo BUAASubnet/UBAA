@@ -5,11 +5,17 @@ import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('考试自动进入首页待办并可点击打开已安排考试', (tester) async {
     final backend = _ExamHomeBackend();
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     final task = find.widgetWithText(Card, '合成待办考试');
     await tester.ensureVisible(task);
@@ -34,7 +40,12 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       final backend = _LazyBackend();
-      await tester.pumpWidget(UbaaAppHost(backend: backend));
+      await tester.pumpWidget(
+        UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
+          backend: backend,
+        ),
+      );
       await tester.pumpAndSettle();
       UbaaMainShell shell() =>
           tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));

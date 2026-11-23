@@ -16,6 +16,7 @@ pub struct SharedAccountGuard {
     directory: Arc<PathBuf>,
     expected: Arc<str>,
     revoked: Arc<AtomicBool>,
+    retain_session: bool,
     #[cfg(test)]
     pub(crate) wait_hook: Option<Arc<dyn Fn() + Send + Sync>>,
 }
@@ -32,7 +33,9 @@ impl Drop for SharedAccountPermit {
 }
 impl SharedAccountGuard {
     pub(crate) fn same_scope(&self, other: &Self) -> bool {
-        self.directory == other.directory && self.expected == other.expected
+        self.directory == other.directory
+            && self.expected == other.expected
+            && self.retain_session == other.retain_session
     }
     /// 参数必须来自同材料域已核对的持久快照；版本仅能缩短既有能力的生命期。
     ///
@@ -46,10 +49,23 @@ impl SharedAccountGuard {
             directory: Arc::new(directory.to_owned()),
             expected: Arc::from(format!("UBAA1:{generation}")),
             revoked: Arc::new(AtomicBool::new(false)),
+            retain_session: true,
             #[cfg(test)]
             wait_hook: None,
         })
     }
+    /// 设置此共享归属下的业务会话材料是否允许写盘。
+    #[must_use]
+    pub fn with_session_retention(mut self, retain_session: bool) -> Self {
+        self.retain_session = retain_session;
+        self
+    }
+
+    #[must_use]
+    pub fn retains_session(&self) -> bool {
+        self.retain_session
+    }
+
     /// 核对原版本，不采用外部更新。
     ///
     /// # Errors

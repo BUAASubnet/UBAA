@@ -12,7 +12,6 @@ use crate::{
 };
 use std::{
     io::{BufRead, BufReader, Write as _},
-    path::PathBuf,
     process::{Command, Stdio},
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
@@ -53,7 +52,7 @@ struct Bootstrap;
 impl HttpTransport for Bootstrap {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let body = serde_json::json!({
-            "schema": 1,
+            "schema": crate::app_service::APP_SERVICE_SCHEMA_VERSION,
             "update": {
                 "status": "update_required",
                 "latest_version": "3.0.0+1",
@@ -78,10 +77,8 @@ impl crate::connection::GatewayProbe for Probe {
     }
 }
 
-fn directory() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_gate")
-        .join(uuid::Uuid::new_v4().to_string())
+fn directory() -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_app_service_gate").unwrap()
 }
 
 fn service_config() -> AppServiceConfig {
@@ -248,7 +245,7 @@ async fn 独立进程短暂持锁时打开安装服务仍保留命令门控() {
                 &format!("{module}::数据库持锁子进程"),
                 "--nocapture",
             ])
-            .env(LOCK_TEST_ROOT, &root)
+            .env(LOCK_TEST_ROOT, root.path())
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();

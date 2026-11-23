@@ -45,7 +45,7 @@ mixin ControllerRequiredRecovery on ControllerState {
   }
 
   @internal
-  Future<UserSummary?> internalRecoverRequiredProfile(
+  Future<RecoveryResult?> internalRecoverRequiredProfile(
     RequiredSessionBackend backend,
     FeatureId feature,
     int epoch,
@@ -64,12 +64,11 @@ mixin ControllerRequiredRecovery on ControllerState {
           internalActiveRecovery?.refreshHomeAfter == true,
     );
     if (result == null) return null;
-    internalSharedRecoveryScope = result.scope;
     if (result.disposition == RecoveryDisposition.reauthenticated) {
       internalActiveRecovery?.replacedRoute = result.session.route;
     }
     internalRecoveredRoute = result.session.route;
-    return result.session.profile;
+    return result;
   }
 
   @internal
@@ -115,6 +114,8 @@ mixin ControllerRequiredRecovery on ControllerState {
             : null,
       ),
     );
+    final store = internalLocalAccountStore;
+    final grant = internalCurrentSessionGrantFor(session.backend);
     bool current() =>
         session.isCurrent &&
         networkRevision == internalNetworkRevision &&
@@ -123,9 +124,19 @@ mixin ControllerRequiredRecovery on ControllerState {
         internalLocalAccount?.id == account?.id &&
         routeGeneration == internalRoutePolicyGeneration &&
         credentials == internalLoginCredentialRevision &&
-        !internalRoutePolicyInFlight;
-    final store = internalLocalAccountStore;
-    final scope = store is SecureLocalAccountStore
+        !internalRoutePolicyInFlight &&
+        (grant == null || identical(internalCurrentSessionGrant, grant));
+    final scope = grant != null
+        ? RecoveryScope.currentSession(
+            binding: grant.binding,
+            routeGeneration: routeGeneration,
+            backendGeneration: epoch,
+            credentialGeneration: credentials,
+            routePolicy: internalLoginForm.routePolicy,
+            publishReusedSession: publishReusedSession,
+            isCurrent: current,
+          )
+        : store is SecureLocalAccountStore
         ? await RecoveryScope.capture(
             accounts: store,
             snapshot: internalSharedAccountSnapshot,

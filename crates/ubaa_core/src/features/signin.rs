@@ -4,7 +4,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::domain::{ActionEligibility, SigninActionResult, SigninClass};
+use crate::domain::{ActionEligibility, ConnectionMode, SigninActionResult, SigninClass, SigninQr};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
@@ -111,13 +111,42 @@ pub(crate) async fn preflight_signin(
 }
 
 /// 提交课堂签到请求。该接口有意保持低层；宿主调用前必须要求显式写操作确认。
-#[allow(dead_code)]
 pub(crate) async fn perform_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     course_id: &str,
 ) -> Result<SigninActionResult> {
     preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
+    let url = build_auto_signin_url(runtime.mode())?;
+    let response = submit_signin(runtime, url, &credential, course_id).await?;
+    if response.status != 200 || final_url_is_authentication(&response.final_url) {
+        return Err(write_outcome_unknown());
+    }
+    parse_action_response(&response.body)
+}
+
+/// 使用当前路线取时，生成扫码客户端可直接打开的地址。
+pub(crate) async fn get_qr(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course_id: &str,
+    offset_ms: u32,
+) -> Result<SigninQr> {
+    validate_course_id(course_id)?;
+    if offset_ms > 60_000 {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "签到二维码时间偏移不能超过 60 秒",
+        ));
+    }
+    super::require_session(runtime)?;
+    let timestamp = qr_timestamp(&get_timestamp(runtime).await?, offset_ms)?;
+    let content = build_signin_url(ConnectionMode::Direct, course_id, &timestamp.to_string())?;
+    Ok(SigninQr { content, timestamp })
+}
+
+async fn get_timestamp(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<u8>> {
     let timestamp_url = signin_checkin_url(
         runtime.mode(),
         "app/common/get_timestamp.action",
@@ -127,13 +156,20 @@ pub(crate) async fn perform_signin(
     if timestamp.status != 200 {
         return Err(upstream_error("无法获取签到时间戳"));
     }
-    let timestamp = parse_timestamp(&timestamp.body)?;
-    let url = build_signin_url(runtime.mode(), course_id, &timestamp)?;
-    let response = submit_signin(runtime, url, &credential).await?;
-    if response.status != 200 || final_url_is_authentication(&response.final_url) {
-        return Err(write_outcome_unknown());
-    }
-    parse_action_response(&response.body)
+    Ok(timestamp.body)
+}
+
+fn qr_timestamp(body: &[u8], offset_ms: u32) -> Result<i64> {
+    parse_timestamp(body)
+        .map_err(|mut error| {
+            error.code = ErrorCode::ParseError;
+            error.kind = ErrorKind::Parse;
+            error
+        })?
+        .parse::<i64>()
+        .ok()
+        .and_then(|timestamp| timestamp.checked_add(i64::from(offset_ms)))
+        .ok_or_else(|| UbaaError::parse_error("签到二维码时间戳不是有效的毫秒整数"))
 }
 
 fn signin_checkin_url(
@@ -172,19 +208,34 @@ fn build_signin_url(
     Ok(url.to_string())
 }
 
-#[must_use]
-fn build_signin_form(user_id: &str) -> Vec<(&'static str, String)> {
-    vec![("id", user_id.into())]
+fn build_auto_signin_url(mode: ConnectionMode) -> Result<String> {
+    let upstream = "https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action";
+    match mode {
+        ConnectionMode::Direct => Ok(upstream.to_owned()),
+        ConnectionMode::WebVpn => crate::connection::to_webvpn_url(upstream),
+    }
+}
+
+fn build_signin_form(user_id: &str, course_id: &str) -> Vec<(&'static str, String)> {
+    vec![
+        ("id", user_id.into()),
+        ("courseSchedId", course_id.into()),
+        ("routerInfo", "02:00:00:00:00:00".into()),
+        ("longitude", "0".into()),
+        ("latitude", "0".into()),
+        ("machineInfo", "Android".into()),
+    ]
 }
 
 async fn submit_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     url: String,
     credential: &SigninCredential,
+    course_id: &str,
 ) -> Result<crate::ports::HttpResponse> {
     super::require_session(runtime)?;
     let body = url::form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(build_signin_form(&credential.user_id))
+        .extend_pairs(build_signin_form(&credential.user_id, course_id))
         .finish()
         .into_bytes();
     let mut request = HttpRequest::post(url, body);
@@ -517,10 +568,30 @@ mod contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        SIGNIN_LOGIN_URL, build_signin_form, build_signin_url, build_today_request,
-        final_url_is_authentication, integer_value, parse_login_credential, parse_timestamp,
-        signin_checkin_url,
+        SIGNIN_LOGIN_URL, build_auto_signin_url, build_signin_form, build_signin_url,
+        build_today_request, final_url_is_authentication, integer_value, parse_login_credential,
+        parse_timestamp, signin_checkin_url,
     };
+
+    #[test]
+    fn 签到二维码时间戳必须是可加偏移的整数() {
+        for body in [
+            br#"{"timestamp":1700000000000}"#.as_slice(),
+            br#"{"timestamp":" 1700000000000 "}"#,
+        ] {
+            assert_eq!(super::qr_timestamp(body, 2_000).unwrap(), 1_700_000_002_000);
+        }
+        for body in [
+            br#"{"timestamp":"invalid"}"#.as_slice(),
+            br#"{"timestamp":1.5}"#,
+            br#"{"timestamp":9223372036854775807}"#,
+        ] {
+            assert_eq!(
+                super::qr_timestamp(body, 1).unwrap_err().code,
+                crate::error::ErrorCode::ParseError,
+            );
+        }
+    }
 
     #[test]
     fn 直连与webvpn签到地址生成对齐冻结旧版() {
@@ -618,10 +689,34 @@ mod tests {
     }
 
     #[test]
-    fn 签到提交表单只发送冻结的用户标识字段() {
-        let form = build_signin_form("user-safe");
-        assert_eq!(form.len(), 1);
-        assert_eq!(form[0], ("id", "user-safe".to_owned()));
+    fn stu_auto_sign提交使用8181且不带查询串() {
+        let direct = build_auto_signin_url(crate::domain::ConnectionMode::Direct)
+            .expect("直连提交地址应可构造");
+        assert_eq!(
+            direct,
+            "https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action"
+        );
+        let webvpn = build_auto_signin_url(crate::domain::ConnectionMode::WebVpn)
+            .expect("WebVPN 提交地址应可构造");
+        assert_eq!(
+            crate::connection::from_webvpn_url(&webvpn).expect("WebVPN 地址应可反向解码"),
+            direct
+        );
+    }
+
+    #[test]
+    fn stu_auto_sign表单包含六个固定字段() {
+        assert_eq!(
+            build_signin_form("user-safe", "schedule-safe"),
+            vec![
+                ("id", "user-safe".to_owned()),
+                ("courseSchedId", "schedule-safe".to_owned()),
+                ("routerInfo", "02:00:00:00:00:00".to_owned()),
+                ("longitude", "0".to_owned()),
+                ("latitude", "0".to_owned()),
+                ("machineInfo", "Android".to_owned()),
+            ]
+        );
     }
 
     #[test]

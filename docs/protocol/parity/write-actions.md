@@ -170,7 +170,7 @@ Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下
 `LocalEvaluationServiceBackendTest.kt`，以及旧 server `EvaluationClient.kt`、`EvaluationService.kt` 与
 测试。交叉来源为 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
 `src/api/tes/{auth,data,opt}.rs`。两份来源部分等价但存在明确冲突；产品取舍见
-[Phase 11J 决策](../../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
+Phase 11J 决策（`2026-10-30-decisions-through-quality-phase3.md`）。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -197,7 +197,7 @@ caller-pinned 回读不重发也不升级 unknown；架构测试禁止正常 fac
 `aas/app/boya/class/cloud/live/spoc/srs/sso/tes/user/wifi`，没有 Ygdk、Clockin 或照片上传等价实现；所以下表
 每一行的九个示例来源单元格都为 **N/A 且不等价**。不得从示例的通用 SSO、credential、Cookie、上传、
 错误类型或其它业务模块类比补齐任何字段。与本表绑定的产品取舍见
-[Phase 11I 决策](../../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
+Phase 11I 决策（`2026-10-30-decisions-through-quality-phase3.md`）。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|

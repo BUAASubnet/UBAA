@@ -3,8 +3,9 @@
 set -euo pipefail
 repo_root=$(pwd)
 arch=${RELEASE_ARCH:?需要发布架构}
-output="$repo_root/.ubaa_local/release/macos"
-mkdir -p "$output" "$repo_root/.ubaa_local/release/public"
+output="$repo_root/target/release_macos"
+reports="$repo_root/dist/release/macos"
+mkdir -p "$output" "$reports" "$repo_root/dist/release/public"
 config=apps/ubaa_flutter/macos/Runner/Configs/LocalSigning.xcconfig
 cat > "$config" <<CONFIG
 UBAA_CODE_SIGN_STYLE = Manual
@@ -29,17 +30,17 @@ lipo "$app/Contents/MacOS/UBAA" -verify_arch "$arch"
 ditto -c -k --keepParent "$app" "$output/notarize.zip"
 xcrun notarytool submit "$output/notarize.zip" \
   --key "$API_PRIVATE_KEYS_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
-  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --output-format json > "$output/submission.json"
-submission=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$output/submission.json")
+  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --output-format json > "$reports/submission.json"
+submission=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$reports/submission.json")
 printf 'Apple 公证提交：%s\n' "$submission"
 xcrun notarytool wait "$submission" \
   --key "$API_PRIVATE_KEYS_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
-  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --timeout 2h --output-format json > "$output/notary.json"
-python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("公证状态："+r["status"]); sys.exit(0 if r["status"]=="Accepted" else 1)' "$output/notary.json"
+  --key-id "$APPSTORE_KEY_ID" --issuer "$APPSTORE_ISSUER_ID" --timeout 2h --output-format json > "$reports/notary.json"
+python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("公证状态："+r["status"]); sys.exit(0 if r["status"]=="Accepted" else 1)' "$reports/notary.json"
 xcrun stapler staple "$app"
 xcrun stapler validate "$app"
 mkdir -p "$output/image"
 ditto "$app" "$output/image/UBAA.app"
 ln -s /Applications "$output/image/Applications"
 hdiutil create -volname UBAA -srcfolder "$output/image" -ov -format UDZO \
-  "$repo_root/.ubaa_local/release/public/UBAA-${RELEASE_VERSION}-macos-${arch}.dmg"
+  "$repo_root/dist/release/public/UBAA-${RELEASE_VERSION}-macos-${arch}.dmg"

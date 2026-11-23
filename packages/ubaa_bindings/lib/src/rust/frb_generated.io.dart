@@ -2499,6 +2499,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedSigninQr dco_decode_bridge_routed_signin_qr(dynamic raw);
+
+  @protected
   BridgeRoutedSpocAssignmentDetail
   dco_decode_bridge_routed_spoc_assignment_detail(dynamic raw);
 
@@ -2554,6 +2557,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSigninPerformRequest dco_decode_bridge_signin_perform_request(
     dynamic raw,
   );
+
+  @protected
+  BridgeSigninQr dco_decode_bridge_signin_qr(dynamic raw);
 
   @protected
   BridgeSpocAssignmentDetail dco_decode_bridge_spoc_assignment_detail(
@@ -6405,6 +6411,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedSigninQr sse_decode_bridge_routed_signin_qr(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeRoutedSpocAssignmentDetail
   sse_decode_bridge_routed_spoc_assignment_detail(SseDeserializer deserializer);
 
@@ -6480,6 +6491,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSigninPerformRequest sse_decode_bridge_signin_perform_request(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeSigninQr sse_decode_bridge_signin_qr(SseDeserializer deserializer);
 
   @protected
   BridgeSpocAssignmentDetail sse_decode_bridge_spoc_assignment_detail(
@@ -11168,6 +11182,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_routed_signin_qr(
+    BridgeRoutedSigninQr self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_routed_spoc_assignment_detail(
     BridgeRoutedSpocAssignmentDetail self,
     SseSerializer serializer,
@@ -11260,6 +11280,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_signin_perform_request(
     BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_signin_qr(
+    BridgeSigninQr self,
     SseSerializer serializer,
   );
 

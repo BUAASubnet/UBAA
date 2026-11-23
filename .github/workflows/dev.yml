@@ -10,14 +10,15 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: dev-check-${{ github.ref }}
-  cancel-in-progress: true
+  group: dev-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
       rust: ${{ steps.paths.outputs.rust }}
       flutter: ${{ steps.paths.outputs.flutter }}
+      flutter_packages: ${{ steps.paths.outputs.flutter_packages }}
       worker: ${{ steps.paths.outputs.worker }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,14 +44,14 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - uses: ./.github/actions/shellcheck
-      - name: 准备工具和冻结引用
+      - name: 准备工具
         run: |-
-          just refs-bootstrap
           just quality-tools-bootstrap
           npm ci --no-audit --no-fund
       - name: 检查脚本、合同和敏感材料
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
-          just refs
           just check-sensitive
           just script-check
           node --test scripts/tests/checks/ci_workflows_test.mjs
@@ -64,11 +65,14 @@ jobs:
       - uses: ./.github/actions/rust_cache
         with:
           kind: tests
-      - name: 检查 Rust 格式、类型和单元测试
+      - name: 检查 Rust 格式、Clippy 和测试
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
           cargo fmt --all -- --check
-          cargo check --locked --workspace --all-targets
-          cargo test --locked -p ubaa-core --features test-contract --lib
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          just core-test-contract
+          cargo test --locked --workspace --exclude ubaa-core
   flutter:
     needs: changes
     if: needs.changes.outputs.flutter == 'true'
@@ -82,6 +86,11 @@ jobs:
         uses: ./.github/actions/flutter
       - name: 检查 Dart 格式和静态分析
         run: bash scripts/check/flutter-workspace.sh analyze
+      - name: 测试受影响的 Flutter 包（排除 golden）
+        env:
+          FLUTTER_PACKAGES: ${{ needs.changes.outputs.flutter_packages }}
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
+        run: bash scripts/check/flutter-workspace.sh test-non-golden "$FLUTTER_PACKAGES"
 
   worker:
     needs: changes
@@ -95,6 +104,8 @@ jobs:
           rust: false
       - *setup_node
       - name: 检查 Worker 与发布内容
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: |-
           just app-service-content-check
           just app-service-check

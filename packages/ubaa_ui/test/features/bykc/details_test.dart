@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/bykc/display.dart'
+    show uiMatchesBykcFilters;
 import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
@@ -82,15 +84,80 @@ void main() {
     }
   });
 
-  testWidgets('博雅三维筛选交集维度内并集，关闭往返刷新保留且重置清三维', (tester) async {
+  test('博雅状态、类别和校区取交集，各维度内取并集', () {
+    final filters = BykcCourseFilters(
+      statuses: [BykcCourseStatus.available, BykcCourseStatus.full],
+      categories: [
+        BykcCourseSubCategory.aesthetic.displayName,
+        BykcCourseSubCategory.moral.displayName,
+      ],
+      campuses: ['沙河校区', '学院路校区'],
+    );
+    for (final (status, category, campuses, visible) in [
+      (
+        BykcCourseStatus.available,
+        BykcCourseSubCategory.aesthetic,
+        ['沙河校区'],
+        true,
+      ),
+      (
+        BykcCourseStatus.available,
+        BykcCourseSubCategory.moral,
+        ['杭州校区', '学院路校区'],
+        true,
+      ),
+      (BykcCourseStatus.full, BykcCourseSubCategory.aesthetic, ['沙河校区'], true),
+      (
+        BykcCourseStatus.ended,
+        BykcCourseSubCategory.aesthetic,
+        ['沙河校区'],
+        false,
+      ),
+      (
+        BykcCourseStatus.available,
+        BykcCourseSubCategory.unknown,
+        ['沙河校区'],
+        false,
+      ),
+      (
+        BykcCourseStatus.available,
+        BykcCourseSubCategory.aesthetic,
+        ['杭州校区'],
+        false,
+      ),
+    ]) {
+      final course = BykcCoursePresentation(
+        id: 1,
+        courseName: '合成课程',
+        status: status,
+        subCategory: category,
+        audienceCampuses: campuses,
+      );
+      expect(
+        uiMatchesBykcFilters(
+          course,
+          filters.statuses,
+          filters.categories,
+          filters.campuses,
+        ),
+        visible,
+        reason: '$status、$category、$campuses',
+      );
+    }
+  });
+
+  testWidgets('博雅筛选联动，详情往返与刷新保留筛选，恢复默认清除条件', (tester) async {
     final state = await _mount(tester);
     await openFeature(tester, FeatureId.bykc);
     await openQueryPanel(tester);
-    expect(find.widgetWithText(FilterChip, '美育'), findsOneWidget);
-    for (final name in ['德育', '美育', '劳动教育', '安全健康', '其他方面']) {
-      expect(find.widgetWithText(FilterChip, name), findsOneWidget);
+    for (final category in BykcCourseSubCategory.values) {
+      expect(
+        find.widgetWithText(FilterChip, category.displayName),
+        category == BykcCourseSubCategory.unknown
+            ? findsNothing
+            : findsOneWidget,
+      );
     }
-    expect(find.widgetWithText(FilterChip, '未知类型'), findsNothing);
     await _chip(tester, '美育');
     await _chip(tester, '沙河校区');
     await closeQueryPanel(tester);
@@ -98,26 +165,13 @@ void main() {
     expect(find.widgetWithText(Card, '合成德育沙河'), findsNothing);
     expect(find.widgetWithText(Card, '合成美育学院路'), findsNothing);
     expect(state.queries, isEmpty);
-    await openQueryPanel(tester);
-    await _chip(tester, '德育');
-    await closeQueryPanel(tester);
-    expect(find.widgetWithText(Card, '合成德育沙河'), findsOneWidget);
     await tester.tap(find.widgetWithText(Card, '合成美育沙河'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    await openQueryPanel(tester);
-    expect(
-      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '美育')).selected,
-      isTrue,
-    );
-    expect(
-      tester
-          .widget<FilterChip>(find.widgetWithText(FilterChip, '沙河校区'))
-          .selected,
-      isTrue,
-    );
-    await closeQueryPanel(tester);
+    expect(find.widgetWithText(Card, '合成美育沙河'), findsOneWidget);
+    expect(find.widgetWithText(Card, '合成德育沙河'), findsNothing);
+    expect(find.widgetWithText(Card, '合成美育学院路'), findsNothing);
     state.catalog = [
       _catalog(73, '刷新学院路', BykcCourseSubCategory.aesthetic, ['学院路校区']),
     ];
@@ -125,6 +179,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('没有匹配的课程'), findsOneWidget);
     await openQueryPanel(tester);
+    expect(
+      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '美育')).selected,
+      isTrue,
+    );
     expect(
       tester
           .widget<FilterChip>(find.widgetWithText(FilterChip, '沙河校区'))

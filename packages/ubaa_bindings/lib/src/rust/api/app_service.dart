@@ -22,6 +22,9 @@ abstract class BridgeAppService implements RustOpaqueInterface {
   /// 命令模式、政策版本过旧或存储失败时返回安全错误。
   Future<BridgeAppServiceState> agree();
 
+  /// 允许已接受当前政策的宿主按共享状态使用应用服务。
+  void allowHostPrivacy();
+
   /// 使用宿主已确认的本机账号绑定；每次入队仍由 Core 复核共享代次。
   void bindAccount({
     required BridgeSharedAccount scope,
@@ -107,6 +110,7 @@ abstract class BridgeAppService implements RustOpaqueInterface {
     required bool release,
     required BridgeAppServiceSurface surface,
     required int policyVersion,
+    bool? pendingHostPrivacy,
   }) => RustLib.instance.api.crateApiAppServiceBridgeAppServiceOpen(
     configDir: configDir,
     serviceUrl: serviceUrl,
@@ -116,6 +120,7 @@ abstract class BridgeAppService implements RustOpaqueInterface {
     release: release,
     surface: surface,
     policyVersion: policyVersion,
+    pendingHostPrivacy: pendingHostPrivacy,
   );
 
   /// 刷新更新与公告。启动和重新同意可跳过前台间隔，失败保留已保存的配置。

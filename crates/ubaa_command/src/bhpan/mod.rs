@@ -92,10 +92,10 @@ pub fn progress_line(progress: &ubaa_core::facade::BhpanTransferProgress) -> Str
         P::Finalizing => "完成登记",
     };
     if progress.total == 0 {
-        format!("北航云盘：{phase}，已传输 {} 字节\n", progress.bytes)
+        format!("云盘：{phase}，已传输 {} 字节\n", progress.bytes)
     } else {
         format!(
-            "北航云盘：{phase}，{} / {} 字节\n",
+            "云盘：{phase}，{} / {} 字节\n",
             progress.bytes, progress.total
         )
     }

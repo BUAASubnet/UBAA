@@ -72,21 +72,19 @@ mod tests {
             panic!("合成传输收到未登记路径");
         }
     }
-    async fn 客户端() -> (UbaaClient, 合成传输) {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/agenda_cli_a_fix/identity")
-            .join(uuid::Uuid::new_v4().simple().to_string());
-        std::fs::create_dir_all(&root).unwrap();
+    async fn 客户端() -> (ubaa_test_support::TestTempDir, UbaaClient, 合成传输) {
+        let temp = ubaa_test_support::test_temp_dir("ubaa_command_identity").unwrap();
+        let root = temp.path();
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+            std::fs::set_permissions(root, std::fs::Permissions::from_mode(0o700)).unwrap();
         }
         let transport = 合成传输(Arc::new(Mutex::new(Some("fixture-a"))));
         let mut client = UbaaClient::with_routing(
             transport.clone(),
             transport.clone(),
-            FileSessionStore::new(&root).unwrap(),
+            FileSessionStore::new(root).unwrap(),
             ubaa_test_support::RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
             禁止探测,
         )
@@ -102,11 +100,11 @@ mod tests {
             result.readiness,
             ubaa_core::facade::LoginReadiness::AllReady
         );
-        (client, transport)
+        (temp, client, transport)
     }
     #[tokio::test]
     async fn 交互式换号必须撤销旧能力() {
-        let (mut client, transport) = 客户端().await;
+        let (_temp, mut client, transport) = 客户端().await;
         let old = client.take_verified_login_identity().unwrap();
         *transport.0.lock().unwrap() = Some("fixture-b");
         let prepared = client
@@ -126,7 +124,7 @@ mod tests {
     }
     #[tokio::test]
     async fn 交互式换号不得取出旧身份() {
-        let (mut client, transport) = 客户端().await;
+        let (_temp, mut client, transport) = 客户端().await;
         *transport.0.lock().unwrap() = Some("fixture-b");
         client
             .prepare_interactive_login("fixture-b".into())
@@ -141,7 +139,7 @@ mod tests {
     async fn 准备失败与等待验证码均撤销已取出和未取出的旧能力() {
         for mode in ["failure", "challenge"] {
             for taken in [false, true] {
-                let (mut client, transport) = 客户端().await;
+                let (_temp, mut client, transport) = 客户端().await;
                 let old = taken.then(|| client.take_verified_login_identity().unwrap());
                 *transport.0.lock().unwrap() = Some(mode);
                 let prepared = client
@@ -176,7 +174,7 @@ mod tests {
     #[tokio::test]
     async fn 普通活动刷新与临时错误保留同身份能力() {
         for taken in [false, true] {
-            let (mut client, transport) = 客户端().await;
+            let (_temp, mut client, transport) = 客户端().await;
             let old = taken.then(|| client.take_verified_login_identity().unwrap());
             client
                 .recover_required_session(ubaa_core::facade::ReadonlyFeature::Schedule)
@@ -196,14 +194,14 @@ mod tests {
     }
     #[tokio::test]
     async fn 资料读取确认失效也撤销未取出的能力() {
-        let (mut client, transport) = 客户端().await;
+        let (_temp, mut client, transport) = 客户端().await;
         *transport.0.lock().unwrap() = None;
         assert!(client.get_user_info().await.is_err());
         assert!(client.take_verified_login_identity().is_err());
     }
     #[tokio::test]
     async fn 单路线恢复确认失效必须撤销旧能力() {
-        let (mut client, transport) = 客户端().await;
+        let (_temp, mut client, transport) = 客户端().await;
         let old = client.take_verified_login_identity().unwrap();
         *transport.0.lock().unwrap() = None;
         assert!(

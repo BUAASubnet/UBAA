@@ -8,5 +8,7 @@ mod classroom;
 mod common;
 #[path = "readonly/judge.rs"]
 mod judge;
+#[path = "readonly/signin_qr.rs"]
+mod signin_qr;
 #[path = "readonly/spoc.rs"]
 mod spoc;

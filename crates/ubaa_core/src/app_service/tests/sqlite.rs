@@ -1,5 +1,5 @@
 use super::{
-    AppServiceError, Surface,
+    AppServiceError,
     sqlite::{DATABASE_NAME, Store},
 };
 use rusqlite::Connection;
@@ -8,15 +8,22 @@ use rusqlite::Connection;
 #[test]
 fn 系统祖先目录链接可以首次建库并重开原安装() {
     use std::os::unix::fs::symlink;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let real = root.join("real");
     std::fs::create_dir(&real).unwrap();
     symlink(&real, root.join("system-alias")).unwrap();
     let config = root.join("system-alias/UBAA");
-    let first = Store::open(&config, Some(1), Surface::Gui).unwrap();
+    let first = Store::open(&config, Some(1)).unwrap();
+    first
+        .write(|tx| {
+            tx.execute(
+                "UPDATE app_service_state SET install_id = ?1",
+                [uuid::Uuid::new_v4().to_string()],
+            )?;
+            Ok(())
+        })
+        .unwrap();
     let install = first
         .read(|tx| {
             Ok(
@@ -27,7 +34,7 @@ fn 系统祖先目录链接可以首次建库并重开原安装() {
         })
         .unwrap();
     drop(first);
-    let reopened = Store::open(&real.join("UBAA"), Some(1), Surface::Gui).unwrap();
+    let reopened = Store::open(&real.join("UBAA"), Some(1)).unwrap();
     assert_eq!(
         reopened
             .read(|tx| Ok(
@@ -48,16 +55,14 @@ fn 系统祖先目录链接可以首次建库并重开原安装() {
 #[test]
 fn 应用目录和数据库文件链接仍然拒绝() {
     use std::os::unix::fs::symlink;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let real = root.join("real");
     std::fs::create_dir(&real).unwrap();
     let alias = root.join("UBAA");
     symlink(&real, &alias).unwrap();
     assert!(matches!(
-        Store::open(&alias, None, Surface::Gui),
+        Store::open(&alias, None),
         Err(AppServiceError::StorageUnavailable)
     ));
     for suffix in ["", "-journal", "-wal", "-shm"] {
@@ -66,7 +71,7 @@ fn 应用目录和数据库文件链接仍然拒绝() {
         let file = real.join(format!("{DATABASE_NAME}{suffix}"));
         symlink(&target, &file).unwrap();
         assert!(matches!(
-            Store::open(&real, None, Surface::Gui),
+            Store::open(&real, None),
             Err(AppServiceError::StorageUnavailable)
         ));
         assert_eq!(std::fs::read(&target).unwrap(), b"synthetic-preserved");
@@ -77,9 +82,7 @@ fn 应用目录和数据库文件链接仍然拒绝() {
 
 #[test]
 fn failed_migration_leaves_both_databases_intact() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let business = Connection::open(root.join("business.sqlite3")).unwrap();
     business
@@ -88,7 +91,7 @@ fn failed_migration_leaves_both_databases_intact() {
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch("CREATE TABLE app_service_pending (value INTEGER); INSERT INTO app_service_pending VALUES (9)").unwrap();
 
-    assert!(Store::open(&root, None, Surface::Gui).is_err());
+    assert!(Store::open(&root, None).is_err());
     assert_eq!(
         installation
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
@@ -115,7 +118,7 @@ fn failed_migration_leaves_both_databases_intact() {
         .pragma_update(None, "user_version", 99)
         .unwrap();
     assert!(matches!(
-        Store::open(&root, None, Surface::Gui),
+        Store::open(&root, None),
         Err(AppServiceError::UnsupportedSchema)
     ));
     assert_eq!(
@@ -139,9 +142,7 @@ fn failed_migration_leaves_both_databases_intact() {
 fn facade_uses_shared_install_and_discards_revoked_account() {
     use crate::facade::{SharedAccountGuard, UbaaClient, app_service::*};
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     {
         let gui_client = UbaaClient::open(&root).unwrap();
         let command_client = UbaaClient::open(&root).unwrap();
@@ -234,9 +235,7 @@ fn 校园午夜后原会话再次登记同一用户和年级() {
     use chrono::{DateTime, TimeDelta, Utc};
     use std::sync::{Arc, Mutex};
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     {
         let client = UbaaClient::open(&root).unwrap();
         let config = AppServiceConfig::from_build(
@@ -313,9 +312,7 @@ fn check_migration(version: u32) {
         AppService, AppServiceConfig, BatchDisposition, Consent, Surface, bootstrap, queue, state,
     };
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch(state::SCHEMA).unwrap();

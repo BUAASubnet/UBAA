@@ -8,9 +8,30 @@ import '../support/shared_account_worker.dart'
     show syntheticWindowsMaterials, SyntheticMaterialCodec;
 
 void main() {
+  late Directory workerDirectory;
+  late String workerExecutable;
   late Directory root;
   late SecureMaterialStore materials;
   late SecureLocalAccountStore accounts;
+  setUpAll(() async {
+    workerDirectory = await Directory.systemTemp.createTemp(
+      'ubaa_synthetic_worker_',
+    );
+    workerExecutable =
+        '${workerDirectory.path}/worker${Platform.isWindows ? '.exe' : ''}';
+    final compilation = await Process.run('just', [
+      'dart',
+      'compile',
+      'exe',
+      'packages/ubaa_platform/test/support/shared_account_worker.dart',
+      '-o',
+      workerExecutable,
+    ], workingDirectory: _repository());
+    expect(compilation.exitCode, 0, reason: '${compilation.stderr}');
+  });
+  tearDownAll(() async {
+    await workerDirectory.delete(recursive: true);
+  });
   setUp(() async {
     root = await Directory.systemTemp.createTemp('ubaa_synthetic_process_');
     materials = SecureMaterialStore(
@@ -27,57 +48,52 @@ void main() {
   });
 
   Future<Process> start(
-    String command, [
+    String command, {
     String value = '',
     String? lockPath,
-  ]) => Process.start(
-    'just',
-    [
-      'dart',
-      'run',
-      'packages/ubaa_platform/test/support/shared_account_worker.dart',
-      root.path,
-      command,
-      value,
-      if (lockPath != null) lockPath,
-    ],
-    workingDirectory: _repository(),
-    environment: {'UBAA_CONFIG_DIR': '${root.path}/config-$command-$value'},
-  );
-  Future<String> run(
-    String command, [
-    String value = '',
-    String? lockPath,
-  ]) async {
-    final child = await start(command, value, lockPath);
+    Map<String, String> environment = const {},
+  }) async {
+    final child = await Process.start(
+      workerExecutable,
+      [root.path, command, value, if (lockPath != null) lockPath],
+      environment: {
+        'UBAA_CONFIG_DIR': '${root.path}/config-$command-$value',
+        ...environment,
+      },
+    );
+    var exited = false;
+    final exit = child.exitCode.then<void>((_) {
+      exited = true;
+    });
+    addTearDown(() async {
+      if (!exited) child.kill(ProcessSignal.sigkill);
+      await exit;
+    });
+    return child;
+  }
+
+  Future<String> output(Process child) async {
     final out = utf8.decoder.bind(child.stdout).join();
     final err = utf8.decoder.bind(child.stderr).join();
     expect(await child.exitCode, 0, reason: await err);
     return (await out).trim();
   }
 
+  Future<String> run(String command, [String value = '']) async =>
+      output(await start(command, value: value));
+
   test('同一系统用户修改 HOME、USERPROFILE 和 XDG 后默认锁域仍相同', () async {
-    Future<String> resolve(String suffix) async {
-      final result = await Process.run(
-        'just',
-        [
-          'dart',
-          'run',
-          'packages/ubaa_platform/test/support/shared_account_worker.dart',
-          root.path,
-          'defaultDirectory',
-        ],
-        workingDirectory: _repository(),
+    Future<String> resolve(String suffix) async => output(
+      await start(
+        'defaultDirectory',
         environment: {
           'HOME': '${root.path}/home-$suffix',
           'USERPROFILE': '${root.path}/profile-$suffix',
           'XDG_DATA_HOME': '${root.path}/xdg-$suffix',
           'UBAA_CONFIG_DIR': '${root.path}/config-$suffix',
         },
-      );
-      expect(result.exitCode, 0, reason: result.stderr.toString());
-      return result.stdout.toString().trim();
-    }
+      ),
+    );
 
     expect(await resolve('one'), await resolve('two'));
   });
@@ -141,24 +157,58 @@ void main() {
     expect(state.account!.id, saved['id']);
     expect(base64Encode(await accounts.cacheKey(state.account!)), saved['key']);
   });
+  test(
+    '两个进程同时启动对账只撤销一次并推进一代',
+    timeout: const Timeout(Duration(seconds: 60)),
+    () async {
+      final state = await accounts.retain('fixture-a', retainSession: true);
+      await accounts.cacheKey(state.account!);
+      final directory = '${root.path}/coordination';
+      final marker = File('$directory/transaction.v1');
+      await marker.writeAsString('UBAA1:B:remove', flush: true);
+
+      final workers = await Future.wait([
+        start('reconcile', value: 'a'),
+        start('reconcile', value: 'b'),
+      ]);
+      final readiness = Stopwatch()..start();
+      while (!await File('${root.path}/ready-a').exists() ||
+          !await File('${root.path}/ready-b').exists()) {
+        if (readiness.elapsed >= const Duration(seconds: 45)) {
+          fail('两个对账进程未就绪');
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      await File('${root.path}/reconcile-go').create();
+      expect(
+        await Future.wait(workers.map(output)),
+        unorderedEquals(['reset', 'clean']),
+      );
+      expect(await marker.readAsString(), 'UBAA1:C');
+      expect(
+        await File('$directory/account-generation.v1').readAsString(),
+        'UBAA1:${state.generation + 1}',
+      );
+      expect((await accounts.read())!.account, isNull);
+    },
+  );
   test('有界锁等待、路径别名、进程终止释放及普通句柄结束不退出', () async {
     final state = await accounts.retain('fixture-a', retainSession: true);
     final path = Directory('${root.path}/coordination');
     final alias = Link('${root.path}/alias');
     await alias.create(path.path);
-    final holder = await start('hold', '', alias.path);
+    final holder = await start('hold', lockPath: alias.path);
     final lines = StreamIterator(
       utf8.decoder.bind(holder.stdout).transform(const LineSplitter()),
     );
-    expect(await lines.moveNext(), isTrue);
-    expect(lines.current, startsWith('LOCKED:'));
-    final holderPid = int.parse(lines.current.split(':').last);
     try {
+      expect(await lines.moveNext(), isTrue);
+      expect(lines.current, startsWith('LOCKED:'));
       final time = Stopwatch()..start();
       expect(await run('probe'), 'BLOCKED');
       expect(time.elapsed, lessThan(const Duration(seconds: 10)));
     } finally {
-      Process.killPid(holderPid, ProcessSignal.sigkill);
+      holder.kill(ProcessSignal.sigkill);
       await holder.exitCode;
       await lines.cancel();
     }
@@ -172,12 +222,14 @@ void main() {
     final lines = StreamIterator(
       utf8.decoder.bind(child.stdout).transform(const LineSplitter()),
     );
-    expect(await lines.moveNext(), isTrue);
-    expect(lines.current, startsWith('MUTATION_PENDING:'));
-    final childPid = int.parse(lines.current.split(':').last);
-    Process.killPid(childPid, ProcessSignal.sigkill);
-    await child.exitCode;
-    await lines.cancel();
+    try {
+      expect(await lines.moveNext(), isTrue);
+      expect(lines.current, startsWith('MUTATION_PENDING:'));
+    } finally {
+      child.kill(ProcessSignal.sigkill);
+      await child.exitCode;
+      await lines.cancel();
+    }
     expect(await run('probe'), 'BLOCKED');
     await expectLater(accounts.read(), throwsA(isA<SecureMaterialException>()));
     final raw =

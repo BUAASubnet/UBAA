@@ -14,9 +14,6 @@ AuthKey_*.p8
 *.provisionprofile
 *.p7b
 
-# 冻结本地引用（只能由 scripts/bootstrap/references.sh 创建）
-/examples/
-
 # Rust output
 /target/
 
@@ -41,22 +38,6 @@ session.json
 /artifacts/live/
 *.captcha
 *.captcha.*
-
-# UI 验收媒体保存在 .ubaa_local/；本目录只提交原型源文件和脱敏文字摘要。
-/docs/design/evidence/**/*.png
-/docs/design/evidence/**/*.jpg
-/docs/design/evidence/**/*.jpeg
-/docs/design/evidence/**/*.gif
-/docs/design/evidence/**/*.webp
-/docs/design/evidence/**/*.bmp
-/docs/design/evidence/**/*.tif
-/docs/design/evidence/**/*.tiff
-/docs/design/evidence/**/*.heic
-/docs/design/evidence/**/*.avif
-/docs/design/evidence/**/*.mp4
-/docs/design/evidence/**/*.mov
-/docs/design/evidence/**/*.webm
-/docs/design/evidence/**/*.mkv
 
 # Editor and operating-system files
 .worktrees/
@@ -87,6 +68,7 @@ session.json
 
 # 项目本地工作区：审计报告、监督记录等不提交的项目资料
 /.ubaa_local/
+/dist/
 
 # Playwright MCP 本地输出。
 /.playwright-mcp/

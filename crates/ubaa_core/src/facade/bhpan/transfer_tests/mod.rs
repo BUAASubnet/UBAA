@@ -163,15 +163,13 @@ impl HttpTransport for Transport {
 struct Fixture {
     client: UbaaClient,
     transport: Transport,
-    root: PathBuf,
+    root: crate::test_tmp::TestTempDir,
     parent: BhpanItem,
 }
 impl Fixture {
     fn new() -> Self {
         let transport = Transport::default();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/bhpan_delivery/integration/transfer_tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let root = crate::test_tmp::test_temp_dir("ubaa_core_bhpan_transfer").unwrap();
         let mut config = RouteConfig::default();
         config.replace_default_policy(RoutePolicy::Direct);
         let mut client = UbaaClient::with_routing(
@@ -245,9 +243,7 @@ impl Fixture {
     fn finish(self) {
         self.transport.script.done();
         assert_eq!(self.transport.objects.lock().unwrap().len(), 0);
-        let root = self.root.clone();
         drop(self);
-        std::fs::remove_dir_all(root).unwrap();
     }
 }
 mod versions;

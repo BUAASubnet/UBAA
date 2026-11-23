@@ -284,8 +284,15 @@ pub(crate) async fn get_exam(
 }
 
 async fn ensure_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime) -> Result<()> {
+    use crate::session::business_cache::BusinessScope;
+
+    let scope = BusinessScope::Byxt;
+    let before = runtime.business_cookies_for_rejection(scope);
     let mut response = probe_undergraduate_portal(runtime).await?;
     if undergraduate_portal_requires_sso(&response) {
+        if let Some(rejected) = before {
+            runtime.reject_business_session(scope, &rejected);
+        }
         activate_undergraduate_portal(runtime).await?;
         response = probe_undergraduate_portal(runtime).await?;
     }

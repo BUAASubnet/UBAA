@@ -45,20 +45,11 @@ version *args:
 version-check:
     python3 scripts/release/version.py --check
 
-refs:
-    bash ./scripts/check/references.sh
-
-# 唯一允许联网并创建缺失冻结引用的显式入口。
-refs-bootstrap:
-    bash ./scripts/bootstrap/references.sh
-
 fmt:
     cargo fmt --all -- --check
 
-[env("CARGO_INCREMENTAL", "0")]
 test:
-    just core-test-contract
-    cargo test --locked --workspace --exclude ubaa-core
+    cargo test --locked --workspace
 
 # Core 单元/集成只执行一次；默认配置保留编译、文档与关闭态负向合同。
 [env("CARGO_INCREMENTAL", "0")]
@@ -68,9 +59,8 @@ core-test-contract:
     cargo test --locked -p ubaa-core --features test-contract --all-targets
     bash ./scripts/tests/facade-test-contract.sh
 
-# 日常反馈：可用 base=origin/ubaa2 覆盖本分支已提交改动；默认包含全部本地改动。
+# 默认按改动选择提交检查；mode=full 显式执行完整验收。
 [positional-arguments]
-[env("CARGO_INCREMENTAL", "0")]
 check-changed *args:
     @python3 scripts/lib/recipe.py check-changed "$@"
 
@@ -78,10 +68,17 @@ check-changed *args:
 check-plan *args:
     @python3 scripts/lib/recipe.py check-plan "$@"
 
+[positional-arguments]
+check *crates:
+    cargo fmt --all -- --check
+    bash scripts/build/rust-workspace.sh clippy "$@"
+    bash scripts/build/rust-workspace.sh test "$@"
+
+[positional-arguments]
 [env("CARGO_INCREMENTAL", "0")]
-check:
-    just shell-check
-    just _rust-shell-contracts
+check-risk *crates:
+    just core-test-contract
+    bash scripts/build/rust-workspace.sh risk "$@"
 
 # 维护验收和 CI 使用的严格入口；ShellCheck 缺失或版本不是 0.11.0 时立即失败。
 [env("CARGO_INCREMENTAL", "0")]
@@ -90,30 +87,31 @@ check-strict:
     just _rust-shell-contracts
 
 # 文档、脚本与工作流使用独立轻检查，不编译 Rust 或原生宿主。
-script-check:
+script-check scope="all":
     just shell-check-strict
     just _script-contracts
+    if [ "{{scope}}" = all ]; then just _script-specialized; fi
 
 _script-contracts:
     just script-test
     just integration-check
-    bash ./scripts/tests/layout.sh
-    bash ./scripts/tests/contract-versions.sh
-    bash ./scripts/tests/references.sh
-    bash ./scripts/tests/flutter-toolchains.sh
-    bash ./scripts/tests/maintenance-gates.sh
     just layout-check
+    just module-check
     just contract-version-check
+    git diff --check
+
+_script-specialized:
+    bash ./scripts/tests/maintenance-gates.sh
     just privacy-policy-check
     just docs-link-check
     just tool-version-check
     just version-check
     just cargo-lock-check
     bash ./scripts/tests/live-launchers.sh
-    git diff --check
 
 _rust-shell-contracts:
     just _script-contracts
+    just _script-specialized
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
@@ -127,7 +125,7 @@ _rust-shell-contracts:
 check-sensitive:
     bash ./scripts/check/sensitive.sh
 
-# 结构 checker 与当前违例 baseline；合同测试由 just check 独立执行。
+# 检查目录命名和结构违例；脚本合同由 just script-check 执行。
 layout-check:
     bash ./scripts/check/layout.sh
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/check/directory_names.py
@@ -139,7 +137,7 @@ contract-version-check:
 # 用锁定依赖构建应用服务，并在隔离 PostgreSQL 中验证接口合同。
 app-service-check:
     python3 scripts/check/app_service/enums.py
-    npm --prefix services/app_service ci --no-audit --no-fund
+    bash scripts/check/app_service/npm-install.sh services/app_service
     npm --prefix services/app_service run check
 
 # 显式启动回环 Node.js 服务，联调 Core、Bridge 和宿主；不进入 CI。
@@ -148,11 +146,11 @@ app-service-e2e:
 
 # 校验发布内容，并用合成内容构建网站、用假 CLI 验证发布边界。
 app-service-content-check:
-    npm ci --no-audit --no-fund
+    bash scripts/check/app_service/npm-install.sh .
     node scripts/check/app_service/content.mjs
     node --test scripts/tests/app_service/content_test.mjs scripts/tests/app_service/announcements_site_test.mjs scripts/tests/app_service/release_test.mjs
 
-# 校验内容并触发 main 部署；普通检查不调用。
+# 校验内容并触发 dev 的渠道与公告发布；普通检查不调用。
 [script]
 app-service-publish:
     python3 scripts/lib/toolchain.py release publish
@@ -163,11 +161,11 @@ app-service-deploy:
     python3 scripts/lib/toolchain.py release deploy
 
 # 生成使用情况看板 JSON，不联网，部署见应用服务手册。
-app-service-dashboard output=".ubaa_local/app_service_dashboard/ubaa.json":
+app-service-dashboard output="dist/app_service_dashboard/ubaa.json":
     python3 scripts/release/app_service_dashboard.py --output "{{output}}"
 
 # 生成供维护者查看的错误诊断看板 JSON。
-app-service-diagnostics-dashboard output=".ubaa_local/app_service_dashboard/diagnostics.json":
+app-service-diagnostics-dashboard output="dist/app_service_dashboard/diagnostics.json":
     python3 scripts/release/app_service_dashboard.py --maintenance --output "{{output}}"
 
 # 只读核对网站正文摘要和应用内嵌入的政策。
@@ -225,7 +223,6 @@ flutter-codegen-check:
     bash ./scripts/check/flutter-codegen.sh
 
 # 固定官方 Flutter SDK 下统一解析依赖、一次格式与静态分析，再逐包测试。
-[env("CARGO_INCREMENTAL", "0")]
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 
@@ -242,41 +239,13 @@ flutter-test *args:
 source-files:
     rg --files apps crates packages scripts -g '!**/cargokit/**' -g '!**/frb_generated.rs' -g '!**/lib/src/rust/**'
 
+prune-target:
+    python3 scripts/build/cache.py prune-target
+
 # 不访问学校或设备的 Python 行为合同。
 script-test:
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/command_build_test.py
-    python3 scripts/tests/release/ci_selection_test.py
-    python3 scripts/tests/release/acceptance_test.py
-    python3 scripts/tests/release/metadata_test.py
-    python3 scripts/tests/release/distribute_test.py
-    python3 scripts/tests/release/server_deploy_test.py
-    python3 scripts/tests/release/download_manifest_test.py
-    python3 scripts/tests/release/ios_privacy_test.py
-    bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
-    python3 scripts/tests/app_service/enums_test.py
-    bash scripts/tools/python.sh scripts/tests/app_service/privacy_policy_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/release/app_service_dashboard_test.py
-    python3 scripts/tests/integration_catalog_test.py
-    python3 scripts/tests/checks/native_bindings_test.py
-    python3 scripts/tests/checks/ohos_native_library_test.py
-    python3 scripts/tests/checks/codegen_gate_test.py
-    python3 scripts/tests/checks/docs_links_test.py
-    python3 scripts/tests/checks/environment_test.py
-    python3 scripts/tests/checks/recipe_args_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/cargo_locks_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/build_cache_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/repo_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/release_preflight_test.py
-    bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/build_record_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/doctor_test.py
+    bash scripts/tools/python.sh scripts/tools/run_python_tests.py
     node --test scripts/tests/checks/ohos_hvigor_test.cjs
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。
 quality-tools-bootstrap:

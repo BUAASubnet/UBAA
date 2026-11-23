@@ -6,8 +6,8 @@ use serde::Serialize;
 
 use serde_json::Value;
 use ubaa_core::facade::{
-    AuthStatus, ConnectionMode, EvaluationBatchResult, FeatureResult, LoginOutcome, LoginReadiness,
-    RouteLoginState, RoutePolicy, SafeError, UserProfile,
+    ConnectionMode, EvaluationBatchResult, LoginOutcome, LoginReadiness, RouteLoginState,
+    RoutePolicy, SafeError, UserProfile,
 };
 use ubaa_core::facade::{NetworkState, RouteResolution};
 use ubaa_core::facade::{Result as CoreResult, UbaaError};
@@ -22,7 +22,7 @@ pub const CLI_JSON_SCHEMA_VERSION: u32 = 18;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
-    /// 北航云盘。
+    /// 云盘。
     Bhpan,
     /// 本机日程。
     Agenda,
@@ -443,23 +443,8 @@ fn validate_auth_outcome(outcome: &LoginOutcome, success: bool) -> Result<(), Ub
     Ok(())
 }
 
-pub(crate) fn readonly<T: Serialize>(
-    result: FeatureResult<T>,
-    feature: CliFeature,
-) -> CoreResult<CommandOutput> {
-    let data =
-        serde_json::to_value(result.data).map_err(|_| internal_error("无法序列化命令输出"))?;
-    Ok(CommandOutput::Readonly {
-        data,
-        route: result.resolved_route,
-        feature,
-    })
-}
-
 pub(crate) enum CommandOutput {
     Profile(UserProfile),
-    Status(AuthStatus),
-    Logout(Value),
     Readonly {
         data: Value,
         route: ConnectionMode,
@@ -474,8 +459,7 @@ pub(crate) enum CommandOutput {
 pub(crate) fn command_output_value(output: CommandOutput) -> CoreResult<Value> {
     match output {
         CommandOutput::Profile(profile) => serde_json::to_value(profile),
-        CommandOutput::Status(status) => serde_json::to_value(status),
-        CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
+        CommandOutput::Readonly { data: value, .. } => Ok(value),
         CommandOutput::EvaluationBatch { data, .. } => serde_json::to_value(data),
     }
     .map_err(|_| internal_error("无法序列化命令输出"))

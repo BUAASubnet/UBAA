@@ -123,10 +123,8 @@ fn executor() -> tokio::runtime::Runtime {
         .build()
         .unwrap()
 }
-fn client(script: Script) -> (UbaaClient, std::path::PathBuf) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/tests")
-        .join(uuid::Uuid::new_v4().to_string());
+fn client(script: Script) -> (UbaaClient, crate::test_tmp::TestTempDir) {
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_bhpan").unwrap();
     let mut config = RouteConfig::default();
     config.replace_default_policy(RoutePolicy::Direct);
     let mut client = UbaaClient::with_routing(

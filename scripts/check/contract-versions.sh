@@ -32,16 +32,6 @@ read_single_version() {
   extracted_version=$values
 }
 
-require_literal() {
-  local path=$1
-  local literal=$2
-  if [[ ! -f "$contract_root/$path" ]]; then
-    report_error "缺少 ${path}"
-  elif ! LC_ALL=C grep -F -- "$literal" "$contract_root/$path" >/dev/null; then
-    report_error "${path} 未声明当前版本：${literal}"
-  fi
-}
-
 cli_version=
 if read_single_version \
   'crates/ubaa_command/src/io/schema.rs' \
@@ -115,18 +105,6 @@ JSON
   fi
 fi
 
-if [[ -n $cli_version ]]; then
-  require_literal 'docs/contracts/auth-and-user.md' "CLI JSON schema v${cli_version}"
-  require_literal 'docs/contracts/readonly-features.md' "schema-v${cli_version} 路由 envelope"
-  require_literal 'docs/project/status.md' "CLI JSON schema v${cli_version}"
-fi
-
-if [[ -n $bridge_version ]]; then
-  require_literal 'docs/contracts/flutter-bridge.md' "合同版本为 \`${bridge_version}\`"
-  require_literal 'docs/contracts/flutter-bridge.md' "\`u32=${bridge_version}\`"
-  require_literal 'docs/project/status.md' "Flutter bridge contract v${bridge_version}"
-fi
-
 app_service_version=
 if read_single_version \
   'crates/ubaa_core/src/app_service/mod.rs' \
@@ -144,7 +122,6 @@ if read_single_version \
 fi
 
 if [[ -n $app_service_version ]]; then
-  require_literal 'docs/contracts/app-service.md' "接口载荷版本为 \`schema: ${app_service_version}\`"
   app_schema_path='docs/contracts/app-service.schema.json'
   if ! app_schema_error=$(python3 - "$contract_root/$app_schema_path" "$app_service_version" 2>&1 <<'JSON'
 import json

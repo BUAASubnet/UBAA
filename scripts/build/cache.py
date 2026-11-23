@@ -2,7 +2,7 @@
 """查看并按范围清理仓库内可重建的构建缓存；默认只显示占用，不删除。
 
 只处理下表登记、被 Git 忽略且不含受跟踪文件的真实目录。`.ubaa_local`、
-运行会话、冻结引用和仓库外的工具链缓存都不在清理范围内。
+运行会话和仓库外的工具链缓存都不在清理范围内。
 """
 import argparse
 import os
@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
 
 sys.dont_write_bytecode = True
 
@@ -40,7 +41,8 @@ def directories(root, patterns):
     for pattern in patterns:
         for path in sorted(root.glob(pattern)):
             # ** 也会匹配 Gradle 等工具的同名目录，只认 Cargo profile 目录下的增量缓存。
-            if path.name == 'incremental' and '**' in pattern and not (path.parent / '.fingerprint').is_dir():
+            if path.name == 'incremental' and '**' in pattern and not (
+                    (path.parent / '.cargo-lock').is_file() or (path.parent / '.fingerprint').is_dir()):
                 continue
             if path.is_dir() or path.is_symlink():
                 found.append(path)
@@ -87,6 +89,37 @@ def refusal(root, path):
     return None
 
 
+def prune_target(root, now=None):
+    root = root.resolve()
+    cutoff = (time.time() if now is None else now) - 7 * 24 * 60 * 60
+    candidates = []
+    for path in sorted(root.glob('target/*/incremental/*')):
+        if not path.is_dir() or path.is_symlink() or any(
+                parent.is_symlink() for parent in path.parents if root in parent.parents):
+            continue
+        if path.stat().st_mtime >= cutoff or any(
+                (Path(current) / name).lstat().st_mtime >= cutoff
+                for current, dirs, files in os.walk(path) for name in dirs + files):
+            continue
+        candidates.append(path)
+    problems = [f'{path.relative_to(root)}：{reason}' for path in candidates
+                if (reason := refusal(root, path)) is not None]
+    if problems:
+        raise SystemExit('拒绝清理，未删除任何目录：\n' + '\n'.join(problems))
+    if not candidates:
+        print('没有超过七天的增量编译目录。')
+        return
+    total = 0
+    seen = set()
+    for path in candidates:
+        size = disk_usage(path, seen)
+        total += size
+        print(f'删除 {path.relative_to(root)}（{human(size)}）')
+    print(f'合计 {human(total)}', flush=True)
+    for path in candidates:
+        shutil.rmtree(path)
+
+
 def show(root):
     print(f'{"范围":<18}{"占用":>12}  说明')
     for name, (description, patterns) in SCOPES.items():
@@ -128,12 +161,14 @@ def clean(root, scopes):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', default=str(Path(__file__).resolve().parents[2]), help=argparse.SUPPRESS)
-    parser.add_argument('action', nargs='?', choices=['show', 'clean'], default='show')
+    parser.add_argument('action', nargs='?', choices=['show', 'clean', 'prune-target'], default='show')
     parser.add_argument('scopes', nargs='*')
     args = parser.parse_args()
     root = Path(args.root).resolve()
     if args.action == 'show':
         show(root)
+    elif args.action == 'prune-target':
+        prune_target(root)
     else:
         clean(root, args.scopes)
 

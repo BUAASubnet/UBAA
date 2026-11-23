@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use ubaa_command::{CliFeature, render_startup_error};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, CliFeature, render_startup_error};
 use ubaa_core::facade::{ErrorCode, ErrorKind, UbaaError};
 
 use crate::common::assert_cli_schema;
@@ -149,7 +149,7 @@ fn assert_json_and_human_streams(case: ExitCase) {
         "stdout contains multiple JSON values"
     );
     assert_cli_schema(&envelope);
-    assert_eq!(envelope["schemaVersion"], 18);
+    assert_eq!(envelope["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(envelope["ok"], false);
     assert!(envelope.get("data").is_none());
     assert_eq!(envelope["error"]["code"], case.wire_code);

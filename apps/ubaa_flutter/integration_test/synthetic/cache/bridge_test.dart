@@ -38,7 +38,6 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 75);
       final raw = jsonDecode(client.exportRawDiagnostics()) as Map;
       expect(raw['enabled'], true);
       expect(raw['records'], isEmpty);

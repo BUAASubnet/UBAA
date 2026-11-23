@@ -8,11 +8,13 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('宿主所有系统控件使用中文而非仅手写菜单提示', (tester) async {
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: _CountingBackend(),
         credentialVault: MemoryCredentialVault(),
       ),
@@ -41,6 +43,7 @@ void main() {
     Future<void> mount() async {
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           key: const ValueKey<String>('same-host'),
           nativeThemeSync: NativeThemeSync(enabled: true),
           backend: backend,
@@ -94,7 +97,7 @@ void main() {
 
   testWidgets('设备主题跨宿主恢复，迟到读取不能覆盖用户选择或通知原生旧值', (tester) async {
     _setSize(tester);
-    final preferences = MemoryPreferenceValues();
+    final preferences = acceptedPrivacyPreferences();
     await tester.pumpWidget(
       UbaaAppHost(
         key: const ValueKey<String>('first-run'),
@@ -166,7 +169,7 @@ void main() {
 
   testWidgets('个人页主题色即时生效、写入设备偏好并在新宿主恢复', (tester) async {
     _setSize(tester);
-    final preferences = MemoryPreferenceValues();
+    final preferences = acceptedPrivacyPreferences();
     Future<void> mount(String key) async {
       await tester.pumpWidget(
         UbaaAppHost(
@@ -268,7 +271,7 @@ Future<void> _choose(WidgetTester tester, String label) async {
 
 class _DelayedThemePreferences implements PreferenceValues {
   final theme = Completer<String?>();
-  final other = MemoryPreferenceValues();
+  final other = acceptedPrivacyPreferences();
   @override
   Future<String?> read(String key) =>
       key == 'flutter.ubaa.preferences.theme' ? theme.future : other.read(key);

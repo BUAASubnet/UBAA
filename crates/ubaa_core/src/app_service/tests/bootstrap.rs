@@ -1,28 +1,20 @@
 use super::{AppBootstrapView, AppService, AppUpdateStatus, compare_versions, parse_response};
 use crate::{
-    app_service::{AppServiceConfig, Channel, Platform, Surface},
+    app_service::{APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Channel, Platform, Surface},
     error::Result,
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Value, json};
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_bootstrap")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_bootstrap").unwrap())
     }
 
     fn open(
@@ -35,7 +27,7 @@ impl TestDirectory {
     ) -> AppService {
         let clock = Arc::clone(clock);
         AppService::open(
-            &self.0,
+            self.0.path(),
             AppServiceConfig::from_build(
                 Some("http://127.0.0.1:8787"),
                 Some(channel),
@@ -48,12 +40,6 @@ impl TestDirectory {
         )
         .unwrap()
         .with_runtime(move || *clock.lock().unwrap(), true)
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 
@@ -168,6 +154,49 @@ fn active(view: &AppBootstrapView) -> bool {
 }
 
 #[tokio::test]
+async fn 首次启动与政策升级均须明示同意才请求启动配置() {
+    use crate::app_service::Consent;
+
+    let dir = TestDirectory::new();
+    let clock = clock();
+    let mock = Mock::named("未知顶层字段不妨碍识别更新要求");
+    let first = dir.open("github", "1.9.0+9", Surface::Gui, 7, &clock);
+    assert_eq!(first.snapshot().unwrap().consent, Consent::Unasked);
+    first.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 0);
+    first.agree(7).unwrap();
+    let next = dir.open("github", "1.9.0+9", Surface::Gui, 8, &clock);
+    assert_eq!(
+        next.snapshot().unwrap().consent,
+        Consent::ReconsentRequired(8)
+    );
+    next.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 0);
+    next.agree(8).unwrap();
+    next.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 1);
+    let pending = dir
+        .open("github", "1.9.0+9", Surface::Gui, 8, &clock)
+        .with_pending_host_privacy();
+    assert_eq!(pending.snapshot().unwrap().consent, Consent::Agreed(8));
+    assert!(
+        pending
+            .refresh_bootstrap_with(&mock, true)
+            .await
+            .unwrap()
+            .update
+            .is_none()
+    );
+    assert!(!pending.update_gate_active().unwrap());
+    assert_eq!(mock.count(), 1);
+    next.enter_basic().unwrap();
+    let basic = dir.open("github", "1.9.0+9", Surface::Gui, 8, &clock);
+    assert_eq!(basic.snapshot().unwrap().consent, Consent::Basic);
+    basic.refresh_bootstrap_with(&mock, true).await.unwrap();
+    assert_eq!(mock.count(), 1);
+}
+
+#[tokio::test]
 async fn 启动刷新隔离身份并按六小时节流且命令模式只读门控() {
     let dir = TestDirectory::new();
     let clock = clock();
@@ -193,7 +222,9 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
         assert_eq!(request.method, HttpMethod::Get);
         assert_eq!(
             request.url,
-            "http://127.0.0.1:8787/v1/bootstrap?schema=1&platform=android&channel=github&version=1.9.0%2B9"
+            format!(
+                "http://127.0.0.1:8787/v1/bootstrap?schema={APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=1.9.0%2B9"
+            )
         );
         assert_eq!(request.headers.len(), 0);
         assert_eq!(request.body.len(), 0);
@@ -247,8 +278,8 @@ async fn 门控在撤回时停用并在重新同意刷新失败或未知状态�
         &gui.refresh_bootstrap_with(&required, true).await.unwrap()
     ));
     let new_policy = dir.open("github", "1.9.0", Surface::Gui, 2, &clock);
-    assert!(gui.update_gate_active().unwrap());
-    assert!(new_policy.update_gate_active().unwrap());
+    assert!(!gui.update_gate_active().unwrap());
+    assert!(!new_policy.update_gate_active().unwrap());
     assert_eq!(required.count(), 1);
     gui.enter_basic().unwrap();
     assert!(!new_policy.update_gate_active().unwrap());

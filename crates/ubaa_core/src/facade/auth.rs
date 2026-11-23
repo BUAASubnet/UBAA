@@ -54,10 +54,12 @@ impl UbaaClient {
         runtime.check_school_requests()?;
         let result = auth.login_automatically(runtime, input).await;
         self.clear_on_session_conflict()?;
-        result.map(|data| super::types::CallerPinned {
-            data,
-            pinned_route: route,
-        })
+        result
+            .map(|data| super::types::CallerPinned {
+                data,
+                pinned_route: route,
+            })
+            .map_err(UbaaError::for_facade)
     }
 
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
@@ -164,6 +166,22 @@ impl UbaaClient {
     pub async fn logout(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
+        {
+            let _permit = self
+                .shared_account_guard()
+                .as_ref()
+                .map(super::SharedAccountGuard::acquire)
+                .transpose()?;
+            if self
+                .sessions
+                .revoke_business_for_logout(
+                    crate::session::business_cache::Invalidation::RevokeAll,
+                )?
+                .is_err()
+            {
+                tracing::warn!("注销前撤销业务会话缓存失败");
+            }
+        }
         self.cloud_print = None;
         self.clear_interactive_context();
         self.direct_auth
@@ -183,6 +201,7 @@ impl UbaaClient {
             .map(super::SharedAccountGuard::acquire)
             .transpose()?;
         let revisions = self.sessions.clear_both()?;
+        self.business_sessions.discard_seeds();
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         Ok(())
@@ -284,7 +303,9 @@ impl UbaaClient {
 
     pub(super) fn clear_on_session_conflict(&mut self) -> Result<()> {
         if self.sessions.is_conflicted() {
-            self.clear_all_memory();
+            if !std::mem::replace(&mut self.session_conflict_seen, true) {
+                self.clear_runtime_memory();
+            }
             Err(DualSessionCoordinator::conflict_error())
         } else {
             Ok(())
@@ -338,7 +359,7 @@ pub(super) fn safe_error(error: &UbaaError) -> SafeError {
         diagnostic: error.auth_diagnostic(),
         code,
         kind,
-        retryable: error.retryable,
+        retryable: error.facade_retryable(),
         message: error.message.clone(),
     }
 }

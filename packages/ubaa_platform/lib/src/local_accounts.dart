@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'material/material_coordination.dart';
 import 'material/secure_material_core.dart';
 
 /// 随机内部别名与已核实的账号；只保存在系统安全材料层。
@@ -39,6 +40,8 @@ abstract interface class LocalAccountStore {
   Future<void> signOut();
   Future<void> removeAccount(String accountId);
 }
+
+enum MaterialTransactionRecovery { reconciled, reset }
 
 /// 持久代次快照只能由安全索引捕获；不接受文件或命令参数构造身份。
 final class LocalAccountSnapshot {
@@ -89,6 +92,79 @@ final class SecureLocalAccountStore implements LocalAccountStore {
 
   Future<T> _serial<T>(Future<T> Function() action) =>
       materials.coordinate(action);
+
+  /// 仅供平台启动入口在能力探测前调用。
+  Future<MaterialTransactionRecovery?> reconcileForStartup() =>
+      materials.reconcileForStartup((mutation) async {
+        if (mutation == MaterialMutation.probe) {
+          return MaterialTransactionRecovery.reconciled;
+        }
+        final raw = await materials.read(_indexKey);
+        final published = await materials.coordinator
+            .readGenerationForReconciliation();
+        if (raw == null || raw.length > 65536 || published == null) {
+          throw const MaterialTransactionUnrecoverable();
+        }
+        final _AccountIndex index;
+        try {
+          index = _AccountIndex.decode(jsonDecode(raw));
+        } on FormatException {
+          throw const MaterialTransactionUnrecoverable();
+        } on SecureMaterialException {
+          throw const MaterialTransactionUnrecoverable();
+        }
+        final canResume = mutation == MaterialMutation.save;
+        final resumingReset =
+            mutation == MaterialMutation.remove && index.resetPending;
+        var consistent = index.generation == published;
+        final presentKeys = <String>[];
+        for (final account in index.accounts) {
+          final name = 'cache-key.${account.id}';
+          final encoded = await materials.read(name);
+          if (encoded == null) {
+            if (!index.pendingCacheKeys.contains(account.id))
+              consistent = false;
+          } else {
+            presentKeys.add(name);
+            if (canResume) {
+              try {
+                final key = _decodeCacheKey(encoded);
+                key.fillRange(0, key.length, 0);
+              } on SecureMaterialException {
+                consistent = false;
+              }
+            }
+          }
+        }
+        if (canResume && consistent) {
+          return MaterialTransactionRecovery.reconciled;
+        }
+        if (resumingReset && consistent && index.accounts.isEmpty) {
+          return MaterialTransactionRecovery.reset;
+        }
+        if (!resumingReset || index.generation < published) {
+          index.generation = max(index.generation, published);
+          if (index.generation == 0x7fffffffffffffff) {
+            throw const MaterialTransactionUnrecoverable();
+          }
+          index.resetPending = true;
+          await _revoke(index);
+        } else if (index.generation > published) {
+          // 上次已保存撤销索引，尚未发布代次。
+          await materials.coordinator.publishAccountGeneration(
+            index.generation,
+          );
+        }
+        for (final key in presentKeys) {
+          await materials.delete(key);
+        }
+        // 删除全部成功后才清空索引，保留代次供下一次登录接续。
+        index.accounts.clear();
+        index.pendingCacheKeys.clear();
+        index.activeId = null;
+        await _writeIndex(index, mutation: MaterialMutation.remove);
+        return MaterialTransactionRecovery.reset;
+      });
 
   /// 仅捕获本机状态，不签发已核实的 Core 身份或学校写资格。
   Future<LocalAccountSnapshot?> capture() => _serial(() async {
@@ -174,9 +250,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
   ) => _serial(() async {
     final index = await _load();
     if (!_matches(index, snapshot, false)) throw const LocalAccountConflict();
-    index!.canRestore = false;
-    index.advanceIdentity();
-    await _save(index);
+    await _revoke(index!);
     final revoked = LocalAccountSnapshot._(
       materials,
       index.state,
@@ -193,9 +267,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
         final index = await _load();
         if (!_matches(index, snapshot, false))
           throw const LocalAccountConflict();
-        index!.canRestore = false;
-        index.advanceIdentity();
-        await _save(index);
+        await _revoke(index!);
         return index.state;
       });
 
@@ -270,12 +342,14 @@ final class SecureLocalAccountStore implements LocalAccountStore {
   });
 
   @override
-  Future<void> signOut() => _serial(() async {
-    final index = await _load() ?? _AccountIndex();
+  Future<void> signOut() =>
+      _serial(() async => _revoke(await _load() ?? _AccountIndex()));
+
+  Future<void> _revoke(_AccountIndex index) async {
     index.canRestore = false;
     index.advanceIdentity();
-    await _save(index);
-  });
+    await _save(index, mutation: MaterialMutation.remove);
+  }
 
   /// 先持久关闭恢复，再删除密钥；失败时保留禁止恢复状态并返回错误。
   /// 调用方必须先完成 Core 缓存清除，再调用此方法。
@@ -284,59 +358,78 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     final index = await _load() ?? _AccountIndex();
     if (!_AccountIndex.validId(accountId))
       throw const SecureMaterialException();
-    index.canRestore = false;
-    index.advanceIdentity();
-    await _save(index);
+    await _revoke(index);
     await materials.delete('cache-key.$accountId');
     index.accounts.removeWhere((item) => item.id == accountId);
     index.pendingCacheKeys.remove(accountId);
     if (index.activeId == accountId) index.activeId = null;
-    await _save(index);
+    await _save(index, mutation: MaterialMutation.remove);
   });
 
   Future<Uint8List> _readKey(LocalAccount account) async {
     try {
       final encoded = await materials.read('cache-key.${account.id}');
       if (encoded == null) throw const SecureMaterialException();
-      final key = base64Decode(encoded);
-      if (key.length != 32) throw const SecureMaterialException();
-      return key;
+      return _decodeCacheKey(encoded);
     } on Object {
       throw const SecureMaterialException();
     }
+  }
+
+  Uint8List _decodeCacheKey(String encoded) {
+    if (encoded.length > 65536) throw const SecureMaterialException();
+    try {
+      final key = base64Decode(encoded);
+      if (key.length == 32) return key;
+      key.fillRange(0, key.length, 0);
+    } on FormatException {
+      throw const SecureMaterialException();
+    }
+    throw const SecureMaterialException();
   }
 
   Future<_AccountIndex?> _load() async {
     try {
       final raw = await materials.read(_indexKey);
       if (raw == null) return null;
-      return _AccountIndex.decode(jsonDecode(raw));
+      // 普通事务以 C 为前提，下次写入索引时可以丢弃本次撤销的恢复记录。
+      return _AccountIndex.decode(jsonDecode(raw))..resetPending = false;
     } on Object {
       throw const SecureMaterialException();
     }
   }
 
-  Future<void> _save(_AccountIndex index) async {
-    await materials.write(
-      _indexKey,
-      jsonEncode({
-        'version': 3,
-        'continuity': index.continuity,
-        'generation': index.generation,
-        'activeId': index.activeId,
-        'canRestore': index.canRestore,
-        'accounts': [
-          for (final account in index.accounts)
-            {
-              'id': account.id,
-              'username': account.username,
-              'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
-            },
-        ],
-      }),
-    );
+  Future<void> _save(
+    _AccountIndex index, {
+    MaterialMutation mutation = MaterialMutation.save,
+  }) async {
+    await _writeIndex(index, mutation: mutation);
     await materials.coordinator.publishAccountGeneration(index.generation);
   }
+
+  Future<void> _writeIndex(
+    _AccountIndex index, {
+    MaterialMutation mutation = MaterialMutation.save,
+  }) => materials.write(
+    _indexKey,
+    jsonEncode({
+      'version': 3,
+      'continuity': index.continuity,
+      'generation': index.generation,
+      'activeId': index.activeId,
+      'canRestore': index.canRestore,
+      if (index.resetPending) 'resetPending': true,
+      'accounts': [
+        for (final account in index.accounts)
+          {
+            'id': account.id,
+            'username': account.username,
+            'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
+          },
+      ],
+    }),
+    mutation: mutation,
+  );
 }
 
 class _AccountIndex {
@@ -344,6 +437,7 @@ class _AccountIndex {
   final pendingCacheKeys = <String>{};
   String? activeId;
   bool canRestore = false;
+  bool resetPending = false;
   int generation = 0;
   int continuity = 0;
   void advanceIdentity() {
@@ -393,7 +487,16 @@ class _AccountIndex {
           (value['version'] == 3 ? value['continuity'] : value['generation'])
               as int
       ..canRestore = value['canRestore'] as bool
+      ..resetPending = value['resetPending'] == true
       ..activeId = value['activeId'] as String?;
+    if (value.containsKey('resetPending') &&
+        (value['version'] != 3 ||
+            !index.resetPending ||
+            index.canRestore ||
+            index.generation == 0 ||
+            index.continuity != index.generation)) {
+      throw const SecureMaterialException();
+    }
     for (final item in value['accounts'] as List) {
       if (item is! Map<String, dynamic> ||
           (value['version'] != 1 && item['cacheKeyPending'] is! bool) ||

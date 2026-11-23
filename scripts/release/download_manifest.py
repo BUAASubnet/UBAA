@@ -57,7 +57,8 @@ def main(arguments, load=fetch, output=OUTPUT):
     tag, build = arguments
     manifest = validate(load(tag, build), tag, build)
     output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
-    print(f'下载页数据已更新为 {tag} 构建 {build}：{output.relative_to(ROOT)}')
+    shown = output.relative_to(ROOT) if output.is_relative_to(ROOT) else output
+    print(f'下载页数据已更新为 {tag} 构建 {build}：{shown}')
 
 
 if __name__ == '__main__':

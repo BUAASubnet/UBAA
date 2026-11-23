@@ -53,7 +53,9 @@ Future<void> main(List<String> args) async {
     directory: args.length > 3
         ? Directory(args[3])
         : Directory('${root.path}/coordination'),
-    waitLimit: const Duration(milliseconds: 300),
+    waitLimit: command == 'reconcile'
+        ? const Duration(seconds: 5)
+        : const Duration(milliseconds: 300),
   );
   if (command == 'hold') {
     await coordinator.run(() async {
@@ -69,12 +71,24 @@ Future<void> main(List<String> args) async {
         : syntheticWindowsMaterials(root),
     coordinator: coordinator,
   );
+  final accounts = SecureLocalAccountStore(materials);
+  if (command == 'reconcile') {
+    await File('${root.path}/ready-${args[2]}').create();
+    final gate = File('${root.path}/reconcile-go');
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    while (!await gate.exists()) {
+      if (DateTime.now().isAfter(deadline)) throw StateError('等待对账启动超时');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    final recovery = await accounts.reconcileForStartup();
+    stdout.writeln(recovery?.name ?? 'clean');
+    return;
+  }
   await materials.probe();
   if (!materials.isAvailable) {
     stdout.writeln('BLOCKED');
     return;
   }
-  final accounts = SecureLocalAccountStore(materials);
   try {
     switch (command) {
       case 'retain':

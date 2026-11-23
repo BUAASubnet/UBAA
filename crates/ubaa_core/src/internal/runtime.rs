@@ -21,8 +21,6 @@ use readonly::ReadonlyOwner;
 #[path = "runtime_session_tests.rs"]
 mod session_tests;
 
-const SESSION_ACTIVITY_SAVE_INTERVAL_SECS: i64 = 60;
-
 pub(crate) struct ClientRuntime {
     pub(crate) network_failure_domain: Option<String>,
     pub(crate) reached_domains: std::collections::BTreeSet<String>,
@@ -42,11 +40,17 @@ pub(crate) struct ClientRuntime {
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
     non_idempotent_boundary_crossed: bool,
+    campus_network_write_status: Option<u16>,
+    campus_network_write_observer: Option<Arc<std::sync::atomic::AtomicU16>>,
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
     required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
+    pub(crate) business_sessions: Option<Arc<crate::session::business_cache::BusinessSessionCache>>,
+    #[cfg(test)]
+    pub(crate) before_login_revocation: Option<Box<dyn FnOnce() + Send + Sync>>,
+    coordinated_store: Option<crate::session::CoordinatedRouteSessionStore>,
     pub(crate) consumer_closed: Arc<AtomicBool>,
     pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
@@ -61,6 +65,17 @@ impl ClientRuntime {
         let store: Arc<dyn SessionStore> = Arc::new(store);
         let persisted = store.load_versioned()?;
         Self::from_versioned(mode, transport, store, persisted, Arc::new(SystemTime::now))
+    }
+
+    pub(crate) fn new_coordinated(
+        mode: ConnectionMode,
+        transport: impl HttpTransport + 'static,
+        sessions: &crate::session::DualSessionCoordinator,
+    ) -> Result<Self> {
+        let store = sessions.route_store(mode);
+        let mut runtime = Self::new(mode, transport, store.clone())?;
+        runtime.coordinated_store = Some(store);
+        Ok(runtime)
     }
 
     #[cfg(feature = "test-contract")]
@@ -123,11 +138,17 @@ impl ClientRuntime {
             feature_state: Arc::new(RouteFeatureState::default()),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
+            campus_network_write_status: None,
+            campus_network_write_observer: None,
             write_observer: None,
             clock,
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: None,
+            business_sessions: None,
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: None,
             consumer_closed: Arc::new(AtomicBool::new(false)),
         })
@@ -182,11 +203,17 @@ impl ClientRuntime {
             feature_state: Arc::clone(&self.feature_state),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
+            campus_network_write_status: None,
+            campus_network_write_observer: self.campus_network_write_observer.clone(),
             write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
+            business_sessions: self.business_sessions.clone(),
+            #[cfg(test)]
+            before_login_revocation: None,
+            coordinated_store: None,
             shared_account: self.shared_account.clone(),
             consumer_closed: self.consumer_closed.clone(),
         }
@@ -195,6 +222,7 @@ impl ClientRuntime {
     /// 开始一个不可重放的写操作作用域，并清除上一次操作留下的边界状态。
     pub(crate) fn begin_non_idempotent_operation(&mut self) {
         self.non_idempotent_boundary_crossed = false;
+        self.campus_network_write_status = None;
     }
 
     pub(crate) fn observe_write_boundary(&mut self, observer: Weak<AtomicBool>) {
@@ -204,6 +232,20 @@ impl ClientRuntime {
     /// 取走本次写操作的发送边界状态，确保后续操作不会读到陈旧标记。
     pub(crate) fn take_non_idempotent_boundary_crossed(&mut self) -> bool {
         std::mem::take(&mut self.non_idempotent_boundary_crossed)
+    }
+
+    pub(crate) fn observe_campus_network_writes_with(
+        &mut self,
+        observer: Arc<std::sync::atomic::AtomicU16>,
+    ) {
+        self.campus_network_write_observer = Some(observer);
+    }
+
+    pub(crate) fn finish_non_idempotent_result<T>(&mut self, result: Result<T>) -> Result<T> {
+        match self.campus_network_write_status.take() {
+            Some(status) => Err(UbaaError::campus_network_write_unknown(status)),
+            None => result.map_err(UbaaError::for_facade),
+        }
     }
 
     pub(crate) fn feature_state(&self) -> Arc<RouteFeatureState> {
@@ -298,7 +340,7 @@ impl ClientRuntime {
     /// 会话为空时同步最新修订，允许随后开始新的登录流程。
     pub(crate) fn sync_empty_session_revision(&mut self) -> Result<()> {
         if !self.has_local_session() {
-            self.session_revision = self.store.load_versioned()?.revision;
+            self.set_session_revision(self.store.load_versioned()?.revision);
         }
         Ok(())
     }
@@ -365,7 +407,8 @@ impl ClientRuntime {
     /// 在非幂等发送边界紧前执行调用方检查。
     ///
     /// 检查失败时尚未设置发送边界，也不会调用 transport；请求一旦通过检查，
-    /// 即视为已经合法交付给 transport，后续失败统一归约为结果未知。
+    /// 即视为已经合法交付给 transport，传输和处理失败归约为结果未知。
+    /// 校园网限定响应仍交给业务校验，收尾时保留结果未知及停止原因。
     pub(crate) async fn request_non_idempotent_with_pre_send_check<F>(
         &mut self,
         mut request: HttpRequest,
@@ -396,6 +439,7 @@ impl ClientRuntime {
         let pending = self.transport.execute(request);
         drop(permit);
         let response = pending.await.map_err(unknown_after_send)?;
+        self.observe_campus_network_page(&response, &request_url);
         self.check_consumer().map_err(unknown_after_send)?;
         if let Some(scope) = &self.shared_account {
             scope.check().map_err(unknown_after_send)?;
@@ -404,88 +448,6 @@ impl ClientRuntime {
             .store_response(&response, &request_url, now)
             .map_err(unknown_after_send)?;
         Ok(response)
-    }
-
-    pub(crate) fn refresh_authentication(
-        &mut self,
-        clear_workflow: &mut (dyn FnMut() + Send),
-    ) -> Result<(i64, i64)> {
-        self.check_authentication_scope()?;
-        let now = now_seconds_at(self.now())?;
-        let authenticated_at = self.authenticated_at.unwrap_or(now);
-        self.authenticated_at = Some(authenticated_at);
-        self.last_activity = Some(now);
-        if self.readonly_generation.is_some() {
-            self.ensure_session_revision()?;
-            return Ok((authenticated_at, now));
-        }
-        if self.persisted_authentication.as_ref().is_some_and(|saved| {
-            authenticated_at == saved.authenticated_at
-                && now.saturating_sub(saved.last_activity) < SESSION_ACTIVITY_SAVE_INTERVAL_SECS
-                && self.jar.matches_persisted(&saved.cookies)
-        }) {
-            // 即使无需保存，也必须拒绝外部修订，不能把旧核验结果当作成功。
-            if let Err(error) = self.ensure_session_revision() {
-                self.clear_memory();
-                clear_workflow();
-                return Err(error);
-            }
-            return Ok((authenticated_at, now));
-        }
-        let snapshot = SessionSnapshot {
-            mode: self.mode,
-            cookies: self.jar.cookies().to_vec(),
-            authenticated_at,
-            last_activity: now,
-        };
-        let _permit = self
-            .shared_account
-            .as_ref()
-            .map(crate::facade::SharedAccountGuard::acquire)
-            .transpose()?;
-        let mutation = match self
-            .store
-            .compare_exchange(self.session_revision, Some(&snapshot))
-        {
-            Ok(mutation) => mutation,
-            Err(error) => {
-                self.clear_memory();
-                clear_workflow();
-                return Err(error);
-            }
-        };
-        match mutation {
-            SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
-                self.persisted_authentication = Some(Arc::new(snapshot));
-                Ok((authenticated_at, now))
-            }
-            SessionMutation::Conflict => {
-                self.clear_memory();
-                clear_workflow();
-                Err(session_conflict())
-            }
-        }
-    }
-
-    pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {
-        self.clear_memory();
-        clear_workflow();
-        if self.readonly_generation.is_some() {
-            return Ok(());
-        }
-        let _permit = self
-            .shared_account
-            .as_ref()
-            .map(crate::facade::SharedAccountGuard::acquire)
-            .transpose()?;
-        match self.store.compare_exchange(self.session_revision, None)? {
-            SessionMutation::Applied { revision } => {
-                self.session_revision = revision;
-                Ok(())
-            }
-            SessionMutation::Conflict => Err(session_conflict()),
-        }
     }
 
     pub(crate) const fn authentication_generation(&self) -> uuid::Uuid {
@@ -515,10 +477,6 @@ impl ClientRuntime {
         if let Some(owner) = &self.readonly_generation {
             owner.invalidate();
         }
-    }
-
-    pub(crate) fn set_session_revision(&mut self, revision: u64) {
-        self.session_revision = revision;
     }
 }
 
@@ -993,4 +951,6 @@ mod object;
 #[path = "runtime/school_gate.rs"]
 mod school_gate;
 
+#[path = "runtime/main_session.rs"]
+mod main_session;
 mod request_batch;

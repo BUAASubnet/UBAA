@@ -18,6 +18,7 @@ Future<void> bridgeSharedLogout(
   final native = await BridgeSharedAccount.capture(
     directory: revoked.directory,
     generation: BigInt.from(revoked.generation),
+    retainSession: revoked.snapshot.state.canRestore,
   );
   (Object, StackTrace)? failure;
   Future<void> attempt(Future<void> Function() action) async {

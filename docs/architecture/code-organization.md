@@ -1,6 +1,6 @@
 # 现行代码与目录组织
 
-本页供需要在代码中定位或新增模块的贡献者使用，列出各包的所有权、Dart 包内的目录结构、状态所有者和防止结构退化的约束。分层与请求流转先看[架构概览](overview.md)。决定依据是 [ADR 0006](../adr/0006-explicit-dart-modules.md)；旧目标树见[原设计快照](../archive/history/code-organization-2026-09-05.md)，整理过程见[实施记录](../archive/history/maintainability-implementation-2026-10-07.md)。
+本页供需要在代码中定位或新增模块的贡献者使用，列出各包的所有权、Dart 包内的目录结构、状态所有者和防止结构退化的约束。分层与请求流转先看[架构概览](overview.md)。决定依据是 [ADR 0006](../adr/0006-explicit-dart-modules.md)。
 
 ## 包边界
 
@@ -92,4 +92,4 @@ UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State
 
 ## 文档与证据
 
-各类文档的存放位置见[文档规范](../development/conventions.md#文档规范)。历史验收媒体在仓库外，元数据按[批次索引](../design/evidence/batches.md)定位。默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。
+各类文档的存放位置见[文档规范](../development/conventions.md#文档规范)。默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。

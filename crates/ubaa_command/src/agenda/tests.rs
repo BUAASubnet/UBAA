@@ -7,12 +7,36 @@ struct Fixture {
     root: PathBuf,
     store: AgendaStore,
     scope: SharedAccountGuard,
+    _temp: ubaa_test_support::TestTempDir,
 }
+fn fixture_directory() -> ubaa_test_support::TestTempDir {
+    ubaa_test_support::test_temp_dir("ubaa_command_agenda").unwrap()
+}
+
+#[test]
+fn fixture_directory_is_under_test_tmp() {
+    let directory = fixture_directory();
+    let directory_path = directory.path();
+    let expected_root = std::env::var_os("UBAA_TEST_TMP")
+        .filter(|path| !path.is_empty())
+        .map_or_else(
+            || PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/test_tmp"),
+            PathBuf::from,
+        );
+    std::fs::create_dir_all(&expected_root).unwrap();
+    assert!(
+        directory_path.starts_with(expected_root.canonicalize().unwrap()),
+        "{directory_path:?}"
+    );
+    let path = directory_path.to_path_buf();
+    drop(directory);
+    assert!(!path.exists());
+}
+
 impl Fixture {
     fn new() -> Self {
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/command_delivery/tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let temp = fixture_directory();
+        let root = temp.path().to_path_buf();
         std::fs::create_dir_all(root.join("data")).unwrap();
         for (name, value) in [
             ("materials.lock", ""),
@@ -28,7 +52,12 @@ impl Fixture {
             scope.clone(),
         )
         .unwrap();
-        Self { root, store, scope }
+        Self {
+            _temp: temp,
+            root,
+            store,
+            scope,
+        }
     }
     fn run(&self, args: &[&str], input: &str) -> (i32, serde_json::Value, String) {
         let mut command_line = vec!["ubaa-cli", "--json", "agenda"];
@@ -53,9 +82,14 @@ impl Fixture {
 }
 impl Fixture {
     fn finish(self) {
-        let Self { root, store, scope } = self;
+        let Self {
+            store,
+            scope,
+            _temp: temp,
+            ..
+        } = self;
         drop((store, scope));
-        std::fs::remove_dir_all(root).unwrap();
+        drop(temp);
     }
 }
 const DRAFT: &str = r#"{"kind":"event","title":"合成重复事项","start":"2026-12-01T09:00:00+08:00","end":"2026-12-01T10:00:00+08:00","rrule":"FREQ=DAILY;COUNT=3"}"#;
@@ -289,7 +323,7 @@ fn 本机取消与期限均保留_v13_storage退出码() {
         assert_eq!(result.render(true, &control, &mut out, &mut err), 7);
         let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
         assert_eq!(value["error"]["code"], "storage");
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], crate::CLI_JSON_SCHEMA_VERSION);
     }
     fixture.finish();
 }

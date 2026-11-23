@@ -24,6 +24,135 @@ void main() {
   tearDown(() async {
     await root.delete(recursive: true);
   });
+  test('退出在首次索引写入前失败，重启撤销原账号', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(state.account!);
+    transport.failWrite = 'account-index.v1';
+    await expectLater(
+      accounts.signOut(),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    transport.failWrite = null;
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reset,
+    );
+    expect((await accounts.read())!.canRestore, isFalse);
+  });
+
+  test('删除账号在发布撤销后失败，重启补完密钥清理', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(state.account!);
+    transport.failDelete = true;
+    await expectLater(
+      accounts.removeAccount(state.account!.id),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    transport.failDelete = false;
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reset,
+    );
+    expect(
+      transport.values,
+      isNot(contains('ubaa.material.v2.cache-key.${state.account!.id}')),
+    );
+  });
+
+  test('删密钥后、更新索引前中断，重启跳过已删除键并完成撤销', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(state.account!);
+    final key = 'ubaa.material.v2.cache-key.${state.account!.id}';
+    transport.delayWrite = () async {
+      if (!transport.values.containsKey(key)) throw StateError('合成索引写入中断');
+    };
+    await expectLater(
+      accounts.removeAccount(state.account!.id),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    expect(transport.values, isNot(contains(key)));
+    transport.delayWrite = null;
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reset,
+    );
+    expect((await accounts.read())!.account, isNull);
+    expect(await File('${root.path}/transaction.v1').readAsString(), 'UBAA1:C');
+  });
+
+  test('首次缓存密钥已落盘、索引更新中断时保留原密钥并继续恢复', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    final key = 'ubaa.material.v2.cache-key.${state.account!.id}';
+    transport.failWrite = 'account-index.v1';
+    await expectLater(
+      accounts.cacheKey(state.account!),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    final stored = transport.values[key];
+    expect(stored, isNotNull);
+    final marker = File('${root.path}/transaction.v1');
+    expect(await marker.readAsString(), 'UBAA1:B:save');
+    transport.failWrite = null;
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reconciled,
+    );
+    expect((await accounts.read())!.generation, state.generation);
+    expect((await accounts.read())!.canRestore, isTrue);
+    expect(base64Encode(await accounts.cacheKey(state.account!)), stored);
+    expect(await marker.readAsString(), 'UBAA1:C');
+  });
+
+  test('旧格式 B 即使材料一致也撤销且清理密钥', () async {
+    final state = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(state.account!);
+    final marker = File('${root.path}/transaction.v1');
+    await marker.writeAsString('UBAA1:B', flush: true);
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reset,
+    );
+    expect(await marker.readAsString(), 'UBAA1:C');
+    final reset = (await accounts.read())!;
+    expect(reset.generation, state.generation + 1);
+    expect(reset.account, isNull);
+    expect(
+      transport.values,
+      isNot(contains('ubaa.material.v2.cache-key.${state.account!.id}')),
+    );
+  });
+
+  test('同一事务内意图升级且较弱写入不能覆盖撤销标记', () async {
+    final marker = File('${root.path}/transaction.v1');
+    final coordinator = material.coordinator;
+    await expectLater(
+      material.coordinate(() async {
+        await coordinator.beforeMutation(MaterialMutation.probe);
+        expect(await marker.readAsString(), 'UBAA1:B:probe');
+        await material.write('synthetic-saved', 'synthetic');
+        expect(await marker.readAsString(), 'UBAA1:B:save');
+        await material.delete('synthetic-saved');
+        expect(await marker.readAsString(), 'UBAA1:B:remove');
+        await material.write('synthetic-later', 'synthetic');
+        await coordinator.beforeMutation(MaterialMutation.probe);
+        expect(await marker.readAsString(), 'UBAA1:B:remove');
+        throw const SecureMaterialException();
+      }),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    expect(await marker.readAsString(), 'UBAA1:B:remove');
+  });
+
+  test('首次能力探测写入失败后，启动无需索引即可对账', () async {
+    transport.failAfterProbeWrite = true;
+    await material.probe();
+    expect(material.isAvailable, isFalse);
+    expect(
+      await accounts.reconcileForStartup(),
+      MaterialTransactionRecovery.reconciled,
+    );
+  });
+
   for (final code in [null, 0, 3, 5, 13, 32]) {
     if (Platform.isWindows && code == 3) continue;
     test('事务标记存在查询吞掉错误后，读取错误$code仍阻断且保留原件', () async {
@@ -117,7 +246,10 @@ void main() {
     expect(transport.values, {
       'ubaa.material.v2.fixture-business': 'synthetic-business',
     });
-    expect(await File('${root.path}/transaction.v1').readAsString(), 'UBAA1:B');
+    expect(
+      await File('${root.path}/transaction.v1').readAsString(),
+      'UBAA1:B:probe',
+    );
     final reopened = SecureMaterialStore(
       transport: transport,
       coordinator: MaterialCoordinator(directory: root),
@@ -266,7 +398,7 @@ void main() {
     transport.delayWrite = () async {
       expect(
         await File('${root.path}/transaction.v1').readAsString(),
-        'UBAA1:B',
+        'UBAA1:B:save',
       );
     };
     await material.coordinate(
@@ -345,7 +477,10 @@ void main() {
       transport.values['ubaa.material.v2.fixture-unawaited-failure'],
       'synthetic',
     );
-    expect(await File('${root.path}/transaction.v1').readAsString(), 'UBAA1:B');
+    expect(
+      await File('${root.path}/transaction.v1').readAsString(),
+      'UBAA1:B:save',
+    );
     await expectLater(
       material.read('fixture-unawaited-failure'),
       throwsA(isA<SecureMaterialCoordinationException>()),

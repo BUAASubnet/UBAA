@@ -5,7 +5,7 @@
 取代：无
 被取代：无。后续状态提交、缓存所有权和验证闭包的细化见 [ADR 0007](0007-operation-scopes-and-verification.md)，本决定的显式 library 和公共出口规则继续有效。
 
-依据为[可持续开发性审查](../archive/history/maintainability-audit-2026-10-07.md)，实施与验证见[实施记录](../archive/history/maintainability-implementation-2026-10-07.md)。
+依据为可持续开发性审查（`maintainability-audit-2026-10-07.md`），实施与验证见实施记录（`maintainability-implementation-2026-10-07.md`）。
 
 ## 决定
 
@@ -15,7 +15,7 @@ UI 按业务领域与公共展示责任建立独立 library；跨模块组件通
 
 ## 冻结来源与行为保持
 
-移动前 `just refs` 验证旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 API/DTO/local 实现与测试按[主矩阵](../protocol/README.md)、[离线恢复逐操作矩阵](../protocol/parity/offline-cache.md)及后续专项记录定位；旧矩阵历史 SHA 不能代替当前 refs，本次不修改 Rust 协议实现。
+移动前 核对了旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 API/DTO/local 实现与测试按[主矩阵](../protocol/README.md)、[离线恢复逐操作矩阵](../protocol/parity/offline-cache.md)及后续专项记录定位；本次不修改 Rust 协议实现。
 
 | 操作 | 旧版与示例核对 | 本次移动约束 |
 |---|---|---|

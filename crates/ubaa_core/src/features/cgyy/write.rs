@@ -122,6 +122,9 @@ fn normalize_cancel_order_request(
 }
 
 fn sanitize_cancel_authority_error(mut error: UbaaError) -> UbaaError {
+    if error.is_campus_network_required() {
+        return error;
+    }
     let message = match error.code {
         ErrorCode::AuthenticationRequired
         | ErrorCode::InvalidCredentials
@@ -227,6 +230,7 @@ pub(crate) async fn submit_reservation(
     for _ in 0..3 {
         match prepare_captcha_once(runtime, &mut request).await {
             Ok(()) => return submit_order(runtime, &request, &token, &order_json).await,
+            Err(error) if error.is_campus_network_required() => return Err(error),
             Err(error) => last_error = Some(error),
         }
     }

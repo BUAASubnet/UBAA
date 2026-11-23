@@ -129,7 +129,7 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 
     assert_eq!(exit, 0, "确定性部分失败仍是已知业务结果");
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], false);
     assert_eq!(value["data"]["outcomeUnknown"], false);
@@ -147,22 +147,21 @@ async fn allowed_目标按原顺序固定路线提交并在确定结果后回读
 }
 
 #[tokio::test]
-async fn 单路线后端同样使用_typed_目标并在原路线回读一次() {
-    let mut backend = FixedEvaluationBackend {
+async fn direct_评教使用_typed_目标并在原路线回读一次() {
+    let mut backend = EvaluationBackend {
         courses: vec![pending_course(
             "fixed",
             ActionEligibility::Allowed,
             Some(target("fixed", None)),
         )],
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -174,6 +173,7 @@ async fn 单路线后端同样使用_typed_目标并在原路线回读一次() {
     assert_eq!(value["data"]["success"], true);
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
+    assert_eq!(backend.readback_routes, vec![ConnectionMode::Direct]);
     assert_eq!(backend.submitted.unwrap().targets[0].kcdm, "fixed-kcdm");
     assert_eq!(stderr.len(), 0);
 }
@@ -205,23 +205,22 @@ async fn commit_阶段错误保持主分类且只回读原路线不重提() {
 }
 
 #[tokio::test]
-async fn 单路线_commit_错误同样回读一次且保持主错误() {
-    let mut backend = FixedEvaluationBackend {
+async fn direct_commit_错误同样回读一次且保持主错误() {
+    let mut backend = EvaluationBackend {
         courses: vec![pending_course(
             "fixed-auth-failure",
             ActionEligibility::Allowed,
             Some(target("fixed-auth-failure", None)),
         )],
         commit_auth_fails: true,
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -233,6 +232,7 @@ async fn 单路线_commit_错误同样回读一次且保持主错误() {
     assert_eq!(value["error"]["code"], "authentication_required");
     assert_eq!(backend.submit_calls, 1);
     assert_eq!(backend.readback_calls, 1);
+    assert_eq!(backend.readback_routes, vec![ConnectionMode::Direct]);
     assert_eq!(stderr.len(), 0);
 }
 
@@ -261,7 +261,7 @@ async fn outcome_unknown_使用带安全_batch_数据的失败信封并固定路
 
     assert_eq!(exit, 5);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "outcome_unknown");
     assert_eq!(value["data"]["outcomeUnknown"], true);
@@ -307,17 +307,16 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
     assert_eq!(routed.submit_calls, 1);
     assert_eq!(routed.readback_routes, vec![route]);
 
-    let mut fixed = FixedEvaluationBackend {
+    let mut fixed = EvaluationBackend {
         courses,
         batch: BatchFixture::UpdateRequired,
-        ..FixedEvaluationBackend::default()
+        ..EvaluationBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
+    let exit = run_command(
         submit_pending_cli(),
         &mut fixed,
-        &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
     )
@@ -325,10 +324,11 @@ async fn 更新门控中止评教后续提交时保留已知结果并退出8() {
     assert_gated_batch(exit, &serde_json::from_slice(&stdout).unwrap(), &stderr);
     assert_eq!(fixed.submit_calls, 1);
     assert_eq!(fixed.readback_calls, 1);
+    assert_eq!(fixed.readback_routes, vec![ConnectionMode::Direct]);
 }
 
 #[tokio::test]
-async fn 评教读取只输出安全课程投影且符合_schema_v10() {
+async fn 评教读取只输出安全课程投影且符合当前_schema() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "evaluation", "all"]).unwrap();
     let mut backend = EvaluationBackend {
         courses: vec![pending_course(
@@ -343,7 +343,7 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     let course = &value["data"]["courses"][0];
     assert_eq!(course["submitEligibility"], "allowed");
     assert_eq!(course["submitTarget"]["rwid"], "safe-rwid");
@@ -368,7 +368,6 @@ async fn 评教读取只输出安全课程投影且符合_schema_v10() {
 
 #[test]
 fn cli_评教失败仅在结果未知或更新门控中止批次时携带数据() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../docs/contracts/cli-json.schema.json"
     ))
@@ -420,7 +419,7 @@ fn cli_评教失败仅在结果未知或更新门控中止批次时携带数据(
 async fn run_json(cli: Cli, backend: &mut EvaluationBackend) -> (i32, serde_json::Value, Vec<u8>) {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_routed_backend(cli, backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, backend, &mut stdout, &mut stderr).await;
     let value = serde_json::from_slice(&stdout).unwrap();
     (exit, value, stderr)
 }
@@ -544,7 +543,7 @@ fn authentication_required() -> UbaaError {
 
 fn unknown_envelope() -> serde_json::Value {
     serde_json::json!({
-        "schemaVersion": 18,
+        "schemaVersion": CLI_JSON_SCHEMA_VERSION,
         "ok": false,
         "data": {
             "items": [{

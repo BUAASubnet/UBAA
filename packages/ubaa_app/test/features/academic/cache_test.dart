@@ -5,9 +5,12 @@ import 'package:ubaa_bindings/src/rust/frb_generated.dart' show RustLibApi;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
+import '../../support/bridge/fixtures.dart' show currentBridgeContractVersion;
+
 void main() {
-  final cache = _Cache();
-  setUpAll(() => RustLib.initMock(api: _Api(cache)));
+  final api = _Api();
+  setUpAll(() => RustLib.initMock(api: api));
+  setUp(() => api.cache = _Cache());
   Future<BridgeBackend> backend() async {
     final value = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await value.openOfflineAccount(
@@ -49,14 +52,18 @@ void main() {
     );
     expect(week.projection!.details.single.title, '合成课程');
     final timeline = week.projection!.overview! as ScheduleWeekOverview;
-    expect(timeline.sectionTimes.length, 14);
-    expect(timeline.sectionTimes.last.end, '22:15');
+    final standard = scheduleSectionTimes(
+      courses: const [],
+    ).map((time) => (time.section, time.start, time.end));
+    expect(
+      timeline.sectionTimes.map((time) => (time.section, time.start, time.end)),
+      standard,
+    );
     expect(
       (week.projection!.toSnapshot().overview! as ScheduleWeekOverview)
           .sectionTimes
-          .first
-          .start,
-      '08:00',
+          .map((time) => (time.section, time.start, time.end)),
+      standard,
     );
     final exams = await value.readCachedQuery(
       FeatureId.exam,
@@ -85,7 +92,7 @@ void main() {
     expect(rooms.projection!.details.single.title, 'A');
     expect(rooms.projection!.scopeDate, '2026-09-22');
     expect(
-      cache.scopes,
+      api.cache.scopes,
       containsAll([
         'weeks:2025-2026-1',
         'week:2025-2026-1:3',
@@ -105,14 +112,13 @@ void main() {
       (read.projection!.overview! as GradesTermOverview).requestTerm,
       '2025-2026-1',
     );
-    cache.selected = false;
+    api.cache.selected = false;
     final absent = await value.readCachedQuery(
       FeatureId.grades,
       const FeatureQuery(),
       RoutePolicy.direct,
     );
     expect(absent.projection, isNull);
-    cache.selected = true;
   });
   test('磁盘成绩保留完整学期概览，已出筛选不丢待出项目且没有在线观察', () async {
     final value = await backend();
@@ -176,8 +182,7 @@ const grades = BridgeGradeData(
 );
 
 class _Api implements RustLibApi {
-  _Api(this.cache);
-  final _Cache cache;
+  late _Cache cache;
   @override
   Future<BridgeOfflineCache> crateApiOfflineBridgeOfflineCacheOpen({
     required String configDir,
@@ -348,7 +353,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 75;
+  int contractVersion() => currentBridgeContractVersion;
 
   @override
   Future<BridgeTodayRefresh> scheduleTodayCached({

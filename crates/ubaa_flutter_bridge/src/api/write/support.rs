@@ -194,13 +194,9 @@ pub(super) fn map_evaluation_preflight_error(error: &domain::RoutedError) -> Bri
             "教学评教资格核对响应无效",
         );
     }
-    routed_local_error(
-        error,
-        error.error.code.into(),
-        error.error.kind.into(),
-        error.error.retryable,
-        "教学评教准备失败",
-    )
+    let mut projected = BridgeError::from_routed(error.clone());
+    "教学评教准备失败".clone_into(&mut projected.message);
+    projected
 }
 
 pub(super) fn map_commit_error(
@@ -346,16 +342,11 @@ pub(super) fn map_commit_error(
             "write outcome is unknown; refresh status before retrying",
         );
     }
+    let mut projected = BridgeError::from_routed(error);
     if matches!(operation, BridgeWriteOperation::EvaluationSubmitCourses) {
-        return routed_local_error(
-            &error,
-            error.error.code.into(),
-            error.error.kind.into(),
-            error.error.retryable,
-            "教学评教提交失败",
-        );
+        "教学评教提交失败".clone_into(&mut projected.message);
     }
-    BridgeError::from_routed(error)
+    projected
 }
 
 pub(super) fn routed_local_error(
@@ -536,14 +527,23 @@ pub(super) fn map_evaluation_batch(
                     ),
                     domain::EvaluationCourseOutcome::OutcomeUnknown => (
                         BridgeEvaluationCourseOutcome::OutcomeUnknown,
-                        "评教提交结果未知，请刷新课程后核对",
+                        match item.message.as_str() {
+                            "结果未知，请先刷新核对；该服务当前仅限校园网访问" => {
+                                &item.message
+                            }
+                            _ => "评教提交结果未知，请刷新课程后核对",
+                        },
                     ),
                     domain::EvaluationCourseOutcome::Unattempted => (
                         BridgeEvaluationCourseOutcome::Unattempted,
-                        if batch.outcome_unknown {
-                            "前序课程结果未知，本课程未尝试"
-                        } else {
-                            "请先更新客户端，本课程未尝试"
+                        match item.message.as_str() {
+                            "未尝试：该服务当前仅限校园网访问"
+                            | "未尝试：该服务当前仅限校园网访问，可切换到 WebVPN 后重试"
+                            | "前序课程结果未知且服务仅限校园网访问，本课程未尝试" => {
+                                &item.message
+                            }
+                            _ if batch.outcome_unknown => "前序课程结果未知，本课程未尝试",
+                            _ => "请先更新客户端，本课程未尝试",
                         },
                     ),
                 };

@@ -1,6 +1,6 @@
 # 开发环境设置
 
-本页供准备本机开发环境的贡献者使用，说明需要的工具与版本、安装步骤和全部 `.env` 变量。只想尽快运行 App 时，先看[从零开始运行 App](getting-started.md)。除另有说明外，命令都在仓库根目录执行；Dart/Flutter 的调用规则见 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)。
+本页供准备本机开发环境的贡献者使用，说明需要的工具与版本、安装步骤和全部 `.env` 变量。只想尽快运行 App 时，先看[从零开始运行 App](getting-started.md)。除另有说明外，命令都在仓库根目录执行；工具链调用规则见[工具链调用规则](#工具链调用规则)。
 
 ## 工具与版本
 
@@ -41,13 +41,19 @@
 just setup
 ```
 
-`just setup` 按 `versions.env` 克隆锁定的 Flutter、安装 Rust 工具链和 cargo-expand/FRB codegen/cargo-deny，并依次执行 refs-bootstrap、质量环境、`cargo fetch --locked` 与 Dart 依赖准备。已一致的工具直接跳过；已有 SDK 不是锁定提交时停止，不改写。具体步骤见 [setup.sh](../../scripts/bootstrap/setup.sh)，它也是手工安装的参考。
+`just setup` 按 `versions.env` 克隆锁定的 Flutter，安装 Rust 工具链、cargo-expand、FRB codegen 和 cargo-deny，再准备 Python 质量环境、Cargo 和 Dart 依赖。已符合锁定版本的工具会跳过。已有 SDK 版本不符时，命令会停止并保留该 SDK。手工安装可参考 [setup.sh](../../scripts/bootstrap/setup.sh)。
 
 之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
 
+## 工具链调用规则
+
+- Dart/Flutter 命令一律用 `just dart`、`just flutter`，OHOS 用 `just flutter-ohos`。命令中不写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。
+- just 入口和直接执行的项目脚本，通过 `scripts/lib/toolchain.py` 按白名单加载根目录 `.env`；已导出的同名环境变量优先。
+- 签名参数按平台和构建模式整组从进程环境或 `.env` 中选一个来源，缺项不得从另一来源补齐。
+- 机密只交给需要它的入口：普通命令只加载非机密键；Android/OHOS 签名只交给对应平台的 SDK 构建命令；学校账号只交给显式的真实验证入口；SSH 部署密钥只交给受保护环境中的部署和分发步骤；云盘发布账号仅由服务器发布程序读取，不能进入 CI。
+
 后续维护：
 
-- 首次建立缺失冻结引用才执行 `just refs-bootstrap`，之后只用 `just refs` 只读校验。
 - 质量环境缺失或依赖锁变更时，显式重跑 `just quality-tools-bootstrap`。普通 checker 不会自动安装 Python 依赖。
 - Cargo 和 Flutter 检查可能补充依赖缓存，但都不访问学校服务。
 
@@ -81,7 +87,7 @@ Windows runner 的 MSVC 目标已在 CMake 中设置 `/utf-8`，构建时无须�
 python3 scripts/lib/toolchain.py migrate
 ```
 
-如还需迁移旧部署目标，在同一命令附加 `--target <旧目标 JSON 路径>`，选择一个目标。命令合并旧工具链、学校账号和选定的部署目标，保留 `.env` 已有键及原文件，输出不含配置值。手工迁移也可按 `.env.example` 逐键填写；旧目标的 `account_id`、`worker_name`、`database_id`、`kv_namespace_id`、`domain` 对应下表中五个部署目标键。
+命令迁移旧工具路径和学校账号配置，保留 `.env` 已有键及原文件，输出不含配置值。也可按 `.env.example` 手工填写。服务器部署配置见[应用服务手册](../runbooks/app-service.md)。
 
 ## UBAA 环境变量
 
@@ -89,7 +95,7 @@ python3 scripts/lib/toolchain.py migrate
 
 | 内容 | 维护位置 |
 |---|---|
-| 本机工具路径、构建渠道、部署目标、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
+| 本机工具路径、构建渠道、已接入的 Android/OHOS 签名参数 | 根目录 `.env`；键和用途见 [`.env.example`](../../.env.example) |
 | CI 的同名参数与凭据 | GitHub Environment Variables/Secrets；通过进程环境注入，无需生成或上传完整 `.env` |
 | 渠道最新版本、最低支持版本、下载地址 | [`channels.json`](../../services/app_service/config/channels.json)，确认渠道可下载后更新 |
 | 公告与隐私政策 | `docs/site/` 下的 Markdown 源文件 |
@@ -168,7 +174,7 @@ Android 使用 `ANDROID_STORE_FILE`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_AL
 | `UBAA_TEST_SHELLCHECK_LOG`、`UBAA_TEST_SHELLCHECK_EXIT` | 假 ShellCheck 的调用记录和退出码 |
 | `UBAA_TEST_CODESIGN_LOG`、`UBAA_TEST_PLIST_LOG`、`UBAA_TEST_ENTITLEMENTS` | 假签名程序的日志与 entitlements 样本选择 |
 
-真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。媒体、日志的归档写法见[证据存储规则](../design/evidence/README.md)。
+真实验证仍须遵守仓库的凭据与请求边界，普通环境搭建和质量检查可以将机密键留空。运行媒体和调试日志按[贡献规则](../../AGENTS.md#底线)存放。
 
 ## HarmonyOS 的 GitHub 托管构建
 

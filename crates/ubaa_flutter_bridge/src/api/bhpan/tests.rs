@@ -43,11 +43,68 @@ impl HttpTransport for Transport {
         Ok(response)
     }
 }
+
+struct CampusOnlyTransport;
+#[async_trait::async_trait]
+impl HttpTransport for CampusOnlyTransport {
+    async fn execute(&self, request: HttpRequest) -> c::Result<HttpResponse> {
+        Ok(HttpResponse::new(
+            200,
+            request.url,
+            include_bytes!("../../../../../fixtures/readonly/campus-network-required.html")
+                .to_vec(),
+        ))
+    }
+}
+
+#[tokio::test]
+async fn 云盘导航提示映射为不可重试_core_与_bridge_错误() {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_bhpan").unwrap();
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1000,
+                last_activity: 1001,
+            }),
+            None,
+        ))
+        .unwrap();
+    let core = UbaaClient::with_routing(
+        CampusOnlyTransport,
+        CampusOnlyTransport,
+        store,
+        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
+    )
+    .unwrap();
+    let bridge = BridgeClient::from_core(core);
+    for error in [
+        bridge.ihome_config().await.err().unwrap(),
+        bridge.finance_incomes().await.err().unwrap(),
+        bridge.bhpan_login().await.err().unwrap(),
+    ] {
+        assert_eq!(error.code, BridgeErrorCode::NetworkError);
+        assert!(!error.retryable);
+        assert!(error.message.contains("仅限校园网访问"));
+        let diagnostic = error
+            .diagnostic_json
+            .as_deref()
+            .and_then(c::ErrorDiagnostic::from_json)
+            .unwrap();
+        assert_eq!(
+            diagnostic.reason.as_deref(),
+            Some("campus_network_required")
+        );
+    }
+    bridge.dispose().await.unwrap();
+    drop(bridge);
+    std::fs::remove_dir_all(root).unwrap();
+}
 #[tokio::test]
 async fn 发送后panic保持结果未知且确认不可复用() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_bhpan").unwrap();
     let mut bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
@@ -130,9 +187,7 @@ impl HttpTransport for UploadTransport {
 }
 #[tokio::test]
 async fn dispose在等待读取时取消旧上传准备() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_bhpan").unwrap();
     let mut bridge = Arc::new(BridgeClient::open(root.to_string_lossy().into_owned()).unwrap());
     let store = FileSessionStore::new(&root).unwrap();
     store
@@ -254,10 +309,13 @@ impl HttpTransport for CommitTransport {
 async fn pending_commit(
     kind: BridgeBhpanMutationKind,
     gate: Option<Arc<CommitGate>>,
-) -> (BridgeClient, std::path::PathBuf, String, Arc<AtomicUsize>) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
-        .join(uuid::Uuid::new_v4().to_string());
+) -> (
+    BridgeClient,
+    ubaa_test_support::TestTempDir,
+    String,
+    Arc<AtomicUsize>,
+) {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_bhpan").unwrap();
     let mut bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
@@ -395,6 +453,7 @@ async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
         let scope = crate::api::shared_account::BridgeSharedAccount::capture(
             root.to_string_lossy().into(),
             1,
+            true,
         )
         .unwrap();
         bridge.bind_shared_account(&scope).await.unwrap();
@@ -445,9 +504,7 @@ async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
 #[tokio::test]
 async fn 普通上传秒传和下载在客户端锁排队期间取消立即结束() {
     for kind in 0..3 {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_bhpan").unwrap();
         let bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
         let guard = bridge.inner.lock().await;
         let transfer = BridgeBhpanTransfer::new();

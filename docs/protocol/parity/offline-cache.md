@@ -574,7 +574,7 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 | 成绩检查收尾 | 只有旧版本地提醒实现，无本批回调合同 | 无同构成绩提醒/缓存合同 | 由既有 `GradeScoreWatch` 在当前代次完成后报告是否写入加密基线；不改变基线更新条件，迟到结果仍被丢弃 |
 | 调度成本 | 无同构安全批次抢占器 | 无本项目调度器 | 只记录既有 App 调度器的 queued/started/completed/cancelled、等待和运行时长；Core 安全批次让位边界不变 |
 
-两份冻结来源均没有上述验收观测协议，不能从其缺失内容推断学校接口或性能。Python 校验将完整首页拆为五个主领域和四个补充来源；补充来源使用 `finished`，成绩检查另要求 `check_complete`，不再把五来源完成误报为完整首页完成。统计保留计划30次分母、缺失样本和异常样本，P95使用nearest-rank。接线后的三端30次结果、阶段成本和 Direct/WebVPN 只读边界已记录在[正式测量证据](../../archive/evidence/offline-startup-measurement-2026-09-24.md)；macOS Release 达到缓存目标，iOS Simulator 因工具链只支持Debug而单列，当前接线仍不等于实体发布性能达成。
+两份冻结来源均没有上述验收观测协议，不能从其缺失内容推断学校接口或性能。Python 校验将完整首页拆为五个主领域和四个补充来源；补充来源使用 `finished`，成绩检查另要求 `check_complete`，不再把五来源完成误报为完整首页完成。统计保留计划30次分母、缺失样本和异常样本，P95使用nearest-rank。接线后的三端30次结果、阶段成本和 Direct/WebVPN 只读边界已记录在正式测量证据（`offline-startup-measurement-2026-09-24.md`）；macOS Release 达到缓存目标，iOS Simulator 因工具链只支持Debug而单列，当前接线仍不等于实体发布性能达成。
 
 ##### P5-B1：iOS 无环境变量时的私有目录（2026-09-23）
 
@@ -611,7 +611,7 @@ macOS新App诊断观察到hidden→inactive，控制器_appForeground仍false，
 
 先以hidden/paused→inactive及随后resumed的宿主行为测试观察RED，修复只改变可见性映射；不将模拟生命周期、原生合成或学校读取证据混称。
 
-P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分析及三端各83项原生矩阵，当前真实App回归与边界见[专项证据](../../archive/evidence/offline-visible-resume-2026-09-23.md)。
+P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分析及三端各83项原生矩阵，当前真实App回归与边界见专项证据（`offline-visible-resume-2026-09-23.md`）。
 
 
 #### P2-U：首页自动成绩检查让位与主动查询合并（2026-09-23，实施前）
@@ -626,7 +626,7 @@ P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分�
 
 当前实现把所有学期与成绩辅助读取硬编码interactive，自动检查可能排到首页来源之前；显式成绩FeatureQuery也可绕过已有辅助在途读取而重复请求。先用真实AppController/GradeScoreWatch及脱敏ProgressiveReadBackend验证请求顺序和次数RED；最小修复共享需求优先级并在原Core批次边界调度。数据覆盖、强制刷新绕过已完成缓存、同代在途合并及写保护保持原合同。
 
-P2-U上述5项行为RED已记录，9项专项、完整Flutter1081项/7包分析、just check和三端各92项原生矩阵通过。macOS另有一次未稳定复现的图书馆弹层测试失败，原样保留，详见[证据](../../archive/evidence/offline-grade-priority-2026-09-23.md)。
+P2-U上述5项行为RED已记录，9项专项、完整Flutter1081项/7包分析、just check和三端各92项原生矩阵通过。macOS另有一次未稳定复现的图书馆弹层测试失败，原样保留，详见证据（`offline-grade-priority-2026-09-23.md`）。
 
 #### P4-AH：成绩变化基线统一加密（2026-09-23，实施前）
 

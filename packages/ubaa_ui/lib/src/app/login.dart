@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'app_service/privacy.dart' show uiShowPrivacyPolicy;
+import 'app_service/privacy.dart'
+    show uiShowPrivacyAgreement, uiShowPrivacyPolicy;
 import '../theme.dart' show UbaaTheme;
 import '../shared/layout/rail_identity.dart' show UiAppIcon;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
@@ -26,6 +27,9 @@ class UbaaLoginView extends StatefulWidget {
     required this.onRememberPasswordChanged,
     required this.onAutoLoginChanged,
     required this.onSubmit,
+    required this.privacyAccepted,
+    required this.onAcceptPrivacy,
+    this.appServiceAvailable = false,
     this.onReadDiagnostics,
     this.onOpenAppLink,
     this.verification,
@@ -47,6 +51,9 @@ class UbaaLoginView extends StatefulWidget {
   final ValueChanged<bool> onRememberPasswordChanged;
   final ValueChanged<bool> onAutoLoginChanged;
   final VoidCallback onSubmit;
+  final bool privacyAccepted;
+  final Future<void> Function() onAcceptPrivacy;
+  final bool appServiceAvailable;
   final String Function()? onReadDiagnostics;
   final Future<bool> Function(AppLink)? onOpenAppLink;
   final LoginVerificationState? verification;
@@ -61,6 +68,37 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
   late final TextEditingController _captchaController;
   bool _obscurePassword = true;
   bool _openingProject = false;
+  bool _privacyChecked = false;
+  bool _submittingPrivacy = false;
+
+  Future<void> _submit() async {
+    if (widget.isLoading || _submittingPrivacy) return;
+    if (!widget.privacyAccepted) {
+      setState(() => _submittingPrivacy = true);
+      try {
+        if (_privacyChecked) {
+          await widget.onAcceptPrivacy();
+        } else if (!await uiShowPrivacyAgreement(
+          context,
+          appServiceAvailable: widget.appServiceAvailable,
+          onAgree: widget.onAcceptPrivacy,
+        )) {
+          return;
+        }
+        if (mounted) setState(() => _privacyChecked = true);
+      } on Object {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('隐私政策同意未保存，请重试。')));
+        }
+        return;
+      } finally {
+        if (mounted) setState(() => _submittingPrivacy = false);
+      }
+    }
+    if (mounted) widget.onSubmit();
+  }
 
   @override
   void initState() {
@@ -212,7 +250,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                           SizedBox(
                             height: 48,
                             child: FilledButton(
-                              onPressed: _canSubmit ? widget.onSubmit : null,
+                              onPressed: _canSubmit ? _submit : null,
                               child: widget.isLoading
                                   ? const SizedBox.square(
                                       dimension: 20,
@@ -223,22 +261,20 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                                   : const Text('登录'),
                             ),
                           ),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                '登录即视为同意',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              TextButton(
-                                onPressed: () => uiShowPrivacyPolicy(
-                                  context,
-                                  bundledPrivacyPolicy,
-                                ),
-                                child: const Text('隐私政策'),
-                              ),
-                            ],
+                          const SizedBox(height: 8),
+                          _PrivacyAgreementRow(
+                            checked: widget.privacyAccepted || _privacyChecked,
+                            onChanged:
+                                widget.privacyAccepted ||
+                                    widget.isLoading ||
+                                    _submittingPrivacy
+                                ? null
+                                : (value) =>
+                                      setState(() => _privacyChecked = value),
+                            onOpenPolicy: () => uiShowPrivacyPolicy(
+                              context,
+                              bundledPrivacyPolicy,
+                            ),
                           ),
                           if (widget.error case final error?) ...<Widget>[
                             const SizedBox(height: 16),
@@ -320,12 +356,13 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
         _usernameController.text.trim().isNotEmpty &&
         _passwordController.text.isNotEmpty &&
         (widget.verification == null || widget.verification!.canSubmit)) {
-      widget.onSubmit();
+      unawaited(_submit());
     }
   }
 
   bool get _canSubmit =>
       !widget.isLoading &&
+      !_submittingPrivacy &&
       widget.username.trim().isNotEmpty &&
       widget.password.isNotEmpty &&
       (widget.verification == null || widget.verification!.canSubmit);
@@ -421,4 +458,67 @@ class _LoginOption extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// 登录按钮下方的隐私政策勾选行：复选框、说明文字和政策链接排成一句。
+///
+/// 点说明文字等同于点复选框；已接受当前版本时保持勾选外观但不可取消。
+class _PrivacyAgreementRow extends StatelessWidget {
+  const _PrivacyAgreementRow({
+    required this.checked,
+    required this.onChanged,
+    required this.onOpenPolicy,
+  });
+
+  final bool checked;
+  final ValueChanged<bool>? onChanged;
+  final VoidCallback onOpenPolicy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final toggle = onChanged == null ? null : () => onChanged!(!checked);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox.square(
+          dimension: 32,
+          child: Checkbox(
+            value: checked,
+            // 已接受时仍显示为正常勾选，只是不响应点击。
+            onChanged: onChanged == null
+                ? (_) {}
+                : (v) => onChanged!(v ?? false),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            semanticLabel: '我已阅读并同意《隐私政策》',
+          ),
+        ),
+        Flexible(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: toggle,
+            child: ExcludeSemantics(child: Text('我已阅读并同意', style: style)),
+          ),
+        ),
+        Semantics(
+          link: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+            onTap: onOpenPolicy,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                '《隐私政策》',
+                style: style?.copyWith(color: theme.colorScheme.primary),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

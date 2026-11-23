@@ -113,11 +113,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String term,
   });
 
-  /// 校验持久化认证状态。
+  /// 校验本机持有的会话。
   ///
   /// # Errors
-  ///
-  /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
+  /// 认证状态无法读取时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
 
   /// 无缓存时也按已知本机账号核对身份，并在每个业务请求后让位。
@@ -484,6 +483,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String date,
   });
 
+  /// 清除设置中的业务会话缓存和派生读组。
+  Future<void> clearBusinessSessionCache();
+
   Future<List<BridgeError?>> cloudPrintDelete({
     required bool scans,
     required List<String> ids,
@@ -513,8 +515,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或不属于当前认证代次时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<String> commandLoginUsername({
     required BridgeCommandLoginIdentity identity,
   });
@@ -532,8 +532,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或认证代次已变化时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> consumeCommandLoginIdentity({
     required BridgeCommandLoginIdentity identity,
   });
@@ -648,6 +646,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedGrades> grades({required String term});
 
   Future<BridgeRoutedGradeOverview> gradesOverview();
+
+  /// 查看是否存在可恢复的本机会话，不访问网络。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁时返回安全错误。
+  Future<bool> hasSavedSession();
 
   /// 读取某个年份或网站当前的体测页面。
   ///
@@ -1106,6 +1111,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 客户端已销毁、配置保存失败或重开失败时返回安全错误。
   Future<BridgeRouteSettings> setDefaultRoutePolicy({
     required BridgeRoutePolicy policy,
+  });
+
+  Future<BridgeRoutedSigninQr> signinQr({
+    required String courseId,
+    required int offsetMs,
   });
 
   Future<BridgeRoutedSigninClasses> signinToday();

@@ -154,6 +154,7 @@ class _HomeShellHarnessState extends State<HomeShellHarness> {
       onPrepareBykcWrite: shell.onPrepareBykcWrite,
       onPrepareBykcSignWrite: shell.onPrepareBykcSignWrite,
       onPrepareSigninWrite: shell.onPrepareSigninWrite,
+      onFetchSigninQr: shell.onFetchSigninQr,
       onPrepareCgyyCancelWrite: shell.onPrepareCgyyCancelWrite,
       onPrepareLibbookReserveWrite: shell.onPrepareLibbookReserveWrite,
       onPrepareLibbookCancelWrite: shell.onPrepareLibbookCancelWrite,

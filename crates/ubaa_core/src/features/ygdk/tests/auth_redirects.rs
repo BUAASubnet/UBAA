@@ -125,9 +125,8 @@ impl HttpTransport for RedirectTransport {
 #[test]
 fn 双路线阳光登录经过_sso_后才交换回调授权码() {
     for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/ygdk_diagnosis")
-            .join(format!("mock-{mode:?}-{}", std::process::id()));
+        let root =
+            crate::test_tmp::test_temp_dir("ubaa_core_features_ygdk_auth_redirects").unwrap();
         let store = FileSessionStore::new(&root).unwrap();
         save_session(
             &store,

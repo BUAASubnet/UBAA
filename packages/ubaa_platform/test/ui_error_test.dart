@@ -117,18 +117,16 @@ void main() {
       expect(network.retryable, isTrue);
     });
 
-    test('旧详情参数不再保留原始文本，issue id 有界', () {
+    test('不保留原始错误文本，且 issue id 有界', () {
       final error = mapCoreError(
         code: 'internal_error',
         message: 'safe diagnostic',
         issueId: 'issue_123',
-        includeTechnicalDetail: true,
       );
       final rejected = mapCoreError(
         code: 'internal_error',
         message: 'token=secret',
         issueId: 'not safe!',
-        includeTechnicalDetail: true,
       );
 
       expect(error.technicalDetail, isNull);
@@ -142,7 +140,6 @@ void main() {
         code: 'network_error',
         message: 'safe diagnostic',
         issueId: 'issue_1',
-        includeTechnicalDetail: true,
       );
 
       expect(uiErrorToJson(error), <String, Object?>{

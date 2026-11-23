@@ -7,6 +7,10 @@ on:
         description: Release 使用本机 Apple runner
         type: boolean
         default: false
+      checkout_ref:
+        description: 完整验收指定的提交，留空沿用触发提交
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       ohos_only:
@@ -69,6 +73,8 @@ jobs:
     runs-on: ${{ inputs.local_macos && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.workflow == 'Release 构建与草稿' && (matrix.os == 'macos-26' || matrix.os == 'xcode-27') && 'ubaa-release-macos' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
 
       - name: 选择 iOS 固定 Xcode
@@ -160,17 +166,33 @@ jobs:
       - name: 验证桌面命令入口
         if: contains(fromJSON('["linux", "windows", "macos"]'), matrix.platform)
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: python3 scripts/tests/platform/desktop_command.py "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
       - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just integration-test
 
       - name: 验证 Linux 安全存储可用与不可用会话
         if: matrix.platform == 'linux'
         shell: bash
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: bash scripts/tests/linux-secure-storage.sh
+
+      - name: 收集复核用构建产物
+        id: debug-artifact
+        shell: bash
+        run: |
+          source="${{ matrix.artifact }}"
+          destination="dist/flutter_debug/${{ matrix.artifact_id || matrix.platform }}"
+          mkdir -p "$destination"
+          cp -RP "$source" "$destination/"
+          printf 'path=%s/%s\n' "$destination" "${source##*/}" >> "$GITHUB_OUTPUT"
 
       - name: 关联候选输入与实际产物
         shell: bash
@@ -191,7 +213,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}
-          path: ${{ matrix.artifact }}
+          path: ${{ steps.debug-artifact.outputs.path }}
           if-no-files-found: error
           retention-days: 14
 
@@ -201,6 +223,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
       - uses: ./.github/actions/toolchain
       - name: 准备 HarmonyOS 托管环境
         shell: bash
@@ -209,14 +233,22 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet
           bash scripts/bootstrap/ohos.sh
       - name: 验证 Hvigor 签名密码格式
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: node --test scripts/tests/release/ohos_signing_test.mjs
       - name: 检查并构建 HarmonyOS
         env:
           UBAA_OHOS_NO_CODESIGN: '1'
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just ohos-check mode=debug
+      - name: 收集 HarmonyOS 调试产物
+        shell: bash
+        run: |
+          mkdir -p dist/flutter_debug/ohos
+          cp apps/ubaa_ohos/build/ohos/hap/*.hap dist/flutter_debug/ohos/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ubaa-ohos-debug-${{ github.run_id }}
-          path: apps/ubaa_ohos/build/ohos/hap/*.hap
+          path: dist/flutter_debug/ohos/*.hap
           if-no-files-found: error
           retention-days: 3

@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use crate::domain::ConnectionMode;
 use crate::error::Result;
 
+use super::business_cache::{BusinessSessionCache, Invalidation, revoke_disk};
 use super::file_safety::{
     create_temporary_file, open_existing_session_file, prevent_symlink_following,
     restrict_directory, restrict_file_creation, restrict_open_file, session_error, sync_directory,
@@ -63,6 +64,10 @@ impl FileSessionStore {
         Ok(store)
     }
 
+    pub(super) fn directory(&self) -> &Path {
+        self.path.parent().expect("会话文件位于配置目录内")
+    }
+
     /// 返回用于诊断和测试的准确会话路径。
     #[must_use]
     #[cfg(any(test, feature = "test-contract"))]
@@ -78,6 +83,11 @@ impl FileSessionStore {
     #[cfg(feature = "test-contract")]
     pub fn load_dual(&self) -> Result<Option<DualSessionSnapshot>> {
         self.load_dual_versioned().map(|current| current.snapshot)
+    }
+
+    pub(super) fn read_current_revision(&self) -> Result<u64> {
+        let mut lock = self.acquire_lock()?;
+        read_revision(&mut lock.file)
     }
 
     /// 加载双路线快照及其同步版本号。
@@ -142,6 +152,21 @@ impl FileSessionStore {
         expected_revision: u64,
         replacement: Option<&DualSessionSnapshot>,
     ) -> Result<DualSessionMutation> {
+        self.compare_exchange_dual_with_revocation(
+            expected_revision,
+            replacement,
+            replacement
+                .is_none()
+                .then_some((Invalidation::RevokeAll, None)),
+        )
+    }
+
+    pub(super) fn compare_exchange_dual_with_revocation(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&DualSessionSnapshot>,
+        revocation: Option<(Invalidation, Option<&BusinessSessionCache>)>,
+    ) -> Result<DualSessionMutation> {
         if replacement.is_some_and(|snapshot| snapshot.schema_version != 2) {
             return Err(session_error("session format is invalid"));
         }
@@ -154,12 +179,42 @@ impl FileSessionStore {
         let revision = current_revision
             .checked_add(1)
             .ok_or_else(|| session_error("session revision is exhausted"))?;
+        // 权属匹配后先撤销旁车，再发布主会话变更。后台任务不在旁车锁内读取主会话。
+        if let Some((event, cache)) = revocation
+            && self.revoke_business(event, cache).is_err()
+        {
+            tracing::warn!("提交主会话变更前撤销业务会话缓存失败");
+        }
         write_revision(&mut lock.file, revision)?;
         match body {
             Some(body) => self.save_unlocked(&body)?,
             None => self.clear_unlocked()?,
         }
         Ok(DualSessionMutation::Applied { revision })
+    }
+
+    pub(super) fn revoke_business_if_current(
+        &self,
+        expected_revision: u64,
+        event: Invalidation,
+        cache: Option<&BusinessSessionCache>,
+    ) -> Result<Option<Result<()>>> {
+        let mut lock = self.acquire_lock()?;
+        if read_revision(&mut lock.file)? != expected_revision {
+            return Ok(None);
+        }
+        Ok(Some(self.revoke_business(event, cache)))
+    }
+
+    fn revoke_business(
+        &self,
+        event: Invalidation,
+        cache: Option<&BusinessSessionCache>,
+    ) -> Result<()> {
+        match cache {
+            Some(cache) => cache.invalidate(event),
+            None => revoke_disk(self, event),
+        }
     }
 }
 
@@ -229,7 +284,7 @@ impl FileSessionStore {
             .path
             .parent()
             .ok_or_else(|| session_error("session path has no parent directory"))?;
-        let (temporary, mut file) = create_temporary_file(parent)?;
+        let (temporary, mut file) = create_temporary_file(parent, "session.json")?;
         let mut cleanup = TemporaryFile::new(temporary);
         restrict_open_file(&file, "could not restrict session file")?;
         file.write_all(body)
@@ -314,7 +369,7 @@ impl FileSessionStore {
     }
 }
 
-fn wait_for_lock(deadline: Instant) -> Result<()> {
+pub(super) fn wait_for_lock(deadline: Instant) -> Result<()> {
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
         return Err(crate::error::UbaaError::resource_busy());
@@ -323,7 +378,7 @@ fn wait_for_lock(deadline: Instant) -> Result<()> {
     Ok(())
 }
 
-fn try_file_lock(file: &File) -> Result<bool> {
+pub(super) fn try_file_lock(file: &File) -> Result<bool> {
     // Android 继续使用实际内核文件锁；其余平台使用 Rust 标准库。
     #[cfg(target_os = "android")]
     match fs2::FileExt::try_lock_exclusive(file) {

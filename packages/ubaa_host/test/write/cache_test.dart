@@ -7,6 +7,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/write_cache.dart' as fixtures;
 import 'package:ubaa_test_support/recovery.dart' as startup;
 import 'package:ubaa_test_support/navigation.dart' show openFeature;
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('直接选课只调用一次脱敏提交，回读和同步失败仍撤下旧动作', (tester) async {
@@ -14,6 +15,7 @@ void main() {
     final accounts = await startup.widgetAccounts(tester);
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         localAccountStore: accounts,
         initialDestination: UiDestination.study,

@@ -51,7 +51,7 @@ useRelease()
 </script>
 
 ::: info UBAA v2.0
-Android、Windows、macOS 和 Linux 安装包可以直接[下载](/download)，iOS 与 HarmonyOS 版本将通过应用商店提供。用过旧版的同学请看 [v2.0 新变化](/guide/ubaa2)。
+Android、Windows、macOS 和 Linux 安装包可以直接[下载](/download)。iOS 版已上架 App Store，HarmonyOS 版待上架 AppGallery。用过旧版的同学请看 [v2.0 新变化](/guide/ubaa2)。
 :::
 
 <HomeCommunity />

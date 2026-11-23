@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 正式包同样需要通过Core访问校园服务，不能仅依赖debug清单。 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 旧 Android 系统相册写入权限；新系统通过 MediaStore 添加图片。 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
     <application
         android:allowBackup="false"
         android:label="UBAA"

@@ -1,0 +1,34 @@
+name: dev 夜间完整验收
+on:
+  # 定时触发只对默认分支上的工作流生效，合入 main 后才会每天运行。
+  schedule:
+    - cron: '23 19 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: dev-nightly
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.candidate.outputs.sha }}
+      accepted: ${{ steps.candidate.outputs.accepted }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/dev
+          persist-credentials: false
+      - id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check/ci/nightly.py
+  verify:
+    needs: prepare
+    if: needs.prepare.outputs.accepted == 'false'
+    uses: BUAASubnet/UBAA/.github/workflows/ci.yml@dev
+    with:
+      checkout_ref: ${{ needs.prepare.outputs.sha }}
+      local_macos: false

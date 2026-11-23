@@ -61,7 +61,7 @@ extension _BhpanContent on _BhpanViewState {
       UbaaErrorCode.timeout ||
       UbaaErrorCode.upstreamUnavailable => UiStatePanel(
         icon: Icons.wifi_off,
-        title: '暂时连不上北航云盘',
+        title: '暂时连不上云盘',
         error: diagnostic,
         detail: '请检查网络后重试',
         action: '重试',

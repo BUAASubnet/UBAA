@@ -243,6 +243,9 @@ fn authority_error() -> UbaaError {
 }
 
 fn sanitize_authority_error(mut error: UbaaError) -> UbaaError {
+    if error.is_campus_network_required() {
+        return error;
+    }
     let safe_message = match error.code {
         ErrorCode::UpstreamChanged => "阳光打卡提交资格核对响应无效",
         ErrorCode::NetworkError => "阳光打卡资格核对网络请求失败",

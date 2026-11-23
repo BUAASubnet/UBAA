@@ -53,7 +53,7 @@
 
 ### 2026-11-01：首页待办迁入 Core
 
-本次使用冻结 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/menu/HomeTodo.kt`、`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/HomeTodoTest.kt`，并复用[日程学校投影决定](../decision-log.md#2026-10-31学校日程投影沿首页规则并保留完整日程状态)及[首页逐来源对照](../../archive/protocol/source-parity-ui-home.md)。固定 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 最近的 `src/api/class/{mod,core,data,opt}.rs`、`src/api/spoc/{mod,data,opt}.rs` 提供读协议和 DTO，没有等价首页聚合、阳光提醒或本地日程覆盖，这些本地操作记为不适用。
+本次使用冻结 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/menu/HomeTodo.kt`、`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/HomeTodoTest.kt`，并复用[日程学校投影决定](../decision-log.md#2026-10-31学校日程投影沿首页规则并保留完整日程状态)及首页逐来源对照（`source-parity-ui-home.md`）。固定 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 最近的 `src/api/class/{mod,core,data,opt}.rs`、`src/api/spoc/{mod,data,opt}.rs` 提供读协议和 DTO，没有等价首页聚合、阳光提醒或本地日程覆盖，这些本地操作记为不适用。
 
 | 操作 | 引导、重定向与会话 | 方法、参数、Header、编码与加密 | DTO、缓存、并发、错误与产品语义 |
 |---|---|---|---|
@@ -258,7 +258,7 @@ Direct/WebVPN `verify-live feature=exam` 均通过 prepare/login/status、学期
 
 #### 范围与实施前事实
 
-本轮只处理用户反馈的首页加载慢；当时暂停的[完整 UI/UX 计划](../../archive/history/goal-2026-09-17-before-offline-home.md)不恢复，该历史范围不提供当前授权。
+本轮只处理用户反馈的首页加载慢；当时暂停的完整 UI/UX 计划（`goal-2026-09-17-before-offline-home.md`）不恢复，该历史范围不提供当前授权。
 起始分支 `ubaa2`，保留既有 UI 与引用管理未提交修改。
 `just refs` 通过：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，
 `buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
@@ -282,7 +282,7 @@ Direct/WebVPN `verify-live feature=exam` 均通过 prepare/login/status、学期
 签到严格 sessionId 与示例 loginName 的分歧继续以[签到专项](signin.md#2026-09-17-课堂签到修复对照)为准。
 
 以下逐操作列明九个协议维度。本次仅调整应用层触发范围和顺序；原协议依据为
-[基础矩阵](../README.md)和[首页六来源投影](../../archive/protocol/source-parity-ui-home.md)，不借本轮调度变更补猜协议。
+[基础矩阵](../README.md)和首页六来源投影（`source-parity-ui-home.md`），不借本轮调度变更补猜协议。
 
 | 操作 | CAS/bootstrap 与 service | 重定向/最终 URL | Cookie/会话 | HTTP 与参数 | 请求头/编码 | 加密/签名 | DTO/解析 | 缓存/并发 | 错误语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -374,3 +374,21 @@ Direct 在最后导航时序保护前取得（该保护不改变首页启动读�
 空缓存的前台时间取首页 busy 状态结束，缓存刷新取正式首页刷新 Future 完成。四次缓存刷新的前台末项均为考试。希冀刷新批次数从空缓存的 103 批降至缓存刷新的 15 批；批次包括索引、缓存交付和网络读取，不等于 HTTP 请求数。整学期课表仍按批次在后台导入，其现有独占调度会增加后台收尾时间。
 
 WebVPN 本轮有一次新会话登录返回 `upstream_changed`，该次登录未通过；上述首页样本使用本轮此前成功登录的同路线会话，并由原生客户端重新读取用户身份。数据仅说明本次网络条件下的桌面 Debug 首页表现，没有修改前的同条件对照，尚无手机 Release 性能证据。私有会话、业务缓存、计时脚本和原始日志仅保存在被忽略的 `.ubaa_local/home_refresh_optimization/`。
+
+### 首页考试独立交付（2026-11-18）
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `HomeBootstrapCoordinator.kt` 和同名测试显示，旧版首页并行启动各来源并等待它们结束。考试由 `ExamViewModel.kt` 调用 `ScheduleApi` 单独读取。`LocalScheduleApi.kt`、`LocalScheduleApiBackendTest.kt` 和 DTO `Schedule.kt`、`Exam.kt` 提供本科考试学期与安排的请求、解析和错误证据。
+
+冻结 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/aas/core.rs` 提供 AAS 激活依据。`api/aas/opt.rs` 的 `currentUser.do` 用于读取用户配置。`api/app/{core,opt,data}.rs` 通过 App CAS 会话读取 HTML 内嵌考试 JSON，在本科教务考试的学期和安排操作上不适用。首页首批交付在 buaa-api 中不适用。研究生考试的学期与安排在两个冻结来源中均不适用。现行接口见 [GSMIS 证据](gsmis.md#门户身份分流与研究生成绩考试2026-11-08)。
+
+调整范围在 App 的首页等待与状态汇总。下表记录沿用的读取操作。认证、解析和缓存的细节见[本科教务](academic.md)与本页[首页考试待办](#首页考试待办)。
+
+| 操作 | CAS/引导与 service | 跳转与最终地址 | Cookie/会话作用域 | 方法与参数 | 请求头与编码 | 加密/签名 | DTO/解析 | 缓存/并发/重试 | 错误与产品语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 本科考试学期 | `currentUser.do` 探测，必要时用 AAS service `/jwapp/sys/homeapp/index.do?contextPath=/jwapp` | Core 校验 AAS 激活落点和业务响应 | 当前账号及实际路线的教务 Cookie | `GET /jwapp/sys/homeapp/api/home/student/schoolCalendars.do`，无参数 | JSON Accept、`X-Requested-With: XMLHttpRequest`、`/jwapp/sys/homeapp/index.html` Referer，无正文 | 查询无加密 | `code=0`，`datas` 中的 `itemCode` / `itemName` 字符串、`selected` 布尔值和 `itemIndex` 整数 | 同一考试任务内先取学期，复用既有缓存和恢复 | 沿用当前学期选择、空结果和错误处理 |
+| 本科考试安排 | 同一 AAS service 与门户能力检查 | 同上 | 当前账号及实际路线的教务 Cookie | `GET /jwapp/sys/homeapp/api/home/student/exams.do`，`termCode` 取所选学期 | `Accept: */*`、同一 XHR 头、`/jwapp/sys/homeapp/home/index.html` Referer，无正文 | 查询无加密 | `code=0`、`datas` 考试列表和原待办日期规则 | 沿原组串行，复用同学期缓存 | 沿用错误映射与失败保旧 |
+| 研究生考试学期 | 既有门户身份分流，`GET /gsapp/sys/wdksapp/*default/index.do` | 原 GSMIS 跳转校验 | 当前账号及实际路线的 GSMIS Cookie | 引导后 `POST modules/ksxxck/getXnxqList.do`，空表单 | JSON Accept、同一 XHR 头、GSMIS 入口 Referer、表单编码 | 查询无加密 | `datas` 中的 `DM`、`MC` 和当前学期标记 `SFDQXQ` | 同一考试任务内先取学期 | 使用独立考试学期和原错误映射 |
+| 研究生考试安排 | 同一 GSMIS 入口 | 同上 | 当前账号及实际路线的 GSMIS Cookie | 引导后 `POST modules/ksxxck/getWdksxx.do`，表单 `xnxqdm` | 同上 | 查询无加密 | `success` 布尔值与 `countKs`、`countKcks`、`countJk` 三项计数 | 沿原考试组串行和缓存规则 | 全零返回空结果，正数保留明细不支持语义 |
+| 首页考试交付 | 不适用 | 不适用 | 沿用账号、路线、请求修订和生命周期检查 | 本地投影 | 不适用 | 不适用 | 按考试快照重算待办 | 考试与其他来源同轮启动，复用在途考试。完整刷新、身份复用批次收尾与单项重试仍等待考试 | 保留考试来源状态及适用的旧结果，丢弃失效的迟到结果 |
+
+Direct 和 WebVPN 的真实 App 观察由总指挥执行。每条路线分别核对空业务缓存首次加载、考试在途时下拉刷新、当前学期和考试安排读取完成后补入待办，以及单项重试。

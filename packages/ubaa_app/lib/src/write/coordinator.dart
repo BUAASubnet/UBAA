@@ -11,6 +11,7 @@ import 'receipt_verifier.dart';
 typedef WriteCommitter = Future<WriteCommitResult> Function(String intentId);
 typedef WritePreparer = Future<WriteIntent> Function();
 typedef WriteDiscarder = Future<void> Function(String intentId);
+typedef SigninSessionRecovery = Future<bool> Function(BackendException error);
 typedef WriteResultObserver =
     void Function(
       WriteOperation operation, {
@@ -28,12 +29,14 @@ class WriteCoordinator extends ChangeNotifier {
     bool Function()? canStart,
     LocalDiagnostics? diagnostics,
     WriteResultObserver? observeResult,
+    SigninSessionRecovery? recoverSigninSession,
   }) : _commit = commit,
        _discard = discard,
        _receiptVerifier = receiptVerifier ?? const WriteReceiptVerifier(),
        _now = now ?? DateTime.now,
        _canStart = canStart,
        _observeResult = observeResult,
+       _recoverSigninSession = recoverSigninSession,
        _diagnostics = diagnostics ?? LocalDiagnostics();
 
   final WriteCommitter _commit;
@@ -43,6 +46,7 @@ class WriteCoordinator extends ChangeNotifier {
   final bool Function()? _canStart;
   final LocalDiagnostics _diagnostics;
   final WriteResultObserver? _observeResult;
+  final SigninSessionRecovery? _recoverSigninSession;
   WriteState _state = const WriteState.idle();
   bool _disposed = false;
   int _generation = 0;
@@ -91,7 +95,13 @@ class WriteCoordinator extends ChangeNotifier {
     required WriteOperation expectedOperation,
   }) async {
     try {
-      return await _prepare(prepare, expectedOperation: expectedOperation);
+      return await _prepare(
+        prepare,
+        expectedOperation: expectedOperation,
+        recover: expectedOperation == WriteOperation.signinPerform
+            ? _recoverSigninSession
+            : null,
+      );
     } on BackendException catch (exception) {
       throw UbaaErrorMapper.fromException(exception);
     }
@@ -100,6 +110,7 @@ class WriteCoordinator extends ChangeNotifier {
   Future<WriteIntent?> _prepare(
     WritePreparer prepare, {
     WriteOperation? expectedOperation,
+    SigninSessionRecovery? recover,
   }) async {
     if (!_mayStart || _activity != null || _state.intent != null) return null;
     final generation = _generation;
@@ -120,6 +131,18 @@ class WriteCoordinator extends ChangeNotifier {
       return _isCurrent(activity, generation) ? prepared : null;
     } on Object catch (exception, stackTrace) {
       if (!_isCurrent(activity, generation)) return null;
+      if (recover != null &&
+          exception is BackendException &&
+          exception.code == UbaaErrorCode.authenticationRequired &&
+          exception.resolvedRoute != null &&
+          !exception.accountMismatch) {
+        // 登录恢复要求写入协调器空闲，恢复完成后重新核对签到资格。
+        _finish(activity);
+        if (_disposed || _generation != generation || hasPendingOperation)
+          return null;
+        if (!await recover(exception)) return null;
+        return _prepare(prepare, expectedOperation: expectedOperation);
+      }
       final error = _safeError(
         exception,
         DiagnosticOperation.writePrepare,

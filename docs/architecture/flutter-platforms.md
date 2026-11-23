@@ -1,6 +1,6 @@
 # Flutter 六平台版本与验收矩阵
 
-本页供处理平台构建、平台能力和工具链升级的贡献者使用，列出锁定的工具链、各平台目标、平台能力的边界和 FRB 生成规则。各平台的实际验证结果见[状态页](../project/status.md)；P0–P6 阶段的构建与验收记录见[归档快照](../archive/history/flutter-platforms-2026-11-11.md)。
+本页供处理平台构建、平台能力和工具链升级的贡献者使用，列出锁定的工具链、各平台目标、平台能力的边界和 FRB 生成规则。各平台的验证结果见[项目现状](../project/status.md#功能与平台)。
 
 “理论支持”不等于 UBAA 已验证。平台只有在具备日期、命令以及产物或设备证据时才算通过，这些结果记录在状态页。
 
@@ -78,9 +78,9 @@
 
 ### 4.2 安全材料
 
-- 官方五平台使用固定的 `flutter_secure_storage 10.0.0`；OHOS 通过本仓库的 HUKS 插件适配走相同的插件接口。
+- 官方宿主锁定 `flutter_secure_storage 11.2.0`。Windows 和 Linux 的适配层分别直接调用 DPAPI 和 Secret Service；OHOS 通过本仓库的 HUKS 插件适配走相同的插件接口。
 - 凭据、账号索引和随机业务缓存密钥使用独立命名空间，不枚举或导出已有密钥。
-- macOS 使用系统登录钥匙串；固定 darwin 0.2.0 的参数拼写差异在适配层显式兼容，避免误启用需要开发证书的数据保护钥匙串。
+- macOS 使用系统登录钥匙串；锁定 `flutter_secure_storage_darwin 0.4.3`，适配层直接传入 `MacOsOptions(usesDataProtectionKeychain: false, accessibility: null)`，避免误启用需要开发证书的数据保护钥匙串。
 - Android 禁止自动备份，iOS 配置 Keychain 权限。
 
 Linux 安全存储的依赖：
@@ -102,6 +102,7 @@ Linux 安全存储的依赖：
 
 ### 4.4 宿主入口与写入
 
+- 修改 iOS 启动画面时，参见[启动图资源说明](../../apps/ubaa_flutter/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md)。
 - 两个平台的 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host` 负责 AppController 生命周期与回调接线。
 - 生产默认通过 `createProductionBackend()` 打开 `BridgeBackend`，打开失败才使用 `UnavailableBackend`。Demo 只用于显式注入的测试或预览。
 - 写入状态由应用层 `WriteCoordinator` 唯一持有。平台位置获取期间发生会话失效时，不继续准备旧操作。
@@ -125,6 +126,7 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 
 ## 6. FRB 生成边界
 
+- 接线说明和历史版本见 [Bindings 说明](../../packages/ubaa_bindings/README.md)和 [Bindings 更新日志](../../packages/ubaa_bindings/CHANGELOG.md)。
 - `packages/ubaa_bindings/lib/src/rust/` 与 `crates/ubaa_flutter_bridge/src/frb_generated.rs` 是 FRB 2.13.0 的机械生成输出，禁止手改。
 - 生成的 FFI 编解码需要 `unsafe`。仓库只在私有 `frb_generated` 模块上局部允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块保持 `unsafe_code=deny` 和严格 Clippy。
 - `just flutter-codegen-check` 重新生成，以锁定 Rust toolchain 机械执行 `cargo fmt --all`，并要求零漂移，防止例外扩散到业务代码。

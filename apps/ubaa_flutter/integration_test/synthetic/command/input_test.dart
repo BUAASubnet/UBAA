@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/command.dart';
 
+import '../../../../../packages/ubaa_platform/test/support/test_tmp.dart';
 import '../../support/rust_library.dart';
 
 final class _Input implements CommandIO {
@@ -25,6 +27,14 @@ void main() {
   testWidgets('真实命令准备在访问材料和账号前拒绝密码与阳光输入', (tester) async {
     await tester.runAsync(() async {
       await initializeRustLibrary();
+      final directory = createTestTempDirectory(
+        'ubaa_flutter_command_input',
+        fallbackRoot: Directory.systemTemp,
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final missingPhoto = File.fromUri(
+        directory.uri.resolve('missing_photo.jpg'),
+      );
       for (final arguments in [
         [
           'ubaa-cli',
@@ -49,7 +59,7 @@ void main() {
           '--end-time',
           'bad-time',
           '--photo',
-          '.ubaa_local/command_delivery/missing_photo.jpg',
+          missingPhoto.path,
           '--confirm-write',
         ],
         [
@@ -66,7 +76,7 @@ void main() {
           '--end-time',
           '2026-11-05 09:00',
           '--photo',
-          '.ubaa_local/command_delivery/missing_photo.jpg',
+          missingPhoto.path,
           '--confirm-write',
         ],
       ]) {
@@ -92,7 +102,6 @@ void main() {
         expect(clientCalls, 0);
         final envelope =
             jsonDecode(utf8.decode(input.output)) as Map<String, dynamic>;
-        expect(envelope['schemaVersion'], 18);
         expect(envelope['ok'], false);
         expect(
           (envelope['error'] as Map<String, dynamic>)['code'],

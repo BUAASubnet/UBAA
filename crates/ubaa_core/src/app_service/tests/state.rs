@@ -6,11 +6,7 @@ use super::{
     },
 };
 use chrono::{DateTime, Utc};
-use std::{
-    convert::identity,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{convert::identity, path::Path, process::Command};
 use uuid::Uuid;
 
 const LOOPBACK: &str = "http://127.0.0.1:8787";
@@ -27,25 +23,15 @@ fn now() -> DateTime<Utc> {
     "2026-11-10T16:00:00Z".parse().unwrap()
 }
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_state")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_state").unwrap())
     }
 
     fn path(&self) -> &Path {
-        &self.0
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).expect("清理合成 SQLite 测试目录");
+        self.0.path()
     }
 }
 
@@ -89,20 +75,25 @@ fn assert_send_blocked(app: &AppService, batch_id: Uuid) {
 }
 
 #[test]
-fn 图形首次启动默认启用且重启和政策升级保留关闭与撤回选择() {
+fn 图形首次启动等待同意且政策升级保留关闭与撤回选择() {
     let root = TestDirectory::new();
     let command = open(root.path(), Surface::Command);
     assert!(!command.enqueue(&EVENT, None).unwrap());
     let gui = open(root.path(), Surface::Gui);
     let state = gui.snapshot().unwrap();
-    assert_eq!(state.consent, Consent::Agreed(1));
-    assert_eq!(state.telemetry_enabled, Some(true));
+    assert_eq!(state.consent, Consent::Unasked);
+    assert_eq!(state.telemetry_enabled, None);
+    assert!(!gui.enqueue(&EVENT, None).unwrap());
+    gui.agree(1).unwrap();
     let first_install = install(&gui);
     queue(&command);
 
     gui.set_telemetry(false).unwrap();
     let updated = open_with_policy(root.path(), Surface::Gui, 2);
-    assert_eq!(updated.snapshot().unwrap().consent, Consent::Agreed(2));
+    assert_eq!(
+        updated.snapshot().unwrap().consent,
+        Consent::ReconsentRequired(2)
+    );
     assert_eq!(updated.snapshot().unwrap().telemetry_enabled, Some(false));
     assert_eq!(install(&updated), first_install);
     assert!(!command.enqueue(&EVENT, None).unwrap());
@@ -116,10 +107,10 @@ fn 图形首次启动默认启用且重启和政策升级保留关闭与撤回�
 }
 
 #[test]
-fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
+fn 重新登记服务同意保留独立开关并保持队列为空() {
     let root = TestDirectory::new();
     let gui = open(root.path(), Surface::Gui);
-    assert_eq!(gui.snapshot().unwrap().consent, Consent::Agreed(1));
+    gui.agree(1).unwrap();
     let first_install = install(&gui);
     assert_eq!(first_install.get_version(), Some(uuid::Version::Random));
     assert_eq!(gui.snapshot().unwrap().telemetry_enabled, Some(true));
@@ -130,6 +121,8 @@ fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
     assert!(gui.set_telemetry(false).unwrap());
     assert!(gui.snapshot().unwrap().can_bootstrap());
     let gui = open_with_policy(root.path(), Surface::Gui, 2);
+    assert!(!gui.snapshot().unwrap().can_bootstrap());
+    gui.agree(2).unwrap();
     let state = gui.snapshot().unwrap();
     assert_eq!(state.consent, Consent::Agreed(2));
     assert_eq!(state.telemetry_enabled, Some(false));
@@ -145,6 +138,7 @@ fn 关闭统计后接受新版政策仍关闭并保持队列为空() {
 fn 命令政策升级暂存原批次且撤回保留独立开关() {
     let root = TestDirectory::new();
     let gui = open(root.path(), Surface::Gui);
+    gui.agree(1).unwrap();
     gui.enter_basic().unwrap();
     let state = gui.snapshot().unwrap();
     assert_eq!(state.consent, Consent::Basic);

@@ -69,7 +69,9 @@ impl AppService {
         let Some(config) = self.config.available() else {
             return Ok(AppBootstrapView::default());
         };
-        if !matches!(self.permissions(tx)?.consent, Consent::Agreed(_)) {
+        if !self.host_privacy_accepted()
+            || !matches!(self.permissions(tx)?.consent, Consent::Agreed(_))
+        {
             return Ok(AppBootstrapView::default());
         }
         let Some(stored) = load_bootstrap(tx, config)? else {
@@ -148,7 +150,9 @@ impl AppService {
             return Ok(false);
         };
         self.store.read(|tx| {
-            if !matches!(self.permissions(tx)?.consent, Consent::Agreed(_)) {
+            if !self.host_privacy_accepted()
+                || !matches!(self.permissions(tx)?.consent, Consent::Agreed(_))
+            {
                 return Ok(false);
             }
             let minimum = tx

@@ -45,7 +45,8 @@ impl RouteClient {
     /// # Errors
     /// 认证失败、分页不完整或响应结构变化时返回安全错误。
     pub async fn finance_incomes(&mut self) -> crate::error::Result<FeatureResult<FinanceIncomes>> {
-        let data = crate::features::finance::incomes(&mut self.runtime).await?;
+        let result = crate::features::finance::incomes(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 }

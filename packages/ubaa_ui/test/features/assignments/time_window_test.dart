@@ -3,141 +3,153 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/coursework/course_participation.dart';
+import 'package:ubaa_ui/src/features/coursework/signin_qr_sheet.dart';
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart';
 import 'package:ubaa_ui/src/common/tag.dart';
 import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
-  for (final sample in [
-    (7, 49, false),
-    (7, 50, true),
-    (8, 30, true),
-    (9, 40, false),
-    (9, 41, false),
+  test('签到二维码与直接签到时间窗保留八个分钟边界', () {
+    const course = SigninPresentation(
+      courseId: '合成课程',
+      classBeginTime: '08:00',
+      classEndTime: '09:40',
+    );
+    for (final (hour, minute, phase, canSubmit) in [
+      (7, 49, SigninPhase.upcoming, false),
+      (7, 50, SigninPhase.open, false),
+      (7, 54, SigninPhase.open, false),
+      (7, 55, SigninPhase.open, true),
+      (8, 29, SigninPhase.open, true),
+      (8, 30, SigninPhase.open, false),
+      (9, 39, SigninPhase.open, false),
+      (9, 40, SigninPhase.ended, false),
+    ]) {
+      final window = signinPhase(course, DateTime(2026, 10, 28, hour, minute));
+      expect(
+        (window.phase, window.submitOpen),
+        (phase, canSubmit),
+        reason: '$hour:$minute',
+      );
+      expect(window.opensAt, DateTime(2026, 10, 28, 7, 50));
+      expect(window.submitOpensAt, DateTime(2026, 10, 28, 7, 55));
+    }
+  });
+
+  for (final (hour, minute, qrOpen, canSubmit, done, openSheet) in [
+    (7, 49, false, false, false, false),
+    (7, 50, true, false, false, false),
+    (7, 55, true, true, false, true),
+    (8, 29, true, false, true, true),
   ]) {
-    for (final done in [false, true]) {
-      testWidgets(
-        '签到时间窗 ${sample.$1}:${sample.$2} 已签到=$done',
-        (tester) => withClock(
-          Clock.fixed(DateTime.utc(2026, 10, 28, sample.$1 - 8, sample.$2)),
-          () async {
-            var calls = 0;
+    testWidgets(
+      '签到入口 $hour:$minute 已签到=$done',
+      (tester) => withClock(
+        Clock.fixed(DateTime.utc(2026, 10, 28, hour - 8, minute)),
+        () async {
+          final reads = <(String, Duration)>[];
+          final checks = <String>[];
+          await tester.pumpWidget(
+            _signinCard(
+              signed: done,
+              fetch: (scheduleId, offset) async {
+                reads.add((scheduleId, offset));
+                return '合成二维码';
+              },
+              check: (scheduleId) async {
+                checks.add(scheduleId);
+                return false;
+              },
+            ),
+          );
+          final button = find.widgetWithText(FilledButton, '签到');
+          final qrButton = find.byTooltip('签到二维码');
+          if (canSubmit) {
+            expect(tester.widget<FilledButton>(button).enabled, isTrue);
+          } else {
+            expect(button, findsNothing);
+          }
+          expect(
+            find.text('07:55 起可签'),
+            qrOpen && hour == 7 && !canSubmit ? findsOneWidget : findsNothing,
+          );
+          expect(qrButton, qrOpen ? findsOneWidget : findsNothing);
+          if (done) {
+            expect(
+              tester.widget<UiTag>(find.byType(UiTag)).tone,
+              UiTagTone.primary,
+            );
+          }
+          if (openSheet) {
+            await tester.tap(qrButton);
+            await tester.pumpAndSettle();
+            expect(find.byType(SigninQrSheet), findsWidgets);
+            expect(reads, [('课次', Duration.zero)]);
+            await tester.pump(const Duration(seconds: 3));
+            expect(checks, done ? isEmpty : ['课次']);
+          }
+          await tester.pumpWidget(const SizedBox());
+        },
+      ),
+    );
+  }
+  testWidgets(
+    '缺少排课 ID 时二维码不可用且直接签到不可点',
+    (tester) =>
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
+          await tester.pumpWidget(
+            _signinCard(scheduleId: ' ', fetch: (_, _) async => '合成二维码'),
+          );
+          final button = find.widgetWithText(FilledButton, '签到');
+          expect(tester.widget<FilledButton>(button).onPressed, isNull);
+          expect(find.byTooltip('签到二维码'), findsNothing);
+        }),
+  );
+
+  testWidgets(
+    '缺少二维码读取回调时仍提供直接签到',
+    (tester) =>
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
+          await tester.pumpWidget(_signinCard());
+          final button = find.widgetWithText(FilledButton, '签到');
+          expect(tester.widget<FilledButton>(button).enabled, isTrue);
+          expect(find.byTooltip('签到二维码'), findsNothing);
+        }),
+  );
+  testWidgets('课程时间缺失时不提供签到入口', (tester) async {
+    await tester.pumpWidget(
+      _signinCard(begin: '', end: '', fetch: (_, _) async => '合成二维码'),
+    );
+    expect(find.widgetWithText(FilledButton, '签到'), findsNothing);
+  });
+  for (final (writesEnabled, eligibility) in [
+    (false, ActionEligibility.allowed),
+    (true, ActionEligibility.unknown),
+  ]) {
+    testWidgets(
+      '写入禁用或资格未知时二维码仍可读（$writesEnabled, $eligibility）',
+      (tester) =>
+          withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
+            var reads = 0;
             await tester.pumpWidget(
-              MaterialApp(
-                home: Scaffold(
-                  body: CourseParticipationContent(
-                    feature: FeatureId.signin,
-                    details: [
-                      FeatureDetail(
-                        title: '合成课程',
-                        presentation: SigninPresentation(
-                          courseId: '课程',
-                          classBeginTime: '08:00',
-                          classEndTime: '09:40',
-                          signStatus: done ? 1 : 0,
-                        ),
-                        actions: const [
-                          SigninPerformAction(
-                            scheduleId: '课次',
-                            eligibility: ActionEligibility.allowed,
-                          ),
-                        ],
-                      ),
-                    ],
-                    evaluationRow: (_) => const SizedBox(),
-                    onSignin: (_) async {
-                      calls++;
-                    },
-                  ),
-                ),
+              _signinCard(
+                writesEnabled: writesEnabled,
+                eligibility: eligibility,
+                fetch: (_, _) async {
+                  reads++;
+                  return '合成二维码';
+                },
               ),
             );
             final button = find.widgetWithText(FilledButton, '签到');
-            expect(button, sample.$3 && !done ? findsOneWidget : findsNothing);
-            if (sample.$3 && !done) {
-              await tester.tap(button);
-              expect(calls, 1);
-            }
-            await tester.pumpWidget(const SizedBox());
-          },
-        ),
-      );
-    }
-  }
-  testWidgets(
-    '资格未知时禁用签到且不显示内部提示',
-    (tester) =>
-        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 30)), () async {
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: CourseParticipationContent(
-                  feature: FeatureId.signin,
-                  details: const [
-                    FeatureDetail(
-                      title: '合成课',
-                      presentation: SigninPresentation(
-                        courseId: '课程',
-                        classBeginTime: '08:00',
-                        classEndTime: '09:40',
-                        signStatus: 0,
-                      ),
-                      actions: [
-                        SigninPerformAction(
-                          scheduleId: '课次',
-                          eligibility: ActionEligibility.unknown,
-                        ),
-                      ],
-                    ),
-                  ],
-                  evaluationRow: (_) => const SizedBox(),
-                  onSignin: (_) async {},
-                ),
-              ),
-            ),
-          );
-          expect(
-            tester
-                .widget<FilledButton>(find.widgetWithText(FilledButton, '签到'))
-                .onPressed,
-            isNull,
-          );
-          expect(find.textContaining('资格'), findsNothing);
-          await tester.pumpWidget(const SizedBox());
-        }),
-  );
-  testWidgets('课程时间缺失时不显示可提交签到按钮', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CourseParticipationContent(
-            feature: FeatureId.signin,
-            details: const [
-              FeatureDetail(
-                title: '时间缺失课程',
-                presentation: SigninPresentation(
-                  courseId: '课程',
-                  classBeginTime: '',
-                  classEndTime: '',
-                  signStatus: 0,
-                ),
-                actions: [
-                  SigninPerformAction(
-                    scheduleId: '课次',
-                    eligibility: ActionEligibility.allowed,
-                  ),
-                ],
-              ),
-            ],
-            evaluationRow: (_) => const SizedBox(),
-            onSignin: (_) async {},
-          ),
-        ),
-      ),
+            expect(tester.widget<FilledButton>(button).enabled, isFalse);
+            await tester.tap(find.byTooltip('签到二维码'));
+            await tester.pumpAndSettle();
+            expect(reads, 1);
+            await tester.pumpWidget(const SizedBox.shrink());
+          }),
     );
-    expect(find.widgetWithText(FilledButton, '签到'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
+  }
   for (final days in [2, 3, 4]) {
     testWidgets(
       '作业剩余 $days 天与三天标橙边界',
@@ -186,3 +198,42 @@ void main() {
     );
   }
 }
+
+Widget _signinCard({
+  bool signed = false,
+  bool writesEnabled = true,
+  ActionEligibility eligibility = ActionEligibility.allowed,
+  String scheduleId = '课次',
+  String begin = '08:00',
+  String end = '09:40',
+  Future<String> Function(String, Duration)? fetch,
+  Future<bool> Function(String)? check,
+}) => MaterialApp(
+  home: Scaffold(
+    body: CourseParticipationContent(
+      feature: FeatureId.signin,
+      details: [
+        FeatureDetail(
+          title: '合成课程',
+          presentation: SigninPresentation(
+            courseId: '展示课程编号',
+            classBeginTime: begin,
+            classEndTime: end,
+            signStatus: signed ? 1 : 0,
+          ),
+          actions: [
+            SigninPerformAction(
+              scheduleId: scheduleId,
+              eligibility: eligibility,
+            ),
+          ],
+        ),
+      ],
+      evaluationRow: (_) => const SizedBox(),
+      onSignin: (_) async {},
+      writesEnabled: writesEnabled,
+      onFetchSigninQr: fetch,
+      onCheckSigninStatus: check,
+    ),
+  ),
+);

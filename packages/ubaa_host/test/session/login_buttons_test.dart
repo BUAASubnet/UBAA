@@ -9,6 +9,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   _registerRecoveryRegressions();
@@ -34,17 +35,17 @@ void main() {
     await tester.tap(find.text('自动登录'));
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isTrue);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).at(1)).value, isTrue);
 
     await tester.tap(find.text('记住密码'));
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isFalse);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).at(1)).value, isFalse);
 
     await tester.tap(find.widgetWithText(InkWell, '记住密码'));
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).at(1)).value, isFalse);
   });
 
   testWidgets('已保存的手动登录恢复遮罩密码且点击登录前不认证', (tester) async {
@@ -105,6 +106,7 @@ void main() {
     var factoryCalls = 0;
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () =>
             ++factoryCalls == 1 ? backend : _SignedInBackend(),
         credentialVault: vault,
@@ -279,7 +281,7 @@ void main() {
     await tester.pump();
 
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isFalse);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).at(1)).value, isFalse);
     expect(information.opened, isEmpty);
     expect(backend.loginCalls, 1);
     backend.loginGate!.complete();
@@ -302,6 +304,7 @@ void _registerRecoveryRegressions() {
       var factories = 0;
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backendFactory: () =>
               ++factories == 1 ? first : _RecoveryBackend(state),
           credentialVault: vault,
@@ -355,6 +358,7 @@ void _registerRecoveryRegressions() {
         var factories = 0;
         await tester.pumpWidget(
           UbaaAppHost(
+            preferenceValues: acceptedPrivacyPreferences(),
             backendFactory: () =>
                 ++factories == 1 ? first : _RecoveryBackend(state),
             credentialVault: vault,
@@ -396,6 +400,7 @@ void _registerRecoveryRegressions() {
     final state = _RecoveryState();
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backendFactory: () => _RecoveryBackend(state),
         credentialVault: MemoryCredentialVault(initial: _recoveryCredential),
         reminderStore: MemoryYgdkReminderStore(),
@@ -472,6 +477,7 @@ Widget _host(
   CredentialVault? vault,
   GradeScoreStore? grades,
 }) => UbaaAppHost(
+  preferenceValues: acceptedPrivacyPreferences(),
   backend: backend ?? DemoBackend(loginDelay: Duration.zero),
   credentialVault: vault ?? MemoryCredentialVault(),
   gradeScoreStore: grades,

@@ -17,11 +17,13 @@ use crate::domain::{
     WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
     YgdkRecordsPage,
 };
-use crate::error::Result;
+use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
-use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
+#[cfg(feature = "test-contract")]
+use crate::session::SessionStore;
+use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 use super::routing::{RouteExecution, invalid_input};
 
@@ -56,8 +58,7 @@ impl RouteClient {
         let Some(mode) = mode.or_else(|| sessions.active_routes().into_iter().next()) else {
             return Ok(None);
         };
-        let route_store = sessions.route_store(mode);
-        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions)).map(Some)
+        Self::build_coordinated(mode, ReqwestTransport::new()?, sessions).map(Some)
     }
 
     /// 在宿主选定的配置目录下构造生产客户端。
@@ -68,8 +69,7 @@ impl RouteClient {
     pub fn new(mode: ConnectionMode, config_dir: impl AsRef<Path>) -> Result<Self> {
         let store = FileSessionStore::new(config_dir)?;
         let sessions = DualSessionCoordinator::new(store)?;
-        let route_store = sessions.route_store(mode);
-        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions))
+        Self::build_coordinated(mode, ReqwestTransport::new()?, sessions)
     }
 
     /// 使用注入的传输和持久化端口构造客户端。
@@ -84,7 +84,11 @@ impl RouteClient {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
-        Self::build(mode, transport, store, None)
+        Ok(Self {
+            runtime: ClientRuntime::new(mode, transport, store)?,
+            auth: AuthWorkflow::default(),
+            sessions: None,
+        })
     }
 
     /// 使用注入的固定时钟构造测试客户端。
@@ -111,20 +115,25 @@ impl RouteClient {
         })
     }
 
-    fn build<T, S>(
+    #[cfg(all(test, feature = "test-contract"))]
+    pub(crate) fn with_coordinated_transport_for_test(
         mode: ConnectionMode,
-        transport: T,
-        store: S,
-        sessions: Option<DualSessionCoordinator>,
-    ) -> Result<Self>
-    where
-        T: HttpTransport + 'static,
-        S: SessionStore + 'static,
-    {
+        transport: impl HttpTransport + 'static,
+        store: FileSessionStore,
+    ) -> Result<Self> {
+        let sessions = DualSessionCoordinator::new(store)?;
+        Self::build_coordinated(mode, transport, sessions)
+    }
+
+    fn build_coordinated(
+        mode: ConnectionMode,
+        transport: impl HttpTransport + 'static,
+        sessions: DualSessionCoordinator,
+    ) -> Result<Self> {
         Ok(Self {
-            runtime: ClientRuntime::new(mode, transport, store)?,
+            runtime: ClientRuntime::new_coordinated(mode, transport, &sessions)?,
             auth: AuthWorkflow::default(),
-            sessions,
+            sessions: Some(sessions),
         })
     }
 
@@ -188,6 +197,15 @@ impl RouteClient {
     /// 返回持久化或修订版本错误；远程注销失败会被有意忽略。
     pub async fn logout(&mut self) -> Result<()> {
         self.guard_latest_session_ownership()?;
+        if let Some(sessions) = &self.sessions
+            && sessions
+                .revoke_business_for_logout(
+                    crate::session::business_cache::Invalidation::RevokeRoute(self.mode()),
+                )?
+                .is_err()
+        {
+            tracing::warn!("固定路线注销前撤销业务会话缓存失败");
+        }
         let result = self.auth.logout(&mut self.runtime).await;
         self.finish_session_operation(result)
     }
@@ -789,7 +807,7 @@ impl RouteClient {
 
     fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
         self.guard_session_ownership()?;
-        result
+        result.map_err(UbaaError::for_facade)
     }
 
     fn cleanup_operation_result<T>(&mut self, result: &Result<T>) -> Result<()> {
@@ -803,11 +821,12 @@ impl RouteClient {
 
     /// 写请求跨越发送边界后，收尾检查只负责使失效会话进入安全状态，不能覆盖写结果。
     fn finish_write_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        let result = self.runtime.finish_non_idempotent_result(result);
         if !RouteExecution::new(&mut self.runtime, &mut self.auth).cleanup_sent_write(&result) {
             return self.finish_readonly_operation(result);
         }
         let _ = self.guard_session_ownership();
-        result
+        result.map_err(UbaaError::for_facade)
     }
 }
 
@@ -860,8 +879,10 @@ mod tests {
             std::thread::current().id()
         ));
         let store = FileSessionStore::new(&directory).unwrap();
+        let sessions = DualSessionCoordinator::new(store).unwrap();
         let mut client =
-            RouteClient::build(ConnectionMode::Direct, PartialLoginTransport, store, None).unwrap();
+            RouteClient::build_coordinated(ConnectionMode::Direct, PartialLoginTransport, sessions)
+                .unwrap();
         let url = "https://sso.buaa.edu.cn/login";
         tokio::runtime::Builder::new_current_thread()
             .build()

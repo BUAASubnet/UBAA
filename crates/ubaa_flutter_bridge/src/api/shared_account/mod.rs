@@ -25,10 +25,15 @@ impl BridgeSharedAccount {
     ///
     /// # Errors
     /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
-    pub fn capture(directory: String, generation: u64) -> Result<Self, BridgeError> {
+    pub fn capture(
+        directory: String,
+        generation: u64,
+        retain_session: bool,
+    ) -> Result<Self, BridgeError> {
         Ok(Self {
             guard: core::SharedAccountGuard::new(&std::path::PathBuf::from(directory), generation)
-                .map_err(|error| BridgeError::from_core(error, None))?,
+                .map_err(|error| BridgeError::from_core(error, None))?
+                .with_session_retention(retain_session),
         })
     }
 }

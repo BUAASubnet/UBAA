@@ -1,10 +1,9 @@
-use std::io::Cursor;
-
+use crate::common::run_command;
 use clap::Parser;
-use ubaa_command::{Cli, run_with_backend, run_with_routed_backend};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli};
 
 use crate::common::{
-    FakeBackend, FakeRoutedBackend, LibBookFixtureResult, SigninFixtureResult, assert_cli_schema,
+    FakeRoutedBackend, LibBookFixtureResult, SigninFixtureResult, assert_cli_schema,
 };
 
 fn libbook_reserve_arguments() -> Vec<String> {
@@ -33,18 +32,18 @@ fn libbook_reserve_arguments() -> Vec<String> {
 }
 
 #[tokio::test]
-async fn 课堂签到今日与写结果都符合_schema_v10() {
+async fn 课堂签到今日与写结果都符合当前_schema() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "signin", "today"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let today: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&today);
-    assert_eq!(today["schemaVersion"], 18);
+    assert_eq!(today["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(today["data"][0]["signStatus"], 0);
     assert_eq!(today["data"][0]["signinEligibility"], "allowed");
     assert_eq!(today["data"][1]["signinEligibility"], "denied");
@@ -98,12 +97,12 @@ async fn 课堂签到确定成功与业务_false_保持内外层语义() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 0, "确定业务 false 仍表示调用完成");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["code"], expected_code);
@@ -135,7 +134,7 @@ async fn 课堂签到发送前超时与发送后未知保持不同错误分类�
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 5);
@@ -173,7 +172,7 @@ async fn 课堂签到未确认或空目标在后端调用前拒绝() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2);
@@ -196,18 +195,11 @@ async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
         "--confirm-write",
     ])
     .unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 2);
@@ -218,7 +210,7 @@ async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
 }
 
 #[tokio::test]
-async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
+async fn 图书馆座位原始状态资格与稳定目标符合当前_schema() {
     let cli = Cli::try_parse_from([
         "ubaa-cli",
         "--json",
@@ -238,12 +230,12 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["data"][0]["status"], 1);
     assert_eq!(value["data"][0]["reserveEligibility"], "allowed");
     assert_eq!(value["data"][0]["reserveTarget"], "seat-allowed");
@@ -275,7 +267,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
 }
 
 #[tokio::test]
-async fn 图书馆预约确定成功与业务_false_保持内外层语义并符合_schema_v10() {
+async fn 图书馆预约确定成功与业务_false_保持内外层语义并符合当前_schema() {
     for (fixture, expected_success, expected_message) in [
         (LibBookFixtureResult::Success, true, "预约成功"),
         (LibBookFixtureResult::BusinessFalse, false, "座位不可预约"),
@@ -288,12 +280,12 @@ async fn 图书馆预约确定成功与业务_false_保持内外层语义并符�
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 0, "确定的业务 false 仍表示请求结果已知");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["message"], expected_message);
@@ -337,12 +329,12 @@ async fn 图书馆预约发送前超时与发送后未知保持不同错误分�
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 5);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["ok"], false);
         assert_eq!(value["error"]["code"], expected_error);
         assert_eq!(backend.libbook_reserve_calls, 1);
@@ -366,7 +358,7 @@ async fn 图书馆预约未确认或任一空目标均在后端调用前拒绝()
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2);
@@ -382,18 +374,11 @@ async fn 固定路线图书馆预约空目标同样在后端调用前拒绝() {
     let mut arguments = libbook_reserve_arguments();
     arguments[7] = "   ".into();
     let cli = Cli::try_parse_from(arguments).unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 2);
@@ -410,7 +395,7 @@ async fn 场馆取消默认拒绝且不调用后端() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 2);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
@@ -439,7 +424,7 @@ async fn 场馆取消显式确认后才调用后端() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
@@ -454,7 +439,7 @@ async fn 场馆取消显式确认后才调用后端() {
 }
 
 #[tokio::test]
-async fn 博雅三类写操作确认后输出均符合_schema_v10() {
+async fn 博雅三类写操作确认后输出均符合当前_schema() {
     let cases = [
         (
             vec![
@@ -502,12 +487,12 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
         assert_eq!(code, 0);
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["message"], expected_message);
         assert_eq!(value["meta"]["feature"], "bykc");
@@ -522,7 +507,7 @@ async fn 场馆预约默认拒绝且不读取标准输入() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 2);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
@@ -581,7 +566,7 @@ async fn 其他写命令未确认时统一拒绝() {
         let mut backend = FakeRoutedBackend::default();
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
-        let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         assert_eq!(code, 2);
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
@@ -597,7 +582,7 @@ async fn 自动评教提交未确认时拒绝且不查询课程() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 2);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();

@@ -35,7 +35,7 @@ jobs:
           run-id: ${{ inputs.source_run }}
           pattern: public-*
           merge-multiple: true
-          path: .ubaa_local/release/public
+          path: dist/release/public
       - name: 分发原始产物并更新草稿
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
@@ -52,3 +52,6 @@ jobs:
           UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
           SOURCE_RUN: ${{ inputs.source_run }}
         run: python3 scripts/server/notify.py release
+      - name: 清理部署材料
+        if: ${{ always() }}
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_server_notify"

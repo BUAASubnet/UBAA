@@ -20,6 +20,7 @@ pub(super) enum ReviseReply {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalReply {
+    CampusOnly,
     Success,
     Failure,
     Ambiguous,
@@ -33,6 +34,7 @@ pub(super) struct Scenario {
     pub(super) form_repetitions: usize,
     pub(super) revise_replies: Vec<ReviseReply>,
     pub(super) topic_failures: HashSet<String>,
+    pub(super) campus_topic: Option<String>,
     pub(super) final_replies: Vec<FinalReply>,
 }
 
@@ -44,6 +46,7 @@ impl Scenario {
             form_repetitions: 1,
             revise_replies: vec![ReviseReply::Success],
             topic_failures: HashSet::new(),
+            campus_topic: None,
             final_replies: vec![FinalReply::Success],
         }
     }
@@ -146,16 +149,11 @@ impl HttpTransport for EvaluationMock {
                 }
             }
             "/pjxt/evaluationMethodSix/getQuestionnaireTopic" => {
-                let query = query_value(&url, "kcdm");
-                if state.scenario.topic_failures.contains(&query) {
-                    response(&request, 200, r#"{"code":200,"result":[]}"#)
-                } else {
-                    response(
-                        &request,
-                        200,
-                        &json!({"code":200,"result":[topic(&url)]}).to_string(),
-                    )
+                let reply = topic_reply(&request, &url, &state.scenario);
+                if state.scenario.campus_topic.as_ref() == Some(&query_value(&url, "kcdm")) {
+                    return Ok(reply);
                 }
+                reply
             }
             "/pjxt/evaluationMethodSix/submitSaveEvaluation" => {
                 let reply = state
@@ -166,6 +164,7 @@ impl HttpTransport for EvaluationMock {
                     .unwrap_or(FinalReply::Success);
                 state.final_index += 1;
                 match reply {
+                    FinalReply::CampusOnly => response(&request, 200, campus_page()),
                     FinalReply::Success => response(&request, 200, r#"{"code":200}"#),
                     FinalReply::Failure => response(&request, 200, r#"{"code":500}"#),
                     FinalReply::Ambiguous => response(&request, 200, r#"{"message":"unknown"}"#),
@@ -182,6 +181,22 @@ impl HttpTransport for EvaluationMock {
             _ => panic!("未预期的评教请求路径：{path}"),
         };
         Ok(response)
+    }
+}
+
+fn topic_reply(request: &HttpRequest, url: &url::Url, scenario: &Scenario) -> HttpResponse {
+    let query = query_value(url, "kcdm");
+    if scenario.campus_topic.as_ref() == Some(&query) {
+        return response(request, 200, campus_page());
+    }
+    if scenario.topic_failures.contains(&query) {
+        response(request, 200, r#"{"code":200,"result":[]}"#)
+    } else {
+        response(
+            request,
+            200,
+            &json!({"code":200,"result":[topic(url)]}).to_string(),
+        )
     }
 }
 
@@ -239,6 +254,10 @@ pub(super) fn runtime() -> tokio::runtime::Runtime {
         .enable_all()
         .build()
         .unwrap()
+}
+
+fn campus_page() -> &'static str {
+    include_str!("../../../../fixtures/readonly/campus-network-required.html")
 }
 
 fn response(request: &HttpRequest, status: u16, body: &str) -> HttpResponse {

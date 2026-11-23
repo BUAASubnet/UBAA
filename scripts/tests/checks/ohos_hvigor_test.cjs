@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { resolveToolchain, requireDependencies, nativeArguments, applySigning, readLocalSigning } = require('../../tools/ohos_hvigor.cjs');
+const { createTestTempDirectory } = require('../test_tmp.cjs');
 
 function sdk(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ubaa_hvigor_'));
@@ -109,9 +110,7 @@ test('Debug 缺配置时清空签名，Release 缺配置时失败', () => {
 for (const fails of [false, true]) {
     test(`Flutter 构建期间可以读取实际签名，${fails ? '失败' : '成功'}后恢复配置`, async (t) => {
         const { withSigningProfile } = await import('../../release/platforms/ohos_profile.mjs');
-        const parent = path.resolve('.ubaa_local/tests');
-        fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
-        const folder = fs.mkdtempSync(path.join(parent, 'ohos_profile_'));
+        const folder = createTestTempDirectory('ohos_profile');
         t.after(() => fs.rmSync(folder, { recursive: true, force: true }));
         const file = path.join(folder, 'build-profile.json5');
         const original = '{"app":{"signingConfigs": [],"products":[{"name":"default","signingConfig":"default"}]}}\n';
@@ -138,9 +137,7 @@ for (const fails of [false, true]) {
 test('发布入口保留构建退出码，并在终止信号后恢复签名配置', async (t) => {
     const { spawnSync, spawn } = require('node:child_process');
     const { once } = require('node:events');
-    const parent = path.resolve('.ubaa_local/tests');
-    fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
-    const root = fs.mkdtempSync(path.join(parent, 'ohos_command_'));
+    const root = createTestTempDirectory('ohos_command');
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     for (const relative of ['scripts/release/platforms/ohos_profile.mjs', 'scripts/tools/ohos_hvigor.cjs']) {
         fs.mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });

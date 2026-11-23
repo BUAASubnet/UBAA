@@ -48,7 +48,7 @@ def write_record():
               'tree': git('rev-parse', 'HEAD^{tree}'), 'pr': pr.get('number', 0),
               'head_sha': pr.get('head', {}).get('sha', ''),
               'base_sha': pr.get('base', {}).get('sha', '')}
-    path = Path('.ubaa_local/ci/acceptance.json')
+    path = Path('dist/ci/acceptance.json')
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps(record))

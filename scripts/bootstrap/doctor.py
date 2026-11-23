@@ -91,9 +91,6 @@ def collect(environment, pins):
         ('DevEco', False, '已配置', '已配置' if environment.get('UBAA_DEVECO_HOME')
          and Path(environment['UBAA_DEVECO_HOME']).is_dir() else None),
     ]
-    for label, key in (('冻结引用 ubaa_old', 'UBAA_OLD_COMMIT'), ('冻结引用 buaa-api', 'BUAA_API_COMMIT')):
-        path = ROOT / 'examples' / ('ubaa_old' if 'old' in label else 'buaa-api')
-        rows.append((label, True, short(pins[key]), short(git_head(str(path)))))
     return rows
 
 

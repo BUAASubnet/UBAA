@@ -10,6 +10,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/recovery.dart' as offline;
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   for (final required in [true, false]) {
@@ -23,7 +24,11 @@ void main() {
         final gate = Completer<LoginVerificationState>();
         backend.beginGate = gate;
         await tester.pumpWidget(
-          UbaaAppHost(backend: backend, credentialVault: _Vault()),
+          UbaaAppHost(
+            preferenceValues: acceptedPrivacyPreferences(),
+            backend: backend,
+            credentialVault: _Vault(),
+          ),
         );
         await tester.pumpAndSettle();
         await tester.enterText(
@@ -79,6 +84,7 @@ void main() {
       final backend = _InteractiveBackend();
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           backend: backend,
           localAccountStore: accounts,
           credentialVault: vault,
@@ -334,6 +340,7 @@ Future<void> _openWaiting(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     UbaaAppHost(
+      preferenceValues: acceptedPrivacyPreferences(),
       backend: backend,
       credentialVault: vault ?? MemoryCredentialVault(),
     ),

@@ -93,6 +93,7 @@ mixin ControllerAuthenticationCompletion on ControllerState {
   }) async {
     if (internalLocalAccount != null &&
         internalLocalAccount!.username != username) {
+      internalClearCurrentSessionGrant();
       // 原位换账号不能让旧账号的内容继续挂在新身份下面。
       internalUser = null;
       internalResetFeatureSnapshots(advanceLifecycle: false);

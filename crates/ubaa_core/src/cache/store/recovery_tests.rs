@@ -1,20 +1,11 @@
 use super::*;
 use crate::cache::CacheQuery;
 use crate::domain::ConnectionMode;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 const ACCOUNT: &str = "0123456789abcdef0123456789abcdef";
 
-fn fixture() -> (PathBuf, OfflineRepository, CacheScope) {
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/cold_start_superseded/cache_recovery_tests")
-        .join(format!(
-            "{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        ));
-    std::fs::create_dir_all(&root).unwrap();
+fn fixture() -> (crate::test_tmp::TestTempDir, OfflineRepository, CacheScope) {
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_cache_store_recovery").unwrap();
     let repository = OfflineRepository::open(
         &root,
         ACCOUNT,

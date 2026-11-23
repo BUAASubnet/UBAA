@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 75;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 79;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -491,11 +491,21 @@ impl BridgeClient {
         .await
     }
 
-    /// 校验持久化认证状态。
+    /// 查看是否存在可恢复的本机会话，不访问网络。
     ///
     /// # Errors
     ///
-    /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
+    /// 客户端已销毁时返回安全错误。
+    pub async fn has_saved_session(&self) -> Result<bool, BridgeError> {
+        let guard = self.inner.lock().await;
+        let client = guard.as_ref().ok_or_else(disposed_error)?;
+        Ok(client.has_saved_session())
+    }
+
+    /// 校验本机持有的会话。
+    ///
+    /// # Errors
+    /// 认证状态无法读取时返回安全错误。
     pub async fn auth_status(&self) -> Result<BridgeLoginOutcome, BridgeError> {
         self.cancel_interactive_login();
         catch_panic(async {
@@ -571,6 +581,15 @@ impl BridgeClient {
             })
         })
         .await
+    }
+
+    /// 清除设置中的业务会话缓存和派生读组。
+    pub async fn clear_business_session_cache(&self) {
+        let guard = self.inner.lock().await;
+        if let Some(client) = guard.as_ref() {
+            client.clear_business_session_cache();
+            self.inner.clear_readers().await;
+        }
     }
 
     /// 等待在途操作收尾后保存全局策略、清除 feature override 并重开 Core client。

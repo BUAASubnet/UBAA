@@ -2,7 +2,7 @@ part of 'shell.dart';
 
 extension UbaaShellNavigation on _UbaaMainShellState {
   void _goBack() {
-    if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
+    if (_utilityPage == '云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {
       _changeNavigation(() => _utilityPage = null);
     } else {
@@ -80,7 +80,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 previewPdf: widget.onPreviewScanPdf,
                 renderPdf: widget.onRenderScanPdf,
               )
-            : _utilityPage == '北航云盘'
+            : _utilityPage == '云盘'
             ? BhpanView(
                 key: ValueKey(_pageContentScope),
                 scopeKey: _pageContentScope,
@@ -245,7 +245,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           ? () => _openUtility('图书馆云打印')
           : null,
       onOpenBhpan: index == UiDestination.campus.index
-          ? () => _openUtility('北航云盘')
+          ? () => _openUtility('云盘')
           : null,
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
@@ -270,7 +270,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           widget.campusAccountService != null &&
           widget.writeState.intent == null,
       child: MeView(
-        onOpenBhpan: () => _openUtility('北航云盘'),
+        onOpenBhpan: () => _openUtility('云盘'),
         onOpenLibraryLoans: widget.readLibraryLoans == null
             ? null
             : () => _openUtility('当前借阅'),

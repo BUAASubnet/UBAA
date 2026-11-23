@@ -37,7 +37,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
         builder: (context) => boundary(
           AlertDialog(
             title: Text(service.syncEnabled ? '创建云端日程' : '启用云端同步'),
-            content: const Text('把你添加的日程、备注和完成状态保存到北航云盘，换设备也能看到。之后会自动同步。'),
+            content: const Text('把你添加的日程、备注和完成状态保存到云盘，换设备也能看到。之后会自动同步。'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -132,9 +132,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
           ? Icons.cloud_upload_outlined
           : Icons.cloud_off_outlined;
       final hint = state.running
-          ? '正在同步到北航云盘'
+          ? '正在同步到云盘'
           : ok
-          ? '你添加的日程、备注和完成状态已保存到北航云盘'
+          ? '你添加的日程、备注和完成状态已保存到云盘'
           : state.error != null
           ? _failureHint(state.error!)
           : status == AgendaSyncStatus.unverified
@@ -144,7 +144,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
           : status == AgendaSyncStatus.outcomeUnknown
           ? '刷新以核对上次结果，本机修改仍然保留'
           : enable
-          ? '保存到北航云盘，换设备也能看到'
+          ? '保存到云盘，换设备也能看到'
           : warn
           ? '修改不会丢失，可稍后重试'
           : '修改后会自动同步，也可立即同步';

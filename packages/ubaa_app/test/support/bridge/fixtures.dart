@@ -1,5 +1,19 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+
+final currentBridgeContractVersion = _readCurrentBridgeContractVersion();
+
+int _readCurrentBridgeContractVersion() {
+  const relative = 'lib/src/bridge/bridge_backend.dart';
+  final local = File(relative);
+  final source = local.existsSync()
+      ? local
+      : File('packages/ubaa_app/$relative');
+  final declaration = RegExp(r'const _supportedBridgeContractVersion = (\d+);');
+  return int.parse(declaration.firstMatch(source.readAsStringSync())![1]!);
+}
 
 class FixtureContractVersionClient implements BridgeClient {
   FixtureContractVersionClient(this.version);
@@ -26,20 +40,6 @@ abstract class FixtureCompatibleBridgeClient implements BridgeClient {
   int contractVersion() => 54;
 }
 
-class FixtureFakeClassroomClient extends FixtureCompatibleBridgeClient {
-  FixtureFakeClassroomClient(this.response);
-
-  final BridgeRoutedClassroomQuery response;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #classroomSearch) {
-      return Future<BridgeRoutedClassroomQuery>.value(response);
-    }
-    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
-  }
-}
-
 class FixtureFakeBykcChosenCoursesClient extends FixtureCompatibleBridgeClient {
   FixtureFakeBykcChosenCoursesClient(this.response);
 
@@ -51,45 +51,6 @@ class FixtureFakeBykcChosenCoursesClient extends FixtureCompatibleBridgeClient {
       return Future<BridgeRoutedBykcChosenCourses>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
-  }
-}
-
-class FixtureFakeComplexWriteClient extends FixtureCompatibleBridgeClient {
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    final method = invocation.memberName;
-    final named = invocation.namedArguments;
-    if (method == #prepareYgdkSubmit) {
-      final request = named[#request] as BridgeYgdkSubmitRequest;
-      expect(request.target.classifyId, 31);
-      expect(request.target.itemId, 7);
-      expect(request.photo.bytes, <int>[1, 2]);
-      expect(request.photo.fileName, 'safe.jpg');
-      return Future<BridgeWriteIntent>.value(
-        fixtureWriteIntent(BridgeWriteOperation.ygdkSubmit),
-      );
-    }
-    if (method == #prepareCgyySubmitReservation) {
-      final request = named[#request] as BridgeCgyySubmitReservationRequest;
-      expect(request.venueSiteId, 3);
-      expect(request.selections.single.spaceId, 4);
-      expect(request.selections.single.timeId, 5);
-      expect(request.selections.single.venueSpaceGroupId, 9);
-      expect(request.phone, 'phone-placeholder');
-      return Future<BridgeWriteIntent>.value(
-        fixtureWriteIntent(BridgeWriteOperation.cgyySubmitReservation),
-      );
-    }
-    if (method == #prepareEvaluationSubmitCourses) {
-      final request = named[#request] as BridgeEvaluationSubmitCoursesRequest;
-      expect(request.targets.single.rwid, 'task-1');
-      expect(request.targets.single.wjid, 'questionnaire-1');
-      expect(request.targets.single.kcdm, 'K1');
-      return Future<BridgeWriteIntent>.value(
-        fixtureWriteIntent(BridgeWriteOperation.evaluationSubmitCourses),
-      );
-    }
-    throw UnsupportedError('unexpected bridge call: $method');
   }
 }
 
@@ -112,22 +73,6 @@ class FixtureFakeCgyyCommitClient extends FixtureCompatibleBridgeClient {
           ),
         ),
       );
-    }
-    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
-  }
-}
-
-class FixtureFakeCgyyDayClient extends FixtureCompatibleBridgeClient {
-  FixtureFakeCgyyDayClient(this.response);
-
-  final BridgeRoutedCgyyDayInfo response;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #cgyyDayInfo) {
-      expect(invocation.namedArguments[#siteId], 3);
-      expect(invocation.namedArguments[#date], isNotEmpty);
-      return Future<BridgeRoutedCgyyDayInfo>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

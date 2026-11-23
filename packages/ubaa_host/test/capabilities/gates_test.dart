@@ -12,12 +12,14 @@ import '../support/host/fakes.dart'
         FixtureHostYgdkWriteOnlyBackend,
         fixtureSafeHostPhoto;
 import '../support/host/recording_backend.dart' show FixtureRecordingBackend;
+import 'package:ubaa_test_support/privacy.dart';
 
 void _registerCapabilityGateTests() {
   testWidgets('共享宿主在照片选择器不可用时整组关闭阳光打卡能力', (tester) async {
     final backend = FixtureRecordingBackend()..signedIn = true;
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         photoPicker: const UnavailablePhotoPicker(),
         permissionGateway: MemoryPermissionGateway(),
@@ -37,6 +39,7 @@ void _registerCapabilityGateTests() {
     final backend = FixtureRecordingBackend()..signedIn = true;
     await tester.pumpWidget(
       UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         photoPicker: MemoryPhotoPicker(photo: fixtureSafeHostPhoto),
         initialDestination: UiDestination.campus,
@@ -58,6 +61,7 @@ void _registerCapabilityGateTests() {
     ]) {
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           key: UniqueKey(),
           backend: backend,
           photoPicker: MemoryPhotoPicker(photo: fixtureSafeHostPhoto),
@@ -82,6 +86,7 @@ void _registerCapabilityGateTests() {
     ]) {
       await tester.pumpWidget(
         UbaaAppHost(
+          preferenceValues: acceptedPrivacyPreferences(),
           key: UniqueKey(),
           backend: backend,
           initialDestination: UiDestination.campus,
@@ -97,7 +102,12 @@ void _registerCapabilityGateTests() {
 
   testWidgets('共享宿主把提交异常隔离为 domain UiError', (tester) async {
     final backend = FixtureRecordingBackend()..signedIn = true;
-    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: backend,
+      ),
+    );
     await tester.pumpAndSettle();
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
 

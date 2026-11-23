@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('宿主恢复地点、保存、清账号并保留设备主题和其他账号', (tester) async {
@@ -59,7 +60,7 @@ class _Backend extends DemoBackend {
 }
 
 class _Preferences implements PreferenceValues {
-  final delegate = MemoryPreferenceValues();
+  final delegate = acceptedPrivacyPreferences();
   bool fail = false;
   @override
   Future<String?> read(String key) => delegate.read(key);

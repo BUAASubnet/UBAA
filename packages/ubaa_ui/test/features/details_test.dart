@@ -411,6 +411,7 @@ void _registerFeatureInputTests() {
 
   testWidgets('图书馆预约只透传 typed action 而不解析误导展示字段', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     const expectedAction = LibbookReserveAction(
       areaId: 'area-authority',
       seatId: 'seat-authority',

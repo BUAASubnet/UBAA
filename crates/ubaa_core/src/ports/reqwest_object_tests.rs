@@ -36,12 +36,8 @@ fn transport() -> ReqwestTransport {
             .unwrap(),
     }
 }
-fn directory() -> std::path::PathBuf {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/integration/port_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&path).unwrap();
-    path
+fn directory() -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_ports_reqwest_object").unwrap()
 }
 #[tokio::test]
 async fn 对象上传流式读取指定区间且只发一个长度头() {

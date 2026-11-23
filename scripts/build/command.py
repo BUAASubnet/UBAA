@@ -33,7 +33,7 @@ def compile_linux(output, environment, mode, *, standalone=False):
         if version := re.search(r'^version:\s*(\S+)', metadata, re.MULTILINE):
             defines.append(f'-DUBAA_COMMAND_APP_VERSION={version[1]}')
     # Linux 命令的原生库由宿主组装，纯 Dart Kernel 不包含 GUI 的 Apple build hooks。
-    intermediate = ROOT / '.ubaa_local/command_build'
+    intermediate = ROOT / 'target/command_build'
     intermediate.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=intermediate) as folder:
         kernel = Path(folder) / 'ubaa.dill'
@@ -62,7 +62,7 @@ def main():
     if platform in {'macos', 'windows'}:
         run(['just', 'flutter-build', f'platform={platform}', f'mode={mode}'], environment)
         if platform == 'macos':
-            output = ROOT / 'build/command/macos'
+            output = ROOT / 'dist/command/macos'
             source = ROOT / 'apps/ubaa_flutter/build/macos/Build/Products' / mode.title() / 'UBAA.app'
             output.mkdir(parents=True, exist_ok=True)
             destination = output / 'UBAA.app'
@@ -75,7 +75,7 @@ def main():
         return
     if platform != 'linux' or sys.platform != 'linux':
         raise ValueError('Linux 命令在 Linux 主机或容器中构建')
-    output = Path(environment.get('UBAA_COMMAND_BUILD_DIR', ROOT / 'build/command/linux')).resolve()
+    output = Path(environment.get('UBAA_COMMAND_BUILD_DIR', ROOT / 'dist/command/linux')).resolve()
     (output / 'lib').mkdir(parents=True, exist_ok=True)
     cargo = ['cargo', 'build', '--locked', '-p', 'ubaa_flutter_bridge']
     if mode == 'release':

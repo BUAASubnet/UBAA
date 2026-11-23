@@ -113,7 +113,7 @@ CAS/service、跳转及最终 URL、Cookie/Token 作用域、HTTP 方法与参�
 
 ### 2026-10-26 博雅详情与选课
 
-详情空报名人数的双来源对照、列表人数展示和写前复核规则见[博雅修复记录](../../archive/history/bykc-detail-2026-10-26.md)。
+详情空报名人数的双来源对照、列表人数展示和写前复核规则见博雅修复记录（`bykc-detail-2026-10-26.md`）。
 
 ### 博雅统计与阳光留空默认值核对（2026-10-24）
 
@@ -204,12 +204,12 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 旧账号保存回调不能写入后来登录的账号。
 
 本批已在d4507adbec6e460459475cce7f497fad5670659f提交，完整Flutter865项与仓库门禁、独立规范/质量审查通过。
-永久记录见[偏好证据](../../archive/evidence/2026-09-15-macos-ui-bykc-preferences.md)；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
+永久记录见偏好证据（`2026-09-15-macos-ui-bykc-preferences.md`）；macOS App Sandbox、CUA跨进程与真实账号验收仍待进行。
 
 #### 1. 约束与来源索引
 
 
-当时任务允许本专项有来源的 typed 只读补齐，该历史范围不提供当前授权；长期要求见 [AGENTS 来源对照门禁](../../../AGENTS.md#来源对照门禁)。尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
+当时任务允许本专项有来源的 typed 只读补齐，该历史范围不提供当前授权；长期要求见[协议依据目录](../README.md#逐操作对照列)。尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
 
 下文定位均相对此工作树；O 前缀统一为 ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e；E 前缀统一为 examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a。
 

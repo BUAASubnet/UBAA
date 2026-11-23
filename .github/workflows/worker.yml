@@ -16,7 +16,6 @@ on:
       - scripts/lib/toolchain.py
       - scripts/lib/environment.py
       - docs/contracts/app-service*
-      - docs/site/announcements/**
       - package.json
       - package-lock.json
       - .github/workflows/worker.yml
@@ -52,8 +51,12 @@ jobs:
             package-lock.json
             services/app_service/package-lock.json
       - name: 校验应用服务发布内容与发布边界
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-content-check
       - name: 检查应用服务合同与 PostgreSQL
+        env:
+          UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just app-service-check
       - name: 构建云盘发布工具
         uses: ./.github/actions/toolchain
@@ -61,15 +64,15 @@ jobs:
       - name: 打包服务器应用
         run: |
           node scripts/server/package.mjs
-          cp target/release/bhpan-publish .ubaa_local/bhpan-publish
+          cp target/release/bhpan-publish dist/app_service/bhpan-publish
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-service
           if-no-files-found: error
           include-hidden-files: true
           path: |
-            .ubaa_local/app_service.tar.gz
-            .ubaa_local/bhpan-publish
+            dist/app_service/app_service.tar.gz
+            dist/app_service/bhpan-publish
           retention-days: 3
   app-service-deploy:
     name: 部署应用服务并发布内容
@@ -89,3 +92,6 @@ jobs:
           UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
           UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
         run: python3 scripts/server/notify.py app
+      - name: 清理部署材料
+        if: ${{ always() }}
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_server_notify"

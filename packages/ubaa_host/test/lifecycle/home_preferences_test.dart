@@ -5,6 +5,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
   testWidgets('地点偏好挂起时首页已显示并开始恢复', (tester) async {
@@ -35,7 +36,7 @@ class _Preferences implements PreferenceValues {
   final gate = Completer<String?>();
   @override
   Future<String?> read(String key) =>
-      key.contains('.places.') ? gate.future : Future.value(null);
+      key.contains('.places.') ? gate.future : acceptedPrivacyVersion(key);
   @override
   Future<void> write(String key, String value) async {}
   @override

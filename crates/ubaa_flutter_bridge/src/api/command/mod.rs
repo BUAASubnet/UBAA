@@ -7,13 +7,25 @@ pub use output::BridgeCommandDelivery;
 use std::{
     io::Cursor,
     sync::{
-        Arc, Mutex, RwLock,
+        Arc, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
         atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
 use ubaa_command::{self as command, CommandClass};
 use ubaa_core::facade::{self as core, ErrorCode, ErrorKind, UbaaError};
+
+pub(super) fn lock_unpoisoned<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+fn read_unpoisoned<T>(lock: &RwLock<T>) -> RwLockReadGuard<'_, T> {
+    lock.read().unwrap_or_else(PoisonError::into_inner)
+}
+
+fn write_unpoisoned<T>(lock: &RwLock<T>) -> RwLockWriteGuard<'_, T> {
+    lock.write().unwrap_or_else(PoisonError::into_inner)
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCommandClass {
@@ -201,8 +213,6 @@ impl BridgeCommand {
     /// 原生每次只读取所请求的输入；无效用户名不能提前消耗密码。
     /// # Errors
     /// 输入流或命令状态不能继续时返回错误。
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     #[allow(clippy::needless_pass_by_value)]
     pub fn input_request(
         &self,
@@ -216,7 +226,7 @@ impl BridgeCommand {
         let Some(plan) = &self.plan else {
             return Ok(ready());
         };
-        if self.early.lock().unwrap().is_some() {
+        if lock_unpoisoned(&self.early).is_some() {
             return Ok(ready());
         }
         self.control.check().map_err(|_| stopped())?;
@@ -287,11 +297,9 @@ impl BridgeCommand {
         }
         Ok(ready())
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub async fn prepare(&self, input: Vec<u8>) {
         let Some(plan) = &self.plan else { return };
-        if self.early.lock().unwrap().is_some() {
+        if lock_unpoisoned(&self.early).is_some() {
             return;
         }
         match command::prepare_input(plan.clone(), &mut Cursor::new(input), &self.control) {
@@ -299,12 +307,8 @@ impl BridgeCommand {
             Err(error) => self.set_error(error),
         }
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub fn early_result(&self) -> Option<BridgeCommandResult> {
-        self.early
-            .lock()
-            .unwrap()
+        lock_unpoisoned(&self.early)
             .take()
             .map(|body| self.result(body))
     }
@@ -319,7 +323,7 @@ impl BridgeCommand {
     fn set_error(&self, error: UbaaError) {
         if let Some(plan) = &self.plan {
             if self.requirements().agenda_sync {
-                *self.early.lock().unwrap() = Some(Body::AgendaSync {
+                *lock_unpoisoned(&self.early) = Some(Body::AgendaSync {
                     json: plan.cli().json,
                     result: command::agenda::sync::AgendaSyncCommandResult(Err(
                         core::AgendaSyncError::Remote(error),
@@ -345,7 +349,7 @@ impl BridgeCommand {
                     resolution: None,
                 }
             };
-            *self.early.lock().unwrap() = Some(body);
+            *lock_unpoisoned(&self.early) = Some(body);
         }
     }
     pub fn fail(&self, authentication: bool) -> BridgeCommandResult {
@@ -355,8 +359,6 @@ impl BridgeCommand {
             BridgeCommandFailure::MaterialUnavailable
         })
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub fn failure(&self, failure: BridgeCommandFailure) -> BridgeCommandResult {
         if !self.requirements().agenda_sync
             && let Some(plan) = &self.plan
@@ -380,7 +382,7 @@ impl BridgeCommand {
         }
         let mut error = failure_error(failure);
         let mut resolution = None;
-        if let Some((observation, known)) = self.sent.lock().unwrap().as_ref()
+        if let Some((observation, known)) = lock_unpoisoned(&self.sent).as_ref()
             && observation.may_have_been_sent()
         {
             error = UbaaError::new(
@@ -410,19 +412,17 @@ impl BridgeCommand {
     #[flutter_rust_bridge::frb(sync)]
     pub fn cancel(&self) {
         self.control.cancel();
-        if let Some(transfer) = self.transfer.lock().unwrap().as_ref() {
+        if let Some(transfer) = lock_unpoisoned(&self.transfer).as_ref() {
             transfer.cancel();
         }
-        if let Some(close) = self.close.read().unwrap().as_ref() {
+        if let Some(close) = read_unpoisoned(&self.close).as_ref() {
             close.close();
         }
     }
     /// 安全进度仅包含阶段与字节数，供有界终端通道写入 stderr。
     #[flutter_rust_bridge::frb(sync)]
     pub fn transfer_progress_line(&self) -> Option<String> {
-        self.transfer
-            .lock()
-            .unwrap()
+        lock_unpoisoned(&self.transfer)
             .as_ref()
             .map(|transfer| ubaa_command::bhpan::progress_line(&transfer.progress()))
     }
@@ -488,17 +488,13 @@ impl BridgeCommand {
 }
 mod agenda_sync;
 impl BridgeCommandResult {
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     #[must_use]
     pub fn authentication_succeeded(&self) -> bool {
-        matches!(self.body.lock().unwrap().as_ref(),Some(Body::Result(result)) if result.authentication_succeeded())
+        matches!(lock_unpoisoned(&self.body).as_ref(),Some(Body::Result(result)) if result.authentication_succeeded())
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     #[must_use]
     pub fn recovery_failed(&self, failure: BridgeCommandFailure) -> Self {
-        let body = self.body.lock().unwrap().take().map(|body| match body {
+        let body = lock_unpoisoned(&self.body).take().map(|body| match body {
             Body::Result(result) => Body::Result(result.replace_error(failure_error(failure))),
             other => other,
         });
@@ -509,11 +505,9 @@ impl BridgeCommandResult {
             hints: self.hints.clone(),
         }
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     #[must_use]
     pub fn registration_succeeded(&self) -> Self {
-        let body = self.body.lock().unwrap().take().map(|body| match body {
+        let body = lock_unpoisoned(&self.body).take().map(|body| match body {
             Body::Result(result) => Body::Result(result.registration_succeeded()),
             other => other,
         });
@@ -524,11 +518,9 @@ impl BridgeCommandResult {
             hints: self.hints.clone(),
         }
     }
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     #[must_use]
     pub fn registration_failed(&self) -> Self {
-        let body = self.body.lock().unwrap().take().map(|body| match body {
+        let body = lock_unpoisoned(&self.body).take().map(|body| match body {
             Body::Result(result) => Body::Result(result.registration_failed()),
             other => other,
         });
@@ -652,7 +644,7 @@ impl BridgeClient {
             .run(Box::pin(async {
                 let mut inner = self.inner.lock().await;
                 let client = inner.as_mut().ok_or_else(|| disposed_error())?;
-                *command.close.write().unwrap() = Some(client.close_control());
+                *write_unpoisoned(&command.close) = Some(client.close_control());
                 if let Some(logout) = logout {
                     let previous = client.shared_account_guard();
                     client.bind_shared_account(Some(logout.guard.clone()));
@@ -718,7 +710,7 @@ impl BridgeClient {
         };
         let mut result = command.result(Body::Result(result));
         result.scope = scope;
-        *result.hints.lock().unwrap() = hints;
+        *lock_unpoisoned(&result.hints) = hints;
         Ok(BridgeCommandAttempt {
             result,
             recovery_target: target,
@@ -804,14 +796,12 @@ impl BridgeClient {
     }
     /// # Errors
     /// 身份凭证已消费或不属于当前认证代次时返回错误。
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub async fn command_login_username(
         &self,
         identity: &BridgeCommandLoginIdentity,
     ) -> Result<String, BridgeError> {
         let mut inner = self.inner.lock().await;
-        let identity = identity.identity.lock().unwrap();
+        let identity = lock_unpoisoned(&identity.identity);
         inner
             .as_mut()
             .ok_or_else(|| disposed_error())?
@@ -821,14 +811,12 @@ impl BridgeClient {
     }
     /// # Errors
     /// 身份凭证已消费或认证代次已变化时返回错误。
-    /// # Panics
-    /// 命令状态锁被其他线程的 panic 污染时终止。
     pub async fn consume_command_login_identity(
         &self,
         identity: &BridgeCommandLoginIdentity,
     ) -> Result<(), BridgeError> {
         let mut inner = self.inner.lock().await;
-        let mut identity = identity.identity.lock().unwrap();
+        let mut identity = lock_unpoisoned(&identity.identity);
         inner
             .as_mut()
             .ok_or_else(|| disposed_error())?

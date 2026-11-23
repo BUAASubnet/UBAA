@@ -26,7 +26,7 @@ try {
   const [operation, file] = process.argv.slice(2);
   if (operation === "probe") {
     if (process.platform === "darwin") {
-      const directory = resolve(".ubaa_local/release/apple_api");
+      const directory = resolve(process.env.RUNNER_TEMP, "ubaa_store_api");
       mkdirSync(directory, { recursive: true, mode: 0o700 });
       const keyPath = `${directory}/AuthKey_${process.env.APPSTORE_KEY_ID}.p8`;
       writeFileSync(keyPath, privateKey(), { mode: 0o600 });
@@ -45,7 +45,7 @@ try {
     };
     let build = await lookup();
     if (!build) {
-      const directory = resolve(".ubaa_local/release/apple_api");
+      const directory = resolve(process.env.RUNNER_TEMP, "ubaa_store_api");
       mkdirSync(directory, { recursive: true, mode: 0o700 });
       writeFileSync(`${directory}/AuthKey_${process.env.APPSTORE_KEY_ID}.p8`, privateKey(), { mode: 0o600 });
       const upload = spawnSync("xcrun", ["altool", "--upload-app", "--type", "ios", "--file", file, "--apiKey", process.env.APPSTORE_KEY_ID, "--apiIssuer", process.env.APPSTORE_ISSUER_ID], { env: { ...process.env, API_PRIVATE_KEYS_DIR: directory }, stdio: "inherit" });
@@ -59,7 +59,8 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 30000));
     }
     if (build?.attributes.processingState !== "VALID") throw Error("Apple 构建仍未处理完成，请核对后续状态");
-    writeFileSync(process.env.STORE_RESULT_FILE || ".ubaa_local/appstore_result.json", JSON.stringify({ appId: app.id, buildId: build.id, version, build: buildNumber, status: "ready_for_submission" }) + "\n");
+    if (!process.env.STORE_RESULT_FILE) mkdirSync("dist/store_results", { recursive: true });
+    writeFileSync(process.env.STORE_RESULT_FILE || "dist/store_results/appstore_result.json", JSON.stringify({ appId: app.id, buildId: build.id, version, build: buildNumber, status: "ready_for_submission" }) + "\n");
     console.log("Apple 构建处理完成，可选择并提交审核");
   } else throw Error("用法：node scripts/release/stores/apple.mjs probe|upload <IPA文件>");
 } catch (error) { console.error(error.message); process.exitCode = 1; }

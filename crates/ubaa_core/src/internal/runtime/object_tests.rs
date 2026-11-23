@@ -8,10 +8,7 @@ enum Stop {
     Closed,
 }
 async fn stops_after_materials(stop: Stop) {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/bhpan_delivery/integration/runtime_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_internal_runtime_object").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),

@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -32,6 +33,7 @@ def main():
     operation = sys.argv[1]
     run = os.environ.get('SOURCE_RUN', os.environ['GITHUB_RUN_ID'])
     repository = os.environ['GITHUB_REPOSITORY']
+    # 内容发布不跳过旧提交：后续提交可能不改内容，不会再次触发发布；同组运行按推送顺序执行。
     if operation in ('app', 'docs'):
         branch = 'main' if operation == 'app' else 'dev'
         head = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repository}/git/ref/heads/{branch}'], text=True))
@@ -41,6 +43,9 @@ def main():
     payload = {'operation': operation, 'run': run, 'sha': os.environ['GITHUB_SHA']}
     if operation == 'publish':
         payload['tag'] = os.environ['RELEASE_TAG']
+    elif operation == 'content':
+        # 渠道和公告体积很小，直接随运行描述传入，不经产物下载。
+        payload['content'] = json.loads(Path('dist/app_service/app_content.json').read_text())
     else:
         pages = json.loads(subprocess.check_output([
             'gh', 'api', '--paginate', '--slurp',
@@ -53,14 +58,14 @@ def main():
             raise ValueError('本次运行缺少部署产物')
         payload['artifacts'] = [{'name': a['name'], 'url': artifact_url(repository, a['id'])} for a in selected]
         if operation == 'release':
-            payload['manifest'] = json.loads(Path('.ubaa_local/release/public/release.json').read_text())
-    directory = Path('.ubaa_local/server_notify')
+            payload['manifest'] = json.loads(Path('dist/release/public/release.json').read_text())
+    directory = Path(os.environ['RUNNER_TEMP']) / 'ubaa_server_notify'
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     key, hosts = directory / 'key', directory / 'known_hosts'
-    key.write_text(os.environ['UBAA_DEPLOY_KEY'].strip() + '\n')
-    key.chmod(0o600)
-    hosts.write_text(os.environ['UBAA_DEPLOY_HOST_KEYS'].strip() + '\n')
     try:
+        key.write_text(os.environ['UBAA_DEPLOY_KEY'].strip() + '\n')
+        key.chmod(0o600)
+        hosts.write_text(os.environ['UBAA_DEPLOY_HOST_KEYS'].strip() + '\n')
         subprocess.run(['ssh', '-i', str(key), '-p', '10022',
                         '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
                         '-o', f'UserKnownHostsFile={hosts}', '-o', 'ConnectTimeout=20',
@@ -68,7 +73,7 @@ def main():
                         'ubaa-deploy@bt.botium.cn', 'deploy'],
                        input=json.dumps(payload), text=True, check=True)
     finally:
-        key.unlink(missing_ok=True)
+        shutil.rmtree(directory)
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ import 'package:ubaa_app/src/contracts/recovery.dart';
 import '../../contracts/session_recovery.dart';
 import 'retry.dart' show controllerTemporaryRecoveryFailure;
 import '../state/recovery_result.dart';
-import '../state/models.dart' show RecoveryRequest;
+import '../state/models.dart' show CurrentSessionGrant, RecoveryRequest;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 
@@ -22,6 +22,8 @@ mixin ControllerOfflineStartup on ControllerState {
     final epoch = internalLifecycleEpoch;
     final formRevision = internalLoginFormRevision;
     final store = internalLocalAccountStore!;
+    // 启动恢复只接受可恢复索引，不能沿用上一实例的当前会话授权。
+    internalClearCurrentSessionGrant();
     internalSetPhase(AppPhase.checkingSession);
     try {
       var index = await store.read();
@@ -204,6 +206,7 @@ mixin ControllerOfflineStartup on ControllerState {
         request.networkRevision == internalNetworkRevision &&
         !(request.deadline?.isBefore(DateTime.now()) ?? false);
     var usesSharedRecovery = false;
+    internalSharedRecoveryScope = null;
     ControllerRecoveryResult result;
     try {
       if (request.refreshHomeAfter &&
@@ -221,13 +224,18 @@ mixin ControllerOfflineStartup on ControllerState {
       usesSharedRecovery =
           backend is RequiredSessionBackend &&
           internalLocalAccountStore is SecureLocalAccountStore;
-      final profile = backend is RequiredSessionBackend
-          ? await internalRecoverRequiredProfile(
-              backend as RequiredSessionBackend,
-              request.feature,
-              epoch,
-            )
-          : await internalRecoverLegacyProfile(epoch);
+      RecoveryResult? requiredRecovery;
+      final UserSummary? profile;
+      if (backend is RequiredSessionBackend) {
+        requiredRecovery = await internalRecoverRequiredProfile(
+          backend as RequiredSessionBackend,
+          request.feature,
+          epoch,
+        );
+        profile = requiredRecovery?.session.profile;
+      } else {
+        profile = await internalRecoverLegacyProfile(epoch);
+      }
       if (!current()) return null;
       if (profile == null) {
         result = const ControllerRecoveryStopped(
@@ -242,11 +250,12 @@ mixin ControllerOfflineStartup on ControllerState {
           await internalRejectMismatchedAccount();
           return null;
         }
-        final deliveryScope = backend is RequiredSessionBackend
-            ? internalSharedRecoveryScope
-            : null;
         await internalRefreshRouteSettings();
-        result = ControllerRecoveredSession(profile, deliveryScope);
+        result = ControllerRecoveredSession(
+          profile,
+          requiredRecovery?.scope,
+          sharedBindingRebound: requiredRecovery?.sharedBindingRebound ?? false,
+        );
       }
       await _publishRecoveryResult(request, result);
       return result;
@@ -262,6 +271,15 @@ mixin ControllerOfflineStartup on ControllerState {
         );
       } else {
         if (allowRebuild && error is BackendException && error.clientDisposed) {
+          if (await internalEndDisposedCurrentSession(
+            internalBackend,
+            current,
+          )) {
+            return const ControllerRecoveryStopped(
+              SessionRecoveryStatus.needsLogin,
+            );
+          }
+          if (!current()) return null;
           try {
             if (await internalRebuildDuringRecovery(request)) {
               return await internalPerformSessionRecovery(
@@ -354,7 +372,10 @@ mixin ControllerOfflineStartup on ControllerState {
       }
     }
 
-    if (result case ControllerRecoveredSession(:final deliveryScope)) {
+    if (result case ControllerRecoveredSession(
+      :final deliveryScope,
+      :final sharedBindingRebound,
+    )) {
       if (deliveryScope == null) {
         publishSession();
       } else {
@@ -369,7 +390,7 @@ mixin ControllerOfflineStartup on ControllerState {
       }
       unawaited(internalAutomaticSchoolAction(internalQueueProfileRefresh));
       // 共享身份重绑后使用新读取修订，避免合并到已撤销的旧任务。
-      unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
+      unawaited(internalLoadWriteReadbacks(force: sharedBindingRebound));
       internalNotify();
       for (final entry in request.queriesAfterRebuild.entries) {
         if (!current()) return;
@@ -428,6 +449,7 @@ mixin ControllerOfflineStartup on ControllerState {
     required String username,
     required bool retainSession,
   }) async {
+    internalClearCurrentSessionGrant();
     final store = internalLocalAccountStore;
     if (store == null || internalUser == null) return;
     final scope = internalCaptureSessionScope();
@@ -442,10 +464,20 @@ mixin ControllerOfflineStartup on ControllerState {
           throw const RecoveryInterrupted(RecoveryStopReason.superseded);
         }
         internalSharedAccountSnapshot = shared;
-        if (internalBackend case final SharedAccountBackend backend) {
-          await backend.bindSharedAccount(
-            await store.bindSnapshot(shared, requireRestore: false),
+        final backend = scope.backend;
+        if (!retainSession || backend is SharedAccountBackend) {
+          final binding = await store.bindSnapshot(
+            shared,
+            requireRestore: false,
           );
+          if (!scope.isCurrent) return;
+          if (backend case final SharedAccountBackend sharedBackend) {
+            await sharedBackend.bindSharedAccount(binding);
+            if (!scope.isCurrent) return;
+          }
+          if (!retainSession) {
+            internalCurrentSessionGrant = CurrentSessionGrant(binding, backend);
+          }
         }
       }
       internalLocalAccount = index.account;

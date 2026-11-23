@@ -6,7 +6,7 @@
 
 自有目录使用下划线，例外沿用[目录命名](directories.md)。文件按语言工具约定：Rust/Python 模块用 snake_case，Dart 文件用 lower_snake_case，Kotlin/Swift 类型文件使用 UpperCamelCase；Shell 入口沿用现有 kebab-case。命令名、Cargo/pub 包名、框架固定路径和第三方文件不随自有目录规则改名。
 
-新增长期文档用小写 ASCII kebab-case，不附日期。ADR 用四位顺序编号加主题。只有跨模块整改需要长期追溯时才新增阶段记录，命名为 `YYYY-MM-DD-topic.md`，放入 `docs/archive/`；普通任务不新建阶段记录。重命名既有历史文件时必须同步链接，不因命名规则删除来源或证据。
+新增长期文档用小写 ASCII kebab-case，不附日期。ADR 用四位顺序编号加主题。重命名文件时同步更新链接。
 
 默认 UTF-8、LF、结尾换行和空格缩进；Dart/JSON/YAML/Markdown/TS/Shell/Swift 默认 2 空格，Rust/Python/Kotlin 与 justfile recipe 为 4 空格。以 `.editorconfig` 和对应语言 formatter 为准，不手动格式化第三方或机械生成代码。Markdown 保留有语义的行尾空格，修改时仍须通过差异检查。
 
@@ -25,35 +25,24 @@
 5. 一段只讲一件事，超过约 5 行就拆开；能用列表、表格就用；规则用正面陈述。
 6. 先写具体结果、对象和动作，区分当前事实、历史观察、推断和未验证事项。
 7. 术语以[术语表](glossary.md)为准。用户文档不用内部术语（候选、门禁、路线、Core、facade、typed、投影、资格、Fixture、envelope 等），改用用户能懂的说法，例如“连接方式”。
-8. 合同定义行为，状态页报告结果，[目标页](../project/goal.md)只写当前阶段目标；长期规则不散落在任务流水中。
+8. 合同定义行为，[项目现状](../project/status.md)记录当前阶段目标和状态；长期规则不散落在任务流水中。
 9. 修改或删除标题前，先搜索仓库中指向该标题锚点的链接；标题即锚点，被引用的标题不改名。
 
 ### 按读者划分的文档
 
-| 读者 | 入口 | 内容 |
-|---|---|---|
-| 用户 | [docs/site](../site/index.md)（[www.ubaa.top](https://www.ubaa.top)） | 安装、功能使用、隐私政策、公告与更新日志 |
-| 贡献者 | [CONTRIBUTING](../../CONTRIBUTING.md)、[文档首页](../README.md)、`docs/development/` | 开发环境、命令与检查、约定、测试、术语 |
-| 贡献者（设计） | `docs/architecture/`、`docs/contracts/`、`docs/design/`、`docs/adr/` | 架构、稳定合同、现行产品规格和长期决定 |
-| 维护者 | `docs/runbooks/` | 发布、签名、部署、真实验证和排障操作 |
-| agent | [AGENTS.md](../../AGENTS.md) | 长期规则、安全边界和开发循环 |
-| 所有人 | `docs/project/` | 当前目标、路线图和实现与验证状态 |
-| 协议依据 | `docs/protocol/` | 冻结参考、来源对照和决策记录 |
-| 历史 | `docs/archive/` | 已完成的计划、旧状态流水和证据，不再更新 |
-
-文档按实际用途放入上表目录，不用本地工具目录充当正式文档入口。已完成的设计与实施计划移入 `docs/archive/`，现行规则保留在规格或合同中。
+按读者查找已有文档，见[文档首页](../README.md)。新增文档按实际用途放入[目录规范](directories.md)指定的位置，不用本地工具目录充当正式文档入口。现行规则保留在规格或合同中，旧计划和状态见 Git 历史。
 
 ## 分支与提交
 
 `main` 是 UBAA v2.0 发布主线，`dev` 用于日常开发，`ubaa1` 保存旧版历史。功能分支从 `dev` 创建，PR 默认提交到 `dev`；准备发布时将已验收的候选合入 `main`。旧版修复单独指向 `ubaa1`，不将旧版提交历史合入新版。
 
-发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务 从 `main` 部署（`app-service-production`），正式安装包从 `main` 手动构建草稿并由维护者发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
+发布分支由工作流和受保护的 GitHub Environment 限定：文档站从 `dev` 部署到 [www.ubaa.top](https://www.ubaa.top)（`docs-production`），应用服务从 `main` 部署（`app-service-production`），正式安装包从 `main` 手动构建草稿并由维护者发布（`release-production`）。触发范围见[当前 CI 的实际范围](commands.md#当前-ci-的实际范围)。这些约定本身不提供合并、推送或发布授权。
 
 提交标题用中文说明意图，必要时在正文说明行为、风险和验证。每个提交保持单一可审查主题：
 
 - 行为代码与对应测试放在同一提交。
 - 机械迁移、生成刷新、golden 更新和证据文档尽量分开提交。
-- 暂存与提交前检查按 [AGENTS 开发循环](../../AGENTS.md#开发循环)执行。
+- 暂存与提交前检查按 [日常循环](../../CONTRIBUTING.md#日常循环)执行。
 - 不改写已推送历史、不 force push，未获授权时不发布。
 
 ## 版本号与依赖
@@ -120,9 +109,9 @@ FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库�
 
 本机材料的处理：
 
-- 本机家目录、设备 UUID、截图/录屏、会话和真实响应按[证据规则](../design/evidence/README.md)处理；共享文字使用明确的逻辑占位。
-- 调试材料和运行媒体保存在被忽略的 `.ubaa_local/` 任务子目录。
-- 检查类 CI 不接收真实凭据，普通测试使用合成数据。生产部署 SSH 密钥 只配置在[应用服务部署环境](../runbooks/app-service.md#部署应用)，所有 GitHub 作业都不接收学校账号。
+- 共享文字对本机路径和设备标识使用明确的占位符，不包含会话或学校原始响应。
+- 调试材料和运行媒体按[贡献规则](../../AGENTS.md#底线)存放在 `.ubaa_local/` 下权限为 `0700` 的任务子目录。
+- 检查类 CI 不接收真实凭据，普通测试使用合成数据。生产部署 SSH 密钥只配置在[应用服务部署环境](../runbooks/app-service.md#部署应用)，所有 GitHub 作业都不接收学校账号。
 - 禁止全局 trace，不以关闭 TLS、扩大日志或保存原始正文换取调试便利。
 
 ## ADR 模板

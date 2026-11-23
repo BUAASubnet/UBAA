@@ -1,34 +1,23 @@
 use super::{AppService, BatchDisposition, EraseAttempt, UploadAttempt};
 use crate::{
     app_service::{
-        AppServiceConfig, Consent, CounterDimensions, CounterEvent, CounterResult, Feature,
-        Platform, Route, Surface, TelemetryEvent,
+        APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Consent, CounterDimensions, CounterEvent,
+        CounterResult, Feature, Platform, Route, Surface, TelemetryEvent,
     },
     error::{ErrorCode, ErrorKind, Result, UbaaError},
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
 use async_trait::async_trait;
-use std::{
-    collections::VecDeque,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Mutex,
-    time::Duration,
-};
+use std::{collections::VecDeque, path::Path, process::Command, sync::Mutex, time::Duration};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 const ORIGIN: &str = "http://127.0.0.1:8787";
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_upload")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_upload").unwrap())
     }
 
     fn open(&self, surface: Surface, hard_closed: bool) -> AppService {
@@ -49,15 +38,9 @@ impl TestDirectory {
             Platform::Macos,
             false,
         );
-        AppService::open(&self.0, config, surface, policy)
+        AppService::open(self.0.path(), config, surface, policy)
             .unwrap()
             .with_runtime(|| "2026-11-11T00:00:00Z".parse().unwrap(), hard_closed)
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 
@@ -294,6 +277,62 @@ async fn 上传重试测试子进程() {
 }
 
 #[tokio::test]
+async fn 新政策未接受时只重试已有删除且不交付统计() {
+    let root = TestDirectory::new();
+    let first = root.open_with(Surface::Gui, false, Some(ORIGIN), 7);
+    let no_requests = ScriptedTransport::new([]);
+    assert_eq!(first.snapshot().unwrap().consent, Consent::Unasked);
+    assert_eq!(
+        first.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    first.agree(7).unwrap();
+    enqueue(&first);
+    let upgraded = root.open_with(Surface::Gui, false, Some(ORIGIN), 8);
+    let command = root.open_with(Surface::Command, false, Some(ORIGIN), 8);
+    assert_eq!(
+        command.snapshot().unwrap().consent,
+        Consent::ReconsentRequired(8)
+    );
+    assert_eq!(
+        upgraded.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    assert_eq!(
+        command.upload_with(&no_requests).await.unwrap(),
+        UploadAttempt::default()
+    );
+    let install = upgraded.begin_erase().unwrap().unwrap();
+    let pending = root
+        .open_with(Surface::Gui, false, Some(ORIGIN), 8)
+        .with_pending_host_privacy();
+    let transport = ScriptedTransport::new([Some(204)]);
+    assert_eq!(
+        pending.upload_with(&transport).await.unwrap().erase,
+        EraseAttempt::Completed
+    );
+    let requests = transport.take_requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].url, format!("{ORIGIN}/v1/telemetry/erase"));
+    assert_eq!(requests[0].method, HttpMethod::Post);
+    assert_ne!(pending.snapshot().unwrap().install_id, Some(install));
+    pending.agree(8).unwrap();
+    assert!(pending.freeze_next().unwrap().is_none());
+    assert!(!pending.snapshot().unwrap().can_telemetry());
+    pending.allow_host_privacy();
+    enqueue(&pending);
+    let transport = ScriptedTransport::new([Some(204)]);
+    assert_eq!(
+        pending.upload_with(&transport).await.unwrap().batches_sent,
+        1
+    );
+    assert_eq!(
+        transport.take_requests()[0].url,
+        format!("{ORIGIN}/v1/telemetry")
+    );
+}
+
+#[tokio::test]
 async fn 基础模式删除结果未知后重启仅图形宿主重试() {
     let root = TestDirectory::new();
     let gui = root.open(Surface::Gui, false);
@@ -323,7 +362,7 @@ async fn 基础模式删除结果未知后重启仅图形宿主重试() {
         let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
         assert_eq!(
             body,
-            serde_json::json!({"schema": 1, "install_id": old_install})
+            serde_json::json!({"schema": APP_SERVICE_SCHEMA_VERSION, "install_id": old_install})
         );
         // 图形宿主已发送、尚未收到响应时启动独立命令进程。
         child(&root.0, "parallel-command");

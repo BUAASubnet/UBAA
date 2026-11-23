@@ -3,7 +3,7 @@
 mod common;
 use clap::Parser;
 use std::io::{self, Cursor, Write};
-use ubaa_command::{Cli, run_with_backend};
+use ubaa_command::Cli;
 
 struct LineLimitedInput {
     bytes: Cursor<Vec<u8>>,
@@ -44,7 +44,7 @@ impl io::BufRead for LineLimitedInput {
     }
 }
 
-async fn assert_invalid_stdin_username(first_line: &[u8], message: &str) {
+fn assert_invalid_stdin_username(first_line: &[u8], message: &str) {
     let argv = [
         "ubaa-cli",
         "--json",
@@ -55,47 +55,36 @@ async fn assert_invalid_stdin_username(first_line: &[u8], message: &str) {
     ];
     let bytes = [first_line, b"synthetic-password\nnext-command\n"].concat();
     let mut input = LineLimitedInput::new(&bytes, first_line.len());
-    let mut backend = common::FakeBackend::default();
     let mut stdout = Vec::new();
+    let control = CommandControl::default();
+    let plan = parse(argv).unwrap();
+    let feature = plan.cli().feature();
+    let error = prepare_input(plan, &mut input, &control)
+        .err()
+        .expect("无效用户名必须立即失败");
+    assert_eq!(error.code, ubaa_core::facade::ErrorCode::InvalidInput);
     assert_eq!(
-        run_with_backend(
-            Cli::try_parse_from(argv).unwrap(),
-            &mut backend,
-            &mut input,
-            &mut stdout,
-            &mut Vec::new(),
-        )
-        .await,
+        ubaa_command::render_startup_error(true, feature, error, &mut stdout, &mut Vec::new(),),
         2,
     );
-    assert_eq!(backend.login_calls, 0);
     assert_eq!(input.bytes.position(), first_line.len() as u64);
     assert_eq!(input.extra_reads, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(value["error"]["message"], message);
     common::assert_cli_schema(&value);
-
-    let mut input = LineLimitedInput::new(&bytes, first_line.len());
-    let error = prepare_input(parse(argv).unwrap(), &mut input, &CommandControl::default())
-        .err()
-        .expect("无效用户名必须立即失败");
-    assert_eq!(error.code, ubaa_core::facade::ErrorCode::InvalidInput);
-    assert_eq!(error.message, message);
-    assert_eq!(input.bytes.position(), first_line.len() as u64);
-    assert_eq!(input.extra_reads, 0, "用户名失败后不得尝试读取密码");
 }
 
-#[tokio::test]
-async fn 空_stdin_用户名不读取密码() {
-    assert_invalid_stdin_username(b"\n", "标准输入中缺少用户名").await;
+#[test]
+fn 空_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(b"\n", "标准输入中缺少用户名");
 }
-#[tokio::test]
-async fn 全空白_stdin_用户名不读取密码() {
-    assert_invalid_stdin_username(" \t\u{3000}\r\n".as_bytes(), "用户名不能为空").await;
+#[test]
+fn 全空白_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(" \t\u{3000}\r\n".as_bytes(), "用户名不能为空");
 }
-#[tokio::test]
-async fn 无效_utf8_stdin_用户名不读取密码() {
-    assert_invalid_stdin_username(b"\xff\n", "标准输入中缺少用户名").await;
+#[test]
+fn 无效_utf8_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(b"\xff\n", "标准输入中缺少用户名");
 }
 
 #[derive(Default)]
@@ -113,10 +102,9 @@ impl Write for FlushFailure {
 #[tokio::test]
 async fn success_requires_output_flush() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "user", "show"]).unwrap();
-    let code = run_with_backend(
+    let code = common::run_command(
         cli,
-        &mut common::FakeBackend::default(),
-        &mut Cursor::new([]),
+        &mut common::FakeRoutedBackend::default(),
         &mut FlushFailure::default(),
         &mut Vec::new(),
     )
@@ -135,9 +123,9 @@ async fn cgyy_request_uses_injected_stdin() {
     ])
     .unwrap();
     let mut stdout = Vec::new();
-    let code = run_with_backend(
+    let code = common::run_command_with_input(
         cli,
-        &mut common::FakeBackend::default(),
+        &mut common::FakeRoutedBackend::default(),
         &mut Cursor::new(br#"{"captchaVerification":"synthetic"}"#),
         &mut stdout,
         &mut Vec::new(),
@@ -156,8 +144,7 @@ async fn cgyy_request_uses_injected_stdin() {
 
 use std::time::{Duration, Instant};
 use ubaa_command::{
-    AttemptOutcome, CommandClass, CommandControl, execute_attempt, execute_fixed_attempt, parse,
-    prepare_input,
+    AttemptOutcome, CommandClass, CommandControl, execute_attempt, parse, prepare_input,
 };
 
 fn prepared(argv: &[&str]) -> (ubaa_command::PreparedCommand, CommandControl) {
@@ -268,7 +255,7 @@ async fn online_stop_codes_preserve_v13() {
             control.cancel();
         }
         let result =
-            execute_fixed_attempt(&input, &mut common::FakeBackend::default(), &control).await;
+            execute_attempt(&input, &mut common::FakeRoutedBackend::default(), &control).await;
         let mut out = Vec::new();
         assert_eq!(
             result
@@ -363,7 +350,7 @@ async fn stopped_result_can_deliver_one_bounded_timeout_envelope() {
     use ubaa_command::runtime::bounded_output;
     let (input, _) = prepared(&["ubaa-cli", "--json", "user", "show"]);
     let control = CommandControl::new(Instant::now(), Duration::ZERO);
-    let result = execute_fixed_attempt(&input, &mut common::FakeBackend::default(), &control)
+    let result = execute_attempt(&input, &mut common::FakeRoutedBackend::default(), &control)
         .await
         .into_result();
     let (mut out, mut out_reader) = bounded_output(control.clone());
@@ -401,7 +388,7 @@ async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
         ),
     ] {
         let plan = parse(
-            ["ubaa-cli", "--json", "auth", "login"]
+            ["ubaa-cli", "--json", "auth", "login", "--mode", "direct"]
                 .into_iter()
                 .chain(username_args)
                 .chain(["--password-stdin"]),
@@ -412,16 +399,15 @@ async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
         let prepared = prepare_input(plan, &mut input, &control).unwrap();
         assert_eq!(input.bytes.position(), credentials.len() as u64);
         assert_eq!(input.extra_reads, 0, "凭据齐全后不得等待额外 EOF");
-        let mut backend = common::FakeBackend::default();
-        let result = execute_fixed_attempt(&prepared, &mut backend, &control).await;
+        let mut fixture = common::login::LoginFixture::new("synthetic");
         let mut stdout = Vec::new();
         assert_eq!(
-            result
-                .into_result()
-                .render(&control, &mut stdout, &mut Vec::new()),
+            fixture
+                .execute(&prepared, &control, &mut stdout, &mut Vec::new())
+                .await,
             0
         );
-        assert_eq!(backend.login_calls, 1);
+        assert_eq!(fixture.posts(), 1);
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         common::assert_cli_schema(&value);
         assert!(
@@ -434,9 +420,7 @@ async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
 
 #[test]
 fn invalid_config_is_rejected_before_prompting_for_password() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_mode_h2_common_a/tests");
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_command_boundary").unwrap();
     let config = root.join(format!("invalid_config_{}", uuid::Uuid::new_v4()));
     std::fs::write(&config, "合成普通文件").unwrap();
     let plan = parse([

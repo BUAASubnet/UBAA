@@ -5,7 +5,7 @@
 取代：无，承接 [ADR 0006](0006-explicit-dart-modules.md)
 被取代：无
 
-依据为[独立工程审查](../archive/history/engineering-quality-independent-review-2026-10-07.md)，实施与验证见[实施记录](../archive/history/engineering-quality-implementation-2026-10-07.md)。
+依据为独立工程审查（`engineering-quality-independent-review-2026-10-07.md`），实施与验证见实施记录（`engineering-quality-implementation-2026-10-07.md`）。
 
 ## 问题
 

@@ -1,10 +1,7 @@
 //! 合成上游通过实际 live 登录入口，检查自动验证码、路线和会话结果。
 use super::*;
 use async_trait::async_trait;
-use std::sync::{
-    Arc, Mutex,
-    atomic::{AtomicU64, Ordering},
-};
+use std::sync::{Arc, Mutex};
 use ubaa_core::facade::testing::{
     set_captcha_recognizer, sso_fixture_response, sso_fixture_ticket,
     with_routing_in_config_directory,
@@ -111,12 +108,7 @@ async fn exercise(
     expected_ready: bool,
     expected_posts: usize,
 ) {
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!(
-        "../../.ubaa_local/live_auth_parity/test-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
+    let root = ubaa_test_support::test_temp_dir("ubaa_core_live_authentication").unwrap();
     let requests = Arc::new(Mutex::new(Vec::new()));
     let transport = Transport {
         requests: requests.clone(),

@@ -11,8 +11,8 @@ UBAA 是开源项目，源码托管在 [GitHub](https://github.com/BUAASubnet/UB
 ## 从这里开始
 
 - [项目首页（README）](https://github.com/BUAASubnet/UBAA/blob/main/README.md)：项目介绍、功能一览和技术栈。
-- [贡献指南（CONTRIBUTING）](https://github.com/BUAASubnet/UBAA/blob/main/CONTRIBUTING.md)：从搭建开发环境到提交 Pull Request 的完整流程。
-- [开发者文档](https://github.com/BUAASubnet/UBAA/blob/main/docs/README.md)：架构、公开合同、开发命令和运行手册。
+- 查阅开发环境、架构、开发命令和提交 Pull Request 的指南。[贡献者文档](https://github.com/BUAASubnet/UBAA/blob/dev/docs/README.md#贡献者)
+- 查阅协议依据、公开合同和运行手册。[维护者文档](https://github.com/BUAASubnet/UBAA/blob/dev/docs/README.md#维护者)
 
 ## 不写代码也能帮忙
 

@@ -68,6 +68,7 @@ async fn spoc_course_metadata_failure_still_reads_the_global_page() {
 async fn spoc_course_authentication_exhaustion_still_reads_the_global_page() {
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=first-token";
+    let page_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=global-page-token";
     let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
     let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
@@ -95,6 +96,12 @@ async fn spoc_course_authentication_exhaustion_still_reads_the_global_page() {
             response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
         ),
         (courses_url.into(), response(200, courses_url, auth_error)),
+        // 课程补充已用完重试次数，后续独立的全局页使用新凭据。
+        (cas.into(), redirect(page_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
         (
             assignments_url.into(),
             response(
@@ -119,11 +126,21 @@ async fn spoc_course_authentication_exhaustion_still_reads_the_global_page() {
 
     assert_eq!(result.data.assignments.len(), 0);
     observed.assert_exhausted();
-    assert!(
-        observed
-            .requests()
+    let requests = observed.requests();
+    assert_eq!(
+        requests
             .iter()
-            .any(|request| request.url == assignments_url)
+            .filter(|request| request.url == courses_url)
+            .count(),
+        2
+    );
+    let page = requests
+        .iter()
+        .find(|request| request.url == assignments_url)
+        .unwrap();
+    assert_eq!(
+        page.headers.get("Token").map(String::as_str),
+        Some("Inco-global-page-token")
     );
 }
 

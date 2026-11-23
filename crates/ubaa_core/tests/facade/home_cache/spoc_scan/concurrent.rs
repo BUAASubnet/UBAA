@@ -2,10 +2,8 @@ use super::*;
 
 #[test]
 fn shared_profile_spoc_pending_scan_keeps_saved_assignments_without_network() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("spoc-shared-recovery").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let root =
+        crate::test_tmp::test_temp_dir("ubaa_core_facade_home_cache_spoc_scan_concurrent").unwrap();
     let transport = Pages::default();
     let (mut client, cache) = setup(&root, transport.clone());
     let mut other = ubaa_core::facade::OfflineRepository::open(
@@ -39,10 +37,8 @@ fn shared_profile_spoc_pending_scan_keeps_saved_assignments_without_network() {
 
 #[test]
 fn shared_profile_spoc_detail_reuses_only_the_requested_assignment() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("spoc-shared-detail").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let root =
+        crate::test_tmp::test_temp_dir("ubaa_core_facade_home_cache_spoc_scan_concurrent").unwrap();
     let transport = Pages::default();
     let (mut client, cache) = setup(&root, transport.clone());
     let mut other = ubaa_core::facade::OfflineRepository::open(
