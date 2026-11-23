@@ -20,10 +20,10 @@ fn finance_分页结构与空结果可区分() {
 fn finance_部门和项目字段保留并排除银行证件() {
     let entry = parser::income(&json!({
         "lsh":"synthetic-income",
-        "bmmc":"示例学院",
+        "bmmc":" 示例学院 ",
         "bmbh":"SYNTH-DEPT-CODE",
-        "xmbh":"SYNTH-PROJECT-01",
-        "xmmc":"合成项目名称",
+        "xmbh":"\tSYNTH-PROJECT-01 ",
+        "xmmc":" 合成项目名称\n",
         "ffxmmc":"合成发放项目",
         "bmhb":"SYNTH-DEPT-CODE/示例学院",
         "xmhb":"SYNTH-PROJECT-01/合成项目名称",
@@ -46,10 +46,26 @@ fn finance_部门和项目字段保留并排除银行证件() {
 }
 #[test]
 fn finance_部门和项目字段可缺失() {
-    let entry = parser::income(&json!({"lsh":"synthetic-income","bmmc":null,"xmmc":null})).unwrap();
-    assert_eq!(entry.department, None);
-    assert_eq!(entry.project_name, None);
-    assert_eq!(entry.project_code, None);
+    for display in [
+        Some(json!(123)),
+        Some(json!({"example": "合成对象"})),
+        Some(json!("")),
+        Some(json!(" \t\n")),
+        Some(json!(null)),
+        None,
+    ] {
+        let mut row = json!({"lsh":"synthetic-income","je":12.34});
+        if let Some(display) = display {
+            for key in ["bmmc", "xmbh", "xmmc"] {
+                row[key] = display.clone();
+            }
+        }
+        let entry = parser::income(&row).unwrap();
+        assert_eq!(entry.department, None);
+        assert_eq!(entry.project_code, None);
+        assert_eq!(entry.project_name, None);
+        assert_eq!(entry.amount_cents, Some(1234));
+    }
 }
 #[test]
 fn finance_旧缓存缺部门和项目字段仍可读取() {

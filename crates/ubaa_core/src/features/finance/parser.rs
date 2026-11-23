@@ -129,9 +129,6 @@ fn text_reason(field: &str) -> &'static str {
         "lsh" => "lsh_type_invalid",
         "ffxmmc" => "ffxmmc_type_invalid",
         "zy" => "zy_type_invalid",
-        "bmmc" => "bmmc_type_invalid",
-        "xmbh" => "xmbh_type_invalid",
-        "xmmc" => "xmmc_type_invalid",
         "slbfb" => "slbfb_type_invalid",
         "lrrq" => "lrrq_type_invalid",
         "nian" => "nian_type_invalid",
@@ -146,6 +143,11 @@ fn text(value: &Value, key: &str) -> Result<Option<String>> {
         Some(Value::String(s)) => Ok((!s.is_empty()).then(|| s.clone())),
         Some(_) => Err(failure("income_fields", text_reason(key))),
     }
+}
+
+fn display_text(value: &Value, key: &str) -> Option<String> {
+    let text = value.get(key)?.as_str()?.trim();
+    (!text.is_empty()).then(|| text.to_owned())
 }
 
 fn record_id(value: &Value) -> Result<String> {
@@ -168,9 +170,9 @@ pub(super) fn income(value: &Value) -> Result<FinanceIncome> {
         id: record_id(value)?,
         project: text(value, "ffxmmc")?,
         description: text(value, "zy")?,
-        department: text(value, "bmmc")?,
-        project_code: text(value, "xmbh")?,
-        project_name: text(value, "xmmc")?,
+        department: display_text(value, "bmmc"),
+        project_code: display_text(value, "xmbh"),
+        project_name: display_text(value, "xmmc"),
         amount_cents: amount(&value["je"], "je")?,
         tax_cents: amount(&value["se"], "se")?,
         paid_cents: amount(&value["sfje"], "sfje")?,
