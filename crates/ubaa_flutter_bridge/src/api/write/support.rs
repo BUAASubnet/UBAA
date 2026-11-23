@@ -316,6 +316,7 @@ pub(super) fn map_commit_error(
     let outcome_unknown = if matches!(
         operation,
         BridgeWriteOperation::BykcSignCourse
+            | BridgeWriteOperation::LibraryLoanRenew
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking

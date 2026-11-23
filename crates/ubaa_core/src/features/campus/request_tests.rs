@@ -806,15 +806,13 @@ fn 续借复核目标并只提交一个记录标识() {
                 r#"{"code":0,"msg":null,"data":null}"#,
             ),
         );
-        let preflight = super::super::renew_preflight(&mut client, "loan-1")
-            .await
-            .unwrap();
-        assert_eq!(preflight.id, "loan-1");
-        assert_eq!(preflight.can_renew_times, Some(2));
         let result = super::super::renew(
             &mut client,
             crate::domain::LibraryLoanRenewRequest {
                 loan_id: "loan-1".into(),
+                due_date: Some("2026-12-01 23:59:00".into()),
+                renew_times: Some(1),
+                can_renew_times: Some(2),
             },
         )
         .await
@@ -941,11 +939,18 @@ fn 续借业务拒绝与结果未知分别归类() {
         for (status, response, code, reason) in cases {
             let mut step = Step::post(LIB_RENEW, r#"{"loanIds":["loan-1"],"source":1}"#, response);
             step.status = status;
-            let (mut client, _, _) = runtime(ConnectionMode::Direct, vec![step]);
+            let (mut client, _, _) = renewal_runtime(
+                loan_page(1, 1, 1, &[loan_row("loan-1", "bar-1", 1, "normal")]),
+                max_page(&[("bar-1", 3)]),
+                step,
+            );
             let error = super::super::renew(
                 &mut client,
                 crate::domain::LibraryLoanRenewRequest {
                     loan_id: "loan-1".into(),
+                    due_date: Some("2026-12-01 23:59:00".into()),
+                    renew_times: Some(1),
+                    can_renew_times: Some(2),
                 },
             )
             .await

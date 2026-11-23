@@ -214,7 +214,7 @@ pub(crate) enum PendingWrite {
     Signin(BridgeSigninPerformRequest),
     LibbookReserve(BridgeLibbookReserveRequest),
     LibbookCancel(BridgeLibbookCancelBookingRequest),
-    LibraryLoanRenew(BridgeLibraryLoanRenewRequest),
+    LibraryLoanRenew(ubaa_core::facade::LibraryLoanRenewRequest),
     Ygdk(ubaa_core::facade::YgdkClockinSubmitRequest),
     CgyyReserve(ubaa_core::facade::CgyyReservationSubmitRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),

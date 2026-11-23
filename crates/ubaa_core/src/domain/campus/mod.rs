@@ -99,11 +99,25 @@ pub struct LibraryLoans {
     pub total: u32,
 }
 
-/// 单本续借请求；标识来自当前账号的借阅读取结果。
+/// 单本续借请求，保留确认时的借阅记录供提交前复核。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryLoanRenewRequest {
     pub loan_id: String,
+    pub due_date: Option<String>,
+    pub renew_times: Option<u32>,
+    pub can_renew_times: Option<u32>,
+}
+
+impl From<&LibraryLoan> for LibraryLoanRenewRequest {
+    fn from(loan: &LibraryLoan) -> Self {
+        Self {
+            loan_id: loan.id.clone(),
+            due_date: loan.due_date.clone(),
+            renew_times: loan.renew_times,
+            can_renew_times: loan.can_renew_times,
+        }
+    }
 }
 
 /// 学校已接受续借；最终日期与次数以随后重新读取的借阅记录为准。

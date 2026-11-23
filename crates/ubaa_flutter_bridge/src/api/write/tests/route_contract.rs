@@ -9,7 +9,7 @@ use ubaa_core::facade::testing::HttpRequest;
 use super::*;
 use crate::api::write::{
     BridgeCgyyCancelOrderRequest, BridgeLibbookCancelBookingRequest, BridgeLibbookReserveRequest,
-    BridgeLibraryLoanRenewRequest, BridgeSigninPerformRequest,
+    BridgeSigninPerformRequest,
 };
 
 #[derive(Clone)]
@@ -97,8 +97,11 @@ fn requests() -> Vec<PendingWrite> {
                 mime_type: "image/jpeg".into(),
             },
         }),
-        PendingWrite::LibraryLoanRenew(BridgeLibraryLoanRenewRequest {
+        PendingWrite::LibraryLoanRenew(core::LibraryLoanRenewRequest {
             loan_id: "42".into(),
+            due_date: None,
+            renew_times: Some(0),
+            can_renew_times: Some(1),
         }),
         PendingWrite::Evaluation(core::EvaluationSubmitCoursesRequest {
             targets: vec![core::EvaluationSubmitTarget {

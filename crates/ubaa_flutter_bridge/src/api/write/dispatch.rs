@@ -72,10 +72,7 @@ pub(crate) async fn dispatch(
             LibbookReserve
         ),
         PendingWrite::LibraryLoanRenew(v) => receipt!(
-            client.library_loan_renew_if_route_matches(
-                core::LibraryLoanRenewRequest { loan_id: v.loan_id },
-                route
-            ),
+            client.library_loan_renew_if_route_matches(v, route),
             LibraryLoanRenew
         ),
         PendingWrite::LibbookCancel(v) => receipt!(

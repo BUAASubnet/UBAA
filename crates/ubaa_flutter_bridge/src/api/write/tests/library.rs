@@ -7,8 +7,12 @@ const MAX: &str =
 const RENEW: &str = "https://space.lib.buaa.edu.cn/meta-local/opac/users/batch_renew";
 
 fn list_request(renew: u32) -> ExpectedRequest {
+    dated_list_request(renew, "2026-12-01")
+}
+
+fn dated_list_request(renew: u32, due: &str) -> ExpectedRequest {
     let body = format!(
-        r#"{{"code":0,"msg":null,"data":{{"currentPage":1,"pageSize":20,"total":1,"totalPage":1,"items":[{{"loanId":"loan-1","title":"合成书目","author":"合成作者","item":{{"barCode":"bar-1"}},"location":"合成馆藏地","loanDate":"2026-11-01","dueDate":"2026-12-01","renewTimes":{renew},"loanStatus":"soon"}}]}}}}"#
+        r#"{{"code":0,"msg":null,"data":{{"currentPage":1,"pageSize":20,"total":1,"totalPage":1,"items":[{{"loanId":"loan-1","title":"合成书目","author":"合成作者","item":{{"barCode":"bar-1"}},"location":"合成馆藏地","loanDate":"2026-11-01","dueDate":"{due}","renewTimes":{renew},"loanStatus":"soon"}}]}}}}"#
     );
     ExpectedRequest::new(
         HttpMethod::Get,
@@ -33,6 +37,8 @@ async fn 借阅续借准备与提交使用单个记录标识且不自动重试()
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
     let direct = MockTransport::new([
+        list_request(1),
+        max_request(3),
         list_request(1),
         max_request(3),
         ExpectedRequest::new(
@@ -89,7 +95,7 @@ async fn 借阅续借准备与提交使用单个记录标识且不自动重试()
         .assert_exhausted()
         .expect("续借必须完成一次复核读取和一次提交");
     let requests = direct.requests().expect("读取 Direct 请求");
-    assert_eq!(requests.len(), 3);
+    assert_eq!(requests.len(), 5);
     assert_eq!(webvpn.requests().expect("读取 WebVPN 请求").len(), 0);
     let request = requests
         .iter()
@@ -153,11 +159,46 @@ async fn 借阅续借拒绝已用尽的目标且不发送写请求() {
 }
 
 #[tokio::test]
+async fn 续借提交前记录变化或读取失败不发送写请求() {
+    let empty = |status, url, body: &str| {
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            url,
+            HttpResponse::new(status, url, body.as_bytes().to_vec()),
+        )
+    };
+    for (index, (steps, expected)) in [
+        (vec![dated_list_request(1, "2026-12-02"), max_request(3)], BridgeErrorCode::OperationConflict),
+        (vec![list_request(2), max_request(3)], BridgeErrorCode::OperationConflict),
+        (vec![list_request(1), max_request(1)], BridgeErrorCode::InvalidInput),
+        (vec![list_request(1), empty(200, MAX, r#"{"code":0,"data":{"items":[]}}"#)], BridgeErrorCode::InvalidInput),
+        (vec![empty(200, LIST, r#"{"code":0,"data":{"currentPage":1,"pageSize":20,"total":0,"totalPage":0,"items":[]}}"#)], BridgeErrorCode::InvalidInput),
+        (vec![empty(500, LIST, "")], BridgeErrorCode::UpstreamUnavailable),
+        (vec![list_request(1), empty(500, MAX, "")], BridgeErrorCode::UpstreamUnavailable),
+    ].into_iter().enumerate() {
+        let root = test_root(&format!("library-recheck-{index}"));
+        let store = seed_sessions(&root, true, false);
+        let direct = MockTransport::new([list_request(1), max_request(3)].into_iter().chain(steps));
+        let client = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
+        install_core(&client, store, "[route]\ndefault = \"direct\"\n", direct.clone(), MockTransport::new([])).await;
+        let intent = client.prepare_library_loan_renew(BridgeLibraryLoanRenewRequest { loan_id: "loan-1".into() }).await.unwrap();
+        let error = client.commit_write(intent.intent_id).await.unwrap_err();
+        assert_eq!(error.code, expected);
+        direct.assert_exhausted().unwrap();
+        assert!(direct.requests().unwrap().iter().all(|request| request.method == HttpMethod::Get));
+        client.dispose().await.unwrap();
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[tokio::test]
 async fn 借阅续借业务拒绝仅返回目标的学校原因() {
     let root = test_root("library-renew-rejected");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
     let direct = MockTransport::new([
+        list_request(0),
+        max_request(3),
         list_request(0),
         max_request(3),
         ExpectedRequest::new(

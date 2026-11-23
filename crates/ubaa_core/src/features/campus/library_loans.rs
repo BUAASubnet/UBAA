@@ -254,10 +254,13 @@ fn parse_page(value: &Value, page: u32) -> Result<(Vec<LibraryLoan>, Vec<Option<
 async fn max_renew_times(
     runtime: &mut ClientRuntime,
     page: u32,
+    require_conditions: bool,
 ) -> Result<std::collections::HashMap<String, u32>> {
     let url = format!("{MAX_RENEW}?page={page}&pageSize={PAGE_SIZE}");
     let response = match get(runtime, &url, true).await {
-        Err(error) if error.code == ErrorCode::Timeout && error.retryable => {
+        Err(error)
+            if !require_conditions && error.code == ErrorCode::Timeout && error.retryable =>
+        {
             runtime.check_authentication_scope()?;
             runtime.ensure_session_revision()?;
             return Ok(std::collections::HashMap::new());
@@ -267,35 +270,45 @@ async fn max_renew_times(
     if matches!(response.status, 401 | 403) {
         return Err(needs_session());
     }
+    let missing = || {
+        if require_conditions {
+            Err(invalid())
+        } else {
+            Ok(std::collections::HashMap::new())
+        }
+    };
+    if require_conditions && response.status >= 500 {
+        return Err(UbaaError::upstream_unavailable("图书馆服务暂时不可用"));
+    }
     if response.status != 200 {
-        return Ok(std::collections::HashMap::new());
+        return missing();
     }
     let Ok(payload) = serde_json::from_slice::<Value>(&response.body) else {
-        return Ok(std::collections::HashMap::new());
+        return missing();
     };
     let Ok((data, _)) = envelope(&payload) else {
-        return Ok(std::collections::HashMap::new());
+        return missing();
     };
     let Some(items) = data.get("items").and_then(Value::as_array) else {
-        return Ok(std::collections::HashMap::new());
+        return missing();
     };
     let mut result = std::collections::HashMap::with_capacity(items.len());
     for item in items {
         let Some(object) = item.as_object() else {
-            return Ok(std::collections::HashMap::new());
+            return missing();
         };
         let Some(bar_code) = object.get("barCode").and_then(identifier) else {
-            return Ok(std::collections::HashMap::new());
+            return missing();
         };
         let Some(max) = object.get("maxRenewTimes").and_then(count) else {
-            return Ok(std::collections::HashMap::new());
+            return missing();
         };
         result.insert(bar_code, max);
     }
     Ok(result)
 }
 
-async fn list_all(runtime: &mut ClientRuntime) -> Result<LibraryLoans> {
+async fn list_all(runtime: &mut ClientRuntime, require_conditions: bool) -> Result<LibraryLoans> {
     let mut entries = Vec::new();
     let mut seen = std::collections::HashSet::new();
     let mut total = None;
@@ -325,7 +338,7 @@ async fn list_all(runtime: &mut ClientRuntime) -> Result<LibraryLoans> {
         total = Some(page_total);
         let empty = rows.is_empty();
         if !rows.is_empty() {
-            let renew_limits = max_renew_times(runtime, page_number).await?;
+            let renew_limits = max_renew_times(runtime, page_number, require_conditions).await?;
             for (mut row, bar_code) in rows.into_iter().zip(bar_codes) {
                 if !seen.insert(row.id.clone()) {
                     return Err(invalid());
@@ -352,12 +365,16 @@ async fn list_all(runtime: &mut ClientRuntime) -> Result<LibraryLoans> {
 }
 
 pub(crate) async fn current_loans(runtime: &mut ClientRuntime) -> Result<LibraryLoans> {
+    read_loans(runtime, false).await
+}
+
+async fn read_loans(runtime: &mut ClientRuntime, require_conditions: bool) -> Result<LibraryLoans> {
     crate::features::require_session(runtime)?;
-    match list_all(runtime).await {
+    match list_all(runtime, require_conditions).await {
         Ok(value) => Ok(value),
         Err(error) if error.code == ErrorCode::AuthenticationRequired => {
             activate(runtime).await?;
-            list_all(runtime).await
+            list_all(runtime, require_conditions).await
         }
         Err(error) => Err(error),
     }
@@ -382,18 +399,22 @@ pub(crate) async fn renew_preflight(
     loan_id: &str,
 ) -> Result<LibraryLoan> {
     let loan_id = normalize_id(loan_id)?;
-    let loans = current_loans(runtime).await?;
+    let loans = read_loans(runtime, true).await?;
     let mut matches = loans.entries.into_iter().filter(|loan| loan.id == loan_id);
     let Some(loan) = matches.next() else {
-        return Err(UbaaError::invalid_input("借阅记录已变化，请刷新后重新选择"));
+        return Err(
+            UbaaError::invalid_input("借阅记录已不在当前借阅中，无法续借")
+                .with_diagnostic("preflight", "library_renew_unavailable"),
+        );
     };
     if matches.next().is_some() {
         return Err(invalid());
     }
-    if loan.can_renew_times == Some(0) {
-        return Err(UbaaError::invalid_input(
-            "这本书当前不可续借，请刷新后查看借阅记录",
-        ));
+    if loan.can_renew_times.unwrap_or(0) == 0 {
+        return Err(
+            UbaaError::invalid_input("这本书当前不可续借，请刷新后查看借阅记录")
+                .with_diagnostic("preflight", "library_renew_unavailable"),
+        );
     }
     Ok(loan)
 }
@@ -402,8 +423,20 @@ pub(crate) async fn renew(
     runtime: &mut ClientRuntime,
     request: LibraryLoanRenewRequest,
 ) -> Result<LibraryLoanRenewResult> {
-    crate::features::require_session(runtime)?;
-    let loan_id = normalize_id(&request.loan_id)?;
+    let current = renew_preflight(runtime, &request.loan_id).await?;
+    if current.due_date != request.due_date
+        || current.renew_times != request.renew_times
+        || current.can_renew_times != request.can_renew_times
+    {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            true,
+            "续借目标已变化，请刷新后重试",
+        )
+        .with_diagnostic("preflight", "library_renew_changed"));
+    }
+    let loan_id = current.id;
     let body = serde_json::to_vec(&serde_json::json!({
         "loanIds": [loan_id.clone()],
         "source": 1,

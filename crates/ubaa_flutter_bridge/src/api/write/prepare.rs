@@ -295,7 +295,7 @@ impl BridgeClient {
                         "续借成功后会重新读取借阅记录".to_owned(),
                         "请勿重复提交续借".to_owned(),
                     ],
-                    PendingWrite::LibraryLoanRenew(request),
+                    PendingWrite::LibraryLoanRenew((&current.data).into()),
                     current.resolution,
                 )
                 .await?;

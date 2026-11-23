@@ -470,6 +470,16 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   UiErrorKind kind,
   ErrorDiagnostic? diagnostic,
 ) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.invalidInput, 'library_renew_unavailable') => (
+    title: '当前不可续借',
+    message: '这本书当前不可续借，请刷新后查看借阅记录',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.operationConflict, 'library_renew_changed') => (
+    title: '续借目标已变化',
+    message: '续借目标已变化，请刷新后重试',
+    actionLabel: '刷新',
+  ),
   (UbaaErrorCode.timeout, _)
       when kind == UiErrorKind.internal && diagnostic?.isCacheBusy == true =>
     (title: '本机缓存暂时繁忙', message: '本机缓存正在使用，请稍后重试', actionLabel: '重试'),
