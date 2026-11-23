@@ -2,13 +2,13 @@
 import 'policy.dart';
 
 const bundledPrivacyPolicy = PrivacyPolicyDocument(
-  version: 8,
+  version: 9,
   title: '隐私政策',
   blocks: <PrivacyPolicyBlock>[
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
       level: 0,
-      text: '生效日期：2026 年 11 月 21 日。',
+      text: '生效日期：2026 年 11 月 23 日。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -138,13 +138,13 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
-          '按校园日期汇总的功能读取和写入次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
+          '按校园日期汇总的功能打开、读取和写入次数、连接路线、结果、稳定错误码及分类、耗时区间和有限的源码位置。只有您主动进入功能页才计一次打开。崩溃只记录异常类型或固定的 panic 错误码，以及符合规则的一处源码位置（如果有）。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.bullet,
       level: 0,
       text:
-          '按分钟汇总的登录发起、成功、失败次数和各功能的加载次数及结果，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
+          '按分钟汇总的登录发起、成功、失败次数，各功能的打开次数，以及按结果统计的功能加载次数，用于查看一天中的使用曲线。设备只上传“当天第几分钟”和次数；服务端把所有设备的次数按分钟、平台和渠道合并保存，不保存安装 ID、用户标识或版本。',
     ),
     PrivacyPolicyBlock(
       kind: PrivacyPolicyBlockKind.paragraph,
@@ -230,8 +230,5 @@ const bundledPrivacyPolicy = PrivacyPolicyDocument(
           '文档网站无需学校账号，不提供校园登录表单。访问网站时，托管与网络服务商可能按其服务规则处理访问日志；这与应用中的学校登录和业务数据处理分别发生。',
     ),
   ],
-  changes: <String>[
-    '恢复隐私政策明示同意，说明应用服务的启用条件。',
-    '补充开发者信息、个人信息请求处理期限和本机账号数据删除方式。',
-  ],
+  changes: <String>['产品改进统计按天和按分钟汇总主动打开各功能的次数，与功能加载次数分开统计。'],
 );
