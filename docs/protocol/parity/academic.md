@@ -143,7 +143,7 @@ macOS Debug 最终构建成功，并按原隔离检查配置重新启动，供�
 
 #### 实现边界
 
-不新增Bridge/CLI/HTTP协议。共享Dart层只从现有加密缓存抽取只读课表，生产只有Android启用宿主组件；其他平台不增加空壳入口。Android三种Provider沿旧版RemoteViews+Canvas和紧凑布局自适配；周选择与点击保持旧语义。宿主用系统Keystore生成AES-256-GCM密钥，随机IV、完整性校验与私有原子文件；不写日志/明文SharedPreferences中的课程或个人字段。账号以现有随机LocalAccount.id绑定，避免导出真实账号。持久化失效与后台发布的先后顺序由Dart竞态测试和原生Keystore测试验证。
+不新增Bridge/CLI/HTTP协议。共享Dart层只从现有加密缓存抽取只读课表。Android三种Provider沿旧版RemoteViews+Canvas和紧凑布局自适配；周选择与点击保持旧语义。宿主用系统Keystore生成AES-256-GCM密钥，随机IV、完整性校验与私有原子文件；不写日志/明文SharedPreferences中的课程或个人字段。账号以现有随机LocalAccount.id绑定，避免导出真实账号。持久化失效与后台发布的先后顺序由Dart竞态测试和原生Keystore测试验证。
 
 Android实现依据官方[组件指南](https://developer.android.com/develop/ui/views/appwidgets)、[更新机制](https://developer.android.com/develop/ui/views/appwidgets/advanced)与[密码学指南](https://developer.android.com/privacy-and-security/cryptography)。系统API说明只用于宿主接线，不作为学校协议证据。
 
@@ -156,6 +156,19 @@ Android实现依据官方[组件指南](https://developer.android.com/develop/ui
 真实Android网络准备进一步失败。当前reqwest锁定依赖rustls-platform-verifier 0.7.0，源码Android验证路径要求先登记JVM、Context和ClassLoader；当前宿主未提供初始化，也未打包其Kotlin证书验证组件。遵循锁定依赖[官方Android说明](https://docs.rs/rustls-platform-verifier/0.7.0/rustls_platform_verifier/android/index.html)补宿主JNI初始化及由`cargo metadata --locked`定位的本地AAR，不更换根证书、不关闭TLS。两冻结参考没有Rustls宿主初始化实现，此处不借用学校URL、字段或签名。旧prepareLogin本身准备双槽，试验只判定WebVPN槽，绝不将Direct尝试记为Direct验证通过。
 
 已建立独立Android 36 arm64模拟器，不放入真实账号。投影和详情字段先RED后GREEN；2项原生加密/代次测试、1项渲染与账号错配测试、2项Flutter→原生通道/Core启动测试，以及Launcher真实添加/翻周/同周跳转/课程详情/学期与周选择/滑动/拉伸/跨周三天均取得证据。完整记录见Android阶段证据（`project-android-widgets-2026-10-03.md`）。系统widget不等同macOS按钮验证。
+
+### iOS 桌面与锁屏课表组件
+
+iOS 17 及以上注册今日、近日和周课表组件。iOS 与 Android 使用同一条 v1 本机 MethodChannel，从现有离线课表缓存生成只读快照。依据为 Dart 的 `ScheduleWidgetPublisher`、Runner 的 `ScheduleWidgetPlugin`、共享的 `ScheduleWidgetStore` 和扩展的 `ScheduleTimelineProvider`。组件没有学校网络入口，不改变学校端点、认证、字段或写入，也不改 Bridge；Direct 和 WebVPN 均不适用于以下本机操作。
+
+| 操作 | CAS/bootstrap/service | 重定向/final URL | Cookie/会话 | 方法/参数 | headers/body | 加密/签名 | DTO/解析 | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| Runner 发布本地课表 | 不适用 | 不适用 | 当前本地随机账号别名，不传用户名或凭据 | MethodChannel `begin(owner)`、`publish(scope, snapshot)` | 无 HTTP | App Group `group.cn.edu.ubaa` 内原子写入 AES-256-GCM 密文，真机副本排除备份；密钥仅在组件专用 Keychain 访问组 | 沿用 v1 快照：学期、周次、课程和节次，不补猜缺失时间 | 只发布完整缓存；由发布代次和账号拒绝迟到结果 | 存储失败返回 `widget_storage_failure` |
+| 扩展跨进程读取和展示 | 不适用 | 不适用 | 校验密文中的账号别名与快照一致 | WidgetKit 从 App Group 读取并生成 Timeline | 无 HTTP | Runner 和扩展显式访问 `$(AppIdentifierPrefix)cn.edu.ubaa.widget`；Runner 自有访问组仍为默认组 | 按上海日期筛选今日或三天课程；已知开课、下课及上海午夜生成时间点 | 最末时间点后请求新时间线；缺下课时间时至下一门课开始或当天结束 | 无副本、解密失败或账号不一致均显示未添加课表的空状态 |
+| 翻周与点击 | 不适用 | 不适用 | 换账号时清除翻周偏移 | App Intent 步长 −1、0、1；组件正文点击只打开应用 | 无 HTTP | 仅翻周偏移和周一锚点另存于本地明文 | 按学期内周序号选择，保留空周 | 多个组件实例共享偏移，跨周归零 | 首末周禁用越界按钮，不跳回本周；无自定义深链 |
+| 退出、清除身份或换账号 | 不适用 | 不适用 | 旧发布代次失效 | 本机 `begin` 撤销并请求刷新 | 无 HTTP | 先销毁组件密钥，再尽力删除密文；新发布生成新密钥 | 撤销后旧密文无法解密 | 拒绝迟到的旧账号发布 | 密钥删除失败返回 `widget_storage_failure`，不请求刷新 |
+
+今日组件可显示在锁屏矩形和单行位置，沿用系统显示设置，不额外遮挡课表文字。模拟器使用文件密钥验证本机读写与撤销；真机跨进程 Keychain 共享和锁屏显示需在签名设备上验证。
 
 ## 历史专项
 
