@@ -25,5 +25,7 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>ScheduleWidgetKeychainAccessGroup</key>
+	<string>$(DEVELOPMENT_TEAM).cn.edu.ubaa.widget</string>
 </dict>
 </plist>

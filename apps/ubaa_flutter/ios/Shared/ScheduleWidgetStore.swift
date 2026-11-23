@@ -37,6 +37,19 @@ enum ScheduleWidgetStore {
     private static let keychainService = "cn.edu.ubaa.schedule-widget"
     private static let keychainAccount = "aes-key"
 
+    #if !targetEnvironment(simulator)
+    private static func keychainQuery() throws -> [String: Any] {
+        guard let group = Bundle.main.object(forInfoDictionaryKey: "ScheduleWidgetKeychainAccessGroup")
+            as? String, !group.hasPrefix(".") else { throw StoreError.unavailable }
+        return [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecAttrAccessGroup as String: group,
+        ]
+    }
+    #endif
+
     private static func loadKey(create: Bool) throws -> SymmetricKey {
         #if targetEnvironment(simulator)
         // 模拟器无签名 entitlements，访问组不可用；退回容器内密钥文件（仅调试环境）。
@@ -52,14 +65,11 @@ enum ScheduleWidgetStore {
         try Data(bytes).write(to: keyURL, options: [.atomic])
         return SymmetricKey(data: Data(bytes))
         #else
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecReturnData as String: true,
-        ]
+        let query = try keychainQuery()
+        var lookup = query
+        lookup[kSecReturnData as String] = true
         var item: CFTypeRef?
-        switch SecItemCopyMatching(query as CFDictionary, &item) {
+        switch SecItemCopyMatching(lookup as CFDictionary, &item) {
         case errSecSuccess:
             guard let data = item as? Data, data.count == 32 else {
                 throw StoreError.corrupt
@@ -70,13 +80,9 @@ enum ScheduleWidgetStore {
             var bytes = [UInt8](repeating: 0, count: 32)
             guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
             else { throw StoreError.unavailable }
-            let add: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: keychainService,
-                kSecAttrAccount as String: keychainAccount,
-                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-                kSecValueData as String: Data(bytes),
-            ]
+            var add = query
+            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            add[kSecValueData as String] = Data(bytes)
             guard SecItemAdd(add as CFDictionary, nil) == errSecSuccess else {
                 throw StoreError.unavailable
             }

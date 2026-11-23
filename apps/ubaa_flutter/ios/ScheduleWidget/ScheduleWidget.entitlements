@@ -6,5 +6,9 @@
 	<array>
 		<string>group.cn.edu.ubaa</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)cn.edu.ubaa.widget</string>
+	</array>
 </dict>
 </plist>

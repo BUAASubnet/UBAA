@@ -7,6 +7,9 @@
 		<string>group.cn.edu.ubaa</string>
 	</array>
 	<key>keychain-access-groups</key>
-	<array/>
+	<array>
+		<string>$(AppIdentifierPrefix)cn.edu.ubaa</string>
+		<string>$(AppIdentifierPrefix)cn.edu.ubaa.widget</string>
+	</array>
 </dict>
 </plist>
