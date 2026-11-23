@@ -20945,19 +20945,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeFinanceIncome dco_decode_bridge_finance_income(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return BridgeFinanceIncome(
       id: dco_decode_String(arr[0]),
       project: dco_decode_opt_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
-      amountCents: dco_decode_opt_box_autoadd_i_64(arr[3]),
-      taxCents: dco_decode_opt_box_autoadd_i_64(arr[4]),
-      paidCents: dco_decode_opt_box_autoadd_i_64(arr[5]),
-      taxRate: dco_decode_opt_String(arr[6]),
-      recordedDate: dco_decode_opt_String(arr[7]),
-      year: dco_decode_opt_String(arr[8]),
-      month: dco_decode_opt_String(arr[9]),
+      department: dco_decode_opt_String(arr[3]),
+      projectCode: dco_decode_opt_String(arr[4]),
+      projectName: dco_decode_opt_String(arr[5]),
+      amountCents: dco_decode_opt_box_autoadd_i_64(arr[6]),
+      taxCents: dco_decode_opt_box_autoadd_i_64(arr[7]),
+      paidCents: dco_decode_opt_box_autoadd_i_64(arr[8]),
+      taxRate: dco_decode_opt_String(arr[9]),
+      recordedDate: dco_decode_opt_String(arr[10]),
+      year: dco_decode_opt_String(arr[11]),
+      month: dco_decode_opt_String(arr[12]),
     );
   }
 
@@ -31190,6 +31193,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_id = sse_decode_String(deserializer);
     var var_project = sse_decode_opt_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
+    var var_department = sse_decode_opt_String(deserializer);
+    var var_projectCode = sse_decode_opt_String(deserializer);
+    var var_projectName = sse_decode_opt_String(deserializer);
     var var_amountCents = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_taxCents = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_paidCents = sse_decode_opt_box_autoadd_i_64(deserializer);
@@ -31201,6 +31207,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       id: var_id,
       project: var_project,
       description: var_description,
+      department: var_department,
+      projectCode: var_projectCode,
+      projectName: var_projectName,
       amountCents: var_amountCents,
       taxCents: var_taxCents,
       paidCents: var_paidCents,
@@ -41950,6 +41959,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.id, serializer);
     sse_encode_opt_String(self.project, serializer);
     sse_encode_opt_String(self.description, serializer);
+    sse_encode_opt_String(self.department, serializer);
+    sse_encode_opt_String(self.projectCode, serializer);
+    sse_encode_opt_String(self.projectName, serializer);
     sse_encode_opt_box_autoadd_i_64(self.amountCents, serializer);
     sse_encode_opt_box_autoadd_i_64(self.taxCents, serializer);
     sse_encode_opt_box_autoadd_i_64(self.paidCents, serializer);

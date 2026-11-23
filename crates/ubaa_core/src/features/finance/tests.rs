@@ -16,6 +16,61 @@ fn finance_分页结构与空结果可区分() {
     assert!(parser::page(&json!({"mx":null,"total":0})).is_err());
     assert_eq!(parser::page(&json!({"data":[],"count":0})).unwrap().1, 0);
 }
+#[test]
+fn finance_部门和项目字段保留并排除银行证件() {
+    let entry = parser::income(&json!({
+        "lsh":"synthetic-income",
+        "bmmc":"示例学院",
+        "bmbh":"SYNTH-DEPT-CODE",
+        "xmbh":"SYNTH-PROJECT-01",
+        "xmmc":"合成项目名称",
+        "ffxmmc":"合成发放项目",
+        "bmhb":"SYNTH-DEPT-CODE/示例学院",
+        "xmhb":"SYNTH-PROJECT-01/合成项目名称",
+        "sfzh":"synthetic-id-card",
+        "yhzh":"synthetic-masked-account",
+        "yhzh_":"synthetic-account"
+    }))
+    .unwrap();
+    assert_eq!(entry.department.as_deref(), Some("示例学院"));
+    assert_eq!(entry.project_code.as_deref(), Some("SYNTH-PROJECT-01"));
+    assert_eq!(entry.project_name.as_deref(), Some("合成项目名称"));
+    let exported = serde_json::to_string(&entry).unwrap();
+    for private in [
+        "synthetic-id-card",
+        "synthetic-masked-account",
+        "synthetic-account",
+    ] {
+        assert!(!exported.contains(private));
+    }
+}
+#[test]
+fn finance_部门和项目字段可缺失() {
+    let entry = parser::income(&json!({"lsh":"synthetic-income","bmmc":null,"xmmc":null})).unwrap();
+    assert_eq!(entry.department, None);
+    assert_eq!(entry.project_name, None);
+    assert_eq!(entry.project_code, None);
+}
+#[test]
+fn finance_旧缓存缺部门和项目字段仍可读取() {
+    let old: crate::domain::FinanceIncome = serde_json::from_value(json!({
+        "id":"synthetic-income",
+        "project":"旧发放项目",
+        "description":"旧摘要",
+        "amountCents":100,
+        "taxCents":0,
+        "paidCents":100,
+        "taxRate":null,
+        "recordedDate":"2026-01-01",
+        "year":"2026",
+        "month":"01"
+    }))
+    .unwrap();
+    assert_eq!(old.project.as_deref(), Some("旧发放项目"));
+    assert_eq!(old.department, None);
+    assert_eq!(old.project_code, None);
+    assert_eq!(old.project_name, None);
+}
 
 use crate::domain::ConnectionMode;
 use crate::error::Result;

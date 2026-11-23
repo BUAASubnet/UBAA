@@ -23,6 +23,9 @@ void main() {
     expect(value.entries.single.amountCents, 1234);
     expect(value.entries.single.paidCents, 0);
     expect(value.entries.single.taxCents, isNull);
+    expect(value.entries.single.department, '示例学院');
+    expect(value.entries.single.projectCode, 'SYNTH-PROJECT-01');
+    expect(value.entries.single.projectName, '合成项目名称');
     expect(value.fromCache, isFalse);
     expect(value.savedForOffline, isFalse);
     expect(() => value.entries.clear(), throwsUnsupportedError);
@@ -81,7 +84,14 @@ class _Client implements BridgeClient {
       data: BridgeFinanceIncomes(
         total: 1,
         entries: [
-          BridgeFinanceIncome(id: 'fixture', amountCents: 1234, paidCents: 0),
+          BridgeFinanceIncome(
+            id: 'fixture',
+            department: '示例学院',
+            projectCode: 'SYNTH-PROJECT-01',
+            projectName: '合成项目名称',
+            amountCents: 1234,
+            paidCents: 0,
+          ),
         ],
       ),
     );

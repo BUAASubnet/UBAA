@@ -16,6 +16,9 @@ final class _FinanceGroup {
             if ([
               e.project,
               e.description,
+              e.department,
+              e.projectCode,
+              e.projectName,
               e.id,
             ].any((v) => v?.toLowerCase().contains(keyword) ?? false))
               e,
