@@ -4,13 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/app/home.dart';
+import 'package:ubaa_ui/src/common/read_navigator.dart';
+import 'package:ubaa_ui/src/shared/refresh.dart';
 
 Future<void> mount(
   WidgetTester tester,
   String account,
   Future<List<FeatureId>> Function() load,
-  Future<void> Function(List<FeatureId>) save,
-) async {
+  Future<void> Function(List<FeatureId>) save, {
+  ValueChanged<String>? onOpened,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       home: UbaaMainShell(
@@ -27,6 +30,7 @@ Future<void> mount(
         onRoutePolicyChanged: (_) {},
         onLoadRecentFeatures: load,
         onSaveRecentFeatures: save,
+        onFeatureOpened: onOpened,
       ),
     ),
   );
@@ -37,6 +41,64 @@ HomeView home(WidgetTester tester) =>
     tester.widget<HomeView>(find.byType(HomeView, skipOffstage: false));
 
 void main() {
+  testWidgets('恢复首页和切换分组不计打开，快捷入口、待办和校园服务每次打开各计一次', (tester) async {
+    final opened = <String>[];
+    await mount(
+      tester,
+      'fixture',
+      () async => [FeatureId.exam],
+      (_) async {},
+      onOpened: opened.add,
+    );
+    final entry = find.byKey(const ValueKey('recent-exam'));
+    expect(opened, isEmpty);
+    for (var visits = 1; visits <= 2; visits++) {
+      await tester.ensureVisible(entry);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+      final page = find.byType(FeatureReadNavigator);
+      await tester
+          .widget<PullToRefresh>(
+            find
+                .descendant(of: page, matching: find.byType(PullToRefresh))
+                .last,
+          )
+          .onRefresh();
+      await tester.widget<FeatureReadNavigator>(page).onRetry();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+      expect(opened, List.filled(visits, 'exam'));
+    }
+    home(tester).onTodoTap(
+      HomeTodo(
+        id: 'fixture',
+        title: '考试',
+        subtitle: '',
+        timeLabel: '',
+        statusLabel: '',
+        sortTime: DateTime(2026),
+        feature: FeatureId.exam,
+        navigation: const FeatureReadNavigation(
+          feature: FeatureId.exam,
+          query: FeatureQuery(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(UiDestination.campus.icon).hitTestable());
+    await tester.pumpAndSettle();
+    expect(opened, ['exam', 'exam', 'exam']);
+    final drive = find.text('云盘').last;
+    await tester.ensureVisible(drive);
+    await tester.tap(drive);
+    await tester.pumpAndSettle();
+    expect(opened.last, 'bhpan');
+    expect(opened, hasLength(4));
+  });
+
   testWidgets('同一本机账号资料更新保留常用功能，不重新读取偏好', (tester) async {
     var reads = 0;
     final profile = ValueNotifier(

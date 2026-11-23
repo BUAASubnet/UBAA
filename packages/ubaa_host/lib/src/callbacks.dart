@@ -221,6 +221,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       snapshots: _controller.snapshots,
       homeState: _controller.homeState,
       onHomeVisibilityChanged: _controller.setHomeVisible,
+      onFeatureOpened: _controller.recordFeatureOpened,
       onRefreshHome: _controller.refreshHomePage,
       onRetryHomeSource: _controller.retryHomeSource,
       onHomeReminderChanged: _controller.setHomeReminder,

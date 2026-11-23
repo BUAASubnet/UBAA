@@ -84,6 +84,7 @@ void main() {
       expect((await command.state()).consent, BridgeAppServiceConsent.agreed);
       await gui.refreshAppBootstrap(force: true);
       await gui.recordAppStarted();
+      gui.recordFeatureOpened('finance');
       expect(
         await command.enqueueCounter(
           event: BridgeTelemetryCounter.writeCompleted,

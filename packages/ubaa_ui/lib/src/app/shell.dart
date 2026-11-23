@@ -130,6 +130,7 @@ class UbaaMainShell extends StatefulWidget {
     this.placePreferences = const {},
     this.onSavePlacePreference,
     this.onLoadRecentFeatures,
+    this.onFeatureOpened,
     this.onSaveRecentFeatures,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
@@ -182,6 +183,7 @@ class UbaaMainShell extends StatefulWidget {
   final Map<String, String> placePreferences;
   final Future<void> Function(String key, String value)? onSavePlacePreference;
   final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
+  final ValueChanged<String>? onFeatureOpened;
   final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
   final AppServiceControls? appService;
@@ -356,7 +358,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       if (mounted) setState(() {});
     },
   );
-  void _changeNavigation(VoidCallback change) => setState(change);
+  void _changeNavigation(VoidCallback change, {String? openedFeature}) {
+    setState(change);
+    if (openedFeature != null) widget.onFeatureOpened?.call(openedFeature);
+  }
+
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
@@ -484,7 +490,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final generation = _accountGeneration;
     // 打开功能列表会回到第一层；先按第一层播放进入过渡，避免随后再反向播放一次。
     _readDepths[feature] = 1;
-    setState(() => _openedFeature = feature);
+    _changeNavigation(
+      () => _openedFeature = feature,
+      openedFeature: feature.wireName,
+    );
     _recordFeatureVisit(feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&

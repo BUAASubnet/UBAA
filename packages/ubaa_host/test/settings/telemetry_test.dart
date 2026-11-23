@@ -13,6 +13,41 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
+  testWidgets('恢复会话自动加载不计打开，主动打开即使统计失败也能进入功能页', (tester) async {
+    final records = <TelemetryRecord>[];
+    await tester.pumpWidget(
+      UbaaAppHost(
+        preferenceValues: acceptedPrivacyPreferences(),
+        backend: _Backend(),
+        telemetry: CallbackTelemetryClient(
+          sink: (record) async {
+            records.add(record);
+            if (record.name == 'feature_opened') throw StateError('合成入队失败');
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      records.where((record) => record.name == 'feature_loaded'),
+      isNotEmpty,
+    );
+    final opened = records.where((record) => record.name == 'feature_opened');
+    expect(opened, isEmpty);
+    final entry = find.byKey(const ValueKey('recent-grades'));
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(opened.single.properties, {
+      'feature': 'grades',
+      'route': 'none',
+      'result': 'success',
+    });
+    expect(find.byTooltip('返回'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('未配置统计服务的生产接线保持关闭并说明不可用', (tester) async {
     await tester.pumpWidget(
       UbaaAppHost(

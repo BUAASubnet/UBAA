@@ -3,6 +3,27 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   group('TelemetryClient', () {
+    test('功能打开只接受业务功能和固定维度', () async {
+      final client = MockTelemetryClient();
+      for (final feature in ['cloud_print', 'portal', 'network', 'agenda']) {
+        await client.track(
+          'feature_opened',
+          properties: {
+            'feature': feature,
+            'route': 'none',
+            'result': 'success',
+            'bucket': 'lt_250',
+            'source': 'package:ubaa_ui/src/app.dart:42',
+          },
+        );
+      }
+      expect(client.records.single.properties, {
+        'feature': 'cloud_print',
+        'route': 'none',
+        'result': 'success',
+      });
+    });
+
     test('无参客户端默认关闭且不调用 sink', () async {
       var calls = 0;
       final client = TelemetryClient(sink: (_) async => calls++);

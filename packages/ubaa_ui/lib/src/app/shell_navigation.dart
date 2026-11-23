@@ -38,10 +38,19 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _selectTab(UiDestination.settings.index);
       return;
     }
-    _changeNavigation(() {
-      _openedFeature = null;
-      _utilityPage = page;
-    });
+    _changeNavigation(
+      () {
+        _openedFeature = null;
+        _utilityPage = page;
+      },
+      openedFeature: switch (page) {
+        '图书馆云打印' => 'cloud_print',
+        '云盘' => 'bhpan',
+        'iHome' => 'ihome',
+        '财务查询' => 'finance',
+        _ => null,
+      },
+    );
   }
 
   void _openHomeNavigation(FeatureReadNavigation target) {
@@ -49,7 +58,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     _changeNavigation(() {
       _openedFeature = target.feature;
       if (page == null) _pendingHomeTarget = target;
-    });
+    }, openedFeature: target.feature.wireName);
     _recordFeatureVisit(target.feature);
     if (page != null) {
       unawaited(page.openFromHome(target));
@@ -176,7 +185,10 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               onDismiss: widget.onDismissWriteReadback,
               onRefresh: widget.onRefreshWriteReadbacks,
               onOpenFeature: (feature) {
-                _changeNavigation(() => _openedFeature = feature);
+                _changeNavigation(
+                  () => _openedFeature = feature,
+                  openedFeature: feature.wireName,
+                );
                 _recordFeatureVisit(feature);
               },
             ),
