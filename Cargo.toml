@@ -57,7 +57,7 @@ toml = "1.2.1"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 tract-onnx = { version = "=0.23.10", default-features = false }
-url = "2.5.8"
+url = "2.5.9"
 uuid = { version = "=1.29.2", features = ["v4", "serde"] }
 zeroize = "1.9.1"
 flutter_rust_bridge = "=2.13.0"
