@@ -18,5 +18,8 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BhpanPreviewPlugin") {
       BhpanPreviewPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ScheduleWidgetPlugin") {
+      ScheduleWidgetPlugin.register(with: registrar)
+    }
   }
 }
