@@ -25,7 +25,7 @@
 | 日程 | 已实现 | 支持本地编辑、导出 `.ics`、导入当前学期课表，以及经北航云盘同步。云盘同步默认关闭，已通过直连验证，WebVPN 待验证。 |
 | 北航云盘与图书馆云打印 | 已实现 | 提供云盘文件管理和云打印、扫描相关功能；部分 WebVPN 链路和系统文件面板待验。 |
 | 应用服务 | 已部署 | 提供更新检查、公告和经同意的使用统计。 |
-| Android、iOS、HarmonyOS | 已实现 | Android 有签名 APK 和实机运行记录；iOS 有签名 IPA 和模拟器构建记录；HarmonyOS 有无签名 HAP 和模拟器合成验证记录。 |
+| Android、iOS、HarmonyOS | 已实现 | Android 有签名 APK 和实机运行记录；iOS 有签名 IPA 和模拟器构建记录，课表组件需 iOS 17 及以上；HarmonyOS 有无签名 HAP 和模拟器合成验证记录。 |
 | Windows、macOS、Linux | 已实现 | 图形界面与命令模式共享账号和本机数据；Windows 与 macOS 有本机联调记录，Linux 已验证隔离容器内的 SSH 无界面模式。 |
 
 ## 已知问题
