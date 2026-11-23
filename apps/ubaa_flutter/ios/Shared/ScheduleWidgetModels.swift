@@ -6,16 +6,29 @@ import Foundation
 
 enum ScheduleDisplay {
     /// 详情页可显示未拆分的原文；组件空间有限，只显示能可靠提取的教师名。
+    /// 「葛宁[主讲],王五[辅讲]」只留姓名写成「葛宁、王五」，角色标记在组件里只占位置。
     static func teacher(from weeksAndTeachers: String?) -> String? {
         guard let raw = weeksAndTeachers?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty
         else { return nil }
         let parts = raw.components(separatedBy: "/")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        if parts.count == 2, parts[0].contains("周"), !parts[1].isEmpty {
-            return parts[1]
+        let teachers: String
+        if parts.count == 2, parts[0].contains("周") {
+            teachers = parts[1]
+        } else if parts.count == 1, !raw.contains("周") {
+            teachers = raw
+        } else {
+            return nil
         }
-        return parts.count == 1 && !raw.contains("周") ? raw : nil
+        let names = teachers
+            .components(separatedBy: CharacterSet(charactersIn: ",，"))
+            .map {
+                $0.replacingOccurrences(of: #"\[[^\]]*\]"#, with: "", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            .filter { !$0.isEmpty }
+        return names.isEmpty ? nil : names.joined(separator: "、")
     }
 }
 
