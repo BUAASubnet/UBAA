@@ -56,11 +56,16 @@ impl UbaaClient {
     /// 路线、会话、网络或借阅响应无效时返回错误。
     pub async fn current_library_loans(&mut self) -> RoutedResult<LibraryLoans> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Library))?;
-        let (route, result) = crate::facade::routing::read_with_fallback!(
-            self,
-            route,
-            crate::features::campus::current_loans(self.runtime_for(route.mode)).await
-        );
+        let result = self
+            .network_control()
+            .run_read(
+                route.mode,
+                false,
+                Box::pin(crate::features::campus::current_loans(
+                    self.runtime_for(route.mode),
+                )),
+            )
+            .await;
         self.finish_routed(route, result)
     }
 

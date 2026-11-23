@@ -61,6 +61,19 @@ async fn get(runtime: &mut ClientRuntime, direct: &str, api: bool) -> Result<Htt
     if response.final_url != expected || response.body.len() > 2 * 1024 * 1024 {
         return Err(invalid());
     }
+    if runtime.mode() == ConnectionMode::WebVpn
+        && response.status == 302
+        && response
+            .header_first("Location")
+            .and_then(|value| Url::parse(value).ok())
+            .is_some_and(|url| {
+                url.scheme() == "https"
+                    && url.host_str() == Some(HOST)
+                    && url.port_or_known_default() == Some(443)
+            })
+    {
+        return Err(UbaaError::library_webvpn_unsupported());
+    }
     Ok(response)
 }
 

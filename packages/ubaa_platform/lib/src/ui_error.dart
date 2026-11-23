@@ -470,6 +470,11 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   UiErrorKind kind,
   ErrorDiagnostic? diagnostic,
 ) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.permissionDenied, 'library_webvpn_unsupported') => (
+    title: '当前连接方式不支持图书馆借阅',
+    message: '图书馆借阅暂不支持 WebVPN，请切换为自动或直连',
+    actionLabel: null,
+  ),
   (UbaaErrorCode.invalidInput, 'library_renew_unavailable') => (
     title: '当前不可续借',
     message: '这本书当前不可续借，请刷新后查看借阅记录',

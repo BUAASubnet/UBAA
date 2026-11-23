@@ -38,6 +38,9 @@ impl UbaaClient {
         &mut self,
         route: ConnectionMode,
     ) -> Result<CallerPinned<LibraryLoans>> {
+        if route != ConnectionMode::Direct {
+            return Err(crate::error::UbaaError::library_webvpn_unsupported());
+        }
         self.guard_caller_pinned_route(route)?;
         let result = crate::features::campus::current_loans(self.runtime_for(route)).await;
         self.finish_caller_pinned(route, result)

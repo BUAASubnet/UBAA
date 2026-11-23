@@ -245,55 +245,47 @@ async fn 借阅续借业务拒绝仅返回目标的学校原因() {
 }
 
 #[tokio::test]
-async fn 借阅核对固定调用方路线且不重新选择_auto() {
-    use ubaa_core::facade::testing::to_webvpn_url;
-    let root = test_root("library-pinned-readback");
-    let _ = std::fs::remove_dir_all(&root);
-    let store = seed_sessions(&root, false, true);
-    let list = to_webvpn_url(LIST).unwrap();
-    let max = to_webvpn_url(MAX).unwrap();
-    let webvpn = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            list.clone(),
-            HttpResponse::new(
-                200,
-                &list,
-                r#"{"code":0,"data":{"currentPage":1,"pageSize":20,"total":1,"totalPage":1,"items":[{"loanId":"loan-1","title":"合成书目","item":{"barCode":"bar-1"},"dueDate":"2027-01-05","renewTimes":2}]}}"#
-                    .as_bytes()
-                    .to_vec(),
-            ),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            max.clone(),
-            HttpResponse::new(
-                200,
-                &max,
-                br#"{"code":0,"data":{"items":[{"barCode":"bar-1","maxRenewTimes":3}]}}"#.to_vec(),
-            ),
-        ),
-    ]);
+async fn 显式或固定_webvpn_借阅与续借均拒绝且不请求学校() {
+    let root = test_root("library-unsupported-route");
+    let store = seed_sessions(&root, true, true);
     let direct = MockTransport::new([]);
-    let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
+    let webvpn = MockTransport::new([]);
+    let client = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     install_core(
         &client,
         store,
-        "[route]\ndefault = \"direct\"\n",
+        "[route]\ndefault = \"webvpn\"\n",
         direct.clone(),
         webvpn.clone(),
     )
     .await;
-
-    let result = client
-        .current_library_loans_on_route(BridgeConnectionMode::WebVpn)
-        .await
-        .expect("固定 WebVPN 读取借阅");
-    assert_eq!(result.pinned_route, BridgeConnectionMode::WebVpn);
-    assert_eq!(result.data.entries.len(), 1);
-    assert_eq!(result.data.entries[0].can_renew_times, Some(1));
+    let errors = [
+        client.current_library_loans().await.err().unwrap(),
+        client
+            .current_library_loans_on_route(BridgeConnectionMode::WebVpn)
+            .await
+            .err()
+            .unwrap(),
+        client
+            .prepare_library_loan_renew(BridgeLibraryLoanRenewRequest {
+                loan_id: "loan-1".into(),
+            })
+            .await
+            .err()
+            .unwrap(),
+    ];
+    for error in errors {
+        assert_eq!(error.code, BridgeErrorCode::PermissionDenied);
+        assert!(
+            error
+                .diagnostic_json
+                .as_deref()
+                .unwrap()
+                .contains("library_webvpn_unsupported")
+        );
+    }
     assert_eq!(direct.requests().unwrap().len(), 0);
-    webvpn.assert_exhausted().unwrap();
+    assert_eq!(webvpn.requests().unwrap().len(), 0);
     client.dispose().await.unwrap();
-    let _ = std::fs::remove_dir_all(root);
+    std::fs::remove_dir_all(root).unwrap();
 }

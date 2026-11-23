@@ -376,11 +376,15 @@ impl UbaaClient {
             resolution.diagnostic.mode = ConnectionMode::WebVpn;
         }
         let initial_route = resolution.mode;
+        let direct_only = matches!(
+            operation,
+            Operation::Bhpan | Operation::Feature(ReadonlyFeature::Library)
+        );
         if initial_route == ConnectionMode::Direct
             && !self.route_is_ready(initial_route)
             && policy == RoutePolicy::Auto
             && resolution.diagnostic.network != crate::connection::NetworkState::Campus
-            && !matches!(operation, Operation::Bhpan)
+            && !direct_only
         {
             let alternate = alternate_route(initial_route);
             if self.route_is_ready(alternate) {
@@ -389,11 +393,13 @@ impl UbaaClient {
                 resolution.diagnostic.used_fallback = true;
             }
         }
-        if matches!(operation, Operation::Bhpan) && resolution.mode != ConnectionMode::Direct {
-            return Err(routed_error(
-                crate::features::bhpan::auth::unavailable(),
-                resolution,
-            ));
+        if direct_only && resolution.mode != ConnectionMode::Direct {
+            let error = if matches!(operation, Operation::Bhpan) {
+                crate::features::bhpan::auth::unavailable()
+            } else {
+                UbaaError::library_webvpn_unsupported()
+            };
+            return Err(routed_error(error, resolution));
         }
         if !self.route_is_ready(resolution.mode) {
             return Err(routed_error(authentication_required(), resolution));

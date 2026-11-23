@@ -149,6 +149,51 @@ async fn seed_intent(client: &BridgeClient, request: PendingWrite) {
 }
 
 #[tokio::test]
+async fn 自动借阅直连不可用时不借用可用的_webvpn() {
+    struct Unreachable;
+    #[async_trait]
+    impl HttpTransport for Unreachable {
+        async fn execute(&self, _: HttpRequest) -> core::Result<HttpResponse> {
+            Err(UbaaError::new(
+                ErrorCode::NetworkError,
+                ErrorKind::Network,
+                true,
+                "合成直连故障",
+            ))
+        }
+    }
+    for ready in [true, false] {
+        let root = test_root("library-direct-only-auto");
+        let store = seed_sessions(&root, ready, true);
+        let webvpn = MockTransport::new([]);
+        let mut core = UbaaClient::with_routing(
+            Unreachable,
+            webvpn.clone(),
+            store,
+            RouteConfig::default(),
+            SequenceProbe::new([NetworkState::OffCampus]),
+        )
+        .unwrap();
+        let error = core.current_library_loans().await.unwrap_err();
+        assert_eq!(
+            error.resolution().unwrap().mode,
+            core::ConnectionMode::Direct
+        );
+        assert_eq!(
+            error.error.code,
+            if ready {
+                ErrorCode::NetworkError
+            } else {
+                ErrorCode::AuthenticationRequired
+            }
+        );
+        assert_eq!(webvpn.requests().unwrap().len(), 0);
+        drop(core);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
 async fn 十一类写入提交只解析一次路线且不能跨探测窗口转路() {
     let mut failures = Vec::new();
     for request in requests() {

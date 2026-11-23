@@ -8,6 +8,9 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
+#[path = "library_route_tests.rs"]
+mod library_routes;
+
 const BASE: &str = "https://it.buaa.edu.cn";
 const PROFILE: &str = include_str!("../../../../../fixtures/readonly/campus/profile.json");
 const ITEMS: &str = include_str!("../../../../../fixtures/readonly/campus/items.json");

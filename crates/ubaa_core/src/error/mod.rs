@@ -554,6 +554,17 @@ impl UbaaError {
     }
 
     #[track_caller]
+    pub(crate) fn library_webvpn_unsupported() -> Self {
+        Self::new(
+            ErrorCode::PermissionDenied,
+            ErrorKind::Input,
+            false,
+            "图书馆借阅暂不支持 WebVPN，请切换为自动或直连",
+        )
+        .with_diagnostic("route", "library_webvpn_unsupported")
+    }
+
+    #[track_caller]
     pub(crate) fn session_conflict() -> Self {
         Self {
             cause: Some(ErrorCause::SessionConflict),
