@@ -4,9 +4,57 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/home/todo_card.dart';
 import '../../support/write_harness.dart';
 
 void main() {
+  testWidgets('首页待办在课前四分钟开放卡片和按钮的直接签到', (tester) async {
+    final start = DateTime(2026, 10, 26, 15, 50);
+    var writes = 0;
+
+    Future<void> showCard(DateTime now) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 120,
+            child: HomeTodoCard(
+              item: HomeTodo(
+                id: 'signin:synthetic',
+                feature: FeatureId.signin,
+                title: '合成课程',
+                subtitle: '课程签到',
+                statusLabel: '待签到',
+                timeLabel: '15:50–17:25',
+                sortTime: start,
+                startsAt: start,
+              ),
+              now: now,
+              onTap: () {},
+              onSignin: () async {
+                writes++;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await showCard(start.subtract(const Duration(minutes: 4, seconds: 1)));
+    await tester.tap(find.text('合成课程'));
+    expect(writes, 0);
+    expect(find.text('15:46 起可签'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '签到'), findsNothing);
+
+    await showCard(start.subtract(const Duration(minutes: 4)));
+    expect(find.text('15:46 起可签'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, '签到'));
+    await tester.pump();
+    expect(writes, 1);
+    await tester.tap(find.text('合成课程'));
+    await tester.pump();
+    expect(writes, 2);
+  });
+
   testWidgets('午夜后尚未触发分钟刷新时点击旧签到先刷新，禁止交付旧动作', (tester) async {
     var now = DateTime.parse('2026-03-24T23:59:55+08:00');
     var writes = 0, refreshes = 0;

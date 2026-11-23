@@ -3,6 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/tag.dart';
 import '../../common/agenda_colors.dart';
 import '../../shared/feature_icons.dart' show uiFeatureIcon;
+import '../../shared/when.dart' show uiClock, uiDirectSigninOpensAt;
 import '../../theme.dart';
 
 /// 首页待办和加载提示使用的来源短名。
@@ -43,7 +44,18 @@ class HomeTodoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = item.feature == FeatureId.signin && signing
+    final isSignin = item.feature == FeatureId.signin;
+    final startsAt = item.startsAt;
+    final opensAt = isSignin && startsAt != null
+        ? uiDirectSigninOpensAt(startsAt)
+        : null;
+    final upcomingSignin = opensAt != null && now.isBefore(opensAt)
+        ? opensAt
+        : null;
+    final signinTap = signing
+        ? null
+        : (upcomingSignin == null ? onSignin : null) ?? onRefreshSignin;
+    final status = isSignin && signing
         ? '签到处理中'
         : signinUncertain
         ? '结果未确认'
@@ -58,8 +70,8 @@ class HomeTodoCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: item.feature == FeatureId.signin
-            ? (signing ? null : onSignin ?? onRefreshSignin)
+        onTap: isSignin
+            ? signinTap
             : item.navigation == null && !item.local
             ? null
             : onTap,
@@ -153,13 +165,15 @@ class HomeTodoCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (item.feature == FeatureId.signin) ...[
+              if (isSignin) ...[
                 const SizedBox(width: 8),
                 Center(
-                  child: FilledButton(
-                    onPressed: signing ? null : onSignin ?? onRefreshSignin,
-                    child: Text(signing ? '处理中…' : '签到'),
-                  ),
+                  child: upcomingSignin != null
+                      ? UiTag('${uiClock(upcomingSignin)} 起可签')
+                      : FilledButton(
+                          onPressed: signinTap,
+                          child: Text(signing ? '处理中…' : '签到'),
+                        ),
                 ),
               ] else if (item.navigation != null)
                 Icon(

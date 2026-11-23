@@ -4,6 +4,10 @@ import 'package:ubaa_domain/ubaa_domain.dart' show homeCampusTime;
 /// 当前校园墙上时间。
 DateTime uiCampusNow() => homeCampusTime(clock.now());
 
+/// 直接签到在课前四分钟开放。
+DateTime uiDirectSigninOpensAt(DateTime startsAt) =>
+    startsAt.subtract(const Duration(minutes: 4));
+
 final _dateTime = RegExp(
   r'^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?',
 );

@@ -9,7 +9,7 @@ import 'package:ubaa_ui/src/common/tag.dart';
 import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
-  test('签到二维码与直接签到时间窗保留八个分钟边界', () {
+  test('签到二维码与直接签到各自按时间窗开放', () {
     const course = SigninPresentation(
       courseId: '合成课程',
       classBeginTime: '08:00',
@@ -19,7 +19,8 @@ void main() {
       (7, 49, SigninPhase.upcoming, false),
       (7, 50, SigninPhase.open, false),
       (7, 54, SigninPhase.open, false),
-      (7, 55, SigninPhase.open, true),
+      (7, 55, SigninPhase.open, false),
+      (7, 56, SigninPhase.open, true),
       (8, 29, SigninPhase.open, true),
       (8, 30, SigninPhase.open, false),
       (9, 39, SigninPhase.open, false),
@@ -32,14 +33,15 @@ void main() {
         reason: '$hour:$minute',
       );
       expect(window.opensAt, DateTime(2026, 10, 28, 7, 50));
-      expect(window.submitOpensAt, DateTime(2026, 10, 28, 7, 55));
+      expect(window.submitOpensAt, DateTime(2026, 10, 28, 7, 56));
     }
   });
 
   for (final (hour, minute, qrOpen, canSubmit, done, openSheet) in [
     (7, 49, false, false, false, false),
     (7, 50, true, false, false, false),
-    (7, 55, true, true, false, true),
+    (7, 55, true, false, false, false),
+    (7, 56, true, true, false, true),
     (8, 29, true, false, true, true),
   ]) {
     testWidgets(
@@ -70,7 +72,7 @@ void main() {
             expect(button, findsNothing);
           }
           expect(
-            find.text('07:55 起可签'),
+            find.text('07:56 起可签'),
             qrOpen && hour == 7 && !canSubmit ? findsOneWidget : findsNothing,
           );
           expect(qrButton, qrOpen ? findsOneWidget : findsNothing);

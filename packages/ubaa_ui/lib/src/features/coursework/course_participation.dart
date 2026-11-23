@@ -6,7 +6,12 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiHiddenAcademicField;
 import '../../shared/when.dart'
-    show uiCampusNow, uiClock, uiParseCampusTime, uiShortRange;
+    show
+        uiCampusNow,
+        uiClock,
+        uiDirectSigninOpensAt,
+        uiParseCampusTime,
+        uiShortRange;
 import '../../theme.dart' show UbaaTheme;
 import '../../common/tag.dart';
 import 'signin_qr_sheet.dart' show showSigninQrSheet;
@@ -57,8 +62,7 @@ class CourseParticipationContent extends StatelessWidget {
 /// 二维码：课前 10 分钟到下课。
 const _qrLead = Duration(minutes: 10);
 
-/// 直接签到：课前 5 分钟到上课后 30 分钟。
-const _submitLead = Duration(minutes: 5);
+/// 直接签到最晚到上课后 30 分钟。
 const _submitAfterBegin = Duration(minutes: 30);
 
 @visibleForTesting
@@ -85,7 +89,7 @@ signinPhase(SigninPresentation p, DateTime now) {
     );
   }
   final opens = begin.subtract(_qrLead);
-  final submitOpens = begin.subtract(_submitLead);
+  final submitOpens = uiDirectSigninOpensAt(begin);
   final submitCloses = begin.add(_submitAfterBegin);
   final phase = now.isBefore(opens)
       ? SigninPhase.upcoming
@@ -241,7 +245,7 @@ class _SigninCourseCard extends StatelessWidget {
                 : null,
             child: const Text('签到'),
           )
-        // 课前 10～5 分钟只能扫码，提示直接签到的开始时间；上课 30 分钟后只剩二维码。
+        // 直接签到开放前显示开放时间，课前十分钟起可使用二维码。
         : switch (window.submitOpensAt) {
             final opens? when now.isBefore(opens) => UiTag(
               '${uiClock(opens)} 起可签',
