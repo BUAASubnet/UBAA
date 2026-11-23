@@ -1,3 +1,4 @@
+import Flutter
 import XCTest
 @testable import Runner
 
@@ -124,7 +125,71 @@ final class ScheduleWidgetParserTests: XCTestCase {
 }
 
 final class ScheduleWidgetStoreTests: XCTestCase {
+    private func fixtureDirectory() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        return directory
+    }
+
+    func test退出销毁密钥即使密文无法删除() throws {
+        let directory = try fixtureDirectory()
+        let key = directory.appendingPathComponent("schedule-widgets.key")
+        let encrypted = directory.appendingPathComponent("schedule-widgets.enc")
+        let store = ScheduleWidgetStore(directory: directory) { url in
+            if url == encrypted { throw CocoaError(.fileWriteNoPermission) }
+            try FileManager.default.removeItem(at: url)
+        }
+        let reader = ScheduleWidgetStore(directory: directory)
+        let scope = try store.begin(owner: "合成甲")
+        let snapshot: [String: Any] = ["version": 1, "owner": "合成甲", "semesters": []]
+        XCTAssertTrue(try store.publish(scope: scope, snapshotJSON: snapshot))
+        XCTAssertEqual(reader.readState().snapshot?.owner, "合成甲")
+        let oldKey = try Data(contentsOf: key)
+        let oldCiphertext = try Data(contentsOf: encrypted)
+
+        _ = try store.begin(owner: nil)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: key.path))
+        XCTAssertEqual(try Data(contentsOf: encrypted), oldCiphertext)
+        XCTAssertNil(reader.readState().owner)
+        XCTAssertFalse(try store.publish(scope: scope, snapshotJSON: snapshot))
+
+        let newScope = try store.begin(owner: "合成甲")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: key.path))
+        XCTAssertTrue(try store.publish(scope: newScope, snapshotJSON: snapshot))
+        XCTAssertNotEqual(try Data(contentsOf: key), oldKey)
+        try oldCiphertext.write(to: encrypted)
+        XCTAssertNil(reader.readState().snapshot)
+    }
+
+    func test删密钥失败返回存储错误且不请求刷新() throws {
+        let directory = try fixtureDirectory()
+        let store = ScheduleWidgetStore(directory: directory) { url in
+            if url.lastPathComponent == "schedule-widgets.key",
+               FileManager.default.fileExists(atPath: url.path) {
+                throw CocoaError(.fileWriteNoPermission)
+            }
+            try FileManager.default.removeItem(at: url)
+        }
+        let scope = try store.begin(owner: "合成甲")
+        let snapshot: [String: Any] = ["version": 1, "owner": "合成甲", "semesters": []]
+        XCTAssertTrue(try store.publish(scope: scope, snapshotJSON: snapshot))
+        let plugin = ScheduleWidgetPlugin(store: store, reload: { XCTFail("失败时不得请求刷新") })
+        let reply = expectation(description: "撤销失败")
+        plugin.handle(FlutterMethodCall(methodName: "begin", arguments: [:])) { value in
+            XCTAssertEqual((value as? FlutterError)?.code, "widget_storage_failure")
+            reply.fulfill()
+        }
+        wait(for: [reply], timeout: 3)
+        XCTAssertEqual(store.readState().owner, "合成甲")
+        XCTAssertFalse(try store.publish(scope: scope, snapshotJSON: snapshot))
+    }
+
     func test发布代次与撤销语义() throws {
+        let directory = try fixtureDirectory()
+        let store = ScheduleWidgetStore(directory: directory)
+        let reader = ScheduleWidgetStore(directory: directory)
+        let key = directory.appendingPathComponent("schedule-widgets.key")
         let owner = "store-test-\(UUID().uuidString.prefix(8))"
         let snapshot: [String: Any] = [
             "version": 1,
@@ -152,20 +217,28 @@ final class ScheduleWidgetStoreTests: XCTestCase {
             ],
         ]
         // 新代次发布成功，读回一致。
-        let scope = try ScheduleWidgetStore.begin(owner: owner)
+        let scope = try store.begin(owner: owner)
         XCTAssertFalse(scope.isEmpty)
-        XCTAssertTrue(try ScheduleWidgetStore.publish(scope: scope, snapshotJSON: snapshot))
-        let read = ScheduleWidgetStore.readState()
+        XCTAssertTrue(try store.publish(scope: scope, snapshotJSON: snapshot))
+        let read = reader.readState()
         XCTAssertEqual(read.owner, owner)
         XCTAssertEqual(read.snapshot?.semesters.single?.termCode, "t1")
 
         // 换账号后代次撤销：旧代次不能再发布。
-        _ = try ScheduleWidgetStore.begin(owner: "\(owner)-other")
-        XCTAssertFalse(try ScheduleWidgetStore.publish(scope: scope, snapshotJSON: snapshot))
+        let newOwner = "\(owner)-other"
+        let newScope = try store.begin(owner: newOwner)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: key.path))
+        XCTAssertNil(reader.readState().owner)
+        XCTAssertFalse(try store.publish(scope: scope, snapshotJSON: snapshot))
+        XCTAssertFalse(try store.publish(scope: newScope, snapshotJSON: snapshot))
+        var newSnapshot = snapshot
+        newSnapshot["owner"] = newOwner
+        XCTAssertTrue(try store.publish(scope: newScope, snapshotJSON: newSnapshot))
+        XCTAssertEqual(reader.readState().owner, newOwner)
 
         // 空账号清空组件副本。
-        _ = try ScheduleWidgetStore.begin(owner: nil)
-        XCTAssertNil(ScheduleWidgetStore.readState().owner)
+        _ = try store.begin(owner: nil)
+        XCTAssertNil(reader.readState().owner)
     }
 }
 

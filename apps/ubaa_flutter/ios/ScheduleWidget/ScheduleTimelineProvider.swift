@@ -46,7 +46,7 @@ struct ScheduleTimelineProvider: TimelineProvider {
     }
 
     func currentEntry(now: Date, theme: ScheduleTheme = .ocean) -> ScheduleEntry {
-        let (owner, snapshot) = ScheduleWidgetStore.readState()
+        let (owner, snapshot) = ScheduleWidgetStore.shared.readState()
         let today = LocalDate.today(now: now)
         let time = Self.clock(now: now)
         var todayAgenda: [SavedAgendaItem] = []
