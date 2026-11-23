@@ -36,6 +36,18 @@ async fn 校园与财务命令投影符合_json_合同() {
                 "80.125"
             );
         }
+        if operation == "incomes" {
+            let entries = value["data"]["entries"].as_array().unwrap();
+            assert_eq!(entries.len(), 2);
+            for (key, expected) in [
+                ("department", "示例学院"),
+                ("projectCode", "SYNTH-PROJECT-01"),
+                ("projectName", "合成项目名称"),
+            ] {
+                assert_eq!(entries[0][key], expected);
+                assert_eq!(entries[1].get(key), Some(&serde_json::Value::Null));
+            }
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 mod campus;
 pub(crate) mod login;
-pub(crate) use campus::{campus_metrics, campus_network, campus_profile};
+pub(crate) use campus::{campus_metrics, campus_network, campus_profile, finance_incomes};
 use ubaa_command::{Cli, CommandControl, RoutedCliBackend, execute_attempt, prepare_input};
 use ubaa_core::facade::*;
 use ubaa_core::facade::{

@@ -315,6 +315,18 @@ fn cli_json_schema_accepts_strict_libbook_cancel_result() {
 }
 
 #[test]
+fn cli_json_schema_id_与合同版本一致() {
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../docs/contracts/cli-json.schema.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        schema["$id"],
+        format!("urn:ubaa:cli:json:schema:{CLI_JSON_SCHEMA_VERSION}")
+    );
+}
+
+#[test]
 fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
     let features = [
         CliFeature::Cli,
