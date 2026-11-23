@@ -76,7 +76,7 @@ struct WeekScheduleWidget: Widget {
             WeekScheduleWidgetView(entry: entry)
                 .scheduleWidgetChrome(theme: entry.theme)
         }
-        .configurationDisplayName("UBAA 周课表")
+        .configurationDisplayName("周课表")
         .description("整周课表一览，可切换周次。")
         .supportedFamilies([.systemLarge])
     }
@@ -126,7 +126,7 @@ struct WeekConfiguredWidget: Widget {
             WeekScheduleWidgetView(entry: entry)
                 .scheduleWidgetChrome(theme: entry.theme)
         }
-        .configurationDisplayName("UBAA 周课表")
+        .configurationDisplayName("周课表")
         .description("整周课表一览，长按可切换配色。")
         .supportedFamilies([.systemLarge])
     }
@@ -230,7 +230,7 @@ extension ScheduleEntry {
     [ScheduleEntry.preview]
 }
 
-#Preview("UBAA 周课表（大）", as: .systemLarge) {
+#Preview("周课表（大）", as: .systemLarge) {
     WeekScheduleWidget()
 } timeline: {
     [ScheduleEntry.preview]
