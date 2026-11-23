@@ -4,6 +4,8 @@ import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_app/src/contracts/recovery.dart';
+import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
@@ -17,6 +19,9 @@ mixin ControllerWriteLifecycle on ControllerState {
   WriteCoordinator internalCreateWriteCoordinator(UbaaBackend backend) =>
       WriteCoordinator(
         diagnostics: internalDiagnostics,
+        recoverSigninSession: backend is RequiredSessionBackend
+            ? _recoverSigninSession
+            : null,
         observeResult: (operation, {required error, required route}) =>
             internalRecordOperationOutcome(
               operation.feature?.wireName ?? 'bhpan',
@@ -55,6 +60,33 @@ mixin ControllerWriteLifecycle on ControllerState {
           refreshEvaluationAfterWrite: refreshEvaluationAfterWrite,
         ),
       );
+
+  Future<bool> _recoverSigninSession(BackendException error) async {
+    final session = internalCaptureSessionScope();
+    final network = internalNetworkRevision;
+    final credentials = internalLoginCredentialRevision;
+    bool current() =>
+        session.isCurrent &&
+        internalAppForeground &&
+        internalPhase == AppPhase.home &&
+        network == internalNetworkRevision &&
+        credentials == internalLoginCredentialRevision;
+
+    if (!internalUsesLocalRecovery || !current()) throw error;
+    internalRecordSessionExpired(FeatureId.signin, error.resolvedRoute);
+    try {
+      await internalScheduleReadAuthentication(
+        FeatureId.signin,
+        ReadPriority.urgent,
+        current,
+        force: true,
+      );
+    } on Object {
+      if (!current()) return false;
+      rethrow;
+    }
+    return current();
+  }
 
   @internal
   ControllerActivity internalBeginOperationTransition(
