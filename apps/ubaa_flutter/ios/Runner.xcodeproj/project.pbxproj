@@ -640,7 +640,7 @@
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -661,7 +661,7 @@
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -681,7 +681,7 @@
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ScheduleWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;

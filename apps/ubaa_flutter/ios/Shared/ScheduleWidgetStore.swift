@@ -9,7 +9,7 @@ import Security
 /// Runner 与 ScheduleWidget 扩展通过 App Group 容器共享这一副本。
 /// 周次翻页偏移是低敏感展示状态，独立存于容器明文，不在此边界内。
 enum ScheduleWidgetStore {
-    static let appGroupID = "group.cn.edu.ubaa.widgets"
+    static let appGroupID = "group.cn.edu.ubaa"
     static let alias = "ubaa.schedule.widgets.v1"
     private static let limit = 4 * 1024 * 1024
     private static let queue = DispatchQueue(label: "cn.edu.ubaa.schedule-widget-store")
