@@ -313,7 +313,10 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   void internalEndOperationTransition(ControllerActivity activity);
   @internal
-  void internalReplaceWriteCoordinator(UbaaBackend backend);
+  void internalReplaceWriteCoordinator(
+    UbaaBackend backend, {
+    bool sameSession = false,
+  });
   @internal
   Future<WriteCommitResult> internalCommitWriteWithBackend(
     UbaaBackend backend,

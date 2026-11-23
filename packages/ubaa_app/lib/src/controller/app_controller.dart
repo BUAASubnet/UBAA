@@ -425,6 +425,7 @@ extension AppControllerLibraryLoans on AppController {
         if (normalized.isEmpty || normalized.length > 256) {
           throw const BackendException(UbaaErrorCode.invalidInput);
         }
+        internalWriteCoordinator.ensureLibraryLoanCanPrepare(normalized);
         return (backend as LibraryLoanWriteBackend).prepareLibraryLoanRenew(
           loanId: normalized,
         );

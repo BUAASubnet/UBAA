@@ -47,6 +47,8 @@ class LibraryLoanRenewTarget {
   final int? renewTimes;
 }
 
+enum LibraryRenewStatus { applied, unchanged, unknown }
+
 /// 续借后在意图原路线读取的完整借阅范围及核对结论。
 @immutable
 class LibraryLoanRenewReadback {
@@ -54,7 +56,7 @@ class LibraryLoanRenewReadback {
     required this.loanId,
     required this.loans,
     required this.route,
-    required this.verified,
+    required this.status,
   });
 
   final String loanId;
@@ -62,5 +64,6 @@ class LibraryLoanRenewReadback {
   final ConnectionMode route;
 
   /// 同一记录的应还日期延后，或续借次数增加时为 true。
-  final bool verified;
+  bool get verified => status == LibraryRenewStatus.applied;
+  final LibraryRenewStatus status;
 }

@@ -112,6 +112,8 @@ class UbaaMainShell extends StatefulWidget {
     this.financeService,
     this.onOpenAppLink,
     this.readLibraryLoans,
+    this.pendingLibraryLoans = const {},
+    this.onRecheckLibraryLoan,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -252,6 +254,8 @@ class UbaaMainShell extends StatefulWidget {
   final FinanceService? financeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
   final LibraryLoansReader? readLibraryLoans;
+  final Set<String> pendingLibraryLoans;
+  final LibraryLoanRenewStarter? onRecheckLibraryLoan;
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;

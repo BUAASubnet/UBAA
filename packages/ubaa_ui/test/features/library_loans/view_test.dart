@@ -129,7 +129,7 @@ void main() {
               loanId: selected,
               loans: [current],
               route: ConnectionMode.direct,
-              verified: true,
+              status: LibraryRenewStatus.applied,
             ),
           );
         },
@@ -166,7 +166,7 @@ void main() {
               loanId: selected,
               loans: [current],
               route: ConnectionMode.direct,
-              verified: true,
+              status: LibraryRenewStatus.applied,
             ),
           );
         },
@@ -196,14 +196,43 @@ void main() {
           loanId: selected,
           loans: [loan()],
           route: ConnectionMode.direct,
-          verified: false,
+          status: LibraryRenewStatus.unchanged,
         ),
       ),
     );
     await tester.tap(find.widgetWithText(FilledButton, '续借'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('结果未确认'), findsOneWidget);
-    expect(find.textContaining('勿重复提交'), findsOneWidget);
+    expect(find.textContaining('续借未生效'), findsOneWidget);
+    expect(find.textContaining('勿重复提交'), findsNothing);
+  });
+
+  testWidgets('待核对记录禁用续借并单独提供只读核对', (tester) async {
+    var checks = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LibraryLoansView(
+            read: () async => [loan()],
+            pending: const {'loan-1'},
+            renew: (_) => throw StateError('不得提交'),
+            recheck: (_) async {
+              checks++;
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '续借'))
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.widgetWithText(TextButton, '核对'));
+    await tester.pumpAndSettle();
+    expect(checks, 1);
   });
 
   testWidgets('续借核对替换在途的普通刷新，迟到数据不覆盖核对结果', (tester) async {
@@ -240,7 +269,7 @@ void main() {
           loanId: 'loan-1',
           loans: [loan(renewTimes: 2)],
           route: ConnectionMode.direct,
-          verified: true,
+          status: LibraryRenewStatus.applied,
         ),
       ),
     );
@@ -286,7 +315,7 @@ void main() {
           loanId: 'loan-1',
           loans: [loan(renewTimes: 2)],
           route: ConnectionMode.direct,
-          verified: true,
+          status: LibraryRenewStatus.applied,
         ),
       ),
     );

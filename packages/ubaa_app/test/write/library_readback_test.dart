@@ -98,6 +98,73 @@ LibraryLoan _loan({String dueDate = '2027-01-05', int renewTimes = 2}) =>
     );
 
 void main() {
+  test('同一会话重建后端保留待核对借阅，新会话不继承', () async {
+    final backend = _ReadbackBackend(
+      const LibraryLoanRouteRead(
+        loans: [],
+        resolvedRoute: ConnectionMode.direct,
+      ),
+    );
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    controller.internalWriteCoordinator.dispose();
+    final previous = WriteCoordinator(
+      commit: (_) async =>
+          throw const BackendException(UbaaErrorCode.outcomeUnknown),
+      discard: (_) async {},
+      receiptVerifier: WriteReceiptVerifier(),
+    );
+    controller.internalWriteCoordinator = previous;
+    previous.setIntent(_intent(ConnectionMode.direct));
+    await previous.confirmForUi();
+    expect(previous.pendingLibraryLoanIds, {'loan-1'});
+    controller.internalReplaceWriteCoordinator(backend, sameSession: true);
+    expect(controller.writeCoordinator.pendingLibraryLoanIds, {'loan-1'});
+    controller.internalReplaceWriteCoordinator(backend);
+    expect(controller.writeCoordinator.pendingLibraryLoanIds, isEmpty);
+  });
+
+  test('未知续借在只读核对前拒绝再次签发同书意图', () async {
+    var sends = 0;
+    LibraryLoanRenewReadback? nextRead;
+    final writes = WriteCoordinator(
+      commit: (_) async {
+        sends++;
+        throw const BackendException(UbaaErrorCode.outcomeUnknown);
+      },
+      discard: (_) async {},
+      receiptVerifier: WriteReceiptVerifier(
+        verifyLibraryLoanRenew: (_) async => nextRead,
+      ),
+    );
+    addTearDown(writes.dispose);
+    final intent = _intent(ConnectionMode.direct);
+    writes.setIntent(intent);
+    await writes.confirmForUi();
+    await expectLater(
+      writes.prepare(() async => intent),
+      throwsA(isA<BackendException>()),
+    );
+    writes.setIntent(intent);
+    expect(writes.intent, isNull);
+    expect(
+      () => writes.ensureLibraryLoanCanPrepare('loan-1'),
+      throwsA(isA<BackendException>()),
+    );
+    writes.ensureLibraryLoanCanPrepare('loan-2');
+    await writes.recheckLibraryLoan('loan-1');
+    expect(writes.pendingLibraryLoanIds, {'loan-1'});
+    nextRead = const LibraryLoanRenewReadback(
+      loanId: 'loan-1',
+      loans: [],
+      route: ConnectionMode.direct,
+      status: LibraryRenewStatus.unchanged,
+    );
+    await writes.recheckLibraryLoan('loan-1');
+    expect(writes.pendingLibraryLoanIds, isEmpty);
+    expect(await writes.prepare(() async => intent), intent);
+    expect(sends, 1);
+  });
   test('网络就绪前更换会话时不读取旧后端', () async {
     final previous = _ReadbackBackend(
       LibraryLoanRouteRead(
@@ -221,6 +288,10 @@ void main() {
       );
       controller.dispose();
       expect(read?.verified, verified, reason: '$date / $count');
+      expect(
+        read?.status == LibraryRenewStatus.unchanged,
+        date == '2026-12-01 12:30:45',
+      );
     }
   });
 
@@ -305,7 +376,7 @@ void _verifierTests() {
       loanId: 'loan-1',
       loans: [_loan()],
       route: ConnectionMode.direct,
-      verified: true,
+      status: LibraryRenewStatus.applied,
     );
     var calls = 0;
     final verifier = WriteReceiptVerifier(

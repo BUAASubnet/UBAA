@@ -51,6 +51,20 @@ class WriteCoordinator extends ChangeNotifier {
   bool _disposed = false;
   int _generation = 0;
   Object? _activity;
+  final _pendingLibrary = <String, WriteIntent>{};
+
+  Set<String> get pendingLibraryLoanIds => _pendingLibrary.keys.toSet();
+
+  void ensureLibraryLoanCanPrepare(String loanId) {
+    if (_pendingLibrary.containsKey(loanId)) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+  }
+
+  void clearLibraryReadbacks() => _pendingLibrary.clear();
+
+  void inheritLibraryReadbacks(WriteCoordinator previous) =>
+      _pendingLibrary.addAll(previous._pendingLibrary);
 
   WriteState get state => _state;
   WriteIntent? get intent => _state.intent;
@@ -64,6 +78,8 @@ class WriteCoordinator extends ChangeNotifier {
 
   void setIntent(WriteIntent intent) {
     if (!_mayStart || _activity != null || _state.intent != null) return;
+    if (_pendingLibrary.containsKey(intent.libraryLoanRenewTarget?.loanId))
+      return;
     _publish(WriteState(phase: WritePhase.ready, intent: intent));
   }
 
@@ -126,6 +142,12 @@ class WriteCoordinator extends ChangeNotifier {
           prepared.operation != expectedOperation) {
         await _discardBestEffort(prepared);
         throw const BackendException(UbaaErrorCode.internalError);
+      }
+      if (_pendingLibrary.containsKey(
+        prepared.libraryLoanRenewTarget?.loanId,
+      )) {
+        await _discardBestEffort(prepared);
+        throw const BackendException(UbaaErrorCode.operationConflict);
       }
       _publish(WriteState(phase: WritePhase.ready, intent: prepared));
       return _isCurrent(activity, generation) ? prepared : null;
@@ -294,6 +316,12 @@ class WriteCoordinator extends ChangeNotifier {
         );
       }
       if (!_isCurrent(activity, generation)) return null;
+      final loanId = pending.libraryLoanRenewTarget?.loanId;
+      if (loanId != null &&
+          (error?.code == UbaaErrorCode.outcomeUnknown ||
+              result?.outcomeUnknown == true)) {
+        _pendingLibrary[loanId] = pending;
+      }
       _publish(WriteState(phase: WritePhase.readingBack, intent: pending));
       final outcome = await _receiptVerifier.complete(
         pending,
@@ -313,6 +341,7 @@ class WriteCoordinator extends ChangeNotifier {
         },
       );
       if (!_isCurrent(activity, generation)) return null;
+      _settleLibraryReadback(pending, outcome);
       _publish(WriteState(phase: WritePhase.idle, error: error));
       if (!_isCurrent(activity, generation)) return null;
       _recordResult(
@@ -337,6 +366,38 @@ class WriteCoordinator extends ChangeNotifier {
       _observeResult?.call(operation, error: error, route: route);
     } on Object {
       // 统计回调失败不影响学校写入或界面结果。
+    }
+  }
+
+  Future<WriteOutcome?> recheckLibraryLoan(String loanId) async {
+    final pending = _pendingLibrary[loanId];
+    if (pending == null || !_mayStart || hasPendingOperation) return null;
+    final generation = _generation;
+    final activity = _begin(WritePhase.readingBack, intent: pending);
+    try {
+      final outcome = await _receiptVerifier.complete(
+        pending,
+        error: UbaaErrorMapper.fromCode(UbaaErrorCode.outcomeUnknown),
+        isCurrent: () => _isCurrent(activity, generation),
+      );
+      if (!_isCurrent(activity, generation)) return null;
+      _settleLibraryReadback(pending, outcome);
+      _publish(const WriteState.idle());
+      return outcome;
+    } finally {
+      _finish(activity);
+    }
+  }
+
+  void _settleLibraryReadback(WriteIntent intent, WriteOutcome outcome) {
+    final target = intent.libraryLoanRenewTarget;
+    final readback = outcome.libraryLoanRenewReadback;
+    if (target != null &&
+        readback != null &&
+        readback.loanId == target.loanId &&
+        readback.route == intent.resolvedRoute &&
+        readback.status != LibraryRenewStatus.unknown) {
+      _pendingLibrary.remove(target.loanId);
     }
   }
 

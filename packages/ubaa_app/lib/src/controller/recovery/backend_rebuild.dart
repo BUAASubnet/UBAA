@@ -129,7 +129,7 @@ mixin ControllerBackendRecovery on ControllerState {
       internalClearCurrentSessionGrant();
       internalSessionLifecycle.replaceBackend(replacement);
       internalBackendNeedsRebuild = false;
-      internalReplaceWriteCoordinator(replacement);
+      internalReplaceWriteCoordinator(replacement, sameSession: true);
       internalProfileRefreshedEpoch = -1;
       internalProfileFailureEpoch = -1;
       internalProfileRequest = null;

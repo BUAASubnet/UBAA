@@ -119,10 +119,15 @@ mixin ControllerWriteLifecycle on ControllerState {
   }
 
   @internal
-  void internalReplaceWriteCoordinator(UbaaBackend backend) {
-    internalWriteCoordinator.removeListener(internalNotify);
-    internalWriteCoordinator.dispose();
+  void internalReplaceWriteCoordinator(
+    UbaaBackend backend, {
+    bool sameSession = false,
+  }) {
+    final previous = internalWriteCoordinator;
+    previous.removeListener(internalNotify);
+    previous.dispose();
     internalWriteCoordinator = internalCreateWriteCoordinator(backend);
+    if (sameSession) internalWriteCoordinator.inheritLibraryReadbacks(previous);
     internalWriteCoordinator.addListener(internalNotify);
   }
 

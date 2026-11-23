@@ -126,6 +126,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
             ? LibraryLoansView(
                 key: ValueKey(_pageContentScope),
                 read: widget.readLibraryLoans!,
+                pending: widget.pendingLibraryLoans,
+                recheck: widget.onRecheckLibraryLoan,
                 renew:
                     widget.onPrepareLibraryLoanRenewWrite == null ||
                         !_hasWriteCommands

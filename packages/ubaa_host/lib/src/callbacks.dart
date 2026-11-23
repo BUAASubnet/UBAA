@@ -185,6 +185,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       readLibraryLoans: _controller.canReadLibraryLoans
           ? _controller.readLibraryLoans
           : null,
+      pendingLibraryLoans: _controller.writeCoordinator.pendingLibraryLoanIds,
+      onRecheckLibraryLoan: _controller.writeCoordinator.recheckLibraryLoan,
       readCacheEpoch: _controller.readCacheEpoch,
       businessCacheEpoch: _controller.businessCacheEpoch,
       localPreferencesRevision: _preferenceRevision,

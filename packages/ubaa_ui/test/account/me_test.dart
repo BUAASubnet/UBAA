@@ -208,7 +208,7 @@ void main() {
               loanId: 'loan-1',
               loans: loans,
               route: ConnectionMode.direct,
-              verified: true,
+              status: LibraryRenewStatus.applied,
             ),
           );
         },

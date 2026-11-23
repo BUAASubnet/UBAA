@@ -44,7 +44,14 @@ Future<LibraryLoanRenewReadback?> controllerVerifyLibraryLoanRenew(
       loanId: target.loanId,
       loans: read.loans,
       route: read.resolvedRoute,
-      verified: dueDateExtended || renewCountIncreased,
+      status: dueDateExtended || renewCountIncreased
+          ? LibraryRenewStatus.applied
+          : beforeDate != null &&
+                beforeDate == afterDate &&
+                target.renewTimes != null &&
+                target.renewTimes == after?.renewTimes
+          ? LibraryRenewStatus.unchanged
+          : LibraryRenewStatus.unknown,
     );
   } on Object catch (error, stackTrace) {
     if (scope.isCurrent) {

@@ -16,10 +16,18 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 ///
 /// 页面只消费 facade 投影；账号、路线与写入确认由外层保存和协调。
 class LibraryLoansView extends StatefulWidget {
-  const LibraryLoansView({required this.read, this.renew, super.key});
+  const LibraryLoansView({
+    required this.read,
+    this.renew,
+    this.pending = const {},
+    this.recheck,
+    super.key,
+  });
 
   final LibraryLoansReader read;
   final LibraryLoanRenewStarter? renew;
+  final Set<String> pending;
+  final LibraryLoanRenewStarter? recheck;
 
   @override
   State<LibraryLoansView> createState() => _LibraryLoansViewState();
@@ -88,8 +96,8 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
     await _load();
   }
 
-  Future<void> _renew(String loanId) async {
-    final renew = widget.renew;
+  Future<void> _renew(String loanId, {bool checkOnly = false}) async {
+    final renew = checkOnly ? widget.recheck : widget.renew;
     if (renew == null || _renewing != null) return;
     final readerRevision = _readerRevision;
     setState(() => _renewing = loanId);
@@ -125,10 +133,12 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
       final dueDate = after?.dueDate;
       final detail = dueDate == null ? '' : '，应还日期 ${uiShortDateTime(dueDate)}';
       UbaaFeedback.show(context, '续借成功$detail', kind: UbaaFeedbackKind.success);
+    } else if (unknown && readback?.status == LibraryRenewStatus.unchanged) {
+      UbaaFeedback.show(context, '续借未生效，如需再次续借请重新确认');
     } else if (unknown) {
       UbaaFeedback.showWarning(
         context,
-        '续借结果未确认，请稍后刷新查看，勿重复提交',
+        '续借结果未确认，请稍后核对，勿重复提交',
         outcome.error ?? outcome.resultError,
       );
     } else if (outcome.result?.success == true) {
@@ -145,7 +155,7 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
   @override
   Widget build(BuildContext context) {
     final loans = _loans;
-    if (loans == null) {
+    if (loans == null && widget.pending.isEmpty) {
       return PullToRefresh(
         onRefresh: _refresh,
         child: RefreshViewport(
@@ -170,9 +180,22 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
         key: const PageStorageKey<String>('library-loans-page'),
         padding: UbaaTheme.pageInsets(context, top: 8),
         children: [
-          _Header(total: loans.length, loading: _loading, onRefresh: _load),
+          if (loans != null)
+            _Header(total: loans.length, loading: _loading, onRefresh: _load),
           if (error != null) _ErrorBanner(error: error, onRetry: _load),
-          if (loans.isEmpty)
+          for (final id in widget.pending.where(
+            (id) => !(loans?.any((loan) => loan.id == id) ?? false),
+          ))
+            ListTile(
+              title: const Text('续借待核对'),
+              trailing: TextButton(
+                onPressed: _renewing == null && widget.recheck != null
+                    ? () => _renew(id, checkOnly: true)
+                    : null,
+                child: const Text('核对'),
+              ),
+            ),
+          if (loans != null && loans.isEmpty)
             const SizedBox(
               height: 280,
               child: UiStatePanel(
@@ -181,7 +204,7 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
                 detail: '当前账号没有未归还的借阅记录',
               ),
             )
-          else ...[
+          else if (loans != null) ...[
             for (final loan in loans)
               _LoanCard(
                 loan: loan,
@@ -189,7 +212,12 @@ class _LibraryLoansViewState extends State<LibraryLoansView> {
                 renewEnabled:
                     widget.renew != null &&
                     _renewing == null &&
-                    loan.canRenewTimes != 0,
+                    (loan.canRenewTimes ?? 0) > 0 &&
+                    !widget.pending.contains(loan.id),
+                pending: widget.pending.contains(loan.id),
+                onRecheck: _renewing == null && widget.recheck != null
+                    ? () => _renew(loan.id, checkOnly: true)
+                    : null,
                 onRenew: () => _renew(loan.id),
               ),
             const SizedBox(height: 8),
@@ -263,12 +291,16 @@ class _LoanCard extends StatelessWidget {
     required this.renewing,
     required this.renewEnabled,
     required this.onRenew,
+    required this.pending,
+    required this.onRecheck,
   });
 
   final LibraryLoan loan;
   final bool renewing;
   final bool renewEnabled;
   final VoidCallback onRenew;
+  final bool pending;
+  final VoidCallback? onRecheck;
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +361,10 @@ class _LoanCard extends StatelessWidget {
               children: [
                 UiTag('续借 ${_count(loan.renewTimes)} 次'),
                 UiTag(_renewable(loan.canRenewTimes)),
+                if (pending) ...[
+                  const UiTag('待核对'),
+                  TextButton(onPressed: onRecheck, child: const Text('核对')),
+                ],
                 const SizedBox(width: 4),
                 FilledButton.tonalIcon(
                   onPressed: renewEnabled ? onRenew : null,
