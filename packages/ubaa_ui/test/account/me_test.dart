@@ -75,6 +75,7 @@ Widget _app(
   RoutePolicy routePolicy = RoutePolicy.auto,
   Clock? now,
   LibraryLoansReader? readLibraryLoans,
+  ValueChanged<String>? onFeatureOpened,
   LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite,
   WritePreparationRunner? onRunWritePrepare,
   WriteConfirmationRunner? onConfirmWrite,
@@ -86,6 +87,7 @@ Widget _app(
     campusAccountService: service,
     homeClock: now,
     readLibraryLoans: readLibraryLoans,
+    onFeatureOpened: onFeatureOpened,
     onPrepareLibraryLoanRenewWrite: onPrepareLibraryLoanRenewWrite,
     onRunWritePrepare: onRunWritePrepare,
     onConfirmWrite: onConfirmWrite,
@@ -112,12 +114,14 @@ Future<void> _openMe(WidgetTester tester) async {
 
 void main() {
   testWidgets('点击待还图书打开当前借阅页面', (tester) async {
+    final opened = <String>[];
     tester.view.physicalSize = const Size(390, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       _app(
         _FakeCampusService(),
+        onFeatureOpened: opened.add,
         readLibraryLoans: () async => const [
           LibraryLoan(
             id: 'loan-1',
@@ -139,6 +143,7 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('me-metric-books')), findsOneWidget);
+    expect(opened, ['library_loans']);
   });
 
   testWidgets('续借经既有确认流程提交并使用原路线核对结果', (tester) async {
