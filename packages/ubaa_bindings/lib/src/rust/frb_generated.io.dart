@@ -44,6 +44,7 @@ import 'api/offline_profile.dart';
 import 'api/offline_ygdk.dart';
 import 'api/read.dart';
 import 'api/read/graduate.dart';
+import 'api/read/spoc_files.dart';
 import 'api/recovery.dart';
 import 'api/recovery/control.dart';
 import 'api/schedule_import.dart';
@@ -1088,6 +1089,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeSigninPerformRequest
   dco_decode_box_autoadd_bridge_signin_perform_request(dynamic raw);
+
+  @protected
+  BridgeSpocAttachment dco_decode_box_autoadd_bridge_spoc_attachment(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmittedFile dco_decode_box_autoadd_bridge_spoc_submitted_file(
+    dynamic raw,
+  );
 
   @protected
   BridgeTeachingWeekInput dco_decode_box_autoadd_bridge_teaching_week_input(
@@ -2511,6 +2522,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedSpocCourseFiles dco_decode_bridge_routed_spoc_course_files(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedSpocCourses dco_decode_bridge_routed_spoc_courses(dynamic raw);
+
+  @protected
+  BridgeRoutedSpocDownload dco_decode_bridge_routed_spoc_download(dynamic raw);
+
+  @protected
   BridgeRoutedTerms dco_decode_bridge_routed_terms(dynamic raw);
 
   @protected
@@ -2575,7 +2597,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSpocAssignments dco_decode_bridge_spoc_assignments(dynamic raw);
 
   @protected
+  BridgeSpocAttachment dco_decode_bridge_spoc_attachment(dynamic raw);
+
+  @protected
+  BridgeSpocCourse dco_decode_bridge_spoc_course(dynamic raw);
+
+  @protected
+  BridgeSpocCourseFile dco_decode_bridge_spoc_course_file(dynamic raw);
+
+  @protected
   BridgeSpocDetailScanBatch dco_decode_bridge_spoc_detail_scan_batch(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocDownloadReceipt dco_decode_bridge_spoc_download_receipt(
     dynamic raw,
   );
 
@@ -2586,6 +2622,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSpocSubmissionStatus dco_decode_bridge_spoc_submission_status(
     dynamic raw,
   );
+
+  @protected
+  BridgeSpocSubmittedFile dco_decode_bridge_spoc_submitted_file(dynamic raw);
 
   @protected
   BridgeTeachingWeekInput dco_decode_bridge_teaching_week_input(dynamic raw);
@@ -3022,6 +3061,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_bridge_spoc_assignment_summary(dynamic raw);
 
   @protected
+  List<BridgeSpocCourse> dco_decode_list_bridge_spoc_course(dynamic raw);
+
+  @protected
+  List<BridgeSpocCourseFile> dco_decode_list_bridge_spoc_course_file(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeTerm> dco_decode_list_bridge_term(dynamic raw);
 
   @protected
@@ -3422,6 +3469,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSchoolAgendaItem? dco_decode_opt_box_autoadd_bridge_school_agenda_item(
     dynamic raw,
   );
+
+  @protected
+  BridgeSpocAttachment? dco_decode_opt_box_autoadd_bridge_spoc_attachment(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmittedFile?
+  dco_decode_opt_box_autoadd_bridge_spoc_submitted_file(dynamic raw);
 
   @protected
   BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
@@ -4540,6 +4596,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeSigninPerformRequest
   sse_decode_box_autoadd_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocAttachment sse_decode_box_autoadd_bridge_spoc_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmittedFile sse_decode_box_autoadd_bridge_spoc_submitted_file(
     SseDeserializer deserializer,
   );
 
@@ -6425,6 +6491,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedSpocCourseFiles sse_decode_bridge_routed_spoc_course_files(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedSpocCourses sse_decode_bridge_routed_spoc_courses(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedSpocDownload sse_decode_bridge_routed_spoc_download(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeRoutedTerms sse_decode_bridge_routed_terms(
     SseDeserializer deserializer,
   );
@@ -6511,7 +6592,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocAttachment sse_decode_bridge_spoc_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocCourse sse_decode_bridge_spoc_course(SseDeserializer deserializer);
+
+  @protected
+  BridgeSpocCourseFile sse_decode_bridge_spoc_course_file(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSpocDetailScanBatch sse_decode_bridge_spoc_detail_scan_batch(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocDownloadReceipt sse_decode_bridge_spoc_download_receipt(
     SseDeserializer deserializer,
   );
 
@@ -6522,6 +6621,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSpocSubmissionStatus sse_decode_bridge_spoc_submission_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmittedFile sse_decode_bridge_spoc_submitted_file(
     SseDeserializer deserializer,
   );
 
@@ -7090,6 +7194,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_list_bridge_spoc_assignment_summary(SseDeserializer deserializer);
 
   @protected
+  List<BridgeSpocCourse> sse_decode_list_bridge_spoc_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeSpocCourseFile> sse_decode_list_bridge_spoc_course_file(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeTerm> sse_decode_list_bridge_term(SseDeserializer deserializer);
 
   @protected
@@ -7600,6 +7714,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSchoolAgendaItem? sse_decode_opt_box_autoadd_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocAttachment? sse_decode_opt_box_autoadd_bridge_spoc_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmittedFile?
+  sse_decode_opt_box_autoadd_bridge_spoc_submitted_file(
     SseDeserializer deserializer,
   );
 
@@ -8871,6 +8996,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_signin_perform_request(
     BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_spoc_attachment(
+    BridgeSpocAttachment self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_spoc_submitted_file(
+    BridgeSpocSubmittedFile self,
     SseSerializer serializer,
   );
 
@@ -11200,6 +11337,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_routed_spoc_course_files(
+    BridgeRoutedSpocCourseFiles self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_spoc_courses(
+    BridgeRoutedSpocCourses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_spoc_download(
+    BridgeRoutedSpocDownload self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_routed_terms(
     BridgeRoutedTerms self,
     SseSerializer serializer,
@@ -11308,8 +11463,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_spoc_attachment(
+    BridgeSpocAttachment self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_course(
+    BridgeSpocCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_course_file(
+    BridgeSpocCourseFile self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_spoc_detail_scan_batch(
     BridgeSpocDetailScanBatch self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_download_receipt(
+    BridgeSpocDownloadReceipt self,
     SseSerializer serializer,
   );
 
@@ -11322,6 +11501,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_spoc_submission_status(
     BridgeSpocSubmissionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_submitted_file(
+    BridgeSpocSubmittedFile self,
     SseSerializer serializer,
   );
 
@@ -12022,6 +12207,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_spoc_course(
+    List<BridgeSpocCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_spoc_course_file(
+    List<BridgeSpocCourseFile> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_term(
     List<BridgeTerm> self,
     SseSerializer serializer,
@@ -12582,6 +12779,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_school_agenda_item(
     BridgeSchoolAgendaItem? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_spoc_attachment(
+    BridgeSpocAttachment? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_spoc_submitted_file(
+    BridgeSpocSubmittedFile? self,
     SseSerializer serializer,
   );
 

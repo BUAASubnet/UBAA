@@ -47,7 +47,7 @@ pub(super) fn map_signin_qr(value: domain::SigninQr) -> BridgeSigninQr {
 }
 
 impl BridgeClient {
-    async fn execute_read<T, O, F>(
+    pub(super) async fn execute_read<T, O, F>(
         &self,
         group: Option<ReadGroup>,
         call: F,

@@ -8,6 +8,7 @@ import 'campus.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read/graduate.dart';
+import 'read/spoc_files.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
@@ -2895,6 +2896,14 @@ class BridgeSigninQr {
 }
 
 class BridgeSpocAssignmentDetail {
+  final BridgeSpocAttachment? attachment;
+  final BridgeSpocSubmittedFile? submittedFile;
+  final List<String> submitModes;
+  final List<String> allowedExtensions;
+  final int? submissionCount;
+  final int? maxSubmissions;
+  final bool isGroupAssignment;
+  final String? lateSubmissionDeadline;
   final String assignmentId;
   final String courseId;
   final String courseName;
@@ -2909,6 +2918,14 @@ class BridgeSpocAssignmentDetail {
   final String? submittedAt;
 
   const BridgeSpocAssignmentDetail({
+    this.attachment,
+    this.submittedFile,
+    required this.submitModes,
+    required this.allowedExtensions,
+    this.submissionCount,
+    this.maxSubmissions,
+    required this.isGroupAssignment,
+    this.lateSubmissionDeadline,
     required this.assignmentId,
     required this.courseId,
     required this.courseName,
@@ -2925,6 +2942,14 @@ class BridgeSpocAssignmentDetail {
 
   @override
   int get hashCode =>
+      attachment.hashCode ^
+      submittedFile.hashCode ^
+      submitModes.hashCode ^
+      allowedExtensions.hashCode ^
+      submissionCount.hashCode ^
+      maxSubmissions.hashCode ^
+      isGroupAssignment.hashCode ^
+      lateSubmissionDeadline.hashCode ^
       assignmentId.hashCode ^
       courseId.hashCode ^
       courseName.hashCode ^
@@ -2943,6 +2968,14 @@ class BridgeSpocAssignmentDetail {
       identical(this, other) ||
       other is BridgeSpocAssignmentDetail &&
           runtimeType == other.runtimeType &&
+          attachment == other.attachment &&
+          submittedFile == other.submittedFile &&
+          submitModes == other.submitModes &&
+          allowedExtensions == other.allowedExtensions &&
+          submissionCount == other.submissionCount &&
+          maxSubmissions == other.maxSubmissions &&
+          isGroupAssignment == other.isGroupAssignment &&
+          lateSubmissionDeadline == other.lateSubmissionDeadline &&
           assignmentId == other.assignmentId &&
           courseId == other.courseId &&
           courseName == other.courseName &&

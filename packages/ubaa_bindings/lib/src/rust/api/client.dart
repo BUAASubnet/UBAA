@@ -37,6 +37,7 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'read/graduate.dart';
+import 'read/spoc_files.dart';
 import 'recovery.dart';
 import 'recovery/control.dart';
 import 'schedule_import.dart';
@@ -1129,6 +1130,25 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedSpocAssignments> spocAssignments();
+
+  Future<BridgeRoutedSpocCourseFiles> spocCourseFiles({
+    required String courseId,
+    String? folderId,
+  });
+
+  Future<BridgeRoutedSpocCourses> spocCourses();
+
+  Future<BridgeRoutedSpocDownload> spocDownloadAssignmentFile({
+    required String fileId,
+    String? fileName,
+    required String destPath,
+  });
+
+  Future<BridgeRoutedSpocDownload> spocDownloadCourseFile({
+    required String id,
+    required String name,
+    required String destPath,
+  });
 
   /// 按各路线独立句柄提交答案；成功路线不会再次收到凭据。
   ///

@@ -33,6 +33,7 @@ pub(super) use mappers::{
     map_signin_classes, map_spoc_assignments, map_spoc_detail, map_ygdk_overview, map_ygdk_summary,
 };
 mod methods;
+pub mod spoc_files;
 mod write_readback;
 
 use super::client::BridgeRouteDecision;
@@ -198,6 +199,14 @@ pub struct BridgeSpocAssignments {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeSpocAssignmentDetail {
+    pub attachment: Option<spoc_files::BridgeSpocAttachment>,
+    pub submitted_file: Option<spoc_files::BridgeSpocSubmittedFile>,
+    pub submit_modes: Vec<String>,
+    pub allowed_extensions: Vec<String>,
+    pub submission_count: Option<u32>,
+    pub max_submissions: Option<u32>,
+    pub is_group_assignment: bool,
+    pub late_submission_deadline: Option<String>,
     pub assignment_id: String,
     pub course_id: String,
     pub course_name: String,
