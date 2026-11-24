@@ -51,9 +51,16 @@ fn client(script: Vec<Step>, vpn: bool) -> (UbaaClient, SpocTransport, TestTempD
     } else {
         ConnectionMode::Direct
     };
+    let mut navigation = StoredCookie::fixture("NAV", "fixture");
+    navigation.domain = if vpn {
+        "d.buaa.edu.cn"
+    } else {
+        "spoc.buaa.edu.cn"
+    }
+    .into();
     let slot = RouteSessionSnapshot::from_legacy(&SessionSnapshot {
         mode,
-        cookies: vec![StoredCookie::fixture("SID", "fixture")],
+        cookies: vec![StoredCookie::fixture("SID", "fixture"), navigation],
         authenticated_at: 1,
         last_activity: 2,
     });
@@ -283,6 +290,7 @@ async fn 文件服务仅刷新一次并安全交付两类文件() {
             assert_eq!(request.body.len(), 0);
             if request.url.contains("inco-filesystem") {
                 assert_eq!(request.method, HttpMethod::Get);
+                assert_eq!(request.headers.contains_key("Cookie"), vpn);
                 assert!(!request.headers.contains_key("RoleCode"));
             } else {
                 assert_eq!(request.method, HttpMethod::Post);
@@ -294,4 +302,52 @@ async fn 文件服务仅刷新一次并安全交付两类文件() {
         assert_eq!(requests[5].headers["Token"], "Inco-fresh");
         transport.assert_exhausted();
     }
+}
+
+#[tokio::test]
+async fn 缺名时读取元数据且超大文件不覆盖已保存文件() {
+    let file = "inco-filesystem/fileManagerSystem/downLoadFile?scjlid=fixture";
+    let mut script = login(false, "fixture");
+    let mut oversized = step(file, false, 200, "application/octet-stream", "");
+    oversized.1.headers.insert(
+        "Content-Length".into(),
+        vec![(512_u64 * 1024 * 1024 + 1).to_string()],
+    );
+    script.extend([
+        step(
+            "inco-filesystem/fileManagerSystem/queryFileById?wjid=fixture",
+            false,
+            200,
+            "application/json",
+            r#"{"wjysmc":"目录/讲义.pdf"}"#,
+        ),
+        step(file, false, 200, "application/octet-stream", "saved"),
+        oversized,
+    ]);
+    let (mut client, transport, root) = client(script, false);
+    let path = root.join("chosen");
+    let target = |name| SpocDownloadTarget::AssignmentFile {
+        file_id: "fixture".into(),
+        file_name: name,
+    };
+    let receipt = client
+        .spoc_download(&target(None), &path)
+        .await
+        .unwrap()
+        .data;
+    assert_eq!(receipt.file_name, "目录_讲义.pdf");
+    assert_eq!(
+        client
+            .spoc_download(&target(Some(receipt.file_name)), &path)
+            .await
+            .unwrap_err()
+            .error
+            .code,
+        ErrorCode::InvalidInput
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), b"saved");
+    for request in transport.requests().iter().skip(2) {
+        assert!(!request.headers.contains_key("Cookie"));
+    }
+    transport.assert_exhausted();
 }

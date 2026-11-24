@@ -88,6 +88,7 @@ fn readonly_fixtures_are_synthetic_and_sanitized() {
         "classroom.json",
         "spoc-page.json",
         "spoc-detail.json",
+        "spoc-detail-files.json",
         "judge-courses.html",
         "judge-assignments.html",
         "judge-detail.html",

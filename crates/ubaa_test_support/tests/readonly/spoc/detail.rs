@@ -191,7 +191,7 @@ async fn spoc_detail_reads_submission_without_writing() {
             response(
                 200,
                 detail_url,
-                include_str!("../../../../../fixtures/readonly/spoc-detail-files.json"),
+                ubaa_test_support::readonly_fixture("spoc-detail-files.json").unwrap(),
             ),
         ),
         (

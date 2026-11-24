@@ -12,7 +12,7 @@
 |---|---|
 | CAS 与引导 | 复用当前路线的 `/spocnewht/cas` 和 `/spocnewht/sys/casLogin`。 |
 | 重定向与最终 URL | 业务调用不跟随跳转。指向 SSO 的 Location 交给原有认证恢复流程；WebVPN 由运行时改写地址。 |
-| 凭据作用域 | SPOC 凭据按账号和路线隔离。文件服务通过 `Token: Inco-<token>` 鉴权，URL 不携带 Token。 |
+| 凭据作用域 | SPOC 凭据按账号和路线隔离。文件服务通过 `Token: Inco-<token>` 鉴权，URL 不携带 Token。Direct 不交换导航 Cookie，WebVPN 保留网关会话。 |
 | 方法与参数 | 详情 GET `/spocnewht/kczy/queryKczyInfoByid?id=<作业标识>`；我的提交 GET `/spocnewht/kczy/queryXsSubmitKczyInfo?kczyid=<作业标识>`。文件服务前缀为 `/inco-filesystem/fileManagerSystem/`：元数据 POST `queryFileById?wjid=<文件标识>`，下载 GET `downLoadFile?scjlid=<文件标识>`。 |
 | 请求头与正文 | 作业业务使用 Token、RoleCode、`X-Requested-With: XMLHttpRequest`。文件服务只需要 Token；元数据 POST 无正文。 |
 | 加密与签名 | 无新增加密或签名参数。 |

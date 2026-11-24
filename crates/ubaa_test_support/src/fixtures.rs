@@ -38,6 +38,9 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
         "classroom.json" => Some(include_str!("../../../fixtures/readonly/classroom.json")),
         "spoc-page.json" => Some(include_str!("../../../fixtures/readonly/spoc-page.json")),
         "spoc-detail.json" => Some(include_str!("../../../fixtures/readonly/spoc-detail.json")),
+        "spoc-detail-files.json" => Some(include_str!(
+            "../../../fixtures/readonly/spoc-detail-files.json"
+        )),
         "judge-courses.html" => Some(include_str!(
             "../../../fixtures/readonly/judge-courses.html"
         )),

@@ -75,7 +75,11 @@ pub(super) async fn metadata(runtime: &mut ClientRuntime, id: &str) -> Option<Me
         let request =
             HttpRequest::post(url.clone(), vec![]).with_header("Token", credential.token_header());
         Box::pin(async move {
-            let response = runtime.request(request).await?;
+            let response = if runtime.mode() == crate::domain::ConnectionMode::Direct {
+                runtime.request_bearer_only(request, false).await?
+            } else {
+                runtime.request(request).await?
+            };
             file_response(&response)?;
             serde_json::from_slice(&response.body)
                 .map_err(|_| UbaaError::upstream_changed("SPOC 文件元数据无法解析"))
@@ -141,7 +145,12 @@ pub(crate) async fn download(
         };
         let path = destination.clone();
         Box::pin(async move {
-            match runtime.download_stream(request, &path, FILE_LIMIT).await? {
+            let session_cookies =
+                !file_service || runtime.mode() == crate::domain::ConnectionMode::WebVpn;
+            match runtime
+                .download_stream(request, &path, FILE_LIMIT, session_cookies)
+                .await?
+            {
                 StreamDownload::File {
                     final_path,
                     byte_len,
