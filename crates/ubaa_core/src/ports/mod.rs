@@ -2,6 +2,9 @@
 
 pub(crate) mod diagnostics;
 mod object_transfer;
+mod stream_download;
+pub(crate) use stream_download::StreamDownload;
+pub use stream_download::StreamSink;
 mod reqwest_transport;
 pub use object_transfer::{HttpFileRange, HttpTransferObserver};
 
@@ -143,6 +146,14 @@ impl HttpResponse {
 pub trait HttpTransport: Send + Sync {
     /// 恰好执行一次请求并返回原始响应。
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
+    /// 只读下载；传输层仅写临时文件，运行时核对响应和会话后交付。
+    async fn download_stream(
+        &self,
+        _request: HttpRequest,
+        _sink: &mut StreamSink,
+    ) -> Result<HttpResponse> {
+        Err(object_transfer::unavailable())
+    }
     /// 校外首次直连读取使用较短连接预算，响应正文仍保留普通请求预算。
     async fn execute_with_fast_connect(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.execute(request).await

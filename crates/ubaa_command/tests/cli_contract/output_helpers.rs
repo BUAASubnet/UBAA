@@ -216,6 +216,7 @@ fn routed_assignment_success_representatives() -> Vec<(CliFeature, serde_json::V
                 submission_status_text: "未知状态".into(),
                 content_plain_text: None,
                 submitted_at: None,
+                ..SpocAssignmentDetail::default()
             })
             .unwrap(),
         ),

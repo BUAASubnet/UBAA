@@ -86,6 +86,48 @@ impl ReqwestTransport {
 
 #[async_trait]
 impl HttpTransport for ReqwestTransport {
+    async fn download_stream(
+        &self,
+        request: HttpRequest,
+        sink: &mut super::StreamSink,
+    ) -> Result<HttpResponse> {
+        use futures_util::TryStreamExt;
+        let method = match request.method {
+            HttpMethod::Get => reqwest::Method::GET,
+            HttpMethod::Post => reqwest::Method::POST,
+            _ => return Err(UbaaError::invalid_input("下载只支持 GET 或 POST")),
+        };
+        let mut builder = self.client.request(method, request.url);
+        for (name, value) in request.headers {
+            builder = builder.header(name, value);
+        }
+        let response = builder
+            .body(request.body)
+            .send()
+            .await
+            .map_err(|error| transport_error(&error))?;
+        let mut head = HttpResponse {
+            status: response.status().as_u16(),
+            final_url: response.url().to_string(),
+            headers: BTreeMap::new(),
+            body: vec![],
+        };
+        for (name, value) in response.headers() {
+            if let Ok(text) = value.to_str() {
+                head.headers
+                    .entry(name.to_string())
+                    .or_default()
+                    .push(text.to_owned());
+            }
+        }
+        sink.receive(
+            head,
+            response
+                .bytes_stream()
+                .map_err(|error| transport_error(&error)),
+        )
+        .await
+    }
     async fn execute_with_fast_connect(&self, request: HttpRequest) -> Result<HttpResponse> {
         let body_limit = response_body_limit(request.method, &request.url);
         execute_with_client(&self.fast_connect_client, request, body_limit).await
@@ -459,6 +501,32 @@ mod tests {
                     .is_some_and(|value| value == stage)
             })
             .unwrap_or_else(|| panic!("应捕获 {stage} 阶段诊断事件，实际为 {events:?}"))
+    }
+
+    #[test]
+    fn 只读流式传输保留重定向和空正文请求头() {
+        let (address,requests,server)=serve_once(0,b"HTTP/1.1 302 Found\r\nLocation: /next\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec());
+        let root = crate::test_tmp::test_temp_dir("spoc_reqwest").unwrap();
+        let dest = root.join("chosen");
+        let mut sink = crate::ports::StreamSink::new(&dest, 32).unwrap();
+        let head = runtime()
+            .block_on(
+                ReqwestTransport::new().unwrap().download_stream(
+                    HttpRequest::post(format!("http://{address}/file?id=fixture"), vec![])
+                        .with_header("RoleCode", "01"),
+                    &mut sink,
+                ),
+            )
+            .unwrap();
+        assert_eq!(head.status, 302);
+        assert_eq!(head.header_first("Location"), Some("/next"));
+        assert!(!dest.exists());
+        let wire = String::from_utf8(requests.recv().unwrap())
+            .unwrap()
+            .to_ascii_lowercase();
+        assert!(wire.starts_with("post /file?id=fixture http/1.1\r\n"));
+        assert!(wire.contains("rolecode: 01\r\n"));
+        server.join().unwrap();
     }
 
     #[test]

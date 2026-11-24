@@ -6,6 +6,7 @@ pub use crate::config::RouteConfig;
 pub use crate::connection::{GatewayProbe, from_webvpn_url, to_webvpn_url};
 pub use crate::ports::{
     HttpFileRange, HttpMethod, HttpRequest, HttpResponse, HttpTransferObserver, HttpTransport,
+    StreamSink,
 };
 pub use crate::session::{
     DualSessionMutation, DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot,

@@ -3,8 +3,10 @@
 
 mod auth;
 mod calendar;
+pub(crate) mod course_files;
 mod crypto;
 mod detail;
+pub(crate) mod files;
 mod list;
 mod parser;
 pub(crate) mod scan;

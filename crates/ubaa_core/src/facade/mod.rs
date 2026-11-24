@@ -117,10 +117,11 @@ pub use crate::domain::{
     LibBookSeat, LibBookStorey, LibBookTimeSlot, LoginInput, LoginOutcome, LoginReadiness,
     ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue,
     SectionTime, SigninActionResult, SigninClass, SigninQr, SpocAssignmentDetail,
-    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
-    TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
-    YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocAttachment, SpocCourse,
+    SpocCourseFile, SpocDownloadReceipt, SpocDownloadTarget, SpocSubmissionStatus,
+    SpocSubmittedFile, Term, TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload,
+    YgdkRecord, YgdkRecordsPage, YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
 };
 pub use crate::error::{
     ErrorCode, ErrorDiagnostic, ErrorKind, InitializationFailure, Result, UbaaError,

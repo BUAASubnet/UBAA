@@ -64,8 +64,20 @@ pub(crate) async fn get_assignment_detail_for_base(
         return Err(detail_id_mismatch());
     }
     let (submission, submission_complete) = fetch_optional_submission(runtime, assignment_id).await;
-    merge_detail(assignment_id, base, &raw, submission.as_ref())
-        .map(|detail| (detail, submission_complete))
+    let mut detail = merge_detail(assignment_id, base, &raw, submission.as_ref())?;
+    if let Some(attachment) = &mut detail.attachment
+        && let Some(meta) = super::files::metadata(runtime, &attachment.file_id).await
+    {
+        attachment.file_name = meta.name();
+        attachment.size_text = meta.file_size;
+        attachment.extension = meta.wjhzm;
+    }
+    if let Some(file) = &mut detail.submitted_file
+        && let Some(meta) = super::files::metadata(runtime, &file.file_id).await
+    {
+        file.file_name = meta.name();
+    }
+    Ok((detail, submission_complete))
 }
 
 async fn fetch_assignment_detail(

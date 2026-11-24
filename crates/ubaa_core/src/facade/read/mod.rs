@@ -6,4 +6,5 @@ mod bykc_catalog;
 pub(super) mod campus;
 mod evaluation;
 mod services;
+mod spoc_files;
 mod write_readback;

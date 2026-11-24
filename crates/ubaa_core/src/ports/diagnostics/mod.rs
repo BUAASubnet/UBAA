@@ -139,6 +139,24 @@ impl<T: HttpTransport> RecordingTransport<T> {
     where
         F: std::future::Future<Output = Result<HttpResponse>> + Send,
     {
+        self.capture_response(method, url, async move {
+            let response = pending.await?;
+            let capture = if streamed && response.status == 200 {
+                "delivered_to_file"
+            } else {
+                "complete"
+            };
+            Ok((response, capture))
+        })
+        .await
+    }
+
+    async fn capture_response(
+        &self,
+        method: super::HttpMethod,
+        url: String,
+        pending: impl std::future::Future<Output = Result<(HttpResponse, &'static str)>> + Send,
+    ) -> Result<HttpResponse> {
         let id = self.diagnostics.begin();
         let started = now_ms();
         let timer = Instant::now();
@@ -150,7 +168,7 @@ impl<T: HttpTransport> RecordingTransport<T> {
                 "started_at_unix_ms": started, "elapsed_ms": timer.elapsed().as_millis(),
             });
             match &result {
-                Ok(response) => {
+                Ok((response, capture)) => {
                     let (encoding, body) = match std::str::from_utf8(&response.body) {
                         Ok(text) => ("utf8", text.to_owned()),
                         Err(_) => (
@@ -162,7 +180,7 @@ impl<T: HttpTransport> RecordingTransport<T> {
                         "status": response.status, "url": response.final_url,
                         "headers": response.headers, "body": body, "body_encoding": encoding,
                         "body_bytes": response.body.len(),
-                        "body_capture": if streamed && response.status == 200 { "delivered_to_file" } else { "complete" },
+                        "body_capture": capture,
                     });
                 }
                 Err(error) => {
@@ -172,12 +190,23 @@ impl<T: HttpTransport> RecordingTransport<T> {
             }
             self.diagnostics.push(id, &record);
         }
-        result
+        result.map(|(response, _)| response)
     }
 }
 
 #[async_trait]
 impl<T: HttpTransport> HttpTransport for RecordingTransport<T> {
+    async fn download_stream(
+        &self,
+        request: HttpRequest,
+        sink: &mut super::StreamSink,
+    ) -> Result<HttpResponse> {
+        self.capture_response(request.method, request.url.clone(), async {
+            let response = self.inner.download_stream(request, sink).await?;
+            Ok((response, sink.capture_kind()))
+        })
+        .await
+    }
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.capture(
             request.method,

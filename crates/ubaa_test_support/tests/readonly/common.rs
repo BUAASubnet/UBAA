@@ -39,6 +39,13 @@ impl SpocTransport {
 
 #[async_trait]
 impl HttpTransport for SpocTransport {
+    async fn download_stream(
+        &self,
+        request: HttpRequest,
+        sink: &mut ubaa_core::facade::testing::StreamSink,
+    ) -> Result<HttpResponse> {
+        sink.fixture_response(self.execute(request).await?).await
+    }
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
