@@ -1,5 +1,4 @@
 use ubaa_core::facade::{ConnectionMode, RouteClient, SpocSubmissionStatus};
-use ubaa_test_support::readonly_fixture;
 
 use crate::common::{SpocTransport, redirect, response, session_store, session_store_with};
 
@@ -192,7 +191,7 @@ async fn spoc_detail_reads_submission_without_writing() {
             response(
                 200,
                 detail_url,
-                readonly_fixture("spoc-detail.json").unwrap(),
+                ubaa_test_support::readonly_fixture("spoc-detail-files.json").unwrap(),
             ),
         ),
         (
@@ -200,15 +199,39 @@ async fn spoc_detail_reads_submission_without_writing() {
             response(
                 200,
                 submission_url,
-                r#"{"code":200,"content":{"tjzt":"已做","tjsj":"2026-03-30T10:00:00.000+00:00"}}"#,
+                r#"{"code":200,"content":{"tjzt":"已做","tjsj":"2026-03-30T10:00:00.000+00:00","scwjid":"fixture-answer","ytjcs":"1"}}"#,
             ),
         ),
+        ("https://spoc.buaa.edu.cn/inco-filesystem/fileManagerSystem/queryFileById?wjid=fixture-attachment".into(),response(200,"https://spoc.buaa.edu.cn/",r#"{"wjysmc":"练习.zip","wjhzm":"zip","fileSize":"1MB"}"#)),
+        ("https://spoc.buaa.edu.cn/inco-filesystem/fileManagerSystem/queryFileById?wjid=fixture-answer".into(),response(503,"https://spoc.buaa.edu.cn/","")),
     ]);
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store())
             .expect("client");
 
     let result = client.spoc_assignment("a1").await.expect("SPOC detail");
+    let detail = serde_json::to_value(&result.data).unwrap();
+    assert!(detail.get("attachment").is_none());
+    let attachment = result.data.attachment.as_ref().unwrap();
+    assert_eq!(attachment.file_id, "fixture-attachment");
+    assert_eq!(attachment.file_name.as_deref(), Some("练习.zip"));
+    assert_eq!(attachment.size_text.as_deref(), Some("1MB"));
+    assert_eq!(attachment.extension.as_deref(), Some("zip"));
+    let submitted = result.data.submitted_file.as_ref().unwrap();
+    assert_eq!(submitted.file_id, "fixture-answer");
+    assert!(submitted.file_name.is_none());
+    assert_eq!(result.data.submission_count, Some(1));
+    assert_eq!(result.data.submit_modes, ["5", "1"]);
+    assert_eq!(result.data.allowed_extensions, [".pdf", ".zip"]);
+    assert!(result.data.max_submissions.is_none());
+    assert!(result.data.is_group_assignment);
+    assert_eq!(
+        result.data.late_submission_deadline.as_deref(),
+        Some("2026-03-31 18:00:00")
+    );
+    for private in ["yhdm", "yhmc", "photo", "dqczr", "dqczrmc", "ccxdlj"] {
+        assert!(!detail.to_string().contains(private));
+    }
     assert_eq!(result.data.course_name, "Systems");
     assert_eq!(result.data.teacher_name.as_deref(), Some("Teacher"));
     assert_eq!(result.data.submission_status_text, "已提交");

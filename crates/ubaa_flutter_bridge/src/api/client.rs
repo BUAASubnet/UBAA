@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 78;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 83;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,7 +58,7 @@ pub enum BridgeErrorKind {
 }
 
 /// Dart 可捕获的 typed 安全错误。
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct BridgeError {
     /// 固定枚举名称，不接收上游正文。
     pub auth_stage: Option<String>,
@@ -74,8 +74,31 @@ pub struct BridgeError {
     pub cache_failure: Option<super::offline::BridgeCacheFailure>,
 }
 
+impl fmt::Debug for BridgeError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("BridgeError")
+            .field("code", &self.code)
+            .field("kind", &self.kind)
+            .field("retryable", &self.retryable)
+            .field("resolved_route", &self.resolved_route)
+            .finish_non_exhaustive()
+    }
+}
+
 impl fmt::Display for BridgeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.code == BridgeErrorCode::BusinessRejected
+            && self
+                .diagnostic_json
+                .as_deref()
+                .and_then(ubaa_core::facade::ErrorDiagnostic::from_json)
+                .is_some_and(|diagnostic| {
+                    diagnostic.reason.as_deref() == Some("library_renew_rejected_with_message")
+                })
+        {
+            return formatter.write_str("学校未接受本次续借，请刷新后查看借阅记录");
+        }
         self.message.fmt(formatter)
     }
 }

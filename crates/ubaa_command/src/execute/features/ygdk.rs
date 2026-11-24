@@ -5,88 +5,15 @@ use std::collections::HashMap;
 use crate::io::schema::CliFeature;
 use serde::Serialize;
 use ubaa_core::facade::{
-    ActionEligibility, ErrorCode, ErrorKind, FeatureResult, Result, Routed, RoutedError,
-    RoutedResult, UbaaError, YgdkClockinSubmitResult, YgdkOverview, YgdkRecord, YgdkRecordsPage,
+    ActionEligibility, ErrorCode, ErrorKind, Result, Routed, RoutedError, RoutedResult, UbaaError,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecord, YgdkRecordsPage,
 };
 
-use crate::backend::{CliBackend, RoutedCliBackend};
+use crate::backend::RoutedCliBackend;
 use crate::command::{YgdkArgs, YgdkCommand};
 use crate::execute::routed_readonly;
 use crate::io::input::{build_ygdk_request, invalid_input};
-use crate::io::schema::{CommandOutput, readonly};
-
-pub(in crate::execute) async fn run_ygdk<B: CliBackend + Send>(
-    arguments: YgdkArgs,
-    backend: &mut B,
-    prepared: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
-) -> Result<CommandOutput> {
-    match arguments.command {
-        YgdkCommand::Overview => backend
-            .ygdk_overview()
-            .await
-            .map(|mut result| {
-                result.data = safe_overview(result.data);
-                result
-            })
-            .and_then(|data| readonly(data, CliFeature::Ygdk)),
-        YgdkCommand::Records { page, size } => backend
-            .ygdk_records(page, size)
-            .await
-            .map(|result| FeatureResult {
-                data: safe_records(result.data),
-                resolved_route: result.resolved_route,
-            })
-            .and_then(|data| readonly(data, CliFeature::Ygdk)),
-        YgdkCommand::Submit {
-            classify_id,
-            item_id,
-            start_time,
-            end_time,
-            place,
-            photo,
-            share_to_square,
-            confirm_write,
-        } => {
-            if confirm_write {
-                let request = prepared.map_or_else(
-                    || {
-                        build_ygdk_request(
-                            classify_id,
-                            item_id,
-                            start_time,
-                            end_time,
-                            place,
-                            &photo,
-                            share_to_square,
-                        )
-                    },
-                    Ok,
-                )?;
-                let result = backend
-                    .ygdk_submit(request)
-                    .await
-                    .map_err(sanitize_submit_error)
-                    .and_then(|result| {
-                        Ok(FeatureResult {
-                            data: safe_submit_receipt(&result.data)?,
-                            resolved_route: result.resolved_route,
-                        })
-                    });
-                let readback_route = match &result {
-                    Ok(result) => Some(result.resolved_route),
-                    Err(error) if error.code == ErrorCode::OutcomeUnknown => Some(backend.mode()),
-                    _ => None,
-                };
-                if let Some(route) = readback_route {
-                    best_effort_fixed_readback(backend, route).await;
-                }
-                result.and_then(|data| readonly(data, CliFeature::Ygdk))
-            } else {
-                Err(invalid_input("打卡是写操作，必须显式指定 --confirm-write"))
-            }
-        }
-    }
-}
+use crate::io::schema::CommandOutput;
 
 pub(in crate::execute) async fn run_routed_ygdk<B: RoutedCliBackend + Send>(
     arguments: YgdkArgs,
@@ -297,14 +224,6 @@ fn submit_authority_error() -> UbaaError {
         false,
         "阳光打卡提交资格核对响应无效",
     )
-}
-
-async fn best_effort_fixed_readback<B: CliBackend + Send>(
-    backend: &mut B,
-    route: ubaa_core::facade::ConnectionMode,
-) {
-    let _overview = backend.ygdk_overview_on_route(route).await;
-    let _records = backend.ygdk_records_on_route(route, 1, 20).await;
 }
 
 async fn best_effort_routed_readback<B: RoutedCliBackend + Send>(

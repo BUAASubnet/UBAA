@@ -179,7 +179,7 @@ void registerInspectionBackendTests() {
     );
   });
 
-  test('巡检签到按提交事实过滤未签到与已签到', () async {
+  test('巡检上课按提交事实过滤未上课与已上课', () async {
     final backend = await ready();
     const completed = FeatureQuery(view: FeatureQueryView.signinCompleted);
     const pending = FeatureQuery(view: FeatureQueryView.signinPending);

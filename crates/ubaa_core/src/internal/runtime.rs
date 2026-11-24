@@ -388,7 +388,7 @@ impl ClientRuntime {
         pre_send_check(self)?;
         let request_url = request.url.clone();
         let result = self.send_prepared_request(request)?.await;
-        self.finish_request_response(result, &request_url, now)
+        self.finish_request_response(result, &request_url, Some(now))
     }
 
     /// 执行不可自动重放的非幂等请求，并明确区分发送边界。

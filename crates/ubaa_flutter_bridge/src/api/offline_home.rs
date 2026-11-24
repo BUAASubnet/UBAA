@@ -329,7 +329,7 @@ impl BridgeClient {
         };
         Ok(BridgeHomeSpocDetailRefresh {
             result: BridgeRoutedSpocAssignmentDetail {
-                data: map_spoc_detail(data),
+                data: map_spoc_detail(*data),
                 route: map_route(value.result.resolution),
             },
             state,

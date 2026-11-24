@@ -567,8 +567,10 @@ mod tests {
         .await
         .unwrap();
         let guard = client.inner.lock().await;
+        // 锁在整个读取期间一直被持有：若读取依赖它就会永久挂起。
+        // 上限只用来把挂起变成失败，留足余量避免慢速 Windows runner 的冷启动 I/O 误报。
         let record = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            std::time::Duration::from_secs(10),
             cache.read_libbook_bookings(BridgeConnectionMode::Direct, 1, 20),
         )
         .await

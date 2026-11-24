@@ -27,8 +27,8 @@ void main() {
   late Directory destination;
   var fontsLoaded = false;
   setUpAll(() async {
-    destination = checkedEvidenceDirectory(
-      Platform.environment['UBAA_UI_EVIDENCE_DIR'],
+    destination = checkedStoreScreenshotDirectory(
+      Platform.environment['UBAA_STORE_SCREENSHOT_DIR'],
     );
     if (await destination.exists() && !await destination.list().isEmpty) {
       throw StateError('宣传图输出目录必须为空，请使用新的任务子目录。');

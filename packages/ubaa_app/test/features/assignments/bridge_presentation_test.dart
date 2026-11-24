@@ -6,6 +6,38 @@ import '../../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient, fixtureWebVpnRoute;
 
 void registerCourseworkTests() {
+  test('课件服务保留路线、列表标识、许可和宿主选择的路径', () async {
+    final native = _FilesClient();
+    final service = BridgeBackend(native).spocFiles!;
+    final courses = await service.courses();
+    expect(courses.route, ConnectionMode.webvpn);
+    expect(courses.data.single.teacher, '合成教师');
+    final items = (await service.courseFiles(
+      courses.data.single.courseId,
+      folderId: 'folder',
+    )).data;
+    expect(items.first.uploadedAtText, '2026-03-01');
+    expect(items.first.extension, 'pdf');
+    expect(
+      (await service.downloadCourseFile(items.first, 'chosen')).data.byteLen,
+      12,
+    );
+    expect(
+      (await service.downloadAssignmentFile(
+        const SpocSubmittedFile(fileId: 'answer'),
+        'chosen',
+      )).data.fileName,
+      '合成.pdf',
+    );
+    await expectLater(
+      service.downloadCourseFile(items.last, 'chosen'),
+      throwsA(isA<BackendException>()),
+    );
+    expect(
+      BridgeBackend(FixtureCharacterizationBridgeClient()).spocFiles,
+      isNull,
+    );
+  });
   test('SPOC列表typed导航只携作业ID并保留集合学期', () async {
     final client = FixtureCharacterizationBridgeClient();
     final result = await BridgeBackend(client).loadFeature(FeatureId.spoc);
@@ -17,6 +49,12 @@ void registerCourseworkTests() {
     final presentation =
         result.details.single.presentation! as SpocAssignmentPresentation;
     expect(presentation.courseId, 'course-spoc-1');
+    expect(
+      result.details.single.fields
+          .singleWhere((field) => field.label == '课程编号')
+          .value,
+      'course-spoc-1',
+    );
     expect(presentation.score, isNull);
     expect((result.overview! as SpocTermOverview).termCode, '2026-fall');
     expect(client.calls, hasLength(1));
@@ -47,6 +85,11 @@ void registerCourseworkTests() {
     expect(b.problems.single.score, 'B分');
     expect(a.problems.single.score, 'A分');
     expect(b.problems.single.name, '同名题');
+    expect(
+      result.details.first.fields.map((field) => field.label),
+      contains('题目数'),
+    );
+    expect(result.resolvedRoute, ConnectionMode.webvpn);
     expect(result.details.every((d) => d.readNavigation == null), isTrue);
     expect(
       result.details.first.fields.any((f) => f.value.contains('同名题')),
@@ -87,6 +130,17 @@ void registerCourseworkTests() {
     expect(result.details.single.fields.any((f) => f.label == '得分'), isFalse);
     expect(p.contentPlainText, '纯文本内容');
     expect(p.submittedAt, '原提交时间');
+    expect(p.attachment?.fileName, '合成附件.zip');
+    expect(p.attachment?.sizeText, '2MB');
+    expect(p.submittedFile?.fileId, 'answer');
+    expect(p.submissionCount, 1);
+    expect(p.submitModes, ['5', '1']);
+    expect(p.allowedExtensions, ['.pdf']);
+    expect(p.maxSubmissions, isNull);
+    expect(p.isGroupAssignment, isTrue);
+    expect(p.submitUnavailableReason, '小组作业暂不支持');
+    expect(result.details.single.action<SpocSubmitAction>(), isNull);
+    expect(p.lateSubmissionDeadline, '补交截止');
     expect(p.status, AssignmentSubmissionStatus.submitted);
     expect(p.isDetail, isTrue);
     expect(result.details.single.readNavigation, isNull);
@@ -119,7 +173,7 @@ void registerCourseworkTests() {
     );
     expect((result.overview! as EvaluationProgressOverview).pendingCourses, 0);
   });
-  test('签到资格被拒绝的未签到课程仍属于未签到分组', () async {
+  test('上课资格被拒绝的未上课课程仍属于未上课分组', () async {
     final backend = BridgeBackend(_CourseworkClient());
     final completed = await backend.loadFeatureQuery(
       FeatureId.signin,
@@ -134,11 +188,81 @@ void registerCourseworkTests() {
     final p = result.details.single.presentation! as SigninPresentation;
     expect(p.signStatus, 0);
     expect(
+      result.details.single.action<SigninPerformAction>()?.scheduleId,
+      'signin-target',
+    );
+    expect(
       result.details.single.action<SigninPerformAction>()!.eligibility,
       ActionEligibility.denied,
     );
-    expect(result.details.single.fields.any((f) => f.value == '已签到'), isFalse);
+    expect(result.details.single.fields.any((f) => f.value == '已上课'), isFalse);
   });
+}
+
+class _FilesClient extends FixtureCharacterizationBridgeClient {
+  @override
+  int contractVersion() => 83;
+  @override
+  Future<BridgeRoutedSpocCourses> spocCourses() async =>
+      const BridgeRoutedSpocCourses(
+        route: fixtureWebVpnRoute,
+        data: [
+          BridgeSpocCourse(courseId: 'course', name: '合成课', teacher: '合成教师'),
+        ],
+      );
+  @override
+  Future<BridgeRoutedSpocCourseFiles> spocCourseFiles({
+    required String courseId,
+    String? folderId,
+  }) async {
+    expect([courseId, folderId], ['course', 'folder']);
+    return const BridgeRoutedSpocCourseFiles(
+      route: fixtureWebVpnRoute,
+      data: [
+        BridgeSpocCourseFile(
+          id: 'listed',
+          name: '合成.pdf',
+          isFolder: false,
+          downloadAllowed: true,
+          extension_: 'pdf',
+          uploadedAtText: '2026-03-01',
+        ),
+        BridgeSpocCourseFile(
+          id: 'locked',
+          name: '锁定',
+          isFolder: false,
+          downloadAllowed: false,
+        ),
+      ],
+    );
+  }
+
+  BridgeRoutedSpocDownload get receipt => BridgeRoutedSpocDownload(
+    route: fixtureWebVpnRoute,
+    data: BridgeSpocDownloadReceipt(
+      fileName: '合成.pdf',
+      byteLen: BigInt.from(12),
+    ),
+  );
+  @override
+  Future<BridgeRoutedSpocDownload> spocDownloadCourseFile({
+    required String id,
+    required String name,
+    required String destPath,
+  }) async {
+    expect([id, name, destPath], ['listed', '合成.pdf', 'chosen']);
+    return receipt;
+  }
+
+  @override
+  Future<BridgeRoutedSpocDownload> spocDownloadAssignmentFile({
+    required String fileId,
+    String? fileName,
+    required String destPath,
+  }) async {
+    expect([fileId, fileName, destPath], ['answer', null, 'chosen']);
+    return receipt;
+  }
 }
 
 class _CourseworkClient extends FixtureCharacterizationBridgeClient {
@@ -160,6 +284,19 @@ class _CourseworkClient extends FixtureCharacterizationBridgeClient {
               score: '优秀',
               contentPlainText: '纯文本内容',
               submittedAt: '原提交时间',
+              attachment: const BridgeSpocAttachment(
+                fileId: 'attachment',
+                fileName: '合成附件.zip',
+                sizeText: '2MB',
+                extension_: 'zip',
+              ),
+              submittedFile: const BridgeSpocSubmittedFile(fileId: 'answer'),
+              submitModes: const ['5', '1'],
+              allowedExtensions: const ['.pdf'],
+              submissionCount: 1,
+              isGroupAssignment: true,
+              submitUnavailableReason: '小组作业暂不支持',
+              lateSubmissionDeadline: '补交截止',
               submissionStatus: BridgeSpocSubmissionStatus.submitted,
               submissionStatusText: '已提交',
             ),
@@ -222,7 +359,7 @@ class _CourseworkClient extends FixtureCharacterizationBridgeClient {
                 classEndTime: '9',
                 signStatus: 0,
                 signinEligibility: BridgeActionEligibility.denied,
-                signinTarget: 's',
+                signinTarget: 'signin-target',
               ),
             ],
           ),

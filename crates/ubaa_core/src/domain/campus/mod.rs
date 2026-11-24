@@ -62,3 +62,68 @@ pub struct NetworkUsage {
     pub remaining_excludes_packages: bool,
     pub fetched_at: i64,
 }
+
+/// 图书馆对一条在借记录给出的业务状态；未识别的值保持为“其他”。
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LibraryLoanStatus {
+    Normal,
+    Soon,
+    Overdue,
+    Other,
+}
+
+/// 一条当前借阅记录，只包含展示、续借目标和续借条件所需的公开字段。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryLoan {
+    /// 学校提供的记录标识；只在当前账号与路线内用于续借，不推断其格式。
+    pub id: String,
+    pub title: String,
+    pub author: Option<String>,
+    pub loan_date: Option<String>,
+    pub due_date: Option<String>,
+    /// 已续借次数；上游缺失时保持未知，不写成零。
+    pub renew_times: Option<u32>,
+    /// 仍可续借次数；需要借阅条件和续借上限都可用时才给出。
+    pub can_renew_times: Option<u32>,
+    pub status: LibraryLoanStatus,
+    pub location: Option<String>,
+}
+
+/// 完整读取本次当前借阅范围，不声明历史借阅或全部馆藏。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryLoans {
+    pub entries: Vec<LibraryLoan>,
+    pub total: u32,
+}
+
+/// 单本续借请求，保留确认时的借阅记录供提交前复核。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryLoanRenewRequest {
+    pub loan_id: String,
+    pub due_date: Option<String>,
+    pub renew_times: Option<u32>,
+    pub can_renew_times: Option<u32>,
+}
+
+impl From<&LibraryLoan> for LibraryLoanRenewRequest {
+    fn from(loan: &LibraryLoan) -> Self {
+        Self {
+            loan_id: loan.id.clone(),
+            due_date: loan.due_date.clone(),
+            renew_times: loan.renew_times,
+            can_renew_times: loan.can_renew_times,
+        }
+    }
+}
+
+/// 学校已接受续借；最终日期与次数以随后重新读取的借阅记录为准。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryLoanRenewResult {
+    pub loan_id: String,
+    pub success: bool,
+}

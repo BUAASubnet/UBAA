@@ -170,6 +170,7 @@ fn domains(operation: Operation) -> &'static [&'static str] {
             ReadonlyFeature::HealthCloud => &[crate::features::health_cloud::HOST],
             ReadonlyFeature::Ygdk => &["ygdk.buaa.edu.cn", "app.buaa.edu.cn"],
             ReadonlyFeature::LibBook => &["booking.lib.buaa.edu.cn"],
+            ReadonlyFeature::Library => &[],
             ReadonlyFeature::Bykc => &["bykc.buaa.edu.cn"],
             ReadonlyFeature::Cgyy => &["cgyy.buaa.edu.cn"],
             ReadonlyFeature::Portal => &["it.buaa.edu.cn"],

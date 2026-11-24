@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -44,7 +45,7 @@ def main():
         payload['tag'] = os.environ['RELEASE_TAG']
     elif operation == 'content':
         # 渠道和公告体积很小，直接随运行描述传入，不经产物下载。
-        payload['content'] = json.loads(Path('.ubaa_local/app_content.json').read_text())
+        payload['content'] = json.loads(Path('dist/app_service/app_content.json').read_text())
     else:
         pages = json.loads(subprocess.check_output([
             'gh', 'api', '--paginate', '--slurp',
@@ -57,14 +58,14 @@ def main():
             raise ValueError('本次运行缺少部署产物')
         payload['artifacts'] = [{'name': a['name'], 'url': artifact_url(repository, a['id'])} for a in selected]
         if operation == 'release':
-            payload['manifest'] = json.loads(Path('.ubaa_local/release/public/release.json').read_text())
-    directory = Path('.ubaa_local/server_notify')
+            payload['manifest'] = json.loads(Path('dist/release/public/release.json').read_text())
+    directory = Path(os.environ['RUNNER_TEMP']) / 'ubaa_server_notify'
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     key, hosts = directory / 'key', directory / 'known_hosts'
-    key.write_text(os.environ['UBAA_DEPLOY_KEY'].strip() + '\n')
-    key.chmod(0o600)
-    hosts.write_text(os.environ['UBAA_DEPLOY_HOST_KEYS'].strip() + '\n')
     try:
+        key.write_text(os.environ['UBAA_DEPLOY_KEY'].strip() + '\n')
+        key.chmod(0o600)
+        hosts.write_text(os.environ['UBAA_DEPLOY_HOST_KEYS'].strip() + '\n')
         subprocess.run(['ssh', '-i', str(key), '-p', '10022',
                         '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
                         '-o', f'UserKnownHostsFile={hosts}', '-o', 'ConnectTimeout=20',
@@ -72,7 +73,7 @@ def main():
                         'ubaa-deploy@bt.botium.cn', 'deploy'],
                        input=json.dumps(payload), text=True, check=True)
     finally:
-        key.unlink(missing_ok=True)
+        shutil.rmtree(directory)
 
 
 if __name__ == '__main__':

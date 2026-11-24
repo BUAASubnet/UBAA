@@ -59,6 +59,13 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def app_service_schema_version():
+    source = (ROOT / "crates/ubaa_core/src/app_service/mod.rs").read_text()
+    match = re.search(r"^pub const APP_SERVICE_SCHEMA_VERSION: u32 = (\d+);$", source, re.MULTILINE)
+    require(match is not None, "找不到 Core 应用服务合同版本常量")
+    return match.group(1)
+
+
 def run(command, *, cwd, env=None, capture=False, timeout=240):
     return subprocess.run(command, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                           check=True, capture_output=capture, text=True, timeout=timeout)
@@ -150,6 +157,7 @@ def untrusted_tls_listener(directory):
 def relay(port, query, secret):
     sent = {UPLOAD: 0, ERASE: 0, BOOTSTRAP: 0}
     errors = []
+    schema_version = app_service_schema_version()
     inflight, erased = Event(), Event()
     first_body = b""
 
@@ -176,7 +184,7 @@ def relay(port, query, secret):
                 sent[BOOTSTRAP] += 1
                 params = parse_qsl(target.query, strict_parsing=True)
                 require(len(params) == 4 and dict(params) == {
-                    "schema": "1", "platform": "macos", "channel": "github",
+                    "schema": schema_version, "platform": "macos", "channel": "github",
                     "version": "2.1.0-rc.1+15",
                 }, "启动配置请求没有严格使用约定的四个参数")
                 require(set(name.lower() for name in self.headers) <= {
@@ -220,7 +228,7 @@ def relay(port, query, secret):
                     require(erased.wait(8), "旧批次等待删除提交超时")
                 if self.path == ERASE:
                     original = json.loads(first_body)
-                    require(json.loads(body) == {"schema": 1, "install_id": original["install_id"]},
+                    require(json.loads(body) == {"schema": original["schema"], "install_id": original["install_id"]},
                             "Rust 删除正文与先前上报的安装 ID 不符")
 
                 status, response = exchange(port, self.path, body)
@@ -294,7 +302,7 @@ def prepare():
 
 @contextmanager
 def local_worker(name):
-    parent = Path(os.environ.get("UBAA_APP_SERVICE_E2E_DIR", ROOT / ".ubaa_local/app_service"))
+    parent = Path(os.environ.get("UBAA_TEST_TMP") or ROOT / "target/test_tmp") / "app_service_http_e2e"
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"{name}_e2e_", dir=parent) as temporary:
         directory = Path(temporary)
@@ -308,7 +316,7 @@ def local_worker(name):
             port = probe.getsockname()[1]
         database = directory / 'postgres'
         run([str(binary / 'initdb'), '-D', str(database), '-A', 'trust', '-U', 'postgres', '--no-locale', '-E', 'UTF8'], cwd=SERVICE, capture=True)
-        run([str(binary / 'pg_ctl'), '-D', str(database), '-l', str(directory / 'postgres.log'), '-o', f'-h {LOOPBACK} -p {port} -k {directory}', '-w', 'start'], cwd=SERVICE, capture=True)
+        run([str(binary / 'pg_ctl'), '-D', str(database), '-l', str(directory / 'postgres.log'), '-o', f"-h {LOOPBACK} -p {port} -k ''", '-w', 'start'], cwd=SERVICE, capture=True)
         try:
             env = {key: value for key, value in os.environ.items() if key not in ('UBAA_TEST_USERNAME', 'UBAA_TEST_PASSWORD', 'CLOUDFLARE_API_TOKEN')}
             env.update(DATABASE_URL=f'postgresql://postgres@{LOOPBACK}:{port}/postgres', USER_KEY_SECRET=secret,

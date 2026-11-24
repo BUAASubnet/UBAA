@@ -53,7 +53,7 @@
 
 ### 2026-11-01：首页待办迁入 Core
 
-本次使用冻结 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/menu/HomeTodo.kt`、`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/HomeTodoTest.kt`，并复用[日程学校投影决定](../decision-log.md#2026-10-31学校日程投影沿首页规则并保留完整日程状态)及[首页逐来源对照](../../archive/protocol/source-parity-ui-home.md)。固定 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 最近的 `src/api/class/{mod,core,data,opt}.rs`、`src/api/spoc/{mod,data,opt}.rs` 提供读协议和 DTO，没有等价首页聚合、阳光提醒或本地日程覆盖，这些本地操作记为不适用。
+本次使用冻结 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/menu/HomeTodo.kt`、`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/HomeTodoTest.kt`，并复用[日程学校投影决定](../decision-log.md#2026-10-31学校日程投影沿首页规则并保留完整日程状态)及首页逐来源对照（`source-parity-ui-home.md`）。固定 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 最近的 `src/api/class/{mod,core,data,opt}.rs`、`src/api/spoc/{mod,data,opt}.rs` 提供读协议和 DTO，没有等价首页聚合、阳光提醒或本地日程覆盖，这些本地操作记为不适用。
 
 | 操作 | 引导、重定向与会话 | 方法、参数、Header、编码与加密 | DTO、缓存、并发、错误与产品语义 |
 |---|---|---|---|
@@ -258,7 +258,7 @@ Direct/WebVPN `verify-live feature=exam` 均通过 prepare/login/status、学期
 
 #### 范围与实施前事实
 
-本轮只处理用户反馈的首页加载慢；当时暂停的[完整 UI/UX 计划](../../archive/history/goal-2026-09-17-before-offline-home.md)不恢复，该历史范围不提供当前授权。
+本轮只处理用户反馈的首页加载慢；当时暂停的完整 UI/UX 计划（`goal-2026-09-17-before-offline-home.md`）不恢复，该历史范围不提供当前授权。
 起始分支 `ubaa2`，保留既有 UI 与引用管理未提交修改。
 `just refs` 通过：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，
 `buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
@@ -282,7 +282,7 @@ Direct/WebVPN `verify-live feature=exam` 均通过 prepare/login/status、学期
 签到严格 sessionId 与示例 loginName 的分歧继续以[签到专项](signin.md#2026-09-17-课堂签到修复对照)为准。
 
 以下逐操作列明九个协议维度。本次仅调整应用层触发范围和顺序；原协议依据为
-[基础矩阵](../README.md)和[首页六来源投影](../../archive/protocol/source-parity-ui-home.md)，不借本轮调度变更补猜协议。
+[基础矩阵](../README.md)和首页六来源投影（`source-parity-ui-home.md`），不借本轮调度变更补猜协议。
 
 | 操作 | CAS/bootstrap 与 service | 重定向/最终 URL | Cookie/会话 | HTTP 与参数 | 请求头/编码 | 加密/签名 | DTO/解析 | 缓存/并发 | 错误语义 |
 |---|---|---|---|---|---|---|---|---|---|

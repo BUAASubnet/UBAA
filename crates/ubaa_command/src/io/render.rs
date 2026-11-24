@@ -4,7 +4,7 @@ use std::io::Write;
 
 use serde_json::Value;
 use ubaa_core::facade::ConnectionMode;
-use ubaa_core::facade::{EvaluationBatchResult, EvaluationCourseOutcome, Result, UbaaError};
+use ubaa_core::facade::{EvaluationBatchResult, EvaluationCourseOutcome, UbaaError};
 use ubaa_core::facade::{RouteResolution, Routed, RoutedError, RoutedResult};
 
 use crate::io::error::{CliJsonError, EVALUATION_OUTCOME_UNKNOWN_MESSAGE};
@@ -15,7 +15,6 @@ use crate::io::schema::{
     CliFeature, CommandOutput, ResolvedRoutedJsonMeta, RoutedJsonEnvelope,
     UnresolvedRoutedJsonMeta, command_output_value,
 };
-use crate::routing::ReadonlyRouteContext;
 
 pub(crate) fn render_routed_result<O: Write, E: Write>(
     json_mode: bool,
@@ -52,7 +51,7 @@ pub(crate) fn render_routed_result<O: Write, E: Write>(
                         route,
                         feature,
                     } => {
-                        if write_readonly(stdout, &data, feature, route, true).is_err() {
+                        if write_readonly(stdout, &data, feature, route).is_err() {
                             return ExitCode::Internal as i32;
                         }
                     }
@@ -73,77 +72,6 @@ pub(crate) fn render_routed_result<O: Write, E: Write>(
             error,
             resolution: None,
         }) => render_startup_error(json_mode, feature, error, stdout, stderr),
-    }
-}
-
-pub(crate) fn render_result<O: Write, E: Write>(
-    json_mode: bool,
-    mode: ConnectionMode,
-    feature: CliFeature,
-    route_context: ReadonlyRouteContext,
-    result: Result<CommandOutput>,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    match result {
-        Ok(CommandOutput::EvaluationBatch { data, route })
-            if evaluation_batch_incomplete(&data) =>
-        {
-            render_incomplete_evaluation_batch(
-                json_mode,
-                data,
-                route,
-                route_context.resolution(route),
-                stdout,
-                stderr,
-            )
-        }
-        Ok(output) => {
-            let resolved_route = match &output {
-                CommandOutput::Readonly { route, .. }
-                | CommandOutput::EvaluationBatch { route, .. } => *route,
-                _ => mode,
-            };
-            if json_mode {
-                let value = match command_output_value(output) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        return render_resolved_error(
-                            true,
-                            feature,
-                            route_context.resolution(resolved_route),
-                            error,
-                            stdout,
-                            stderr,
-                        );
-                    }
-                };
-                let meta = route_context.meta(feature, resolved_route);
-                if write_json(stdout, &RoutedJsonEnvelope::success(value, meta)).is_err() {
-                    return ExitCode::Internal as i32;
-                }
-            } else if let CommandOutput::Readonly {
-                data,
-                route,
-                feature,
-            } = output
-            {
-                if write_readonly(stdout, &data, feature, route, false).is_err() {
-                    return ExitCode::Internal as i32;
-                }
-            } else if render_human(output, stdout).is_err() {
-                return ExitCode::Internal as i32;
-            }
-            ExitCode::Success as i32
-        }
-        Err(error) => render_resolved_error(
-            json_mode,
-            feature,
-            route_context.resolution(mode),
-            error,
-            stdout,
-            stderr,
-        ),
     }
 }
 
@@ -244,17 +172,12 @@ fn write_readonly<W: Write>(
     data: &Value,
     feature: CliFeature,
     route: ConnectionMode,
-    routed: bool,
 ) -> std::io::Result<()> {
     if feature == CliFeature::Finance {
         return super::finance::write(stdout, route, data);
     }
     if !super::campus::write(stdout, feature, route, data)? {
-        if routed {
-            writeln!(stdout, "{} ({route:?}): {data}", feature.as_str())?;
-        } else {
-            writeln!(stdout, "{}（{route:?}）：{data}", feature.as_str())?;
-        }
+        writeln!(stdout, "{} ({route:?}): {data}", feature.as_str())?;
     }
     Ok(())
 }

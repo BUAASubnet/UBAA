@@ -239,8 +239,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
         }
         return [
           _item(
-            '数据结构与算法 · 课堂签到',
-            {'课程 ID': 'signin-course', '签到状态': completed ? '已签到' : '未签到'},
+            '数据结构与算法 · 每日课程',
+            {'课程 ID': 'signin-course', '上课状态': completed ? '已上课' : '未上课'},
             subtitle: '示例教师甲',
             actions: completed ? const [] : original.first.actions,
           ),
@@ -292,9 +292,9 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
               '选课截止': '2026-09-11 18:00',
               '退选截止': '2026-09-11 12:00',
               if (v == FeatureQueryView.bykcChosenCourses) ...{
-                '签到状态': '未签到',
-                '可签到': '是',
-                '可签退': '是',
+                '上课状态': '未上课',
+                '可上课': '是',
+                '可下课': '是',
                 '位置要求': '无需位置',
               },
             },

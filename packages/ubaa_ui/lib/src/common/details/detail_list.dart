@@ -36,6 +36,7 @@ import '../../features/coursework/assignment_content.dart'
         AssignmentContent,
         uiAssignmentSearchValues,
         uiSupportsAssignmentContent;
+import '../../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../../features/coursework/course_participation.dart'
     show CourseParticipationContent, uiSupportsParticipationContent;
 import '../../features/exam/timeline.dart' show uiAcademicSearchValues;
@@ -93,6 +94,7 @@ class FeatureDetailList extends StatefulWidget {
     this.query,
     this.onQuery,
     this.onNavigate,
+    this.filesAccess,
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
@@ -107,6 +109,8 @@ class FeatureDetailList extends StatefulWidget {
     this.ygdkFormContext,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
+    this.onSpocSubmitWrite,
+    this.pickSpocSubmitFile,
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
   });
@@ -134,6 +138,7 @@ class FeatureDetailList extends StatefulWidget {
   final FeatureQuery? query;
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
+  final SpocFilesAccess? filesAccess;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
@@ -149,6 +154,8 @@ class FeatureDetailList extends StatefulWidget {
   final YgdkFormContext? ygdkFormContext;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
+  final SpocSubmitStarter? onSpocSubmitWrite;
+  final SpocSubmitFilePicker? pickSpocSubmitFile;
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
 
@@ -392,6 +399,10 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                   ? AssignmentContent(
                       details: visible,
                       onNavigate: widget.onNavigate,
+                      filesAccess: widget.filesAccess,
+                      onSpocSubmitWrite: widget.onSpocSubmitWrite,
+                      pickSpocSubmitFile: widget.pickSpocSubmitFile,
+                      writesEnabled: widget.writesEnabled,
                     )
                   : uiSupportsAcademicContent(widget.feature, visible)
                   ? AcademicResultContent(
@@ -419,6 +430,10 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                               detail: detail,
                               wide: constraints.maxWidth >= 708,
                               onNavigate: widget.onNavigate,
+                              filesAccess: widget.filesAccess,
+                              onSpocSubmitWrite: widget.onSpocSubmitWrite,
+                              pickSpocSubmitFile: widget.pickSpocSubmitFile,
+                              writesEnabled: widget.writesEnabled,
                             ),
                           );
                         }

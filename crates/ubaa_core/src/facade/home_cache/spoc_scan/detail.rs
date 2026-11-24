@@ -226,7 +226,7 @@ impl UbaaClient {
                 return Ok(HomeRefresh {
                     result: OfflineRefresh {
                         data: HomeReadData::SpocDetail {
-                            data,
+                            data: Box::new(data),
                             offline_list_source_route: value.offline_list_source_route,
                         },
                         scope: plan.scope(),

@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、构建与手动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)。旧流程见[归档](../archive/history/flutter-release-before-engineering-2026-10-07.md)。
+本手册供发布正式版本的维护者使用，说明候选验收、无签名构建、签名、构建与手动发布、分发和回退的步骤。签名材料的配置见[应用签名配置](app-signing.md)，账号与发布操作的授权遵守 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)。
 
 ## 何时使用
 
@@ -32,7 +32,6 @@
 
 ### 环境准备
 
-- 冻结引用：首次缺失时显式执行 `just refs-bootstrap`，之后只运行 `just refs`。
 - 质量工具：显式执行 `just quality-tools-bootstrap`。
 - 依赖：首次用 `cargo fetch --locked` 预取所有目标，用 `just flutter-dependencies` 准备八个 Pub workspace 成员。
 - preflight 不会隐式联网安装。官方 Flutter/OHOS、Rust、FRB 的固定版本及路径见[平台矩阵](../architecture/flutter-platforms.md)。
@@ -43,7 +42,7 @@
 
 手动触发 Release 时，勾选 `local_macos`，或运行 `gh workflow run release.yml --ref main -f local_macos=true`，可将商店权限检查、iOS 构建与上传、macOS 两种架构发布及验收中的 Apple 作业交给带有 `ubaa-release-macos` 标签的本机 runner。Linux、Windows、Android 和 HarmonyOS 继续使用托管 runner。默认不勾选，普通 PR 和独立验收也继续使用托管 runner。
 
-本机需要保持在线，安装版本清单指定的 Xcode、CocoaPods 和项目工具，并在 runner 环境配置 `UBAA_FLUTTER_HOME`。本机作业复用已安装的 Flutter 和 Pub 缓存，仍核对锁定的 SDK 提交与 Dart 版本。一个 runner 串行执行作业，避免 Apple 临时 Keychain 相互覆盖。macOS arm64 和 x86_64 分别构建，Apple Silicon 主机通过交叉编译生成 Intel 产物。Xcode 通过作业的 `DEVELOPER_DIR` 选择，不改变系统全局设置。注册本机 runner 时仅分配专用标签，并配置作业启动钩子，只允许本仓库 `main` 上手动触发的 Release；签名仍从 `release-production` 环境取得并在作业结束时清理。
+本机需要保持在线，安装版本清单指定的 Xcode、CocoaPods 和项目工具，并在 runner 环境配置 `UBAA_FLUTTER_HOME`。本机作业复用已安装的 Flutter 和 Pub 缓存，仍核对锁定的 SDK 提交与 Dart 版本。一个 runner 串行执行作业，避免 Apple 临时 Keychain 相互覆盖。macOS arm64 和 x86_64 分别构建，Apple Silicon 主机通过交叉编译生成 Intel 产物。Xcode 通过作业的 `DEVELOPER_DIR` 选择，不改变系统全局设置。注册本机 runner 时仅分配专用标签，并配置作业启动钩子，只允许本仓库 `main` 上手动触发的 Release；签名仍从 `release-production` 环境取得并在作业结束时清理。runner 安装在仓库之外，例如 `~/actions-runner/ubaa`；启动钩子和作业期间的描述文件备份也放在 runner 目录内，不放进仓库的 `.ubaa_local/`。
 
 ### 1. 固定候选并记录证据
 
@@ -68,14 +67,14 @@ just flutter-build platform=android-apk mode=debug
 just flutter-build platform=ios-simulator mode=debug
 UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 just flutter-artifact-check platform=android-apk artifact=/绝对路径/app-debug.apk
-just release-preflight /项目绝对路径/UBAA2/.ubaa_local/release/license_report
+just release-preflight /项目绝对路径/UBAA2/dist/release/license_report
 ```
 
 在对应 runner 上执行实际目标，缺少工具的平台不声称完成。
 
 `release-preflight`：
 
-- 要求工作树干净、报告目录为空；只运行纯 refs/敏感检查，并生成 Dart/OHOS 许可证材料。
+- 要求工作树干净、报告目录为空；只运行纯敏感检查，并生成 Dart/OHOS 许可证材料。
 - 许可材料列出锁定来源、许可证证据及缺失项；包名/版本清单不等于许可批准。
 - 默认严格模式遇到材料缺口时保留报告，以状态 3 阻断发布。仅报告模式仍列出缺口，但不能用于判定发布通过。日常 CI 不运行此入口。参数见[构建与发布命令](../development/commands.md#构建与发布命令)。
 - Rust 依赖的许可与安全公告由 `just dependency-audit`（cargo-deny）检查，发布前单独运行。
@@ -115,7 +114,7 @@ bash scripts/release/store-screenshots.sh
 
 单独生成 AppGallery 手机图时使用 `bash scripts/release/store-screenshots.sh --appgallery`，生成平板图时使用 `bash scripts/release/store-screenshots.sh --appgallery-tablet`。两组各展示首页、课表、日程、成绩、SPOC 作业和考试。[华为开发者中心素材规范](https://developer.huawei.com/consumer/cn/doc/app/agc-help-app-visual-asset-spec-0000002277607976/)按设备分别列出要求：HarmonyOS 手机和平板的应用介绍截图各可上传 3 至 10 张，PNG 单张不超过 5 MB。
 
-脚本把原图写入 `.ubaa_local/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)。AppGallery 手机图复制到 [AppGallery 素材目录](../site/store_assets/appgallery/)，平板图复制到其 [`tablet/` 子目录](../site/store_assets/appgallery/tablet/)；这些商店素材不随网站部署。Git 追踪这些成品、源数据和渲染代码；额外的 iPhone 尺寸留在本地。网站代表图或[横版宣传图](../site/store_assets/ubaa-app-store-creative.png)更新后，运行 `bash scripts/release/site-images.sh` 重新生成截图页的 WebP 和链接分享图；代表图换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
+脚本把原图写入 `dist/store_screenshots/run.*/raw/`，将不带透明通道的 RGB PNG 写入同批次的 `ready/` 并打印实际路径。核对界面、文案、尺寸与清晰度后，把默认三组 PNG 复制到[网站宣传资源目录](../site/public/screenshots/)。AppGallery 手机图复制到 [AppGallery 素材目录](../site/store_assets/appgallery/)，平板图复制到其 [`tablet/` 子目录](../site/store_assets/appgallery/tablet/)；这些商店素材不随网站部署。Git 追踪这些成品、源数据和渲染代码；额外的 iPhone 尺寸留在本地。网站代表图或[横版宣传图](../site/store_assets/ubaa-app-store-creative.png)更新后，运行 `bash scripts/release/site-images.sh` 重新生成截图页的 WebP 和链接分享图；代表图换名或增删时同步调整[应用截图页](../site/features/screenshots.md)，执行 `npm run docs:build`。
 
 上传前按 [App Store Connect 截图规范](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)与华为开发者中心的素材规范复核目标规格。宣传图生成与网站构建不执行商店上传。
 
@@ -124,7 +123,7 @@ bash scripts/release/store-screenshots.sh
 各平台材料、旧版升级身份、本机配置与 CI secret 映射统一见[应用签名配置](app-signing.md)。
 
 - Android/iOS/OHOS 实体机上的权限、前后台、网络订阅及安全材料写读删，需要独立的设备证据。
-- 常规发布验收使用确定性测试、原生集成和发布产物检查。学校协议变更需要的真实验证按 [AGENTS 真实账号与验收范围](../../AGENTS.md#真实账号与验收范围)独立执行，发布工作流不接收学校账号。
+- 常规发布验收使用确定性测试、原生集成和发布产物检查。学校协议变更需要的真实验证按 [来源对照与真实验证](../development/commands.md#来源对照与真实验证)独立执行，发布工作流不接收学校账号。
 - 正式签名、公证和上传只在相应授权和环境满足后进行。签名材料由平台安全存储和隔离 runner 管理，不进入源码、argv、普通日志或 artifact。
 - 发布前核对候选 SHA、校验摘要、许可材料、安装/升级/卸载和平台权限。
 
@@ -159,12 +158,23 @@ HarmonyOS APP 与 iOS IPA 只用于对应商店，不进入公开安装包清单
 
 1. 在 Actions 中选择 **Release 构建与草稿**，选择 main 并点击 **Run workflow**。
 2. 等待整次工作流成功，包括各平台构建、服务器和北航云盘分发和商店处理。仅看到草稿时，商店上传可能仍在运行。
-3. 在 Releases 中打开对应版本的草稿，核对附件、版本说明和候选提交，再点击 **Publish release**。
+3. 在 Releases 中打开对应版本的草稿，按下节填写发布说明，核对附件和候选提交，再点击 **Publish release**。
 4. 公开草稿后，发布同步工作流从 GitHub 公开的 `release.json` 核对完整分发记录，再更新下载页与 GitHub 渠道。需要补跑时手动运行“同步已发布版本”，传入公开标签。
 
 `release-production` Environment 允许 main 分支以及正式发布同步使用的 `v*` 标签。构建和分发工作流仍只接受 main，标签事件只同步已经公开且分发完整的版本。平台签名步骤读取对应平台 Secrets，分发步骤读取专用 SSH 部署密钥，商店步骤读取对应服务账号。商店工作流只上传和检查处理状态，由维护者自行选择构建、补齐商店资料并提交审核。商店版本实际可下载之后，再更新应用服务的渠道配置。
 
 构建或上传失败时保留同次运行的成功产物，未修改源码时可以重新运行失败作业。未发布的草稿可以接收新候选：分发前把草稿目标改到当前候选提交，再覆盖附件。已经发布的 Release 会在分发写入前被拒绝，后续发布使用新版本。修改源码或构建配置后，按新候选重新验收和构建。已经分发产物或上传商店的构建号不复用，后续候选递增统一构建号。已发布 Tag 不移动到其他源码提交。
+
+### 发布说明格式
+
+分发脚本生成的草稿含 `UBAA <版本号>`、版本说明链接和下载列表。完成最后一次分发后，在草稿的版本说明链接和下载列表之间按以下顺序补写内容，保留下载链接：
+
+- **版本号**：核对草稿版本与 `version.toml`、发布标签一致。
+- **新增**：列出本版本新增的用户可见功能；没有则写“无”。
+- **修复**：说明用户遇到的问题及修复结果，确有限定时标明受影响的平台或场景。
+- **已知问题**：说明影响范围和可用的绕过办法；没有已知问题则写“无”。
+
+重跑分发会重新生成草稿正文，需要重新补写并核对发布说明。
 
 ## 验证
 

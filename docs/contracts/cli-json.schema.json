@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ubaa:cli:json:schema:18",
+  "$id": "urn:ubaa:cli:json:schema:19",
   "title": "UBAA CLI JSON envelope",
   "oneOf": [
     { "$ref": "#/$defs/resolvedRoutedEnvelope" },
@@ -21,7 +21,7 @@
       ],
       "properties": {
         "schemaVersion": {
-          "const": 18
+          "const": 19
         },
         "ok": {
           "type": "boolean"
@@ -681,11 +681,14 @@
     },
     "financeIncome": {
       "type": "object",
-      "required": ["id", "project", "description", "amountCents", "taxCents", "paidCents", "taxRate", "recordedDate", "year", "month"],
+      "required": ["id", "project", "description", "department", "projectCode", "projectName", "amountCents", "taxCents", "paidCents", "taxRate", "recordedDate", "year", "month"],
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "project": {"type": ["string", "null"]},
         "description": {"type": ["string", "null"]},
+        "department": {"type": ["string", "null"]},
+        "projectCode": {"type": ["string", "null"]},
+        "projectName": {"type": ["string", "null"]},
         "amountCents": {"type": ["integer", "null"]},
         "taxCents": {"type": ["integer", "null"]},
         "paidCents": {"type": ["integer", "null"]},
@@ -1839,7 +1842,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 18 },
+        "schemaVersion": { "const": 19 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -2060,7 +2063,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 18 },
+        "schemaVersion": { "const": 19 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -2217,7 +2220,7 @@
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
         "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
-        "schemaVersion": { "const": 18 },
+        "schemaVersion": { "const": 19 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -2293,7 +2296,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 18 },
+        "schemaVersion": { "const": 19 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
@@ -2553,7 +2556,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 18
+                "const": 19
               },
               "ok": {
                 "const": true
@@ -2689,7 +2692,7 @@
             "type": "object",
             "properties": {
               "schemaVersion": {
-                "const": 18
+                "const": 19
               },
               "ok": {
                 "const": false

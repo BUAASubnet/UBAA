@@ -7,8 +7,11 @@ abstract interface class ScheduleWidgetGateway {
   Future<void> publish(String scope, ScheduleWidgetSnapshot snapshot);
 }
 
-final class AndroidScheduleWidgetGateway implements ScheduleWidgetGateway {
-  const AndroidScheduleWidgetGateway();
+/// Android 与 iOS 原生组件共用的发布协议：同一 MethodChannel 上的
+/// `begin`/`publish` 两个方法，快照 JSON 合同一致。
+final class MethodChannelScheduleWidgetGateway
+    implements ScheduleWidgetGateway {
+  const MethodChannelScheduleWidgetGateway();
   static const _channel = MethodChannel('cn.edu.buaa.ubaa/schedule-widgets');
   @override
   Future<String> begin(String? owner) async {
@@ -26,4 +29,14 @@ final class AndroidScheduleWidgetGateway implements ScheduleWidgetGateway {
         'scope': scope,
         'snapshot': snapshot.toJson(),
       });
+}
+
+final class AndroidScheduleWidgetGateway
+    extends MethodChannelScheduleWidgetGateway {
+  const AndroidScheduleWidgetGateway();
+}
+
+final class IOSScheduleWidgetGateway
+    extends MethodChannelScheduleWidgetGateway {
+  const IOSScheduleWidgetGateway();
 }

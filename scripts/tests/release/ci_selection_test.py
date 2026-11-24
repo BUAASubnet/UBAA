@@ -41,7 +41,7 @@ class SelectionTest(unittest.TestCase):
         self.assertTrue(selected['flutter'])
         self.assertCountEqual(selected['flutter_packages'],
                               ['ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support', 'ubaa_app'])
-        selected = changes.select(['docs/project/goal.md'])
+        selected = changes.select(['docs/project/status.md'])
         self.assertFalse(selected['flutter'])
         self.assertEqual(selected['flutter_packages'], [])
 
@@ -53,8 +53,8 @@ class SelectionTest(unittest.TestCase):
         self.assertEqual(changes.select(None)['flutter_packages'], list(plan.PACKAGES))
 
     def test_devFlutter入口不重复准备且只运行所选非golden测试(self):
-        private = ROOT / '.ubaa_local'
-        private.mkdir(exist_ok=True)
+        private = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'ci_selection'
+        private.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=private) as folder:
             fake_just = Path(folder) / 'just'
             fake_just.write_text('#!/bin/bash\nprintf "%s\\n" "${PWD##*/}" "$@"\n')
@@ -106,8 +106,8 @@ class SelectionTest(unittest.TestCase):
             self.assertFalse(plan.accepted(jobs, False))
 
     def test_Android单架构检查拒绝缺少库和混入其他架构(self):
-        private = ROOT / '.ubaa_local'
-        private.mkdir(exist_ok=True)
+        private = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'ci_selection'
+        private.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=private) as folder:
             artifact = Path(folder) / 'app.apk'
             base = ['classes.dex', 'assets/flutter_assets/AssetManifest.bin',
@@ -125,8 +125,8 @@ class SelectionTest(unittest.TestCase):
                     self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
     def test_Android产物检查拒绝任意未压缩原生库(self):
-        private = ROOT / '.ubaa_local'
-        private.mkdir(exist_ok=True)
+        private = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'ci_selection'
+        private.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=private) as folder:
             artifact = Path(folder) / 'app.apk'
             for abi in ('', 'arm64-v8a'):

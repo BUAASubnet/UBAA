@@ -10,19 +10,21 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 CACHE = ROOT / 'scripts/build/cache.py'
-# 一次性门禁不复用增量缓存，留着只会按 feature 组合堆积。
-GATES = {'test', 'core-test-contract', 'check', 'check-strict', 'check-changed',
-         'flutter-codegen-check', 'flutter-check', 'integration-test', 'ohos-check'}
+# 多 feature 组合和一次性重建门禁关闭增量编译；日常入口复用本地缓存。
+INCREMENTAL_DISABLED = {'core-test-contract', 'check-risk', 'check-strict',
+                        'flutter-codegen-check', 'integration-test', 'ohos-check'}
+INCREMENTAL_ENABLED = {'test', 'check', 'check-changed', 'flutter-check'}
 
 
 class GateCacheTest(unittest.TestCase):
     def test_门禁入口关闭增量编译(self):
         dump = json.loads(subprocess.check_output(
             ['just', '--justfile', str(ROOT / 'justfile'), '--dump', '--dump-format', 'json'], text=True))
-        for name in sorted(GATES):
+        for name in sorted(INCREMENTAL_DISABLED | INCREMENTAL_ENABLED):
             with self.subTest(recipe=name):
                 attributes = dump['recipes'][name]['attributes']
-                self.assertIn({'env': ['CARGO_INCREMENTAL', '0']}, attributes)
+                expected = name in INCREMENTAL_DISABLED
+                self.assertEqual({'env': ['CARGO_INCREMENTAL', '0']} in attributes, expected)
 
     def test_开发构建只保留行号调试信息(self):
         profile = tomllib.loads((ROOT / 'Cargo.toml').read_text()).get('profile', {})
@@ -59,19 +61,29 @@ class CacheCommandTest(unittest.TestCase):
         self.assertTrue((self.root / 'packages/ubaa_bindings/ohos/.cxx').exists())
 
     def test_只清理指定范围(self):
-        self.write('target/debug/.fingerprint/a/hash')
-        self.write('target/debug/incremental/a/s-1/dep-graph.bin')
+        lock = self.write('target/debug/.cargo-lock', '')
+        unit = self.write('target/debug/build/ubaa_core/abcd/libubaa_core.rlib')
+        new_cache = self.write('target/debug/incremental/a/s-1/dep-graph.bin').parents[2]
         cargokit = 'apps/ubaa_flutter/build/macos/Pods.build/aarch64-apple-darwin/debug'
         self.write(cargokit + '/.fingerprint/a/hash')
-        self.write(cargokit + '/incremental/a/s-1/dep-graph.bin')
-        gradle = self.write('apps/ubaa_flutter/build/app/intermediates/incremental/merge/state.xml')
-        kept = self.write('target/debug/deps/libubaa_core.rlib')
-        result = self.run_cache('clean', 'rust-incremental')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.root / 'target/debug/incremental').exists())
-        self.assertFalse((self.root / cargokit / 'incremental').exists())
-        self.assertTrue(kept.exists())
-        self.assertTrue(gradle.exists())
+        old_cache = self.write(cargokit + '/incremental/a/s-1/dep-graph.bin').parents[2]
+        gradle = self.write('apps/ubaa_flutter/build/app/intermediates/incremental/merge/state.xml', 'gradle')
+
+        with self.subTest(action='show'):
+            result = self.run_cache('show')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            blocks = sum(path.stat().st_blocks for cache in (new_cache, old_cache) for path in cache.rglob('*'))
+            summary = next(line for line in result.stdout.splitlines() if line.startswith('rust-incremental'))
+            self.assertEqual(summary.split()[1:3], [f'{blocks / 2:.1f}', 'KiB'])
+
+        with self.subTest(action='clean'):
+            result = self.run_cache('clean', 'rust-incremental')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(new_cache.exists())
+            self.assertFalse(old_cache.exists())
+            self.assertTrue(lock.is_file())
+            self.assertTrue(unit.is_file())
+            self.assertEqual(gradle.read_text(), 'gradle')
 
     def test_受跟踪文件所在目录拒绝删除且不做任何清理(self):
         self.write('.gitignore', '/apps/ubaa_flutter/build/\n')

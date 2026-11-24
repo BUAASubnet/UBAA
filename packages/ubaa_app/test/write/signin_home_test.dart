@@ -6,7 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../support/controller/fakes.dart';
 
 void main() {
-  test('签到原路线回读同步首页数据并暂停旧资格', () async {
+  test('上课原路线回读同步首页数据并暂停旧资格', () async {
     final backend = Backend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
@@ -25,7 +25,7 @@ void main() {
         resolvedRoute: ConnectionMode.direct,
         details: [
           FeatureDetail(
-            title: '已签到',
+            title: '已上课',
             presentation: SigninPresentation(
               courseId: '1',
               classBeginTime: '14:00',
@@ -39,7 +39,7 @@ void main() {
     await future;
     expect(
       controller.homeSnapshots[FeatureId.signin]!.details.single.title,
-      '已签到',
+      '已上课',
     );
     expect(
       controller.homeSnapshots[FeatureId.signin]!.status,
@@ -47,7 +47,7 @@ void main() {
     );
     expect(backend.reads, 1);
   });
-  test('签到回读异常同步首页错误且不保留可签到资格', () async {
+  test('上课回读异常同步首页错误且不保留可上课资格', () async {
     final backend = Backend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);

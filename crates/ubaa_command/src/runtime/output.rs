@@ -153,10 +153,12 @@ impl Write for OutputWriter {
 }
 impl OutputWriter {
     /// 输出仍绑定本次执行的固定共享身份，排队后再次核对。
-    /// # Panics
-    /// 共享身份锁被其他线程的 panic 污染时终止。
     pub fn bind_shared_account(&mut self, scope: Option<ubaa_core::facade::SharedAccountGuard>) {
-        *self.0.scope.lock().unwrap() = scope;
+        *self
+            .0
+            .scope
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = scope;
     }
     /// 只用于已停止命令的错误交付，沿用停止时刻后的两秒总收尾预算。
     /// # Errors
@@ -268,10 +270,7 @@ impl OutputWriter {
 #[cfg(test)]
 #[test]
 fn 已排队正文在消费者取得前仍核对固定共享代次() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/output_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = ubaa_test_support::test_temp_dir("ubaa_command_output").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),

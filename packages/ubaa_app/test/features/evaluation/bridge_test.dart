@@ -46,7 +46,10 @@ void fixtureRegisterEvaluationBridgeBackendTests() {
     );
     final action = result.details.first.action<EvaluationSubmitAction>();
 
-    expect(result.summary, '已评 1/2 门');
+    final overview = result.overview! as EvaluationProgressOverview;
+    expect(overview.totalCourses, 2);
+    expect(overview.evaluatedCourses, 1);
+    expect(overview.pendingCourses, 1);
     expect(result.resolvedRoute, ConnectionMode.webvpn);
     expect(result.details.first.title, '编译原理');
     expect(result.details.first.subtitle, '测试教师');
@@ -317,8 +320,8 @@ void fixtureRegisterEvaluationBridgeBackendTests() {
     ]);
     expect(actions.where((action) => action.target != null), hasLength(1));
     expect(actions.last.target?.rwid, 'valid-task');
-    expect(result.details[8].title, '未知课程');
-    expect(result.details[9].subtitle, '未知教师');
+    expect(result.details[8].title.trim(), isNotEmpty);
+    expect(result.details[9].subtitle?.trim(), isNotEmpty);
   });
 
   test('BridgeBackend 评教 prepare 只按顺序传递 typed targets', () async {

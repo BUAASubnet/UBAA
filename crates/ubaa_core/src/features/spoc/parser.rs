@@ -181,6 +181,7 @@ pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssign
         submission_status_text: summary.submission_status_text.clone(),
         content_plain_text: html.and_then(to_plain_text),
         submitted_at: None,
+        ..Default::default()
     }
 }
 
@@ -263,7 +264,78 @@ pub(super) fn merge_detail(
     merged.submission_status_text = submission_status_text(status, raw_status);
     let mut detail = detail(&merged, raw.zynr.as_deref());
     detail.submitted_at = submission.and_then(|value| normalize_datetime(value.tjsj.as_deref()));
+    detail.attachment =
+        raw.zyfjid
+            .as_deref()
+            .and_then(non_empty)
+            .map(|file_id| crate::domain::SpocAttachment {
+                file_id,
+                file_name: None,
+                size_text: None,
+                extension: None,
+            });
+    detail.submitted_file = submission
+        .and_then(|value| value.scwjid.as_deref())
+        .and_then(non_empty)
+        .map(|file_id| crate::domain::SpocSubmittedFile {
+            file_id,
+            file_name: None,
+        });
+    detail.submission_count = submission.and_then(|value| value.ytjcs.as_deref()?.parse().ok());
+    detail.submit_modes = csv(raw.bhtjlx.as_deref()).map(str::to_owned).collect();
+    detail.allowed_extensions = csv(raw.xzwjlx.as_deref())
+        .map(|ext| ext.trim_start_matches('.'))
+        .filter(|ext| !ext.is_empty())
+        .map(|ext| format!(".{}", ext.to_ascii_lowercase()))
+        .collect();
+    detail.max_submissions = raw
+        .xztjcs
+        .as_deref()
+        .and_then(|n| n.parse().ok())
+        .filter(|n| *n != 9999);
+    detail.is_group_assignment = raw.zylx.as_deref() == Some("2");
+    if raw.sfcjzy.as_deref() == Some("1") {
+        detail.late_submission_deadline = normalize_datetime(raw.cjzysj.as_deref());
+    }
+    let reason = if base.course_id.is_empty()
+        || raw.sskcid.as_ref().is_some_and(|id| id != &base.course_id)
+    {
+        Some("作业课程信息不一致")
+    } else if detail.is_group_assignment {
+        Some("小组作业暂不支持")
+    } else if raw.zylx.as_deref() != Some("1") {
+        Some("未能核实个人作业类型")
+    } else if !detail.submit_modes.iter().any(|mode| mode == "5") {
+        Some("不支持文件上传")
+    } else if detail
+        .submission_count
+        .zip(detail.max_submissions)
+        .is_some_and(|(count, limit)| count >= limit)
+    {
+        Some("次数已用完")
+    } else {
+        None
+    };
+    detail.submit_unavailable_reason = reason.map(str::to_owned);
+    if reason.is_none() {
+        detail.submit_action = Some(crate::domain::SpocSubmitAction {
+            assignment_id: base.assignment_id.clone(),
+            course_id: base.course_id.clone(),
+            allowed_extensions: detail.allowed_extensions.clone(),
+            max_submissions: detail.max_submissions,
+            due_time: detail.due_time.clone(),
+            late_submission_deadline: detail.late_submission_deadline.clone(),
+        });
+    }
     Ok(detail)
+}
+
+fn csv(value: Option<&str>) -> impl Iterator<Item = &str> {
+    value
+        .into_iter()
+        .flat_map(|text| text.split(','))
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
 }
 
 #[track_caller]
@@ -355,6 +427,13 @@ pub(super) struct AssignmentRaw {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct DetailRaw {
+    zyfjid: Option<String>,
+    bhtjlx: Option<String>,
+    xzwjlx: Option<String>,
+    xztjcs: Option<String>,
+    zylx: Option<String>,
+    sfcjzy: Option<String>,
+    cjzysj: Option<String>,
     pub(super) id: String,
     // 线协议要求该字段，但权威列表摘要仍是公开身份信息。
     #[allow(dead_code)]
@@ -374,6 +453,8 @@ pub(super) struct DetailRaw {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct SubmissionRaw {
+    pub(super) scwjid: Option<String>,
+    ytjcs: Option<String>,
     #[serde(default)]
     pub(super) tjzt: Option<String>,
     #[serde(default)]

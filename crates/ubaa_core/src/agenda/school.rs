@@ -186,7 +186,7 @@ pub(super) fn signin(
             date,
         },
     );
-    item.subtitle = "课程签到".into();
+    item.subtitle = "每日课程".into();
     // 持久读永远没有新鲜操作资格；保留首页离线状态文案。
     item.status_label = "状态待更新".into();
     item.home_todo = v.sign_status == Some(0)

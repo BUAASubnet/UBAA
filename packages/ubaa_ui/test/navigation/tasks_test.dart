@@ -9,44 +9,21 @@ void main() {
     await _mount(tester);
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     for (final feature in FeatureId.values) {
+      final group = UiDestination.forFeature(feature);
       await openFeature(tester, feature);
+      expect(
+        find.widgetWithText(
+          AppBar,
+          feature == FeatureId.schedule ? '课表' : feature.title,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('合成详情-${feature.wireName}'), findsOneWidget);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
-    }
-  });
-
-  testWidgets('学习与校园完整覆盖十二领域', (tester) async {
-    await _mount(tester);
-    for (final group in <(String, List<FeatureId>)>[
-      for (final group in [UiDestination.study, UiDestination.campus])
-        (group.label, group.features),
-    ]) {
-      final destination = find.widgetWithText(NavigationDestination, group.$1);
-      expect(destination, findsOneWidget);
-      await tester.tap(destination);
-      await tester.pumpAndSettle();
-      final observed = <FeatureId>{};
-      final view = find.byType(CustomScrollView);
-      final scrollable = find.descendant(
-        of: view,
-        matching: find.byType(Scrollable),
-      );
-      for (var step = 0; step < 20; step++) {
-        for (final feature in FeatureId.values) {
-          if (find
-              .descendant(of: view, matching: find.text(feature.title))
-              .evaluate()
-              .isNotEmpty) {
-            observed.add(feature);
-          }
-        }
-        final position = tester.state<ScrollableState>(scrollable).position;
-        if (position.pixels >= position.maxScrollExtent) break;
-        await tester.drag(view, const Offset(0, -220));
-        await tester.pumpAndSettle();
-      }
-      expect(observed, unorderedEquals(group.$2));
+      expect(find.widgetWithText(AppBar, group.label), findsOneWidget);
+      expect(find.byTooltip('返回'), findsNothing);
+      expect(tester.takeException(), isNull);
     }
   });
 
@@ -152,6 +129,7 @@ Future<void> _mount(WidgetTester tester) async {
         onRefresh: () async => fail('导航不能新增刷新'),
         onRetryFeature: (_) async => fail('导航不能新增重试'),
         onFeatureQuery: (_, _) async => fail('导航不能新增业务查询'),
+        onCommitWrite: (_) async => fail('功能卡片只能导航，不能提交写入'),
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},

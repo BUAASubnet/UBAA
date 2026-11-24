@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
+import '../../../../ubaa_platform/test/support/test_tmp.dart';
 import '../../recovery/backend_rebuild/fakes.dart' as base;
 
 void main() {
@@ -56,10 +56,8 @@ void main() {
   });
 
   test('共享恢复交付强制重读提示，绑定期间开始的普通读取不能覆盖新结果', () async {
-    final evidence = Directory(
-      '../../.ubaa_local/cold_start_superseded',
-    ).absolute..createSync(recursive: true);
-    final root = evidence.createTempSync('readback_');
+    final root = createTestTempDirectory('ubaa_app_write_readback');
+    addTearDown(() => root.delete(recursive: true));
     final materials = SecureMaterialStore(
       coordinator: MaterialCoordinator(directory: root),
       transport: support.MemoryMaterials(),
@@ -109,15 +107,12 @@ void main() {
         backend.bindingRelease.complete();
       controller.dispose();
       await controller.internalDisposeBackendOnce(backend);
-      await root.delete(recursive: true);
     }
   });
 
   test('共享恢复重绑尚未完成时旧提示读取作废，不记录冲突', () async {
-    final evidence = Directory(
-      '../../.ubaa_local/cold_start_superseded',
-    ).absolute..createSync(recursive: true);
-    final root = evidence.createTempSync('readback_');
+    final root = createTestTempDirectory('ubaa_app_write_readback');
+    addTearDown(() => root.delete(recursive: true));
     final materials = SecureMaterialStore(
       coordinator: MaterialCoordinator(directory: root),
       transport: support.MemoryMaterials(),
@@ -157,7 +152,6 @@ void main() {
         backend.bindingRelease.complete();
       controller.dispose();
       await controller.internalDisposeBackendOnce(backend);
-      await root.delete(recursive: true);
     }
   });
 

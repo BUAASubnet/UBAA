@@ -1,6 +1,5 @@
 //! CLI 对 Core 路由决策的安全上下文投影。
 
-use crate::io::schema::{CliFeature, ResolvedRoutedJsonMeta};
 use ubaa_core::facade::{ConnectionMode, RoutePolicy};
 use ubaa_core::facade::{NetworkState, RouteDiagnostic, RouteResolution};
 
@@ -31,14 +30,6 @@ impl ReadonlyRouteContext {
             resolved_route: mode,
             used_fallback: false,
         }
-    }
-
-    pub(crate) fn meta(
-        self,
-        feature: CliFeature,
-        resolved_route: ConnectionMode,
-    ) -> ResolvedRoutedJsonMeta {
-        ResolvedRoutedJsonMeta::from_resolution(feature, self.resolution(resolved_route))
     }
 
     pub(crate) fn resolution(self, resolved_route: ConnectionMode) -> RouteResolution {

@@ -78,6 +78,7 @@ void main() {
       ..value = const BridgeCachedWriteCommit(
         error: _unknown,
         cacheError: BridgeCacheFailure.corrupt,
+        readbackHintId: 'synthetic-hint',
       );
     final backend = await _backend(client);
     await expectLater(
@@ -85,6 +86,7 @@ void main() {
       throwsA(
         isA<BackendException>()
             .having((e) => e.code, '学校未知', UbaaErrorCode.outcomeUnknown)
+            .having((e) => e.readbackHintId, '本次提示', 'synthetic-hint')
             .having((e) => e.resolvedRoute, '实际路线', ConnectionMode.webvpn)
             .having(
               (e) => e.cacheFailure,

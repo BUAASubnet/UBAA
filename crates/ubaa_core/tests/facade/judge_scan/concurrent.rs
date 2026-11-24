@@ -3,10 +3,8 @@ use ubaa_core::facade::{CacheError, CacheQuery, CacheScope, JudgeRefreshOptions}
 
 #[test]
 fn shared_profile_judge_pending_scan_keeps_saved_summary_without_network() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("judge-shared-recovery").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let temp = crate::test_tmp::test_temp_dir("ubaa_core_facade_judge_scan_concurrent").unwrap();
+    let root = temp.path().to_path_buf();
     let (root, mut client, cache, transport) = setup_at(root);
     let mut other = ubaa_core::facade::OfflineRepository::open(
         &root,
@@ -57,10 +55,8 @@ fn shared_profile_judge_pending_scan_keeps_saved_summary_without_network() {
 
 #[test]
 fn shared_profile_judge_target_parent_competitor_keeps_only_exact_detail() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/shared_profile_phase2")
-        .join(test_root("judge-shared-target").file_name().unwrap());
-    std::fs::create_dir_all(&root).unwrap();
+    let temp = crate::test_tmp::test_temp_dir("ubaa_core_facade_judge_scan_concurrent").unwrap();
+    let root = temp.path().to_path_buf();
     let (root, mut client, cache, transport) = setup_at(root);
     let mut other = ubaa_core::facade::OfflineRepository::open(
         &root,

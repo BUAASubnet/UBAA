@@ -186,6 +186,8 @@ void registerAcademicPresentationTests() {
     );
     expect(result.details, hasLength(1));
     expect(result.details.single.presentation, isA<ClassroomPresentation>());
+    expect(result.details.single.title, '三号教室');
+    expect(result.resolvedRoute, ConnectionMode.webvpn);
     final room = result.details.single.presentation! as ClassroomPresentation;
     expect(room.roomId, 'room-3');
     expect(room.floorId, 'F03');
@@ -361,6 +363,17 @@ class _AcademicPresentationClient extends FixtureCharacterizationBridgeClient {
                 floorId: 'F03',
                 name: '十三号教室',
                 availableSections: '13',
+              ),
+            ],
+          ),
+          BridgeClassroomFloor(
+            name: '主楼四层',
+            rooms: [
+              BridgeClassroomInfo(
+                id: 'room-4',
+                floorId: 'F04',
+                name: '四号教室',
+                availableSections: '3',
               ),
             ],
           ),

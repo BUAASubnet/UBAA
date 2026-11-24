@@ -35,7 +35,7 @@
       "enum": [
         "app", "auth", "schedule", "exam", "grades", "bykc", "classroom", "spoc",
         "judge", "libbook", "signin", "cgyy", "ygdk", "evaluation",
-        "cloud_print", "bhpan", "ihome", "portal", "network", "finance"
+        "cloud_print", "bhpan", "ihome", "portal", "network", "finance", "health_cloud"
       ]
     },
     "route": {"type": "string", "enum": ["direct", "webvpn", "none"]},
@@ -64,14 +64,24 @@
       "then": {"properties": {"cohort_year": {"type": "null"}}},
       "else": {"properties": {"cohort_year": {"type": "integer"}}}
     },
+    "openedDimensions": {
+      "type": "object",
+      "if": {"properties": {"event": {"const": "feature_opened"}}},
+      "then": {"properties": {
+        "feature": {"not": {"enum": ["app", "auth", "portal", "network"]}},
+        "route": {"const": "none"}, "result": {"const": "success"}
+      }},
+      "else": {"properties": {"feature": {"not": {"const": "health_cloud"}}}}
+    },
     "counter": {
+      "$ref": "#/$defs/openedDimensions",
       "type": "object",
       "additionalProperties": false,
       "required": ["event", "feature", "route", "result", "count"],
       "properties": {
         "event": {
           "type": "string",
-          "enum": ["app_started", "auth_started", "auth_succeeded", "session_expired", "route_resolved", "feature_loaded", "write_completed"]
+          "enum": ["app_started", "auth_started", "auth_succeeded", "session_expired", "route_resolved", "feature_loaded", "write_completed", "feature_opened"]
         },
         "feature": {"$ref": "#/$defs/feature"},
         "route": {"$ref": "#/$defs/route"},
@@ -295,7 +305,7 @@
       "properties": {
         "diagnostic": {"$ref": "#/$defs/diagnostic"},
         "event": {"type": "string", "enum": ["auth_failed", "feature_failed", "write_failed", "ui_error_shown", "crash"]},
-        "feature": {"$ref": "#/$defs/feature"},
+        "feature": {"$ref": "#/$defs/feature", "not": {"const": "health_cloud"}},
         "route": {"$ref": "#/$defs/route"},
         "error_code": {"type": "string"},
         "error_kind": {"$ref": "#/$defs/errorKind"},
@@ -317,7 +327,7 @@
       "required": ["metric", "feature", "route", "bucket", "count"],
       "properties": {
         "metric": {"type": "string", "enum": ["cold_start", "first_content", "auth", "feature_load"]},
-        "feature": {"$ref": "#/$defs/feature"},
+        "feature": {"$ref": "#/$defs/feature", "not": {"const": "health_cloud"}},
         "route": {"$ref": "#/$defs/route"},
         "bucket": {
           "type": "string",
@@ -330,9 +340,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["minute", "event", "feature", "result", "count"],
+      "$ref": "#/$defs/openedDimensions",
       "properties": {
         "minute": {"type": "integer", "minimum": 0, "maximum": 1439},
-        "event": {"type": "string", "enum": ["auth_started", "auth_succeeded", "auth_failed", "feature_loaded"]},
+        "event": {"type": "string", "enum": ["auth_started", "auth_succeeded", "auth_failed", "feature_loaded", "feature_opened"]},
         "feature": {"$ref": "#/$defs/feature"},
         "result": {"$ref": "#/$defs/result"},
         "count": {"$ref": "#/$defs/count"}

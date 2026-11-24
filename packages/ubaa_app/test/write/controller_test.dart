@@ -85,7 +85,7 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('课堂签到写意图只接受 typed Allowed action 并在末端提取目标', () async {
+  test('每日课程写意图只接受 typed Allowed action 并在末端提取目标', () async {
     final backend = FixtureSigninWriteBackend();
     final controller = AppController(backend: backend);
     const allowed = SigninPerformAction(
@@ -262,7 +262,7 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('博雅签到写意图只接受冻结类型并完整转发有效坐标', () async {
+  test('博雅上课写意图只接受冻结类型并完整转发有效坐标', () async {
     final backend = FixtureBykcWriteBackend();
     final controller = AppController(backend: backend);
 
@@ -548,6 +548,7 @@ void _registerWriteTests() {
       } else if (operation == WriteOperation.cgyyCancelOrder ||
           operation == WriteOperation.ygdkSubmit ||
           operation == WriteOperation.evaluationSubmitCourses ||
+          operation == WriteOperation.libraryLoanRenew ||
           operation == WriteOperation.bhpan) {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, isEmpty);
@@ -565,39 +566,6 @@ void _registerWriteTests() {
         expect(backend.loadedFeatures, hasLength(1));
         expect(backend.loadedFeatures.single, _expectedFeature(operation));
       }
-    }
-    controller.dispose();
-  });
-
-  test('场馆写入成功优先刷新订单列表用于核对', () async {
-    final backend = FixtureCgyyQueryWriteBackend();
-    final controller = AppController(backend: backend);
-
-    await controller.refreshAfterWrite(WriteOperation.cgyySubmitReservation);
-
-    expect(backend.queries, hasLength(1));
-    expect(backend.queries.single.$1, FeatureId.cgyy);
-    expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
-    controller.dispose();
-  });
-
-  test('图书馆预约与取消都只刷新一次预约记录', () async {
-    final backend = FixtureRefreshMatrixBackend();
-    final controller = AppController(backend: backend);
-
-    for (final operation in const <WriteOperation>[
-      WriteOperation.libbookReserve,
-      WriteOperation.libbookCancelBooking,
-    ]) {
-      backend.queries.clear();
-      backend.loadedFeatures.clear();
-
-      await controller.refreshAfterWrite(operation);
-
-      expect(backend.loadedFeatures, isEmpty);
-      expect(backend.queries, hasLength(1));
-      expect(backend.queries.single.$1, FeatureId.libbook);
-      expect(backend.queries.single.$2.view, FeatureQueryView.libbookBookings);
     }
     controller.dispose();
   });
@@ -896,6 +864,7 @@ CgyySubmitInput _cgyySubmitInput({
 );
 
 FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
+  WriteOperation.spocSubmitAssignment => FeatureId.spoc,
   WriteOperation.bykcSelectCourse ||
   WriteOperation.bykcDeselectCourse ||
   WriteOperation.bykcSignCourse => FeatureId.bykc,
@@ -906,6 +875,7 @@ FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.cgyySubmitReservation ||
   WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
   WriteOperation.evaluationSubmitCourses ||
+  WriteOperation.libraryLoanRenew ||
   WriteOperation.bhpan => throw StateError('功能使用自己的读取核对入口，不走通用刷新'),
 };
 

@@ -18,7 +18,7 @@ void main() {
     );
     expect(
       advancedFeatureIds.map((feature) => feature.title).toList(),
-      <String>['课堂签到', '研讨室预约', '阳光打卡', '教学评教'],
+      <String>['每日课程', '研讨室预约', '阳光打卡', '教学评教'],
     );
   });
 
@@ -81,7 +81,7 @@ void main() {
     ]);
   });
 
-  test('博雅签到签退映射固定协议类型与写操作', () {
+  test('博雅上课下课映射固定协议类型与写操作', () {
     const signIn = BykcSignAction(
       courseId: 9527,
       kind: BykcSignKind.signIn,

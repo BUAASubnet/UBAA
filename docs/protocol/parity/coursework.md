@@ -4,6 +4,42 @@
 
 ## 当前规则
 
+### SPOC 作业附件与文件服务
+
+作业详情给出个人文件作业的提交资格。提交方式须含 `5`，小组作业不开放。次数达到有限上限时不再提供操作，`9999` 表示无限。附件与提交记录仍可只读查看。[作业文件提交](write-actions.md#spoc-作业文件提交2026-11-24)记录准备、上传、提交及回查的九项对照。
+
+证据来源：2026-11-24 维护者授权的浏览器只读实测（Direct）+ 官方前端 JS + 一次维护者提供的真实提交记录（已脱敏，原件不入库）。以下两节的业务主机均为 `spoc.buaa.edu.cn`。
+
+| 对照项 | 作业详情、我的提交、文件元数据与下载 |
+|---|---|
+| CAS 与引导 | 复用当前路线的 `/spocnewht/cas` 和 `/spocnewht/sys/casLogin`。 |
+| 重定向与最终 URL | 业务调用不跟随跳转。指向 SSO 的 Location 交给原有认证恢复流程；WebVPN 由运行时改写地址。 |
+| 凭据作用域 | SPOC 凭据按账号和路线隔离。文件服务通过 `Token: Inco-<token>` 鉴权，URL 不携带 Token。Direct 不交换导航 Cookie，WebVPN 保留网关会话。 |
+| 方法与参数 | 详情 GET `/spocnewht/kczy/queryKczyInfoByid?id=<作业标识>`；我的提交 GET `/spocnewht/kczy/queryXsSubmitKczyInfo?kczyid=<作业标识>`。文件服务前缀为 `/inco-filesystem/fileManagerSystem/`：元数据 POST `queryFileById?wjid=<文件标识>`，下载 GET `downLoadFile?scjlid=<文件标识>`。 |
+| 请求头与正文 | 作业业务使用 Token、RoleCode、`X-Requested-With: XMLHttpRequest`。文件服务只需要 Token；元数据 POST 无正文。 |
+| 加密与签名 | 无新增加密或签名参数。 |
+| DTO 与解析 | `zyfjid` 为单个附件标识；`scwjid` 为本人已提交文件标识，`ytjcs` 为提交次数。元数据是裸对象，取 `wjysmc`、`fileSize`、`wjhzm`。`bhtjlx` 和 `xzwjlx` 按逗号拆分，扩展名统一为小写带点；`xztjcs=9999` 映射为空（不限），缺值也为空。`zylx="2"` 表示小组作业，只有 `sfcjzy="1"` 才返回补交截止 `cjzysj`。 |
+| 缓存、并发与重试 | 新增字段只随在线详情返回，不写入原详情缓存。元数据读取失败时保留文件标识，不改变提交补充的完整度。仅文件服务的 HTTP 403 且 JSON `code=0` 触发现有的一次业务凭据刷新；必需读取的认证重试耗尽后沿用 UC 仲裁。 |
+| 错误与交付 | JSON、HTML、纯文本及非 200 响应最多读取 64 KiB，用于判定错误，不交付文件。成功下载以响应头 filename 优先（百分号解码，`+` 转为空格），其次用元数据名称。清洗路径字符并为空名提供默认名；实际路径始终由宿主指定。文件最多 512 MiB，长度不符、取消或失败时清理同目录临时文件，完整写入并同步后原子替换目标。 |
+
+### SPOC 课程文件
+
+证据来源与上节相同。
+
+| 对照项 | 课程、目录与单个课件 |
+|---|---|
+| CAS 与引导 | 使用同一 SPOC 引导，先读取当前学期，复用已有课程元数据接口。 |
+| 重定向与最终 URL | 业务前缀为 `/spocnewht/`。下载也不跟随跳转；SSO Location 按认证过期处理。 |
+| 凭据作用域 | 使用所选路线的 SPOC Token 和角色，保留该路线的会话。 |
+| 方法与参数 | 课程 GET `jxkj/queryKclb?kcmc=&xnxq=<当前学期>`。根目录 POST `kcwj/queryListPageXs`，`pid=0`；子目录 POST `grwj1/queryKcwjListgr`，`pid=<文件夹标识>`。两者均传 `pageNum`（从 1 起）、`pageSize=50`、`pid`、`mcTab=`、`kcid`、`lmlxdm=`、`wjlx=`。下载 POST `grwj1/downLoadFile?id=<列表项标识>`。 |
+| 请求头与正文 | Token、RoleCode、`X-Requested-With: XMLHttpRequest`。参数在 URL 查询串中，POST 无正文。 |
+| 加密与签名 | 无。 |
+| DTO 与解析 | 课程取 `kcid/kcmc/skjs`。目录取 `content.list` 的 `id/wjmc/sfwjj/wjsize/wjhzm/czsj/sfkxz`；`sfwjj="1"` 为文件夹，仅 `sfkxz="0"` 表示不允许下载。大小和上传时间保留展示文本；下载名取列表项 `wjmc`。 |
+| 缓存、并发与重试 | 本次不缓存，原因：按需下载、列表轻量。按顺序取页，`hasNextPage=false` 或到达 `pages` 时结束；读完 100 页仍有下一页则返回错误，不交付不完整目录。 |
+| 错误与产品语义 | 空目录正常返回空列表。HTTP 200 的 JSON 仍按业务信封分类；二进制交付规则同作业附件。不使用存储文件标识代替列表项标识，不打包目录，也不写课程访问记录。 |
+
+WebVPN 路线尚未真实验证，重跑条件：维护者授权后用只读工具跑一次列表与下载。
+
 ### 本学期刷新范围
 
 2026-11-14 对照冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalJudgeApi.kt:79-159`、`LocalJudgeHistoricalCourseStore` 和 `LocalJudgeApiBackendTest.kt`。旧版遇到开始时间早于六个月的作业即中止该课程，并持久跳过整门课程；默认未完成和未截止筛选在读取后执行。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 无 Judge 模块，九列协议均不适用。当前用户明确确认往期课程不会新增作业，采用已确认往期课程不再自动复查的产品规则。

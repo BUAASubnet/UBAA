@@ -17,6 +17,25 @@ abstract class FeatureAction {
   ActionEligibility get eligibility;
 }
 
+final class SpocSubmitAction extends FeatureAction {
+  const SpocSubmitAction({
+    required this.assignmentId,
+    required this.courseId,
+    required this.allowedExtensions,
+    this.maxSubmissions,
+    this.dueTime,
+    this.lateSubmissionDeadline,
+  });
+  final String assignmentId, courseId;
+  final List<String> allowedExtensions;
+  final int? maxSubmissions;
+  final String? dueTime, lateSubmissionDeadline;
+  @override
+  WriteOperation get operation => WriteOperation.spocSubmitAssignment;
+  @override
+  ActionEligibility get eligibility => ActionEligibility.allowed;
+}
+
 /// 一门课程的 Core 已核对评教能力。
 ///
 /// 只有 [eligibility] 为 [ActionEligibility.allowed] 且 [target] 完整时，

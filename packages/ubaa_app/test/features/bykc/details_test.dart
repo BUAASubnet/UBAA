@@ -22,7 +22,7 @@ void main() {
     expect(result.pagination?.page, 2);
     expect(client.arguments, {'page': 2, 'size': 8, 'all': true});
   });
-  test('完整详情保留空窗口和零考勤且显示对象不生成签到资格', () async {
+  test('完整详情保留空窗口和零考勤且显示对象不生成上课资格', () async {
     final client = _DetailClient(selected: true);
     final result = await BridgeBackend(client).loadFeatureQuery(
       FeatureId.bykc,

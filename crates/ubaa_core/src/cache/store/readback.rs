@@ -18,10 +18,12 @@ pub enum WriteReadbackOperation {
     SigninPerform,
     LibbookReserve,
     LibbookCancelBooking,
+    LibraryLoanRenew,
     YgdkSubmit,
     CgyySubmitReservation,
     CgyyCancelOrder,
     EvaluationSubmitCourses,
+    SpocSubmitAssignment,
 }
 
 /// 重启后只表明上次操作需要核对，不说明已发送或学校是否成功。

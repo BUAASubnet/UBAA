@@ -99,11 +99,7 @@ class UiErrorMapper {
   const UiErrorMapper();
 
   /// 根据 Core 稳定错误字段生成 UI 错误。
-  UiError fromCore(
-    CoreErrorPayload payload, {
-    String? feature,
-    bool includeTechnicalDetail = false,
-  }) {
+  UiError fromCore(CoreErrorPayload payload, {String? feature}) {
     final code = _parseCode(payload.code);
     final kind = kindOf(payload);
     final template = code == UbaaErrorCode.outcomeUnknown
@@ -117,7 +113,7 @@ class UiErrorMapper {
         ? false
         : payload.retryable ?? _defaultRetryable(code);
     final issueId = _safeIssueId(payload.issueId);
-    // 保留参数供旧调用方编译；原始 message 无法证明安全，不再保留。
+    // 原始 message 无法证明安全，不予保留。
     // 排障改用有界 LocalDiagnostics 的类型、阶段和源码位置。
     // `feature` 只用于调用方上下文；绝不拼进可能含个人数据的错误文本。
     // 保留参数是为了让页面层可以统一传入功能标识，而不改变稳定文案。
@@ -143,15 +139,8 @@ class UiErrorMapper {
   }
 
   /// 解析 Core 错误对象或当前 schema-v10（兼容历史版本）envelope。
-  UiError fromJson(
-    Object? value, {
-    String? feature,
-    bool includeTechnicalDetail = false,
-  }) => fromCore(
-    CoreErrorPayload.fromJson(value),
-    feature: feature,
-    includeTechnicalDetail: includeTechnicalDetail,
-  );
+  UiError fromJson(Object? value, {String? feature}) =>
+      fromCore(CoreErrorPayload.fromJson(value), feature: feature);
 
   /// 把平台异常转换为稳定 UI 错误；不保留异常正文。
   UiError fromException(Object error, {String? feature}) {
@@ -227,7 +216,6 @@ UiError mapCoreError({
   String? message,
   String? issueId,
   String? feature,
-  bool includeTechnicalDetail = false,
   ConnectionMode? resolvedRoute,
 }) => UiErrorMapper().fromCore(
   CoreErrorPayload(
@@ -239,19 +227,11 @@ UiError mapCoreError({
     resolvedRoute: resolvedRoute,
   ),
   feature: feature,
-  includeTechnicalDetail: includeTechnicalDetail,
 );
 
 /// 从 JSON/CLI envelope 生成 UI 错误。
-UiError mapCoreErrorJson(
-  Object? value, {
-  String? feature,
-  bool includeTechnicalDetail = false,
-}) => UiErrorMapper().fromJson(
-  value,
-  feature: feature,
-  includeTechnicalDetail: includeTechnicalDetail,
-);
+UiError mapCoreErrorJson(Object? value, {String? feature}) =>
+    UiErrorMapper().fromJson(value, feature: feature);
 
 /// 从平台异常生成 UI 错误。
 UiError mapExceptionToUiError(Object error, {String? feature}) =>
@@ -490,6 +470,26 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   UiErrorKind kind,
   ErrorDiagnostic? diagnostic,
 ) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.invalidInput, 'spoc_file_changed') => (
+    title: '文件已变化',
+    message: '请重新选择文件并准备提交',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.permissionDenied, 'library_webvpn_unsupported') => (
+    title: '当前连接方式不支持图书馆借阅',
+    message: '图书馆借阅暂不支持 WebVPN，请切换为自动或直连',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.invalidInput, 'library_renew_unavailable') => (
+    title: '当前不可续借',
+    message: '这本书当前不可续借，请刷新后查看借阅记录',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.operationConflict, 'library_renew_changed') => (
+    title: '续借目标已变化',
+    message: '续借目标已变化，请刷新后重试',
+    actionLabel: '刷新',
+  ),
   (UbaaErrorCode.timeout, _)
       when kind == UiErrorKind.internal && diagnostic?.isCacheBusy == true =>
     (title: '本机缓存暂时繁忙', message: '本机缓存正在使用，请稍后重试', actionLabel: '重试'),

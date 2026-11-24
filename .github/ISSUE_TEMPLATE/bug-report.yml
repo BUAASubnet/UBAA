@@ -1,0 +1,67 @@
+name: 问题反馈
+description: 报告 UBAA 中遇到的问题
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Issue 公开可见。请勿粘贴账号、密码、Cookie、Token 或截图中的个人信息。**
+        发布前请检查正文、截图和附件。安全漏洞请按[安全策略](https://github.com/BUAASubnet/UBAA/blob/main/SECURITY.md)私下报告。
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - Android
+        - iOS
+        - HarmonyOS
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App 版本
+      description: 请填写 App 版本号，知道构建号也请一并填写。
+      placeholder: 例如 2.0.1+2100
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: 问题发生时的连接方式
+      options:
+        - 直连
+        - WebVPN
+        - 自动（不清楚实际路线）
+        - 不适用或不确定
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请说明从哪个页面开始、进行了哪些操作，以及问题出现的频率。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 如有错误提示或诊断编号，请填写脱敏后的提示或编号。
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 诊断报告（可选）
+      description: |
+        复现后打开「设置 › 诊断信息」，选择「分享完整诊断」或「保存完整诊断」。如果登录页或启动错误页显示「诊断信息」，也可从那里进入；启动错误页的按钮为「分享诊断报告」或「保存诊断报告」。
+        优先提供诊断编号。仅在确认报告不含账号、密码、Cookie、Token 或其他个人信息后，才附上脱敏内容。无法确认时请不要上传完整报告。

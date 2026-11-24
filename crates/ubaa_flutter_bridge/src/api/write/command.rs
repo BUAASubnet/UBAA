@@ -3,6 +3,7 @@ use super::{
     dispatch::{WriteReceipt, dispatch},
     preparation_error::routed_bridge_error,
 };
+use crate::api::command::lock_unpoisoned;
 use crate::api::{
     client::{BridgeClient, disposed_error},
     offline::BridgeOfflineCache,
@@ -35,7 +36,7 @@ impl BridgeClient {
         let route = entry.resolved_route;
         let observation = std::sync::Arc::new(client.observe_write_boundary());
         if let Some(command) = command {
-            *command.sent.lock().unwrap() = Some((observation.clone(), entry.resolution));
+            *lock_unpoisoned(&command.sent) = Some((observation.clone(), entry.resolution));
         }
         let mut cleanup = CommandEffects {
             cache: cache.map(|v| v.cache.clone()),

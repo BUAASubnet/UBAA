@@ -9,6 +9,7 @@ class WriteReceiptVerifier {
     this.verifyCgyyCancellation,
     this.refreshYgdkAfterWrite,
     this.refreshEvaluationAfterWrite,
+    this.verifyLibraryLoanRenew,
   });
 
   final Future<void> Function(WriteOperation, FeatureQuery?)? refreshAfterWrite;
@@ -24,12 +25,15 @@ class WriteReceiptVerifier {
   refreshYgdkAfterWrite;
   final Future<void> Function({required ConnectionMode expectedRoute})?
   refreshEvaluationAfterWrite;
+  final Future<LibraryLoanRenewReadback?> Function(WriteIntent intent)?
+  verifyLibraryLoanRenew;
 
   Future<WriteOutcome> complete(
     WriteIntent intent, {
     WriteCommitResult? result,
     UiError? error,
     UiError? resultError,
+    String? libraryLoanRejectionReason,
     required bool Function() isCurrent,
     void Function(Object, StackTrace)? onReadbackError,
   }) async {
@@ -45,6 +49,7 @@ class WriteReceiptVerifier {
 
     bool? receiptVerified;
     bool? cancellationVerified;
+    LibraryLoanRenewReadback? libraryLoanRenewReadback;
     var ygdkAttempted = false;
     final operation = intent.operation;
     final shouldRead = result != null
@@ -56,7 +61,14 @@ class WriteReceiptVerifier {
               operation == WriteOperation.evaluationSubmitCourses;
 
     if (shouldRead && isCurrent()) {
-      if (operation == WriteOperation.evaluationSubmitCourses) {
+      if (operation == WriteOperation.libraryLoanRenew) {
+        try {
+          libraryLoanRenewReadback = await verifyLibraryLoanRenew?.call(intent);
+        } on Object catch (cause, stackTrace) {
+          // 回读失败只保留未核对状态，不重试已经结束的写请求。
+          report(cause, stackTrace);
+        }
+      } else if (operation == WriteOperation.evaluationSubmitCourses) {
         await _refreshPinned(
           refreshEvaluationAfterWrite,
           intent.resolvedRoute,
@@ -74,7 +86,10 @@ class WriteReceiptVerifier {
       } else {
         try {
           final pinned = refreshPinnedAfterWrite;
-          if (pinned != null) {
+          if (operation == WriteOperation.spocSubmitAssignment) {
+            if (result?.success == true)
+              await refreshAfterWrite?.call(operation, intent.readbackQuery);
+          } else if (pinned != null) {
             await pinned(operation, intent.readbackQuery, intent.resolvedRoute);
           } else {
             await refreshAfterWrite?.call(operation, intent.readbackQuery);
@@ -108,8 +123,10 @@ class WriteReceiptVerifier {
       cgyyReceiptVerified: receiptVerified,
       cgyyCancellationVerified: cancellationVerified,
       ygdkReadbackAttempted: ygdkAttempted,
+      libraryLoanRenewReadback: libraryLoanRenewReadback,
       message: result == null
-          ? _errorMessage(error!, operation, cancellationVerified)
+          ? libraryLoanRejectionReason ??
+                _errorMessage(error!, operation, cancellationVerified)
           : _resultMessage(result, receiptVerified, cancellationVerified),
     );
   }
@@ -152,11 +169,11 @@ class WriteReceiptVerifier {
   String _unknownMessage(
     WriteOperation operation,
     bool? cancellationVerified,
-  ) =>
-      operation == WriteOperation.cgyyCancelOrder &&
-          cancellationVerified == true
-      ? '已取消预约'
-      : '结果未确认，请刷新后查看，勿重复提交';
+  ) => switch (operation) {
+    WriteOperation.spocSubmitAssignment => '提交结果未确认，请到作业详情页刷新核对，勿重复提交',
+    WriteOperation.cgyyCancelOrder when cancellationVerified == true => '已取消预约',
+    _ => '结果未确认，请刷新后查看，勿重复提交',
+  };
 
   String _errorMessage(
     UiError error,

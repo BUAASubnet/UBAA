@@ -226,6 +226,7 @@ async fn 提交结果保留实际路线且失效同一份业务缓存() {
             cgyy_receipt: None,
             ygdk_receipt: None,
             evaluation_result: None,
+            spoc_receipt: None,
         }),
     )
     .await;
@@ -351,6 +352,7 @@ async fn 评教部分成功或未知撤销旧集合_全部明确失败保留() {
             cgyy_receipt: None,
             ygdk_receipt: None,
             evaluation_result: Some(batch),
+            spoc_receipt: None,
         });
         let (hint, error) = super::super::readback::begin_hint(
             Some(&cache),

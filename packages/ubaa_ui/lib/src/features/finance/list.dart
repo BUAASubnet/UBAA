@@ -16,6 +16,9 @@ final class _FinanceGroup {
             if ([
               e.project,
               e.description,
+              e.department,
+              e.projectCode,
+              e.projectName,
               e.id,
             ].any((v) => v?.toLowerCase().contains(keyword) ?? false))
               e,
@@ -229,6 +232,7 @@ class _FinanceRow extends StatelessWidget {
     );
     final subtitle = _subtitle(entry);
     final date = _parseDate(entry.recordedDate);
+    final meta = _rowMeta(entry, date);
     final tax = entry.taxCents;
     return Semantics(
       button: true,
@@ -253,10 +257,12 @@ class _FinanceRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(subtitle, style: theme.textTheme.bodyMedium),
                     ],
-                    if (date != null) ...[
+                    if (meta != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '${uiDay(date, now: uiCampusNow())}录入',
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: secondary,
                       ),
                     ],

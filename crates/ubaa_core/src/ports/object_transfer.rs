@@ -7,6 +7,7 @@ pub struct HttpFileRange {
     pub file: File,
     pub offset: u64,
     pub length: u64,
+    pub framing: Option<(Vec<u8>, Vec<u8>)>,
 }
 /// 每个流块检查取消与固定归属，并报告累计进度。
 pub trait HttpTransferObserver: Send + Sync {

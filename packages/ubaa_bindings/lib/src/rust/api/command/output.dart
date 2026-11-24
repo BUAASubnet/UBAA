@@ -20,8 +20,6 @@ abstract class BridgeCommandDelivery implements RustOpaqueInterface {
 
   Future<void> fail();
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<int> finish();
 
   /// # Errors

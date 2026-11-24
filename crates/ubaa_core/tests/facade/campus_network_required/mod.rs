@@ -116,7 +116,7 @@ impl HttpTransport for Transport {
 
 struct Case {
     client: UbaaClient,
-    root: std::path::PathBuf,
+    root: crate::test_tmp::TestTempDir,
     visits: Visits,
 }
 
@@ -135,9 +135,8 @@ impl Case {
         vpn: Option<(&'static str, Reply)>,
         probe: impl GatewayProbe + 'static,
     ) -> Self {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/campus_only/tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let root =
+            crate::test_tmp::test_temp_dir("ubaa_core_facade_campus_network_required").unwrap();
         let store = FileSessionStore::new(&root).unwrap();
         let slot = RouteSessionSnapshot {
             cookies: vec![],
@@ -192,12 +191,6 @@ fn now_seconds() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs()
-}
-
-impl Drop for Case {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.root);
-    }
 }
 
 fn assert_campus_error(error: &UbaaError) {

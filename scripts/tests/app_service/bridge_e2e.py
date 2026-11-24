@@ -14,7 +14,7 @@ from http_e2e import (BOOTSTRAP, EMPTY, ERASE, ERASED, LOOPBACK, ROOT, UPLOAD,
                       exchange, local_worker, prepare, require, run)
 
 
-UPLOADED = dict(EMPTY, batches=1, active=1, counters=2, errors=1, write_sample="16781313")
+UPLOADED = dict(EMPTY, batches=1, active=1, counters=3, minutes=1, errors=1, write_sample="16781313")
 
 
 def main():
@@ -84,7 +84,7 @@ def main():
                     cwd=ROOT, env=env, timeout=600)
                 require(sent == {UPLOAD: 2, ERASE: 2, BOOTSTRAP: 1},
                         "基础模式重启只允许 GUI 重试删除，命令模式不得发请求")
-                require(query() == ERASED, "重启删除成功后 PostgreSQL 仍有旧明细，或发生了额外写入")
+                require(query() == dict(ERASED, minutes=1), "重启删除后应仅保留匿名分钟统计和删除标记")
             finally:
                 server.shutdown()
                 thread.join()

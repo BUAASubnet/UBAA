@@ -79,7 +79,9 @@ mod write;
 
 pub use crate::domain::CgyyLockDisplay;
 pub use crate::domain::{
-    CampusAmount, CampusMetric, CampusMetrics, NetworkProductUsage, NetworkUsage, PortalProfile,
+    CampusAmount, CampusMetric, CampusMetrics, LibraryLoan, LibraryLoanRenewRequest,
+    LibraryLoanRenewResult, LibraryLoanStatus, LibraryLoans, NetworkProductUsage, NetworkUsage,
+    PortalProfile,
 };
 pub use crate::domain::{
     CaptchaAnswer, CaptchaChallenge, CaptchaFrame, InteractiveLoginCancellation,
@@ -115,14 +117,17 @@ pub use crate::domain::{
     LibBookSeat, LibBookStorey, LibBookTimeSlot, LoginInput, LoginOutcome, LoginReadiness,
     ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue,
     SectionTime, SigninActionResult, SigninClass, SigninQr, SpocAssignmentDetail,
-    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
-    TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocAttachment, SpocCourse,
+    SpocCourseFile, SpocDownloadReceipt, SpocDownloadTarget, SpocSubmissionStatus,
+    SpocSubmitAction, SpocSubmitReceipt, SpocSubmitSummary, SpocSubmittedFile, Term, TodayClass,
+    UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
     YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
 };
 pub use crate::error::{
     ErrorCode, ErrorDiagnostic, ErrorKind, InitializationFailure, Result, UbaaError,
 };
+pub use crate::features::spoc::submit::SpocPreparedSubmission;
 
 // 这些类型是宿主可见的安全路线诊断投影；其余 connection 实现仍属于 Core 内部。
 pub use crate::connection::control::{ClientNetworkChange, ClientNetworkControl};

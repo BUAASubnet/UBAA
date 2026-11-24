@@ -49,6 +49,75 @@ function storedMinute(minuteAt: string) {
     .first();
 }
 
+it("功能打开按天和分钟累加，与同批加载分开", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  const opened = {
+    ...day.counters[0],
+    event: "feature_opened",
+    route: "none",
+    count: 1,
+  };
+  day.counters.push(opened);
+  const days = [
+    { ...day, minutes: [{ ...minuteCount(793, 1), event: opened.event }] },
+  ];
+  for (let batch = 0; batch < 2; batch++) {
+    expect(
+      (await postTelemetry({ ...payload, days, batch_id: crypto.randomUUID() }))
+        .status,
+    ).toBe(204);
+  }
+  expect(
+    await env.DB.prepare(
+      "SELECT event, count FROM counter_days WHERE install_id=$1 ORDER BY event",
+    )
+      .bind(payload.install_id)
+      .all(),
+  ).toMatchObject({
+    results: [
+      { event: "feature_loaded", count: 6 },
+      { event: "feature_opened", count: 2 },
+    ],
+  });
+  expect(await storedMinute(`${day.day}T13:13`)).toMatchObject({
+    event: "feature_opened",
+    count: 2,
+  });
+});
+
+it("接收健康云打开并写入日与分钟计数", async () => {
+  const payload = createBatch();
+  const [day] = payload.days;
+  const opened = {
+    event: "feature_opened",
+    feature: "health_cloud",
+    result: "success",
+    count: 1,
+  };
+  const counter = { ...opened, route: "none" };
+  const days = [
+    { ...day, counters: [counter], minutes: [{ ...opened, minute: 794 }] },
+  ];
+  expect(
+    (
+      await postTelemetry({
+        ...payload,
+        days: [{ ...day, counters: [{ ...counter, event: "feature_loaded" }] }],
+      })
+    ).status,
+  ).toBe(400);
+  expect((await postTelemetry({ ...payload, days })).status).toBe(204);
+  expect(
+    await env.DB.prepare(
+      "SELECT event, feature, route, result, count FROM counter_days WHERE install_id=$1",
+    )
+      .bind(payload.install_id)
+      .first(),
+  ).toEqual(counter);
+  expect(await storedMinute(`${day.day}T13:14`)).toMatchObject(opened);
+});
+
 it.each(["顺序", "并发"])("%s重发同一批次只累加一次", async (order) => {
   const payload = createBatch();
   let statuses: number[];

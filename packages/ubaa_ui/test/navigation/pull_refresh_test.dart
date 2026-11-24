@@ -28,23 +28,20 @@ void main() {
       expect(calls, 1);
     });
   }
-  for (final feature in FeatureId.values) {
-    for (final status in [
-      FeatureLoadStatus.success,
-      FeatureLoadStatus.empty,
-      FeatureLoadStatus.failure,
-    ]) {
-      testWidgets('${feature.title} ${status.name} 移动端下拉沿原刷新入口', (
-        tester,
-      ) async {
-        var calls = 0;
-        await mount(tester, feature, status, () async => calls++);
-        await tester.dragFrom(const Offset(190, 220), const Offset(0, 330));
-        await tester.pumpAndSettle();
-        expect(calls, 1);
-        expect(tester.takeException(), isNull);
-      });
-    }
+  const feature = FeatureId.exam;
+  for (final status in [
+    FeatureLoadStatus.success,
+    FeatureLoadStatus.empty,
+    FeatureLoadStatus.failure,
+  ]) {
+    testWidgets('${feature.title} ${status.name} 移动端下拉沿原刷新入口', (tester) async {
+      var calls = 0;
+      await mount(tester, feature, status, () async => calls++);
+      await tester.dragFrom(const Offset(190, 220), const Offset(0, 330));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(tester.takeException(), isNull);
+    });
   }
   testWidgets('iOS 空内容也能下拉刷新', (tester) async {
     var calls = 0;

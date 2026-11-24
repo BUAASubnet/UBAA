@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../support/test_tmp.dart';
 
 class _InterruptedSource implements File {
   _InterruptedSource(this.reader);
@@ -78,11 +79,7 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late Directory root;
   setUp(() async {
-    final base = Directory(
-      '${Directory.current.path}/../../.ubaa_local/bhpan_delivery/integration/platform_tests',
-    );
-    await base.create(recursive: true);
-    root = await base.createTemp('save_');
+    root = createTestTempDirectory('ubaa_platform_bhpan_download');
   });
   tearDown(() async {
     messenger.setMockMethodCallHandler(channel, null);

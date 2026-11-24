@@ -96,6 +96,12 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
     if args.feature == "all" || args.feature == "finance" {
         run_finance(&mut client, &mut evidence).await;
     }
+    if args.feature == "all" || args.feature == "library_loans" {
+        match client.current_library_loans().await {
+            Ok(loans) => record_library_loans(&mut evidence, &loans.data.entries),
+            Err(error) => evidence.fail("library_loans", "current", error.error.code),
+        }
+    }
     if args.feature == "all" || args.feature == "ihome" {
         run_ihome(&mut client, &mut evidence).await;
     }
@@ -119,6 +125,25 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
     }
     run_campus(&mut client, &mut evidence, &args.feature).await;
     Ok(evidence)
+}
+
+fn record_library_loans(evidence: &mut Evidence, loans: &[ubaa_core::facade::LibraryLoan]) {
+    let known = loans
+        .iter()
+        .filter(|loan| loan.can_renew_times.is_some())
+        .count();
+    let fields = [("renew_conditions_known", known.to_string())];
+    if known == loans.len() {
+        evidence.pass_with_fields("library_loans", "current", Some(loans.len()), &fields);
+    } else {
+        evidence.fail_with_fields(
+            "library_loans",
+            "current",
+            "renew_conditions_incomplete",
+            Some(loans.len()),
+            &fields,
+        );
+    }
 }
 
 fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
@@ -177,6 +202,7 @@ fn authentication_dependencies(
         ("portal", "cloud_storage_remaining"),
         ("network", "usage"),
         ("finance", "incomes"),
+        ("library_loans", "current"),
         ("ihome", "public"),
         ("ihome", "mine"),
         ("ihome", "followed"),
@@ -789,6 +815,31 @@ async fn run_finance(client: &mut UbaaClient, evidence: &mut Evidence) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn 借阅读取要求每条记录都有续借条件() {
+        use ubaa_core::facade::{LibraryLoan, LibraryLoanStatus};
+        let loan = |can_renew_times| LibraryLoan {
+            id: "sample".into(),
+            title: "合成书目".into(),
+            author: None,
+            loan_date: None,
+            due_date: None,
+            renew_times: None,
+            can_renew_times,
+            status: LibraryLoanStatus::Normal,
+            location: None,
+        };
+        for (loans, failed) in [
+            (vec![], false),
+            (vec![loan(Some(0))], false),
+            (vec![loan(Some(1)), loan(None)], true),
+        ] {
+            let mut evidence = super::Evidence::new("direct");
+            super::record_library_loans(&mut evidence, &loans);
+            assert_eq!(evidence.failed(), failed);
+        }
+    }
+
     #[test]
     fn 每个受支持功能在认证失败后都有阻塞操作() {
         for feature in crate::args::FEATURES

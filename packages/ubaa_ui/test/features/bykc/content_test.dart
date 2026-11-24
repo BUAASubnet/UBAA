@@ -325,14 +325,14 @@ void main() {
         ],
       ),
     ], view: FeatureQueryView.bykcChosenCourses);
-    expect(find.textContaining('已签到、未签退'), findsOneWidget);
+    expect(find.textContaining('已上课、未下课'), findsOneWidget);
     expect(find.textContaining('待考核'), findsOneWidget);
     expect(find.textContaining('0 分'), findsOneWidget);
     expect(find.text('退选'), findsOneWidget);
     await tester.tap(find.widgetWithText(Card, '合成已选课'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
-    expect(find.text('签到信息'), findsOneWidget);
+    expect(find.text('上课信息'), findsOneWidget);
     expect(find.text('退选'), findsOneWidget);
     expect(find.text('999'), findsNothing);
     await tester.tap(find.byTooltip('返回'));

@@ -98,14 +98,14 @@ async fn 博雅签到准备先复核当前学期资格再签发意图() {
     ));
     assert_eq!(intent.resolved_route, BridgeConnectionMode::Direct);
     assert!(intent.target_summary.contains("脱敏资格课程"));
-    assert!(intent.target_summary.contains("签到"));
+    assert!(intent.target_summary.contains("上课"));
     assert!(intent.target_summary.contains("2000-01-01 00:00:00"));
     assert!(intent.target_summary.contains("2999-12-31 23:59:59"));
     assert!(
         intent
             .warnings
             .iter()
-            .any(|value| value.contains("签到范围"))
+            .any(|value| value.contains("上课范围"))
     );
     direct.assert_exhausted().expect("必须完整复核签到资格");
     assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 3);
@@ -375,7 +375,7 @@ async fn 博雅签退成功只提交一次并返回准确确认文案() {
         .expect("提交博雅签退");
 
     assert!(result.success);
-    assert_eq!(result.message, "签退成功");
+    assert_eq!(result.message, "下课成功");
     assert!(!result.outcome_unknown);
     direct.assert_exhausted().expect("最终写请求必须恰好一次");
     assert_eq!(direct.requests().expect("读取请求").len(), 6);

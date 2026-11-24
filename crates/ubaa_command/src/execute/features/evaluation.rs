@@ -7,54 +7,15 @@ use ubaa_core::facade::{
     EvaluationSubmitTarget, Result, Routed, RoutedError, RoutedResult,
 };
 
-use crate::backend::{CliBackend, RoutedCliBackend};
+use crate::backend::RoutedCliBackend;
 use crate::command::{EvaluationArgs, EvaluationCommand};
 use crate::execute::routed_readonly;
 use crate::io::input::{internal_error, invalid_input, upstream_changed};
-use crate::io::schema::{CliFeature, CommandOutput, readonly};
+use crate::io::schema::{CliFeature, CommandOutput};
 
 const CONFIRM_WRITE_MESSAGE: &str = "评教是写操作，必须显式指定 --confirm-write";
 const NO_PENDING_MESSAGE: &str = "没有可提交的待评课程";
 const UNSAFE_PENDING_MESSAGE: &str = "待评课程资格或提交目标无法安全确认，请刷新后重试";
-
-pub(in crate::execute) async fn run_evaluation<B: CliBackend + Send>(
-    arguments: EvaluationArgs,
-    backend: &mut B,
-) -> Result<CommandOutput> {
-    match arguments.command {
-        EvaluationCommand::All => backend
-            .evaluation_all()
-            .await
-            .and_then(|result| readonly(result, CliFeature::Evaluation)),
-        EvaluationCommand::Pending => backend.evaluation_all().await.and_then(pending_output),
-        EvaluationCommand::SubmitPending { confirm_write } => {
-            if !confirm_write {
-                return Err(invalid_input(CONFIRM_WRITE_MESSAGE));
-            }
-            let authority = backend.evaluation_all().await?;
-            let route = authority.resolved_route;
-            if backend.mode() != route {
-                return Err(upstream_changed("评教 fresh authority 偏离固定后端路线"));
-            }
-            let request = pending_request(authority.data)?;
-            let batch = match backend.evaluation_submit_courses(request).await {
-                Ok(batch) => batch,
-                Err(error) => {
-                    let _ = backend.evaluation_all_on_route(route).await;
-                    return Err(error);
-                }
-            };
-            if batch.resolved_route != route {
-                return Err(internal_error("评教提交结果偏离固定路线"));
-            }
-            let _ = backend.evaluation_all_on_route(route).await;
-            Ok(CommandOutput::EvaluationBatch {
-                data: batch.data,
-                route,
-            })
-        }
-    }
-}
 
 pub(in crate::execute) async fn run_routed_evaluation<B: RoutedCliBackend + Send>(
     arguments: EvaluationArgs,

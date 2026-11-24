@@ -72,17 +72,33 @@ class _FakeCampusService implements CampusAccountService {
 Widget _app(
   CampusAccountService service, {
   String account = 'synthetic',
+  RoutePolicy routePolicy = RoutePolicy.auto,
   Clock? now,
+  LibraryLoansReader? readLibraryLoans,
+  ValueChanged<String>? onFeatureOpened,
+  LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite,
+  WritePreparationRunner? onRunWritePrepare,
+  WriteConfirmationRunner? onConfirmWrite,
+  WriteCancellationRunner? onCancelWrite,
+  WriteState writeState = const WriteState.idle(),
 }) => MaterialApp(
   home: UbaaMainShell(
     user: UserSummary(username: account, displayName: '测试同学'),
     campusAccountService: service,
     homeClock: now,
+    readLibraryLoans: readLibraryLoans,
+    onFeatureOpened: onFeatureOpened,
+    onPrepareLibraryLoanRenewWrite: onPrepareLibraryLoanRenewWrite,
+    onRunWritePrepare: onRunWritePrepare,
+    onConfirmWrite: onConfirmWrite,
+    onCancelWrite: onCancelWrite,
+    onDiscardWriteIntent: (_) async {},
+    writeState: writeState,
     snapshots: {
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(feature: feature),
     },
-    routePolicy: RoutePolicy.auto,
+    routePolicy: routePolicy,
     onRefresh: () async {},
     onRetryFeature: (_) async {},
     onLogout: () async {},
@@ -97,6 +113,258 @@ Future<void> _openMe(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('点击待还图书打开当前借阅页面', (tester) async {
+    final opened = <String>[];
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _app(
+        _FakeCampusService(),
+        onFeatureOpened: opened.add,
+        readLibraryLoans: () async => const [
+          LibraryLoan(
+            id: 'loan-1',
+            title: '合成书目',
+            author: '合成作者',
+            loanDate: '2026-11-01',
+            dueDate: '2026-12-01',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    await tester.tap(find.byKey(const ValueKey('me-metric-books')));
+    await tester.pumpAndSettle();
+    expect(find.text('当前借阅'), findsOneWidget);
+    expect(find.text('合成书目'), findsOneWidget);
+    expect(find.text('共 1 本在借'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('me-metric-books')), findsOneWidget);
+    expect(opened, ['library_loans']);
+  });
+
+  testWidgets('续借经既有确认流程提交并使用原路线核对结果', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var loans = const [
+      LibraryLoan(
+        id: 'loan-1',
+        title: '合成书目',
+        dueDate: '2026-12-01',
+        renewTimes: 1,
+        canRenewTimes: 1,
+      ),
+    ];
+    var prepared = 0;
+    var committed = 0;
+    final intent = WriteIntent(
+      intentId: 'intent-library',
+      operation: WriteOperation.libraryLoanRenew,
+      targetSummary: '《合成书目》',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      _app(
+        _FakeCampusService(),
+        readLibraryLoans: () async => loans,
+        onPrepareLibraryLoanRenewWrite: (loanId) async {
+          expect(loanId, 'loan-1');
+          prepared++;
+          return intent;
+        },
+        onRunWritePrepare: (prepare, {required expectedOperation}) async {
+          expect(expectedOperation, WriteOperation.libraryLoanRenew);
+          return prepare();
+        },
+        onConfirmWrite: () async {
+          committed++;
+          loans = const [
+            LibraryLoan(
+              id: 'loan-1',
+              title: '合成书目',
+              dueDate: '2027-01-05',
+              renewTimes: 2,
+              canRenewTimes: 0,
+            ),
+          ];
+          return WriteOutcome(
+            operation: WriteOperation.libraryLoanRenew,
+            message: '续借成功',
+            result: const WriteCommitResult(
+              operation: WriteOperation.libraryLoanRenew,
+              success: true,
+              message: '续借成功',
+              outcomeUnknown: false,
+              resolvedRoute: ConnectionMode.direct,
+            ),
+            libraryLoanRenewReadback: LibraryLoanRenewReadback(
+              loanId: 'loan-1',
+              loans: loans,
+              route: ConnectionMode.direct,
+              status: LibraryRenewStatus.applied,
+            ),
+          );
+        },
+        onCancelWrite: () async {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    await tester.tap(find.byKey(const ValueKey('me-metric-books')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '续借'));
+    await tester.pumpAndSettle();
+    expect(find.text('续借这本书？'), findsOneWidget);
+    expect(prepared, 0);
+    await tester.tap(find.text('确认续借'));
+    await tester.pumpAndSettle();
+    expect(prepared, 1);
+    expect(committed, 1);
+    expect(find.text('续借 2 次'), findsOneWidget);
+    expect(find.text('不可续借'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.textContaining(RegExp(r'^续借成功，应还日期 (?:2027年)?1月5日$')),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('待还图书每次续借被拒绝时显示本次学校原因', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const reasons = ['META-403060: 不允许续借,未达到到期前续借天数', '已有预约，无法续借'];
+    var readCalls = 0;
+    var committed = 0;
+    await tester.pumpWidget(
+      _app(
+        _FakeCampusService(),
+        readLibraryLoans: () async {
+          readCalls++;
+          return const [
+            LibraryLoan(
+              id: 'loan-1',
+              title: '合成书目',
+              dueDate: '2026-12-01',
+              renewTimes: 1,
+              canRenewTimes: 1,
+            ),
+          ];
+        },
+        onPrepareLibraryLoanRenewWrite: (_) async => WriteIntent(
+          intentId: 'intent-library-rejected',
+          operation: WriteOperation.libraryLoanRenew,
+          targetSummary: '《合成书目》',
+          resolvedRoute: ConnectionMode.direct,
+          warnings: const <String>[],
+          expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+          requestDigest: 'digest',
+        ),
+        onRunWritePrepare: (prepare, {required expectedOperation}) async =>
+            prepare(),
+        onConfirmWrite: () async => WriteOutcome(
+          operation: WriteOperation.libraryLoanRenew,
+          message: reasons[committed++],
+          error: const UiError(
+            code: UbaaErrorCode.businessRejected,
+            title: '操作未完成',
+            message: '学校服务未接受本次操作',
+          ),
+        ),
+        onCancelWrite: () async {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    await tester.tap(find.byKey(const ValueKey('me-metric-books')));
+    await tester.pumpAndSettle();
+    for (final (index, reason) in reasons.indexed) {
+      await tester.tap(find.widgetWithText(FilledButton, '续借'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('确认续借'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(reason), findsOneWidget);
+      expect(find.text(reasons[1 - index]), findsNothing);
+      expect(find.text('续借 1 次'), findsOneWidget);
+      expect(committed, index + 1);
+      expect(readCalls, 1);
+    }
+  });
+
+  testWidgets('确认弹窗期间切换路线会丢弃旧续借操作', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var prepared = 0;
+    var committed = 0;
+    final intent = WriteIntent(
+      intentId: 'intent-library-route',
+      operation: WriteOperation.libraryLoanRenew,
+      targetSummary: '《合成书目》',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    Widget app(RoutePolicy policy) => _app(
+      _FakeCampusService(),
+      routePolicy: policy,
+      readLibraryLoans: () async => const [
+        LibraryLoan(
+          id: 'loan-1',
+          title: '合成书目',
+          dueDate: '2026-12-01',
+          renewTimes: 1,
+          canRenewTimes: 1,
+        ),
+      ],
+      onPrepareLibraryLoanRenewWrite: (_) async {
+        prepared++;
+        return intent;
+      },
+      onRunWritePrepare: (prepare, {required expectedOperation}) async {
+        return prepare();
+      },
+      onConfirmWrite: () async {
+        committed++;
+        return const WriteOutcome(
+          operation: WriteOperation.libraryLoanRenew,
+          message: '续借成功',
+          error: UiError(
+            code: UbaaErrorCode.operationConflict,
+            title: '已失效',
+            message: '操作已失效',
+          ),
+        );
+      },
+      onCancelWrite: () async {},
+    );
+    await tester.pumpWidget(app(RoutePolicy.auto));
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    await tester.tap(find.byKey(const ValueKey('me-metric-books')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '续借'));
+    await tester.pumpAndSettle();
+    expect(find.text('续借这本书？'), findsOneWidget);
+    await tester.pumpWidget(app(RoutePolicy.webvpn));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认续借'));
+    await tester.pumpAndSettle();
+    expect(prepared, 0);
+    expect(committed, 0);
+  });
+
   test('缓存读取期间恢复在线会继续刷新校园账户', () async {
     final service = _FakeCampusService()..cacheGate = Completer();
     final loader = CampusAccountLoader(

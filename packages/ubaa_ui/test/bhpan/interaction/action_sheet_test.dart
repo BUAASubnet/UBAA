@@ -20,24 +20,35 @@ void main() {
       ),
     );
     await openItemActions(tester, '报告.txt');
-    const order = ['下载', '分享', '复制到', '详细信息', '分享记录', '移入回收站'];
-    for (var index = 1; index < order.length; index++) {
+    Finder action(BhpanAction value) =>
+        find.byKey(ValueKey('bhpan-action-${value.name}'));
+    final quickTop = tester
+        .getTopLeft(sheetText(BhpanAction.download.label))
+        .dy;
+    for (final quick in [BhpanAction.share, BhpanAction.rename]) {
+      expect(tester.getTopLeft(sheetText(quick.label)).dy, quickTop);
+    }
+    final danger = action(BhpanAction.recycle);
+    final dangerTop = tester.getTopLeft(danger).dy;
+    for (final regular in [
+      BhpanAction.copy,
+      BhpanAction.details,
+      BhpanAction.shareRecords,
+    ]) {
       expect(
-        tester.getTopLeft(sheetText(order[index])).dy,
-        greaterThanOrEqualTo(tester.getTopLeft(sheetText(order[index - 1])).dy),
+        tester.getTopLeft(action(regular)).dy,
+        allOf(greaterThan(quickTop), lessThan(dangerTop)),
       );
     }
-    // 快捷操作同一行。
-    expect(
-      tester.getTopLeft(sheetText('重命名')).dy,
-      tester.getTopLeft(sheetText('下载')).dy,
+    final dangerText = find.descendant(
+      of: danger,
+      matching: find.text(BhpanAction.recycle.label),
     );
-    final dangerText = sheetText('移入回收站');
     expect(
       tester.widget<Text>(dangerText).style!.color,
       Theme.of(tester.element(dangerText)).colorScheme.error,
     );
-    await tester.tap(dangerText);
+    await tester.tap(danger);
     await tester.pumpAndSettle();
     expect(requests.single.kind, BhpanMutationKind.recycle);
     expect(requests.single.target, 'file');

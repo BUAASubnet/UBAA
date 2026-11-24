@@ -244,7 +244,7 @@ class _PendingGateBackend extends _Backend implements ProgressiveReadBackend {
 }
 
 class _Backend extends DemoBackend implements AppBootstrapBackend {
-  _Backend(this.store);
+  _Backend(this.store) : super(loginDelay: Duration.zero);
   final _Store store;
   bool gated = false;
   bool gatedAuth = false;
@@ -269,7 +269,12 @@ class _Backend extends DemoBackend implements AppBootstrapBackend {
       deniedReads++;
       throw const BackendException(UbaaErrorCode.updateRequired);
     }
-    return super.loadFeature(feature);
+    if (await super.authStatus() != AuthStatus.signedIn) {
+      throw const BackendException(UbaaErrorCode.authenticationRequired);
+    }
+    return FeatureResult.success(
+      details: [FeatureDetail(title: feature.title)],
+    );
   }
 
   AppAnnouncement _announcement(String id, int start, int? end) =>

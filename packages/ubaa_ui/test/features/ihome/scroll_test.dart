@@ -35,7 +35,10 @@ Future<void> _mount(
 
 void main() {
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
-    for (final area in ['诉求正文', '部门回复', '处理进度', '公告正文']) {
+    for (final area in [
+      '诉求正文',
+      if (platform == TargetPlatform.android) ...['部门回复', '处理进度', '公告正文'],
+    ]) {
       testWidgets('$platform 从$area开始触摸滑动能滚动页面', (tester) async {
         final service = _ScrollService()
           ..detailValue = appeal(

@@ -188,12 +188,41 @@ test("本机 Release 路由覆盖 Apple 构建与验收，普通 CI 保留托管
 
 test("HarmonyOS 商店产物与公开安装包分别上传", () => {
   const uploads = workflow("release").jobs.ohos.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"));
-  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), [".ubaa_local/release/public/*"]);
-  assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, ".ubaa_local/release/store/*.app");
+  assert.deepEqual(uploads.filter((step) => step.with.name.startsWith("public-")).map((step) => step.with.path), ["dist/release/public/*"]);
+  assert.equal(uploads.find((step) => step.with.name === "store-harmonyos").with.path, "dist/release/store/*.app");
   const recovery = workflow("release-distribute");
   assert.deepEqual(Object.keys(recovery.on), ["workflow_dispatch"]);
   assert.equal(recovery.concurrency.group, workflow("release").jobs.distribute.concurrency.group);
   const job = recovery.jobs.distribute;
   assert.equal(job.environment, "release-production");
-  assert.equal(job.steps.find((step) => step.uses?.startsWith("actions/download-artifact@")).with["run-id"], "${{ inputs.source_run }}");
+  const download = job.steps.find((step) => step.uses?.startsWith("actions/download-artifact@"));
+  assert.equal(download.with["run-id"], "${{ inputs.source_run }}");
+  assert.equal(download.with.path, "dist/release/public");
+});
+
+test("Flutter 原生调试产物先收集到 dist 再上传", () => {
+  const jobs = workflow("flutter-platforms").jobs;
+  const native = jobs["native-debug"];
+  const collect = native.steps.find((step) => step.name === "收集复核用构建产物");
+  assert.equal(collect.shell, "bash");
+  assert.match(collect.run, /dist\/flutter_debug\/\$\{\{ matrix\.artifact_id \|\| matrix\.platform \}\}/);
+  const upload = native.steps.find((step) => step.with?.name === "ubaa-${{ matrix.artifact_id || matrix.platform }}-debug-${{ github.run_id }}");
+  assert.equal(upload.with.path, "${{ steps.debug-artifact.outputs.path }}");
+  const ohos = jobs["native-ohos"];
+  assert.match(ohos.steps.find((step) => step.name === "收集 HarmonyOS 调试产物").run, /dist\/flutter_debug\/ohos/);
+  assert.equal(ohos.steps.find((step) => step.uses?.startsWith("actions/upload-artifact@")).with.path, "dist/flutter_debug/ohos/*.hap");
+});
+
+test("发布作业始终清理 runner 临时签名和商店密钥", () => {
+  const { jobs } = workflow("release");
+  for (const name of ["android", "ohos", "app-store", "store-access"]) {
+    const cleanup = jobs[name].steps.at(-1);
+    assert.equal(cleanup.if, "${{ always() }}");
+    assert.match(cleanup.run, /\$\{RUNNER_TEMP:\?\}\/ubaa_(release_signing|store_api)/);
+  }
+  for (const name of ["ios", "macos"]) {
+    const cleanup = jobs[name].steps.at(-1);
+    assert.equal(cleanup.if, "${{ always() }}");
+    assert.equal(cleanup.run, "python3 scripts/release/platforms/apple_signing.py cleanup");
+  }
 });

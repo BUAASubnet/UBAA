@@ -49,7 +49,7 @@ fn confirmed_creation_preserves_existing_peer_files_and_merges_them() {
         let (store, remote, server) = setup();
         store.create(event()).unwrap();
         let mut gui = SyncCoordinator::new(store.clone(), remote);
-        let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
+        let other = open();
         let item = event();
         let id = item.id;
         other.create(item).unwrap();
@@ -150,7 +150,7 @@ fn local_clear_scrubs_body_and_blocks_new_publication_but_allows_other_device_me
                 .retains_body()
         );
         assert!(store.get(id).unwrap().is_none());
-        let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
+        let other = open();
         let item = event();
         let other_id = item.id;
         other.create(item).unwrap();
@@ -230,7 +230,7 @@ fn local_clear_revokes_a_sent_attempt_before_its_late_result() {
 fn complete_read_chooses_highest_publication_even_when_older_file_arrives_late() {
     runtime().block_on(async {
         let (store, remote, server) = setup();
-        let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
+        let other = open();
         let item = event();
         let id = item.id;
         let time = item.updated_at;
@@ -274,7 +274,7 @@ fn one_corrupt_selected_snapshot_keeps_all_local_rows_unchanged() {
         store.create(local).unwrap();
         let before = store.sync_snapshot().unwrap().document().clone();
         for corrupt in [false, true] {
-            let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
+            let other = open();
             other.create(event()).unwrap();
             let identity = insert_snapshot(&server, &other, 1);
             if corrupt {
@@ -363,7 +363,7 @@ fn another_devices_copy_cannot_acknowledge_an_unknown_pending_publication() {
             server.lock().unwrap().unknown = true;
             let mut driver = SyncCoordinator::new(store.clone(), remote);
             driver.run(AgendaSyncAction::Push, now()).await.unwrap();
-            let peer = AgendaStore::open(&root(), ACCOUNT).unwrap();
+            let peer = open();
             let scope = peer.sync_snapshot().unwrap();
             peer.merge_sync(&scope, &sent).unwrap();
             insert_snapshot(&server, &peer, 1);

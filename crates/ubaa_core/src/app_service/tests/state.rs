@@ -6,11 +6,7 @@ use super::{
     },
 };
 use chrono::{DateTime, Utc};
-use std::{
-    convert::identity,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{convert::identity, path::Path, process::Command};
 use uuid::Uuid;
 
 const LOOPBACK: &str = "http://127.0.0.1:8787";
@@ -27,25 +23,15 @@ fn now() -> DateTime<Utc> {
     "2026-11-10T16:00:00Z".parse().unwrap()
 }
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_state")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_state").unwrap())
     }
 
     fn path(&self) -> &Path {
-        &self.0
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).expect("清理合成 SQLite 测试目录");
+        self.0.path()
     }
 }
 

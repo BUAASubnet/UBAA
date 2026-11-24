@@ -1,5 +1,6 @@
 use ubaa_core::facade::{
-    CampusAmount, CampusMetric, CampusMetrics, NetworkProductUsage, NetworkUsage, PortalProfile,
+    CampusAmount, CampusMetric, CampusMetrics, FinanceIncome, FinanceIncomes, NetworkProductUsage,
+    NetworkUsage, PortalProfile,
 };
 
 pub(crate) fn campus_profile() -> PortalProfile {
@@ -52,5 +53,34 @@ pub(crate) fn campus_network() -> NetworkUsage {
         }],
         remaining_excludes_packages: false,
         fetched_at: 128,
+    }
+}
+
+pub(crate) fn finance_incomes() -> FinanceIncomes {
+    let populated = FinanceIncome {
+        id: "synthetic-income-present".into(),
+        project: Some("合成发放项目".into()),
+        description: None,
+        department: Some("示例学院".into()),
+        project_code: Some("SYNTH-PROJECT-01".into()),
+        project_name: Some("合成项目名称".into()),
+        amount_cents: Some(10000),
+        tax_cents: Some(0),
+        paid_cents: Some(10000),
+        tax_rate: None,
+        recorded_date: None,
+        year: None,
+        month: None,
+    };
+    let missing = FinanceIncome {
+        id: "synthetic-income-missing".into(),
+        department: None,
+        project_code: None,
+        project_name: None,
+        ..populated.clone()
+    };
+    FinanceIncomes {
+        entries: vec![populated, missing],
+        total: 2,
     }
 }

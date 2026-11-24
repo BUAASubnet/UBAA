@@ -11,7 +11,11 @@ Future<void> controllerPinnedWriteReadback(
   FeatureQuery? query,
   ConnectionMode route,
 ) async {
-  if (operation == WriteOperation.bhpan) return;
+  // 借阅续借使用专用核对回调，把原路线读取结果直接交给页面；本路径只写
+  // FeatureSnapshot，无法承载借阅页状态。其余写操作仍统一走下方快照回写。
+  if (operation == WriteOperation.bhpan ||
+      operation == WriteOperation.libraryLoanRenew)
+    return;
   final backend = controller.internalBackend;
   if (backend is! PinnedWriteReadbackBackend) return;
   final feature = switch (operation) {

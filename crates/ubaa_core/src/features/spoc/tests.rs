@@ -11,6 +11,45 @@ use super::parser::{
 use crate::domain::SpocSubmissionStatus;
 
 #[test]
+fn 文件提交资格取决于方式小组和实际次数上限() {
+    for (modes, kind, limit, allowed) in [
+        ("1,5", "1", "9999", true),
+        ("5", "1", "3", true),
+        ("1", "1", "3", false),
+        ("5", "2", "3", false),
+        ("5", "1", "2", false),
+    ] {
+        let raw = serde_json::from_value(serde_json::json!({"id":"a","zymc":"练习","sskcid":"c","bhtjlx":modes,"zylx":kind,"xztjcs":limit,"xzwjlx":".PDF"})).unwrap();
+        let base = summary(
+            "a".into(),
+            "c".into(),
+            "课程".into(),
+            "练习".into(),
+            None,
+            None,
+        );
+        let record = serde_json::from_value(serde_json::json!({"ytjcs":"2"})).unwrap();
+        let detail = merge_detail("a", &base, &raw, Some(&record)).unwrap();
+        assert_eq!(detail.submit_action.is_some(), allowed);
+        assert_eq!(detail.submit_unavailable_reason.is_some(), !allowed);
+    }
+}
+
+#[test]
+fn 末片吸收余数且不产生空片() {
+    for (size, count, last) in [
+        (1, 1, 1),
+        (2_048_000, 1, 2_048_000),
+        (4_095_999, 1, 4_095_999),
+        (4_096_000, 2, 2_048_000),
+        (104_857_600, 51, 2_457_600),
+    ] {
+        assert_eq!(super::submit::chunk_count(size), count);
+        assert_eq!(super::submit::chunk_len(size, count), last);
+    }
+}
+
+#[test]
 fn 非法时区前缀按冻结失败回退而非解释为有效时间() {
     assert_eq!(
         normalize_datetime(Some("2026-03-31T15:59:59junkZ")).as_deref(),
@@ -305,19 +344,8 @@ fn empty_submission_is_unknown_and_detail_fields_fall_back_to_summary() {
     );
     base.start_time = Some("2026-03-01 08:00:00".into());
     base.due_time = Some("2026-03-31 23:59:59".into());
-    let raw = DetailRaw {
-        id: "assignment-1".into(),
-        zymc: "Fixture Assignment".into(),
-        zynr: Some("<p>Fixture</p>".into()),
-        zyfs: None,
-        zykssj: None,
-        zyjzsj: None,
-        sskcid: Some("course-1".into()),
-    };
-    let empty_submission = SubmissionRaw {
-        tjzt: None,
-        tjsj: None,
-    };
+    let raw: DetailRaw = serde_json::from_value(serde_json::json!({"id":"assignment-1","zymc":"Fixture Assignment","zynr":"<p>Fixture</p>","sskcid":"course-1"})).unwrap();
+    let empty_submission: SubmissionRaw = serde_json::from_str("{}").unwrap();
 
     let detail = merge_detail("assignment-1", &base, &raw, Some(&empty_submission)).unwrap();
 
@@ -326,6 +354,7 @@ fn empty_submission_is_unknown_and_detail_fields_fall_back_to_summary() {
         crate::domain::SpocSubmissionStatus::Unknown
     );
     assert_eq!(detail.submission_status_text, "未知状态");
+    assert!(detail.attachment.is_none() && detail.submitted_file.is_none());
     assert_eq!(detail.score.as_deref(), Some("80"));
     assert_eq!(detail.start_time.as_deref(), Some("2026-03-01 08:00:00"));
     assert_eq!(detail.due_time.as_deref(), Some("2026-03-31 23:59:59"));
@@ -345,15 +374,7 @@ fn blank_list_status_and_blank_detail_score_follow_frozen_fallbacks() {
         base.submission_status,
         crate::domain::SpocSubmissionStatus::Unsubmitted
     );
-    let raw = DetailRaw {
-        id: "assignment-1".into(),
-        zymc: "Fixture Assignment".into(),
-        zynr: None,
-        zyfs: Some("  ".into()),
-        zykssj: None,
-        zyjzsj: None,
-        sskcid: Some("course-1".into()),
-    };
+    let raw: DetailRaw = serde_json::from_value(serde_json::json!({"id":"assignment-1","zymc":"Fixture Assignment","zyfs":"  ","sskcid":"course-1"})).unwrap();
     base.score = Some("80".into());
 
     let detail = merge_detail("assignment-1", &base, &raw, None).unwrap();
@@ -371,15 +392,10 @@ fn detail_enrichment_cannot_replace_summary_identity_fields() {
         None,
         None,
     );
-    let raw = DetailRaw {
-        id: "assignment-1".into(),
-        zymc: "Detail title".into(),
-        zynr: None,
-        zyfs: None,
-        zykssj: None,
-        zyjzsj: None,
-        sskcid: Some("detail-course".into()),
-    };
+    let raw: DetailRaw = serde_json::from_value(
+        serde_json::json!({"id":"assignment-1","zymc":"Detail title","sskcid":"detail-course"}),
+    )
+    .unwrap();
 
     let detail = merge_detail("assignment-1", &base, &raw, None).unwrap();
 

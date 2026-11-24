@@ -185,7 +185,7 @@ fn explicit_business_false_is_a_determined_result() {
             .data;
         assert!(!result.success);
         assert_eq!(result.code, 400);
-        assert_eq!(result.message, "签到未完成");
+        assert_eq!(result.message, "上课未完成");
         assert_eq!(scenario.write_count(), 1);
         cleanup(root);
     }

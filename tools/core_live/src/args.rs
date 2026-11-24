@@ -51,4 +51,5 @@ pub(crate) const FEATURES: &[&str] = &[
     "portal",
     "network",
     "finance",
+    "library_loans",
 ];

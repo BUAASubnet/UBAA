@@ -20,6 +20,6 @@
 - 命令模式只通过不回显的终端输入或标准输入读取密码，不接受命令行参数中的明文密码。
 - 会话文件只保存 Cookie、连接方式和不含秘密的时间戳，只允许当前系统用户访问。
 - 产品中必要的个人字段按合同遮盖显示；日志和诊断输出遵守[日志与诊断脱敏](docs/development/conventions.md#日志与诊断脱敏)规则。
-- 仓库不提交密码、Cookie、Token、Authorization 头、验证码图片、原始认证响应或完整个人资料。贡献者需要遵守的完整规则见 [AGENTS.md 安全边界](AGENTS.md#安全边界)。
+- 仓库不提交密码、Cookie、Token、Authorization 头、验证码图片、原始认证响应或完整个人资料。贡献者需要遵守的完整规则见 [底线](AGENTS.md#底线)。
 
 用户数据如何处理，见[隐私政策](https://www.ubaa.top/tech/privacy-policy)。

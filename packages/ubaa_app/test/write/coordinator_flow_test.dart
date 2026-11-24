@@ -6,6 +6,64 @@ import '../support/write/fixtures.dart'
     show fixtureIntent, fixtureNow, fixtureResult;
 
 void _registerFlowTests() {
+  test('文件作业意图只确认一次，回执保留文件和提交时间', () async {
+    const operation = WriteOperation.spocSubmitAssignment;
+    expect(operation.feature, FeatureId.spoc);
+    var sends = 0;
+    var refreshes = 0;
+    final coordinator = WriteCoordinator(
+      receiptVerifier: WriteReceiptVerifier(
+        refreshAfterWrite: (actual, query) async {
+          expect(actual, operation);
+          refreshes++;
+        },
+      ),
+      now: () => fixtureNow,
+      commit: (_) async {
+        sends++;
+        return const WriteCommitResult(
+          operation: operation,
+          success: true,
+          message: '已核实作业提交',
+          outcomeUnknown: false,
+          spocReceipt: SpocSubmitReceipt(
+            fileId: 'fixture-id',
+            fileName: '练习.pdf',
+            submittedAt: '2026-11-24 10:00:00',
+          ),
+        );
+      },
+    );
+    await coordinator.prepareForUi(
+      () async => fixtureIntent(operation: operation),
+      expectedOperation: operation,
+    );
+    final outcome = await coordinator.confirmForUi();
+    expect(outcome?.result?.spocReceipt?.fileId, 'fixture-id');
+    expect(outcome?.result?.spocReceipt?.submittedAt, '2026-11-24 10:00:00');
+    expect(await coordinator.confirmForUi(), isNull);
+    expect(sends, 1);
+    expect(refreshes, 1);
+    coordinator.dispose();
+  });
+  test('文件作业结果未知时提示到作业详情核对且不能再次确认', () async {
+    const operation = WriteOperation.spocSubmitAssignment;
+    var sends = 0;
+    final coordinator = WriteCoordinator(
+      now: () => fixtureNow,
+      commit: (_) async {
+        sends++;
+        throw const BackendException(UbaaErrorCode.outcomeUnknown);
+      },
+    );
+    coordinator.setIntent(fixtureIntent(operation: operation));
+    final outcome = await coordinator.confirmForUi();
+    expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
+    expect(outcome?.message, '提交结果未确认，请到作业详情页刷新核对，勿重复提交');
+    expect(await coordinator.confirmForUi(), isNull);
+    expect(sends, 1);
+    coordinator.dispose();
+  });
   test('写协调器对所有 BackendException 保留原错误码而安全状态按 UI 映射', () async {
     for (final code in UbaaErrorCode.values) {
       for (final operation in <String>['prepare', 'cancel', 'confirm']) {
@@ -80,17 +138,6 @@ void _registerFlowTests() {
     coordinator.dispose();
   });
 
-  test('写协调器使用唯一类型和状态', () {
-    final WriteCoordinator coordinator = WriteCoordinator(
-      commit: (_) async => fixtureResult(),
-      now: () => fixtureNow,
-    );
-    expect(coordinator.runtimeType, WriteCoordinator);
-    coordinator.setIntent(fixtureIntent());
-    expect(coordinator.intent, same(coordinator.state.intent));
-    coordinator.dispose();
-  });
-
   test('准备期间阻止重入并在返回后发布不可变待确认状态', () async {
     final prepared = Completer<WriteIntent>();
     var calls = 0;
@@ -113,6 +160,7 @@ void _registerFlowTests() {
     );
     prepared.complete(fixtureIntent());
     expect(await first, same(coordinator.intent));
+    expect(coordinator.state.intent, same(coordinator.intent));
     expect(calls, 1);
     expect(initial.phase, WritePhase.idle);
     expect(coordinator.state.phase, WritePhase.ready);

@@ -8,11 +8,11 @@ import '../features/bhpan/view.dart';
 import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
-import '../shared/tab_navigation.dart'
-    show TabPager, CompactNavigationBar, currentTabPager;
+import '../shared/tab_navigation.dart' show TabPager, currentTabPager;
 import '../features/ihome/view.dart';
 import '../features/health_cloud/view.dart';
 import '../features/finance/view.dart';
+import '../features/library_loans/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
@@ -31,6 +31,7 @@ import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
 import 'navigation/rail.dart' show uiShellRail;
+import 'navigation/bottom_bar.dart' show uiShellBottomBar;
 import '../features/home/shell_helpers.dart';
 import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
@@ -40,12 +41,15 @@ import 'app_service/notices.dart' show AppServiceNotices;
 import 'app_service/settings.dart' show AppServiceControls;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
+import '../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
 import 'account/campus_account_loader.dart';
 
 part 'shell_write.dart';
 part 'shell_navigation.dart';
+part 'shell_reminders.dart';
+part 'shell_feature_pages.dart';
 
 part 'shell_sync.dart';
 part 'bykc_preferences.dart';
@@ -108,6 +112,9 @@ class UbaaMainShell extends StatefulWidget {
     this.healthCloudRead,
     this.financeService,
     this.onOpenAppLink,
+    this.readLibraryLoans,
+    this.pendingLibraryLoans = const {},
+    this.onRecheckLibraryLoan,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -128,6 +135,7 @@ class UbaaMainShell extends StatefulWidget {
     this.placePreferences = const {},
     this.onSavePlacePreference,
     this.onLoadRecentFeatures,
+    this.onFeatureOpened,
     this.onSaveRecentFeatures,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
@@ -147,11 +155,15 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareCgyyCancelWrite,
     this.onPrepareLibbookReserveWrite,
     this.onPrepareLibbookCancelWrite,
+    this.onPrepareLibraryLoanRenewWrite,
     this.onPrepareCgyySubmitWrite,
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
+    this.onPrepareSpocSubmitWrite,
+    this.onPickSpocSubmitFile,
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
+    this.spocFilesAccess,
     this.onDiscardWriteIntent,
     this.onCommitWrite,
     this.onWriteSuccess,
@@ -180,6 +192,7 @@ class UbaaMainShell extends StatefulWidget {
   final Map<String, String> placePreferences;
   final Future<void> Function(String key, String value)? onSavePlacePreference;
   final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
+  final ValueChanged<String>? onFeatureOpened;
   final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
   final AppServiceControls? appService;
@@ -244,6 +257,9 @@ class UbaaMainShell extends StatefulWidget {
   /// 财务收入只读服务；为空时不显示入口。
   final FinanceService? financeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
+  final LibraryLoansReader? readLibraryLoans;
+  final Set<String> pendingLibraryLoans;
+  final LibraryLoanRenewStarter? onRecheckLibraryLoan;
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -269,10 +285,16 @@ class UbaaMainShell extends StatefulWidget {
   final CgyyCancelPreparer? onPrepareCgyyCancelWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
+  final LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
+  final SpocSubmitPreparer? onPrepareSpocSubmitWrite;
+  final SpocSubmitFilePicker? onPickSpocSubmitFile;
   final YgdkPhotoPicker? onPickYgdkPhoto;
+
+  /// SPOC 附件、我的提交与课件的读取和下载；未接线的宿主为 null。
+  final SpocFilesAccess? spocFilesAccess;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
@@ -302,34 +324,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   YgdkReminderSettings? _reminderSettings;
-  YgdkReminderSettings? get _effectiveReminder => _reminderSettings == null
-      ? null
-      : effectiveYgdkReminder(_reminderSettings!, _ygdkSchedule.hasPe);
   final _ygdkSchedule = YgdkScheduleCheck();
-  void _checkYgdkSchedule() => unawaited(
-    _ygdkSchedule.update(
-      owner:
-          widget.cacheAccountId ??
-          widget.user?.accountScope ??
-          widget.user?.username,
-      epoch: (widget.agendaEpoch, widget.businessCacheEpoch),
-      service: widget.agenda.service,
-      policy: widget.routePolicy,
-      active: widget.activeRoutes,
-      schoolRoute: widget.agendaSchoolRoute,
-      term: widget.agenda.term,
-      now: (widget.homeClock ?? clock).now(),
-      changed: () {
-        if (mounted) setState(_publishReminder);
-      },
-    ),
-  );
   bool? _publishedReminderEnabled;
-  void _publishReminder() {
-    final value = _effectiveReminder;
-    _publishedReminderEnabled = value?.enabled;
-    widget.onHomeReminderChanged?.call(value);
-  }
 
   String? _reminderError;
   int _reminderRevision = 0;
@@ -380,7 +376,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       if (mounted) setState(() {});
     },
   );
-  void _changeNavigation(VoidCallback change) => setState(change);
+  void _changeNavigation(VoidCallback change, {String? openedFeature}) {
+    setState(change);
+    if (openedFeature != null) widget.onFeatureOpened?.call(openedFeature);
+  }
+
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
@@ -497,72 +497,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  Future<void> _loadReminderSettings() async {
-    final generation = _accountGeneration;
-    final revision = _reminderRevision;
-    final load = widget.onLoadYgdkReminder;
-    if (load == null) {
-      _reminderSettings = const YgdkReminderSettings();
-      _publishReminder();
-      return;
-    }
-    try {
-      final value = await load();
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision) {
-        setState(() => _reminderSettings = value);
-        _publishReminder();
-      }
-    } on Object {
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision)
-        setState(() => _reminderError = '提醒设置读取失败');
-    }
-  }
-
-  Future<void> _saveReminderSettings(YgdkReminderSettings value) async {
-    final save = widget.onSaveYgdkReminder;
-    if (save == null) return;
-    final before = _reminderSettings, generation = _accountGeneration;
-    final revision = ++_reminderRevision;
-    setState(() {
-      _reminderSettings = value;
-      _publishReminder();
-      _reminderError = null;
-    });
-    try {
-      await save(value);
-    } on Object {
-      if (mounted &&
-          generation == _accountGeneration &&
-          revision == _reminderRevision) {
-        setState(() {
-          _reminderSettings = before;
-          _publishReminder();
-          _reminderError = '提醒设置保存失败，请重试';
-        });
-      }
-    }
-  }
-
-  void _setReminderEnabled(bool enabled) {
-    final current = _reminderSettings;
-    if (current != null)
-      unawaited(
-        _saveReminderSettings(
-          current.copyWith(enabled: enabled, manualEnabled: enabled),
-        ),
-      );
-  }
-
-  void _observeHomeProgress(WeekPresentation week, YgdkOverview overview) {
-    if (_effectiveReminder?.enabled != true) return;
-    final next = observedReminderProgress(_reminderSettings, week, overview);
-    if (next != null) unawaited(_saveReminderSettings(next));
-  }
-
   void _openGradeNotice() {
     final notice = widget.gradeScoreNotice;
     if (notice == null) return;
@@ -574,7 +508,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final generation = _accountGeneration;
     // 打开功能列表会回到第一层；先按第一层播放进入过渡，避免随后再反向播放一次。
     _readDepths[feature] = 1;
-    setState(() => _openedFeature = feature);
+    _changeNavigation(
+      () => _openedFeature = feature,
+      openedFeature: feature.wireName,
+    );
     _recordFeatureVisit(feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
@@ -780,28 +717,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
         bottomNavigationBar: wide
             ? null
-            : CompactNavigationBar(
-                child: NavigationBar(
-                  height:
-                      56 +
-                      (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                  // 底栏放四个分类和“我的”；设置、关于与退出收在“我的”页。
-                  selectedIndex: _selectedIndex < UiDestination.settings.index
-                      ? _selectedIndex
-                      : 0,
-                  onDestinationSelected: _selectTab,
-                  destinations: _tabs
-                      .take(UiDestination.settings.index)
-                      .map(
-                        (tab) => NavigationDestination(
-                          key: ValueKey<String>('tab-${tab.label}'),
-                          icon: Icon(tab.icon),
-                          selectedIcon: Icon(tab.selectedIcon),
-                          label: tab.label,
-                        ),
-                      )
-                      .toList(),
-                ),
+            : uiShellBottomBar(
+                context,
+                selectedIndex: _selectedIndex,
+                onSelectTab: _selectTab,
               ),
       ),
     );
@@ -809,138 +728,4 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   final _refreshes = <Object, Future<void>>{};
-
-  Widget _buildFeaturePage(FeatureId feature) => FeatureReadNavigator(
-    key: _readPageKeys.putIfAbsent(
-      feature,
-      () => GlobalKey<FeatureReadNavigatorState>(),
-    ),
-    initialHomeTarget: _pendingHomeTarget?.feature == feature
-        ? _pendingHomeTarget
-        : null,
-    onVisibleSnapshot: (snapshot, title) {
-      if (_openedFeature == feature &&
-          _visiblePage.value != (snapshot, title)) {
-        _visiblePage.value = (snapshot, title);
-      }
-    },
-    snapshot: widget.snapshots[feature]!,
-    cacheEpoch: widget.readCacheEpoch,
-    businessCacheEpoch: _contentEpoch,
-    onExit: () => setState(() => _openedFeature = null),
-    onDepthChanged: (depth) {
-      _readDepths[feature] = depth;
-      _depthRevision.value++;
-    },
-    onRetry: () => widget.onRetryFeature(feature),
-    onQuery: widget.onFeatureQuery == null
-        ? null
-        : (query) =>
-              feature == FeatureId.cgyy &&
-                  query.view == FeatureQueryView.cgyyLockCode
-              ? Future<void>.value()
-              : widget.onFeatureQuery!(feature, query),
-    pageBuilder: (page) => PullToRefresh(
-      onRefresh: () => _pull(() => _refreshFeature(feature)),
-      enabled:
-          _openedFeature == feature &&
-          page.isCurrent &&
-          widget.writeState.intent == null &&
-          !(feature == FeatureId.cgyy &&
-              page.query?.view == FeatureQueryView.cgyyLockCode),
-      child: FeatureDetailView(
-        key: page.pageKey,
-        isLanding: page.isLanding,
-        onOpenLockDisplay: widget.onOpenLockDisplay,
-        onReadLockDisplay: widget.onReadLockDisplay,
-        lockRefreshRevision: _lockRefreshRevision,
-        visible: _openedFeature == feature && page.isCurrent,
-        onLoadAllGrades: widget.onLoadAllGrades,
-        isBykcChosenDetail: page.isBykcChosenDetail,
-        bykcListCourse: page.bykcListCourse,
-        bykcPendingCourseId: _bykcWriteActive?.$2,
-        writeBusy: _directWriteActive != null,
-        onOpenBykcChosen: page.onOpenBykcChosen,
-        bykcFilters: _bykcFilters,
-        bykcAgenda: _bykcAgendaContext,
-        bykcFilterError: _bykcFilterError,
-        onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
-        ygdkRecordsReadback: widget.ygdkRecordsReadback,
-        reminderSettings: _effectiveReminder,
-        reminderError: _reminderError,
-        onReminderChanged: widget.onSaveYgdkReminder == null
-            ? null
-            : _setReminderEnabled,
-        feature: feature,
-        snapshot: page.snapshot,
-        paginationGeneration: page.paginationGeneration,
-        loadingMore: page.loadingMore,
-        moreError: page.moreError,
-        hasMore: page.hasMore,
-        onLoadMore: page.onLoadMore,
-        query: page.query,
-        backLabel: page.backLabel,
-        onBack: page.onBack,
-        onRetry: page.onRetry,
-        onQuery: page.onQuery,
-        onNavigate: page.onNavigate,
-        onSwitchView: page.onSwitchView,
-        onLoadAcademicTerms: widget.onLoadAcademicTerms,
-        onLoadExamTerms: widget.onLoadExamTerms,
-        onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
-        scheduleImports: widget.scheduleImports,
-        onSaveScheduleSemester: widget.onSaveScheduleSemester,
-        onCancelScheduleImport: widget.onCancelScheduleImport,
-        onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
-        onLoadCgyyDefaults: widget.onLoadCgyyDefaults,
-        cgyyOnlyAvailable: _cgyyOnlyAvailable,
-        onCgyyShowAll: () => setState(() => _cgyyOnlyAvailable = false),
-        onSaveCgyyDefaults: widget.onSaveCgyyDefaults,
-        onScheduleTitle: page.onScheduleTitle,
-        readCacheEpoch: _contentEpoch,
-        onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
-            ? null
-            : _startBykcWrite,
-        onBykcSignWrite:
-            !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
-            ? null
-            : _startBykcSignWrite,
-        onFetchSigninQr: widget.onFetchSigninQr,
-        onSaveSigninQr: widget.onSaveSigninQr,
-        onCheckSigninStatus: widget.onCheckSigninStatus,
-        onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-            ? null
-            : _startSigninWrite,
-        onCgyyCancelWrite:
-            !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
-            ? null
-            : _startCgyyCancelWrite,
-        onLibbookReserveWrite:
-            !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
-            ? null
-            : _startLibbookReserveWrite,
-        onLibbookCancelWrite:
-            !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
-            ? null
-            : _startLibbookCancelWrite,
-        onEvaluationWrite:
-            !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
-            ? null
-            : _startEvaluation,
-        onCgyySubmitWrite:
-            !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
-            ? null
-            : _startCgyySubmitWrite,
-        onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
-            ? null
-            : _startYgdkSubmitWrite,
-        onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
-            ? widget.onCaptureYgdkPhoto
-            : null,
-        onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
-            ? widget.onPickYgdkPhoto
-            : null,
-      ),
-    ),
-  );
 }

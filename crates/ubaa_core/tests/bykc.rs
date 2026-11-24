@@ -350,7 +350,7 @@ fn 博雅签到_status_成功且_data_缺失或为_null_时保持确定成功() 
             .expect("冻结签到只要求成功 status")
             .data;
 
-        assert_eq!(result.message, "签到成功", "{case}");
+        assert_eq!(result.message, "上课成功", "{case}");
         let paths = requests
             .lock()
             .unwrap()

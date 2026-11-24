@@ -52,6 +52,17 @@ impl Evidence {
     }
 
     pub(crate) fn fail_code(&mut self, feature: &str, operation: &str, code: &str) {
+        self.fail_with_fields(feature, operation, code, None, &[]);
+    }
+
+    pub(crate) fn fail_with_fields(
+        &mut self,
+        feature: &str,
+        operation: &str,
+        code: &str,
+        count: Option<usize>,
+        fields: &[(&str, String)],
+    ) {
         self.failed = true;
         emit(
             self.route,
@@ -59,10 +70,10 @@ impl Evidence {
             operation,
             "FAIL",
             Some(code),
-            None,
+            count,
             None,
             self.started.elapsed().as_millis(),
-            &[],
+            fields,
         );
     }
 

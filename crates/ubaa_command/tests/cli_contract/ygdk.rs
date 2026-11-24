@@ -1,15 +1,16 @@
+use crate::common::run_command;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Parser;
 use serde_json::{Value, json};
-use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli, run_with_backend, run_with_routed_backend};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli};
 use ubaa_core::facade::{
     ActionEligibility, ConnectionMode, YgdkOverview, YgdkRecord, YgdkRecordsPage,
 };
 
-use crate::common::{FakeBackend, FakeRoutedBackend, YgdkSubmitFixtureResult, assert_cli_schema};
+use crate::common::{FakeRoutedBackend, YgdkSubmitFixtureResult, assert_cli_schema};
 
 static NEXT_PHOTO_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -168,8 +169,7 @@ fn submit_arguments(
 }
 
 #[test]
-fn cli_阳光打卡合同升级为唯一_schema_v10并拒绝旧v9() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 18);
+fn cli_阳光打卡合同接受当前_schema并拒绝旧v9() {
     for definition in [
         "resolvedRoutedEnvelope",
         "unresolvedRoutedFailure",
@@ -177,11 +177,14 @@ fn cli_阳光打卡合同升级为唯一_schema_v10并拒绝旧v9() {
         "aggregateLogoutEnvelope",
     ] {
         let schema = &contract_schema()["$defs"][definition];
-        assert_eq!(schema["properties"]["schemaVersion"]["const"], 18);
+        assert_eq!(
+            schema["properties"]["schemaVersion"]["const"],
+            CLI_JSON_SCHEMA_VERSION
+        );
     }
 
     let receipt = json!({
-        "schemaVersion": 18,
+        "schemaVersion": CLI_JSON_SCHEMA_VERSION,
         "ok": true,
         "data": {"success": true, "message": "阳光打卡已提交", "recordId": 77},
         "meta": {
@@ -247,12 +250,12 @@ async fn 阳光打卡概览投影再次关闭重复错配与非allowed目标() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["data"]["items"][0]["submitEligibility"], "allowed");
     assert_eq!(value["data"]["items"][0]["submitTarget"]["classifyId"], 11);
     assert_eq!(
@@ -284,7 +287,7 @@ async fn 阳光打卡空父分类名称不能保留任何allowed目标() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
@@ -322,7 +325,7 @@ async fn 阳光打卡概览投影关闭其余三类矛盾资格() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 0, "防御分支失败：{case}");
@@ -366,7 +369,7 @@ async fn 阳光打卡记录仅公开图片数量且不泄露图片地址() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
@@ -430,13 +433,13 @@ async fn 阳光打卡提交构造typed请求且仅输出固定安全收据() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(
         value["data"],
         json!({"success": true, "message": "阳光打卡已提交", "recordId": 77})
@@ -494,7 +497,7 @@ async fn 阳光打卡成功收据丢弃非正record_id而不泄露原始结果()
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
@@ -528,7 +531,7 @@ async fn 阳光打卡不可信false与上游变化均固定安全失败且不重
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
         let serialized = String::from_utf8(stdout).unwrap();
 
@@ -563,7 +566,7 @@ async fn 阳光打卡outcome_unknown退出5且提示双刷新并只调用一次(
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
     let serialized = String::from_utf8(stdout).unwrap();
 
@@ -622,7 +625,7 @@ async fn 阳光打卡双回读彼此独立且失败不覆盖原提交结论() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, expected_exit);
@@ -648,7 +651,7 @@ async fn 阳光打卡双回读彼此独立且失败不覆盖原提交结论() {
 }
 
 #[tokio::test]
-async fn 固定路线成功后也只在原route执行双回读() {
+async fn direct_成功后只在原route执行双回读() {
     let photo = TestPhoto::new("safe.jpg", b"safe-photo");
     let cli = Cli::try_parse_from(submit_arguments(
         photo.path(),
@@ -658,18 +661,11 @@ async fn 固定路线成功后也只在原route执行双回读() {
         "2026-04-01 09:00",
     ))
     .unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
@@ -690,7 +686,7 @@ async fn 固定路线成功后也只在原route执行双回读() {
 }
 
 #[tokio::test]
-async fn 固定路线outcome_unknown也只在原route执行双回读() {
+async fn direct_outcome_unknown只在原route执行双回读() {
     let photo = TestPhoto::new("safe.jpg", b"safe-photo");
     let cli = Cli::try_parse_from(submit_arguments(
         photo.path(),
@@ -700,21 +696,14 @@ async fn 固定路线outcome_unknown也只在原route执行双回读() {
         "2026-04-01 09:00",
     ))
     .unwrap();
-    let mut backend = FakeBackend {
+    let mut backend = FakeRoutedBackend {
         ygdk_submit_result: YgdkSubmitFixtureResult::OutcomeUnknown,
-        ..FakeBackend::default()
+        ..FakeRoutedBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 5);
@@ -765,7 +754,7 @@ async fn 阳光打卡非正目标与非canonical时间在路由前拒绝() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2, "未拒绝 classify={classify_id}, item={item_id}");
@@ -814,7 +803,7 @@ async fn 阳光打卡危险照片与扩展token在路由前失败关闭() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2, "未拒绝危险照片路径：{:?}", photo.path());
@@ -827,7 +816,7 @@ async fn 阳光打卡危险照片与扩展token在路由前失败关闭() {
 }
 
 #[tokio::test]
-async fn 固定路线同样在后端前拒绝危险照片扩展token() {
+async fn 输入准备阶段在后端前拒绝危险照片扩展token() {
     let photo = TestPhoto::new("unsafe.bad;param", b"safe-photo");
     let cli = Cli::try_parse_from(submit_arguments(
         photo.path(),
@@ -837,18 +826,11 @@ async fn 固定路线同样在后端前拒绝危险照片扩展token() {
         "2026-04-01 09:00",
     ))
     .unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 2);
@@ -891,10 +873,8 @@ fn 阳光打卡安全收据schema拒绝false_raw与敏感扩展字段() {
 
 #[tokio::test]
 async fn 阳光执行使用准备时照片快照且不重新读取文件() {
-    let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/photo_snapshots")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&directory).unwrap();
+    let temp = ubaa_test_support::test_temp_dir("ubaa_command_ygdk_photo").unwrap();
+    let directory = temp.path();
     let photo = directory.join("合成照片.jpg");
     std::fs::write(&photo, b"synthetic-photo").unwrap();
     let plan = ubaa_command::parse([
@@ -929,5 +909,4 @@ async fn 阳光执行使用准备时照片快照且不重新读取文件() {
         backend.ygdk_last_submit_request.unwrap().photo.bytes,
         b"synthetic-photo"
     );
-    std::fs::remove_dir_all(directory).unwrap();
 }

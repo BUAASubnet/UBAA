@@ -1,4 +1,4 @@
-//! 十类提交共同的路线合同；业务 authority/正文继续由各领域测试保护。
+//! 十一类提交共同的路线合同；业务 authority/正文继续由各领域测试保护。
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
@@ -97,6 +97,12 @@ fn requests() -> Vec<PendingWrite> {
                 mime_type: "image/jpeg".into(),
             },
         }),
+        PendingWrite::LibraryLoanRenew(core::LibraryLoanRenewRequest {
+            loan_id: "42".into(),
+            due_date: None,
+            renew_times: Some(0),
+            can_renew_times: Some(1),
+        }),
         PendingWrite::Evaluation(core::EvaluationSubmitCoursesRequest {
             targets: vec![core::EvaluationSubmitTarget {
                 rwid: "task".into(),
@@ -143,7 +149,52 @@ async fn seed_intent(client: &BridgeClient, request: PendingWrite) {
 }
 
 #[tokio::test]
-async fn 十类写入提交只解析一次路线且不能跨探测窗口转路() {
+async fn 自动借阅直连不可用时不借用可用的_webvpn() {
+    struct Unreachable;
+    #[async_trait]
+    impl HttpTransport for Unreachable {
+        async fn execute(&self, _: HttpRequest) -> core::Result<HttpResponse> {
+            Err(UbaaError::new(
+                ErrorCode::NetworkError,
+                ErrorKind::Network,
+                true,
+                "合成直连故障",
+            ))
+        }
+    }
+    for ready in [true, false] {
+        let root = test_root("library-direct-only-auto");
+        let store = seed_sessions(&root, ready, true);
+        let webvpn = MockTransport::new([]);
+        let mut core = UbaaClient::with_routing(
+            Unreachable,
+            webvpn.clone(),
+            store,
+            RouteConfig::default(),
+            SequenceProbe::new([NetworkState::OffCampus]),
+        )
+        .unwrap();
+        let error = core.current_library_loans().await.unwrap_err();
+        assert_eq!(
+            error.resolution().unwrap().mode,
+            core::ConnectionMode::Direct
+        );
+        assert_eq!(
+            error.error.code,
+            if ready {
+                ErrorCode::NetworkError
+            } else {
+                ErrorCode::AuthenticationRequired
+            }
+        );
+        assert_eq!(webvpn.requests().unwrap().len(), 0);
+        drop(core);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn 十一类写入提交只解析一次路线且不能跨探测窗口转路() {
     let mut failures = Vec::new();
     for request in requests() {
         let operation = request.operation();
@@ -175,7 +226,7 @@ async fn 十类写入提交只解析一次路线且不能跨探测窗口转路()
 }
 
 #[tokio::test]
-async fn 十类写入确认路线与当前路线不符时零请求拒绝且消费意图() {
+async fn 十一类写入确认路线与当前路线不符时零请求拒绝且消费意图() {
     for request in requests() {
         let root = test_root("changed-route-matrix");
         let direct = MockTransport::new([]);

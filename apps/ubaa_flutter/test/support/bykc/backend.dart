@@ -74,7 +74,7 @@ class BoyaBackend extends CourseworkBackend implements BykcWriteBackend {
           WriteOperation.bykcSelectCourse,
           WriteOperation.bykcDeselectCourse,
         }.contains(target.$1)) {
-      throw StateError('合成签到只允许准备和取消');
+      throw StateError('合成上课只允许准备和取消');
     }
     commitCalls++;
     selections[target.$2] = target.$1 == WriteOperation.bykcSelectCourse;

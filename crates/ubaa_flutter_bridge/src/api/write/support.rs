@@ -32,7 +32,7 @@ pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> Bridg
             BridgeErrorCode::OperationConflict,
             BridgeErrorKind::Input,
             true,
-            "课程签到资格已变化，请刷新后重新准备",
+            "上课资格已变化，请刷新后重新准备",
         );
     }
     BridgeError::from_routed(error)
@@ -194,19 +194,28 @@ pub(super) fn map_evaluation_preflight_error(error: &domain::RoutedError) -> Bri
             "教学评教资格核对响应无效",
         );
     }
-    routed_local_error(
-        error,
-        error.error.code.into(),
-        error.error.kind.into(),
-        error.error.retryable,
-        "教学评教准备失败",
-    )
+    let mut projected = BridgeError::from_routed(error.clone());
+    "教学评教准备失败".clone_into(&mut projected.message);
+    projected
 }
 
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
 ) -> BridgeError {
+    if matches!(operation, BridgeWriteOperation::LibraryLoanRenew)
+        && error.error.code == domain::ErrorCode::BusinessRejected
+        && error.error.diagnostic().is_valid()
+        && let Some(message) = error.error.private_display_message()
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::BusinessRejected,
+            BridgeErrorKind::Upstream,
+            false,
+            message,
+        );
+    }
     if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
@@ -220,18 +229,20 @@ pub(super) fn map_commit_error(
         let message = match operation {
             BridgeWriteOperation::BykcSelectCourse => "课程当前不可选，请刷新课程详情后重试",
             BridgeWriteOperation::BykcDeselectCourse => "课程当前不可退选，请刷新课程详情后重试",
-            BridgeWriteOperation::SigninPerform => "课堂签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::SigninPerform => "每日课程资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookReserve => "图书馆预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookCancelBooking => {
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
+            BridgeWriteOperation::LibraryLoanRenew => "续借资格已变化，请刷新借阅记录后重新准备",
+            BridgeWriteOperation::SpocSubmitAssignment => "作业资格已变化，请刷新详情后重新准备",
             BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyySubmitReservation => "研讨室预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyyCancelOrder => "研讨室订单取消资格已变化，请刷新后重新准备",
             BridgeWriteOperation::EvaluationSubmitCourses => {
                 "教学评教资格已变化，请刷新课程后重新准备"
             }
-            BridgeWriteOperation::BykcSignCourse => "课程签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::BykcSignCourse => "博雅上课资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
             &error,
@@ -306,6 +317,8 @@ pub(super) fn map_commit_error(
     let outcome_unknown = if matches!(
         operation,
         BridgeWriteOperation::BykcSignCourse
+            | BridgeWriteOperation::LibraryLoanRenew
+            | BridgeWriteOperation::SpocSubmitAssignment
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
@@ -332,16 +345,11 @@ pub(super) fn map_commit_error(
             "write outcome is unknown; refresh status before retrying",
         );
     }
+    let mut projected = BridgeError::from_routed(error);
     if matches!(operation, BridgeWriteOperation::EvaluationSubmitCourses) {
-        return routed_local_error(
-            &error,
-            error.error.code.into(),
-            error.error.kind.into(),
-            error.error.retryable,
-            "教学评教提交失败",
-        );
+        "教学评教提交失败".clone_into(&mut projected.message);
     }
-    BridgeError::from_routed(error)
+    projected
 }
 
 pub(super) fn routed_local_error(

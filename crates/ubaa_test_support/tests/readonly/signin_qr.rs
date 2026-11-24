@@ -23,9 +23,7 @@ async fn signin_qr_两条路线单独取时且均生成直连二维码() {
         expected_get(direct_url, r#"{"timestamp":"1700000001000"}"#),
     ]);
     let vpn = MockTransport::new([expected_get(&vpn_url, r#"{"timestamp":"1700000001000"}"#)]);
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/iclass_qr/checks")
-        .join(format!("session-{}", std::process::id()));
+    let root = ubaa_test_support::test_temp_dir("ubaa_test_support_readonly_signin_qr").unwrap();
     std::fs::create_dir_all(root.parent().unwrap()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     let config = RouteConfig::parse("[route]\ndefault = 'direct'\n").unwrap();

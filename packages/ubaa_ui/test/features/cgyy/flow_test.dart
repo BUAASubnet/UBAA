@@ -9,16 +9,6 @@ import 'package:ubaa_ui/src/write/cgyy/draft.dart';
 import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
-  testWidgets('只看可预约隐藏无可用房间和时段，关闭后恢复', (tester) async {
-    await _open(tester, _dayDetails, []);
-    expect(find.text('合成研讨室'), findsOneWidget);
-    expect(_slot('无时段房间', '09:00–10:00'), findsNothing);
-    expect(_slot('合成研讨室', '09:00–10:00'), findsNothing);
-    await tester.tap(find.text('只看可预约'));
-    await tester.pumpAndSettle();
-    expect(_slot('无时段房间', '09:00–10:00'), findsOneWidget);
-    expect(_slot('合成研讨室', '09:00–10:00'), findsOneWidget);
-  });
   testWidgets('整页无可用时段提示并允许恢复全部表格', (tester) async {
     await _open(tester, [_dayDetails.first, _dayDetails.last], []);
     expect(find.text('这一天该楼层没有可预约时段'), findsOneWidget);
@@ -241,6 +231,9 @@ void main() {
     );
     await _form(tester);
 
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.widgetWithText(AppBar, '填写预约信息'), findsOneWidget);
+    expect(find.text('已选时段'), findsOneWidget);
     await tester.ensureVisible(find.text('合成研讨甲'));
     await tester.tap(find.text('合成研讨甲'));
     await tester.pumpAndSettle();
@@ -262,6 +255,8 @@ void main() {
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
     expect(find.text('合成研讨乙'), findsOneWidget);
+    final phone = find.widgetWithText(TextField, '联系电话');
+    expect(tester.widget<TextField>(phone).controller!.text, 'synthetic-phone');
     await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(input?.purposeType, 37);
@@ -319,24 +314,6 @@ void main() {
     });
   }
 
-  testWidgets('研讨室预约使用独立表单，返回修改时段保留草稿', (tester) async {
-    await _open(tester, _dayDetails, []);
-    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('下一步'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.text('已选时段'), findsOneWidget);
-    final phone = find.widgetWithText(TextField, '联系电话');
-    await tester.enterText(phone, 'synthetic-phone');
-    await tester.tap(find.text('返回修改时段'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('下一步'));
-    await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(phone).controller!.text, 'synthetic-phone');
-  });
-
   testWidgets('研讨室移动端直接显示原始站点选择，默认读取不采用展示编号', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(tester, const [
@@ -363,9 +340,13 @@ void main() {
     final queries = <FeatureQuery>[];
     await _open(tester, _dayDetails, queries);
     expect(find.text('合成研讨室'), findsOneWidget);
+    expect(_slot('无时段房间', '09:00–10:00'), findsNothing);
+    expect(_slot('合成研讨室', '09:00–10:00'), findsNothing);
     await tester.tap(find.text('只看可预约'));
     await tester.pumpAndSettle();
     expect(find.text('无时段房间'), findsOneWidget);
+    expect(_slot('无时段房间', '09:00–10:00'), findsOneWidget);
+    expect(_slot('合成研讨室', '09:00–10:00'), findsOneWidget);
     expect(find.text('资格未知'), findsNothing);
     expect(find.text('下一步'), findsNothing);
     await tester.tap(_slot('合成研讨室', '08:00–09:00'));

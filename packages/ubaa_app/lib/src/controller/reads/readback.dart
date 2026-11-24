@@ -49,7 +49,12 @@ mixin ControllerReadbackDispatch on ControllerState {
       // 评教必须使用 intent 原路线回读；通用刷新不得重新执行 Auto。
       return Future<void>.value();
     }
+    if (operation == WriteOperation.libraryLoanRenew) {
+      // 借阅页持有本次列表代次并在提交后自行回读，不映射为首页领域刷新。
+      return Future<void>.value();
+    }
     final feature = switch (operation) {
+      WriteOperation.spocSubmitAssignment => FeatureId.spoc,
       WriteOperation.bykcSelectCourse ||
       WriteOperation.bykcDeselectCourse ||
       WriteOperation.bykcSignCourse => FeatureId.bykc,
@@ -62,9 +67,18 @@ mixin ControllerReadbackDispatch on ControllerState {
       WriteOperation.evaluationSubmitCourses => throw StateError(
         '评教使用调用方固定路线回读',
       ),
+      WriteOperation.libraryLoanRenew => null,
       WriteOperation.bhpan => null,
     };
     if (feature == null) return Future<void>.value();
+    if (operation == WriteOperation.spocSubmitAssignment &&
+        readbackQuery != null) {
+      return internalRefreshFeatureQuery(
+        feature,
+        readbackQuery,
+        writeReadback: true,
+      );
+    }
     return internalRefreshHome(only: <FeatureId>[feature], writeReadback: true);
   }
 }

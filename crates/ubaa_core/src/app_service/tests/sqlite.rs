@@ -8,9 +8,7 @@ use rusqlite::Connection;
 #[test]
 fn 系统祖先目录链接可以首次建库并重开原安装() {
     use std::os::unix::fs::symlink;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let real = root.join("real");
     std::fs::create_dir(&real).unwrap();
@@ -57,9 +55,7 @@ fn 系统祖先目录链接可以首次建库并重开原安装() {
 #[test]
 fn 应用目录和数据库文件链接仍然拒绝() {
     use std::os::unix::fs::symlink;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let real = root.join("real");
     std::fs::create_dir(&real).unwrap();
@@ -86,9 +82,7 @@ fn 应用目录和数据库文件链接仍然拒绝() {
 
 #[test]
 fn failed_migration_leaves_both_databases_intact() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let business = Connection::open(root.join("business.sqlite3")).unwrap();
     business
@@ -148,9 +142,7 @@ fn failed_migration_leaves_both_databases_intact() {
 fn facade_uses_shared_install_and_discards_revoked_account() {
     use crate::facade::{SharedAccountGuard, UbaaClient, app_service::*};
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     {
         let gui_client = UbaaClient::open(&root).unwrap();
         let command_client = UbaaClient::open(&root).unwrap();
@@ -243,9 +235,7 @@ fn 校园午夜后原会话再次登记同一用户和年级() {
     use chrono::{DateTime, TimeDelta, Utc};
     use std::sync::{Arc, Mutex};
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     {
         let client = UbaaClient::open(&root).unwrap();
         let config = AppServiceConfig::from_build(
@@ -322,9 +312,7 @@ fn check_migration(version: u32) {
         AppService, AppServiceConfig, BatchDisposition, Consent, Surface, bootstrap, queue, state,
     };
 
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/app_service/test_sqlite")
-        .join(uuid::Uuid::new_v4().to_string());
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_app_service_sqlite").unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let installation = Connection::open(root.join(DATABASE_NAME)).unwrap();
     installation.execute_batch(state::SCHEMA).unwrap();

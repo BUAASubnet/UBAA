@@ -10,6 +10,8 @@ pub(crate) enum WriteReceipt {
     Signin(core::SigninActionResult),
     LibbookReserve(core::LibBookReserveResult),
     LibbookCancel(core::LibBookCancelResult),
+    LibraryLoanRenew(core::LibraryLoanRenewResult),
+    Spoc(core::SpocSubmitReceipt),
     Ygdk(core::YgdkClockinSubmitResult),
     CgyyReserve(core::CgyyReservationResult),
     CgyyCancel(core::CgyyCancelOrderResult),
@@ -29,6 +31,9 @@ pub(crate) async fn dispatch(
         };
     }
     match pending {
+        PendingWrite::Spoc(prepared) => {
+            receipt!(client.confirm_spoc_submit_assignment(prepared), Spoc)
+        }
         PendingWrite::BykcSelect(v) => receipt!(
             client.bykc_select_course_if_route_matches(v.course_id, route),
             Bykc
@@ -69,6 +74,10 @@ pub(crate) async fn dispatch(
                 route
             ),
             LibbookReserve
+        ),
+        PendingWrite::LibraryLoanRenew(v) => receipt!(
+            client.library_loan_renew_if_route_matches(v, route),
+            LibraryLoanRenew
         ),
         PendingWrite::LibbookCancel(v) => receipt!(
             client.libbook_cancel_booking_if_route_matches(
@@ -114,12 +123,13 @@ pub(crate) fn project(
     operation: BridgeWriteOperation,
 ) -> Projection {
     let (success, message, cgyy, ygdk, evaluation) = match value.data {
+        WriteReceipt::Spoc(_) => (true, "已核实作业提交".into(), None, None, None),
         WriteReceipt::Bykc(_) => (
             true,
             safe_message(match operation {
                 BridgeWriteOperation::BykcSelectCourse => "选课成功",
                 BridgeWriteOperation::BykcDeselectCourse => "退选成功",
-                _ => "签到成功",
+                _ => "上课成功",
             }),
             None,
             None,
@@ -128,9 +138,9 @@ pub(crate) fn project(
         WriteReceipt::BykcSign(_, kind) => (
             true,
             safe_message(if kind == 1 {
-                "签到成功"
+                "上课成功"
             } else {
-                "签退成功"
+                "下课成功"
             }),
             None,
             None,
@@ -139,9 +149,9 @@ pub(crate) fn project(
         WriteReceipt::Signin(v) => (
             v.success,
             safe_message(if v.success {
-                "签到成功"
+                "上课成功"
             } else {
-                "签到失败"
+                "上课失败"
             }),
             None,
             None,
@@ -164,6 +174,17 @@ pub(crate) fn project(
                 "已取消预约"
             } else {
                 "取消失败"
+            }),
+            None,
+            None,
+            None,
+        ),
+        WriteReceipt::LibraryLoanRenew(v) => (
+            v.success,
+            safe_message(if v.success {
+                "续借成功"
+            } else {
+                "续借失败"
             }),
             None,
             None,

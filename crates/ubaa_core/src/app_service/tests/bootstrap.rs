@@ -1,28 +1,20 @@
 use super::{AppBootstrapView, AppService, AppUpdateStatus, compare_versions, parse_response};
 use crate::{
-    app_service::{AppServiceConfig, Channel, Platform, Surface},
+    app_service::{APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Channel, Platform, Surface},
     error::Result,
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Value, json};
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_bootstrap")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_bootstrap").unwrap())
     }
 
     fn open(
@@ -35,7 +27,7 @@ impl TestDirectory {
     ) -> AppService {
         let clock = Arc::clone(clock);
         AppService::open(
-            &self.0,
+            self.0.path(),
             AppServiceConfig::from_build(
                 Some("http://127.0.0.1:8787"),
                 Some(channel),
@@ -48,12 +40,6 @@ impl TestDirectory {
         )
         .unwrap()
         .with_runtime(move || *clock.lock().unwrap(), true)
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 
@@ -236,7 +222,9 @@ async fn 启动刷新隔离身份并按六小时节流且命令模式只读门�
         assert_eq!(request.method, HttpMethod::Get);
         assert_eq!(
             request.url,
-            "http://127.0.0.1:8787/v1/bootstrap?schema=1&platform=android&channel=github&version=1.9.0%2B9"
+            format!(
+                "http://127.0.0.1:8787/v1/bootstrap?schema={APP_SERVICE_SCHEMA_VERSION}&platform=android&channel=github&version=1.9.0%2B9"
+            )
         );
         assert_eq!(request.headers.len(), 0);
         assert_eq!(request.body.len(), 0);

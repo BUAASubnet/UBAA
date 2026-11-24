@@ -15,11 +15,9 @@ class DirectoryNamesTest(unittest.TestCase):
             'scripts/live/offline-startup/run.py',
         ]), ['crates/ubaa-core', 'scripts/live/offline-startup'])
 
-    def test_frozen_and_framework_directories_keep_original_paths(self):
+    def test_framework_directories_keep_original_paths(self):
         self.assertEqual(find_violations([
-            'examples/buaa-api/src/lib.rs',
             'packages/ubaa_bindings/cargokit/third-party/file.rs',
-            'docs/design/evidence/ui-ux/old-p5-native/info.json',
             'apps/ubaa_flutter/android/app/src/main/res/mipmap-hdpi/icon.png',
             'apps/ubaa_ohos/ohos/entry/src/main/resources/zh_CN/string.json',
         ]), [])
@@ -28,11 +26,11 @@ class DirectoryNamesTest(unittest.TestCase):
         self.assertEqual(find_violations([
             'crates/new-package/src/lib.rs',
             'packages/ubaa_bindings/new-code/file.dart',
-            'docs/design/evidence/new-batch/README.md',
+            '/'.join(('docs', 'design', 'evidence', 'ui-ux', 'README.md')),
             'apps/ubaa_flutter/android/app/src/main/res/drawable-v21/new-code/x.xml',
         ]), [
             'apps/ubaa_flutter/android/app/src/main/res/drawable-v21/new-code',
-            'crates/new-package', 'docs/design/evidence/new-batch',
+            'crates/new-package', '/'.join(('docs', 'design', 'evidence', 'ui-ux')),
             'packages/ubaa_bindings/new-code',
         ])
 

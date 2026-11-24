@@ -38,9 +38,7 @@ fn 校外名单直接选择网关且校园网和显式策略保持原选择() {
                 self.0
             }
         }
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/off_campus_domains/tests")
-            .join(format!("{}-{policy:?}-{network:?}", std::process::id()));
+        let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_domain_routes").unwrap();
         let store = FileSessionStore::new(&root).unwrap();
         let slot = RouteSessionSnapshot {
             cookies: vec![],
@@ -94,9 +92,7 @@ fn 校外名单直接选择网关且校园网和显式策略保持原选择() {
 
 #[tokio::test]
 async fn 名单域名缺少网关会话时直接请求恢复且不发送直连() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/off_campus_domains/tests")
-        .join(format!("missing-{}", std::process::id()));
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_facade_domain_routes").unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
         .save(&SessionSnapshot {

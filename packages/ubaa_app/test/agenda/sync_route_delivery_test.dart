@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/src/bridge/agenda/backend.dart';
 import 'package:ubaa_app/src/bridge/auth/session.dart';
@@ -9,6 +8,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_test_support/recovery.dart' show MemoryMaterials;
+import '../../../ubaa_platform/test/support/test_tmp.dart';
 import 'sync_bridge_test.dart' as fixture;
 
 class _Scope implements BridgeAgendaSyncScope {
@@ -115,9 +115,7 @@ void main() {
   setUpAll(() => RustLib.initMock(api: fixture.Api()));
   for (final queued in [false, true]) {
     test(queued ? '排在只读作业后的创建确认不采用新路线' : '等待材料校验的创建确认不采用新路线', () async {
-      final evidence = Directory('../../.ubaa_local/agenda_sync_route').absolute
-        ..createSync(recursive: true);
-      final directory = evidence.createTempSync('materials_');
+      final directory = createTestTempDirectory('ubaa_app_agenda_sync');
       addTearDown(() => directory.delete(recursive: true));
       final materials = SecureMaterialStore(
         coordinator: MaterialCoordinator(directory: directory),

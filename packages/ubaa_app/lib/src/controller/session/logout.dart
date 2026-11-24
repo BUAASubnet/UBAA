@@ -42,6 +42,7 @@ mixin ControllerLogout on ControllerState {
       ControllerActivityKind.signOut,
     );
     internalSessionRecoveryStatus = SessionRecoveryStatus.signedOut;
+    internalWriteCoordinator.clearLibraryReadbacks();
     internalUser = null;
     internalActiveRoutes = const <ConnectionMode>[];
     internalLoginForm = internalLoginForm.copyWith(password: '', captcha: '');

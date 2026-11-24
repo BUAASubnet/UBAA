@@ -19,6 +19,7 @@ abstract final class TelemetryEvents {
   static const sessionExpired = 'session_expired';
   static const routeResolved = 'route_resolved';
   static const featureLoaded = 'feature_loaded';
+  static const featureOpened = 'feature_opened';
   static const featureFailed = 'feature_failed';
   static const writeCompleted = 'write_completed';
   static const writeFailed = 'write_failed';
@@ -34,6 +35,7 @@ abstract final class TelemetryEvents {
     sessionExpired,
     routeResolved,
     featureLoaded,
+    featureOpened,
     featureFailed,
     writeCompleted,
     writeFailed,
@@ -106,6 +108,14 @@ final _features = {
   ...DiagnosticOperation.serviceFeatures,
 };
 const _routes = {'direct', 'webvpn', 'none'};
+final _openedFeatures = {
+  for (final feature in FeatureId.values) feature.wireName,
+  'cloud_print',
+  'bhpan',
+  'ihome',
+  'finance',
+  'health_cloud',
+};
 const _results = {'success', 'empty', 'failure'};
 const _errorKinds = {
   'input',
@@ -396,6 +406,21 @@ TelemetryRecord? sanitizeTelemetryRecord(
 }) {
   final effectivePolicy = policy ?? TelemetryPolicy.defaultPolicy;
   if (!effectivePolicy.allowsEvent(event)) return null;
+  if (event == TelemetryEvents.featureOpened) {
+    if (!_openedFeatures.contains(properties['feature']) ||
+        !effectivePolicy.allowsField('feature') ||
+        !effectivePolicy.allowsField('route') ||
+        !effectivePolicy.allowsField('result'))
+      return null;
+    return TelemetryRecord(
+      name: event,
+      properties: {
+        'feature': properties['feature'],
+        'route': 'none',
+        'result': 'success',
+      },
+    );
+  }
 
   final clean = <String, Object?>{};
   properties.forEach((key, value) {

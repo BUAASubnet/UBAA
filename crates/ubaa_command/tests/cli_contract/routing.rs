@@ -1,33 +1,24 @@
-use std::io::Cursor;
-
+use crate::common::run_command;
 use clap::Parser;
-use ubaa_command::{
-    Cli, CliFeature, ReadonlyRouteContext, run_with_backend_with_route, run_with_routed_backend,
-};
-use ubaa_core::facade::{ConnectionMode, NetworkState, RoutePolicy};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli, CliFeature};
 
-use crate::common::{FakeBackend, FakeRoutedBackend};
+use crate::common::FakeRoutedBackend;
 
 #[tokio::test]
-async fn readonly_route_errors_use_schema_v10_diagnostics() {
+async fn readonly_route_errors_use_current_schema_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "schedule", "terms"]).unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend {
+        fail_schedule: true,
+        ..Default::default()
+    };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_backend_with_route(
-        cli,
-        &mut backend,
-        explicit_direct_route_context(),
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 3);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -42,26 +33,18 @@ async fn readonly_route_errors_use_schema_v10_diagnostics() {
 #[tokio::test]
 async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa-cli", "--json", "schedule", "terms"]).unwrap();
-    let mut backend = FakeBackend {
-        schedule_success: true,
-        ..FakeBackend::default()
+    let mut backend = FakeRoutedBackend {
+        fail_schedule: false,
+        ..FakeRoutedBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_backend_with_route(
-        cli,
-        &mut backend,
-        explicit_direct_route_context(),
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -79,11 +62,11 @@ async fn routed_user_success_preserves_core_default_route_diagnostics() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["meta"]["feature"], "user");
     assert_eq!(value["meta"]["routePolicy"], "webvpn");
@@ -200,11 +183,11 @@ async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let code = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(code, 3);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -214,16 +197,6 @@ async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     assert_eq!(value["meta"]["usedFallback"], false);
     assert_eq!(value["error"]["code"], "authentication_required");
     assert_eq!(stderr.len(), 0);
-}
-
-fn explicit_direct_route_context() -> ReadonlyRouteContext {
-    ReadonlyRouteContext {
-        policy: RoutePolicy::Direct,
-        network: NetworkState::Unknown,
-        initial_route: ConnectionMode::Direct,
-        resolved_route: ConnectionMode::Direct,
-        used_fallback: false,
-    }
 }
 
 #[test]

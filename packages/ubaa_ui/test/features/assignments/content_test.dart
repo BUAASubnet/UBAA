@@ -34,22 +34,21 @@ void main() {
     expect(find.textContaining('分值'), findsOneWidget);
     expect(find.text('成绩'), findsNothing);
   });
-  testWidgets('签到缺少目标时明确说明且不从课程编号生成动作', (tester) async {
+  testWidgets('上课缺少目标时不从课程编号生成动作', (tester) async {
     await showFeature(tester, FeatureId.signin, [
       const FeatureDetail(
-        title: '合成签到课',
+        title: '合成上课课',
         presentation: SigninPresentation(
-          courseId: '课程不是签到目标',
+          courseId: '课程不是上课目标',
           classBeginTime: '08:00',
           classEndTime: '09:40',
           signStatus: 0,
         ),
       ),
     ], []);
-    expect(find.text('未提供签到目标，请刷新课程后重试。'), findsNothing);
-    expect(find.text('签到'), findsNothing);
+    expect(find.text('上课'), findsNothing);
   });
-  testWidgets('评教各端沿旧版课程行并保留未知资格说明', (tester) async {
+  testWidgets('宽屏评教使用课程行并提供详情入口', (tester) async {
     await showFeature(
       tester,
       FeatureId.evaluation,
@@ -68,10 +67,9 @@ void main() {
     );
     expect(find.byType(DataTable), findsNothing);
     expect(find.byTooltip('课程详情'), findsOneWidget);
-    expect(find.text('资格待确认'), findsNothing);
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
-    expect(find.text('当前评教资格无法确认，请刷新后重试。'), findsNothing);
+    expect(find.byType(Dialog), findsOneWidget);
   });
 
   for (final size in [const Size(390, 1000), const Size(834, 1210)]) {
@@ -189,9 +187,9 @@ void main() {
     expect(find.textContaining('已评'), findsNothing);
     expect(searchField, findsNothing);
   });
-  testWidgets('课堂签到没有课程时隐藏搜索，筛选导致的空结果保留入口', (tester) async {
+  testWidgets('每日课程没有课程时隐藏搜索，筛选导致的空结果保留入口', (tester) async {
     await showFeature(tester, FeatureId.signin, [], []);
-    expect(find.text('今天没有需要签到的课程'), findsOneWidget);
+    expect(find.text('今天没有课程'), findsOneWidget);
     expect(searchField, findsNothing);
     await tester.pumpWidget(const SizedBox());
     await showFeature(

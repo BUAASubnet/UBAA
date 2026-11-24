@@ -128,13 +128,30 @@ function query(
     .replaceAll("${platform:csv}", platform)
     .replaceAll("${channel:csv}", channel);
 }
+it("功能热度和去重设备只取主动打开，功能加载成功率只取读取", async () => {
+  await env.DB.prepare(
+    `INSERT INTO counter_days VALUES
+    ('2025-03-03','a','2.0.0','feature_opened','schedule','none','success','linux','github',3),
+    ('2025-03-03','a','2.0.1','feature_opened','schedule','none','success','linux','github',1),
+    ('2025-03-03','b','2.0.0','feature_loaded','schedule','direct','failure','linux','github',6),
+    ('2025-03-03','b','2.0.0','feature_loaded','schedule','direct','empty','linux','github',2)`,
+  ).run();
+  const start = Date.parse("2025-03-03T00:00:00+08:00");
+  const rows = async (title: string) =>
+    (await env.DB.prepare(query(title, start, start + 86399999)).all()).results;
+  expect(await rows("功能热度")).toMatchObject([{ 打开次数: 4 }]);
+  expect(await rows("功能明细")).toMatchObject([
+    { 使用设备: 1, 打开次数: 4, 功能加载成功率: 0.25, 失败: 6 },
+  ]);
+});
+
 it("整月分钟曲线按小时分桶，补零并保留总量", async () => {
   await env.DB.prepare("TRUNCATE minute_counts").run();
   await env.DB.prepare(
     `INSERT INTO minute_counts
     SELECT to_char(t, 'YYYY-MM-DD"T"HH24:MI'), event, 'schedule', 'success', 'android', 'github', 1
     FROM generate_series('2025-01-01'::timestamp, '2025-01-01 23:59'::timestamp, interval '1 minute') t
-    CROSS JOIN (VALUES ('feature_loaded'), ('auth_started')) e(event)`,
+    CROSS JOIN (VALUES ('feature_opened'), ('auth_started')) e(event)`,
   ).run();
   const start = Date.parse("2025-01-01T00:00:00+08:00");
   for (const title of ["功能使用曲线", "登录曲线"]) {
@@ -163,7 +180,7 @@ it("分钟曲线跨日分桶与平台和渠道过滤", async () => {
       .toISOString()
       .slice(0, 16);
     await env.DB.prepare(
-      "INSERT INTO minute_counts VALUES ($1, 'feature_loaded', 'schedule', 'success', $2, $3, $4)",
+      "INSERT INTO minute_counts VALUES ($1, 'feature_opened', 'schedule', 'success', $2, $3, $4)",
     )
       .bind(at, platform, channel, count)
       .run();

@@ -247,17 +247,16 @@ fn wait_for_file(path: &Path) {
     }
 }
 
-struct Fixture(PathBuf, FileSessionStore);
+struct Fixture(ubaa_test_support::TestTempDir, FileSessionStore);
 impl Fixture {
     fn new() -> Self {
         Self::in_task("biz_cache")
     }
 
-    fn in_task(task: &str) -> Self {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local")
-            .join(task)
-            .join(uuid::Uuid::new_v4().to_string());
+    fn in_task(_task: &str) -> Self {
+        let root =
+            ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_read_business_session")
+                .unwrap();
         let store = FileSessionStore::new(&root).unwrap();
         let now = chrono::Utc::now().timestamp();
         let auth_cookie = |name: &str, domain: &str| StoredCookie {
@@ -329,12 +328,6 @@ impl Fixture {
         self.1.load_dual_versioned().unwrap().revision
     }
 }
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
 fn core(
     store: FileSessionStore,
     policy: &str,
@@ -701,7 +694,7 @@ fn child_command(fixture: &Fixture, task: &str) -> std::process::Command {
     let mut command = std::process::Command::new(std::env::current_exe().unwrap());
     command
         .args(["--ignored", "--exact", "--nocapture", CHILD_TEST])
-        .env("UBAA_FIXTURE_CACHE_ROOT", &fixture.0)
+        .env("UBAA_FIXTURE_CACHE_ROOT", fixture.0.path())
         .env("UBAA_FIXTURE_CACHE_TASK", task);
     command
 }

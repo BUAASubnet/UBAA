@@ -37,6 +37,7 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'read/graduate.dart';
+import 'read/spoc_files.dart';
 import 'recovery.dart';
 import 'recovery/control.dart';
 import 'schedule_import.dart';
@@ -44,6 +45,7 @@ import 'sensitive.dart';
 import 'shared_account.dart';
 import 'write.dart';
 import 'write/cache.dart';
+import 'write/spoc.dart';
 
 // These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_core`, `from_routed`, `local_diagnostic`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`, `with_diagnostic`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
@@ -515,8 +517,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或不属于当前认证代次时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<String> commandLoginUsername({
     required BridgeCommandLoginIdentity identity,
   });
@@ -534,8 +534,6 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// # Errors
   /// 身份凭证已消费或认证代次已变化时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> consumeCommandLoginIdentity({
     required BridgeCommandLoginIdentity identity,
   });
@@ -561,6 +559,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeAgendaSyncService service,
     required BridgeAgendaTime now,
     required BridgeAgendaSyncScope scope,
+  });
+
+  /// 在线读取当前账号、当前路线的完整当前借阅范围。
+  Future<BridgeLibraryLoansResult> currentLibraryLoans();
+
+  Future<BridgePinnedLibraryLoans> currentLibraryLoansOnRoute({
+    required BridgeConnectionMode route,
   });
 
   /// 放弃一个尚未提交的写入意图。
@@ -1007,6 +1012,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeLibbookReserveRequest request,
   });
 
+  Future<BridgeWriteIntent> prepareLibraryLoanRenew({
+    required BridgeLibraryLoanRenewRequest request,
+  });
+
   /// 准备两条路线的登录页状态。
   ///
   /// # Errors
@@ -1016,6 +1025,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeWriteIntent> prepareSigninPerform({
     required BridgeSigninPerformRequest request,
+  });
+
+  Future<BridgeWriteIntent> prepareSpocSubmitAssignment({
+    required BridgeSpocSubmitAction action,
+    required String path,
+    required BridgeBhpanTransfer transfer,
   });
 
   Future<BridgeWriteIntent> prepareYgdkSubmit({
@@ -1122,6 +1137,25 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedSpocAssignments> spocAssignments();
+
+  Future<BridgeRoutedSpocCourseFiles> spocCourseFiles({
+    required String courseId,
+    String? folderId,
+  });
+
+  Future<BridgeRoutedSpocCourses> spocCourses();
+
+  Future<BridgeRoutedSpocDownload> spocDownloadAssignmentFile({
+    required String fileId,
+    String? fileName,
+    required String destPath,
+  });
+
+  Future<BridgeRoutedSpocDownload> spocDownloadCourseFile({
+    required String id,
+    required String name,
+    required String destPath,
+  });
 
   /// 按各路线独立句柄提交答案；成功路线不会再次收到凭据。
   ///

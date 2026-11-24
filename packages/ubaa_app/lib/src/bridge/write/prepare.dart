@@ -1,5 +1,39 @@
 part of 'operations.dart';
 
+Future<WriteIntent> bridgePrepareSpocSubmitAssignment(
+  BridgeContext backend,
+  SpocSubmitAction action,
+  String path,
+  BhpanTransferTask transfer,
+) async {
+  if (backend.client.contractVersion() < 83)
+    throw const BackendException(UbaaErrorCode.unsupported);
+  if (transfer is! BridgeBhpanTransferTask ||
+      !identical(transfer.client, backend.client))
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  final intent = await _prepareIntent(
+    backend,
+    backend.client.prepareSpocSubmitAssignment(
+      action: BridgeSpocSubmitAction(
+        assignmentId: action.assignmentId,
+        courseId: action.courseId,
+        allowedExtensions: action.allowedExtensions,
+        maxSubmissions: action.maxSubmissions,
+        dueTime: action.dueTime,
+        lateSubmissionDeadline: action.lateSubmissionDeadline,
+      ),
+      path: path,
+      transfer: transfer.control,
+    ),
+  );
+  return intent.withReadbackQuery(
+    FeatureQuery(
+      view: FeatureQueryView.spocDetail,
+      assignmentId: action.assignmentId,
+    ),
+  );
+}
+
 Future<WriteIntent> bridgePrepareBykcSelectCourse(
   BridgeContext backend, {
   required int courseId,
@@ -45,6 +79,16 @@ Future<WriteIntent> bridgePrepareSigninPerform(
   backend,
   backend.client.prepareSigninPerform(
     request: BridgeSigninPerformRequest(courseId: courseId),
+  ),
+);
+
+Future<WriteIntent> bridgePrepareLibraryLoanRenew(
+  BridgeContext backend, {
+  required String loanId,
+}) => _prepareIntent(
+  backend,
+  backend.client.prepareLibraryLoanRenew(
+    request: BridgeLibraryLoanRenewRequest(loanId: loanId),
   ),
 );
 

@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'pinned_readback.dart';
+import 'library_readback.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_app/src/contracts/recovery.dart';
+import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/write.dart';
+import 'package:ubaa_app/src/contracts/write_readback.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
 import 'package:ubaa_app/src/write/receipt_verifier.dart';
 import '../state/activity.dart';
@@ -17,9 +21,28 @@ mixin ControllerWriteLifecycle on ControllerState {
   WriteCoordinator internalCreateWriteCoordinator(UbaaBackend backend) =>
       WriteCoordinator(
         diagnostics: internalDiagnostics,
+        dismissVerifiedLibraryHint: (id) async {
+          final account = internalLocalAccount?.id;
+          final epoch = internalLifecycleEpoch;
+          if (backend is! WriteReadbackBackend ||
+              account == null ||
+              !internalReadbackCurrent(backend, account, epoch))
+            return;
+          await (backend as WriteReadbackBackend).dismissWriteReadbackHint(
+            id,
+            accountId: account,
+          );
+          if (internalReadbackCurrent(backend, account, epoch))
+            await internalLoadWriteReadbacks(force: true);
+        },
+        recoverSigninSession: backend is RequiredSessionBackend
+            ? _recoverSigninSession
+            : null,
         observeResult: (operation, {required error, required route}) =>
             internalRecordOperationOutcome(
-              operation.feature?.wireName ?? 'bhpan',
+              operation == WriteOperation.libraryLoanRenew
+                  ? 'library_loans'
+                  : operation.feature?.wireName ?? 'bhpan',
               write: true,
               error: error,
               route: route,
@@ -53,8 +76,37 @@ mixin ControllerWriteLifecycle on ControllerState {
           verifyCgyyCancellation: verifyCgyyCancellation,
           refreshYgdkAfterWrite: refreshYgdkAfterWrite,
           refreshEvaluationAfterWrite: refreshEvaluationAfterWrite,
+          verifyLibraryLoanRenew: (intent) =>
+              controllerVerifyLibraryLoanRenew(this, intent),
         ),
       );
+
+  Future<bool> _recoverSigninSession(BackendException error) async {
+    final session = internalCaptureSessionScope();
+    final network = internalNetworkRevision;
+    final credentials = internalLoginCredentialRevision;
+    bool current() =>
+        session.isCurrent &&
+        internalAppForeground &&
+        internalPhase == AppPhase.home &&
+        network == internalNetworkRevision &&
+        credentials == internalLoginCredentialRevision;
+
+    if (!internalUsesLocalRecovery || !current()) throw error;
+    internalRecordSessionExpired(FeatureId.signin, error.resolvedRoute);
+    try {
+      await internalScheduleReadAuthentication(
+        FeatureId.signin,
+        ReadPriority.urgent,
+        current,
+        force: true,
+      );
+    } on Object {
+      if (!current()) return false;
+      rethrow;
+    }
+    return current();
+  }
 
   @internal
   ControllerActivity internalBeginOperationTransition(
@@ -82,10 +134,15 @@ mixin ControllerWriteLifecycle on ControllerState {
   }
 
   @internal
-  void internalReplaceWriteCoordinator(UbaaBackend backend) {
-    internalWriteCoordinator.removeListener(internalNotify);
-    internalWriteCoordinator.dispose();
+  void internalReplaceWriteCoordinator(
+    UbaaBackend backend, {
+    bool sameSession = false,
+  }) {
+    final previous = internalWriteCoordinator;
+    previous.removeListener(internalNotify);
+    previous.dispose();
     internalWriteCoordinator = internalCreateWriteCoordinator(backend);
+    if (sameSession) internalWriteCoordinator.inheritLibraryReadbacks(previous);
     internalWriteCoordinator.addListener(internalNotify);
   }
 

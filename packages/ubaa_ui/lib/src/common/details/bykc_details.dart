@@ -88,7 +88,7 @@ extension BykcDetails on _FeatureDetailListState {
             when supplement.signConfig != null ||
                 supplement.attendance != null) ...[
           const SizedBox(height: 12),
-          BykcSection('签到信息', [
+          BykcSection('上课信息', [
             if (supplement.attendance != null)
               BykcInfoLine(
                 '考勤',
@@ -115,7 +115,7 @@ extension BykcDetails on _FeatureDetailListState {
                 ? null
                 : () => widget.onNavigate!(detail.readNavigation!),
             icon: const Icon(Icons.fact_check_outlined),
-            label: const Text('查看签到与签退'),
+            label: const Text('查看上课与下课'),
           ),
         ],
         if (widget.onBykcWrite != null) ...[
@@ -227,7 +227,7 @@ extension BykcDetails on _FeatureDetailListState {
         const SizedBox(height: 12),
         if (course.fullDetail case final fullDetail?)
           ...uiBykcSupplementSections(fullDetail),
-        BykcSection('签到信息', [
+        BykcSection('上课信息', [
           BykcInfoLine('考勤', uiBykcCheckinLabel(course.checkin)),
           BykcInfoLine('考核', uiBykcPassLabel(course.pass)),
           BykcInfoLine('成绩', course.score == null ? null : '${course.score} 分'),
@@ -246,7 +246,7 @@ extension BykcDetails on _FeatureDetailListState {
                     ? () => widget.onBykcSignWrite!(signIn)
                     : null,
                 icon: const Icon(Icons.login),
-                label: const Text('博雅签到'),
+                label: const Text('博雅上课'),
               ),
             if (signOut != null && widget.onBykcSignWrite != null)
               OutlinedButton.icon(
@@ -256,7 +256,7 @@ extension BykcDetails on _FeatureDetailListState {
                     ? () => widget.onBykcSignWrite!(signOut)
                     : null,
                 icon: const Icon(Icons.logout),
-                label: const Text('博雅签退'),
+                label: const Text('博雅下课'),
               ),
             if (deselect != null && widget.onBykcWrite != null)
               OutlinedButton.icon(

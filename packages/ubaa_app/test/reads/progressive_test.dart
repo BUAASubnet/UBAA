@@ -123,7 +123,7 @@ void main() {
     );
   });
 
-  test('首批立即呈现，通知中进入签到时先读当前任务再发后台下一批', () async {
+  test('首批立即呈现，通知中进入上课时先读当前任务再发后台下一批', () async {
     final backend = _Backend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
@@ -155,7 +155,7 @@ void main() {
     await until(() => backend.task.calls == 2 && query != null);
     await query;
     expect(
-      backend.events.indexOf('签到'),
+      backend.events.indexOf('上课'),
       lessThan(backend.events.indexOf('希冀第2批')),
     );
     expect(
@@ -190,7 +190,7 @@ void main() {
     );
     await Future.wait([joinedHome, firstQuery, secondQuery]);
     expect(backend.beginCalls, 1);
-    expect(backend.events.where((event) => event == '签到').length, 1);
+    expect(backend.events.where((event) => event == '上课').length, 1);
   });
   test('写意图存在时既定回读不触发恢复，也不被后台批次阻塞', () async {
     final backend = _ReadbackBackend();
@@ -351,7 +351,7 @@ class _Backend
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    if (feature == FeatureId.signin) events.add('签到');
+    if (feature == FeatureId.signin) events.add('上课');
     return const FeatureResult.success(details: [FeatureDetail(title: '当前任务')]);
   }
 

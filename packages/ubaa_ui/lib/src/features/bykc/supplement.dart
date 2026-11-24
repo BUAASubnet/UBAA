@@ -44,25 +44,25 @@ String _tidyParagraphs(String text) => text
 
 List<Widget> uiBykcDisplaySignFields(BykcSignDisplayConfig? config) => [
   BykcInfoLine(
-    '签到开始',
+    '上课开放',
     config?.signStartDate == null ? null : uiBykcDate(config!.signStartDate!),
   ),
   BykcInfoLine(
-    '签到结束',
+    '上课截止',
     config?.signEndDate == null ? null : uiBykcDate(config!.signEndDate!),
   ),
   BykcInfoLine(
-    '签退开始',
+    '下课开放',
     config?.signOutStartDate == null
         ? null
         : uiBykcDate(config!.signOutStartDate!),
   ),
   BykcInfoLine(
-    '签退结束',
+    '下课截止',
     config?.signOutEndDate == null ? null : uiBykcDate(config!.signOutEndDate!),
   ),
   BykcInfoLine(
-    '签到地点',
+    '上课点',
     config == null || config.signPointCount == 0
         ? null
         : '${config.signPointCount} 处',

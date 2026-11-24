@@ -8,6 +8,7 @@ import 'package:ubaa_app/src/contracts/session_recovery.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_bindings/src/rust/frb_generated.dart' show RustLibApi;
 import 'package:ubaa_platform/shared_accounts.dart';
+import '../../../ubaa_platform/test/support/test_tmp.dart';
 import '../../../ubaa_platform/test/support/shared_account_worker.dart'
     show syntheticWindowsMaterials;
 
@@ -308,14 +309,10 @@ Future<
   })
 >
 _fixture({bool retain = true}) async {
-  var repository = Directory.current.absolute;
-  while (!File('${repository.path}/justfile').existsSync()) {
-    repository = repository.parent;
-  }
-  final parent = await Directory(
-    '${repository.path}/.ubaa_local/command_delivery/runtime_tests',
-  ).create(recursive: true);
-  final root = await parent.createTemp('consumer_');
+  final root = createTestTempDirectory('ubaa_app_command_runtime');
+  addTearDown(() async {
+    if (await root.exists()) await root.delete(recursive: true);
+  });
   final materials = SecureMaterialStore(
     transport: syntheticWindowsMaterials(root),
     coordinator: MaterialCoordinator(directory: Directory('${root.path}/lock')),

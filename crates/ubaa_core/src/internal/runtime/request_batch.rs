@@ -3,6 +3,43 @@ use super::{ClientRuntime, ErrorCode, HttpRequest, HttpResponse, Result, SystemT
 use crate::error::UbaaError;
 
 impl ClientRuntime {
+    pub(crate) async fn download_stream(
+        &mut self,
+        mut request: HttpRequest,
+        destination: &std::path::Path,
+        limit: u64,
+        session_cookies: bool,
+    ) -> Result<crate::ports::StreamDownload> {
+        let mut sink = crate::ports::StreamSink::new(destination, limit)?;
+        let now = self.now();
+        if session_cookies {
+            self.prepare_request_cookie(&mut request, now)?;
+        }
+        self.check_authentication_scope()?;
+        self.ensure_session_revision()?;
+        let url = request.url.clone();
+        let permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
+        self.check_school_requests()?;
+        let pending = self.transport.download_stream(request, &mut sink);
+        drop(permit);
+        let result = pending.await;
+        let head = self.finish_request_response(result, &url, session_cookies.then_some(now))?;
+        self.ensure_session_revision()?;
+        let deliver = || {
+            self.ensure_readonly_generation()?;
+            self.check_operation_controls()?;
+            sink.deliver(head)
+        };
+        if let Some(guard) = &self.shared_account {
+            guard.with_current(deliver)?
+        } else {
+            deliver()
+        }
+    }
     pub(super) fn prepare_request_cookie(
         &mut self,
         request: &mut HttpRequest,
@@ -42,7 +79,7 @@ impl ClientRuntime {
         &mut self,
         result: Result<HttpResponse>,
         request_url: &str,
-        now: SystemTime,
+        cookie_time: Option<SystemTime>,
     ) -> Result<HttpResponse> {
         if let Err(error) = &result
             && matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
@@ -62,7 +99,9 @@ impl ClientRuntime {
         if let Some(domain) = request_domain(request_url) {
             self.reached_domains.insert(domain);
         }
-        self.jar.store_response(&response, request_url, now)?;
+        if let Some(now) = cookie_time {
+            self.jar.store_response(&response, request_url, now)?;
+        }
         Ok(response)
     }
 
@@ -133,7 +172,7 @@ impl ClientRuntime {
         Ok(responses
             .into_iter()
             .zip(urls)
-            .map(|(response, url)| self.finish_request_response(response, &url, now))
+            .map(|(response, url)| self.finish_request_response(response, &url, Some(now)))
             .collect())
     }
 }

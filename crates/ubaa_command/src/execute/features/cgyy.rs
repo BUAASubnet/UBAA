@@ -6,7 +6,7 @@ use ubaa_core::facade::{
     RoutedError, RoutedResult, UbaaError,
 };
 
-use crate::backend::{CliBackend, RoutedCliBackend};
+use crate::backend::RoutedCliBackend;
 use crate::command::{CgyyArgs, CgyyCommand};
 use crate::execute::routed_readonly;
 use crate::io::error::{
@@ -14,82 +14,7 @@ use crate::io::error::{
 };
 use crate::io::human::safe_lock_code_value;
 use crate::io::input::{invalid_input, read_cgyy_request_stdin};
-use crate::io::schema::{CommandOutput, readonly};
-
-pub(in crate::execute) async fn run_cgyy<B: CliBackend + Send>(
-    arguments: CgyyArgs,
-    backend: &mut B,
-    input: &mut impl std::io::BufRead,
-) -> Result<CommandOutput> {
-    match arguments.command {
-        CgyyCommand::Sites => backend
-            .cgyy_sites()
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::Purposes => backend
-            .cgyy_purposes()
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::Day { site_id, date } => backend
-            .cgyy_day(site_id, &date)
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::Orders { page, size } => backend
-            .cgyy_orders(page, size)
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::Detail { id } => backend
-            .cgyy_order_detail(id)
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::LockCode => {
-            backend
-                .cgyy_lock_code()
-                .await
-                .map(|result| CommandOutput::Readonly {
-                    data: safe_lock_code_value(&result.data),
-                    route: result.resolved_route,
-                    feature: CliFeature::Cgyy,
-                })
-        }
-        CgyyCommand::Cancel { id, confirm_write } => {
-            if !confirm_write {
-                return Err(invalid_input(
-                    "取消预约是写操作，必须显式指定 --confirm-write",
-                ));
-            }
-            let request = normalize_cancel_request(id)?;
-            backend
-                .cgyy_cancel_order(request)
-                .await
-                .map_err(sanitize_cancel_error)
-                .and_then(|mut result| {
-                    result.data = safe_cancel_result(&result.data)?;
-                    Ok(result)
-                })
-                .and_then(|result| readonly(result, CliFeature::Cgyy))
-        }
-        CgyyCommand::Submit {
-            request_stdin,
-            confirm_write,
-        } => {
-            if !confirm_write {
-                return Err(invalid_input("预约是写操作，必须显式指定 --confirm-write"));
-            }
-            if !request_stdin {
-                return Err(invalid_input(
-                    "预约请求含敏感字段，必须显式指定 --request-stdin",
-                ));
-            }
-            let request = read_cgyy_request_stdin(input)?;
-            backend
-                .cgyy_submit_reservation(request)
-                .await
-                .map_err(sanitize_reservation_error)
-                .and_then(|result| readonly(result, CliFeature::Cgyy))
-        }
-    }
-}
+use crate::io::schema::CommandOutput;
 
 pub(in crate::execute) async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
     arguments: CgyyArgs,
@@ -242,21 +167,24 @@ mod tests {
     use serde_json::Value;
 
     use super::{sanitize_cancel_error, sanitize_reservation_error};
-    use crate::io::render::render_result;
-    use crate::io::schema::{CliFeature, CommandOutput};
+    use crate::io::render::render_routed_result;
+    use crate::io::schema::CliFeature;
     use crate::routing::ReadonlyRouteContext;
-    use ubaa_core::facade::{ConnectionMode, ErrorCode, ErrorKind, Result, UbaaError};
+    use ubaa_core::facade::{ConnectionMode, ErrorCode, ErrorKind, RoutedError, UbaaError};
 
     fn render_error(error: UbaaError) -> Value {
-        let result: Result<CommandOutput> = Err(error);
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
-        let exit = render_result(
+        let exit = render_routed_result(
             true,
-            ConnectionMode::Direct,
             CliFeature::Cgyy,
-            ReadonlyRouteContext::explicit(ConnectionMode::Direct),
-            result,
+            Err(RoutedError {
+                error,
+                resolution: Some(
+                    ReadonlyRouteContext::explicit(ConnectionMode::Direct)
+                        .resolution(ConnectionMode::Direct),
+                ),
+            }),
             &mut stdout,
             &mut stderr,
         );

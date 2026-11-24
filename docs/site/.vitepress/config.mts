@@ -9,6 +9,7 @@ export default defineConfig({
   description: siteDescription,
   lang: 'zh-CN',
   base,
+  outDir: '../../dist/docs_site',
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }],
     ['meta', { name: 'theme-color', content: '#1976d2' }],
@@ -85,7 +86,7 @@ export default defineConfig({
         items: [
           { text: '日程与待办', link: '/features/agenda' },
           { text: '课表与考试', link: '/features/schedule-and-exam' },
-          { text: '课堂签到', link: '/features/signin' },
+          { text: '每日课程', link: '/features/daily-courses' },
           { text: 'SPOC 作业', link: '/features/spoc' },
           { text: '希冀作业', link: '/features/judge' },
           { text: '博雅课程', link: '/features/bykc' },

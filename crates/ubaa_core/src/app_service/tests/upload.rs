@@ -1,34 +1,23 @@
 use super::{AppService, BatchDisposition, EraseAttempt, UploadAttempt};
 use crate::{
     app_service::{
-        AppServiceConfig, Consent, CounterDimensions, CounterEvent, CounterResult, Feature,
-        Platform, Route, Surface, TelemetryEvent,
+        APP_SERVICE_SCHEMA_VERSION, AppServiceConfig, Consent, CounterDimensions, CounterEvent,
+        CounterResult, Feature, Platform, Route, Surface, TelemetryEvent,
     },
     error::{ErrorCode, ErrorKind, Result, UbaaError},
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
 };
 use async_trait::async_trait;
-use std::{
-    collections::VecDeque,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Mutex,
-    time::Duration,
-};
+use std::{collections::VecDeque, path::Path, process::Command, sync::Mutex, time::Duration};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 const ORIGIN: &str = "http://127.0.0.1:8787";
 
-struct TestDirectory(PathBuf);
+struct TestDirectory(crate::test_tmp::TestTempDir);
 
 impl TestDirectory {
     fn new() -> Self {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/app_service/test_upload")
-            .join(Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
+        Self(crate::test_tmp::test_temp_dir("ubaa_core_app_service_upload").unwrap())
     }
 
     fn open(&self, surface: Surface, hard_closed: bool) -> AppService {
@@ -49,15 +38,9 @@ impl TestDirectory {
             Platform::Macos,
             false,
         );
-        AppService::open(&self.0, config, surface, policy)
+        AppService::open(self.0.path(), config, surface, policy)
             .unwrap()
             .with_runtime(|| "2026-11-11T00:00:00Z".parse().unwrap(), hard_closed)
-    }
-}
-
-impl Drop for TestDirectory {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
 
@@ -379,7 +362,7 @@ async fn 基础模式删除结果未知后重启仅图形宿主重试() {
         let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
         assert_eq!(
             body,
-            serde_json::json!({"schema": 1, "install_id": old_install})
+            serde_json::json!({"schema": APP_SERVICE_SCHEMA_VERSION, "install_id": old_install})
         );
         // 图形宿主已发送、尚未收到响应时启动独立命令进程。
         child(&root.0, "parallel-command");

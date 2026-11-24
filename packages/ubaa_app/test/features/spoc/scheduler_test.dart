@@ -7,7 +7,7 @@ import 'package:ubaa_test_support/recovery.dart' as startup;
 import '../../reads/progressive_test.dart' show until;
 
 void main() {
-  test('生产 SPOC 逐页投影在两页间让位紧急签到读取', () async {
+  test('生产 SPOC 逐页投影在两页间让位紧急上课读取', () async {
     final events = <String>[];
     final client = _Client(events);
     final backend = _Backend(BridgeBackend(client), events);
@@ -28,7 +28,7 @@ void main() {
     await controller.initialize();
     await until(() => events.contains('第2页') && signin != null);
     await signin;
-    expect(events, ['第1页', '签到', '第2页']);
+    expect(events, ['第1页', '上课', '第2页']);
     expect(controller.homeSnapshots[FeatureId.spoc]!.details.length, 2);
   });
   test('打开 SPOC 详情会取消首页剩余页并保留已呈现摘要', () async {
@@ -105,7 +105,7 @@ class _Backend extends startup.FakeRecoveryBackend
     FeatureQuery query,
   ) async {
     expect([FeatureId.signin, FeatureId.spoc], contains(feature));
-    events.add(feature == FeatureId.signin ? '签到' : '详情');
+    events.add(feature == FeatureId.signin ? '上课' : '详情');
     return const FeatureResult.empty();
   }
 }

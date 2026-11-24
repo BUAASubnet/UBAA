@@ -46,7 +46,7 @@ typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePho
 默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。桌面文件选择器
 可将包装器的 `permission` 显式设为 `PlatformPermission.files`。各平台的设备权限需要单独验收。
 
-博雅签到需要调用方坐标时，宿主通过 `PermissionedLocationProvider` 先申请
+博雅上课需要调用方坐标时，宿主通过 `PermissionedLocationProvider` 先申请
 `foregroundLocation`，再读取一次 `PlatformLocation`；不需要坐标的 action 不会触发权限
 申请。`MethodChannelLocationProvider` 只接受 `location.capability` 与 `location.current` 两个
 typed 方法，并只读取有限且位于合法范围内的 `lat`、`lng`。插件异常、畸形返回、额外路径

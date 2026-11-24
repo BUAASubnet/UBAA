@@ -240,6 +240,9 @@ mixin ControllerDiagnostics on ControllerState {
     }
   }
 
+  void recordFeatureOpened(String feature) =>
+      _counter(TelemetryEvents.featureOpened, feature);
+
   void _counter(
     String event,
     String feature, {

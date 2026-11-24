@@ -8,7 +8,7 @@ import 'package:ubaa_ui/src/features/bykc/chosen_card.dart';
 
 void main() {
   for (final points in [true, false, null]) {
-    testWidgets('已选缓存保留自主签到标签且不恢复动作：$points', (tester) async {
+    testWidgets('已选缓存保留自主上课标签且不恢复动作：$points', (tester) async {
       final cached = await bridgeCachedBykcProjection(
         _Cache(points),
         const LocalAccount(id: 'synthetic', username: 'synthetic'),
@@ -24,7 +24,7 @@ void main() {
           home: Scaffold(body: BykcChosenCard(course: course, onTap: null)),
         ),
       );
-      expect(find.text('自主签到'), points == true ? findsOneWidget : findsNothing);
+      expect(find.text('自主上课'), points == true ? findsOneWidget : findsNothing);
     });
   }
 }

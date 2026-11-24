@@ -117,7 +117,9 @@ impl BridgeClient {
                 };
                 let mut error = panic_error();
                 let mut hint_finish_error = None;
+                let mut hint_id = None;
                 if observation.may_have_been_sent() {
+                    hint_id = hint.as_ref().map(|ticket| ticket.id().to_owned());
                     error.code = BridgeErrorCode::OutcomeUnknown;
                     error.message = "写入结果无法确认，请核对后再操作".into();
                     error.resolved_route = Some(route);
@@ -126,6 +128,7 @@ impl BridgeClient {
                         super::readback::finish_hint(cache, hint, &Err(error.clone())).await;
                 }
                 let mut result = finish_cached_commit(cache, impact, route, Err(error)).await;
+                result.readback_hint_id = hint_id;
                 result.cache_error = result
                     .cache_error
                     .or(hint_start_error)
@@ -194,6 +197,7 @@ pub(super) fn finish_commit_success(
         cgyy_receipt,
         ygdk_receipt,
         evaluation_result,
+        spoc_receipt: None,
     })
 }
 
@@ -225,9 +229,19 @@ pub(crate) fn project_dispatch_result(
 ) -> Result<BridgeWriteCommitResult, BridgeError> {
     match result {
         Ok(value) => {
+            let spoc_receipt = match &value.data {
+                super::dispatch::WriteReceipt::Spoc(receipt) => {
+                    Some(super::spoc::BridgeSpocSubmitReceipt {
+                        file_id: receipt.file_id.clone(),
+                        file_name: receipt.file_name.clone(),
+                        submitted_at: receipt.submitted_at.clone(),
+                    })
+                }
+                _ => None,
+            };
             let (resolution, success, message, cgyy, ygdk, evaluation) =
                 super::dispatch::project(value, operation);
-            finish_commit_success(
+            let mut result = finish_commit_success(
                 operation,
                 resolution.mode.into(),
                 success,
@@ -235,6 +249,27 @@ pub(crate) fn project_dispatch_result(
                 cgyy,
                 ygdk,
                 evaluation,
+            )?;
+            result.spoc_receipt = spoc_receipt;
+            Ok(result)
+        }
+        Err(error)
+            if matches!(operation, super::BridgeWriteOperation::SpocSubmitAssignment)
+                && error.error.code == domain::ErrorCode::BusinessRejected
+                && error.error.private_display_message().is_some() =>
+        {
+            finish_commit_success(
+                operation,
+                expected,
+                false,
+                error
+                    .error
+                    .private_display_message()
+                    .unwrap_or("学校未接受本次作业提交")
+                    .into(),
+                None,
+                None,
+                None,
             )
         }
         Err(error) => Err(map_dispatch_error(operation, expected, error)),

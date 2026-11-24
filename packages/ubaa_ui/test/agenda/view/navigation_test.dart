@@ -5,7 +5,6 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:clock/clock.dart';
-import '../../app/shell_parity_test.dart' show mount;
 import '../../support/home_todos.dart';
 import '../flow_test.dart' show opened;
 import '../support.dart';
@@ -124,6 +123,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     final all = find.byKey(const ValueKey('home-todos-toggle'));
+    AgendaViewState agenda() =>
+        tester.state<AgendaViewState>(find.byType(AgendaView));
     await tester.ensureVisible(all);
     await tester.tap(all);
     await tester.pumpAndSettle();
@@ -137,27 +138,13 @@ void main() {
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
     );
-    await tester.tap(find.byTooltip('筛选日程'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
-          .value,
-      isTrue,
-    );
-    await tester.tap(find.widgetWithText(FilledButton, '完成'));
-    await tester.pumpAndSettle();
+    expect(agenda().todos, isTrue);
     expect(find.text('任务4').hitTestable(), findsOneWidget);
     await tester.tap(find.byTooltip('筛选日程'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(SwitchListTile, '仅看待办'));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
-          .value,
-      isFalse,
-    );
+    expect(agenda().todos, isFalse);
     await tester.tap(find.widgetWithText(FilledButton, '完成'));
     await tester.pumpAndSettle();
     expect(find.text('本地日程').hitTestable(), findsOneWidget);
@@ -166,17 +153,7 @@ void main() {
     await tester.ensureVisible(all);
     await tester.tap(all);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('筛选日程'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
-          .value,
-      isTrue,
-      reason: '每次首页查看全部都应重新启用待办筛选',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, '完成'));
-    await tester.pumpAndSettle();
+    expect(agenda().todos, isTrue, reason: '每次首页查看全部都应重新启用待办筛选');
     await tester.ensureVisible(find.text('任务4'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('任务4'));
@@ -197,46 +174,10 @@ void main() {
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
     );
-    await tester.tap(find.byTooltip('筛选日程'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
-          .value,
-      isTrue,
-    );
-    await tester.tap(find.widgetWithText(FilledButton, '完成'));
-    await tester.pumpAndSettle();
+    expect(agenda().todos, isTrue);
     // 待办只有截止时刻，切到周视图时退回全部，网格才不会空着。
     await tester.tap(find.text('周'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('筛选日程'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '仅看待办'))
-          .value,
-      isFalse,
-    );
-  });
-  testWidgets('日程为中间入口，学习保留课表与成绩入口', (tester) async {
-    await mount(tester);
-    await tester.tap(find.widgetWithText(NavigationDestination, '日程'));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('agenda-create')).hitTestable(),
-      findsOneWidget,
-    );
-    expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      UiDestination.agenda.index,
-    );
-    await tester.tap(find.widgetWithText(NavigationDestination, '学习'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, FeatureId.schedule.title), findsOneWidget);
-    await tester.ensureVisible(
-      find.widgetWithText(Card, FeatureId.grades.title),
-    );
-    expect(find.widgetWithText(Card, FeatureId.grades.title), findsOneWidget);
+    expect(agenda().todos, isFalse);
   });
 }

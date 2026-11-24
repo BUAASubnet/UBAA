@@ -21,6 +21,7 @@ part 'startup.dart';
 part 'session.dart';
 part 'local_data.dart';
 part 'schedule_widgets.dart';
+part 'spoc_files.dart';
 
 const _expectedBridgeHello = 'UBAA FRB 2.13.0 ready';
 

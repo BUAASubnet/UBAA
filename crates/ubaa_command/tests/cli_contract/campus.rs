@@ -1,7 +1,7 @@
-use crate::common::{FakeBackend, FakeRoutedBackend, assert_cli_schema};
+use crate::common::run_command;
+use crate::common::{FakeRoutedBackend, assert_cli_schema};
 use clap::Parser;
-use std::io::Cursor;
-use ubaa_command::{Cli, run_with_backend, run_with_routed_backend};
+use ubaa_command::Cli;
 
 #[tokio::test]
 async fn 校园与财务命令投影符合_json_合同() {
@@ -11,42 +11,41 @@ async fn 校园与财务命令投影符合_json_合同() {
         ("network", "usage", "products"),
         ("finance", "incomes", "entries"),
     ] {
-        for routed in [true, false] {
-            let cli = Cli::try_parse_from(["ubaa-cli", "--json", group, operation]).unwrap();
-            let mut output = Vec::new();
-            let mut errors = Vec::new();
-            let code = if routed {
-                run_with_routed_backend(
-                    cli,
-                    &mut FakeRoutedBackend::default(),
-                    &mut output,
-                    &mut errors,
-                )
-                .await
-            } else {
-                run_with_backend(
-                    cli,
-                    &mut FakeBackend::default(),
-                    &mut Cursor::new(Vec::<u8>::new()),
-                    &mut output,
-                    &mut errors,
-                )
-                .await
-            };
-            assert_eq!(code, 0);
-            assert_eq!(errors.len(), 0);
-            let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
-            assert_cli_schema(&value);
-            assert_eq!(value["meta"]["feature"], group);
-            assert_eq!(value["meta"]["resolvedRoute"], "direct");
-            assert!(!value["data"][key].is_null());
-            if operation == "metrics" {
-                assert_eq!(value["data"]["unreadMail"]["status"], "failure");
-                assert_eq!(value["data"]["borrowedBooks"]["value"], 0);
-                assert_eq!(
-                    value["data"]["cloudStorageRemaining"]["value"]["value"],
-                    "80.125"
-                );
+        let cli = Cli::try_parse_from(["ubaa-cli", "--json", group, operation]).unwrap();
+        let mut output = Vec::new();
+        let mut errors = Vec::new();
+        let code = run_command(
+            cli,
+            &mut FakeRoutedBackend::default(),
+            &mut output,
+            &mut errors,
+        )
+        .await;
+        assert_eq!(code, 0);
+        assert_eq!(errors.len(), 0);
+        let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_cli_schema(&value);
+        assert_eq!(value["meta"]["feature"], group);
+        assert_eq!(value["meta"]["resolvedRoute"], "direct");
+        assert!(!value["data"][key].is_null());
+        if operation == "metrics" {
+            assert_eq!(value["data"]["unreadMail"]["status"], "failure");
+            assert_eq!(value["data"]["borrowedBooks"]["value"], 0);
+            assert_eq!(
+                value["data"]["cloudStorageRemaining"]["value"]["value"],
+                "80.125"
+            );
+        }
+        if operation == "incomes" {
+            let entries = value["data"]["entries"].as_array().unwrap();
+            assert_eq!(entries.len(), 2);
+            for (key, expected) in [
+                ("department", "示例学院"),
+                ("projectCode", "SYNTH-PROJECT-01"),
+                ("projectName", "合成项目名称"),
+            ] {
+                assert_eq!(entries[0][key], expected);
+                assert_eq!(entries[1].get(key), Some(&serde_json::Value::Null));
             }
         }
     }
@@ -75,7 +74,7 @@ async fn 校园人类输出保留中文含义和单项错误() {
         let mut output = Vec::new();
         let mut errors = Vec::new();
         assert_eq!(
-            run_with_routed_backend(
+            run_command(
                 cli,
                 &mut FakeRoutedBackend::default(),
                 &mut output,

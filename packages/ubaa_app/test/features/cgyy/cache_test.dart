@@ -6,6 +6,13 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  setUpAll(() => RustLib.initMock(api: _Api()));
+  setUp(() {
+    _Cache.page = null;
+    _Cache.firstFallback = false;
+    _Cache.hasScopedCache = true;
+  });
+
   test('研讨室异范围响应无旧缓存时只报告未完整而不展示别日别单别页', () async {
     _Cache.hasScopedCache = false;
     final backend = BridgeBackend(
@@ -55,10 +62,6 @@ void main() {
     expect(home.single.details.single.actions, isEmpty);
   });
 
-  setUp(() {
-    _Cache.firstFallback = false;
-    _Cache.hasScopedCache = true;
-  });
   test('首次保存的静态回退仍标为本次部分结果，不冒称保留旧动态数据', () async {
     _Cache.firstFallback = true;
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
@@ -112,7 +115,6 @@ void main() {
     expect(cached.projection!.details.expand((v) => v.actions), isEmpty);
   });
 
-  setUpAll(() => RustLib.initMock(api: _Api()));
   test('研讨室缓存页保留页信息且不恢复取消资格，预约回读绕过缓存认证', () async {
     final client = _Client();
     final backend = BridgeBackend(client, configDirectory: '/synthetic');

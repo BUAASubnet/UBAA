@@ -1,6 +1,7 @@
 use super::{ReqwestTransport, collect_response_body, transport_error};
 use crate::error::{Result, UbaaError};
 use crate::ports::{HttpFileRange, HttpMethod, HttpRequest, HttpResponse, HttpTransferObserver};
+use futures_util::StreamExt as _;
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
@@ -69,9 +70,18 @@ impl ReqwestTransport {
                     Ok(Some((bytes, (file, remaining - size as u64, observer))))
                 },
             );
+            let (wire_length, body) = if let Some((prefix, suffix)) = source.framing {
+                let wire_length = length + prefix.len() as u64 + suffix.len() as u64;
+                let framed = futures_util::stream::iter([Ok(prefix)])
+                    .chain(stream)
+                    .chain(futures_util::stream::iter([Ok(suffix)]));
+                (wire_length, reqwest::Body::wrap_stream(framed))
+            } else {
+                (length, reqwest::Body::wrap_stream(stream))
+            };
             builder = builder
-                .header(reqwest::header::CONTENT_LENGTH, length)
-                .body(reqwest::Body::wrap_stream(stream));
+                .header(reqwest::header::CONTENT_LENGTH, wire_length)
+                .body(body);
         } else {
             builder = builder.body(request.body);
         }

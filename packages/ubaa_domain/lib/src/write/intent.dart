@@ -5,6 +5,7 @@ import '../common/route.dart';
 import '../common/cache_management.dart';
 import '../feature/catalog.dart';
 import '../feature/query.dart';
+import '../feature/library/loans.dart';
 
 /// 应用写操作。各 typed Bridge 共用同一个写入协调器。
 enum WriteOperation {
@@ -18,7 +19,9 @@ enum WriteOperation {
   cgyySubmitReservation,
   cgyyCancelOrder,
   evaluationSubmitCourses,
+  libraryLoanRenew,
   bhpan,
+  spocSubmitAssignment,
 }
 
 extension WriteOperationText on WriteOperation {
@@ -33,21 +36,25 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
     WriteOperation.ygdkSubmit => FeatureId.ygdk,
     WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+    WriteOperation.libraryLoanRenew => null,
     WriteOperation.bhpan => null,
+    WriteOperation.spocSubmitAssignment => FeatureId.spoc,
   };
 
   String get title => switch (this) {
     WriteOperation.bykcSelectCourse => '博雅选课',
     WriteOperation.bykcDeselectCourse => '博雅退选',
-    WriteOperation.bykcSignCourse => '博雅签到',
-    WriteOperation.signinPerform => '课堂签到',
+    WriteOperation.bykcSignCourse => '博雅上课',
+    WriteOperation.signinPerform => '上课',
     WriteOperation.libbookReserve => '图书馆预约',
     WriteOperation.libbookCancelBooking => '取消图书馆预约',
     WriteOperation.ygdkSubmit => '阳光打卡',
     WriteOperation.cgyySubmitReservation => '研讨室预约',
     WriteOperation.cgyyCancelOrder => '取消研讨室订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
+    WriteOperation.libraryLoanRenew => '图书续借',
     WriteOperation.bhpan => '云盘',
+    WriteOperation.spocSubmitAssignment => '提交 SPOC 文件作业',
   };
 
   bool get isIrreversible => switch (this) {
@@ -70,6 +77,8 @@ class WriteIntent {
     required this.expiresAt,
     required this.requestDigest,
     this.readbackQuery,
+    this.libraryLoanRenewTarget,
+    this.spocSummary,
   });
 
   final String intentId;
@@ -83,6 +92,10 @@ class WriteIntent {
   /// 仅供确定成功或结果未知后的只读核对使用，不参与 Bridge commit。
   final FeatureQuery? readbackQuery;
 
+  /// 单本续借的核对基线；只用于判定同一记录是否已更新，不参与 Bridge commit。
+  final LibraryLoanRenewTarget? libraryLoanRenewTarget;
+  final SpocSubmitSummary? spocSummary;
+
   bool isExpired([DateTime? now]) =>
       !(expiresAt.isAfter(now ?? DateTime.now()));
 
@@ -95,6 +108,8 @@ class WriteIntent {
     expiresAt: expiresAt,
     requestDigest: requestDigest,
     readbackQuery: query,
+    libraryLoanRenewTarget: libraryLoanRenewTarget,
+    spocSummary: spocSummary,
   );
 }
 
@@ -216,6 +231,7 @@ class WriteCommitResult {
     this.evaluationResult,
     this.cacheFailure,
     this.bhpanReceipt,
+    this.spocReceipt,
   });
 
   final WriteOperation operation;
@@ -230,6 +246,7 @@ class WriteCommitResult {
   /// 本地关联内容处理失败不改变学校提交的确定性和结果。
   final CacheMaintenanceFailure? cacheFailure;
   final BhpanReceipt? bhpanReceipt;
+  final SpocSubmitReceipt? spocReceipt;
 
   /// 本地收尾失败仅追加材料状态，不覆盖已投影的学校结果。
   WriteCommitResult withCacheFailure(CacheMaintenanceFailure? failure) =>
@@ -244,5 +261,34 @@ class WriteCommitResult {
         evaluationResult: evaluationResult,
         cacheFailure: failure,
         bhpanReceipt: bhpanReceipt,
+        spocReceipt: spocReceipt,
       );
+}
+
+final class SpocSubmitSummary {
+  const SpocSubmitSummary({
+    required this.title,
+    required this.courseName,
+    required this.fileName,
+    required this.byteLen,
+    this.dueTime,
+    this.pastDue,
+    this.lateSubmissionDeadline,
+    this.submissionCount,
+  });
+  final String title, courseName, fileName;
+  final int byteLen;
+  final String? dueTime, lateSubmissionDeadline;
+  final bool? pastDue;
+  final int? submissionCount;
+}
+
+final class SpocSubmitReceipt {
+  const SpocSubmitReceipt({
+    required this.fileId,
+    required this.fileName,
+    this.submittedAt,
+  });
+  final String fileId, fileName;
+  final String? submittedAt;
 }

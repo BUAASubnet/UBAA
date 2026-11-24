@@ -415,7 +415,7 @@ backend/认证/凭据/请求代次丢弃迟到成功和失败，见[连接生命
 
 #### 逐操作协议边界
 
-以上五项都是本地表单/状态/系统存储操作，每项的业务 CAS/bootstrap URL、service 参数、重定向/最终URL、Cookie/session范围、HTTP方法/参数、请求头/编码及加密/签名常量均不增加、不替换。实际认证仍严格沿 [准备登录/登录九列](../README.md) 和 [登录/资料旧布局补充](../../archive/protocol/source-parity-ui-profile.md) 的既有协议；不能把示例的普通凭据文件当成安全保险箱。
+以上五项都是本地表单/状态/系统存储操作，每项的业务 CAS/bootstrap URL、service 参数、重定向/最终URL、Cookie/session范围、HTTP方法/参数、请求头/编码及加密/签名常量均不增加、不替换。实际认证仍严格沿 [准备登录/登录九列](../README.md) 和 登录/资料旧布局补充（`source-parity-ui-profile.md`） 的既有协议；不能把示例的普通凭据文件当成安全保险箱。
 
 本地数据仅采用现有 `Credential(username: String,password: String,autoLogin: bool)`；不增加上游DTO、会话文件字段、公开Bridge schema或日志字段。联动不发请求；非自动恢复不发登录请求；失败不重发认证。异步恢复/保存/清除仍受controller销毁及账号生命周期保护，不能把迟到凭据回填到新账号。
 

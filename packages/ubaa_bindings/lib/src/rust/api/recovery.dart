@@ -27,6 +27,7 @@ enum BridgeRecoveryFeature {
   signin,
   bykc,
   libBook,
+  library_,
   cgyy,
   ygdk,
   evaluation,

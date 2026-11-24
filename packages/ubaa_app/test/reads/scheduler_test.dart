@@ -45,12 +45,12 @@ void main() {
     final current = scheduler.run(
       ReadPriority.interactive,
       () => true,
-      () async => events.add('签到当前读取'),
+      () async => events.add('上课当前读取'),
     );
     expect(events, ['在途批次']);
     gate.complete();
     await Future.wait([active, background, current]);
-    expect(events, ['在途批次', '签到当前读取', '后台下一批']);
+    expect(events, ['在途批次', '上课当前读取', '后台下一批']);
     scheduler.close();
   });
   test('写活动暂停普通读取但既定回读不被自身等待阻塞', () async {

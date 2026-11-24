@@ -546,6 +546,7 @@ final class CommandRuntime {
 
 RecoveryTarget _target(BridgeRecoveryFeature value) => switch (value) {
   BridgeRecoveryFeature.libBook => RecoveryTarget.libbook,
+  BridgeRecoveryFeature.library_ => RecoveryTarget.library,
   _ => RecoveryTarget.values.byName(value.name),
 };
 BridgeCommandFailure _recoveryFailure(

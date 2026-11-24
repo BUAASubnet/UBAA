@@ -8,6 +8,7 @@ import '../../client.dart';
 import '../../offline.dart';
 import '../../offline_home.dart';
 import '../../read.dart';
+import '../../read/spoc_files.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `begin_spoc_detail_plan`

@@ -1,6 +1,8 @@
 //! 门户资料与校园账户的在线只读入口。
 use super::super::types::Operation;
-use crate::domain::{CampusMetrics, NetworkUsage, PortalProfile, ReadonlyFeature};
+use crate::domain::{
+    CampusMetrics, LibraryLoan, LibraryLoans, NetworkUsage, PortalProfile, ReadonlyFeature,
+};
 use crate::facade::{RoutedResult, UbaaClient};
 
 impl UbaaClient {
@@ -43,6 +45,42 @@ impl UbaaClient {
             route,
             crate::features::campus::get_usage(self.runtime_for(route.mode)).await
         );
+        self.finish_routed(route, result)
+    }
+}
+
+impl UbaaClient {
+    /// 复用当前路线的 SSO 会话查看当前借阅。
+    ///
+    /// # Errors
+    /// 路线、会话、网络或借阅响应无效时返回错误。
+    pub async fn current_library_loans(&mut self) -> RoutedResult<LibraryLoans> {
+        let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Library))?;
+        let result = self
+            .network_control()
+            .run_read(
+                route.mode,
+                false,
+                Box::pin(crate::features::campus::current_loans(
+                    self.runtime_for(route.mode),
+                )),
+            )
+            .await;
+        self.finish_routed(route, result)
+    }
+
+    /// 只读复核单本续借目标；不会发送写请求。
+    ///
+    /// # Errors
+    /// 路线、会话、目标已变化或借阅响应无效时返回带路线信息的错误。
+    pub async fn preflight_library_loan_renew(
+        &mut self,
+        loan_id: &str,
+    ) -> RoutedResult<LibraryLoan> {
+        self.guard_latest_routed()?;
+        let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Library))?;
+        let result =
+            crate::features::campus::renew_preflight(self.runtime_for(route.mode), loan_id).await;
         self.finish_routed(route, result)
     }
 }

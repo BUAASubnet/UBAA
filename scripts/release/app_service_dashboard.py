@@ -41,10 +41,11 @@ TS = "(extract(epoch FROM (d.day||'T00:00:00+08:00')::timestamptz)*1000)::bigint
 
 FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("bykc", "博雅课程"),
             ("classroom", "空教室"), ("spoc", "SPOC 作业"), ("judge", "希冀作业"),
-            ("libbook", "图书馆"), ("signin", "课堂签到"), ("cgyy", "场馆预约"),
+            ("libbook", "图书馆"), ("signin", "每日课程"), ("cgyy", "场馆预约"),
             ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用"),
             ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "i 北航"),
-            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务")]
+            ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务"),
+            ("health_cloud", "健康云")]
 
 
 def case(col, pairs, default=None):
@@ -190,7 +191,7 @@ def build():
              f"GROUP BY d.day ORDER BY d.day",
              [("time", "时间", "timestamp_epoch"), ("starts", "启动", "number")], C[1],
              "今天的冷启动次数，曲线为所选时段每日值。", fmt="timeseries", spark=True),
-        stat("加载成功率", (16, y, 4, 5),
+        stat("功能加载成功率", (16, y, 4, 5),
              f"SELECT CAST(SUM(CASE WHEN result<>'failure' THEN count ELSE 0 END) AS REAL)/NULLIF(SUM(count),0) AS rate "
              f"FROM counter_days WHERE event='feature_loaded' AND {WHERE}",
              [("rate", "成功率", "number")], GOOD,
@@ -253,6 +254,12 @@ def build():
     panels.append(row("功能使用", y)); y += 1
     panels.append(panel(
         "barchart", "功能热度", (0, y, 10, 11),
+        [target(f"SELECT {FEAT()} AS feature, SUM(count) AS opens FROM counter_days "
+                f"WHERE event='feature_opened' AND {WHERE} GROUP BY feature ORDER BY opens DESC",
+                [("feature", "功能", "string"), ("opens", "打开次数", "number")])],
+        "用户主动进入功能页的次数。", {"unit": "none", "decimals": 0}, options=HBAR))
+    panels.append(panel(
+        "barchart", "功能加载结果分布", (0, y + 11, 8, 9),
         [target(f"SELECT {FEAT()} AS feature, SUM(CASE WHEN result='success' THEN count ELSE 0 END) AS ok, "
                 f"SUM(CASE WHEN result='empty' THEN count ELSE 0 END) AS empty, "
                 f"SUM(CASE WHEN result='failure' THEN count ELSE 0 END) AS fail FROM counter_days "
@@ -268,35 +275,37 @@ def build():
          "legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
          "tooltip": {"mode": "multi", "sort": "none"}}))
     feat_table_sql = (
-        f"WITH c AS (SELECT feature, SUM(count) AS loads, COUNT(DISTINCT install_id) AS devices, "
-        f"CAST(SUM(CASE WHEN result<>'failure' THEN count ELSE 0 END) AS REAL)/NULLIF(SUM(count),0) AS rate, "
-        f"SUM(CASE WHEN result='failure' THEN count ELSE 0 END) AS fails FROM counter_days "
-        f"WHERE event='feature_loaded' AND {WHERE} GROUP BY feature), "
+        f"WITH c AS (SELECT feature, COALESCE(SUM(count) FILTER (WHERE event='feature_opened'),0) AS opens, "
+        f"COUNT(DISTINCT install_id) FILTER (WHERE event='feature_opened') AS devices, "
+        f"COALESCE(SUM(count) FILTER (WHERE event='feature_loaded' AND result<>'failure'),0)::real "
+        f"/NULLIF(SUM(count) FILTER (WHERE event='feature_loaded'),0) AS rate, "
+        f"COALESCE(SUM(count) FILTER (WHERE event='feature_loaded' AND result='failure'),0) AS fails FROM counter_days "
+        f"WHERE event IN ('feature_opened','feature_loaded') AND {WHERE} GROUP BY feature), "
         f"t AS (SELECT feature, CAST(SUM(CASE WHEN bucket IN ('lt_250','lt_500','lt_1000','lt_2000') THEN count ELSE 0 END) AS REAL)"
         f"/NULLIF(SUM(count),0) AS fast FROM timing_days WHERE metric='feature_load' AND {WHERE} GROUP BY feature), "
         f"r AS (SELECT feature, CAST(SUM(CASE WHEN route='webvpn' THEN count ELSE 0 END) AS REAL)/NULLIF(SUM(count),0) AS vpn "
         f"FROM counter_days WHERE event='route_resolved' AND {WHERE} GROUP BY feature) "
-        f"SELECT {FEAT('c.feature')} AS name, c.devices, c.loads, c.rate, c.fails, t.fast, r.vpn FROM c "
-        f"LEFT JOIN t ON t.feature=c.feature LEFT JOIN r ON r.feature=c.feature ORDER BY c.loads DESC")
+        f"SELECT {FEAT('c.feature')} AS name, c.devices, c.opens, c.rate, c.fails, t.fast, r.vpn FROM c "
+        f"LEFT JOIN t ON t.feature=c.feature LEFT JOIN r ON r.feature=c.feature ORDER BY c.opens DESC")
     pct_gauge = lambda name: prop_override(
         name, ("unit", "percentunit"), ("decimals", 0), ("min", 0), ("max", 1),
         ("custom.cellOptions", {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}))
     panels.append(panel(
         "table", "功能明细", (10, y, 14, 11),
         [target(feat_table_sql, [("name", "功能", "string"), ("devices", "使用设备", "number"),
-                                 ("loads", "加载次数", "number"), ("rate", "成功率", "number"),
+                                 ("opens", "打开次数", "number"), ("rate", "功能加载成功率", "number"),
                                  ("fails", "失败", "number"), ("fast", "2 秒内完成", "number"),
                                  ("vpn", "经 WebVPN", "number")])],
-        "成功率含空结果；“2 秒内完成”来自功能加载耗时分桶；“经 WebVPN”为线路解析走 WebVPN 的占比。",
+        "使用设备按主动打开功能的安装 ID 去重。功能加载成功率含空结果。“2 秒内完成”按加载耗时计算，“经 WebVPN”按线路解析结果计算。",
         {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False, "minWidth": 60},
          "decimals": 0, "unit": "none",
          "thresholds": {"mode": "absolute", "steps": [{"color": C[0], "value": None}]},
          "color": {"mode": "thresholds"}},
         [prop_override("功能", ("custom.width", 96)), prop_override("使用设备", ("custom.width", 76)),
          prop_override("失败", ("custom.width", 56)),
-         prop_override("加载次数", ("custom.cellOptions", {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}),
+         prop_override("打开次数", ("custom.cellOptions", {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}),
                        ("color", {"mode": "fixed", "fixedColor": C[0]})),
-         {**pct_gauge("成功率"), "properties": pct_gauge("成功率")["properties"] + [
+         {**pct_gauge("功能加载成功率"), "properties": pct_gauge("功能加载成功率")["properties"] + [
              {"id": "thresholds", "value": {"mode": "absolute", "steps": [
                  {"color": CRIT, "value": None}, {"color": WARN, "value": 0.9}, {"color": GOOD, "value": 0.97}]}}]},
          {**pct_gauge("2 秒内完成"), "properties": pct_gauge("2 秒内完成")["properties"] + [
@@ -307,15 +316,15 @@ def build():
                        ("thresholds", {"mode": "absolute", "steps": [{"color": "text", "value": None},
                                                                       {"color": CRIT, "value": 1}]}))],
         {"showHeader": True, "cellHeight": "sm", "footer": {"show": False},
-         "sortBy": [{"displayName": "加载次数", "desc": True}]}))
+         "sortBy": [{"displayName": "打开次数", "desc": True}]}))
     y += 11
 
-    TOP = [("schedule", "课表"), ("judge", "希冀作业"), ("spoc", "SPOC 作业"), ("signin", "课堂签到"),
+    TOP = [("schedule", "课表"), ("judge", "希冀作业"), ("spoc", "SPOC 作业"), ("signin", "每日课程"),
            ("bykc", "博雅课程"), ("ygdk", "阳光打卡"), ("exam", "考试")]
     cols = ", ".join(f"COALESCE(SUM(CASE WHEN c.feature='{k}' THEN c.count END),0) AS {k}" for k, _ in TOP)
     other = ",".join(f"'{k}'" for k, _ in TOP)
     panels.append(panel(
-        "timeseries", "每日功能加载", (0, y, 16, 9),
+        "timeseries", "每日功能加载", (8, y, 10, 9),
         [target(f"{DAYS} SELECT {TS}, {cols}, COALESCE(SUM(CASE WHEN c.feature NOT IN ({other}) THEN c.count END),0) AS other "
                 f"FROM d LEFT JOIN counter_days c ON c.day=d.day AND c.event='feature_loaded' AND "
                 f"{filt('c.')} GROUP BY d.day ORDER BY d.day",
@@ -326,7 +335,7 @@ def build():
         [color_override(v, C[i]) for i, (_, v) in enumerate(TOP)] + [color_override("其他", MUTED)],
         TS_OPTS))
     panels.append(pie(
-        "访问线路", (16, y, 8, 9),
+        "访问线路", (18, y, 6, 9),
         f"SELECT CASE route WHEN 'direct' THEN '直连' WHEN 'webvpn' THEN 'WebVPN' ELSE route END AS name, "
         f"SUM(count) AS value FROM counter_days WHERE event='route_resolved' AND route<>'none' AND {WHERE} "
         f"GROUP BY route ORDER BY value DESC", "线路", {"直连": C[0], "WebVPN": C[6]},
@@ -372,7 +381,7 @@ def build():
     panels.append(panel(
         "timeseries", "功能使用曲线", (12, y, 12, 9),
         [target(minute_sql(fcols + f", COALESCE(SUM(CASE WHEN m.feature NOT IN ({other}) THEN m.count END),0) AS other",
-                           "event='feature_loaded'"),
+                           "event='feature_opened'"),
                 [("time", "时间", "timestamp_epoch")] + [(k, v, "number") for k, v in TOP] + [("other", "其他", "number")],
                 "timeseries")],
         minute_desc + " 按功能堆叠。", ts_defaults(stack=True, fill=40),
@@ -383,13 +392,13 @@ def build():
     hcols = ", ".join(f"COALESCE(SUM(CASE WHEN h={i} THEN n END),0) AS h{i}" for i in range(24))
     wk = "CASE w " + " ".join(f"WHEN {i} THEN '{n}'" for i, n in enumerate(WEEK)) + " END"
     panels.append(panel(
-        "table", "一周使用热力（功能加载次数）", (0, y, 24, 9),
+        "table", "一周使用热力（功能打开次数）", (0, y, 24, 9),
         [target(f"WITH x AS (SELECT extract(dow FROM minute_at::timestamp)::int AS w, CAST(substr(minute_at,12,2) AS INTEGER) AS h, "
-                f"count AS n FROM minute_counts WHERE event='feature_loaded' AND minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT}), "
+                f"count AS n FROM minute_counts WHERE event='feature_opened' AND minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT}), "
                 f"wd(w) AS (VALUES (1),(2),(3),(4),(5),(6),(0)) "
                 f"SELECT {wk} AS day, {hcols} FROM wd LEFT JOIN x USING(w) GROUP BY wd.w ORDER BY (wd.w+6)%7",
                 [("day", "星期", "string")] + [(f"h{i}", f"{i}时", "number") for i in range(24)])],
-        "所选时段内按星期和小时（北京时间）汇总的功能加载次数，颜色越亮越多，用来看一周里的使用高峰。",
+        "所选时段内按星期和小时（北京时间）汇总的功能打开次数，颜色越亮表示打开越多。",
         {"custom": {"align": "center", "cellOptions": {"type": "color-background", "mode": "basic"}, "inspect": False,
                     "minWidth": 36},
          "unit": "none", "decimals": 0, "min": 0, "noValue": "0",

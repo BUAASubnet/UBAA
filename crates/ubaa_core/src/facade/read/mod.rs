@@ -3,7 +3,8 @@
 mod academic;
 mod assignments;
 mod bykc_catalog;
-mod campus;
+pub(super) mod campus;
 mod evaluation;
 mod services;
+mod spoc_files;
 mod write_readback;

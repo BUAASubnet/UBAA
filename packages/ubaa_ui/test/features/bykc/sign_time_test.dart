@@ -5,14 +5,14 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/common/details/detail_list.dart';
 
 void main() {
-  testWidgets('跨过签到时间边界重新读取资格，缓存不自动取得写资格', (tester) async {
+  testWidgets('跨过上课时间边界重新读取资格，缓存不自动取得写资格', (tester) async {
     // 时钟给出绝对时刻，边界按北京时间（UTC+8）计算。
     var now = DateTime.utc(2026, 11, 16, 1, 59, 59);
     final queries = <FeatureQuery>[];
     const course = BykcChosenPresentation(
       recordId: 7,
       courseId: 42,
-      courseName: '合成签到课程',
+      courseName: '合成上课课程',
       signStartDate: '2026-11-16 10:00:00',
       signEndDate: '2026-11-16 10:01:00',
       signOutStartDate: '2026-11-16 11:00:00',
@@ -27,7 +27,7 @@ void main() {
               isBykcChosenDetail: true,
               details: [
                 FeatureDetail(
-                  title: '合成签到课程',
+                  title: '合成上课课程',
                   presentation: course,
                   actions: [
                     if (online)
@@ -69,7 +69,7 @@ void main() {
     });
   });
 
-  testWidgets('设备不在东八区时仍按北京时间判断签退边界', (tester) async {
+  testWidgets('设备不在东八区时仍按北京时间判断下课边界', (tester) async {
     // 时钟给出绝对时刻；上游时间是北京时间文本，不能按设备时区解释。
     var now = DateTime.utc(2026, 11, 16, 2, 59, 59);
     final queries = <FeatureQuery>[];
@@ -93,7 +93,7 @@ void main() {
     });
   });
 
-  testWidgets('已选列表也在签到时间边界重新读取当前列表', (tester) async {
+  testWidgets('已选列表也在上课时间边界重新读取当前列表', (tester) async {
     var now = DateTime.utc(2026, 11, 16, 2, 59, 59);
     final queries = <FeatureQuery>[];
     const listQuery = FeatureQuery(view: FeatureQueryView.bykcChosenCourses);
@@ -118,7 +118,7 @@ void main() {
     });
   });
 
-  testWidgets('已选卡片在可签到或可签退时直接提供对应按钮', (tester) async {
+  testWidgets('已选卡片在可上课或可下课时直接提供对应按钮', (tester) async {
     final signed = <BykcSignAction>[];
     Future<void> mount(FeatureDetail detail) => tester.pumpWidget(
       MaterialApp(
@@ -136,16 +136,16 @@ void main() {
 
     await mount(_chosen(signOut: ActionEligibility.allowed));
     expect(find.text('退选'), findsNothing);
-    await tester.tap(find.text('签退'));
+    await tester.tap(find.text('下课'));
     expect(signed.single.kind, BykcSignKind.signOut);
 
     await mount(_chosen(signIn: ActionEligibility.allowed));
-    await tester.tap(find.text('签到'));
+    await tester.tap(find.text('上课'));
     expect(signed.last.kind, BykcSignKind.signIn);
 
     await mount(_chosen());
-    expect(find.text('签到'), findsNothing);
-    expect(find.text('签退'), findsNothing);
+    expect(find.text('上课'), findsNothing);
+    expect(find.text('下课'), findsNothing);
     expect(find.widgetWithText(OutlinedButton, '退选'), findsOneWidget);
   });
 }
@@ -154,11 +154,11 @@ FeatureDetail _chosen({
   ActionEligibility signIn = ActionEligibility.denied,
   ActionEligibility signOut = ActionEligibility.denied,
 }) => FeatureDetail(
-  title: '合成签到课程',
+  title: '合成上课课程',
   presentation: const BykcChosenPresentation(
     recordId: 7,
     courseId: 42,
-    courseName: '合成签到课程',
+    courseName: '合成上课课程',
     signStartDate: '2026-11-16 10:00:00',
     signEndDate: '2026-11-16 10:10:00',
     signOutStartDate: '2026-11-16 11:00:00',

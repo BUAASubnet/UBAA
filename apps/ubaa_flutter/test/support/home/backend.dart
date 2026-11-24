@@ -256,7 +256,7 @@ class HomeBackend extends CourseworkBackend implements HomeTodoBackend {
     } else if (feature == FeatureId.signin) {
       details.add(
         FeatureDetail(
-          title: '合成签到待办',
+          title: '合成上课待办',
           presentation: SigninPresentation(
             courseId: 'signin-c',
             classBeginTime: time(5),

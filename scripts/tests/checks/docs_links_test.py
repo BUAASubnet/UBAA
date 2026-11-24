@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('docs_links', ROOT / 'scripts/check/docs_links.py')
@@ -37,6 +38,39 @@ class DocsLinksTest(unittest.TestCase):
             errors = links.check_file(root, page)
             self.assertEqual(len(errors), 1)
             self.assertIn('outside.md', errors[0])
+
+    def test_removed_source_links_only_allow_historical_targets(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            (root / 'docs/protocol/parity').mkdir(parents=True)
+            protocol = root / 'docs/protocol/parity/bhpan.md'
+            source = '/'.join(('..', '..', '..', 'examples', 'ubaa_old', 'src', 'auth.kt'))
+            protocol.write_text(f'[索引](../references.md)\n[来源]({source})\n[其他断链](missing.md)\n')
+            agents = root / 'AGENTS.md'
+            agents.write_text('[索引](docs/protocol/references.md)\n')
+            readme = root / 'README.md'
+            readme.write_text(agents.read_text())
+            self.assertEqual(len(links.check_file(root, protocol)), 1)
+            self.assertIn('missing.md', links.check_file(root, protocol)[0])
+            self.assertEqual(links.check_file(root, agents), [])
+            self.assertEqual(len(links.check_file(root, readme)), 1)
+
+    def test_project_markdown_is_checked_in_former_archive_directories(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pages = [Path('docs', 'archive', 'example.md'),
+                     Path('docs', 'design', 'evidence', 'example.md'),
+                     Path('packages/ubaa_bindings/cargokit/README.md')]
+            for page in pages:
+                path = root / page
+                path.parent.mkdir(parents=True)
+                path.write_text('[断链](missing.md)\n')
+            tracked = '\0'.join(map(str, pages)).encode()
+            with patch.object(links, 'ROOT', root), patch.object(links.subprocess, 'check_output', return_value=tracked), \
+                 patch('builtins.print') as output:
+                self.assertTrue(links.main())
+            self.assertEqual(output.call_count, 3)
+            self.assertIn('2 项错误', output.call_args.args[0])
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ void main() {
     return backend;
   }
 
-  test('三个新增首页来源保留只读内容，旧未签到不生成写动作', () async {
+  test('三个新增首页来源保留只读内容，旧未上课不生成写动作', () async {
     final backend = await open(_Client());
     final home = await backend.readCachedHome(RoutePolicy.direct);
     expect(
@@ -54,7 +54,7 @@ void main() {
     expect(pending.projection!.details.single.title, '旧课堂');
     expect(pending.projection!.details.single.actions, isEmpty);
   });
-  test('签到在线读取保留实时动作，既定回读不进入缓存认证入口', () async {
+  test('上课在线读取保留实时动作，既定回读不进入缓存认证入口', () async {
     final client = _Client();
     final backend = await open(client);
     final online = await backend.loadFeature(FeatureId.signin);

@@ -61,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docs-site
-          path: docs/site/.vitepress/dist
+          path: dist/docs_site
           if-no-files-found: error
           retention-days: 3
   deploy:
@@ -83,3 +83,6 @@ jobs:
           UBAA_DEPLOY_KEY: ${{ secrets.UBAA_DEPLOY_KEY }}
           UBAA_DEPLOY_HOST_KEYS: ${{ secrets.UBAA_DEPLOY_HOST_KEYS }}
         run: python3 scripts/server/notify.py docs
+      - name: 清理部署材料
+        if: ${{ always() }}
+        run: rm -rf "${RUNNER_TEMP:?}/ubaa_server_notify"

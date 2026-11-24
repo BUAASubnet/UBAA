@@ -15,6 +15,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', empty: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.text('缓存研讨室待办'), findsOneWidget);
     expect(find.widgetWithText(TextButton, '重试'), findsNothing);
     await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
@@ -60,17 +61,6 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
-    expect(find.text('缓存博雅待办'), findsOneWidget);
-    expect(find.text('缓存研讨室待办'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('首页已选博雅缓存不被尚未返回的补充来源清空', (tester) async {
-    tester.view.physicalSize = const Size(900, 1800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await mount(tester, date: '2026-09-21', empty: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
     expect(find.text('缓存研讨室待办'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

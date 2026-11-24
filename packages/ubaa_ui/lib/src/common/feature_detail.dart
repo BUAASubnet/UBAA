@@ -17,6 +17,7 @@ import '../features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
 import '../features/cgyy/reservation_flow.dart' show CgyyReservationFlow;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
+import '../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../features/coursework/assignment_filters.dart'
     show AssignmentListFilters;
 import '../features/grades/flow.dart' show GradesFlow;
@@ -50,6 +51,7 @@ bool uiReadableCachedContent(FeatureSnapshot snapshot) =>
 class FeatureDetailView extends StatefulWidget {
   const FeatureDetailView({
     required this.feature,
+    this.filesAccess,
     this.isLanding = false,
     this.paginationGeneration = 0,
     this.loadingMore = false,
@@ -90,6 +92,8 @@ class FeatureDetailView extends StatefulWidget {
     this.onCgyySubmitWrite,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
+    this.onSpocSubmitWrite,
+    this.onPickSpocSubmitFile,
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
     this.onQuery,
@@ -138,6 +142,7 @@ class FeatureDetailView extends StatefulWidget {
   final String? reminderError;
   final ValueChanged<bool>? onReminderChanged;
   final FeatureId feature;
+  final SpocFilesAccess? filesAccess;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
   final VoidCallback onBack;
@@ -155,6 +160,8 @@ class FeatureDetailView extends StatefulWidget {
   final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
+  final SpocSubmitStarter? onSpocSubmitWrite;
+  final SpocSubmitFilePicker? onPickSpocSubmitFile;
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final Future<void> Function(FeatureQuery query)? onQuery;
@@ -758,6 +765,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       builder: (hidden, checkingSelection, onWrite) => FeatureDetailList(
         bykcConflictIds: hidden,
         feature: widget.feature,
+        filesAccess: widget.filesAccess,
+        onSpocSubmitWrite: widget.onSpocSubmitWrite,
+        pickSpocSubmitFile: widget.onPickSpocSubmitFile,
         // 后台续载下一页不影响已显示条目的操作；整页读取或刷新时才禁用。
         writesEnabled:
             (widget.snapshot.status != FeatureLoadStatus.loading ||
@@ -837,7 +847,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 : widget.snapshot.evidence?.complete == false
                 ? '暂时没有可显示的内容'
                 : switch (widget.feature) {
-                    FeatureId.signin => '今天没有需要签到的课程',
+                    FeatureId.signin => '今天没有课程',
                     FeatureId.evaluation when _noEvaluationCourses =>
                       '当前没有评教任务',
                     _ => '暂无${widget.feature.title}数据',

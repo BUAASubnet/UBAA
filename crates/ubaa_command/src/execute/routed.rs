@@ -1,7 +1,5 @@
 //! Core 聚合路由 dispatcher。
 
-use std::io::Write;
-
 use crate::io::schema::CliFeature;
 use ubaa_core::facade::RoutedError;
 
@@ -9,7 +7,6 @@ use crate::backend::RoutedCliBackend;
 use crate::command::{Cli, Command, UserArgs, UserCommand};
 use crate::io::human::redacted_profile;
 use crate::io::input::invalid_input;
-use crate::io::render::render_routed_result;
 use crate::io::schema::CommandOutput;
 
 use super::features::academic::{
@@ -22,28 +19,6 @@ use super::features::evaluation::run_routed_evaluation;
 use super::features::libbook::run_routed_libbook;
 use super::features::ygdk::run_routed_ygdk;
 use super::routed_map;
-
-/// 使用 Core 所有的路由解析执行普通用户命令或只读命令。
-pub async fn run_with_routed_backend<B, O, E>(
-    cli: Cli,
-    backend: &mut B,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32
-where
-    B: RoutedCliBackend + Send,
-    O: Write,
-    E: Write,
-{
-    let json = cli.json;
-    let feature = cli.feature();
-    let result = execute_routed(cli, backend, &mut std::io::empty(), None, None).await;
-    crate::runtime::finish_output(
-        render_routed_result(json, feature, result, stdout, stderr),
-        stdout,
-        stderr,
-    )
-}
 
 pub(crate) async fn execute_routed<B: RoutedCliBackend + Send>(
     cli: Cli,

@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../bhpan/service.dart' show bridgeBhpanCommit;
+import '../bhpan/service.dart' show bridgeBhpanCommit, BridgeBhpanTransferTask;
 import 'dart:typed_data';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -113,24 +113,47 @@ Future<WriteCommitResult> bridgeCommitWrite(
           ? bridgeMapYgdkReceipt(result.ygdkReceipt)
           : null,
       evaluationResult: evaluationResult,
+      spocReceipt: switch ((
+        operation,
+        result.success,
+        result.outcomeUnknown,
+        result.spocReceipt,
+      )) {
+        (WriteOperation.spocSubmitAssignment, true, false, final receipt?)
+            when receipt.fileId.trim().isNotEmpty &&
+                receipt.fileName.isNotEmpty =>
+          SpocSubmitReceipt(
+            fileId: receipt.fileId,
+            fileName: receipt.fileName,
+            submittedAt: receipt.submittedAt,
+          ),
+        (WriteOperation.spocSubmitAssignment, true, false, _) =>
+          throw const BackendException(UbaaErrorCode.outcomeUnknown),
+        _ => null,
+      },
       cacheFailure: cacheFailure,
     );
     if (!projected.outcomeUnknown) await acknowledge();
     return projected.withCacheFailure(cacheFailure);
   } on BridgeError catch (error, stack) {
     Error.throwWithStackTrace(
-      bridgeWriteCacheError(bridgeMapError(error), cacheFailure),
+      bridgeWriteCacheError(
+        bridgeMapError(error),
+        cacheFailure,
+        readbackHintId: hintId,
+      ),
       stack,
     );
   } on BackendException catch (error, stack) {
     Error.throwWithStackTrace(
-      bridgeWriteCacheError(error, cacheFailure),
+      bridgeWriteCacheError(error, cacheFailure, readbackHintId: hintId),
       stack,
     );
   } on Object {
     throw BackendException(
       UbaaErrorCode.outcomeUnknown,
       cacheFailure: cacheFailure,
+      readbackHintId: hintId,
     );
   }
 }

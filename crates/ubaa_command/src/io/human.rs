@@ -4,7 +4,7 @@ use std::io::{self, Write};
 
 use serde_json::{Value, json};
 use ubaa_core::facade::{
-    AuthStatus, CgyyLockCode, EvaluationBatchResult, EvaluationCourseOutcome, UserProfile,
+    CgyyLockCode, EvaluationBatchResult, EvaluationCourseOutcome, UserProfile,
 };
 
 use super::schema::CommandOutput;
@@ -25,12 +25,6 @@ pub(crate) fn write_profile<W: Write>(stdout: &mut W, profile: &UserProfile) -> 
 pub(crate) fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> io::Result<()> {
     match output {
         CommandOutput::Profile(profile) => write_profile(stdout, &profile),
-        CommandOutput::Status(status) => {
-            writeln!(stdout, "已认证：是")?;
-            writeln!(stdout, "连接检查时间：{}", status.last_activity)?;
-            write_profile(stdout, &status.user)
-        }
-        CommandOutput::Logout(_) => writeln!(stdout, "已退出登录。"),
         CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
         CommandOutput::EvaluationBatch { data, .. } => write_evaluation_batch(stdout, &data),
     }
@@ -69,11 +63,6 @@ fn write_optional<W: Write>(stdout: &mut W, label: &str, value: Option<&str>) ->
         writeln!(stdout, "{label}: {value}")?;
     }
     Ok(())
-}
-
-pub(crate) fn redacted_status(mut status: AuthStatus) -> AuthStatus {
-    status.user = redacted_profile(status.user);
-    status
 }
 
 pub(crate) fn redacted_profile(mut profile: UserProfile) -> UserProfile {

@@ -91,6 +91,11 @@ mixin ControllerAuthenticationCompletion on ControllerState {
     bool Function() current, {
     required String username,
   }) async {
+    if (internalUser?.username != null && internalUser!.username != username ||
+        internalLocalAccount != null &&
+            internalLocalAccount!.username != username) {
+      internalWriteCoordinator.clearLibraryReadbacks();
+    }
     if (internalLocalAccount != null &&
         internalLocalAccount!.username != username) {
       internalClearCurrentSessionGrant();

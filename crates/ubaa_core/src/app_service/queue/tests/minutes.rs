@@ -2,22 +2,17 @@ use super::*;
 use crate::app_service::{AppService, AppServiceConfig};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Value, json};
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 struct CampusClock {
-    root: PathBuf,
+    root: crate::test_tmp::TestTempDir,
     now: Arc<Mutex<DateTime<Utc>>>,
 }
 
 impl CampusClock {
     fn new() -> Self {
         Self {
-            root: Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.ubaa_local/minute_telemetry/core")
-                .join(Uuid::new_v4().to_string()),
+            root: crate::test_tmp::test_temp_dir("ubaa_core_app_service_minutes").unwrap(),
             now: Arc::new(Mutex::new("2026-11-10T16:00:00Z".parse().unwrap())),
         }
     }
@@ -35,17 +30,11 @@ impl CampusClock {
             false,
         );
         let now = Arc::clone(&self.now);
-        let service = AppService::open(&self.root, config, Surface::Gui, 3)
+        let service = AppService::open(self.root.path(), config, Surface::Gui, 3)
             .unwrap()
             .with_runtime(move || *now.lock().unwrap(), false);
         service.agree(3).unwrap();
         service
-    }
-}
-
-impl Drop for CampusClock {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.root).unwrap();
     }
 }
 
@@ -55,6 +44,54 @@ fn track(service: &AppService, event: &TelemetryEvent) {
 
 fn minute_items(group: &Value) -> &[Value] {
     group["minutes"].as_array().expect("应包含分钟计数")
+}
+
+#[test]
+fn app_service_minutes_功能打开分别累加到日和分钟() {
+    let service = CampusClock::new();
+    let service = service.open(VERSION);
+    let event =
+        json!({"event":"feature_opened","feature":"finance","route":"none","result":"success"});
+    let opened = TelemetryEvent::Counter(serde_json::from_value(event.clone()).unwrap());
+    track(&service, &opened);
+    track(&service, &opened);
+    let batch = service.freeze_next().unwrap().unwrap();
+    let group = &days(&batch)[0];
+    let mut daily = event;
+    daily["count"] = json!(2);
+    assert_eq!(group["counters"], json!([daily]));
+    assert_eq!(
+        minute_items(group),
+        &[
+            json!({"minute":0,"event":"feature_opened","feature":"finance","result":"success","count":2})
+        ]
+    );
+}
+
+#[test]
+fn app_service_minutes_健康云打开入队后同时生成日和分钟计数() {
+    let clock = CampusClock::new();
+    let service = clock.open(VERSION);
+    let mut daily = json!({
+        "event":"feature_opened", "feature":"health_cloud", "route":"none", "result":"success"
+    });
+    let opened = TelemetryEvent::Counter(serde_json::from_value(daily.clone()).unwrap());
+    track(&service, &opened);
+    let mut loaded = daily.clone();
+    loaded["event"] = json!("feature_loaded");
+    let loaded = TelemetryEvent::Counter(serde_json::from_value(loaded).unwrap());
+    assert!(!service.enqueue(&loaded, None).unwrap());
+
+    let batch = service.freeze_next().unwrap().unwrap();
+    let group = &days(&batch)[0];
+    daily["count"] = json!(1);
+    assert_eq!(group["counters"], json!([daily]));
+    assert_eq!(
+        minute_items(group),
+        &[json!({
+            "minute":0, "event":"feature_opened", "feature":"health_cloud", "result":"success", "count":1
+        })]
+    );
 }
 
 #[test]

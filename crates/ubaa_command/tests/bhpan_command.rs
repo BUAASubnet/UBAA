@@ -1,5 +1,9 @@
 use ubaa_command::{CommandClass, parse};
 
+#[allow(dead_code)]
+#[path = "cli_contract/common/mod.rs"]
+mod common;
+
 #[test]
 fn 云盘命令由唯一命令树分派且写操作不进入只读重跑器() {
     for arguments in [
@@ -177,14 +181,18 @@ impl Transport {
 }
 struct Fixture {
     root: std::path::PathBuf,
-    client: UbaaClient,
+    backend: common::FakeRoutedBackend,
     transport: Transport,
+    _temp: ubaa_test_support::TestTempDir,
 }
 impl Fixture {
+    fn client(&mut self) -> &mut UbaaClient {
+        self.backend.bhpan_client.as_mut().unwrap()
+    }
+
     fn new(transport: Transport, route: &str) -> Self {
-        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/bhpan_delivery/integration/command_tests")
-            .join(uuid::Uuid::new_v4().to_string());
+        let temp = ubaa_test_support::test_temp_dir("ubaa_command_bhpan").unwrap();
+        let root = temp.path().to_path_buf();
         let store = FileSessionStore::new(&root).unwrap();
         let session = RouteSessionSnapshot {
             cookies: vec![],
@@ -206,8 +214,12 @@ impl Fixture {
         )
         .unwrap();
         Self {
+            _temp: temp,
             root,
-            client,
+            backend: common::FakeRoutedBackend {
+                bhpan_client: Some(client),
+                ..Default::default()
+            },
             transport,
         }
     }
@@ -216,7 +228,7 @@ impl Fixture {
         argv.extend(arguments);
         let control = CommandControl::default();
         let prepared = prepare_input(parse(argv).unwrap(), &mut Cursor::new([]), &control).unwrap();
-        let result = execute_attempt(&prepared, &mut self.client, &control)
+        let result = execute_attempt(&prepared, &mut self.backend, &control)
             .await
             .into_result();
         let (mut out, mut err) = (vec![], vec![]);
@@ -232,9 +244,7 @@ impl Fixture {
         (code, value)
     }
     fn finish(self) {
-        let root = self.root.clone();
         drop(self);
-        std::fs::remove_dir_all(root).unwrap();
     }
 }
 #[tokio::test]
@@ -302,7 +312,7 @@ async fn 云盘同名歧义与未支持路线在写入或恢复业务网络前�
             .unwrap();
     assert!(
         unsupported
-            .client
+            .client()
             .recover_bhpan_session_controlled(operation)
             .await
             .is_err()
@@ -366,7 +376,7 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
     )
     .unwrap();
     std::fs::write(&file, b"changed file").unwrap();
-    let result = execute_attempt(&prepared, &mut fixture.client, &control)
+    let result = execute_attempt(&prepared, &mut fixture.backend, &control)
         .await
         .into_result();
     assert_eq!(result.render(&control, &mut vec![], &mut vec![]), 2);
@@ -507,9 +517,7 @@ async fn 公开聚合执行入口同样拒绝未确认云盘写入() {
     let cli = ubaa_command::parse(["ubaa-cli", "--json", "bhpan", "delete", "/notes.txt"])
         .unwrap()
         .into_cli();
-    let code =
-        ubaa_command::run_with_routed_backend(cli, &mut fixture.client, &mut vec![], &mut vec![])
-            .await;
+    let code = common::run_command(cli, &mut fixture.backend, &mut vec![], &mut vec![]).await;
     assert_eq!(code, 2);
     assert_eq!(fixture.transport.calls.lock().unwrap().len(), 0);
     fixture.finish();
@@ -552,14 +560,14 @@ async fn 命令等待材料锁跨过绝对期限后不发送云盘写入() {
     use std::time::{Duration, Instant};
     let mut f = Fixture::new(Transport::default(), "direct");
     let parent = f
-        .client
+        .client()
         .bhpan_personal_root()
         .await
         .unwrap()
         .items
         .remove(0);
     let file = f
-        .client
+        .client()
         .bhpan_list(&parent.handle)
         .await
         .unwrap()
@@ -568,7 +576,7 @@ async fn 命令等待材料锁跨过绝对期限后不发送云盘写入() {
         .find(|item| item.name == "notes.txt")
         .unwrap();
     let prepared = f
-        .client
+        .client()
         .bhpan_prepare_write(ubaa_core::facade::BhpanWriteIntent::Recycle { item: file.handle })
         .await
         .unwrap();
@@ -581,7 +589,7 @@ async fn 命令等待材料锁跨过绝对期限后不发送云盘写入() {
     ] {
         std::fs::write(materials.join(name), value).unwrap();
     }
-    f.client.bind_shared_account(Some(
+    f.client().bind_shared_account(Some(
         ubaa_core::facade::SharedAccountGuard::new(&materials, 1).unwrap(),
     ));
     let control = CommandControl::new(Instant::now(), Duration::from_secs(1));
@@ -604,7 +612,7 @@ async fn 命令等待材料锁跨过绝对期限后不发送云盘写入() {
     ready.recv().unwrap();
     // 锁释放前期限一定已到达，取消不能仅依赖异步定时器抢占本次轮询。
     let result = control
-        .run(f.client.bhpan_commit_write(&prepared.handle))
+        .run(f.client().bhpan_commit_write(&prepared.handle))
         .await;
     worker.join().unwrap();
     assert!(result.is_err());

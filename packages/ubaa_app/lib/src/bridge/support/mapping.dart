@@ -137,21 +137,29 @@ String? bridgeNonBlank(String? value) {
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
-BackendException bridgeMapError(BridgeError error) => BackendException(
-  bridgeTypedErrorCode(error.code),
-  authStage: AuthFailureStage.parse(error.authStage),
-  authReason: AuthFailureReason.parse(error.authReason),
-  diagnostic: ErrorDiagnostic.parse(error.diagnosticJson),
-  cacheFailure: bridgeCacheMaintenanceFailure(error.cacheFailure),
-  accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
-  clientDisposed: error.code == BridgeErrorCode.clientDisposed,
-  captchaRequired: error.code == BridgeErrorCode.captchaRequired,
-  kind: _typedErrorKind(error.kind),
-  retryable: error.retryable,
-  resolvedRoute: error.resolvedRoute == null
-      ? null
-      : bridgeToConnectionMode(error.resolvedRoute!),
-);
+BackendException bridgeMapError(BridgeError error) {
+  final diagnostic = ErrorDiagnostic.parse(error.diagnosticJson);
+  return BackendException(
+    bridgeTypedErrorCode(error.code),
+    authStage: AuthFailureStage.parse(error.authStage),
+    authReason: AuthFailureReason.parse(error.authReason),
+    diagnostic: diagnostic,
+    libraryLoanRejectionReason:
+        error.code == BridgeErrorCode.businessRejected &&
+            diagnostic?.reason == 'library_renew_rejected_with_message'
+        ? bridgeNonBlank(error.message)
+        : null,
+    cacheFailure: bridgeCacheMaintenanceFailure(error.cacheFailure),
+    accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
+    clientDisposed: error.code == BridgeErrorCode.clientDisposed,
+    captchaRequired: error.code == BridgeErrorCode.captchaRequired,
+    kind: _typedErrorKind(error.kind),
+    retryable: error.retryable,
+    resolvedRoute: error.resolvedRoute == null
+        ? null
+        : bridgeToConnectionMode(error.resolvedRoute!),
+  );
+}
 
 UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.invalidInput => UbaaErrorCode.invalidInput,

@@ -6,7 +6,7 @@ use crate::api::{
     shared_account::BridgeSharedAccount,
 };
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use ubaa_core::facade::testing::{
     FileSessionStore, GatewayProbe, HttpRequest, HttpResponse, HttpTransport, RouteConfig,
 };
@@ -29,12 +29,8 @@ fn now() -> BridgeAgendaTime {
         timezone: "Asia/Shanghai".into(),
     }
 }
-fn root() -> PathBuf {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_sync_dev/bridge")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    root
+fn root() -> ubaa_test_support::TestTempDir {
+    ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_agenda_sync").unwrap()
 }
 fn bridge_client(directory: &Path, policy: core::RoutePolicy) -> BridgeClient {
     let mut config = RouteConfig::default();

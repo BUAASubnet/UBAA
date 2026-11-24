@@ -38,10 +38,21 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _selectTab(UiDestination.settings.index);
       return;
     }
-    _changeNavigation(() {
-      _openedFeature = null;
-      _utilityPage = page;
-    });
+    _changeNavigation(
+      () {
+        _openedFeature = null;
+        _utilityPage = page;
+      },
+      openedFeature: switch (page) {
+        '图书馆云打印' => 'cloud_print',
+        '云盘' => 'bhpan',
+        'iHome' => 'ihome',
+        '财务查询' => 'finance',
+        '当前借阅' => 'library_loans',
+        healthCloudTitle => 'health_cloud',
+        _ => null,
+      },
+    );
   }
 
   void _openHomeNavigation(FeatureReadNavigation target) {
@@ -49,7 +60,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     _changeNavigation(() {
       _openedFeature = target.feature;
       if (page == null) _pendingHomeTarget = target;
-    });
+    }, openedFeature: target.feature.wireName);
     _recordFeatureVisit(target.feature);
     if (page != null) {
       unawaited(page.openFromHome(target));
@@ -110,6 +121,18 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 scopeKey: _pageContentScope,
                 connecting: widget.connecting,
                 service: widget.financeService,
+              )
+            : _utilityPage == '当前借阅' && widget.readLibraryLoans != null
+            ? LibraryLoansView(
+                key: ValueKey(_pageContentScope),
+                read: widget.readLibraryLoans!,
+                pending: widget.pendingLibraryLoans,
+                recheck: widget.onRecheckLibraryLoan,
+                renew:
+                    widget.onPrepareLibraryLoanRenewWrite == null ||
+                        !_hasWriteCommands
+                    ? null
+                    : _startLibraryLoanRenewWrite,
               )
             : _utilityPage == '关于'
             ? AboutView(
@@ -174,9 +197,15 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               hints: widget.writeReadbacks,
               error: widget.writeReadbackError,
               onDismiss: widget.onDismissWriteReadback,
+              onOpenLibraryLoans: widget.readLibraryLoans == null
+                  ? null
+                  : () => _openUtility('当前借阅'),
               onRefresh: widget.onRefreshWriteReadbacks,
               onOpenFeature: (feature) {
-                _changeNavigation(() => _openedFeature = feature);
+                _changeNavigation(
+                  () => _openedFeature = feature,
+                  openedFeature: feature.wireName,
+                );
                 _recordFeatureVisit(feature);
               },
             ),
@@ -261,6 +290,9 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           widget.writeState.intent == null,
       child: MeView(
         onOpenBhpan: () => _openUtility('云盘'),
+        onOpenLibraryLoans: widget.readLibraryLoans == null
+            ? null
+            : () => _openUtility('当前借阅'),
         user: widget.user,
         overview: _campusOverview,
         showShortcuts: MediaQuery.sizeOf(context).width < 600,
@@ -298,24 +330,18 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     selectedIndex: _selectedIndex,
     utilityPage: _utilityPage,
     featureOpen: _openedFeature != null,
-    leading: (extended) => _buildRailLeading(context, extended),
+    leading: (extended) => uiRailIdentity(
+      context,
+      extended,
+      user: widget.user,
+      // “我的资料”是“我的”的下一级，打开时身份区保持高亮。
+      selected:
+          _selectedIndex == UiDestination.me.index &&
+          (_utilityPage == null || _utilityPage == '我的资料'),
+      onTap: () => _selectTab(UiDestination.me.index),
+    ),
     onSelectTab: _selectTab,
     onOpenAbout: () => _openUtility('关于'),
-  );
-
-  Widget _buildRailLeading(
-    BuildContext context,
-    bool extended, {
-    VoidCallback? onTap,
-  }) => uiRailIdentity(
-    context,
-    extended,
-    user: widget.user,
-    // “我的资料”是“我的”的下一级，打开时身份区保持高亮。
-    selected:
-        _selectedIndex == UiDestination.me.index &&
-        (_utilityPage == null || _utilityPage == '我的资料'),
-    onTap: onTap ?? () => _selectTab(UiDestination.me.index),
   );
 
   Future<void> _logout() async {

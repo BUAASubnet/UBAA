@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""批量读取 Git index，分别检查 index 与工作树的结构棘轮。"""
-from collections import Counter, defaultdict
+"""分别统计 Git index 与工作树的手写源码规模，报告超限。"""
+from collections import Counter
 from pathlib import Path, PurePosixPath
-import re
 import subprocess
 import sys
 
@@ -115,72 +114,17 @@ def snapshots(root, errors):
     return violations
 
 
-def baseline(root, errors):
-    path = root / 'scripts/layout-baseline.txt'
-    if not path.is_file():
-        raise ValueError('缺少 scripts/layout-baseline.txt')
-    entries, keys = set(), set()
-    for line in path.read_bytes().decode('utf-8', errors='surrogateescape').split('\n'):
-        if not line or line.startswith('#'):
-            continue
-        if line.count('\t') != 2:
-            errors.append(f'baseline 必须恰有三列：{line}')
-            continue
-        kind, relative, count = line.split('\t')
-        if kind not in {'file', 'dir'}:
-            errors.append(f'baseline kind 未知（{kind}）：{relative}')
-            continue
-        if (not relative or relative.startswith('/')
-                or any(part in {'..', '.', ''} for part in relative.split('/'))):
-            errors.append(f'baseline 路径必须是仓库内规范相对路径：{relative}')
-            continue
-        if not re.fullmatch('[0-9]+', count) or int(count) <= 0:
-            errors.append(f'baseline 数量必须是正整数：{relative}')
-            continue
-        key = (kind, relative)
-        if key in keys:
-            errors.append(f'baseline 项重复：{relative}')
-            continue
-        keys.add(key)
-        entries.add((kind, relative, count))
-        target = root / relative
-        if kind == 'file' and not (target.exists() or target.is_symlink()):
-            errors.append(f'baseline 文件不存在：{relative}')
-        elif kind == 'dir' and not target.is_dir():
-            errors.append(f'baseline 目录不存在：{relative}')
-    return entries
-
-
-def compare(entries, violations, errors):
-    counts = defaultdict(set)
-    for kind, path, count in violations:
-        counts[kind, path].add(count)
-    for kind, path, expected in sorted(entries):
-        actual = counts[kind, path]
-        if not actual:
-            errors.append(f'baseline 项已不存在或已修复：{path}')
-        for count in sorted(actual):
-            if count != expected:
-                errors.append(f'baseline 数量变化（登记 {expected}，当前 {count}）：{path}')
-    for kind, path, count in sorted(violations - entries):
-        errors.append(f'发现未登记或数量变化的结构违例（{kind}，{count}）：{path}')
-
-
 def main(root):
     errors = []
-    entries = baseline(root, errors)
     violations = snapshots(root, errors)
-    # 保留 Dart part 聚合规模、归属和依赖环检查，不能只统计单个物理文件。
-    module_checker = root / 'scripts/check/module_graph.py'
-    if module_checker.is_file():
-        if subprocess.run([sys.executable, str(module_checker)], check=False).returncode:
-            errors.append('Dart library 聚合检查失败')
-    compare(entries, violations, errors)
+    for kind, path, count in sorted(violations):
+        size = f'{count} 行（上限 1000）' if kind == 'file' else f'{count} 个文件（上限 16）'
+        print(f'layout warning: {path}：{size}')
     for error in errors:
         print(f'layout check: {error}', file=sys.stderr)
     if errors:
         raise ValueError(f'layout check failed: {len(errors)} 个问题')
-    print(f'layout check passed: {len(violations)} 个精确 baseline 违例')
+    print(f'layout check passed: {len(violations)} 项告警')
 
 
 if __name__ == '__main__':

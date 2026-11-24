@@ -341,7 +341,7 @@ fn restart(name: &str, mode: &str) {
     for round in ["cold", "reopen"] {
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args(["--ignored", "--exact", "--nocapture", CHILD])
-            .env("UBAA_FIXTURE_CACHE_ROOT", &fixture.0)
+            .env("UBAA_FIXTURE_CACHE_ROOT", fixture.0.path())
             .env("UBAA_FIXTURE_CACHE_ENTRY", name)
             .env("UBAA_FIXTURE_CACHE_MODE", mode)
             .env("UBAA_FIXTURE_CACHE_ROUND", round)

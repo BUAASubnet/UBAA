@@ -37,7 +37,7 @@ FRB 是 [flutter_rust_bridge](https://pub.dev/packages/flutter_rust_bridge)，�
 
 ### 应用服务
 
-UBAA 自有的 Cloudflare Worker 服务，提供启动配置、更新提示、公告和经用户同意的匿名统计。它不接触学校账号。规则见[应用服务合同](../contracts/app-service.md)，部署见[应用服务部署手册](../runbooks/app-service.md)。
+UBAA 在自有服务器上运行的 Node.js 服务，使用 PostgreSQL，提供启动配置、更新提示、公告和经用户同意的匿名统计。它不接触学校账号。规则见[应用服务合同](../contracts/app-service.md)，部署见[应用服务部署手册](../runbooks/app-service.md)。
 
 ## 协议与网络
 
@@ -79,13 +79,13 @@ Core 在一次新鲜的在线读取中签发的 typed 字段，例如 `cancelEli
 
 ## 来源与验证
 
-### 冻结参考
+### 来源记录
 
-来源对照使用的两个本地只读参考仓库：`examples/ubaa_old/`（旧版 UBAA）和 `examples/buaa-api/`，各自固定在一个提交。`just refs` 只读校验它们，`just refs-bootstrap` 只在首次缺失时联网建立。固定提交见[冻结参考](../protocol/references.md)。
+来源对照记录保存在[协议依据目录](../protocol/README.md)及各功能逐操作文件中，包含来源提交、文件定位和结论。新增认证、读取或写入行为前，必须先补齐对应的来源证据。
 
 ### 来源对照
 
-修改认证、读取或写入功能前，逐个操作比较两个冻结参考的 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)，记录见[来源对照索引](../protocol/README.md)。
+修改认证、读取或写入功能前，逐个操作核对 URL、重定向、Cookie 作用域、参数、加密、DTO 和错误处理，并把结果记录下来。没有证据的字段或 URL 不能凭推断补齐。规则见[协议依据目录](../protocol/README.md)，记录见[来源对照索引](../protocol/README.md)。
 
 ### Fixture / Mock
 
@@ -111,7 +111,7 @@ Flutter 截图对比测试。基准图使用 macOS 渲染，允许不超过 0.2%
 
 ### 按改动检查与完整验收
 
-`just check-changed` 根据改动路径选择需要的门禁：`mode=commit`（默认，提交前）、`mode=push`（推送前）和 `mode=full`（完整确定性验收）。安全、协议、并发、存储和跨语言边界的改动在提交前就要完整验收。见[检查选择与完成条件](commands.md#检查选择与完成条件)。
+`just check-changed` 根据改动路径自动选择 L1 或 L1+；`mode=full` 用于完整确定性验收。安全、协议、并发、存储和跨语言边界的改动由选择脚本追加高风险检查，无法判断时进入完整验收。见[检查选择与完成条件](commands.md#检查选择与完成条件)。
 
 ### 候选
 

@@ -145,6 +145,11 @@ fn text(value: &Value, key: &str) -> Result<Option<String>> {
     }
 }
 
+fn display_text(value: &Value, key: &str) -> Option<String> {
+    let text = value.get(key)?.as_str()?.trim();
+    (!text.is_empty()).then(|| text.to_owned())
+}
+
 fn record_id(value: &Value) -> Result<String> {
     match value.get("lsh") {
         None => Err(failure("income_fields", "lsh_missing")),
@@ -165,6 +170,9 @@ pub(super) fn income(value: &Value) -> Result<FinanceIncome> {
         id: record_id(value)?,
         project: text(value, "ffxmmc")?,
         description: text(value, "zy")?,
+        department: display_text(value, "bmmc"),
+        project_code: display_text(value, "xmbh"),
+        project_name: display_text(value, "xmmc"),
         amount_cents: amount(&value["je"], "je")?,
         tax_cents: amount(&value["se"], "se")?,
         paid_cents: amount(&value["sfje"], "sfje")?,

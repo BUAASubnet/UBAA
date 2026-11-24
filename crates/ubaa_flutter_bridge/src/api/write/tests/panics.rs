@@ -116,6 +116,14 @@ async fn 写入生效后panic保留未知结果且发送前panic不冒充已发�
             full_hints.then_some(crate::api::offline::BridgeCacheFailure::Capacity)
         );
         let error = result.error.unwrap();
+        if after_write && !full_hints {
+            assert_eq!(
+                result.readback_hint_id.as_deref(),
+                Some(repo.write_readback_hints().unwrap()[0].id.as_str())
+            );
+        } else {
+            assert!(result.readback_hint_id.is_none());
+        }
         assert_eq!(
             repo.write_readback_hints().unwrap().len(),
             if full_hints {

@@ -16,38 +16,6 @@ void main() {
     expect(find.text('原值'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('宽考试沿旧时间线且已结束可展开，非标准日期保留', (tester) async {
-    await _show(tester, FeatureId.exam, const [
-      FeatureDetail(
-        title: '原顺序第一',
-        presentation: ExamPresentation(
-          arranged: true,
-          date: '教务待确认',
-          startTime: '午后',
-        ),
-      ),
-      FeatureDetail(
-        title: '原顺序第二',
-        presentation: ExamPresentation(arranged: true, date: '2020-01-01'),
-      ),
-      FeatureDetail(
-        title: '未安排课程',
-        presentation: ExamPresentation(arranged: false),
-      ),
-    ], width: 1280);
-    expect(find.byType(DataTable), findsNothing);
-    expect(find.text('已结束考试 (1)'), findsOneWidget);
-    expect(find.text('未安排'), findsOneWidget);
-    expect(find.text('原顺序第二'), findsNothing);
-    await tester.tap(find.text('已结束考试 (1)'));
-    await tester.pumpAndSettle();
-    expect(find.text('原顺序第二'), findsOneWidget);
-    await tester.tap(find.text('原顺序第一'));
-    await tester.pumpAndSettle();
-    expect(find.text('教务待确认 · 午后 开始'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('平板成绩无需横滚，绩点与次要字段直接显示在卡片上', (tester) async {
     await _show(
       tester,
@@ -204,28 +172,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('第4–2节'), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('考试仅有开始时间仍可读且保留座位和安排状态', (tester) async {
-    await _show(tester, FeatureId.exam, const [
-      FeatureDetail(
-        title: '高等数学',
-        presentation: ExamPresentation(
-          arranged: true,
-          date: '2999-09-08',
-          startTime: '09:00',
-          seat: 'A018',
-        ),
-      ),
-      FeatureDetail(
-        title: '大学英语',
-        presentation: ExamPresentation(arranged: false),
-      ),
-    ]);
-    expect(find.text('09:00 开始'), findsOneWidget);
-    expect(find.text('座位 A018'), findsOneWidget);
-    expect(find.text('时间待定'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

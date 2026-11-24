@@ -12,6 +12,7 @@ use ubaa_test_support::{ExpectedRequest, MemorySessionStore};
 pub(crate) struct SpocTransport {
     responses: Arc<Mutex<VecDeque<(String, HttpResponse)>>>,
     requests: Arc<Mutex<Vec<HttpRequest>>>,
+    timeout_url: Arc<Mutex<Option<String>>>,
 }
 
 impl SpocTransport {
@@ -19,11 +20,16 @@ impl SpocTransport {
         Self {
             responses: Arc::new(Mutex::new(responses.into_iter().collect())),
             requests: Arc::new(Mutex::new(Vec::new())),
+            timeout_url: Arc::default(),
         }
     }
 
     pub(crate) fn requests(&self) -> Vec<HttpRequest> {
         self.requests.lock().expect("request log lock").clone()
+    }
+
+    pub(crate) fn timeout_once(&self, url: String) {
+        *self.timeout_url.lock().unwrap() = Some(url);
     }
 
     pub(crate) fn assert_exhausted(&self) {
@@ -39,6 +45,32 @@ impl SpocTransport {
 
 #[async_trait]
 impl HttpTransport for SpocTransport {
+    async fn upload(
+        &self,
+        mut request: HttpRequest,
+        body: Option<ubaa_core::facade::testing::HttpFileRange>,
+        observer: Arc<dyn ubaa_core::facade::testing::HttpTransferObserver>,
+    ) -> Result<HttpResponse> {
+        use std::io::{Read as _, Seek as _, SeekFrom};
+        let mut body = body.unwrap();
+        let (prefix, suffix) = body.framing.unwrap();
+        request.body = prefix;
+        body.file.seek(SeekFrom::Start(body.offset)).unwrap();
+        body.file
+            .take(body.length)
+            .read_to_end(&mut request.body)
+            .unwrap();
+        request.body.extend(suffix);
+        observer.advance(body.length);
+        self.execute(request).await
+    }
+    async fn download_stream(
+        &self,
+        request: HttpRequest,
+        sink: &mut ubaa_core::facade::testing::StreamSink,
+    ) -> Result<HttpResponse> {
+        sink.fixture_response(self.execute(request).await?).await
+    }
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
             return Ok(response);
@@ -54,6 +86,20 @@ impl HttpTransport for SpocTransport {
             .lock()
             .expect("request log lock")
             .push(request);
+        if self
+            .timeout_url
+            .lock()
+            .unwrap()
+            .take_if(|url| url == &expected_url)
+            .is_some()
+        {
+            return Err(ubaa_core::facade::UbaaError::new(
+                ubaa_core::facade::ErrorCode::Timeout,
+                ubaa_core::facade::ErrorKind::Network,
+                false,
+                "合成发送后超时",
+            ));
+        }
         Ok(response)
     }
 }

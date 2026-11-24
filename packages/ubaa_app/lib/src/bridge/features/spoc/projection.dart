@@ -67,6 +67,17 @@ FeatureResult bridgeMapSpocHomeDetail(
       FeatureDetail(
         title: item.title,
         subtitle: item.courseName,
+        actions: [
+          if (item.submitAction case final action?)
+            SpocSubmitAction(
+              assignmentId: action.assignmentId,
+              courseId: action.courseId,
+              allowedExtensions: List.unmodifiable(action.allowedExtensions),
+              maxSubmissions: action.maxSubmissions,
+              dueTime: action.dueTime,
+              lateSubmissionDeadline: action.lateSubmissionDeadline,
+            ),
+        ],
         presentation: SpocAssignmentPresentation(
           courseId: item.courseId,
           courseName: item.courseName,
@@ -79,6 +90,29 @@ FeatureResult bridgeMapSpocHomeDetail(
           statusText: item.submissionStatusText,
           contentPlainText: item.contentPlainText,
           submittedAt: item.submittedAt,
+          attachment: switch (item.attachment) {
+            final file? => SpocAttachment(
+              fileId: file.fileId,
+              fileName: file.fileName,
+              sizeText: file.sizeText,
+              extension: file.extension_,
+            ),
+            null => null,
+          },
+          submittedFile: switch (item.submittedFile) {
+            final file? => SpocSubmittedFile(
+              fileId: file.fileId,
+              fileName: file.fileName,
+            ),
+            null => null,
+          },
+          submissionCount: item.submissionCount,
+          submitModes: List.unmodifiable(item.submitModes),
+          allowedExtensions: List.unmodifiable(item.allowedExtensions),
+          maxSubmissions: item.maxSubmissions,
+          isGroupAssignment: item.isGroupAssignment,
+          lateSubmissionDeadline: item.lateSubmissionDeadline,
+          submitUnavailableReason: item.submitUnavailableReason,
           isDetail: true,
         ),
         fields: bridgeCompactFields(<FeatureField?>[

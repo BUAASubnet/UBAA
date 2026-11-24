@@ -1,5 +1,5 @@
 import { constants, sign } from "node:crypto";
-import { createReadStream, statSync, writeFileSync } from "node:fs";
+import { createReadStream, mkdirSync, statSync, writeFileSync } from "node:fs";
 
 const account = JSON.parse(process.env.APPGALLERY_SERVICE_ACCOUNT_JSON);
 const appId = process.env.APPGALLERY_APP_ID;
@@ -46,7 +46,8 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 30000));
     }
     if (!ready) throw Error("AppGallery 软件包仍在解析，请核对后续状态");
-    writeFileSync(process.env.STORE_RESULT_FILE || ".ubaa_local/appgallery_result.json", JSON.stringify({ packageId, status: "ready_for_submission" }) + "\n");
+    if (!process.env.STORE_RESULT_FILE) mkdirSync("dist/store_results", { recursive: true });
+    writeFileSync(process.env.STORE_RESULT_FILE || "dist/store_results/appgallery_result.json", JSON.stringify({ packageId, status: "ready_for_submission" }) + "\n");
     console.log("AppGallery 软件包处理完成，可提交审核");
   } else throw Error("用法：node scripts/release/stores/huawei.mjs probe|upload <APP文件>");
 } catch (error) { console.error(error.message); process.exitCode = 1; }

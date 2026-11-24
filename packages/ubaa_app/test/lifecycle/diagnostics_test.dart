@@ -8,6 +8,49 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('主动打开沿用政策许可和统计开关，读取不增加打开次数', () async {
+    for (final accepted in [false, true]) {
+      for (final enabled in [false, true]) {
+        final telemetry = MockTelemetryClient(enabled: enabled);
+        final controller = AppController(
+          backend: _SuccessfulReadBackend(),
+          privacyAccepted: accepted,
+          telemetry: telemetry,
+        );
+        addTearDown(controller.dispose);
+        if (accepted) await controller.refreshHome(only: [FeatureId.schedule]);
+        final opens = telemetry.records.where(
+          (event) => event.name == 'feature_opened',
+        );
+        expect(opens, isEmpty);
+        controller.recordFeatureOpened('schedule');
+        expect(
+          telemetry.records
+              .where((event) => event.name == 'feature_opened')
+              .map((event) => event.properties),
+          accepted && enabled
+              ? [
+                  {'feature': 'schedule', 'route': 'none', 'result': 'success'},
+                ]
+              : isEmpty,
+        );
+      }
+    }
+  });
+
+  test('打开功能不等待遥测，入队失败由现有诊断处理', () async {
+    final telemetry = _DelayedTrackTelemetry();
+    final controller = AppController(
+      backend: DemoBackend(),
+      telemetry: telemetry,
+    );
+    addTearDown(controller.dispose);
+    controller.recordFeatureOpened('finance');
+    telemetry.completion.completeError(StateError('合成入队失败'));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.diagnostics.records, hasLength(1));
+  });
+
   test('主动导出保留原始响应，普通报告和遥测不读取原文', () {
     final backend = _RawBackend();
     final telemetry = MockTelemetryClient();

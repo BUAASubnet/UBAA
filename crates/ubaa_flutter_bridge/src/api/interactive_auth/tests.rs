@@ -222,7 +222,10 @@ async fn dedicated_frames_and_debug_do_not_expand_ordinary_login_contract() {
     ] {
         assert!(!debug.contains(value));
     }
-    assert_eq!(fixture.bridge.contract_version(), 78);
+    assert_eq!(
+        fixture.bridge.contract_version(),
+        crate::api::client::BRIDGE_CONTRACT_VERSION
+    );
 }
 
 #[tokio::test]

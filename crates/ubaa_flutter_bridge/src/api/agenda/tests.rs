@@ -41,12 +41,8 @@ fn q() -> BridgeAgendaQuery {
         ygdk_term_done: false,
     }
 }
-async fn open() -> (std::path::PathBuf, BridgeAgendaStore) {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1c_a/bridge_tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    let root = root.canonicalize().unwrap();
+async fn open() -> (ubaa_test_support::TestTempDir, BridgeAgendaStore) {
+    let root = ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_agenda").unwrap();
     let handle = BridgeAgendaStore::open(root.to_string_lossy().into(), ACCOUNT.into())
         .await
         .unwrap();

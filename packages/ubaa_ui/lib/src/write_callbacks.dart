@@ -98,6 +98,28 @@ typedef YgdkSubmitPreparer =
 /// 阳光打卡启动回调。
 typedef YgdkSubmitStarter = Future<void> Function(YgdkSubmitInput input);
 
+/// SPOC 作业提交选中的本地文件：只交付位置与名称，内容由 Core 有界读取。
+final class SpocSubmitFile {
+  const SpocSubmitFile({required this.path, required this.name});
+  final String path, name;
+}
+
+/// SPOC 文件作业提交：目标来自读取层的 typed action，不在界面重建。
+final class SpocSubmitInput {
+  const SpocSubmitInput({required this.action, required this.file});
+  final SpocSubmitAction action;
+  final SpocSubmitFile file;
+}
+
+typedef SpocSubmitStarter = Future<void> Function(SpocSubmitInput input);
+
+/// 准备 SPOC 提交意图；资源释放和大小校验发生在宿主读取文件之前。
+typedef SpocSubmitPreparer =
+    Future<WriteIntent> Function(SpocSubmitInput input);
+
+/// 选择要提交的本机文件；取消返回 null。
+typedef SpocSubmitFilePicker = Future<SpocSubmitFile?> Function();
+
 /// 阳光打卡照片选择回调。
 typedef YgdkPhotoPicker = Future<YgdkPhotoInput?> Function();
 
@@ -113,3 +135,9 @@ typedef CgyyReservationPreparer =
 
 /// 研讨室预约启动回调。
 typedef CgyyReservationStarter = Future<void> Function(CgyySubmitInput input);
+
+/// 图书续借启动回调；确认、一次性意图和提交由应用层统一写入协调器完成。
+typedef LibraryLoanRenewStarter = Future<WriteOutcome?> Function(String loanId);
+
+/// 图书续借准备回调；只传递当前账号读取结果中的记录标识。
+typedef LibraryLoanRenewPreparer = Future<WriteIntent> Function(String loanId);

@@ -38,10 +38,10 @@ FeatureResult bridgeMapSigninHome(
           fields: <FeatureField>[
             FeatureField(label: '课程 ID', value: item.courseId),
             FeatureField(
-              label: '签到状态',
+              label: '上课状态',
               value: switch (item.signStatus) {
-                0 => '未签到',
-                1 => '已签到',
+                0 => '未上课',
+                1 => '已上课',
                 _ => '状态未知',
               },
             ),
@@ -60,9 +60,9 @@ FeatureResult bridgeMapSigninHome(
   return bridgeCountResult(
     classes.length,
     switch (query.view) {
-      FeatureQueryView.signinPending => '门未签到课程',
-      FeatureQueryView.signinCompleted => '门已签到课程',
-      _ => '门今日签到课程',
+      FeatureQueryView.signinPending => '门未上课课程',
+      FeatureQueryView.signinCompleted => '门已上课课程',
+      _ => '门今日课程',
     },
     details: details,
     resolvedRoute: route,

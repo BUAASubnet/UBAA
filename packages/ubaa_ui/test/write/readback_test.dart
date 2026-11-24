@@ -4,6 +4,26 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('首页续借提示直接打开待还图书', (tester) async {
+    await mount(tester, operation: WriteOperation.libraryLoanRenew);
+    await tester.tap(find.text('1 项操作需要你确认结果'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('去查看'));
+    await tester.pumpAndSettle();
+    expect(find.text('暂无待还图书'), findsOneWidget);
+  });
+  testWidgets('展开提示不计打开，去查看上课只计一次', (tester) async {
+    final opened = <String>[];
+    await mount(tester, onOpened: opened.add);
+    await tester.tap(find.text('1 项操作需要你确认结果'));
+    await tester.pumpAndSettle();
+    expect(opened, isEmpty);
+    await tester.tap(find.text('去查看'));
+    await tester.pump();
+    expect(opened, ['signin']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('窄屏放大文字仍可展开核对提示且不提供写入确认', (tester) async {
     await mount(tester, width: 360, textScale: 2);
     await tester.tap(find.text('1 项操作需要你确认结果'));
@@ -43,7 +63,9 @@ void main() {
 
 Future<void> mount(
   WidgetTester tester, {
+  WriteOperation operation = WriteOperation.signinPerform,
   Future<void> Function(String)? dismiss,
+  ValueChanged<String>? onOpened,
   double width = 900,
   double textScale = 1,
 }) async {
@@ -74,12 +96,14 @@ Future<void> mount(
         writeReadbacks: [
           WriteReadbackHint(
             id: '0123456789abcdef0123456789abcdef',
-            operation: WriteOperation.signinPerform,
+            operation: operation,
             route: ConnectionMode.webvpn,
             startedAt: DateTime.utc(2026, 9, 23, 7),
           ),
         ],
         onDismissWriteReadback: dismiss,
+        readLibraryLoans: () async => [],
+        onFeatureOpened: onOpened,
       ),
     ),
   );

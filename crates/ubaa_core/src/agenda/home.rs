@@ -76,7 +76,7 @@ pub fn project_home_agenda(
                 classes,
                 fresh,
             } => items.extend(classes.iter().filter_map(|v| school::signin(v, *date, now)).map(|mut item| {
-                if *fresh { item.status_label = if matches!(&item.timing, AgendaTiming::Period { start: Some(start), .. } if now < *start) { "即将签到" } else { "待签到" }.into(); }
+                if *fresh { item.status_label = if matches!(&item.timing, AgendaTiming::Period { start: Some(start), .. } if now < *start) { "即将上课" } else { "待上课" }.into(); }
                 item
             })),
             HomeAgendaRead::Exam { term, exams } => {

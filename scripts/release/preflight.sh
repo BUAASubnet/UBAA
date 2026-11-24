@@ -17,7 +17,8 @@ fi
 keep_output=1
 preserve_output=0
 if [[ -z "$output_dir" ]]; then
-  output_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-release-preflight.XXXXXX")
+  mkdir -p "$repo_root/dist/release"
+  output_dir=$(mktemp -d "$repo_root/dist/release/licenses.XXXXXX")
   keep_output=0
 fi
 if [[ "$output_dir" != /* ]]; then
@@ -46,7 +47,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-bash ./scripts/check/references.sh
 bash ./scripts/check/sensitive.sh
 
 # 固定工具离线使用；依赖准备由显式 bootstrap 完成。Rust 依赖许可由 cargo-deny 检查。

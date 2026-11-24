@@ -1,8 +1,8 @@
 # Flutter UI 规格
 
-本文供修改共享界面 `ubaa_ui` 的开发者使用，说明导航、页面状态、写入口和无障碍规则。首页预览与磁贴见[首页规格](home-layout.md)，浅深色角色见[配色规格](color-system.md)，历史设计补记见[历史记录](../archive/history/2026-10-30-flutter-ui-spec-history.md)。
+本文供修改共享界面 `ubaa_ui` 的开发者使用，说明导航、页面状态、写入口和无障碍规则。首页预览与磁贴见[首页规格](home-layout.md)，浅深色角色见[配色规格](color-system.md)。
 
-本规格只描述用户可见状态。上游 URL、Cookie、令牌和原始响应不进入页面模型；页面只消费 `ubaa_app` 映射后的 domain 模型。[旧版界面基准](../archive/history/2026-09-08-ui-ux-old-baseline.md)只用于追溯历史设计，冲突项以本页和后续已登记决定为准。
+本规格只描述用户可见状态。上游 URL、Cookie、令牌和原始响应不进入页面模型；页面只消费 `ubaa_app` 映射后的 domain 模型。
 
 ## 导航与响应式布局
 
@@ -18,7 +18,7 @@
 
 ## 外观与设备偏好
 
-主题可选 system、light、dark，由 [ThemePreferenceStore](../../packages/ubaa_platform/lib/src/infrastructure/place_preferences.dart) 通过 PreferenceValues 保存设备偏好，键为 `flutter.ubaa.preferences.theme`。Host 在启动时恢复，读取失败或值无效时跟随系统；迟到的恢复结果不能覆盖本次新选择。主题不随退出或清除账号删除。普通偏好写失败不打断本次选择，因此无法保证失败后的下次启动仍恢复同一主题。账号凭据继续使用独立安全存储。
+主题可选 system、light、dark，由 [ThemePreferenceStore](../../packages/ubaa_platform/lib/src/infrastructure/place_preferences.dart) 通过 PreferenceValues 保存设备偏好，外观模式使用 `flutter.ubaa.preferences.theme`。主题色使用 `flutter.ubaa.preferences.accent`，通过 `readAccent` 和 `writeAccent` 读取、保存。Host 在启动时恢复，读取失败或值无效时跟随系统；迟到的恢复结果不能覆盖本次新选择。主题不随退出或清除账号删除。普通偏好写失败不打断本次选择，因此无法保证失败后的下次启动仍恢复同一主题。账号凭据继续使用独立安全存储。
 
 ## 照片与拍照
 
@@ -47,8 +47,8 @@ authority，仍是最终业务权威。
 | 领域 | 页面输入与资格边界 | 提交后的只读核对 |
 |---|---|---|
 | 博雅选课/退选 | 消费对应 typed action；退选目标使用课程 ID，不能使用外层选择记录 ID | 成功或 `outcome_unknown` 时刷新关联课程/已选视图 |
-| 博雅签到/签退 | 消费 typed 签到 action；位置由平台能力提供，时间窗和签到点由 Core 重读校验，展示层不恢复 `canSign/canSignOut` | 成功或 `outcome_unknown` 时刷新关联考勤信息 |
-| 课堂签到 | 消费 `SigninPerformAction`；公开编号本身不能放行 | 成功或 `outcome_unknown` 时刷新今日课程 |
+| 博雅上课/下课 | 消费 typed 上课 action；位置由平台能力提供，时间窗和上课点由 Core 重读校验，展示层不恢复 `canSign/canSignOut` | 成功或 `outcome_unknown` 时刷新关联考勤信息 |
+| 每日课程上课 | 消费 `SigninPerformAction`；公开编号本身不能放行 | 成功或 `outcome_unknown` 时刷新今日课程 |
 | 图书馆预约/取消 | 预约消费完整座位/日期/时段 action；取消 action 固定 `id/page/limit`，状态文本只展示 | 刷新对应预约页；取消 prepare、commit 和回读保持同页 |
 | 研讨室预约/取消 | 预约只选择一至两个同站点、日期、空间和空间组的 allowed action，时段 ID/原始序号唯一且序号相邻；取消消费 typed target | 预约成功收据与订单列表核对；取消成功或 unknown 固定原路线读取首页列表与同 ID 详情，仅消费本次严格取消证明 |
 | 阳光打卡 | typed 提交、照片选择与回读能力齐备才开放入口；表单消费 Core 签发的分类/项目 target、完整本地时间和内存照片，权限失败或缺照片不进入 prepare | 成功或 unknown 按 intent 原路线各尝试一次概览与记录首页读取，结果不确定仍保持 unknown |
@@ -73,11 +73,11 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 
 应用内的短暂提示统一通过 `UbaaFeedback` 显示。使用 Flutter 官方 `SnackBar` 的浮动布局，桌面最大宽度 420，窄屏两侧各留 16。成功／一般提示显示 3 秒，错误／待核实提示显示 6 秒并可关闭；开启辅助导航时，后两类提示保持到用户关闭。新消息替换旧消息，避免排队遮挡。样式跟随明暗主题，以图标和文字区分结果，不用整条红色背景。确认弹窗继续使用共享 Dialog 主题，页面读取错误保留原位置和重试入口。
 
-博雅选退在当前按钮内展示进度，提交、核对和刷新期间保留列表和滚动位置；刷新覆盖已加载页后一次更新。刷新失败保留只读内容并提供重试。成功提示简化为“选课成功／退选成功”；结果未知仍明确要求核对且不能重复提交。协议与验证见[博雅反馈记录](../archive/history/bykc-detail-2026-10-26.md#选退反馈与列表保留)。
+博雅选退在当前按钮内展示进度，提交、核对和刷新期间保留列表和滚动位置；刷新覆盖已加载页后一次更新。刷新失败保留只读内容并提供重试。成功提示简化为“选课成功／退选成功”；结果未知仍明确要求核对且不能重复提交。
 
 ## 错误诊断
 
-错误卡显示本次诊断编号并可主动复制稳定字段；登录失败页和“我的”均可查看本次运行诊断。诊断默认仅在有界内存保存，不自动上传。错误码、重试标志和失败路线完整保留，展示模板由 platform 统一拥有，详见[本地排障手册](../runbooks/local-diagnostics.md)。
+错误卡显示可用的诊断编号和错误码，提示通过“设置 › 诊断信息”分享完整报告。宿主通过普通偏好存储保留最多 100 条安全诊断记录，重载时只恢复最近 7 天的记录。原始学校请求记录只在本次运行的内存中保留。报告由用户主动分享，不会自动上传。错误码、重试标志和失败路线完整保留，展示模板由 platform 统一拥有，详见[本地排障手册](../runbooks/local-diagnostics.md)。
 
 ## 无障碍与交互约束
 
@@ -103,12 +103,12 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 | 本地筛选、详情行组合与选择集合生命周期 | [common/details/detail_list.dart](../../packages/ubaa_ui/lib/src/common/details/detail_list.dart)；字段展示在 [detail_fields.dart](../../packages/ubaa_ui/lib/src/common/detail_fields.dart) |
 | 服务端/本地翻页控件与错误卡 | [common/paged_results.dart](../../packages/ubaa_ui/lib/src/common/paged_results.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
 | 课表、考试、成绩、空教室查询控件 | [features/academic/](../../packages/ubaa_ui/lib/src/features/academic/) |
-| SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
+| SPOC/Judge 作业与 Signin 每日课程查询、上课按钮 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
 | 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook/](../../packages/ubaa_ui/lib/src/features/libbook/) |
 | 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk/](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation_actions.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
 | 研讨室预约与阳光打卡输入表单 | [common/details/cgyy_form.dart](../../packages/ubaa_ui/lib/src/common/details/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/common/details/ygdk_form.dart) |
 | 意图摘要、错误、取消与提交按钮 | [write/confirmation.dart](../../packages/ubaa_ui/lib/src/write/confirmation.dart)；回调类型在 [write_callbacks.dart](../../packages/ubaa_ui/lib/src/write_callbacks.dart) |
 
-普通回归按领域位于 [UI tests](../../packages/ubaa_ui/test/)、[App write](../../packages/ubaa_app/test/write/) 和[宿主 tests](../../apps/ubaa_flutter/test/)；导航、查询、焦点、状态连续性与写入协调由这些测试分层保护。原生只保留 `platform/*` 和 `synthetic/cache/*`，逐项删除能力、保留理由与无自动化覆盖项见[范围登记](../archive/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。
+普通回归按领域位于 [UI tests](../../packages/ubaa_ui/test/)、[App write](../../packages/ubaa_app/test/write/) 和[宿主 tests](../../apps/ubaa_flutter/test/)；导航、查询、焦点、状态连续性与写入协调由这些测试分层保护。原生只保留 `platform/*` 和 `synthetic/cache/*`，覆盖范围见[测试策略](../development/testing.md)。
 
-生产状态机见[write](../../packages/ubaa_app/lib/src/write/) 和 [controller/write](../../packages/ubaa_app/lib/src/controller/write/)，生命周期与协议语义见[Bridge 合同](../contracts/flutter-bridge.md#2-生命周期与并发)。历史协调器计划归入[实施记录](../archive/history/2026-09-05-write-coordinator.md)，不作为现行实现入口。
+生产状态机见[write](../../packages/ubaa_app/lib/src/write/) 和 [controller/write](../../packages/ubaa_app/lib/src/controller/write/)，生命周期与协议语义见[Bridge 合同](../contracts/flutter-bridge.md#2-生命周期与并发)。

@@ -219,7 +219,7 @@ void main() {
     );
     expect(values.exam.single.term, 'resolved-term');
   });
-  test('无缓存签到读取跨校园午夜时拒绝结果，不能恢复昨日动作', () async {
+  test('无缓存上课读取跨校园午夜时拒绝结果，不能恢复昨日动作', () async {
     final times = [
       DateTime.parse('2026-03-24T15:59:59Z'),
       DateTime.parse('2026-03-24T16:00:00Z'),
@@ -240,7 +240,7 @@ void main() {
       ),
     );
   });
-  test('签到输入保留观察日期，陈旧与离线不能获得 fresh 标签', () {
+  test('上课输入保留观察日期，陈旧与离线不能获得 fresh 标签', () {
     final input = bridgeHomeAgendaInputs(
       request(
         sources: {
@@ -250,7 +250,7 @@ void main() {
             updatedAt: DateTime.parse('2026-03-23T15:00:00Z'),
             details: const [
               FeatureDetail(
-                title: '合成签到',
+                title: '合成上课',
                 presentation: SigninPresentation(
                   courseId: 'course',
                   classBeginTime: '12:00',

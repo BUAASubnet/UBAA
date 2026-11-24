@@ -1,11 +1,66 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_app/src/bridge/bhpan/service.dart'
+    show BridgeBhpanTransferTask;
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_app/src/bridge/write/projection.dart' show bridgeMapIntent;
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient;
 
 void registerBridgeBackendWriteAndErrorCharacterization() {
+  test('SPOC 意图、提交回执和拒绝原因保留到宿主', () async {
+    final native = FixtureCharacterizationBridgeClient();
+    final backend = BridgeBackend(native);
+    final intent = bridgeMapIntent(
+      BridgeWriteIntent(
+        intentId: 'single',
+        operation: BridgeWriteOperation.spocSubmitAssignment,
+        targetSummary: '合成作业',
+        resolvedRoute: BridgeConnectionMode.webVpn,
+        warnings: const [],
+        expiresAt: 2000000000,
+        requestDigest: 'fixture',
+        spocSummary: BridgeSpocSubmitSummary(
+          title: '合成作业',
+          courseName: '合成课程',
+          fileName: '练习.pdf',
+          byteLen: BigInt.from(17),
+          pastDue: true,
+          submissionCount: 2,
+        ),
+      ),
+    );
+    expect(intent.operation.feature, FeatureId.spoc);
+    expect(intent.spocSummary?.byteLen, 17);
+    expect(intent.spocSummary?.pastDue, isTrue);
+    expect(intent.spocSummary?.submissionCount, 2);
+    native.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.spocSubmitAssignment,
+      success: true,
+      message: '已核实作业提交',
+      outcomeUnknown: false,
+      spocReceipt: BridgeSpocSubmitReceipt(
+        fileName: '练习.pdf',
+        fileId: 'file',
+        submittedAt: '合成时间',
+      ),
+    );
+    final receipt = (await backend.commitWrite('single')).spocReceipt;
+    expect(receipt?.fileName, '练习.pdf');
+    expect(receipt?.fileId, 'file');
+    expect(receipt?.submittedAt, '合成时间');
+    native.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.spocSubmitAssignment,
+      success: false,
+      message: '提交已关闭',
+      outcomeUnknown: false,
+    );
+    final failure = await backend.commitWrite('next');
+    expect(failure.success, isFalse);
+    expect(failure.spocReceipt, isNull);
+    expect(failure.message, '提交已关闭');
+  });
   test('阳光打卡收据只在明确成功且记录标识为正数时投影', () async {
     final client = FixtureCharacterizationBridgeClient();
     final backend = BridgeBackend(client);
@@ -45,7 +100,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
   });
 
   test('学校写准备、提交收据和完整错误映射保持安全闭包', () async {
-    final client = FixtureCharacterizationBridgeClient();
+    final client = _FileWriteClient();
     final backend = BridgeBackend(client);
     final intents = <WriteIntent>[
       await backend.prepareBykcSelectCourse(courseId: 11),
@@ -121,12 +176,24 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
               bpdm: 'BP1',
             ),
           ]),
+      await backend.prepareSpocSubmitAssignment(
+        const SpocSubmitAction(
+          assignmentId: 'work',
+          courseId: 'course',
+          allowedExtensions: ['.pdf'],
+        ),
+        'fixture.pdf',
+        transfer: BridgeBhpanTransferTask(client, _Transfer()),
+      ),
     ];
+    expect(intents.last.readbackQuery?.assignmentId, 'work');
 
     expect(
       intents.map((intent) => intent.operation).toList(growable: false),
       WriteOperation.values.where(
-        (operation) => operation != WriteOperation.bhpan,
+        (operation) =>
+            operation != WriteOperation.bhpan &&
+            operation != WriteOperation.libraryLoanRenew,
       ),
     );
     final course =
@@ -384,6 +451,32 @@ Future<BackendException> _captureBackendError(
     return error;
   }
   fail('预期 BridgeError 被映射为 BackendException');
+}
+
+final class _Transfer extends Fake implements BridgeBhpanTransfer {}
+
+final class _FileWriteClient extends FixtureCharacterizationBridgeClient {
+  @override
+  int contractVersion() => 83;
+  @override
+  Future<BridgeWriteIntent> prepareSpocSubmitAssignment({
+    required BridgeSpocSubmitAction action,
+    required String path,
+    required BridgeBhpanTransfer transfer,
+  }) async {
+    expect(action.assignmentId, 'work');
+    expect(action.courseId, 'course');
+    expect(path, 'fixture.pdf');
+    return const BridgeWriteIntent(
+      intentId: 'only',
+      operation: BridgeWriteOperation.spocSubmitAssignment,
+      targetSummary: '合成作业',
+      resolvedRoute: BridgeConnectionMode.webVpn,
+      warnings: [],
+      expiresAt: 2000000000,
+      requestDigest: 'digest',
+    );
+  }
 }
 
 void main() {

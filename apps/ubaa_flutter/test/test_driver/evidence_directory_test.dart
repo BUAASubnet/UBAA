@@ -30,6 +30,7 @@ void main() {
       '${repo.path}/.ubaa_local',
       '${repo.path}/.ubaa_local_backup/shots',
       '${repo.path}/.ubaa_local/../shots',
+      '${repo.path}/dist/store_screenshots/run/raw',
     ]) {
       expect(
         () => checkedEvidenceDirectory(path, repoRoot: repo),
@@ -37,6 +38,25 @@ void main() {
       );
     }
     expect(Directory('${repo.path}/new').existsSync(), isFalse);
+  });
+  test('商店宣传图只允许写入交付目录的批次子目录', () {
+    final destination = '${repo.path}/dist/store_screenshots/run/raw';
+    expect(
+      checkedStoreScreenshotDirectory(destination, repoRoot: repo).uri,
+      Directory(
+        '${repo.resolveSymbolicLinksSync()}/dist/store_screenshots/run/raw',
+      ).uri,
+    );
+    for (final invalid in [
+      '${repo.path}/dist/store_screenshots',
+      '${repo.path}/dist/other/run',
+      '${repo.path}/.ubaa_local/evidence/run',
+    ]) {
+      expect(
+        () => checkedStoreScreenshotDirectory(invalid, repoRoot: repo),
+        throwsArgumentError,
+      );
+    }
   });
   test('解析符号链接后仍拒绝指向仓库的目录', () {
     Link('${temporary.path}/alias').createSync(repo.path);

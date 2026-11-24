@@ -12,7 +12,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'recovery.dart';
 import 'shared_account.dart';
 
-// These functions are ignored because they are not marked as `pub`: `execute_agenda_scoped`, `execute_command_scoped`, `failure_error`, `result`, `set_error`, `stopped`, `target_to_bridge`, `verify_identity`
+// These functions are ignored because they are not marked as `pub`: `execute_agenda_scoped`, `execute_command_scoped`, `failure_error`, `lock_unpoisoned`, `read_unpoisoned`, `result`, `set_error`, `stopped`, `target_to_bridge`, `verify_identity`, `write_unpoisoned`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Body`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
@@ -20,8 +20,6 @@ import 'shared_account.dart';
 abstract class BridgeCommand implements RustOpaqueInterface {
   void cancel();
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult?> earlyResult();
 
   /// 本机命令独立于学校客户端，使用同账号的现有日程与可选加密缓存。
@@ -35,8 +33,6 @@ abstract class BridgeCommand implements RustOpaqueInterface {
   /// 复用 GUI 的 Core 同步服务，作业内不进入会话恢复重跑器。
   /// # Errors
   /// 计划已消费或客户端已关闭时拒绝，业务结果由统一命令输出交付。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> executeAgendaSync({
     required BridgeClient client,
     required BridgeAgendaStore agenda,
@@ -54,15 +50,11 @@ abstract class BridgeCommand implements RustOpaqueInterface {
 
   Future<BridgeCommandResult> fail({required bool authentication});
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> failure({required BridgeCommandFailure failure});
 
   /// 原生每次只读取所请求的输入；无效用户名不能提前消耗密码。
   /// # Errors
   /// 输入流或命令状态不能继续时返回错误。
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandInput> inputRequest({
     required List<int> input,
     required bool eof,
@@ -77,8 +69,6 @@ abstract class BridgeCommand implements RustOpaqueInterface {
     remainingMillis: remainingMillis,
   );
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<void> prepare({required List<int> input});
 
   BridgeCommandRequirements requirements();
@@ -107,26 +97,16 @@ abstract class BridgeCommandLoginIdentity implements RustOpaqueInterface {}
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeCommandResult>>
 abstract class BridgeCommandResult implements RustOpaqueInterface {
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<bool> authenticationSucceeded();
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandDelivery> deliver();
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> recoveryFailed({
     required BridgeCommandFailure failure,
   });
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> registrationFailed();
 
-  /// # Panics
-  /// 命令状态锁被其他线程的 panic 污染时终止。
   Future<BridgeCommandResult> registrationSucceeded();
 }
 

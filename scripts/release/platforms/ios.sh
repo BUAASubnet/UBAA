@@ -3,9 +3,9 @@
 set -euo pipefail
 repo_root=$(pwd)
 python3 scripts/release/platforms/ios_privacy.py apps/ubaa_flutter/ios/Runner/Info.plist
-signing="$repo_root/.ubaa_local/release/signing"
-output="$repo_root/.ubaa_local/release/ios"
-mkdir -p "$output" "$repo_root/.ubaa_local/release/store"
+signing="${RUNNER_TEMP:?}/ubaa_release_signing"
+output="$repo_root/target/release_ios"
+mkdir -p "$output" "$repo_root/dist/release/store"
 cd apps/ubaa_flutter
 just flutter pub get --enforce-lockfile
 just flutter build ios --release --config-only --no-codesign \
@@ -14,11 +14,14 @@ just flutter build ios --release --config-only --no-codesign \
 (cd ios && pod install)
 ruby -rxcodeproj -e '
 project = Xcodeproj::Project.open("ios/Runner.xcodeproj")
-project.targets.find { |target| target.name == "Runner" }.build_configurations.each do |config|
-  config.build_settings["DEVELOPMENT_TEAM"] = ENV.fetch("APPLE_TEAM_ID")
-  config.build_settings["CODE_SIGN_STYLE"] = "Manual"
-  config.build_settings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = ENV.fetch("APPLE_SIGNING_IDENTITY")
-  config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV.fetch("IOS_PROFILE_UUID")
+{"Runner" => "IOS_PROFILE_UUID", "ScheduleWidget" => "IOS_WIDGET_PROFILE_UUID"}.each do |name, variable|
+  target = project.targets.find { |candidate| candidate.name == name } or abort "找不到 iOS 签名目标 #{name}"
+  target.build_configurations.each do |config|
+    config.build_settings["DEVELOPMENT_TEAM"] = ENV.fetch("APPLE_TEAM_ID")
+    config.build_settings["CODE_SIGN_STYLE"] = "Manual"
+    config.build_settings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = ENV.fetch("APPLE_SIGNING_IDENTITY")
+    config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV.fetch(variable)
+  end
 end
 project.save
 '
@@ -26,5 +29,5 @@ xcodebuild archive -workspace ios/Runner.xcworkspace -scheme Runner -configurati
   -destination 'generic/platform=iOS' -archivePath "$output/UBAA.xcarchive"
 xcodebuild -exportArchive -archivePath "$output/UBAA.xcarchive" \
   -exportPath "$output/export" -exportOptionsPlist "$signing/ExportOptions.plist"
-cp "$output/export/"*.ipa "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
-python3 "$repo_root/scripts/release/platforms/ios_privacy.py" "$repo_root/.ubaa_local/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+cp "$output/export/"*.ipa "$repo_root/dist/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"
+python3 "$repo_root/scripts/release/platforms/ios_privacy.py" "$repo_root/dist/release/store/UBAA-${RELEASE_VERSION}-ios-arm64.ipa"

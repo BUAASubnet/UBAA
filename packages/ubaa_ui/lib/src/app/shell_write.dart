@@ -131,6 +131,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
       if (mounted &&
           generation == _accountGeneration &&
+          policy == widget.routePolicy &&
           intent != null &&
           (outcome == null ||
               widget.writeState.intent?.intentId == intent.intentId) &&
@@ -189,8 +190,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     await _runDirectWrite(
       prepare: () => prepare(action),
       failureMessage: action.kind == BykcSignKind.signOut
-          ? '签退失败，请刷新后重试'
-          : '签到失败，请刷新后重试',
+          ? '下课失败，请刷新后重试'
+          : '提交失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -200,7 +201,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _runDirectWrite(
       prepare: () => prepare(action),
-      failureMessage: '签到失败，请刷新后重试',
+      failureMessage: '提交失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -247,6 +248,24 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     );
   }
 
+  /// 确认后提交单本续借；页面只消费返回的意图原路线核对结果。
+  Future<WriteOutcome?> _startLibraryLoanRenewWrite(String loanId) {
+    final prepare = widget.onPrepareLibraryLoanRenewWrite;
+    if (prepare == null) return Future.value();
+    return _runDirectWrite(
+      prepare: () => prepare(loanId),
+      failureMessage: '续借失败，请刷新后重试',
+      expectedOperation: WriteOperation.libraryLoanRenew,
+      confirmFirst: () => uiConfirmIrreversible(
+        context,
+        title: '续借这本书？',
+        message: '续借会更新应还日期，并消耗一次续借机会。',
+        action: '确认续借',
+      ),
+      showOutcome: false,
+    );
+  }
+
   Future<void> _startEvaluation(List<EvaluationSubmitTarget> targets) async {
     final prepare = widget.onPrepareEvaluationWrite;
     if (prepare == null || targets.isEmpty || _writeBusy) return;
@@ -274,6 +293,16 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     );
   }
 
+  Future<void> _startSpocSubmitWrite(SpocSubmitInput input) async {
+    final prepare = widget.onPrepareSpocSubmitWrite;
+    if (!_hasWriteCommands || prepare == null) return;
+    await _runDirectWrite(
+      prepare: () => prepare(input),
+      failureMessage: '作业提交失败，请重试',
+      expectedOperation: WriteOperation.spocSubmitAssignment,
+    );
+  }
+
   Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
     final prepare = widget.onPrepareCgyySubmitWrite;
     if (prepare == null) return;
@@ -287,17 +316,29 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   /// 一次点击完成写入：准备后立即提交，不再停留在确认页。
   ///
   /// 一次性意图、过期、冲突和结果不明不重放等保护仍由协调器与 Bridge 负责。
-  Future<void> _runDirectWrite({
+  Future<WriteOutcome?> _runDirectWrite({
     required Future<WriteIntent> Function() prepare,
     required String failureMessage,
     required WriteOperation expectedOperation,
+    Future<bool> Function()? confirmFirst,
+    bool showOutcome = true,
   }) async {
     final run = widget.onRunWritePrepare;
     final confirm = widget.onConfirmWrite;
     if (!_hasWriteCommands || run == null || confirm == null || _writeBusy) {
-      return;
+      return null;
     }
     final generation = _accountGeneration;
+    final policy = widget.routePolicy;
+    if (confirmFirst != null) {
+      if (!await confirmFirst() ||
+          !mounted ||
+          generation != _accountGeneration ||
+          policy != widget.routePolicy ||
+          _writeBusy) {
+        return null;
+      }
+    }
     var attempted = false;
     WriteIntent? intent;
     WriteOutcome? outcome;
@@ -306,7 +347,10 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     _setDirectWriteActive(expectedOperation);
     try {
       intent = await run(prepare, expectedOperation: expectedOperation);
-      if (mounted && generation == _accountGeneration && intent != null) {
+      if (mounted &&
+          generation == _accountGeneration &&
+          policy == widget.routePolicy &&
+          intent != null) {
         attempted = true;
         outcome = await confirm();
         if (outcome == null) failure = failureMessage;
@@ -318,6 +362,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       // 过期等原因未被消费的意图立即释放，避免阻塞下一次操作。
       if (mounted &&
           generation == _accountGeneration &&
+          policy == widget.routePolicy &&
           intent != null &&
           (outcome == null ||
               widget.writeState.intent?.intentId == intent.intentId) &&
@@ -326,12 +371,16 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       }
       if (mounted) _setDirectWriteActive(null);
     }
-    if (!mounted || generation != _accountGeneration) return;
+    if (!mounted ||
+        generation != _accountGeneration ||
+        policy != widget.routePolicy)
+      return null;
     if (failure != null) {
       UbaaFeedback.showWarning(context, failure, failureDetails);
-    } else if (outcome != null) {
+    } else if (outcome != null && showOutcome) {
       UbaaFeedback.showOutcome(context, outcome);
     }
+    return outcome;
   }
 
   Future<void> _cancelWrite() async {
@@ -377,7 +426,7 @@ extension UbaaHomeSignin on _UbaaMainShellState {
       return outcome;
     } on Object catch (error) {
       if (mounted && generation == _accountGeneration) {
-        UbaaFeedback.showError(context, '签到失败，请刷新后重试', error);
+        UbaaFeedback.showError(context, '提交失败，请刷新后重试', error);
       }
       return null;
     } finally {

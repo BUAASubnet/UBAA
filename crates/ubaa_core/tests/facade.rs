@@ -12,6 +12,9 @@ use ubaa_core::facade::{
     YgdkClockinSubmitRequest, YgdkPhotoUpload, YgdkSubmitTarget,
 };
 
+#[path = "../../ubaa_test_support/src/test_tmp.rs"]
+mod test_tmp;
+
 #[path = "facade/bootstrap.rs"]
 mod bootstrap;
 #[path = "facade/bykc_cache.rs"]

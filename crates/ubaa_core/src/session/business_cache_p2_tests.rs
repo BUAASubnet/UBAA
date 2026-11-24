@@ -2,7 +2,7 @@ use super::{BusinessMaterial, BusinessScope, BusinessSessionCache, Invalidation}
 use crate::domain::ConnectionMode;
 use crate::internal::route_state::{SpocCredential, StudentKind, YgdkCredential};
 use crate::session::FileSessionStore;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const ACCOUNT: &str = "fixture-user";
 const NOW: i64 = 1_700_000_000;
@@ -27,12 +27,8 @@ fn wait_for_file_job(wait: &std::sync::mpsc::Receiver<()>) {
         .expect("任务必须在取得旁车锁之前到达同步点");
 }
 
-fn root(name: &str) -> PathBuf {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/biz_cache_p2")
-        .join(format!("{name}-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&path).unwrap();
-    path
+fn root(_name: &str) -> crate::test_tmp::TestTempDir {
+    crate::test_tmp::test_temp_dir("ubaa_core_business_cache").unwrap()
 }
 
 fn cache(path: &Path) -> BusinessSessionCache {

@@ -215,6 +215,7 @@ enum BridgeTelemetryCounter {
   routeResolved,
   featureLoaded,
   writeCompleted,
+  featureOpened,
 }
 
 enum BridgeTelemetryError {
@@ -246,6 +247,7 @@ enum BridgeTelemetryFeature {
   portal,
   network,
   finance,
+  healthCloud,
 }
 
 enum BridgeTelemetryResult { success, empty, failure }

@@ -95,7 +95,7 @@ async fn 修复三_注销发出后才产生的双槽冲突不再次清理旁车(
     let before = document(&path);
     let replacement = {
         let store = store.clone();
-        let path = path.clone();
+        let path = path.to_path_buf();
         Arc::new(move || {
             let saved = store.load_dual_versioned()?;
             store.save_dual(saved.snapshot.as_ref().unwrap())?;

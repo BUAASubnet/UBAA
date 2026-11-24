@@ -1,10 +1,9 @@
-use std::io::Cursor;
-
+use crate::common::run_command;
 use clap::Parser;
-use ubaa_command::{Cli, run_with_backend, run_with_routed_backend};
+use ubaa_command::{CLI_JSON_SCHEMA_VERSION, Cli};
 use ubaa_core::facade::{ErrorCode, ErrorKind, UbaaError};
 
-use crate::common::{FakeBackend, FakeRoutedBackend, assert_cli_schema};
+use crate::common::{FakeRoutedBackend, assert_cli_schema};
 
 fn cancel_arguments(
     booking_id: &str,
@@ -33,7 +32,7 @@ fn cancel_arguments(
 }
 
 #[tokio::test]
-async fn 图书馆预约记录取消资格与稳定目标符合_schema_v10() {
+async fn 图书馆预约记录取消资格与稳定目标符合当前_schema() {
     let cli = Cli::try_parse_from([
         "ubaa-cli", "--json", "libbook", "bookings", "--page", "1", "--limit", "20",
     ])
@@ -42,12 +41,12 @@ async fn 图书馆预约记录取消资格与稳定目标符合_schema_v10() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["data"]["bookings"][0]["status"], 1);
     assert_eq!(value["data"]["bookings"][0]["cancelEligibility"], "allowed");
     assert_eq!(
@@ -98,12 +97,12 @@ async fn 图书馆取消未确认空白目标或非法分页均在路由后端�
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
         assert_eq!(exit, 2);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 18);
+        assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.libbook_cancel_calls, 0);
         assert!(backend.libbook_last_cancel_request.is_none());
@@ -124,12 +123,12 @@ async fn 图书馆取消确认后向路由后端精确传递一次标准化请�
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], true);
     assert_eq!(value["data"]["message"], "取消成功");
@@ -146,7 +145,7 @@ async fn 图书馆取消确认后向路由后端精确传递一次标准化请�
 }
 
 #[tokio::test]
-async fn 固定路线图书馆取消同样校验并传递默认分页() {
+async fn 图书馆取消输入边界校验并传递默认分页() {
     for arguments in [
         cancel_arguments("booking-safe", None, None, false),
         cancel_arguments("   ", None, None, true),
@@ -154,18 +153,11 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
         cancel_arguments("booking-safe", None, Some("0"), true),
     ] {
         let cli = Cli::try_parse_from(arguments).unwrap();
-        let mut backend = FakeBackend::default();
+        let mut backend = FakeRoutedBackend::default();
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let exit = run_with_backend(
-            cli,
-            &mut backend,
-            &mut Cursor::new(Vec::<u8>::new()),
-            &mut stdout,
-            &mut stderr,
-        )
-        .await;
+        let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
         assert_eq!(exit, 2);
         assert_eq!(backend.libbook_cancel_calls, 0);
@@ -177,17 +169,10 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
     }
 
     let cli = Cli::try_parse_from(cancel_arguments(" fixed-safe ", None, None, true)).unwrap();
-    let mut backend = FakeBackend::default();
+    let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut backend, &mut stdout, &mut stderr).await;
 
     assert_eq!(exit, 0);
     assert_eq!(backend.libbook_cancel_calls, 1);
@@ -200,7 +185,7 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
     assert_eq!(request.limit, 20);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 18);
+    assert_eq!(value["schemaVersion"], CLI_JSON_SCHEMA_VERSION);
     assert_eq!(stderr.len(), 0);
 }
 
@@ -222,7 +207,7 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_routed_backend(cli, &mut routed, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut routed, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(exit, 6);
     assert_cli_schema(&value);
@@ -235,20 +220,13 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     assert_eq!(stderr.len(), 0);
 
     let cli = Cli::try_parse_from(cancel_arguments("booking-safe", None, None, true)).unwrap();
-    let mut fixed = FakeBackend {
+    let mut fixed = FakeRoutedBackend {
         libbook_cancel_error: Some(raw_error()),
-        ..FakeBackend::default()
+        ..FakeRoutedBackend::default()
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_backend(
-        cli,
-        &mut fixed,
-        &mut Cursor::new(Vec::<u8>::new()),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
+    let exit = run_command(cli, &mut fixed, &mut stdout, &mut stderr).await;
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(exit, 6);
     assert_cli_schema(&value);
@@ -268,7 +246,7 @@ async fn 图书馆取消的固定与路由输出均不暴露后端原始上游�
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = run_with_routed_backend(cli, &mut routed, &mut stdout, &mut stderr).await;
+    let exit = run_command(cli, &mut routed, &mut stdout, &mut stderr).await;
     assert_eq!(exit, 6);
     assert_eq!(stdout.len(), 0);
     let rendered = String::from_utf8(stderr).unwrap();

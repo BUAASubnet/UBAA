@@ -58,7 +58,7 @@ class DemoBackend implements UbaaBackend, HomeTodoBackend {
       FeatureId.spoc => '待完成作业 2 项',
       FeatureId.judge => '待提交作业 1 项',
       FeatureId.libbook => '座位服务已就绪',
-      FeatureId.signin => '今日签到 1 门课程',
+      FeatureId.signin => '今日 1 门课程',
       FeatureId.cgyy => '研讨室预约站点 2 个',
       FeatureId.ygdk => '本周打卡进度已加载',
       FeatureId.evaluation => '待评课程 3 门',

@@ -92,7 +92,7 @@ async fn 修复五_轮换完成前另一实例看不到新主会话() {
     let session_file = path.join("session.json");
     let before = std::fs::read(&session_file).unwrap();
     let old_revision = store.load_dual_versioned().unwrap().revision;
-    let observing_path = path.clone();
+    let observing_path = path.to_path_buf();
     let observer = std::thread::spawn(move || {
         wait.recv_timeout(Duration::from_secs(5)).unwrap();
         let visible = std::fs::read(&session_file).unwrap();
@@ -122,7 +122,7 @@ async fn 修复五_无快照登录准备遇到修订冲突时旁车字节不变(
         .unwrap();
     let other = FileSessionStore::new(&path).unwrap();
     let old_revision = other.load_dual_versioned().unwrap().revision;
-    let probe_path = path.clone();
+    let probe_path = path.to_path_buf();
     let (arrived, wait) = mpsc::channel();
     owner.lock().before_revocation = Some(Box::new(move || {
         assert_main_session_locked(&probe_path);
@@ -135,7 +135,7 @@ async fn 修复五_无快照登录准备遇到修订冲突时旁车字节不变(
     wait.try_recv().expect("无快照登录准备未进入旁车轮换");
     assert_eq!(other.load_dual_versioned().unwrap().revision, old_revision);
 
-    let new_owner_path = path.clone();
+    let new_owner_path = path.to_path_buf();
     let (published, new_sidecar) = mpsc::channel();
     runtime.before_login_revocation = Some(Box::new(move || {
         let snapshot = other.load_dual_versioned().unwrap().snapshot.unwrap();

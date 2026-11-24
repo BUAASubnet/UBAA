@@ -4,10 +4,58 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/home/todo_card.dart';
 import '../../support/write_harness.dart';
 
 void main() {
-  testWidgets('午夜后尚未触发分钟刷新时点击旧签到先刷新，禁止交付旧动作', (tester) async {
+  testWidgets('首页待办在课前四分钟开放卡片和按钮的直接上课', (tester) async {
+    final start = DateTime(2026, 10, 26, 15, 50);
+    var writes = 0;
+
+    Future<void> showCard(DateTime now) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 120,
+            child: HomeTodoCard(
+              item: HomeTodo(
+                id: 'signin:synthetic',
+                feature: FeatureId.signin,
+                title: '合成课程',
+                subtitle: '每日课程',
+                statusLabel: '待上课',
+                timeLabel: '15:50–17:25',
+                sortTime: start,
+                startsAt: start,
+              ),
+              now: now,
+              onTap: () {},
+              onSignin: () async {
+                writes++;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await showCard(start.subtract(const Duration(minutes: 4, seconds: 1)));
+    await tester.tap(find.text('合成课程'));
+    expect(writes, 0);
+    expect(find.text('15:46 起可上课'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '上课'), findsNothing);
+
+    await showCard(start.subtract(const Duration(minutes: 4)));
+    expect(find.text('15:46 起可上课'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, '上课'));
+    await tester.pump();
+    expect(writes, 1);
+    await tester.tap(find.text('合成课程'));
+    await tester.pump();
+    expect(writes, 2);
+  });
+
+  testWidgets('午夜后尚未触发分钟刷新时点击旧上课先刷新，禁止交付旧动作', (tester) async {
     var now = DateTime.parse('2026-03-24T23:59:55+08:00');
     var writes = 0, refreshes = 0;
     await tester.pumpWidget(
@@ -26,9 +74,9 @@ void main() {
               HomeTodo(
                 id: 'signin:synthetic',
                 feature: FeatureId.signin,
-                title: '午夜前签到',
+                title: '午夜前上课',
                 subtitle: '合成课程',
-                statusLabel: '待签到',
+                statusLabel: '待上课',
                 timeLabel: '合成时段',
                 sortTime: r.now,
                 signinAction: const SigninPerformAction(
@@ -53,20 +101,20 @@ void main() {
     );
     await tester.pumpAndSettle();
     now = DateTime.parse('2026-03-25T00:00:05+08:00');
-    await tester.tap(find.widgetWithText(FilledButton, '签到'));
+    await tester.tap(find.widgetWithText(FilledButton, '上课'));
     await tester.pumpAndSettle();
     expect(writes, 0);
     expect(refreshes, 1);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('首页一次点击直接签到，连点只提交一次，成功立即移除对应待办', (tester) async {
+  testWidgets('首页一次点击直接上课，连点只提交一次，成功立即移除对应待办', (tester) async {
     await withClock(
       Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
       () async {
         final gate = Completer<WriteCommitResult>();
         final state = await mount(tester, commit: () => gate.future);
-        final button = find.widgetWithText(FilledButton, '签到').first;
+        final button = find.widgetWithText(FilledButton, '上课').first;
         await tester.tap(button);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -87,7 +135,7 @@ void main() {
     );
   });
   for (final unknown in [false, true]) {
-    testWidgets('签到${unknown ? '结果未知' : '失败'}保留待办且不自动重试', (tester) async {
+    testWidgets('上课${unknown ? '结果未知' : '失败'}保留待办且不自动重试', (tester) async {
       await withClock(
         Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
         () async {
@@ -95,7 +143,7 @@ void main() {
             tester,
             commit: () async => result(false, unknown: unknown),
           );
-          await tester.tap(find.widgetWithText(FilledButton, '签到').first);
+          await tester.tap(find.widgetWithText(FilledButton, '上课').first);
           await tester.pumpAndSettle();
           expect(state.commits, 1);
           expect(find.text('课程1'), findsOneWidget);
@@ -106,7 +154,7 @@ void main() {
       );
     });
   }
-  testWidgets('缓存签到卡点击只刷新状态，不进入详情或直接提交', (tester) async {
+  testWidgets('缓存上课卡点击只刷新状态，不进入详情或直接提交', (tester) async {
     await withClock(
       Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
       () async {
@@ -120,7 +168,7 @@ void main() {
         expect(state.refreshes, 1);
         expect(state.targets, isEmpty);
         expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-        await tester.tap(find.widgetWithText(FilledButton, '签到').first);
+        await tester.tap(find.widgetWithText(FilledButton, '上课').first);
         await tester.pumpAndSettle();
         expect(state.commits, 1);
         expect(find.text('课程1'), findsNothing);
@@ -133,7 +181,7 @@ WriteCommitResult result(bool success, {bool unknown = false}) =>
     WriteCommitResult(
       operation: WriteOperation.signinPerform,
       success: success,
-      message: success ? '签到成功' : '签到未完成',
+      message: success ? '上课成功' : '上课未完成',
       outcomeUnknown: unknown,
     );
 

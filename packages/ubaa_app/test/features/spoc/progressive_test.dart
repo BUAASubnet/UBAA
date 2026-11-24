@@ -316,6 +316,9 @@ class SpocDetailTask implements BridgeSpocDetailScan {
 
 BridgeSpocAssignmentDetail detailData(String id, String title) =>
     BridgeSpocAssignmentDetail(
+      submitModes: const [],
+      allowedExtensions: const [],
+      isGroupAssignment: false,
       assignmentId: id,
       courseId: 'c1',
       courseName: '合成课程',

@@ -201,6 +201,28 @@ pub(crate) fn map_spoc_assignments(v: domain::SpocAssignments) -> BridgeSpocAssi
 }
 pub(crate) fn map_spoc_detail(v: domain::SpocAssignmentDetail) -> BridgeSpocAssignmentDetail {
     BridgeSpocAssignmentDetail {
+        submit_action: v.submit_action.map(Into::into),
+        submit_unavailable_reason: v.submit_unavailable_reason,
+        attachment: v
+            .attachment
+            .map(|item| super::spoc_files::BridgeSpocAttachment {
+                file_id: item.file_id,
+                file_name: item.file_name,
+                size_text: item.size_text,
+                extension: item.extension,
+            }),
+        submitted_file: v
+            .submitted_file
+            .map(|item| super::spoc_files::BridgeSpocSubmittedFile {
+                file_id: item.file_id,
+                file_name: item.file_name,
+            }),
+        submit_modes: v.submit_modes,
+        allowed_extensions: v.allowed_extensions,
+        submission_count: v.submission_count,
+        max_submissions: v.max_submissions,
+        is_group_assignment: v.is_group_assignment,
+        late_submission_deadline: v.late_submission_deadline,
         assignment_id: v.assignment_id,
         course_id: v.course_id,
         course_name: v.course_name,

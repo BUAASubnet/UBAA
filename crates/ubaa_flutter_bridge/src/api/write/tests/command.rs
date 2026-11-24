@@ -2,10 +2,8 @@ use super::*;
 use crate::api::command::backend::CommandBackend;
 use ubaa_command::RoutedCliBackend;
 
-fn command_root(label: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/bridge_tests")
-        .join(format!("{label}-{}", uuid::Uuid::new_v4()))
+fn command_root(_label: &str) -> ubaa_test_support::TestTempDir {
+    ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_write_command").unwrap()
 }
 
 #[tokio::test]

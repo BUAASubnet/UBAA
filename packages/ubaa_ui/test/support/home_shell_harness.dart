@@ -121,6 +121,7 @@ class _HomeShellHarnessState extends State<HomeShellHarness> {
       ihomeService: shell.ihomeService,
       financeService: shell.financeService,
       onOpenAppLink: shell.onOpenAppLink,
+      readLibraryLoans: shell.readLibraryLoans,
       onLoadAllGrades: shell.onLoadAllGrades,
       gradeScoreNotice: shell.gradeScoreNotice,
       gradeCheckRoute: shell.gradeCheckRoute,

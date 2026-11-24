@@ -7,6 +7,13 @@ import '../../shared/text.dart' show uiNonBlank;
 import '../../shared/when.dart'
     show uiCampusNow, uiDeadlineHint, uiParseCampusTime, uiShortDateTime;
 import '../../common/tag.dart';
+import '../../shared/dialogs/form_page.dart' show showUiPage;
+import 'assignment_files.dart' show SpocAssignmentFiles;
+import 'assignment_submit.dart' show SpocSubmitBlock;
+import '../../write_callbacks.dart'
+    show SpocSubmitFilePicker, SpocSubmitStarter;
+import 'course_files_view.dart' show CourseFilesView;
+import 'spoc_files_access.dart' show SpocFilesAccess;
 
 bool uiSupportsAssignmentContent(
   FeatureId feature,
@@ -45,9 +52,20 @@ List<String> uiAssignmentSearchValues(FeaturePresentation? presentation) =>
     };
 
 class AssignmentContent extends StatelessWidget {
-  const AssignmentContent({required this.details, this.onNavigate});
+  const AssignmentContent({
+    required this.details,
+    this.onNavigate,
+    this.filesAccess,
+    this.onSpocSubmitWrite,
+    this.pickSpocSubmitFile,
+    this.writesEnabled = true,
+  });
   final List<FeatureDetail> details;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
+  final SpocFilesAccess? filesAccess;
+  final SpocSubmitStarter? onSpocSubmitWrite;
+  final SpocSubmitFilePicker? pickSpocSubmitFile;
+  final bool writesEnabled;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -86,15 +104,34 @@ class AssignmentContent extends StatelessWidget {
         itemBuilder: (context, index) {
           final row = rows[index];
           if (row is String) {
+            final group = groups[row] ?? const <FeatureDetail>[];
+            final course = group.isEmpty ? null : group.first.presentation;
+            final courseId = switch (course) {
+              SpocAssignmentPresentation p => uiNonBlank(p.courseId),
+              _ => null,
+            };
             return Padding(
               // 组间多留一段，课程标题归属下方卡片而不是上一组。
               padding: EdgeInsets.only(top: index == 0 ? 0 : 12, bottom: 8),
-              child: Text(
-                uiNonBlank(row) ?? '课程名称未提供',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      uiNonBlank(row) ?? '课程名称未提供',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  // 课件是整门课的资源，入口放在课程标题行而不是单份作业里。
+                  if (courseId != null && filesAccess?.canBrowseCourses == true)
+                    _CourseFilesButton(
+                      access: filesAccess!,
+                      courseId: courseId,
+                      courseName: row,
+                    ),
+                ],
               ),
             );
           }
@@ -104,6 +141,10 @@ class AssignmentContent extends StatelessWidget {
               detail: row as FeatureDetail,
               wide: constraints.maxWidth >= 740,
               onNavigate: onNavigate,
+              filesAccess: filesAccess,
+              onSpocSubmitWrite: onSpocSubmitWrite,
+              pickSpocSubmitFile: pickSpocSubmitFile,
+              writesEnabled: writesEnabled,
             ),
           );
         },
@@ -112,14 +153,55 @@ class AssignmentContent extends StatelessWidget {
   );
 }
 
+/// 课程标题行右侧的课件入口：打开该课程的课程文件页。
+class _CourseFilesButton extends StatelessWidget {
+  const _CourseFilesButton({
+    required this.access,
+    required this.courseId,
+    required this.courseName,
+  });
+  final SpocFilesAccess access;
+  final String courseId, courseName;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    style: TextButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      minimumSize: const Size(0, 32),
+    ),
+    onPressed: () => showUiPage<void>(
+      context,
+      fixedHeight: true,
+      dialogWidth: 720,
+      builder: (_) => CourseFilesView(
+        access: access,
+        courseId: courseId,
+        courseName: courseName,
+      ),
+    ),
+    icon: const Icon(Icons.folder_open_outlined, size: 18),
+    label: const Text('课件'),
+  );
+}
+
 class AssignmentCard extends StatelessWidget {
   const AssignmentCard({
     required this.detail,
     required this.wide,
     this.onNavigate,
+    this.filesAccess,
+    this.onSpocSubmitWrite,
+    this.pickSpocSubmitFile,
+    this.writesEnabled = true,
   });
   final FeatureDetail detail;
   final bool wide;
+  final SpocFilesAccess? filesAccess;
+  final SpocSubmitStarter? onSpocSubmitWrite;
+  final SpocSubmitFilePicker? pickSpocSubmitFile;
+  final bool writesEnabled;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
 
   @override
@@ -135,7 +217,16 @@ class AssignmentCard extends StatelessWidget {
       JudgeAssignmentPresentation p => !p.isDetail,
       _ => false,
     };
-    if (!summary) return _AssignmentDetail(detail: detail, wide: wide);
+    if (!summary) {
+      return _AssignmentDetail(
+        detail: detail,
+        wide: wide,
+        filesAccess: filesAccess,
+        onSpocSubmitWrite: onSpocSubmitWrite,
+        pickSpocSubmitFile: pickSpocSubmitFile,
+        writesEnabled: writesEnabled,
+      );
+    }
     final target = detail.readNavigation;
     final canOpen = target != null && onNavigate != null;
     final theme = Theme.of(context);
@@ -272,13 +363,25 @@ class AssignmentCard extends StatelessWidget {
 }
 
 class _AssignmentDetail extends StatelessWidget {
-  const _AssignmentDetail({required this.detail, required this.wide});
+  const _AssignmentDetail({
+    required this.detail,
+    required this.wide,
+    this.filesAccess,
+    this.onSpocSubmitWrite,
+    this.pickSpocSubmitFile,
+    this.writesEnabled = true,
+  });
   final FeatureDetail detail;
   final bool wide;
+  final SpocFilesAccess? filesAccess;
+  final SpocSubmitStarter? onSpocSubmitWrite;
+  final SpocSubmitFilePicker? pickSpocSubmitFile;
+  final bool writesEnabled;
 
   @override
   Widget build(BuildContext context) {
     final p = detail.presentation;
+    final submitAction = _spocSubmitAction(detail.actions);
     final (course, status, start, due) = switch (p) {
       SpocAssignmentPresentation p => (
         p.courseName,
@@ -355,6 +458,20 @@ class _AssignmentDetail extends StatelessWidget {
                 if (p is SpocAssignmentPresentation &&
                     uiNonBlank(p.teacherName) != null)
                   _assignmentLine(context, '教师：${p.teacherName}'),
+                if (filesAccess?.canBrowseCourses == true &&
+                    p is SpocAssignmentPresentation &&
+                    uiNonBlank(p.courseId) != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _CourseFilesButton(
+                        access: filesAccess!,
+                        courseId: p.courseId,
+                        courseName: course,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -387,6 +504,27 @@ class _AssignmentDetail extends StatelessWidget {
           ],
         ]),
         if (p is SpocAssignmentPresentation)
+          if (SpocAssignmentFiles(
+                attachment: p.attachment,
+                submittedFile: p.submittedFile,
+                access: filesAccess,
+              )
+              case final files when !files.isEmpty)
+            section('附件与提交', files.rows(context)),
+        if (p is SpocAssignmentPresentation &&
+            (submitAction != null ||
+                uiNonBlank(p.submitUnavailableReason) != null))
+          section('提交作业', [
+            SpocSubmitBlock(
+              action: submitAction,
+              title: uiNonBlank(detail.title),
+              reason: p.submitUnavailableReason,
+              enabled: writesEnabled,
+              pickFile: pickSpocSubmitFile,
+              onSubmit: onSpocSubmitWrite,
+            ),
+          ]),
+        if (p is SpocAssignmentPresentation)
           section('作业内容', [
             SelectableText(
               uiNonBlank(p.contentPlainText) ?? '暂无作业说明',
@@ -405,6 +543,14 @@ class _AssignmentDetail extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 只消费 Core 给出的 typed 提交资格；缺失即视为不可提交。
+SpocSubmitAction? _spocSubmitAction(List<FeatureAction> actions) {
+  for (final action in actions) {
+    if (action is SpocSubmitAction) return action;
+  }
+  return null;
 }
 
 /// 未提供满分时仍展示得分；明确为 0 时视为不计分。

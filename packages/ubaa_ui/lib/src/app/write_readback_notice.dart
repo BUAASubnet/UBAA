@@ -9,6 +9,7 @@ class WriteReadbackNotice extends StatefulWidget {
     required this.hints,
     required this.error,
     required this.onOpenFeature,
+    this.onOpenLibraryLoans,
     this.onDismiss,
     this.onRefresh,
     super.key,
@@ -16,6 +17,7 @@ class WriteReadbackNotice extends StatefulWidget {
   final List<WriteReadbackHint> hints;
   final UiError? error;
   final ValueChanged<FeatureId> onOpenFeature;
+  final VoidCallback? onOpenLibraryLoans;
   final Future<void> Function(String)? onDismiss;
   final Future<void> Function()? onRefresh;
 
@@ -69,7 +71,7 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('操作结果暂未同步'),
-                    Text('最近的签到、选课或预约结果请到对应页面核对。', style: muted),
+                    Text('最近的上课、选课或预约结果请到对应页面核对。', style: muted),
                   ],
                 ),
               ),
@@ -117,7 +119,9 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
                 spacing: 8,
                 children: [
                   TextButton(
-                    onPressed: hint.feature == null
+                    onPressed: hint.operation == WriteOperation.libraryLoanRenew
+                        ? widget.onOpenLibraryLoans
+                        : hint.feature == null
                         ? null
                         : () => widget.onOpenFeature(hint.feature!),
                     child: const Text('去查看'),

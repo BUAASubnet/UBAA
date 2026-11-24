@@ -2,14 +2,11 @@ use super::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeR
 use super::read_pool::ReadGroup;
 use super::shared_account::BridgeSharedAccount;
 use futures_util::FutureExt;
-use std::path::PathBuf;
 use ubaa_core::facade::testing::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
 
-fn fixture() -> PathBuf {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/command_delivery/tests")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+fn fixture() -> ubaa_test_support::TestTempDir {
+    let root =
+        ubaa_test_support::test_temp_dir("ubaa_flutter_bridge_api_client_lifecycle").unwrap();
     for (name, value) in [
         ("materials.lock", ""),
         ("transaction.v1", "UBAA1:C"),

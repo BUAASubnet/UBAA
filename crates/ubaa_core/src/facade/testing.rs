@@ -6,12 +6,24 @@ pub use crate::config::RouteConfig;
 pub use crate::connection::{GatewayProbe, from_webvpn_url, to_webvpn_url};
 pub use crate::ports::{
     HttpFileRange, HttpMethod, HttpRequest, HttpResponse, HttpTransferObserver, HttpTransport,
+    StreamSink,
 };
 pub use crate::session::{
     DualSessionMutation, DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot,
     RouteSessions, SessionMutation, SessionSnapshot, SessionStore, StoredCookie,
     VersionedDualSession, VersionedSession,
 };
+
+/// 提供三种带进程内原因的错误，供宿主验证错误分类。
+#[must_use]
+pub fn client_lifecycle_errors() -> [crate::error::UbaaError; 3] {
+    use crate::error::UbaaError;
+    [
+        UbaaError::client_closed(),
+        UbaaError::captcha_required(),
+        UbaaError::shared_account_conflict(),
+    ]
+}
 
 /// 为两条独立认证流程注入合成验证码识别结果，不读取真实图像或模型。
 pub fn set_captcha_recognizer(

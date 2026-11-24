@@ -9,7 +9,7 @@ import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
 void _registerInitialWriteTests() {
-  testWidgets('博雅签到签退选课一点即完成，退选先弹窗确认', (tester) async {
+  testWidgets('博雅上课下课选课一点即完成，退选先弹窗确认', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -70,7 +70,7 @@ void _registerInitialWriteTests() {
     final signIntent = WriteIntent(
       intentId: 'sign-intent-42',
       operation: WriteOperation.bykcSignCourse,
-      targetSummary: '博雅课程 42 签到',
+      targetSummary: '博雅课程 42 上课',
       resolvedRoute: ConnectionMode.direct,
       warnings: const <String>['位置或时间窗要求由 Core 校验'],
       expiresAt: DateTime.now().add(const Duration(minutes: 2)),
@@ -152,14 +152,14 @@ void _registerInitialWriteTests() {
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     // 签到、签退与选课一点即完成；退选不可撤销，先弹窗确认。
-    await tester.tap(find.text('博雅签到'));
+    await tester.tap(find.text('博雅上课'));
     await tester.pumpAndSettle();
     expect(signCalls, 1);
     expect(signTypes, <int>[1]);
-    expect(find.text('确认博雅签到'), findsNothing);
+    expect(find.text('确认博雅上课'), findsNothing);
     expect(commitCalls, 1);
     expect(committedIntent, 'sign-intent-42');
-    await tester.tap(find.text('博雅签退'));
+    await tester.tap(find.text('博雅下课'));
     await tester.pumpAndSettle();
     expect(signCalls, 2);
     expect(signTypes, <int>[1, 2]);
@@ -236,7 +236,7 @@ void _registerInitialWriteTests() {
     );
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('博雅签到'));
+    await tester.tap(find.text('博雅上课'));
     await tester.pump();
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -244,7 +244,7 @@ void _registerInitialWriteTests() {
       WriteIntent(
         intentId: 'intent-after-unmount',
         operation: WriteOperation.bykcSignCourse,
-        targetSummary: '课程签到',
+        targetSummary: '每日课程',
         resolvedRoute: ConnectionMode.direct,
         warnings: const <String>[],
         expiresAt: DateTime.now().add(const Duration(minutes: 2)),
@@ -257,7 +257,7 @@ void _registerInitialWriteTests() {
   });
 
   testWidgets(
-    '课堂签到从 typed 签到目标一点即提交',
+    '每日课程从 typed 上课目标一点即提交',
     (tester) =>
         withClock(Clock.fixed(DateTime.utc(2026, 10, 29, 0, 10)), () async {
           const expectedAction = SigninPerformAction(
@@ -271,9 +271,9 @@ void _registerInitialWriteTests() {
           final intent = WriteIntent(
             intentId: 'signin-intent',
             operation: WriteOperation.signinPerform,
-            targetSummary: '课堂签到课程',
+            targetSummary: '每日课程',
             resolvedRoute: ConnectionMode.webvpn,
-            warnings: const <String>['提交后请刷新今日签到状态确认结果'],
+            warnings: const <String>['提交后请刷新今日课程状态确认结果'],
             expiresAt: DateTime.now().add(const Duration(minutes: 2)),
             requestDigest: 'digest',
           );
@@ -299,7 +299,7 @@ void _registerInitialWriteTests() {
                   return const WriteCommitResult(
                     operation: WriteOperation.signinPerform,
                     success: true,
-                    message: '签到结果已提交，请刷新确认',
+                    message: '上课结果已提交，请刷新确认',
                     outcomeUnknown: false,
                   );
                 },
@@ -317,7 +317,7 @@ void _registerInitialWriteTests() {
           await tester.pumpAndSettle();
           await openFeature(tester, FeatureId.signin);
           await tester.pumpAndSettle();
-          await tester.tap(find.widgetWithText(FilledButton, '签到'));
+          await tester.tap(find.widgetWithText(FilledButton, '上课'));
           await tester.pumpAndSettle();
           expect(prepareCalls, 1);
           expect(commitCalls, 1);
@@ -326,7 +326,7 @@ void _registerInitialWriteTests() {
   );
 
   testWidgets(
-    '课堂签到点二维码打开面板且不触发写入',
+    '每日课程点二维码打开面板且不触发写入',
     (tester) =>
         withClock(Clock.fixed(DateTime.utc(2026, 10, 29, 0, 10)), () async {
           final snapshots = _signinSnapshots(
@@ -369,7 +369,7 @@ void _registerInitialWriteTests() {
           await tester.pumpAndSettle();
           await openFeature(tester, FeatureId.signin);
           await tester.pumpAndSettle();
-          await tester.tap(find.byTooltip('签到二维码'));
+          await tester.tap(find.byTooltip('上课二维码'));
           await tester.pumpAndSettle();
           expect(find.byType(SigninQrSheet), findsWidgets);
           expect(reads, [('schedule-7', Duration.zero)]);
@@ -387,7 +387,7 @@ Map<FeatureId, FeatureSnapshot> _signinSnapshots(SigninPerformAction action) =>
         status: FeatureLoadStatus.success,
         details: [
           FeatureDetail(
-            title: '课堂签到课程',
+            title: '每日课程',
             presentation: const SigninPresentation(
               courseId: '展示课程编号',
               classBeginTime: '08:00',
@@ -396,7 +396,7 @@ Map<FeatureId, FeatureSnapshot> _signinSnapshots(SigninPerformAction action) =>
             ),
             fields: const [
               FeatureField(label: '课程 ID', value: '误导目标'),
-              FeatureField(label: '签到状态', value: '已签到'),
+              FeatureField(label: '上课状态', value: '已上课'),
             ],
             actions: [action],
           ),

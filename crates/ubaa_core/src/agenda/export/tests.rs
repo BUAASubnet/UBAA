@@ -11,12 +11,23 @@ fn d(raw: &str) -> NaiveDate {
 fn now() -> AgendaTime {
     t("2026-04-01T12:00:00+08:00")
 }
-fn store() -> AgendaStore {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1d_export_fix/test_data")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
-    AgendaStore::open(&root, "11111111111111111111111111111111").unwrap()
+struct TempStore {
+    store: AgendaStore,
+    _temp: crate::test_tmp::TestTempDir,
+}
+
+impl std::ops::Deref for TempStore {
+    type Target = AgendaStore;
+
+    fn deref(&self) -> &Self::Target {
+        &self.store
+    }
+}
+
+fn store() -> TempStore {
+    let temp = crate::test_tmp::test_temp_dir("ubaa_core_agenda_export").unwrap();
+    let store = AgendaStore::open(temp.path(), "11111111111111111111111111111111").unwrap();
+    TempStore { store, _temp: temp }
 }
 fn options() -> AgendaExportOptions {
     AgendaExportOptions {
@@ -586,10 +597,7 @@ fn note_only_overlay_does_not_supply_school_completion_timestamp() {
 
 #[test]
 fn public_cache_export_retains_availability_and_rejects_another_account() {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1d_export_fix/test_data")
-        .join(uuid::Uuid::new_v4().to_string());
-    std::fs::create_dir_all(&root).unwrap();
+    let root = crate::test_tmp::test_temp_dir("ubaa_core_agenda_export_public_cache").unwrap();
     let account = "22222222222222222222222222222222";
     let store = AgendaStore::open(&root, account).unwrap();
     store.create(event()).unwrap();

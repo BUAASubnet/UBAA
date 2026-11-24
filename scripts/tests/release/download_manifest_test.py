@@ -1,4 +1,5 @@
 """下载页数据只接受与请求版本、构建一致的完整公开清单。"""
+import os
 import copy
 import importlib.util
 import json
@@ -24,7 +25,7 @@ def synthetic(tag='v9.9.9', build='9001'):
 
 class DownloadManifestTest(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / '.ubaa_local/download_manifest/tests'
+        parent = Path(os.environ.get('UBAA_TEST_TMP') or ROOT / 'target/test_tmp') / 'download_manifest'
         parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.TemporaryDirectory(dir=parent)
         self.addCleanup(temporary.cleanup)

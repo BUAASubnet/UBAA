@@ -24,4 +24,4 @@ def collect(build, output, version):
 
 
 if __name__ == '__main__':
-    collect(Path('apps/ubaa_ohos/build/ohos'), Path('.ubaa_local/release'), os.environ['RELEASE_VERSION'])
+    collect(Path('apps/ubaa_ohos/build/ohos'), Path('dist/release'), os.environ['RELEASE_VERSION'])
