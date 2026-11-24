@@ -4,6 +4,24 @@
 
 ## 逐操作基线矩阵
 
+### SPOC 作业文件提交（2026-11-24）
+
+依据为维护者在 2026-11-02 的一次真实提交记录（已脱敏，原件不入库）、官方提交页和 simple-uploader 源码，以及 2026-11-24 的 Direct 只读实测。文件服务路径前缀为 `/inco-filesystem/fileManagerSystem/`，作业接口前缀为 `/spocnewht/kczy/`。
+
+| 对照项 | 个人文件作业 |
+|---|---|
+| 引导 | 沿用 SPOC CAS 引导和角色激活。准备时重新读取同一作业及其提交记录。 |
+| 重定向 | 各请求由当前路线改写 URL，不跟随业务跳转，不跨路线提交或核对。 |
+| 会话 | 文件服务只使用 Token 头，Direct 不交换导航 Cookie。WebVPN 保留网关会话。作业接口另带 RoleCode 和 X-Requested-With。 |
+| 方法与参数 | GET `uploadFile` 探测第 1 片。顺序 POST `uploadFile` 上传缺片，再 POST `mergeFile(identifier,filename,totalSize)`。仅一次 POST `submitKcz2(kczyid,tjfs=5,scwjid,scwjid_name,tjlx=5,ytjcs=2,sskcid)`；`ytjcs=2` 为前端常量。GET `queryXsSubmitKczyInfo?kczyid=…` 核对。 |
+| 编码 | 探测查询与 multipart 普通字段顺序均为 `chunkNumber,chunkSize,currentChunkSize,totalSize,identifier,filename,relativePath,totalChunks`。multipart 最后一项 `file` 使用原文件名（UTF-8）和按扩展名选择的 MIME，未知用 `application/octet-stream`。只有 PDF 的 `application/pdf` 有直接样本。该值不影响服务器对文件类型的判定，合并按文件名扩展名返回 `wjhzm`。合并与提交均为 URL 编码表单。 |
+| 摘要与分片 | identifier 是整文件的小写 MD5。上限为 100 MiB。每片基准 2048000 字节，片数取整除结果与 1 的较大值，余数并入末片。 |
+| 解析 | `mc=true` 直接从文件对象 `data.id` 取 ID；否则 `data` 为 null 或已有分片号数组。合并取顶层 `id`。回查要求 `scwjid` 匹配且 `tjzt` 非空；`tjsj` 为提交时间。 |
+| 并发与重试 | 意图只消费一次。确认时核对文件大小、修改时间和摘要。探测允许一次认证刷新；上传、合并和最终提交不重发。用户重新准备时再次探测已有片。 |
+| 结果 | 截止与补交时间仅供确认。上传或合并失败时停止；明确业务拒绝保留业务提示。提交可能已送达时只读核对，以匹配记录确认成功；无法确认时提示刷新详情。 |
+
+本实现的 Direct 和 WebVPN 真实写入均待验证。每次验证须单独授权作业、路线和时间。首次需确认上传与合并接受真实 Token 头：旧提交记录中出现过无效 Token 配合 Cookie，11 月 24 日的只读实测已要求有效 Token。
+
 以下矩阵沿用[逐操作历史矩阵](general.md#逐操作历史矩阵)的取证说明：原始取证版本、换钉后的适用方式和重新核对要求以该节为准。
 
 ### UBAA2 直接写操作与评教（2026-08-28）
