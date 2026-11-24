@@ -67,6 +67,9 @@ mixin BridgeBackendRead {
   );
 
   late final IhomeService ihome = BridgeIhomeService(_context.client);
+  late final SpocFilesService? spocFiles = client.contractVersion() < 82
+      ? null
+      : BridgeSpocFilesService(client);
 
   ReadHealthCloud? get healthCloud => client.contractVersion() < 74
       ? null

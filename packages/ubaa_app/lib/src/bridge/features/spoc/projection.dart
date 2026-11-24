@@ -79,6 +79,28 @@ FeatureResult bridgeMapSpocHomeDetail(
           statusText: item.submissionStatusText,
           contentPlainText: item.contentPlainText,
           submittedAt: item.submittedAt,
+          attachment: switch (item.attachment) {
+            final file? => SpocAttachment(
+              fileId: file.fileId,
+              fileName: file.fileName,
+              sizeText: file.sizeText,
+              extension: file.extension_,
+            ),
+            null => null,
+          },
+          submittedFile: switch (item.submittedFile) {
+            final file? => SpocSubmittedFile(
+              fileId: file.fileId,
+              fileName: file.fileName,
+            ),
+            null => null,
+          },
+          submissionCount: item.submissionCount,
+          submitModes: List.unmodifiable(item.submitModes),
+          allowedExtensions: List.unmodifiable(item.allowedExtensions),
+          maxSubmissions: item.maxSubmissions,
+          isGroupAssignment: item.isGroupAssignment,
+          lateSubmissionDeadline: item.lateSubmissionDeadline,
           isDetail: true,
         ),
         fields: bridgeCompactFields(<FeatureField?>[

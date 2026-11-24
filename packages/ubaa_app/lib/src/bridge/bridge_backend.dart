@@ -4,6 +4,7 @@ import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
 import 'ihome/service.dart';
+import 'features/spoc/files.dart';
 import 'health_cloud.dart';
 import 'finance/service.dart';
 import 'campus/service.dart';
@@ -99,7 +100,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 81;
+const _supportedBridgeContractVersion = 82;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -119,6 +120,7 @@ class BridgeBackend
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,
+        SpocFilesBackend,
         HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,

@@ -95,6 +95,10 @@ abstract interface class IhomeBackend {
   IhomeService get ihome;
 }
 
+abstract interface class SpocFilesBackend {
+  SpocFilesService? get spocFiles;
+}
+
 abstract interface class HealthCloudBackend {
   ReadHealthCloud? get healthCloud;
 }

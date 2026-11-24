@@ -712,6 +712,9 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
         return Future<BridgeRoutedSpocAssignmentDetail>.value(
           BridgeRoutedSpocAssignmentDetail(
             data: BridgeSpocAssignmentDetail(
+              submitModes: const [],
+              allowedExtensions: const [],
+              isGroupAssignment: false,
               assignmentId: named[#assignmentId] as String,
               courseId: 'course-1',
               courseName: '课程',

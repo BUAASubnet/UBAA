@@ -15,6 +15,14 @@ final class SpocAssignmentPresentation extends FeaturePresentation {
     required this.statusText,
     this.contentPlainText,
     this.submittedAt,
+    this.attachment,
+    this.submittedFile,
+    this.submitModes = const [],
+    this.allowedExtensions = const [],
+    this.maxSubmissions,
+    this.submissionCount,
+    this.isGroupAssignment = false,
+    this.lateSubmissionDeadline,
     this.isDetail = false,
   });
   final String courseId;
@@ -28,6 +36,12 @@ final class SpocAssignmentPresentation extends FeaturePresentation {
   final String statusText;
   final String? contentPlainText;
   final String? submittedAt;
+  final SpocAttachment? attachment;
+  final SpocSubmittedFile? submittedFile;
+  final List<String> submitModes, allowedExtensions;
+  final int? maxSubmissions, submissionCount;
+  final bool isGroupAssignment;
+  final String? lateSubmissionDeadline;
   final bool isDetail;
 }
 
