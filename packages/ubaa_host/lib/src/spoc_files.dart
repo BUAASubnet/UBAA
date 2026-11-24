@@ -17,10 +17,8 @@ final class SpocFilesDelivery {
       );
 
   /// 课件（课程文件）。
-  Future<SpocDownloadReceipt?> downloadCourse(SpocCourseFile file) => _save(
-    file.name,
-    (path) => service.downloadCourseFile(file, path),
-  );
+  Future<SpocDownloadReceipt?> downloadCourse(SpocCourseFile file) =>
+      _save(file.name, (path) => service.downloadCourseFile(file, path));
 
   Future<SpocDownloadReceipt?> _save(
     String name,
