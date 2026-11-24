@@ -158,6 +158,14 @@ class DistributionTest(unittest.TestCase):
             distribute.main()
         self.assertEqual([call.args[0][:3] for call in self.calls.call_args_list], [['gh', 'release', 'view']])
 
+    def test_草稿正文只指向本版本更新说明且不含下载链接(self):
+        distribute.main()
+        edit = next(call.args[0] for call in self.calls.call_args_list
+                    if call.args[0][:3] == ['gh', 'release', 'edit'] and '--notes-file' in call.args[0])
+        body = Path(option(edit, '--notes-file')).read_text()
+        self.assertEqual(body, 'UBAA 2.0.0\n\n本版更新说明：https://www.ubaa.top/changelog/#v2-0-0\n')
+        self.assertNotIn('download.ubaa.top', body)
+
     def test_清单地址按构建号隔离(self):
         distribute.main()
         manifest = json.loads((self.folder / 'release.json').read_text())
