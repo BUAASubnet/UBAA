@@ -235,6 +235,7 @@ pub(super) fn map_commit_error(
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
             BridgeWriteOperation::LibraryLoanRenew => "续借资格已变化，请刷新借阅记录后重新准备",
+            BridgeWriteOperation::SpocSubmitAssignment => "作业资格已变化，请刷新详情后重新准备",
             BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyySubmitReservation => "研讨室预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyyCancelOrder => "研讨室订单取消资格已变化，请刷新后重新准备",
@@ -317,6 +318,7 @@ pub(super) fn map_commit_error(
         operation,
         BridgeWriteOperation::BykcSignCourse
             | BridgeWriteOperation::LibraryLoanRenew
+            | BridgeWriteOperation::SpocSubmitAssignment
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking

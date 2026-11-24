@@ -15,7 +15,7 @@ use ubaa_core::facade as c;
 
 /// 进度与取消不等待主客户端网络锁。
 pub struct BridgeBhpanTransfer {
-    control: c::bhpan::BhpanTransfer,
+    pub(crate) control: c::bhpan::BhpanTransfer,
 }
 impl BridgeBhpanTransfer {
     #[flutter_rust_bridge::frb(sync)]

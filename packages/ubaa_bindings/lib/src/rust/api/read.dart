@@ -2896,6 +2896,8 @@ class BridgeSigninQr {
 }
 
 class BridgeSpocAssignmentDetail {
+  final BridgeSpocSubmitAction? submitAction;
+  final String? submitUnavailableReason;
   final BridgeSpocAttachment? attachment;
   final BridgeSpocSubmittedFile? submittedFile;
   final List<String> submitModes;
@@ -2918,6 +2920,8 @@ class BridgeSpocAssignmentDetail {
   final String? submittedAt;
 
   const BridgeSpocAssignmentDetail({
+    this.submitAction,
+    this.submitUnavailableReason,
     this.attachment,
     this.submittedFile,
     required this.submitModes,
@@ -2942,6 +2946,8 @@ class BridgeSpocAssignmentDetail {
 
   @override
   int get hashCode =>
+      submitAction.hashCode ^
+      submitUnavailableReason.hashCode ^
       attachment.hashCode ^
       submittedFile.hashCode ^
       submitModes.hashCode ^
@@ -2968,6 +2974,8 @@ class BridgeSpocAssignmentDetail {
       identical(this, other) ||
       other is BridgeSpocAssignmentDetail &&
           runtimeType == other.runtimeType &&
+          submitAction == other.submitAction &&
+          submitUnavailableReason == other.submitUnavailableReason &&
           attachment == other.attachment &&
           submittedFile == other.submittedFile &&
           submitModes == other.submitModes &&

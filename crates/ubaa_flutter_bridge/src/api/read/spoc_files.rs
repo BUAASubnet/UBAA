@@ -5,6 +5,28 @@ use crate::api::{
 use ubaa_core::facade::SpocDownloadTarget;
 
 #[derive(Debug, Clone)]
+pub struct BridgeSpocSubmitAction {
+    pub assignment_id: String,
+    pub course_id: String,
+    pub allowed_extensions: Vec<String>,
+    pub max_submissions: Option<u32>,
+    pub due_time: Option<String>,
+    pub late_submission_deadline: Option<String>,
+}
+impl From<ubaa_core::facade::SpocSubmitAction> for BridgeSpocSubmitAction {
+    fn from(value: ubaa_core::facade::SpocSubmitAction) -> Self {
+        Self {
+            assignment_id: value.assignment_id,
+            course_id: value.course_id,
+            allowed_extensions: value.allowed_extensions,
+            max_submissions: value.max_submissions,
+            due_time: value.due_time,
+            late_submission_deadline: value.late_submission_deadline,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct BridgeSpocAttachment {
     pub file_id: String,
     pub file_name: Option<String>,

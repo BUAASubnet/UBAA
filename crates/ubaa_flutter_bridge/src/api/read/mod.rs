@@ -199,6 +199,8 @@ pub struct BridgeSpocAssignments {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeSpocAssignmentDetail {
+    pub submit_action: Option<spoc_files::BridgeSpocSubmitAction>,
+    pub submit_unavailable_reason: Option<String>,
     pub attachment: Option<spoc_files::BridgeSpocAttachment>,
     pub submitted_file: Option<spoc_files::BridgeSpocSubmittedFile>,
     pub submit_modes: Vec<String>,

@@ -22,7 +22,7 @@ use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeError, dispos
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
-    async fn store_write_intent(
+    pub(super) async fn store_write_intent(
         &self,
         operation: BridgeWriteOperation,
         canonical: String,
@@ -69,6 +69,7 @@ impl BridgeClient {
             expires_at,
             request_digest,
             library_loan_renew_target: None,
+            spoc_summary: None,
         })
     }
 

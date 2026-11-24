@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'write/spoc.dart';
 
 // These functions are ignored because they are not marked as `pub`: `conflict_key`, `conflicts_with`, `evaluation_target_conflict_key`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
@@ -419,6 +420,7 @@ class BridgeWriteCommitResult {
   final BridgeCgyyReservationReceipt? cgyyReceipt;
   final BridgeYgdkSubmitReceipt? ygdkReceipt;
   final BridgeEvaluationBatchResult? evaluationResult;
+  final BridgeSpocSubmitReceipt? spocReceipt;
 
   const BridgeWriteCommitResult({
     required this.operation,
@@ -429,6 +431,7 @@ class BridgeWriteCommitResult {
     this.cgyyReceipt,
     this.ygdkReceipt,
     this.evaluationResult,
+    this.spocReceipt,
   });
 
   @override
@@ -440,7 +443,8 @@ class BridgeWriteCommitResult {
       resolvedRoute.hashCode ^
       cgyyReceipt.hashCode ^
       ygdkReceipt.hashCode ^
-      evaluationResult.hashCode;
+      evaluationResult.hashCode ^
+      spocReceipt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -454,7 +458,8 @@ class BridgeWriteCommitResult {
           resolvedRoute == other.resolvedRoute &&
           cgyyReceipt == other.cgyyReceipt &&
           ygdkReceipt == other.ygdkReceipt &&
-          evaluationResult == other.evaluationResult;
+          evaluationResult == other.evaluationResult &&
+          spocReceipt == other.spocReceipt;
 }
 
 class BridgeWriteIntent {
@@ -466,6 +471,7 @@ class BridgeWriteIntent {
   final PlatformInt64 expiresAt;
   final String requestDigest;
   final BridgeLibraryLoanRenewTarget? libraryLoanRenewTarget;
+  final BridgeSpocSubmitSummary? spocSummary;
 
   const BridgeWriteIntent({
     required this.intentId,
@@ -476,6 +482,7 @@ class BridgeWriteIntent {
     required this.expiresAt,
     required this.requestDigest,
     this.libraryLoanRenewTarget,
+    this.spocSummary,
   });
 
   @override
@@ -487,7 +494,8 @@ class BridgeWriteIntent {
       warnings.hashCode ^
       expiresAt.hashCode ^
       requestDigest.hashCode ^
-      libraryLoanRenewTarget.hashCode;
+      libraryLoanRenewTarget.hashCode ^
+      spocSummary.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -501,7 +509,8 @@ class BridgeWriteIntent {
           warnings == other.warnings &&
           expiresAt == other.expiresAt &&
           requestDigest == other.requestDigest &&
-          libraryLoanRenewTarget == other.libraryLoanRenewTarget;
+          libraryLoanRenewTarget == other.libraryLoanRenewTarget &&
+          spocSummary == other.spocSummary;
 }
 
 enum BridgeWriteOperation {
@@ -516,6 +525,7 @@ enum BridgeWriteOperation {
   cgyySubmitReservation,
   cgyyCancelOrder,
   evaluationSubmitCourses,
+  spocSubmitAssignment,
 }
 
 class BridgeYgdkSubmitReceipt {

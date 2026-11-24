@@ -48,6 +48,9 @@ impl PendingWrite {
             },
             // 借阅明细不在本机业务缓存中；仍登记领域失效，避免把写结果投影成旧数据。
             Self::LibraryLoanRenew(_) => core::CacheInvalidation::Library,
+            Self::Spoc(request) => core::CacheInvalidation::Spoc {
+                assignment_id: request.assignment_id().into(),
+            },
             Self::CgyyReserve(v) => core::CacheInvalidation::Cgyy {
                 site_id: Some(v.venue_site_id),
                 date: Some(v.reservation_date.clone()),

@@ -54,6 +54,7 @@ import 'api/simple.dart';
 import 'api/write.dart';
 import 'api/write/cache.dart';
 import 'api/write/readback.dart';
+import 'api/write/spoc.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -1092,6 +1093,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSpocAttachment dco_decode_box_autoadd_bridge_spoc_attachment(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmitAction dco_decode_box_autoadd_bridge_spoc_submit_action(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmitReceipt dco_decode_box_autoadd_bridge_spoc_submit_receipt(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmitSummary dco_decode_box_autoadd_bridge_spoc_submit_summary(
     dynamic raw,
   );
 
@@ -2624,6 +2640,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocSubmitAction dco_decode_bridge_spoc_submit_action(dynamic raw);
+
+  @protected
+  BridgeSpocSubmitReceipt dco_decode_bridge_spoc_submit_receipt(dynamic raw);
+
+  @protected
+  BridgeSpocSubmitSummary dco_decode_bridge_spoc_submit_summary(dynamic raw);
+
+  @protected
   BridgeSpocSubmittedFile dco_decode_bridge_spoc_submitted_file(dynamic raw);
 
   @protected
@@ -3474,6 +3499,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSpocAttachment? dco_decode_opt_box_autoadd_bridge_spoc_attachment(
     dynamic raw,
   );
+
+  @protected
+  BridgeSpocSubmitAction? dco_decode_opt_box_autoadd_bridge_spoc_submit_action(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocSubmitReceipt?
+  dco_decode_opt_box_autoadd_bridge_spoc_submit_receipt(dynamic raw);
+
+  @protected
+  BridgeSpocSubmitSummary?
+  dco_decode_opt_box_autoadd_bridge_spoc_submit_summary(dynamic raw);
 
   @protected
   BridgeSpocSubmittedFile?
@@ -4601,6 +4639,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSpocAttachment sse_decode_box_autoadd_bridge_spoc_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitAction sse_decode_box_autoadd_bridge_spoc_submit_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitReceipt sse_decode_box_autoadd_bridge_spoc_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitSummary sse_decode_box_autoadd_bridge_spoc_submit_summary(
     SseDeserializer deserializer,
   );
 
@@ -6625,6 +6678,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocSubmitAction sse_decode_bridge_spoc_submit_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitReceipt sse_decode_bridge_spoc_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitSummary sse_decode_bridge_spoc_submit_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSpocSubmittedFile sse_decode_bridge_spoc_submitted_file(
     SseDeserializer deserializer,
   );
@@ -7719,6 +7787,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSpocAttachment? sse_decode_opt_box_autoadd_bridge_spoc_attachment(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitAction? sse_decode_opt_box_autoadd_bridge_spoc_submit_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitReceipt?
+  sse_decode_opt_box_autoadd_bridge_spoc_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmitSummary?
+  sse_decode_opt_box_autoadd_bridge_spoc_submit_summary(
     SseDeserializer deserializer,
   );
 
@@ -9002,6 +9087,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_spoc_attachment(
     BridgeSpocAttachment self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_spoc_submit_action(
+    BridgeSpocSubmitAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_spoc_submit_receipt(
+    BridgeSpocSubmitReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_spoc_submit_summary(
+    BridgeSpocSubmitSummary self,
     SseSerializer serializer,
   );
 
@@ -11505,6 +11608,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_spoc_submit_action(
+    BridgeSpocSubmitAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_submit_receipt(
+    BridgeSpocSubmitReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_submit_summary(
+    BridgeSpocSubmitSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_spoc_submitted_file(
     BridgeSpocSubmittedFile self,
     SseSerializer serializer,
@@ -12785,6 +12906,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_spoc_attachment(
     BridgeSpocAttachment? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_spoc_submit_action(
+    BridgeSpocSubmitAction? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_spoc_submit_receipt(
+    BridgeSpocSubmitReceipt? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_spoc_submit_summary(
+    BridgeSpocSubmitSummary? self,
     SseSerializer serializer,
   );
 

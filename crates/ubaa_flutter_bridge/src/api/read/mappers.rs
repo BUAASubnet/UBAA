@@ -201,6 +201,8 @@ pub(crate) fn map_spoc_assignments(v: domain::SpocAssignments) -> BridgeSpocAssi
 }
 pub(crate) fn map_spoc_detail(v: domain::SpocAssignmentDetail) -> BridgeSpocAssignmentDetail {
     BridgeSpocAssignmentDetail {
+        submit_action: v.submit_action.map(Into::into),
+        submit_unavailable_reason: v.submit_unavailable_reason,
         attachment: v
             .attachment
             .map(|item| super::spoc_files::BridgeSpocAttachment {

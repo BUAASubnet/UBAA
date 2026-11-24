@@ -9,6 +9,7 @@ import '../offline.dart';
 import '../read.dart';
 import '../write.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'spoc.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cache_impact`, `finish_cached_commit`, `into_legacy`, `may_have_changed`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`

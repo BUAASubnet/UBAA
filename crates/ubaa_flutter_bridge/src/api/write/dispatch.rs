@@ -11,6 +11,7 @@ pub(crate) enum WriteReceipt {
     LibbookReserve(core::LibBookReserveResult),
     LibbookCancel(core::LibBookCancelResult),
     LibraryLoanRenew(core::LibraryLoanRenewResult),
+    Spoc(core::SpocSubmitReceipt),
     Ygdk(core::YgdkClockinSubmitResult),
     CgyyReserve(core::CgyyReservationResult),
     CgyyCancel(core::CgyyCancelOrderResult),
@@ -30,6 +31,9 @@ pub(crate) async fn dispatch(
         };
     }
     match pending {
+        PendingWrite::Spoc(prepared) => {
+            receipt!(client.confirm_spoc_submit_assignment(prepared), Spoc)
+        }
         PendingWrite::BykcSelect(v) => receipt!(
             client.bykc_select_course_if_route_matches(v.course_id, route),
             Bykc
@@ -119,6 +123,7 @@ pub(crate) fn project(
     operation: BridgeWriteOperation,
 ) -> Projection {
     let (success, message, cgyy, ygdk, evaluation) = match value.data {
+        WriteReceipt::Spoc(_) => (true, "已核实作业提交".into(), None, None, None),
         WriteReceipt::Bykc(_) => (
             true,
             safe_message(match operation {

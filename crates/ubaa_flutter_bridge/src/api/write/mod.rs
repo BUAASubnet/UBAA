@@ -14,6 +14,7 @@ mod lifecycle;
 pub(crate) mod preparation_error;
 mod prepare;
 pub mod readback;
+pub mod spoc;
 mod support;
 
 use std::fmt;
@@ -34,6 +35,7 @@ pub enum BridgeWriteOperation {
     CgyySubmitReservation,
     CgyyCancelOrder,
     EvaluationSubmitCourses,
+    SpocSubmitAssignment,
 }
 
 #[derive(Clone, Debug)]
@@ -46,6 +48,7 @@ pub struct BridgeWriteIntent {
     pub expires_at: i64,
     pub request_digest: String,
     pub library_loan_renew_target: Option<BridgeLibraryLoanRenewTarget>,
+    pub spoc_summary: Option<spoc::BridgeSpocSubmitSummary>,
 }
 
 /// 续借预检读取的同一条记录，用于写后核对。
@@ -203,6 +206,7 @@ pub struct BridgeWriteCommitResult {
     pub cgyy_receipt: Option<BridgeCgyyReservationReceipt>,
     pub ygdk_receipt: Option<BridgeYgdkSubmitReceipt>,
     pub evaluation_result: Option<BridgeEvaluationBatchResult>,
+    pub spoc_receipt: Option<spoc::BridgeSpocSubmitReceipt>,
 }
 
 /// Bridge 内部的一次性写入载荷；不得进入 FRB 公共合同。
@@ -219,6 +223,7 @@ pub(crate) enum PendingWrite {
     CgyyReserve(ubaa_core::facade::CgyyReservationSubmitRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),
     Evaluation(ubaa_core::facade::EvaluationSubmitCoursesRequest),
+    Spoc(ubaa_core::facade::SpocPreparedSubmission),
 }
 
 /// Bridge 内部的待确认条目；不得向 Dart 暴露载荷或自动字段访问器。
@@ -245,11 +250,13 @@ impl PendingWrite {
             Self::CgyyReserve(_) => BridgeWriteOperation::CgyySubmitReservation,
             Self::CgyyCancel(_) => BridgeWriteOperation::CgyyCancelOrder,
             Self::Evaluation(_) => BridgeWriteOperation::EvaluationSubmitCourses,
+            Self::Spoc(_) => BridgeWriteOperation::SpocSubmitAssignment,
         }
     }
 
     fn conflict_key(&self) -> String {
         match self {
+            Self::Spoc(request) => format!("spoc-submit:{}", request.assignment_id()),
             Self::BykcSelect(request) => format!("bykc-select:{}", request.course_id),
             Self::BykcDeselect(request) => format!("bykc-deselect:{}", request.course_id),
             Self::BykcSign(request) => {

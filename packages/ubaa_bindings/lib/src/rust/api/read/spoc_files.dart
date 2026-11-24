@@ -8,7 +8,7 @@ import '../client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `download_spoc_target`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
 
 class BridgeRoutedSpocCourseFiles {
   final List<BridgeSpocCourseFile> data;
@@ -181,6 +181,45 @@ class BridgeSpocDownloadReceipt {
           runtimeType == other.runtimeType &&
           fileName == other.fileName &&
           byteLen == other.byteLen;
+}
+
+class BridgeSpocSubmitAction {
+  final String assignmentId;
+  final String courseId;
+  final List<String> allowedExtensions;
+  final int? maxSubmissions;
+  final String? dueTime;
+  final String? lateSubmissionDeadline;
+
+  const BridgeSpocSubmitAction({
+    required this.assignmentId,
+    required this.courseId,
+    required this.allowedExtensions,
+    this.maxSubmissions,
+    this.dueTime,
+    this.lateSubmissionDeadline,
+  });
+
+  @override
+  int get hashCode =>
+      assignmentId.hashCode ^
+      courseId.hashCode ^
+      allowedExtensions.hashCode ^
+      maxSubmissions.hashCode ^
+      dueTime.hashCode ^
+      lateSubmissionDeadline.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeSpocSubmitAction &&
+          runtimeType == other.runtimeType &&
+          assignmentId == other.assignmentId &&
+          courseId == other.courseId &&
+          allowedExtensions == other.allowedExtensions &&
+          maxSubmissions == other.maxSubmissions &&
+          dueTime == other.dueTime &&
+          lateSubmissionDeadline == other.lateSubmissionDeadline;
 }
 
 class BridgeSpocSubmittedFile {
