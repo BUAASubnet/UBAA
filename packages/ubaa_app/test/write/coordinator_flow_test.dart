@@ -46,6 +46,24 @@ void _registerFlowTests() {
     expect(refreshes, 1);
     coordinator.dispose();
   });
+  test('文件作业结果未知时提示到作业详情核对且不能再次确认', () async {
+    const operation = WriteOperation.spocSubmitAssignment;
+    var sends = 0;
+    final coordinator = WriteCoordinator(
+      now: () => fixtureNow,
+      commit: (_) async {
+        sends++;
+        throw const BackendException(UbaaErrorCode.outcomeUnknown);
+      },
+    );
+    coordinator.setIntent(fixtureIntent(operation: operation));
+    final outcome = await coordinator.confirmForUi();
+    expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
+    expect(outcome?.message, '提交结果未确认，请到作业详情页刷新核对，勿重复提交');
+    expect(await coordinator.confirmForUi(), isNull);
+    expect(sends, 1);
+    coordinator.dispose();
+  });
   test('写协调器对所有 BackendException 保留原错误码而安全状态按 UI 映射', () async {
     for (final code in UbaaErrorCode.values) {
       for (final operation in <String>['prepare', 'cancel', 'confirm']) {

@@ -169,11 +169,11 @@ class WriteReceiptVerifier {
   String _unknownMessage(
     WriteOperation operation,
     bool? cancellationVerified,
-  ) =>
-      operation == WriteOperation.cgyyCancelOrder &&
-          cancellationVerified == true
-      ? '已取消预约'
-      : '结果未确认，请刷新后查看，勿重复提交';
+  ) => switch (operation) {
+    WriteOperation.spocSubmitAssignment => '提交结果未确认，请到作业详情页刷新核对，勿重复提交',
+    WriteOperation.cgyyCancelOrder when cancellationVerified == true => '已取消预约',
+    _ => '结果未确认，请刷新后查看，勿重复提交',
+  };
 
   String _errorMessage(
     UiError error,
