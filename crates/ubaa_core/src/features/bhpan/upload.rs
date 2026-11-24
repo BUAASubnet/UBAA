@@ -152,6 +152,7 @@ impl FileSnapshot {
             file: self.file.try_clone().map_err(|_| local())?,
             offset,
             length,
+            framing: None,
         })
     }
     pub(crate) fn verify(&self) -> Result<()> {

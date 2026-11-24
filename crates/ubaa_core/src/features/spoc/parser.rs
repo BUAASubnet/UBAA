@@ -297,6 +297,36 @@ pub(super) fn merge_detail(
     if raw.sfcjzy.as_deref() == Some("1") {
         detail.late_submission_deadline = normalize_datetime(raw.cjzysj.as_deref());
     }
+    let reason = if base.course_id.is_empty()
+        || raw.sskcid.as_ref().is_some_and(|id| id != &base.course_id)
+    {
+        Some("作业课程信息不一致")
+    } else if detail.is_group_assignment {
+        Some("小组作业暂不支持")
+    } else if raw.zylx.as_deref() != Some("1") {
+        Some("未能核实个人作业类型")
+    } else if !detail.submit_modes.iter().any(|mode| mode == "5") {
+        Some("不支持文件上传")
+    } else if detail
+        .submission_count
+        .zip(detail.max_submissions)
+        .is_some_and(|(count, limit)| count >= limit)
+    {
+        Some("次数已用完")
+    } else {
+        None
+    };
+    detail.submit_unavailable_reason = reason.map(str::to_owned);
+    if reason.is_none() {
+        detail.submit_action = Some(crate::domain::SpocSubmitAction {
+            assignment_id: base.assignment_id.clone(),
+            course_id: base.course_id.clone(),
+            allowed_extensions: detail.allowed_extensions.clone(),
+            max_submissions: detail.max_submissions,
+            due_time: detail.due_time.clone(),
+            late_submission_deadline: detail.late_submission_deadline.clone(),
+        });
+    }
     Ok(detail)
 }
 
@@ -423,7 +453,7 @@ pub(super) struct DetailRaw {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct SubmissionRaw {
-    scwjid: Option<String>,
+    pub(super) scwjid: Option<String>,
     ytjcs: Option<String>,
     #[serde(default)]
     pub(super) tjzt: Option<String>,

@@ -11,6 +11,45 @@ use super::parser::{
 use crate::domain::SpocSubmissionStatus;
 
 #[test]
+fn 文件提交资格取决于方式小组和实际次数上限() {
+    for (modes, kind, limit, allowed) in [
+        ("1,5", "1", "9999", true),
+        ("5", "1", "3", true),
+        ("1", "1", "3", false),
+        ("5", "2", "3", false),
+        ("5", "1", "2", false),
+    ] {
+        let raw = serde_json::from_value(serde_json::json!({"id":"a","zymc":"练习","sskcid":"c","bhtjlx":modes,"zylx":kind,"xztjcs":limit,"xzwjlx":".PDF"})).unwrap();
+        let base = summary(
+            "a".into(),
+            "c".into(),
+            "课程".into(),
+            "练习".into(),
+            None,
+            None,
+        );
+        let record = serde_json::from_value(serde_json::json!({"ytjcs":"2"})).unwrap();
+        let detail = merge_detail("a", &base, &raw, Some(&record)).unwrap();
+        assert_eq!(detail.submit_action.is_some(), allowed);
+        assert_eq!(detail.submit_unavailable_reason.is_some(), !allowed);
+    }
+}
+
+#[test]
+fn 末片吸收余数且不产生空片() {
+    for (size, count, last) in [
+        (1, 1, 1),
+        (2_048_000, 1, 2_048_000),
+        (4_095_999, 1, 4_095_999),
+        (4_096_000, 2, 2_048_000),
+        (104_857_600, 51, 2_457_600),
+    ] {
+        assert_eq!(super::submit::chunk_count(size), count);
+        assert_eq!(super::submit::chunk_len(size, count), last);
+    }
+}
+
+#[test]
 fn 非法时区前缀按冻结失败回退而非解释为有效时间() {
     assert_eq!(
         normalize_datetime(Some("2026-03-31T15:59:59junkZ")).as_deref(),

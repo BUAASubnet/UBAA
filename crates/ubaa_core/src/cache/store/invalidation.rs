@@ -29,6 +29,9 @@ pub enum CacheInvalidation {
     },
     Evaluation,
     Library,
+    Spoc {
+        assignment_id: String,
+    },
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CacheInvalidationReport {
@@ -69,6 +72,7 @@ impl CacheInvalidation {
             }
             Self::Ygdk { classify_id } => *classify_id > 0,
             Self::Evaluation | Self::Library => true,
+            Self::Spoc { assignment_id } => !assignment_id.trim().is_empty(),
         };
         if valid {
             Ok(())
@@ -78,6 +82,12 @@ impl CacheInvalidation {
     }
     fn affects(&self, query: &CacheQuery) -> bool {
         match (self, query) {
+            (
+                Self::Spoc { assignment_id },
+                CacheQuery::SpocDetail {
+                    assignment_id: stored,
+                },
+            ) => assignment_id == stored,
             (Self::Signin { date }, CacheQuery::SigninToday { date: stored }) => date == stored,
             (Self::Bykc { course_id }, CacheQuery::BykcDetail { course_id: stored }) => {
                 course_id == stored
@@ -89,6 +99,7 @@ impl CacheInvalidation {
                 | CacheQuery::BykcStatistics,
             )
             | (Self::LibBook { .. }, CacheQuery::LibBookBookings { .. })
+            | (Self::Spoc { .. }, CacheQuery::SpocTerm { .. } | CacheQuery::SpocPage { .. })
             | (Self::Cgyy { .. }, CacheQuery::CgyyOrders { .. })
             | (Self::Ygdk { .. }, CacheQuery::YgdkOverviewSelection { .. })
             | (Self::Evaluation, CacheQuery::EvaluationCurrent) => true,

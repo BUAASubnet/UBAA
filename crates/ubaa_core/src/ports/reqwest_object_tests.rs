@@ -41,6 +41,11 @@ fn directory() -> crate::test_tmp::TestTempDir {
 }
 #[tokio::test]
 async fn 对象上传流式读取指定区间且只发一个长度头() {
+    for framed in [false, true] {
+        assert_range_upload(framed).await;
+    }
+}
+async fn assert_range_upload(framed: bool) {
     let root = directory();
     let path = root.join("source");
     let bytes = vec![b'x'; 200_003];
@@ -59,7 +64,7 @@ async fn 对象上传流式读取指定区间且只发一个长度头() {
                 .windows(4)
                 .position(|w| w == b"\r\n\r\n")
                 .map(|i| i + 4)
-                && data.len() >= end + 200_000
+                && data.len() >= end + 200_000 + if framed { 4 } else { 0 }
             {
                 break;
             }
@@ -82,6 +87,7 @@ async fn 对象上传流式读取指定区间且只发一个长度头() {
                 file: std::fs::File::open(&path).unwrap(),
                 offset: 3,
                 length: 200_000,
+                framing: framed.then(|| (b"ab".to_vec(), b"cd".to_vec())),
             }),
             progress.clone(),
         )
@@ -94,7 +100,15 @@ async fn 对象上传流式读取指定区间且只发一个长度头() {
     assert_eq!(headers.matches("content-length:").count(), 1);
     assert!(headers.contains("authorization: object-only\r\n"));
     assert!(!headers.contains("cookie:"));
-    assert_eq!(&data[end..], &bytes[3..]);
+    if framed {
+        assert_eq!(
+            &data[end..],
+            [b"ab".as_slice(), &bytes[3..], b"cd"].concat()
+        );
+        assert!(headers.contains("content-length: 200004\r\n"));
+    } else {
+        assert_eq!(&data[end..], &bytes[3..]);
+    }
     assert_eq!(progress.bytes.load(Ordering::SeqCst), 200_000);
     assert!(progress.largest.load(Ordering::SeqCst) <= 64 * 1024);
     std::fs::remove_dir_all(root).unwrap();

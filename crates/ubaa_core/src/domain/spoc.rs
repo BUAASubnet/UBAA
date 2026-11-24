@@ -107,6 +107,39 @@ pub struct SpocAssignmentDetail {
     pub is_group_assignment: bool,
     #[serde(skip)]
     pub late_submission_deadline: Option<String>,
+    #[serde(skip)]
+    pub submit_action: Option<SpocSubmitAction>,
+    #[serde(skip)]
+    pub submit_unavailable_reason: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SpocSubmitAction {
+    pub assignment_id: String,
+    pub course_id: String,
+    pub allowed_extensions: Vec<String>,
+    pub max_submissions: Option<u32>,
+    pub due_time: Option<String>,
+    pub late_submission_deadline: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SpocSubmitSummary {
+    pub title: String,
+    pub course_name: String,
+    pub file_name: String,
+    pub byte_len: u64,
+    pub due_time: Option<String>,
+    pub past_due: Option<bool>,
+    pub late_submission_deadline: Option<String>,
+    pub submission_count: Option<u32>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SpocSubmitReceipt {
+    pub submitted_at: Option<String>,
+    pub file_name: String,
+    pub file_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

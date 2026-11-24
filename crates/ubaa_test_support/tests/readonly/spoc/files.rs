@@ -13,7 +13,7 @@ impl GatewayProbe for NoProbe {
         panic!("固定路线不应探测")
     }
 }
-type Step = (String, HttpResponse);
+pub(super) type Step = (String, HttpResponse);
 
 fn url(path: &str, vpn: bool) -> String {
     let url = format!("https://spoc.buaa.edu.cn/{path}");
@@ -23,7 +23,7 @@ fn url(path: &str, vpn: bool) -> String {
         url
     }
 }
-fn login(vpn: bool, token: &str) -> Vec<Step> {
+pub(super) fn login(vpn: bool, token: &str) -> Vec<Step> {
     let cas = url("spocnewht/cas", vpn);
     let token = url(&format!("spocnew/cas?token={token}"), vpn);
     vec![
@@ -37,13 +37,13 @@ fn login(vpn: bool, token: &str) -> Vec<Step> {
         ),
     ]
 }
-fn step(path: &str, vpn: bool, status: u16, kind: &str, body: &str) -> Step {
+pub(super) fn step(path: &str, vpn: bool, status: u16, kind: &str, body: &str) -> Step {
     let url = url(path, vpn);
     let mut res = response(status, &url, body);
     res.headers.insert("Content-Type".into(), vec![kind.into()]);
     (url, res)
 }
-fn client(script: Vec<Step>, vpn: bool) -> (UbaaClient, SpocTransport, TestTempDir) {
+pub(super) fn client(script: Vec<Step>, vpn: bool) -> (UbaaClient, SpocTransport, TestTempDir) {
     let root = test_temp_dir("spoc_files").unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     let mode = if vpn {

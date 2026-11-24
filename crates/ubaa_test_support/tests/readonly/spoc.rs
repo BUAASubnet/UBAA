@@ -6,3 +6,5 @@ mod detail;
 mod files;
 #[path = "spoc/list.rs"]
 mod list;
+#[path = "spoc/submit.rs"]
+mod submit;

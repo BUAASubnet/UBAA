@@ -43,7 +43,7 @@ pub(super) fn business_post(url: String, credential: &SpocCredential) -> HttpReq
         .with_header("X-Requested-With", "XMLHttpRequest")
 }
 
-fn file_response(response: &HttpResponse) -> Result<()> {
+pub(super) fn file_response(response: &HttpResponse) -> Result<()> {
     if response.status == 403
         && serde_json::from_slice::<serde_json::Value>(&response.body)
             .is_ok_and(|json| json["code"].as_i64() == Some(0))

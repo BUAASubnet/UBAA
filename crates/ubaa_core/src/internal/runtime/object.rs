@@ -45,6 +45,29 @@ impl HttpTransferObserver for Observer {
     }
 }
 impl ClientRuntime {
+    pub(crate) async fn upload_file_part(
+        &mut self,
+        mut request: HttpRequest,
+        body: HttpFileRange,
+        transfer: &BhpanTransfer,
+    ) -> Result<HttpResponse> {
+        let gateway = self.mode() == crate::domain::ConnectionMode::WebVpn;
+        let url = request.url.clone();
+        let now = self.now();
+        if gateway {
+            let cookie = self.jar.cookie_header(&url, now)?;
+            if !cookie.is_empty() {
+                request.headers.insert("Cookie".into(), cookie);
+            }
+        }
+        let response = self
+            .object_upload(request, Some(body), transfer, || Ok(()))
+            .await?;
+        if gateway {
+            self.jar.store_response(&response, &url, now)?;
+        }
+        Ok(response)
+    }
     fn object_observer(&self, transfer: &BhpanTransfer) -> Arc<dyn HttpTransferObserver> {
         Arc::new(Observer {
             operation: crate::facade::operation_control::current(),

@@ -10,6 +10,7 @@ pub(crate) mod files;
 mod list;
 mod parser;
 pub(crate) mod scan;
+pub(crate) mod submit;
 
 #[allow(unused_imports)]
 pub use auth::{CAS_LOGIN_URL, CAS_URL};
