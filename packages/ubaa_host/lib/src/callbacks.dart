@@ -95,6 +95,24 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     };
   }
 
+  /// SPOC 附件、我的提交与课件的读取和下载；服务不可用时界面隐藏入口。
+  SpocFilesAccess? get _spocFilesAccess {
+    final service = _controller.spocFilesService;
+    if (service == null) return null;
+    final delivery = SpocFilesDelivery(
+      service: service,
+      saver: widget.bhpanFileSaver,
+    );
+    return SpocFilesAccess(
+      service: service,
+      downloadFile: delivery.downloadAssignment,
+      downloadCourseFile: delivery.downloadCourse,
+    );
+  }
+
+  Future<WriteIntent> _prepareSpocSubmitWrite(SpocSubmitInput input) =>
+      _controller.prepareSpocSubmitAssignment(input.action, input.file.path);
+
   Widget _buildMainShell() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_disposed && _controller.phase == AppPhase.home) {
@@ -148,6 +166,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       financeService: _controller.financeService,
       campusAccountService: _controller.campusAccountService,
       bhpanService: _controller.bhpanService,
+      spocFilesAccess: _spocFilesAccess,
+      onPrepareSpocSubmitWrite: _prepareSpocSubmitWrite,
+      onPickSpocSubmitFile: _pickSpocSubmitFile,
       cloudPrintService: _controller.cloudPrintService,
       onPickPrintFiles: const SystemCloudPrintFiles().pick,
       onPickPrintFolder: const SystemCloudPrintFiles().pickFolder,

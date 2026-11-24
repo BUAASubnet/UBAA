@@ -314,6 +314,15 @@ class AppController extends ControllerState
   int? _campusEpoch;
 
   /// “我的”页面的在线读取；账号、会话或路线代次变化后旧绑定失效。
+  /// SPOC 附件、我的提交与课件的读取和下载；按后端代次重建。
+  SpocFilesService? _spocFilesService;
+  //
+  SpocFilesService? get spocFilesService {
+    final backend = internalBackend;
+    if (backend is! SpocFilesBackend) return null;
+    return _spocFilesService ??= (backend as SpocFilesBackend).spocFiles;
+  }
+
   CampusAccountService? get campusAccountService {
     final backend = internalBackend;
     if (backend is! CampusAccountBackend) return null;
