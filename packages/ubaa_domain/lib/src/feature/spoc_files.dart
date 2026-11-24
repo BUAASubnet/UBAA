@@ -1,4 +1,14 @@
 import '../common/route.dart';
+import '../bhpan/models.dart';
+
+extension SpocUploadProgress on BhpanTransferProgress {
+  ({int number, int totalChunks})? get spocChunk {
+    if (phase != BhpanTransferPhase.uploading || total <= 0) return null;
+    const size = 2048000;
+    final count = (total ~/ size).clamp(1, total);
+    return (number: (bytes ~/ size + 1).clamp(1, count), totalChunks: count);
+  }
+}
 
 final class SpocSubmittedFile {
   const SpocSubmittedFile({required this.fileId, this.fileName});

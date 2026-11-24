@@ -138,6 +138,8 @@ void registerCourseworkTests() {
     expect(p.allowedExtensions, ['.pdf']);
     expect(p.maxSubmissions, isNull);
     expect(p.isGroupAssignment, isTrue);
+    expect(p.submitUnavailableReason, '小组作业暂不支持');
+    expect(result.details.single.action<SpocSubmitAction>(), isNull);
     expect(p.lateSubmissionDeadline, '补交截止');
     expect(p.status, AssignmentSubmissionStatus.submitted);
     expect(p.isDetail, isTrue);
@@ -199,7 +201,7 @@ void registerCourseworkTests() {
 
 class _FilesClient extends FixtureCharacterizationBridgeClient {
   @override
-  int contractVersion() => 82;
+  int contractVersion() => 83;
   @override
   Future<BridgeRoutedSpocCourses> spocCourses() async =>
       const BridgeRoutedSpocCourses(
@@ -293,6 +295,7 @@ class _CourseworkClient extends FixtureCharacterizationBridgeClient {
               allowedExtensions: const ['.pdf'],
               submissionCount: 1,
               isGroupAssignment: true,
+              submitUnavailableReason: '小组作业暂不支持',
               lateSubmissionDeadline: '补交截止',
               submissionStatus: BridgeSpocSubmissionStatus.submitted,
               submissionStatusText: '已提交',

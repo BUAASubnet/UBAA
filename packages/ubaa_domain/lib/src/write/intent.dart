@@ -21,6 +21,7 @@ enum WriteOperation {
   evaluationSubmitCourses,
   libraryLoanRenew,
   bhpan,
+  spocSubmitAssignment,
 }
 
 extension WriteOperationText on WriteOperation {
@@ -37,6 +38,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
     WriteOperation.libraryLoanRenew => null,
     WriteOperation.bhpan => null,
+    WriteOperation.spocSubmitAssignment => FeatureId.spoc,
   };
 
   String get title => switch (this) {
@@ -52,6 +54,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.evaluationSubmitCourses => '教学评教',
     WriteOperation.libraryLoanRenew => '图书续借',
     WriteOperation.bhpan => '云盘',
+    WriteOperation.spocSubmitAssignment => '提交 SPOC 文件作业',
   };
 
   bool get isIrreversible => switch (this) {
@@ -75,6 +78,7 @@ class WriteIntent {
     required this.requestDigest,
     this.readbackQuery,
     this.libraryLoanRenewTarget,
+    this.spocSummary,
   });
 
   final String intentId;
@@ -90,6 +94,7 @@ class WriteIntent {
 
   /// 单本续借的核对基线；只用于判定同一记录是否已更新，不参与 Bridge commit。
   final LibraryLoanRenewTarget? libraryLoanRenewTarget;
+  final SpocSubmitSummary? spocSummary;
 
   bool isExpired([DateTime? now]) =>
       !(expiresAt.isAfter(now ?? DateTime.now()));
@@ -104,6 +109,7 @@ class WriteIntent {
     requestDigest: requestDigest,
     readbackQuery: query,
     libraryLoanRenewTarget: libraryLoanRenewTarget,
+    spocSummary: spocSummary,
   );
 }
 
@@ -225,6 +231,7 @@ class WriteCommitResult {
     this.evaluationResult,
     this.cacheFailure,
     this.bhpanReceipt,
+    this.spocReceipt,
   });
 
   final WriteOperation operation;
@@ -239,6 +246,7 @@ class WriteCommitResult {
   /// 本地关联内容处理失败不改变学校提交的确定性和结果。
   final CacheMaintenanceFailure? cacheFailure;
   final BhpanReceipt? bhpanReceipt;
+  final SpocSubmitReceipt? spocReceipt;
 
   /// 本地收尾失败仅追加材料状态，不覆盖已投影的学校结果。
   WriteCommitResult withCacheFailure(CacheMaintenanceFailure? failure) =>
@@ -253,5 +261,34 @@ class WriteCommitResult {
         evaluationResult: evaluationResult,
         cacheFailure: failure,
         bhpanReceipt: bhpanReceipt,
+        spocReceipt: spocReceipt,
       );
+}
+
+final class SpocSubmitSummary {
+  const SpocSubmitSummary({
+    required this.title,
+    required this.courseName,
+    required this.fileName,
+    required this.byteLen,
+    this.dueTime,
+    this.pastDue,
+    this.lateSubmissionDeadline,
+    this.submissionCount,
+  });
+  final String title, courseName, fileName;
+  final int byteLen;
+  final String? dueTime, lateSubmissionDeadline;
+  final bool? pastDue;
+  final int? submissionCount;
+}
+
+final class SpocSubmitReceipt {
+  const SpocSubmitReceipt({
+    required this.fileId,
+    required this.fileName,
+    this.submittedAt,
+  });
+  final String fileId, fileName;
+  final String? submittedAt;
 }

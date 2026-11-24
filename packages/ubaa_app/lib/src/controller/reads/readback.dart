@@ -54,6 +54,7 @@ mixin ControllerReadbackDispatch on ControllerState {
       return Future<void>.value();
     }
     final feature = switch (operation) {
+      WriteOperation.spocSubmitAssignment => FeatureId.spoc,
       WriteOperation.bykcSelectCourse ||
       WriteOperation.bykcDeselectCourse ||
       WriteOperation.bykcSignCourse => FeatureId.bykc,
@@ -70,6 +71,14 @@ mixin ControllerReadbackDispatch on ControllerState {
       WriteOperation.bhpan => null,
     };
     if (feature == null) return Future<void>.value();
+    if (operation == WriteOperation.spocSubmitAssignment &&
+        readbackQuery != null) {
+      return internalRefreshFeatureQuery(
+        feature,
+        readbackQuery,
+        writeReadback: true,
+      );
+    }
     return internalRefreshHome(only: <FeatureId>[feature], writeReadback: true);
   }
 }

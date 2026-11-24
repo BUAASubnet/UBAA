@@ -94,6 +94,19 @@ WriteIntent bridgeMapIntent(BridgeWriteIntent intent) => WriteIntent(
     int.parse(intent.expiresAt.toString()) * 1000,
   ),
   requestDigest: intent.requestDigest,
+  spocSummary: switch (intent.spocSummary) {
+    final summary? => SpocSubmitSummary(
+      title: summary.title,
+      courseName: summary.courseName,
+      fileName: summary.fileName,
+      byteLen: summary.byteLen.toInt(),
+      dueTime: summary.dueTime,
+      pastDue: summary.pastDue,
+      lateSubmissionDeadline: summary.lateSubmissionDeadline,
+      submissionCount: summary.submissionCount,
+    ),
+    null => null,
+  },
   libraryLoanRenewTarget: switch (intent.libraryLoanRenewTarget) {
     final target? => LibraryLoanRenewTarget(
       loanId: target.loanId,
@@ -134,6 +147,8 @@ WriteOperation bridgeToWriteOperation(BridgeWriteOperation operation) =>
       BridgeWriteOperation.libbookCancelBooking =>
         WriteOperation.libbookCancelBooking,
       BridgeWriteOperation.libraryLoanRenew => WriteOperation.libraryLoanRenew,
+      BridgeWriteOperation.spocSubmitAssignment =>
+        WriteOperation.spocSubmitAssignment,
       BridgeWriteOperation.ygdkSubmit => WriteOperation.ygdkSubmit,
       BridgeWriteOperation.cgyySubmitReservation =>
         WriteOperation.cgyySubmitReservation,

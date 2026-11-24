@@ -23,6 +23,7 @@ final class SpocAssignmentPresentation extends FeaturePresentation {
     this.submissionCount,
     this.isGroupAssignment = false,
     this.lateSubmissionDeadline,
+    this.submitUnavailableReason,
     this.isDetail = false,
   });
   final String courseId;
@@ -42,6 +43,7 @@ final class SpocAssignmentPresentation extends FeaturePresentation {
   final int? maxSubmissions, submissionCount;
   final bool isGroupAssignment;
   final String? lateSubmissionDeadline;
+  final String? submitUnavailableReason;
   final bool isDetail;
 }
 

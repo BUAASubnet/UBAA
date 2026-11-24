@@ -12,6 +12,25 @@ import '../write/evaluation_readback.dart'
 import '../write/ygdk_readback.dart' show controllerRefreshYgdkAfterWrite;
 
 mixin ControllerWriteActions on ControllerState {
+  SpocWriteBackend get _spocWriter {
+    final backend = internalBackend;
+    if (backend is! SpocWriteBackend)
+      throw const BackendException(UbaaErrorCode.unsupported);
+    return backend as SpocWriteBackend;
+  }
+
+  BhpanTransferTask createSpocTransfer() => _spocWriter.createSpocTransfer();
+  Future<WriteIntent> prepareSpocSubmitAssignment(
+    SpocSubmitAction action,
+    String path, {
+    BhpanTransferTask? transfer,
+  }) => internalUserSchoolAction(
+    () => _spocWriter.prepareSpocSubmitAssignment(
+      action,
+      path,
+      transfer: transfer,
+    ),
+  );
   Future<void> refreshWriteReadbacks() =>
       internalLoadWriteReadbacks(force: true);
 

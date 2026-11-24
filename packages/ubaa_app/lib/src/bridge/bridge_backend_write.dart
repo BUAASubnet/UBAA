@@ -3,6 +3,19 @@ part of 'bridge_backend.dart';
 mixin BridgeBackendWrite {
   BridgeContext get _context;
 
+  BhpanTransferTask createSpocTransfer() =>
+      BridgeBhpanTransferTask(_context.client, BridgeBhpanTransfer());
+  Future<WriteIntent> prepareSpocSubmitAssignment(
+    SpocSubmitAction action,
+    String path, {
+    BhpanTransferTask? transfer,
+  }) => bridgePrepareSpocSubmitAssignment(
+    _context,
+    action,
+    path,
+    transfer ?? createSpocTransfer(),
+  );
+
   Future<GradeScoreBaseline?> updateGradeScoreBaseline({
     required String accountId,
     required ConnectionMode route,

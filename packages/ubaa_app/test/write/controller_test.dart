@@ -864,6 +864,7 @@ CgyySubmitInput _cgyySubmitInput({
 );
 
 FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
+  WriteOperation.spocSubmitAssignment => FeatureId.spoc,
   WriteOperation.bykcSelectCourse ||
   WriteOperation.bykcDeselectCourse ||
   WriteOperation.bykcSignCourse => FeatureId.bykc,

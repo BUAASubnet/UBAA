@@ -92,6 +92,7 @@ import 'write/operations.dart'
         bridgePrepareLibbookReserve,
         bridgePrepareLibraryLoanRenew,
         bridgePrepareSigninPerform,
+        bridgePrepareSpocSubmitAssignment,
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
@@ -100,7 +101,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 82;
+const _supportedBridgeContractVersion = 83;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -147,6 +148,7 @@ class BridgeBackend
         CancellationWriteBackend,
         LibbookWriteBackend,
         YgdkWriteBackend,
+        SpocWriteBackend,
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,

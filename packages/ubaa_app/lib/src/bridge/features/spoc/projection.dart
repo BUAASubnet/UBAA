@@ -67,6 +67,17 @@ FeatureResult bridgeMapSpocHomeDetail(
       FeatureDetail(
         title: item.title,
         subtitle: item.courseName,
+        actions: [
+          if (item.submitAction case final action?)
+            SpocSubmitAction(
+              assignmentId: action.assignmentId,
+              courseId: action.courseId,
+              allowedExtensions: List.unmodifiable(action.allowedExtensions),
+              maxSubmissions: action.maxSubmissions,
+              dueTime: action.dueTime,
+              lateSubmissionDeadline: action.lateSubmissionDeadline,
+            ),
+        ],
         presentation: SpocAssignmentPresentation(
           courseId: item.courseId,
           courseName: item.courseName,
@@ -101,6 +112,7 @@ FeatureResult bridgeMapSpocHomeDetail(
           maxSubmissions: item.maxSubmissions,
           isGroupAssignment: item.isGroupAssignment,
           lateSubmissionDeadline: item.lateSubmissionDeadline,
+          submitUnavailableReason: item.submitUnavailableReason,
           isDetail: true,
         ),
         fields: bridgeCompactFields(<FeatureField?>[

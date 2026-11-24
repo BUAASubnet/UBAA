@@ -86,7 +86,10 @@ class WriteReceiptVerifier {
       } else {
         try {
           final pinned = refreshPinnedAfterWrite;
-          if (pinned != null) {
+          if (operation == WriteOperation.spocSubmitAssignment) {
+            if (result?.success == true)
+              await refreshAfterWrite?.call(operation, intent.readbackQuery);
+          } else if (pinned != null) {
             await pinned(operation, intent.readbackQuery, intent.resolvedRoute);
           } else {
             await refreshAfterWrite?.call(operation, intent.readbackQuery);
