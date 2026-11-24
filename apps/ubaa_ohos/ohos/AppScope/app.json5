@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "cn.edu.ubaa",
     "vendor": "BUAASubnet",
-    "versionCode": 2030,
-    "versionName": "2.0.3",
+    "versionCode": 2100,
+    "versionName": "2.1.0",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }
