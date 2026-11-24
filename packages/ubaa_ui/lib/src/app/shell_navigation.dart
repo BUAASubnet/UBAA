@@ -330,24 +330,18 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     selectedIndex: _selectedIndex,
     utilityPage: _utilityPage,
     featureOpen: _openedFeature != null,
-    leading: (extended) => _buildRailLeading(context, extended),
+    leading: (extended) => uiRailIdentity(
+      context,
+      extended,
+      user: widget.user,
+      // “我的资料”是“我的”的下一级，打开时身份区保持高亮。
+      selected:
+          _selectedIndex == UiDestination.me.index &&
+          (_utilityPage == null || _utilityPage == '我的资料'),
+      onTap: () => _selectTab(UiDestination.me.index),
+    ),
     onSelectTab: _selectTab,
     onOpenAbout: () => _openUtility('关于'),
-  );
-
-  Widget _buildRailLeading(
-    BuildContext context,
-    bool extended, {
-    VoidCallback? onTap,
-  }) => uiRailIdentity(
-    context,
-    extended,
-    user: widget.user,
-    // “我的资料”是“我的”的下一级，打开时身份区保持高亮。
-    selected:
-        _selectedIndex == UiDestination.me.index &&
-        (_utilityPage == null || _utilityPage == '我的资料'),
-    onTap: onTap ?? () => _selectTab(UiDestination.me.index),
   );
 
   Future<void> _logout() async {

@@ -8,8 +8,7 @@ import '../features/bhpan/view.dart';
 import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
-import '../shared/tab_navigation.dart'
-    show TabPager, CompactNavigationBar, currentTabPager;
+import '../shared/tab_navigation.dart' show TabPager, currentTabPager;
 import '../features/ihome/view.dart';
 import '../features/health_cloud/view.dart';
 import '../features/finance/view.dart';
@@ -32,6 +31,7 @@ import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
 import 'navigation/rail.dart' show uiShellRail;
+import 'navigation/bottom_bar.dart' show uiShellBottomBar;
 import '../features/home/shell_helpers.dart';
 import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
@@ -717,28 +717,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
         bottomNavigationBar: wide
             ? null
-            : CompactNavigationBar(
-                child: NavigationBar(
-                  height:
-                      56 +
-                      (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                  // 底栏放四个分类和“我的”；设置、关于与退出收在“我的”页。
-                  selectedIndex: _selectedIndex < UiDestination.settings.index
-                      ? _selectedIndex
-                      : 0,
-                  onDestinationSelected: _selectTab,
-                  destinations: _tabs
-                      .take(UiDestination.settings.index)
-                      .map(
-                        (tab) => NavigationDestination(
-                          key: ValueKey<String>('tab-${tab.label}'),
-                          icon: Icon(tab.icon),
-                          selectedIcon: Icon(tab.selectedIcon),
-                          label: tab.label,
-                        ),
-                      )
-                      .toList(),
-                ),
+            : uiShellBottomBar(
+                context,
+                selectedIndex: _selectedIndex,
+                onSelectTab: _selectTab,
               ),
       ),
     );
