@@ -2,10 +2,27 @@ import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
 import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
+  testWidgets('新增打卡位于标题栏且底部结果提示出现时仍可打开表单', (tester) async {
+    await _open(tester);
+    final add = find.byTooltip('新增打卡');
+    final appBar = find.byType(AppBar);
+    expect(tester.getRect(appBar).contains(tester.getCenter(add)), isTrue);
+    ScaffoldMessenger.of(tester.element(add)).showSnackBar(
+      const SnackBar(content: Text('打卡成功（模拟）'), duration: Duration(minutes: 1)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('打卡成功（模拟）'), findsOneWidget);
+    expect(add.hitTestable(), findsOneWidget);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('记录部分空页不冒称没有记录并保留重试', (tester) async {
     await _open(
       tester,

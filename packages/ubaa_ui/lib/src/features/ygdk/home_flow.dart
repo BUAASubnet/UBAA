@@ -1,14 +1,17 @@
 import 'package:ubaa_ui/src/theme.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+
 import '../../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import 'record_card.dart' show YgdkRecordCard, uiYgdkRecordSearchValues;
 import 'summary.dart' show YgdkSummary;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
-import '../../shared/create_button.dart';
+import '../../shared/app_bar_slot.dart' show UiAppBarSlot;
 import '../../common/state_panel.dart';
 import '../../common/section.dart' show UiSectionTitle;
 
@@ -224,7 +227,10 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
   @override
   Widget build(BuildContext context) {
     final overview = _overview;
-    if (overview == null) return widget.fallback;
+    if (overview == null) {
+      UiAppBarSlot.publish(context, FeatureId.ygdk, null);
+      return widget.fallback;
+    }
     final loading =
         _requesting || widget.snapshot.status == FeatureLoadStatus.loading;
     final filter = widget.filter.trim().toLowerCase();
@@ -235,107 +241,108 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
           ).any((v) => v.toLowerCase().contains(filter)),
         )
         .toList();
-    return Stack(
-      children: [
-        ListView(
-          padding: UbaaTheme.pageInsets(context, top: 16, bottom: 96),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    YgdkSummary(
-                      overview,
-                      statisticsKnown:
-                          widget.snapshot.evidence?.complete != false ||
-                          widget.snapshot.evidence?.origin == DataOrigin.mixed,
-                    ),
-                  ],
-                ),
-              ),
+    UiAppBarSlot.publish(
+      context,
+      FeatureId.ygdk,
+      widget.onSubmit == null
+          ? null
+          : IconButton(
+              tooltip: '新增打卡',
+              icon: const Icon(Icons.add),
+              onPressed:
+                  loading ||
+                      !_items.any(
+                        (item) =>
+                            item.action<YgdkSubmitAction>()?.eligibility ==
+                            ActionEligibility.allowed,
+                      ) ||
+                      (widget.snapshot.status != FeatureLoadStatus.success &&
+                          !(widget.snapshot.status == FeatureLoadStatus.stale &&
+                              widget.snapshot.evidence != null &&
+                              widget.snapshot.evidence?.origin !=
+                                  DataOrigin.persisted &&
+                              widget.snapshot.error == null))
+                  ? null
+                  : () {
+                      if (mounted) unawaited(_add());
+                    },
             ),
-            const SizedBox(height: 12),
-            if (widget.onReminderChanged != null)
-              Card(
-                child: SwitchListTile(
-                  title: const Text('首页提醒'),
-                  subtitle: widget.reminderError == null
-                      ? null
-                      : Text(widget.reminderError!),
-                  value: widget.reminderSettings?.enabled ?? false,
-                  onChanged: widget.reminderSettings == null
-                      ? null
-                      : widget.onReminderChanged,
+    );
+    return ListView(
+      padding: UbaaTheme.pageInsets(context, top: 16, bottom: 24),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                YgdkSummary(
+                  overview,
+                  statisticsKnown:
+                      widget.snapshot.evidence?.complete != false ||
+                      widget.snapshot.evidence?.origin == DataOrigin.mixed,
                 ),
-              ),
-            const UiSectionTitle('打卡记录'),
-            if (widget.searchField case final field?) ...[
-              field,
-              const SizedBox(height: 12),
-            ],
-            if (loading && visible.isEmpty && _page == null)
-              const LoadingPlaceholder(compact: true),
-            if (!loading &&
-                (_page?.errorCode != null || widget.snapshot.error != null))
-              UiInlineRetry(
-                message: '打卡记录读取失败',
-                onRetry: () => _load(widget.query),
-              )
-            else if (_page == null && !loading)
-              TextButton(
-                onPressed: () => _load(widget.query),
-                child: const Text('加载打卡记录'),
-              ),
-            if (_page != null &&
-                _page!.errorCode == null &&
-                _page!.evidence?.complete != false &&
-                visible.isEmpty)
-              UiStatePanel(
-                compact: true,
-                icon: filter.isEmpty ? Icons.inbox_outlined : Icons.search_off,
-                title: filter.isEmpty ? '暂无打卡记录' : '没有匹配的打卡记录',
-              ),
-            for (final record in visible) ...[
-              YgdkRecordCard(record),
-              const SizedBox(height: 12),
-            ],
-            if (_page?.hasMore == true &&
-                _page?.errorCode == null &&
-                _page?.evidence?.complete != false)
-              OutlinedButton.icon(
-                icon: loading
-                    ? const LoadingGlyph()
-                    : const Icon(Icons.expand_more),
-                onPressed: loading
-                    ? null
-                    : () => _load(
-                        FeatureQuery(page: _page!.page + 1, size: _page!.size),
-                        append: true,
-                      ),
-                label: const Text('加载更多'),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
-        if (widget.onSubmit != null)
-          ubaaPositionedCreateButton(
-            tooltip: '新增打卡',
-            onPressed:
-                loading ||
-                    !_items.any(
-                      (item) =>
-                          item.action<YgdkSubmitAction>()?.eligibility ==
-                          ActionEligibility.allowed,
-                    ) ||
-                    (widget.snapshot.status != FeatureLoadStatus.success &&
-                        !(widget.snapshot.status == FeatureLoadStatus.stale &&
-                            widget.snapshot.evidence != null &&
-                            widget.snapshot.evidence?.origin !=
-                                DataOrigin.persisted &&
-                            widget.snapshot.error == null))
+        const SizedBox(height: 12),
+        if (widget.onReminderChanged != null)
+          Card(
+            child: SwitchListTile(
+              title: const Text('首页提醒'),
+              subtitle: widget.reminderError == null
+                  ? null
+                  : Text(widget.reminderError!),
+              value: widget.reminderSettings?.enabled ?? false,
+              onChanged: widget.reminderSettings == null
+                  ? null
+                  : widget.onReminderChanged,
+            ),
+          ),
+        const UiSectionTitle('打卡记录'),
+        if (widget.searchField case final field?) ...[
+          field,
+          const SizedBox(height: 12),
+        ],
+        if (loading && visible.isEmpty && _page == null)
+          const LoadingPlaceholder(compact: true),
+        if (!loading &&
+            (_page?.errorCode != null || widget.snapshot.error != null))
+          UiInlineRetry(message: '打卡记录读取失败', onRetry: () => _load(widget.query))
+        else if (_page == null && !loading)
+          TextButton(
+            onPressed: () => _load(widget.query),
+            child: const Text('加载打卡记录'),
+          ),
+        if (_page != null &&
+            _page!.errorCode == null &&
+            _page!.evidence?.complete != false &&
+            visible.isEmpty)
+          UiStatePanel(
+            compact: true,
+            icon: filter.isEmpty ? Icons.inbox_outlined : Icons.search_off,
+            title: filter.isEmpty ? '暂无打卡记录' : '没有匹配的打卡记录',
+          ),
+        for (final record in visible) ...[
+          YgdkRecordCard(record),
+          const SizedBox(height: 12),
+        ],
+        if (_page?.hasMore == true &&
+            _page?.errorCode == null &&
+            _page?.evidence?.complete != false)
+          OutlinedButton.icon(
+            icon: loading
+                ? const LoadingGlyph()
+                : const Icon(Icons.expand_more),
+            onPressed: loading
                 ? null
-                : _add,
+                : () => _load(
+                    FeatureQuery(page: _page!.page + 1, size: _page!.size),
+                    append: true,
+                  ),
+            label: const Text('加载更多'),
           ),
       ],
     );
