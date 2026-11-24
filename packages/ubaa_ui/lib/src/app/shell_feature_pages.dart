@@ -41,6 +41,7 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
               page.query?.view == FeatureQueryView.cgyyLockCode),
       child: FeatureDetailView(
         key: page.pageKey,
+        filesAccess: widget.spocFilesAccess,
         isLanding: page.isLanding,
         onOpenLockDisplay: widget.onOpenLockDisplay,
         onReadLockDisplay: widget.onReadLockDisplay,
@@ -126,6 +127,11 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
         onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
             ? null
             : _startYgdkSubmitWrite,
+        onSpocSubmitWrite:
+            !_hasWriteCommands || widget.onPrepareSpocSubmitWrite == null
+            ? null
+            : _startSpocSubmitWrite,
+        onPickSpocSubmitFile: widget.onPickSpocSubmitFile,
         onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
             ? widget.onCaptureYgdkPhoto
             : null,

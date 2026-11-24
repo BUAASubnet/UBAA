@@ -293,6 +293,16 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     );
   }
 
+  Future<void> _startSpocSubmitWrite(SpocSubmitInput input) async {
+    final prepare = widget.onPrepareSpocSubmitWrite;
+    if (!_hasWriteCommands || prepare == null) return;
+    await _runDirectWrite(
+      prepare: () => prepare(input),
+      failureMessage: '作业提交失败，请重试',
+      expectedOperation: WriteOperation.spocSubmitAssignment,
+    );
+  }
+
   Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
     final prepare = widget.onPrepareCgyySubmitWrite;
     if (prepare == null) return;
