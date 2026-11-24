@@ -203,6 +203,9 @@ def publish(tag):
     build = str(manifest['build'])
     if not build.isdecimal():
         raise ValueError('无效构建号')
+    notes = manifest.get('notes')
+    if not isinstance(notes, str) or not notes.strip():
+        raise ValueError('发布清单缺少更新说明')
     directory = candidates / build
     if not (directory / 'distribution.json').exists() or json.loads((directory / 'release.json').read_text()) != manifest:
         raise ValueError('公开 Release 尚未完成服务器和云盘分发')
@@ -214,7 +217,7 @@ def publish(tag):
     content['channels']['github'] = {
         'latest_version': manifest['version'] + '+' + build,
         'min_supported_version': '2.0.0',
-        'url': 'https://www.ubaa.top/download', 'release_notes': '更新说明：https://www.ubaa.top/guide/ubaa2',
+        'url': 'https://www.ubaa.top/download', 'release_notes': notes,
     }
     write_content(content)
     run('systemctl', 'restart', 'ubaa-app.service')

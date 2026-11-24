@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tomllib
@@ -28,6 +29,23 @@ def prepare_draft(tag, sha, version):
         subprocess.run(['gh', 'release', 'edit', tag, '--target', sha], check=True)
 
 
+# 应用服务拒绝超过 2000 字的更新说明，发布前就在这里拦下。
+NOTES_LIMIT = 2000
+
+
+def release_notes(version):
+    """取更新日志中本版本的条目，转成应用更新弹窗直接显示的纯文本。"""
+    text = Path('docs/site/changelog/index.md').read_text()
+    match = re.search(rf'^## v{re.escape(version)}[ \t]*\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+    if not match or not match.group(1).strip():
+        raise ValueError(f'更新日志缺少 v{version} 条目')
+    notes = re.sub(r'^#+[ \t]+', '', match.group(1).strip(), flags=re.M)
+    notes = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', notes).replace('`', '')
+    if len(notes) > NOTES_LIMIT:
+        raise ValueError(f'v{version} 更新说明超过 {NOTES_LIMIT} 字')
+    return notes
+
+
 # 直接下载的安装包；文档站下载页按同一组文件校验清单。
 PUBLIC_SUFFIXES = (
     'android-arm64-v8a.apk', 'android-armeabi-v7a.apk', 'android-x86_64.apk',
@@ -44,6 +62,7 @@ def main():
     public_files = [*files, folder / 'licenses.zip']
     if any(not path.is_file() or path.stat().st_size == 0 for path in public_files):
         raise ValueError('发布产物不完整')
+    notes_text = release_notes(version)
     prepare_draft(tag, sha, version)
     public = 'https://download.ubaa.top:10443'
     prefix = f'releases/{tag}/{build}'
@@ -54,7 +73,7 @@ def main():
         url = public + '/' + urllib.parse.quote(f'{prefix}/{path.name}')
         assets.append({'name': path.name, 'size': path.stat().st_size, 'url': url, 'sha256': digest})
     manifest = folder / 'release.json'
-    manifest.write_text(json.dumps({'version': version, 'build': build, 'commit': sha, 'assets': assets}, ensure_ascii=False, indent=2) + '\n')
+    manifest.write_text(json.dumps({'version': version, 'build': build, 'commit': sha, 'notes': notes_text, 'assets': assets}, ensure_ascii=False, indent=2) + '\n')
     notes = folder.parent / 'release_notes.md'
     notes.write_text(f'UBAA {version}\n\n本版更新说明：https://www.ubaa.top/changelog/#v{version.replace(".", "-")}\n')
     subprocess.run(['gh', 'release', 'upload', tag, *[str(path) for path in [*public_files, manifest]], '--clobber'], check=True)

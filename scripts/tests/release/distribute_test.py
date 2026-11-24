@@ -38,6 +38,11 @@ class DistributionTest(unittest.TestCase):
                        'macos-arm64.dmg', 'macos-x86_64.dmg', 'harmonyos-arm64.hap'):
             (self.folder / f'UBAA-2.0.0-{suffix}').write_bytes(b'synthetic artifact')
         (self.folder / 'licenses.zip').write_bytes(b'synthetic licenses')
+        self.changelog = Path('docs/site/changelog/index.md')
+        self.changelog.parent.mkdir(parents=True)
+        self.changelog.write_text(
+            '# 更新日志\n\n## v2.0.1\n\n- 后续版本。\n\n## v2.0.0\n\n'
+            '安装包见[下载 UBAA](/download)。\n\n### 新增功能\n\n- 支持 `.ics` 导出。\n\n## v1.9.0\n\n- 旧版本。\n')
         self.enterContext(patch.dict(os.environ, {
             'RELEASE_VERSION': '2.0.0', 'RELEASE_TAG': 'v2.0.0', 'RELEASE_SHA': 'candidate',
             'RELEASE_BUILD': '2003', 'CLOUDFLARE_ACCOUNT_ID': 'synthetic',
@@ -165,6 +170,23 @@ class DistributionTest(unittest.TestCase):
         body = Path(option(edit, '--notes-file')).read_text()
         self.assertEqual(body, 'UBAA 2.0.0\n\n本版更新说明：https://www.ubaa.top/changelog/#v2-0-0\n')
         self.assertNotIn('download.ubaa.top', body)
+
+    def test_清单携带本版本更新日志条目的纯文本(self):
+        distribute.main()
+        manifest = json.loads((self.folder / 'release.json').read_text())
+        self.assertEqual(manifest['notes'], '安装包见下载 UBAA。\n\n新增功能\n\n- 支持 .ics 导出。')
+
+    def test_更新日志缺少本版本条目时不生成草稿(self):
+        self.changelog.write_text('# 更新日志\n\n## v2.0.1\n\n- 后续版本。\n')
+        with self.assertRaisesRegex(ValueError, '更新日志'):
+            distribute.main()
+        self.calls.assert_not_called()
+
+    def test_更新日志条目超过应用服务上限时不生成草稿(self):
+        self.changelog.write_text('# 更新日志\n\n## v2.0.0\n\n' + '字' * 2001 + '\n')
+        with self.assertRaisesRegex(ValueError, '2000'):
+            distribute.main()
+        self.calls.assert_not_called()
 
     def test_清单地址按构建号隔离(self):
         distribute.main()

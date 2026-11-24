@@ -132,7 +132,7 @@ class DeployTest(unittest.TestCase):
         self.run.assert_not_called()
 
     def test_正式发布基于线上内容更新GitHub渠道(self):
-        manifest = {'version': '2.0.3', 'build': '2030'}
+        manifest = {'version': '2.0.3', 'build': '2030', 'notes': '- 新增功能。'}
         directory = deploy.ROOT / 'downloads/releases/v2.0.3/2030'
         directory.mkdir(parents=True)
         deploy.atomic_json(directory / 'release.json', manifest)
@@ -146,8 +146,24 @@ class DeployTest(unittest.TestCase):
             deploy.publish('v2.0.3')
         result = self.live()
         self.assertEqual(result['channels']['github']['latest_version'], '2.0.3+2030')
+        self.assertEqual(result['channels']['github']['release_notes'], '- 新增功能。')
         self.assertEqual(result['channels']['app_store'], live['channels']['app_store'])
         self.assertEqual(result['announcements'], live['announcements'])
+
+    def test_正式发布清单缺少更新说明时不改写线上内容(self):
+        manifest = {'version': '2.0.3', 'build': '2030'}
+        directory = deploy.ROOT / 'downloads/releases/v2.0.3/2030'
+        directory.mkdir(parents=True)
+        deploy.atomic_json(directory / 'release.json', manifest)
+        deploy.atomic_json(directory / 'distribution.json', {'complete': True})
+        live = self.content()
+        deploy.atomic_json(deploy.STATE / 'content.json', live)
+        with patch.object(deploy.urllib.request, 'urlopen',
+                          return_value=io.BytesIO(json.dumps(manifest).encode())):
+            with self.assertRaisesRegex(ValueError, '更新说明'):
+                deploy.publish('v2.0.3')
+        self.assertEqual(self.live(), live)
+        self.run.assert_not_called()
 
 
 if __name__ == '__main__':
