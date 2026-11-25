@@ -93,6 +93,39 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 查询杭州校区空间预约（hzsm）场馆站点；经杭州统一认证的北航登录插件建立会话，
+    /// 目前只支持直连路线。
+    ///
+    /// # Errors
+    ///
+    /// 非直连路线、会话校验失败、网络请求失败或上游响应处理失败时返回错误。
+    pub async fn hangzhou_cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::get_hangzhou_sites(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询杭州校区空间预约（hzsm）我的预约；目前只支持直连路线。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效、非直连路线、会话校验失败、网络请求失败或上游响应处理失败时返回错误。
+    pub async fn hangzhou_cgyy_orders(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<CgyyOrdersPage>> {
+        self.guard_session_ownership()?;
+        if page < 0 || size <= 0 {
+            return Err(invalid_input("分页参数无效"));
+        }
+        let result =
+            crate::features::cgyy::get_hangzhou_orders(&mut self.runtime, page, size).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 查询研讨室订单详情。
     ///
     /// # Errors

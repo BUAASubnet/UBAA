@@ -35,6 +35,8 @@ pub(crate) struct RouteFeatureState {
     pub(crate) academic_identity_read: tokio::sync::Mutex<()>,
     pub(crate) bykc: BykcState,
     pub(crate) cgyy: CgyyState,
+    /// 杭州校区空间预约（hzsm）的业务令牌；与北京研讨室令牌分开保存。
+    pub(crate) hz_cgyy: CgyyState,
     pub(crate) libbook: LibBookState,
     pub(crate) classroom: ClassroomState,
     pub(crate) signin: SigninState,
@@ -89,6 +91,7 @@ impl RouteFeatureState {
             .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
         self.bykc.clear();
         self.cgyy.clear();
+        self.hz_cgyy.clear();
         self.libbook.clear();
         self.classroom.clear();
         self.signin.clear();

@@ -9,12 +9,13 @@ use crate::domain::{
 use crate::error::{ErrorCode, Result};
 use crate::runtime::ClientRuntime;
 
-use super::auth::get;
+use super::auth::{get, get_at};
 use super::parser::{
     CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code,
     parse_order_detail_at, parse_orders_at, parse_orders_for_cache,
     parse_purpose_types_with_source, parse_sites,
 };
+use super::site::CgyySite;
 
 pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
     let params = [("page", "-1"), ("size", "-1"), ("reservationRoleId", "3")]
@@ -22,6 +23,40 @@ pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVen
         .map(|(key, value)| (key.into(), value.into()))
         .collect();
     parse_sites(&get(runtime, "/api/front/website/venues", params).await?)
+}
+
+/// 杭州空间预约场馆列表。前端 `getVenueListFront` 只传默认分页 `page=-1&size=-1`，
+/// 不带北京旧版的 `reservationRoleId`（证据见杭州专项记录）。
+pub(crate) async fn get_hangzhou_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
+    let params = [("page", "-1"), ("size", "-1")]
+        .into_iter()
+        .map(|(key, value)| (key.into(), value.into()))
+        .collect();
+    parse_sites(
+        &get_at(
+            runtime,
+            CgyySite::Hangzhou,
+            "/api/front/website/venues",
+            params,
+        )
+        .await?,
+    )
+}
+
+/// 杭州空间预约“我的预约”，与北京同为 `GET /api/orders/mine` 分页信封。
+pub(crate) async fn get_hangzhou_orders(
+    runtime: &mut ClientRuntime,
+    page: i32,
+    size: i32,
+) -> Result<CgyyOrdersPage> {
+    let params = [
+        ("page".into(), page.to_string()),
+        ("size".into(), size.to_string()),
+    ]
+    .into_iter()
+    .collect();
+    let body = get_at(runtime, CgyySite::Hangzhou, "/api/orders/mine", params).await?;
+    parse_orders_at(&body, crate::time::shanghai_datetime(runtime.now()))
 }
 
 pub(crate) async fn get_purpose_types(runtime: &mut ClientRuntime) -> Result<Vec<CgyyPurposeType>> {

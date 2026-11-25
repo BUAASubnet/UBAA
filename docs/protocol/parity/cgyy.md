@@ -29,6 +29,39 @@
 
 ## 专项记录
 
+### 2026-11-25 杭州校区空间预约（hzsm）与杭州统一认证（hzsso）
+
+日期：2026-11-25。来源 issue：杭州校区学生请求适配。本专项只新增**只读**的场馆站点与我的预约；预约、取消、锁码等写入与其余读取不在范围内。
+
+#### 证据来源
+
+1. **公开前端代码**（无需登录即可获取，记录文件名以便复核；内容会随上游发布变化）：
+   - hzsm：`https://hzsm.buaa.edu.cn/venue/js/chingo.c5fe1b5a.js`（站点配置模块 `serverUrl`、`ssoLoginUrl`、`schoolCode: BUAA_H3I`；请求封装 `app-key/timestamp/sign/cgAuthorization`；签名函数 `F`；`getToken` 读取 Cookie `"sso_" + schoolCode.toLowerCase() + "_token"`；`getVenueListFront` 默认参数 `{page:-1,size:-1}`）、登录页 `chunk-4b4ad94a.e8abf532.js`（`loginHandle` → `POST /api/login`，头 `sso-token`；`roles` 存在时 `POST /roleLogin`）、订单页 `chunk-1c9e1d72.177c6fa7.js` 等（`/api/orders/mine`，读取 `content/totalElements/totalPages`）。
+   - hzsso：`/frontend/login/js/app.402876f8.js`（接口表与 `getAuthTraceId`、`verifyTraceId`、`saveSession` 调用，`window.client_id`）、`/public/api/authenticate/plugin_cas/static/index.html` 与 `callback.html`（CAS 插件请求体），公开接口 `GET /api/public/bff/v1.2/load_auths?enterpriseId=idaas`（`北航登录` = `idaasplugin_cas`/`plugin_cas`，`clientDevices` 仅 `PC_BROWSER`）。
+2. **账号本人浏览器实录**（2026-11-25，账号本人操作；只保留请求方法、主机、路径和查询参数名，未保留响应体、Cookie、令牌）：hzsso 登出后点击「使用北航统一认证登录」，依次出现 `generate_trace_id` → `plugin_cas/static/index.html` → `plugin_cas/login` → `callback.html?ticket=` → `valid_ticket` → `validate_trace_id` → `user_setting_info` → `session/save`；hzsso 已登录时访问 `idaasplugin_jwt38` 入口，302 到 `https://hzsm.buaa.edu.cn/venue-server/loginto?id_token=<JWT>`，之后浏览器持有 Cookie `sso_buaa_h3i_token`，前端调用 `POST /venue-server/api/login`、`POST /venue-server/roleLogin`，再读取 `website/catalog_list`、`website/init`。
+3. **北京冻结来源**：本表“与北京相同”的列沿用上方矩阵的冻结旧版依据。由 hzsm 前端配置解码得到的 `app-key`（`a` 数组反转后 Base64）与签名前缀（`s` 数组 Base64）**与北京常量逐字相同**，签名函数结构相同。
+4. `examples/buaa-api` 没有杭州实现，不适用。
+
+#### 逐操作对照
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| hzsso 登录（北航 CAS 插件） | 入口 `http://hzsso.buaa.edu.cn`；CAS 由 `plugin_cas/login` 返回的 `loginUrl` 给出，必须是 `sso.buaa.edu.cn`/`uc.buaa.edu.cn`（`is_allowed_auth_host`），否则 `upstream_changed`。 | `loginUrl` 由主会话跟随重定向，必须落到 `hzsso.buaa.edu.cn/public/api/authenticate/plugin_cas/static/callback.html?ticket=`；落在其它地址（如北航登录页）即认证失败。 | hzsso 会话 Cookie 由 Core Cookie 罐保存在当前路线 runtime；IDaaS `accessToken` 只在本次调用内存中使用。 | 1 `GET /api/public/bff/v1.2/frontend/login_data` 取 `data.clientId`；2 `POST .../authenticate/plugin/generate_trace_id` `{enterpriseAuthId:"idaasplugin_cas", enterpriseId:"idaas", clientId}`；3 `POST /public/api/authenticate/plugin_cas/login` `{enterpriseAuthId, traceId}`；5 `POST .../plugin_cas/valid_ticket` `{enterpriseAuthId, traceId, ticket}`；6 `POST .../authenticate/plugin/validate_trace_id` `{traceId}`；7 `POST /api/bff/v1.2/commons/session/save` `{access_token}`。 | JSON 正文 `Content-Type: application/json;charset=UTF-8`；第 7 步按前端拦截器（非 `public` 路径）带 `Authorization: Bearer <accessToken>`。 | 无（IDaaS 的 SM2 只用于本地密码登录，本流程不涉及）。 | 2 `data.traceId`；3 顶层 `success`、`loginUrl`；5 顶层 `success`（另有 `frontendAdapterAddress`，未使用）；6 `data.accessToken`（前端另有 `portalBound/needBind/redirectUri` 分支，未使用）；7 `data.result=true`。 | 由业务登录单飞锁串行；只在应用入口落到 hzsso 登录页时执行一次，之后重进入口一次。 | 非直连路线 `unsupported`；缺字段/非 JSON `upstream_changed`；`success!=true`、无票据、`result!=true`、重进后仍在登录页均为 `authentication_required`；不清除北航主会话。 |
+| 杭州业务登录 | `http://hzsso.buaa.edu.cn/enduser/sp/sso/idaasplugin_jwt38?enterpriseId=idaas`（hzsm 前端 `ssoLoginUrl`）。 | 302 → `https://hzsm.buaa.edu.cn/venue-server/loginto?id_token=<JWT>` → `/venue/login`；重定向只额外放行 `hzsso.buaa.edu.cn`、`hzsm.buaa.edu.cn`，且仅限本功能。hzsso 未登录时落到 `/frontend/login/`，先执行上一行。 | `sso_buaa_h3i_token`（hzsm 主机）；业务 `access_token` 存在当前路线 `hz_cgyy` 槽位，与北京 `cgyy` 分开，不写入 `session.json`。 | `POST /venue-server/api/login`，无表单字段。 | 与北京相同的 `Accept`、`app-key`、`timestamp`、`sign`，`Sso-Token` 携带 Cookie 值；`Referer` 为 `https://hzsm.buaa.edu.cn/venue/home`（实录中前端页面地址）。 | 与北京相同（见证据 3）。 | `data.token.access_token`（hzsm 前端 `t.token.access_token`）。前端在 `roles` 存在时另调 `POST /roleLogin`；北京同产品的冻结实现不调用且可读，**本次不实现 `roleLogin`，列为真实验证项**。 | 单飞；令牌复用；业务认证失效清 `hz_cgyy` 并最多重登一次（同北京）。 | 落地页非 200 走 HTTP 状态错误；缺 Cookie/令牌为 `authentication_required`。 |
+| 杭州场馆站点 | 同业务登录。 | 同北京业务请求：不跟随重定向，落到认证主机即认证失效。 | 复用 `hz_cgyy` 令牌。 | `GET /venue-server/api/front/website/venues?page=-1&size=-1`，自动加 `nocache`；**不带**北京的 `reservationRoleId`（hzsm `getVenueListFront` 默认参数）。 | 同北京，带 `cgAuthorization`。 | 同北京。 | 前端同时兼容分页对象与数组（`"number"===typeof totalElements ? content : data`）；沿用北京 `parse_sites`，它已兼容两种结构。 | 不缓存（本 PR 未接入 facade 缓存）。 | 同北京。 |
+| 杭州我的预约 | 同上。 | 同上。 | 同上。 | `GET /venue-server/api/orders/mine?page=&size=`，自动加 `nocache`。 | 同北京。 | 同北京。 | `content/totalElements/totalPages`（hzsm 订单页读取这些字段）；订单字段沿用北京 `parse_orders_at`。 | 不缓存。 | 页码小于 0 或每页数量不为正数是 `invalid_input`；其余同北京。 |
+
+#### 决策
+
+- 杭州与北京共用签名、业务信封、解析器；差异集中在 `features/cgyy/site.rs`，北京请求、错误文案和行为保持不变。
+- **只支持直连**：北航 WebVPN 能否访问 hzsso/hzsm 没有证据，按“缺少证据时不推断”的底线直接返回 `unsupported`（诊断 `hangzhou_webvpn_unverified`），不做猜测性转换。重跑条件：取得 WebVPN 访问杭州主机的实录后再补该路线。
+- hzsso 全站为 `http`；这不涉及关闭 TLS 校验，hzsm 业务请求仍为 HTTPS。
+
+#### 验证状态
+
+- Mock：`crates/ubaa_core/tests/hangzhou_cgyy.rs` 5 项（完整登录链请求顺序与正文、已登录复用、我的预约、WebVPN 不支持且不发请求、CAS 未签发票据）先失败后通过；`features::hzsso` 单元测试 2 项。全部使用合成值。
+- **真实验证未执行**：需要维护者按 AGENTS.md 授权功能与连接方式后，用杭州校区账号做 Direct 只读验证（站点、我的预约），并确认 `roleLogin` 是否必需、各响应真实结构。WebVPN 路线见上方决策。
+
 ### 2026-10-03 研讨室详情身份
 
 真实 macOS/WebVPN 暴露的编号0详情、双来源九列和读取出口裁决见[订单详情身份校验](#研讨室订单详情身份校验)。请求协议和低层旧版空值兼容不变；只拒绝将缺失或不同身份视作所请求详情。
