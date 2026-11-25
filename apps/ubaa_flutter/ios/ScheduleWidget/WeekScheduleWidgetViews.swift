@@ -19,7 +19,7 @@ struct WeekScheduleWidgetView: View {
                     WeekFullContent(entry: entry, week: week)
                 }
             } else {
-                ScheduleWidgetEmpty()
+                ScheduleWidgetEmpty(needsUpdate: entry.publication == .unreadable)
             }
         }
     }
@@ -66,7 +66,6 @@ struct WeekFullContent: View {
                     Spacer(minLength: 0)
                 }
             }
-            ScheduleFooter(updatedAt: entry.updatedAt)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dynamicTypeSize(.xSmall ... .large)
@@ -131,7 +130,6 @@ struct WeekCompactContent: View {
                 .minimumScaleFactor(0.75)
             }
             Spacer(minLength: 0)
-            ScheduleFooter(updatedAt: entry.updatedAt)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

@@ -2,9 +2,38 @@ import Flutter
 import UIKit
 import WidgetKit
 
+final class WidgetLaunchInbox {
+  private var pending: String?
+  private var ready = false
+  private var launch: ((String) -> Void)?
+
+  func connect(launch: @escaping (String) -> Void) {
+    ready = false
+    self.launch = launch
+  }
+
+  func receive(_ url: URL) {
+    let raw = url.absoluteString
+    guard raw.hasPrefix("ubaa://widget/open?") else { return }
+    if ready, let launch {
+      launch(raw)
+    } else {
+      pending = raw
+    }
+  }
+
+  func take() -> String? {
+    ready = true
+    let raw = pending
+    pending = nil
+    return raw
+  }
+}
+
 /// 与 Android `WidgetChannel.kt` 同合同：`begin` 更换发布代次，
 /// `publish` 提交课表投影并立即刷新全部桌面组件。
 final class ScheduleWidgetPlugin: NSObject, FlutterPlugin {
+  private static let launchInbox = WidgetLaunchInbox()
   private let store: ScheduleWidgetStore
   private let reload: () -> Void
 
@@ -14,13 +43,19 @@ final class ScheduleWidgetPlugin: NSObject, FlutterPlugin {
   }
 
   static func register(with registrar: FlutterPluginRegistrar) {
-    FlutterMethodChannel(name: "cn.edu.buaa.ubaa/widget-launch", binaryMessenger: registrar.messenger())
-      .setMethodCallHandler { call, result in
-        if call.method == "take" { result(nil) } else { result(FlutterMethodNotImplemented) }
-      }
+    let launchChannel = FlutterMethodChannel(
+      name: "cn.edu.buaa.ubaa/widget-launch", binaryMessenger: registrar.messenger())
+    launchInbox.connect { launchChannel.invokeMethod("launch", arguments: $0) }
+    launchChannel.setMethodCallHandler { call, result in
+      if call.method == "take" { result(launchInbox.take()) } else { result(FlutterMethodNotImplemented) }
+    }
     registrar.addMethodCallDelegate(
       ScheduleWidgetPlugin(), channel: FlutterMethodChannel(
         name: "cn.edu.buaa.ubaa/schedule-widgets", binaryMessenger: registrar.messenger()))
+  }
+
+  static func receiveLaunch(_ url: URL) {
+    launchInbox.receive(url)
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

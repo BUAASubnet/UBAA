@@ -173,7 +173,7 @@ final class ScheduleWidgetStoreTests: XCTestCase {
 
     func test删密钥失败返回存储错误且不请求刷新() throws {
         let directory = try fixtureDirectory()
-        let store = ScheduleWidgetStore(directory: directory) { url in
+        let store = Runner.ScheduleWidgetStore(directory: directory) { url in
             if url.lastPathComponent == "schedule-widgets.key",
                FileManager.default.fileExists(atPath: url.path) {
                 throw CocoaError(.fileWriteNoPermission)
