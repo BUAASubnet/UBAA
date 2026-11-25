@@ -14,6 +14,10 @@ final class ScheduleWidgetPlugin: NSObject, FlutterPlugin {
   }
 
   static func register(with registrar: FlutterPluginRegistrar) {
+    FlutterMethodChannel(name: "cn.edu.buaa.ubaa/widget-launch", binaryMessenger: registrar.messenger())
+      .setMethodCallHandler { call, result in
+        if call.method == "take" { result(nil) } else { result(FlutterMethodNotImplemented) }
+      }
     registrar.addMethodCallDelegate(
       ScheduleWidgetPlugin(), channel: FlutterMethodChannel(
         name: "cn.edu.buaa.ubaa/schedule-widgets", binaryMessenger: registrar.messenger()))

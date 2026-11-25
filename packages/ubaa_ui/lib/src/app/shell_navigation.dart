@@ -1,7 +1,18 @@
 part of 'shell.dart';
 
 extension UbaaShellNavigation on _UbaaMainShellState {
+  void _openAgenda([DateTime? date]) {
+    if (_writeBusy) return;
+    if (date == null) {
+      _agendaTodoRequest++;
+    } else {
+      _widgetDateRequest++;
+    }
+    _selectTab(UiDestination.agenda.index, agendaDate: date);
+  }
+
   void _goBack() {
+    _navigationGeneration++;
     if (_utilityPage == '云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {
       _changeNavigation(() => _utilityPage = null);
@@ -10,7 +21,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     }
   }
 
-  void _selectTab(int index, {bool fromSwipe = false}) {
+  void _selectTab(int index, {bool fromSwipe = false, DateTime? agendaDate}) {
+    if (fromSwipe && index == _selectedIndex) return;
     if (widget.writeState.intent != null) {
       // 写入进行中不能换页；滑动已移动的页面退回原位。
       if (fromSwipe && _tabPager.hasClients) {
@@ -22,6 +34,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _selectedIndex = index;
       _utilityPage = null;
       _openedFeature = null;
+      _widgetAgendaDate = agendaDate;
     });
     if (!fromSwipe &&
         index < UiDestination.settings.index &&
@@ -29,6 +42,14 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _tabPager.jumpToPage(index);
     }
     if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
+  }
+
+  DateTime? _takeAgendaDate() {
+    if (_selectedIndex != UiDestination.agenda.index || _openedFeature != null)
+      return null;
+    final date = _widgetAgendaDate;
+    _widgetAgendaDate = null;
+    return date;
   }
 
   void _openUtility(String page) {
@@ -183,10 +204,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           _selectedIndex == 0 &&
           widget.writeState.intent == null,
       onTodoTap: _openHomeTodo,
-      onViewAllTodos: () {
-        _changeNavigation(() => _agendaTodoRequest++);
-        _selectTab(UiDestination.agenda.index);
-      },
+      onViewAllTodos: _openAgenda,
       writeReadbackNotice:
           widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
           ? null
@@ -242,6 +260,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       ),
       term: widget.agenda.term,
       todoRequest: _agendaTodoRequest,
+      initialDate: _takeAgendaDate(),
+      dateRequest: _widgetDateRequest,
       visible:
           _selectedIndex == UiDestination.agenda.index &&
           _openedFeature == null,

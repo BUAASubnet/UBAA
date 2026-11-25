@@ -34,6 +34,7 @@ mixin ControllerHomePresentation on ControllerState {
         internalAutomaticSchoolAction(() => scheduleMicrotask(action)),
   );
   HomeState get homeState => _home.state;
+  YgdkReminderSettings get homeReminder => _home.reminder;
   Future<void> refreshHomePage() => internalUserSchoolAction(_home.refresh);
   Future<void> retryHomeSource(FeatureId feature) =>
       internalUserSchoolAction(() => _home.retry(feature));

@@ -9,6 +9,40 @@ import '../../state/state.dart' show ControllerState;
 import '../../state/types.dart' show AppPhase;
 
 mixin ControllerScheduleWidgets on ControllerState {
+  YgdkReminderSettings get homeReminder;
+  ConnectionMode get _route => agendaRoute(
+    internalLoginForm.routePolicy,
+    activeRoutes,
+    schoolRoute: currentAgendaRoute,
+  );
+  RoutePolicy get _policy =>
+      _route == ConnectionMode.direct ? RoutePolicy.direct : RoutePolicy.webvpn;
+
+  Future<WeekPresentation?> widgetWeekOn(DateTime date) async {
+    final backend = internalBackend,
+        owner = internalScheduleWidgetOwner,
+        epoch = internalLifecycleEpoch,
+        cache = internalBusinessCacheEpoch;
+    if (backend is! OfflineQueryBackend || owner == null) return null;
+    final policy = _policy;
+    bool current() =>
+        !internalDisposed &&
+        owner == internalScheduleWidgetOwner &&
+        identical(backend, internalBackend) &&
+        epoch == internalLifecycleEpoch &&
+        cache == internalBusinessCacheEpoch &&
+        policy == _policy;
+    await internalOfflineOpenFuture;
+    return readWidgetDateWeek(
+      backend: backend as OfflineQueryBackend,
+      owner: owner,
+      policy: policy,
+      date: date,
+      term: currentAgendaTerm,
+      isCurrent: current,
+    );
+  }
+
   @internal
   String? get internalScheduleWidgetOwner =>
       internalPhase == AppPhase.home &&
@@ -20,6 +54,13 @@ mixin ControllerScheduleWidgets on ControllerState {
   @internal
   Object get internalScheduleWidgetRevision => (
     internalBusinessCacheEpoch,
+    internalAgendaEpoch,
+    currentAgendaTerm,
+    _route,
+    homeSnapshots[FeatureId.ygdk]?.resolvedRoute,
+    homeReminder.enabled,
+    homeReminder.weekDoneKey,
+    homeReminder.termDoneKey,
     internalBackend,
     Object.hashAll(
       internalScheduleImports.entries
@@ -39,18 +80,48 @@ mixin ControllerScheduleWidgets on ControllerState {
     if (owner == null || backend is! OfflineQueryBackend) {
       throw const BackendException(UbaaErrorCode.operationConflict);
     }
+    bool current() =>
+        publisherCurrent() &&
+        !internalDisposed &&
+        epoch == internalLifecycleEpoch &&
+        identical(backend, internalBackend) &&
+        owner == internalScheduleWidgetOwner &&
+        cacheEpoch == internalBusinessCacheEpoch;
     await internalOfflineOpenFuture;
+    await internalAgendaOpenFuture;
+    final term = currentAgendaTerm, route = _route, reminder = homeReminder;
     return readScheduleWidgetSnapshot(
       backend: backend as OfflineQueryBackend,
       owner: owner,
-      policy: RoutePolicy.auto,
-      isCurrent: () =>
-          publisherCurrent() &&
-          !internalDisposed &&
-          epoch == internalLifecycleEpoch &&
-          identical(backend, internalBackend) &&
-          owner == internalScheduleWidgetOwner &&
-          cacheEpoch == internalBusinessCacheEpoch,
+      policy: _policy,
+      agendaTerm: term,
+      isCurrent: current,
+      queryAgenda: (weeks, weekRoute, day) async {
+        final service = agenda;
+        if (service == null || internalAgendaFailure != null) return null;
+        final sunlight = homeSnapshots[FeatureId.ygdk]?.resolvedRoute;
+        final week =
+            sunlight != null && weekRoute != null && sunlight != weekRoute
+            ? null
+            : homeWeekOn(weeks, day, term: term);
+        // 固定到校园日零点，保证当天重复构建一致；零点后才开放的 SPOC 作业当天不进入待办。
+        return service.query(
+          AgendaQuery(
+            route: route,
+            term: term,
+            from: agendaDate(day),
+            to: agendaDate(day.add(const Duration(days: 28))),
+            now: agendaTime(day),
+            includeHidden: false,
+            ygdkEnabled: reminder.enabled,
+            ygdkWeekDone:
+                week != null &&
+                reminder.weekDoneKey == '${week.responseTerm}:${week.number}',
+            ygdkTermDone:
+                week != null && reminder.termDoneKey == week.responseTerm,
+          ),
+        );
+      },
     );
   }
 }

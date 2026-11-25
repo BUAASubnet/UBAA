@@ -14,7 +14,7 @@ export 'app/app_service/privacy.dart'
 export 'app/app_service/settings.dart' show AppServiceControls;
 export 'app/login.dart' show UbaaLoginView;
 export 'app/login_verification.dart' show UbaaCaptchaDialog;
-export 'app/shell.dart' show UbaaMainShell;
+export 'app/shell.dart' show UbaaMainShell, WidgetNavigationState;
 export 'app/splash.dart' show UbaaSplashView;
 export 'common/error_card.dart'
     show

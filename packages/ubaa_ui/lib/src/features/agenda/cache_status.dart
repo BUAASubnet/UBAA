@@ -32,17 +32,8 @@ class AgendaCacheStatus extends StatelessWidget {
     return '${diff ~/ 86400} 天前';
   }
 
-  /// 最近一次成功向学校确认的时间：内容未变化时核验时间不前进，但确认已完成。
-  int checkedAt(Iterable<AgendaObservation> observations) => observations
-      .map(
-        (o) => o.lastAttemptSucceeded && o.lastAttemptAt > o.lastVerifiedAt
-            ? o.lastAttemptAt
-            : o.lastVerifiedAt,
-      )
-      .reduce((a, b) => a > b ? a : b);
-
   String freshness(Iterable<AgendaObservation> observations) =>
-      '${ago(checkedAt(observations))}更新';
+      '${ago(agendaCheckedAt(observations))}更新';
 
   bool failed(AgendaSource source) =>
       source.observations.any((o) => !o.lastAttemptSucceeded);

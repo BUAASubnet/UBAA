@@ -1,6 +1,19 @@
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+final class WidgetLaunchChannel {
+  static const _channel = MethodChannel('cn.edu.buaa.ubaa/widget-launch');
+  void listen(Future<void> Function(String) launch) {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'launch') throw MissingPluginException();
+      if (call.arguments case final String raw) await launch(raw);
+    });
+  }
+
+  Future<String?> take() => _channel.invokeMethod<String>('take');
+  void dispose() => _channel.setMethodCallHandler(null);
+}
+
 abstract interface class ScheduleWidgetGateway {
   /// 原生端立即更换发布代次；换账号时同步撤销旧投影。
   Future<String> begin(String? owner);

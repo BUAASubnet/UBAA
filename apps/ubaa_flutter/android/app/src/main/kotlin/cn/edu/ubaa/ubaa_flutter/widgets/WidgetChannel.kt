@@ -9,9 +9,13 @@ import org.json.JSONObject
 
 class WidgetChannel(private val context: Context, messenger: BinaryMessenger) {
     private val channel = MethodChannel(messenger, "cn.edu.buaa.ubaa/schedule-widgets")
+    private val launchChannel = MethodChannel(messenger, "cn.edu.buaa.ubaa/widget-launch")
     private val main = Handler(Looper.getMainLooper())
 
     init {
+        launchChannel.setMethodCallHandler { call, result ->
+            if (call.method == "take") result.success(null) else result.notImplemented()
+        }
         channel.setMethodCallHandler { call, result ->
             val arguments = call.arguments as? Map<*, *>
             if (call.method !in listOf("begin", "publish")) {
@@ -43,6 +47,7 @@ class WidgetChannel(private val context: Context, messenger: BinaryMessenger) {
     }
 
     fun dispose() {
+        launchChannel.setMethodCallHandler(null)
         channel.setMethodCallHandler(null)
     }
 }

@@ -2,7 +2,8 @@ import 'dart:async';
 import '../features/bykc/agenda_conflicts.dart';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
-import '../shared/layout/connection_status.dart' show UiConnectionStatusButton;
+import 'navigation/content.dart' show uiShellContent;
+import 'navigation/header.dart' show uiShellHeader;
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
 import '../features/cloud_print/view.dart';
@@ -26,7 +27,6 @@ import '../shared/sync_status.dart'
     show UiSyncStatus, uiIsTouchPlatform, uiOldestUpdate;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
-import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
@@ -309,9 +309,49 @@ class UbaaMainShell extends StatefulWidget {
   State<UbaaMainShell> createState() => _UbaaMainShellState();
 }
 
-class _UbaaMainShellState extends State<UbaaMainShell> {
+abstract class WidgetNavigationState extends State<UbaaMainShell> {
+  Future<void> openWidget(
+    WidgetLaunch target,
+    Future<WeekPresentation?> Function(DateTime) weekOn,
+    bool Function() isCurrent,
+  );
+}
+
+class _UbaaMainShellState extends WidgetNavigationState {
+  @override
+  Future<void> openWidget(
+    WidgetLaunch target,
+    Future<WeekPresentation?> Function(DateTime) weekOn,
+    bool Function() isCurrent,
+  ) async {
+    final scope = _contentEpoch;
+    final navigation = ++_navigationGeneration;
+    bool current() =>
+        mounted &&
+        isCurrent() &&
+        scope == _contentEpoch &&
+        navigation == _navigationGeneration &&
+        !_writeBusy;
+    if (!current() || target.target == 'home') return;
+    switch (target.target) {
+      case 'schedule' || 'feature':
+        final nav =
+            target.navigation ?? await target.scheduleNavigation(weekOn);
+        if (!current()) return;
+        _utilityPage = null;
+        if (nav != null) {
+          _openHomeNavigation(nav);
+        } else {
+          _openFeatureList(FeatureId.schedule);
+        }
+      case 'agendaTodo' || 'agenda':
+        _openAgenda(target.date);
+    }
+  }
+
   // 页面内容只随账号、路线策略和明确清理变化；网络请求代次独立推进。
   int _contentEpoch = 0;
+  int _navigationGeneration = 0;
   Object get _pageContentScope => (
     widget.cacheAccountId ?? widget.user?.accountScope ?? widget.user?.username,
     widget.routePolicy,
@@ -376,8 +416,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       if (mounted) setState(() {});
     },
   );
+  void _updateShell(VoidCallback change) => setState(change);
+
   void _changeNavigation(VoidCallback change, {String? openedFeature}) {
-    setState(change);
+    _navigationGeneration++;
+    _widgetAgendaDate = null;
+    _updateShell(change);
     if (openedFeature != null) widget.onFeatureOpened?.call(openedFeature);
   }
 
@@ -460,6 +504,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _readPageKeys[FeatureId.bykc]?.currentState?.cancelBykcCourseWrite();
     }
     if (accountChanged) {
+      _widgetAgendaDate = null;
+      _widgetDateRequest = 0;
+      _agendaTodoRequest = 0;
       _tabPager.dispose();
       _tabPager = PageController(initialPage: _selectedIndex, keepPage: false);
       _accountGeneration++;
@@ -537,6 +584,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   int _agendaTodoRequest = 0;
+  DateTime? _widgetAgendaDate;
+  int _widgetDateRequest = 0;
   static const _tabs = UiDestination.values;
 
   @override
@@ -573,72 +622,23 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final atRoot =
         _openedFeature == null &&
         (_utilityPage == null || (wide && _utilityPage == '关于'));
-    final header = AppBar(
-      centerTitle: false,
-      toolbarHeight: wide ? 72 : 64,
-      // 分类根页用大标题；进入功能、详情等下一级后标题小一号，层级更清楚，
-      // 也给右上角的校区切换与更新状态留出空间。
-      titleTextStyle: atRoot
-          ? null
-          : Theme.of(
-              context,
-            ).appBarTheme.titleTextStyle?.copyWith(fontSize: 20),
-      automaticallyImplyLeading: false,
-      // 下一级页面的标题紧跟返回箭头。
-      titleSpacing: !atRoot
-          ? 4
-          : wide
-          ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)
-          : null,
-      title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
-        valueListenable: _visiblePage,
-        builder: (context, page, _) => Text(
-          _openedFeature == FeatureId.schedule
-              ? '课表'
-              : _openedFeature != null
-              ? (page?.$1.feature == _openedFeature
-                    ? page!.$2
-                    : _openedFeature!.title)
-              : (_utilityPage ??
-                    (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label)),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      leading: !atRoot
-          ? IconButton(
-              tooltip: '返回',
-              onPressed: _goBack,
-              icon: const Icon(Icons.arrow_back),
-            )
-          : null,
-      actions: <Widget>[
-        if (widget.connectionStatus != null || widget.onCompleteLogin != null)
-          UiConnectionStatusButton(
-            status: widget.connectionStatus,
-            onReconnect: widget.onReconnect,
-            onCompleteLogin: widget.onCompleteLogin,
-          ),
-        if (_openedFeature case final feature?)
-          ValueListenableBuilder<Map<FeatureId, Widget>>(
-            valueListenable: _appBarSlot,
-            builder: (context, slots, _) =>
-                slots[feature] ?? const SizedBox.shrink(),
-          ),
-        if (_openedFeature == FeatureId.schedule)
-          // 文字按钮比日历图标更不易被误认为“选日期”。
-          Tooltip(
-            message: '选择学期',
-            child: TextButton.icon(
-              onPressed: () => _readPageKeys[FeatureId.schedule]?.currentState
-                  ?.selectScheduleTerm(),
-              iconAlignment: IconAlignment.end,
-              icon: const Icon(Icons.arrow_drop_down),
-              label: const Text('学期'),
-            ),
-          ),
-        _buildSyncStatus(touchRefresh ? null : refreshPage),
-      ],
+    final header = uiShellHeader(
+      context,
+      wide: wide,
+      atRoot: atRoot,
+      feature: _openedFeature,
+      rootTitle:
+          _utilityPage ??
+          (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label),
+      visiblePage: _visiblePage,
+      slots: _appBarSlot,
+      goBack: _goBack,
+      selectTerm: () =>
+          _readPageKeys[FeatureId.schedule]?.currentState?.selectScheduleTerm(),
+      connectionStatus: widget.connectionStatus,
+      onReconnect: widget.onReconnect,
+      onCompleteLogin: widget.onCompleteLogin,
+      syncStatus: _buildSyncStatus(touchRefresh ? null : refreshPage),
     );
     final shell = PopScope<void>(
       canPop: _openedFeature == null && _utilityPage == null,
@@ -657,57 +657,36 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               child: Row(
                 children: <Widget>[
                   if (wide) homeRailScroll(context, _buildRailContent(context)),
-                  Expanded(
-                    key: const ValueKey<String>('feature-pages'),
-                    child: Column(
-                      children: [
-                        if (_selectedIndex != UiDestination.agenda.index ||
+                  uiShellContent(
+                    maxWidth: maxContentWidth,
+                    wide: wide,
+                    header:
+                        _selectedIndex != UiDestination.agenda.index ||
                             _openedFeature != null ||
-                            _utilityPage != null)
-                          Center(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: maxContentWidth,
-                              ),
-                              child: header,
-                            ),
-                          ),
-                        Expanded(
-                          child: ScrollGutters(
-                            maxWidth: maxContentWidth,
-                            child: SafeArea(
-                              top: false,
-                              bottom: wide,
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: _depthRevision,
-                                child: body,
-                                builder: (context, _, child) {
-                                  final depth = atRoot
-                                      ? 0
-                                      : _utilityPage != null
-                                      ? 1
-                                      : _readDepths[_openedFeature] ?? 1;
-                                  return UiPageTransition(
-                                    pageKey: (
-                                      _openedFeature,
-                                      _utilityPage,
-                                      depth,
-                                    ),
-                                    order: depth,
-                                    onBack:
-                                        touchRefresh &&
-                                            !atRoot &&
-                                            widget.writeState.intent == null
-                                        ? _goBack
-                                        : null,
-                                    child: child!,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                            _utilityPage != null
+                        ? header
+                        : null,
+                    body: ValueListenableBuilder<int>(
+                      valueListenable: _depthRevision,
+                      child: body,
+                      builder: (context, _, child) {
+                        final depth = atRoot
+                            ? 0
+                            : _utilityPage != null
+                            ? 1
+                            : _readDepths[_openedFeature] ?? 1;
+                        return UiPageTransition(
+                          pageKey: (_openedFeature, _utilityPage, depth),
+                          order: depth,
+                          onBack:
+                              touchRefresh &&
+                                  !atRoot &&
+                                  widget.writeState.intent == null
+                              ? _goBack
+                              : null,
+                          child: child!,
+                        );
+                      },
                     ),
                   ),
                 ],

@@ -8,7 +8,17 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
   required String owner,
   required RoutePolicy policy,
   required bool Function() isCurrent,
+  String agendaTerm = '',
+  DateTime? now,
+  Future<AgendaQueryResult?> Function(
+    List<WeekPresentation>,
+    ConnectionMode?,
+    DateTime,
+  )?
+  queryAgenda,
 }) async {
+  final buildTime = now ?? DateTime.now();
+  final campusDay = agendaDay(campusDate(buildTime));
   void check() {
     if (!isCurrent())
       throw const BackendException(UbaaErrorCode.operationConflict);
@@ -36,6 +46,8 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
     const FeatureQuery(view: FeatureQueryView.scheduleTerms),
   );
   final semesters = <Map<String, Object?>>[];
+  List<WeekPresentation>? currentWeeks;
+  ConnectionMode? weekRoute;
   final seen = <String>{};
   for (final item in terms?.details ?? <FeatureDetail>[]) {
     if (item.presentation case final TermPresentation term) {
@@ -43,6 +55,10 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
       final weeks = await read(
         FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term.code),
       );
+      if (term.code == agendaTerm) {
+        currentWeeks = _weekIndex(weeks);
+        weekRoute = weeks?.route;
+      }
       if (weeks == null || weeks.details.isEmpty || weeks.details.length > 80)
         continue;
       final exported = <Map<String, Object?>>[];
@@ -129,7 +145,85 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
     }
   }
   check();
-  return ScheduleWidgetSnapshot(owner: owner, semesters: semesters);
+  if (queryAgenda != null && currentWeeks == null && agendaTerm.isNotEmpty) {
+    final value = await read(
+      FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: agendaTerm),
+    );
+    currentWeeks = _weekIndex(value);
+    weekRoute = value?.route;
+  }
+  AgendaQueryResult? agenda;
+  try {
+    check();
+    agenda = await queryAgenda?.call(currentWeeks ?? [], weekRoute, campusDay);
+  } on Object {
+    check();
+  }
+  check();
+  return buildWidgetSnapshot(
+    owner: owner,
+    semesters: semesters,
+    now: buildTime,
+    term: agendaTerm,
+    weeks: currentWeeks ?? [],
+    agenda: agenda,
+  );
+}
+
+List<WeekPresentation> _weekIndex(CachedFeatureProjection? value) =>
+    value?.details
+        .map((detail) => detail.presentation)
+        .whereType<WeekPresentation>()
+        .toList() ??
+    [];
+
+Future<WeekPresentation?> readWidgetDateWeek({
+  required OfflineQueryBackend backend,
+  required String owner,
+  required RoutePolicy policy,
+  required DateTime date,
+  required String term,
+  required bool Function() isCurrent,
+}) async {
+  Future<CachedFeatureProjection?> read(FeatureQuery query) async {
+    if (!isCurrent()) return null;
+    final value = (await backend.readCachedQuery(
+      FeatureId.schedule,
+      query,
+      policy,
+    )).projection;
+    return isCurrent() &&
+            value != null &&
+            value.complete &&
+            value.accountId == owner &&
+            value.feature == FeatureId.schedule &&
+            value.readContext.hasSameQuery(query)
+        ? value
+        : null;
+  }
+
+  final terms = await read(
+    const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+  );
+  final codes = {
+    if (term.isNotEmpty) term,
+    for (final detail in terms?.details ?? <FeatureDetail>[])
+      if (detail.presentation case TermPresentation(
+        :final code,
+      ) when code.isNotEmpty)
+        code,
+  };
+  final weeks = <WeekPresentation>[];
+  for (final code in codes) {
+    weeks.addAll(
+      _weekIndex(
+        await read(
+          FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: code),
+        ),
+      ).where((week) => week.requestTerm == code),
+    );
+  }
+  return homeWeekOn(weeks, date);
 }
 
 DateTime? _date(String raw) {

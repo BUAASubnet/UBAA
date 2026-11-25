@@ -2,9 +2,14 @@ import 'dart:math' as math;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'format.dart';
 
-/// 日历几何使用北京时间的年月日字段，领域时间仍由 Core 提供。
-DateTime agendaDay(DateTime value) =>
-    DateTime.utc(value.year, value.month, value.day);
+export 'package:ubaa_domain/ubaa_domain.dart'
+    show
+        agendaDay,
+        agendaStart,
+        agendaEnd,
+        agendaCourseContinues,
+        agendaMergeCourses;
+
 DateTime agendaWeekStart(DateTime value) =>
     agendaDay(value).subtract(Duration(days: value.weekday - 1));
 DateTime agendaShiftMonth(DateTime value, int offset) {
@@ -18,12 +23,6 @@ String agendaEntryKey(AgendaEntry entry) => switch (entry.local) {
   null => 'school:${entry.school!.key.source}:${entry.school!.key.upstreamId}',
 };
 
-DateTime? agendaStart(AgendaEntry entry) => entry.timing.from != null
-    ? DateTime.tryParse('${entry.timing.from}T00:00:00Z')
-    : agendaValue(entry.timing.start);
-DateTime? agendaEnd(AgendaEntry entry) => entry.timing.to != null
-    ? DateTime.tryParse('${entry.timing.to}T00:00:00Z')
-    : agendaValue(entry.timing.end);
 DateTime? agendaEntryDate(AgendaEntry entry) =>
     agendaStart(entry) ?? agendaValue(entry.timing.due) ?? agendaEnd(entry);
 
@@ -113,49 +112,6 @@ List<AgendaEntry> agendaEntryConflicts(
                 agendaOverlaps(start, end, courseStart, courseEnd))
               course,
   ];
-}
-
-/// 同一天同名同地点的课程，若前一节结束到后一节开始不超过 20 分钟，界面合并为一段显示。
-bool agendaCourseContinues(
-  AgendaEntry a,
-  DateTime aEnd,
-  AgendaEntry b,
-  DateTime bStart,
-) {
-  if (a.school?.navigation.feature != AgendaFeature.schedule ||
-      b.school?.navigation.feature != AgendaFeature.schedule) {
-    return false;
-  }
-  if (a.school!.title != b.school!.title ||
-      (a.school!.location ?? '') != (b.school!.location ?? '')) {
-    return false;
-  }
-  final gap = bStart.difference(aEnd);
-  return !gap.isNegative &&
-      gap <= const Duration(minutes: 20) &&
-      agendaDay(aEnd) == agendaDay(bStart);
-}
-
-/// 将已按开始时间排序的条目中连续课程合并，返回（条目，显示结束时间）。
-/// 中间夹有签到等其他条目时同样合并。
-List<(AgendaEntry, DateTime?)> agendaMergeCourses(List<AgendaEntry> sorted) {
-  final out = <(AgendaEntry, DateTime?)>[];
-  outer:
-  for (final e in sorted) {
-    final start = agendaStart(e);
-    if (start != null &&
-        e.school?.navigation.feature == AgendaFeature.schedule) {
-      for (var k = out.length - 1; k >= 0; k--) {
-        final (prev, prevEnd) = out[k];
-        if (prevEnd != null && agendaCourseContinues(prev, prevEnd, e, start)) {
-          out[k] = (prev, agendaEnd(e) ?? prevEnd);
-          continue outer;
-        }
-      }
-    }
-    out.add((e, agendaEnd(e)));
-  }
-  return out;
 }
 
 /// 与课程同名且时段重叠的签到条目归入该课程，返回（条目，显示结束时间，签到）。

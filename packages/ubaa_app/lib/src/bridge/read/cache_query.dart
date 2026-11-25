@@ -76,7 +76,9 @@ Future<OfflineQueryRead> bridgeReadCachedQuery(
       !ygdkRecords)
     return const OfflineQueryRead(null);
   final queryDate = bridgeDateOnly(query.date ?? DateTime.now());
-  const route = BridgeConnectionMode.direct;
+  final route = feature == FeatureId.schedule && policy == RoutePolicy.webvpn
+      ? BridgeConnectionMode.webVpn
+      : BridgeConnectionMode.direct;
   CachedFeatureProjection? value;
   BackendException? failure;
   try {

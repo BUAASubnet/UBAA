@@ -1,7 +1,7 @@
 import Foundation
 
 /// 与 Android `WidgetSchedule.kt` 同合同的离线课表投影模型与选择逻辑。
-/// 快照 JSON 版本 1：{version, owner, semesters:[{term, name, updatedAt, weeks:[…]}]}。
+/// 第一版与第二版快照共用周课表字段。
 /// 本文件由 Runner 与 ScheduleWidget 扩展共同编译。
 
 enum ScheduleDisplay {
@@ -183,7 +183,9 @@ enum ScheduleWeekLanes {
 
 enum ScheduleWidgetParser {
     static func parseSnapshot(_ raw: [String: Any]) throws -> WidgetSnapshot {
-        guard (raw["version"] as? Int) == 1 else { throw ScheduleWidgetModelError.invalidFormat }
+        guard let version = raw["version"] as? Int, (1...2).contains(version) else {
+            throw ScheduleWidgetModelError.invalidFormat
+        }
         let owner = try string(raw["owner"], max: 128, allowEmpty: false)
         let terms = (raw["semesters"] as? [[String: Any]]) ?? []
         guard terms.count <= 32 else { throw ScheduleWidgetModelError.invalidFormat }

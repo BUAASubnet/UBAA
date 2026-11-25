@@ -39,7 +39,7 @@ internal data class SelectedWeek(val semester: WidgetSemester, val week: WidgetW
 internal data class SavedAgendaItem(val date: LocalDate, val course: WidgetCourse)
 
 internal fun parseWidgetSnapshot(raw: JSONObject): WidgetSnapshot {
-    require(raw.getInt("version") == 1)
+    require(raw.getInt("version") in 1..2)
     val owner = raw.getString("owner")
     require(owner.isNotBlank() && owner.length <= 128)
     val terms = raw.getJSONArray("semesters")

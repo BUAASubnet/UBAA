@@ -1,10 +1,20 @@
 package cn.edu.ubaa.ubaa_flutter.widgets
 
 import java.time.LocalDate
+import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
 
 class WidgetScheduleTest {
+    @Test
+    fun 第二版保留原课表并拒绝未知版本() {
+        val raw = JSONObject("""{"version":1,"owner":"合成账号","semesters":[{"term":"term","updatedAt":"2026-11-16T00:00:00Z","name":"合成学期","weeks":[{"number":1,"name":"第一周","start":"2026-09-28","end":"2026-10-04","courses":[{"name":"合成课程","day":1}],"times":[{"section":1}]}]}]}""")
+        val first = parseWidgetSnapshot(raw)
+        assertEquals("合成课程", first.semesters.single().weeks.single().arrangedList.single().courseName)
+        assertEquals(first, parseWidgetSnapshot(raw.put("version", 2).put("upNext", JSONObject.NULL)))
+        assertThrows(IllegalArgumentException::class.java) { parseWidgetSnapshot(raw.put("version", 3)) }
+    }
+
     private fun week(n: Int, start: String) =
         WidgetWeek(
             n,

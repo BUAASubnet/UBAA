@@ -58,6 +58,7 @@ final class HomeCoordinator {
   Timer? _timer, _projectionRetry;
   Future<void>? _refresh;
   YgdkReminderSettings _reminder = const YgdkReminderSettings(enabled: false);
+  YgdkReminderSettings get reminder => _reminder;
   late DateTime _now = clock();
   late HomeState _state = _compose();
   HomeState get state => _state;
