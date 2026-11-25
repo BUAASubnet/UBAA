@@ -27,8 +27,8 @@ it("维护看板按版本和错误维度筛选，样本不改变失败次数", a
   );
   const start = Date.parse("2026-11-01T00:00:00+08:00");
   const variables = {
-    "${__from}": String(start),
-    "${__to}": String(start + 86400000),
+    "$__unixEpochFrom()": String(start / 1000),
+    "$__unixEpochTo()": String((start + 86400000) / 1000),
     "${app_version:sqlstring}": "'2.0.0+2008'",
     "${feature:sqlstring}": "'cgyy'",
     "${route:sqlstring}": "'webvpn'",
@@ -103,10 +103,13 @@ for (const panel of panels) {
     it(`PostgreSQL 看板查询可运行：${panel.title}`, async () => {
       const sql = target.rawSql
         .replaceAll(
-          "${__from}",
-          String(Date.parse("2026-11-01T00:00:00+08:00")),
+          "$__unixEpochFrom()",
+          String(Date.parse("2026-11-01T00:00:00+08:00") / 1000),
         )
-        .replaceAll("${__to}", String(Date.parse("2026-11-14T00:00:00+08:00")))
+        .replaceAll(
+          "$__unixEpochTo()",
+          String(Date.parse("2026-11-14T00:00:00+08:00") / 1000),
+        )
         .replaceAll("${platform:csv}", "linux")
         .replaceAll("${channel:csv}", "github");
       await expect(env.DB.prepare(sql).all()).resolves.toBeDefined();
@@ -123,8 +126,11 @@ function query(
 ) {
   return panels
     .find((panel) => panel.title === title)!
-    .targets![0].rawSql.replaceAll("${__from}", String(start))
-    .replaceAll("${__to}", String(end))
+    .targets![0].rawSql.replaceAll(
+      "$__unixEpochFrom()",
+      String(Math.floor(start / 1000)),
+    )
+    .replaceAll("$__unixEpochTo()", String(Math.floor(end / 1000)))
     .replaceAll("${platform:csv}", platform)
     .replaceAll("${channel:csv}", channel);
 }
