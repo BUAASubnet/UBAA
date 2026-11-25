@@ -146,20 +146,42 @@ pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
             flattened.push(map.clone());
         }
     }
-    Ok(flattened
+    Ok(flattened.iter().map(site_from_map).collect())
+}
+
+/// 解析杭州 `venue_information` 响应：场地平铺在 `data.siteList`，项字段与北京站点一致。
+pub(super) fn parse_hangzhou_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
+    let value = data(body)?;
+    let sites = value
+        .get("siteList")
+        .and_then(Value::as_array)
+        .ok_or_else(|| error("杭州场地列表响应结构无效"))?;
+    Ok(sites
         .iter()
-        .map(|item| CgyyVenueSite {
-            id: int(item, "id").unwrap_or_default(),
-            site_name: string(item, "siteName").unwrap_or_default(),
-            venue_name: string(item, "venueName").unwrap_or_default(),
-            campus_name: string(item, "campusName").unwrap_or_default(),
-            seat_count: int(item, "seatCount"),
-            reservation_space_count: int(item, "reservationSpaceCount"),
-            site_telephone: string(item, "siteTelephone"),
-            open_start_date: string(item, "openStartDate"),
-            open_end_date: string(item, "openEndDate"),
+        .filter_map(Value::as_object)
+        .map(|item| {
+            // 真机 `venue_information.siteList` 项只有 `siteId`，没有北京的 `id`。
+            let mut site = site_from_map(item);
+            if let Some(id) = int(item, "siteId").filter(|id| *id > 0) {
+                site.id = id;
+            }
+            site
         })
         .collect())
+}
+
+fn site_from_map(item: &Map<String, Value>) -> CgyyVenueSite {
+    CgyyVenueSite {
+        id: int(item, "id").unwrap_or_default(),
+        site_name: string(item, "siteName").unwrap_or_default(),
+        venue_name: string(item, "venueName").unwrap_or_default(),
+        campus_name: string(item, "campusName").unwrap_or_default(),
+        seat_count: int(item, "seatCount"),
+        reservation_space_count: int(item, "reservationSpaceCount"),
+        site_telephone: string(item, "siteTelephone"),
+        open_start_date: string(item, "openStartDate"),
+        open_end_date: string(item, "openEndDate"),
+    }
 }
 
 pub(super) fn parse_purpose_types_with_source(
@@ -462,7 +484,22 @@ fn parse_slot(
         already_num: int(raw, "alreadyNum"),
         take_up,
         take_up_explain: string(raw, "takeUpExplain"),
+        admin_remark: admin_remark(raw),
     }
+}
+
+/// 只在 `adminTake` 严格为 true 时取场馆公开的占用说明，过长或含控制字符时丢弃。
+fn admin_remark(raw: &Map<String, Value>) -> Option<String> {
+    if raw.get("adminTake") != Some(&Value::Bool(true)) {
+        return None;
+    }
+    string(raw, "adminRemark")
+        .map(|remark| remark.trim().to_owned())
+        .filter(|remark| {
+            !remark.is_empty()
+                && remark.chars().count() <= 20
+                && !remark.chars().any(char::is_control)
+        })
 }
 
 fn strict_i32(map: &Map<String, Value>, key: &str) -> Option<i32> {
@@ -740,4 +777,19 @@ pub fn parse_lock_code(body: &str) -> Result<CgyyLockCode> {
     Ok(CgyyLockCode {
         available: !root.get("data").is_none_or(Value::is_null),
     })
+}
+
+/// 杭州官网的日期按钮：从今天起 `advanceReservationDays` 天（实录为 3）；缺失或越界时不推断。
+pub(super) fn hangzhou_advance_dates(body: &str, today: chrono::NaiveDate) -> Option<Vec<String>> {
+    let days = data(body)
+        .ok()?
+        .as_object()
+        .and_then(|root| strict_i32(root, "advanceReservationDays"))
+        .filter(|days| (1..=14).contains(days))?;
+    Some(
+        (0..i64::from(days))
+            .filter_map(|offset| today.checked_add_signed(chrono::Duration::days(offset)))
+            .map(|date| date.format("%Y-%m-%d").to_string())
+            .collect(),
+    )
 }

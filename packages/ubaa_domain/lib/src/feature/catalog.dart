@@ -12,6 +12,7 @@ enum FeatureId {
   cgyy,
   ygdk,
   evaluation,
+  hangzhouCgyy,
 }
 
 /// 普通功能页的稳定顺序。
@@ -30,6 +31,7 @@ const ordinaryFeatureIds = <FeatureId>[
 const advancedFeatureIds = <FeatureId>[
   FeatureId.signin,
   FeatureId.cgyy,
+  FeatureId.hangzhouCgyy,
   FeatureId.ygdk,
   FeatureId.evaluation,
 ];
@@ -51,6 +53,7 @@ const campusFeatureIds = <FeatureId>[
   FeatureId.libbook,
   FeatureId.signin,
   FeatureId.cgyy,
+  FeatureId.hangzhouCgyy,
   FeatureId.ygdk,
 ];
 
@@ -68,6 +71,7 @@ extension FeatureIdText on FeatureId {
     FeatureId.cgyy => '研讨室预约',
     FeatureId.ygdk => '阳光打卡',
     FeatureId.evaluation => '教学评教',
+    FeatureId.hangzhouCgyy => '杭州空间预约',
   };
 
   String get description => switch (this) {
@@ -83,6 +87,7 @@ extension FeatureIdText on FeatureId {
     FeatureId.cgyy => '查询、预约和管理研讨室',
     FeatureId.ygdk => '查看学期进度与打卡记录',
     FeatureId.evaluation => '查看待评课程和完成进度',
+    FeatureId.hangzhouCgyy => '查看杭州校区场馆和我的预约（只读，暂只支持直连）',
   };
 
   String get wireName => switch (this) {
@@ -98,5 +103,6 @@ extension FeatureIdText on FeatureId {
     FeatureId.cgyy => 'cgyy',
     FeatureId.ygdk => 'ygdk',
     FeatureId.evaluation => 'evaluation',
+    FeatureId.hangzhouCgyy => 'hangzhou_cgyy',
   };
 }

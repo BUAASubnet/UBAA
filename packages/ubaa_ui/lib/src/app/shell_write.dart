@@ -303,6 +303,47 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     );
   }
 
+  HangzhouCgyyWriteCallbacks? get _hangzhouCgyyCallbacks {
+    final captcha = widget.onLoadHangzhouCgyyCaptcha;
+    if (!_hasWriteCommands ||
+        captcha == null ||
+        widget.onPrepareHangzhouCgyySubmitWrite == null ||
+        widget.onPrepareHangzhouCgyyCancelWrite == null) {
+      return null;
+    }
+    return HangzhouCgyyWriteCallbacks(
+      loadCaptcha: captcha,
+      submit: _startHangzhouCgyySubmitWrite,
+      cancel: _startHangzhouCgyyCancelWrite,
+    );
+  }
+
+  Future<void> _startHangzhouCgyySubmitWrite(
+    HangzhouCgyySubmitInput input,
+  ) async {
+    final prepare = widget.onPrepareHangzhouCgyySubmitWrite;
+    if (prepare == null) return;
+    await _runDirectWrite(
+      prepare: () => prepare(input),
+      failureMessage: '预约失败，请换一张验证码后重试',
+      expectedOperation: WriteOperation.hangzhouCgyySubmitReservation,
+    );
+  }
+
+  Future<void> _startHangzhouCgyyCancelWrite(
+    HangzhouCgyyCancelAction action,
+  ) async {
+    final prepare = widget.onPrepareHangzhouCgyyCancelWrite;
+    if (prepare == null || _writeBusy) return;
+    final reason = await uiAskHangzhouCgyyCancelReason(context);
+    if (reason == null || !mounted) return;
+    await _runDirectWrite(
+      prepare: () => prepare(action, reason),
+      failureMessage: '取消失败，请刷新后重试',
+      expectedOperation: action.operation,
+    );
+  }
+
   Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
     final prepare = widget.onPrepareCgyySubmitWrite;
     if (prepare == null) return;

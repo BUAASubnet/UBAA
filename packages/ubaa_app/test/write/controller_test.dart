@@ -545,6 +545,12 @@ void _registerWriteTests() {
         expect(backend.queries, hasLength(1));
         expect(backend.queries.single.$1, FeatureId.cgyy);
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
+      } else if (operation == WriteOperation.hangzhouCgyySubmitReservation ||
+          operation == WriteOperation.hangzhouCgyyCancelOrder) {
+        expect(backend.loadedFeatures, isEmpty);
+        expect(backend.queries, hasLength(1));
+        expect(backend.queries.single.$1, FeatureId.hangzhouCgyy);
+        expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
       } else if (operation == WriteOperation.cgyyCancelOrder ||
           operation == WriteOperation.ygdkSubmit ||
           operation == WriteOperation.evaluationSubmitCourses ||
@@ -874,6 +880,8 @@ FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.ygdkSubmit => FeatureId.ygdk,
   WriteOperation.cgyySubmitReservation ||
   WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+  WriteOperation.hangzhouCgyySubmitReservation ||
+  WriteOperation.hangzhouCgyyCancelOrder => FeatureId.hangzhouCgyy,
   WriteOperation.evaluationSubmitCourses ||
   WriteOperation.libraryLoanRenew ||
   WriteOperation.bhpan => throw StateError('功能使用自己的读取核对入口，不走通用刷新'),

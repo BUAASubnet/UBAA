@@ -35,6 +35,18 @@ mixin ControllerReadbackDispatch on ControllerState {
         );
       }
     }
+    if (operation == WriteOperation.hangzhouCgyySubmitReservation ||
+        operation == WriteOperation.hangzhouCgyyCancelOrder) {
+      // 杭州预约与取消都以“我的预约”列表为唯一核对入口。
+      if (internalBackend is FeatureQueryBackend) {
+        internalCacheLifecycle.invalidateReads();
+        return internalRefreshFeatureQuery(
+          FeatureId.hangzhouCgyy,
+          const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+          writeReadback: true,
+        );
+      }
+    }
     if (operation == WriteOperation.cgyyCancelOrder) {
       // 研讨室取消必须由 verifyCgyyCancellation 独占执行列表+详情双回读；
       // 此通用入口不做单列表降级，也不会触发写入重试。
@@ -64,6 +76,8 @@ mixin ControllerReadbackDispatch on ControllerState {
       WriteOperation.ygdkSubmit => FeatureId.ygdk,
       WriteOperation.cgyySubmitReservation ||
       WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+      WriteOperation.hangzhouCgyySubmitReservation ||
+      WriteOperation.hangzhouCgyyCancelOrder => FeatureId.hangzhouCgyy,
       WriteOperation.evaluationSubmitCourses => throw StateError(
         '评教使用调用方固定路线回读',
       ),

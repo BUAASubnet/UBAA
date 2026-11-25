@@ -41,8 +41,11 @@ enum RecoveryTarget {
   evaluation,
   connection;
 
-  static RecoveryTarget fromFeature(FeatureId feature) =>
-      RecoveryTarget.values.byName(feature.name);
+  static RecoveryTarget fromFeature(FeatureId feature) => switch (feature) {
+    // 杭州空间预约在 Core 复用研讨室的路线解析与会话目标。
+    FeatureId.hangzhouCgyy => RecoveryTarget.cgyy,
+    _ => RecoveryTarget.values.byName(feature.name),
+  };
   FeatureId? get feature => switch (this) {
     user ||
     portal ||

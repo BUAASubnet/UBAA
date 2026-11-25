@@ -57,10 +57,10 @@ extension CgyyReservationTable on CgyyReservationFlowState {
 
   Widget _table(BuildContext context, CgyyDayPresentation day) {
     if (day.spaces.isEmpty)
-      return const UiStatePanel(
+      return UiStatePanel(
         compact: true,
         icon: Icons.meeting_room_outlined,
-        title: '暂无研讨室',
+        title: widget.hangzhouVenue ? '暂无场地' : '暂无研讨室',
       );
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
     final rowHeight = 56 * scale;
@@ -171,7 +171,11 @@ extension CgyyReservationTable on CgyyReservationFlowState {
                           color: Theme.of(context).colorScheme.surface,
                           child: Row(
                             children: [
-                              cell('研讨室', roomWidth, headerHeight),
+                              cell(
+                                widget.hangzhouVenue ? '场地' : '研讨室',
+                                roomWidth,
+                                headerHeight,
+                              ),
                               Expanded(
                                 child: SingleChildScrollView(
                                   key: const ValueKey(
@@ -295,13 +299,17 @@ extension CgyyReservationTable on CgyyReservationFlowState {
     final allowed = key != null && actions.containsKey(key);
     final selected = allowed && _selected.contains(key);
     final colors = Theme.of(context).colorScheme;
+    // 杭州场馆按官网显示占用原因：管理员占用说明（如“教学使用”）或“已售”。
+    final slot = detail?.presentation;
+    final note =
+        !widget.hangzhouVenue || allowed || slot is! CgyySlotPresentation
+        ? null
+        : slot.adminRemark ?? (slot.reservationStatus == 4 ? '已售' : null);
     final status = selected
         ? '已选'
         : allowed
         ? '可预约'
-        : candidates.isEmpty
-        ? '无时段信息'
-        : '不可预约';
+        : note ?? (candidates.isEmpty ? '无时段信息' : '不可预约');
     final toggle = allowed ? () => _toggleSlot(key, actions) : null;
     return Semantics(
       label:

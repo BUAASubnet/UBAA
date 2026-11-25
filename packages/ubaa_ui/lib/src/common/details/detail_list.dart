@@ -105,6 +105,7 @@ class FeatureDetailList extends StatefulWidget {
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
+    this.onHangzhouCgyyCancelWrite,
     this.cgyyFormContext,
     this.ygdkFormContext,
     this.onEvaluationWrite,
@@ -150,6 +151,8 @@ class FeatureDetailList extends StatefulWidget {
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
+  final Future<void> Function(HangzhouCgyyCancelAction action)?
+  onHangzhouCgyyCancelWrite;
   final CgyyFormContext? cgyyFormContext;
   final YgdkFormContext? ygdkFormContext;
   final EvaluationSubmitStarter? onEvaluationWrite;
@@ -649,6 +652,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                                   canLibbookCancel,
                                 ),
                                 ..._cgyyCancelWriteFields(cgyyCancelAction),
+                                ..._hangzhouCgyyCancelWriteFields(detail),
                                 ..._libbookReserveWriteFields(
                                   context,
                                   libbookReserveAction,

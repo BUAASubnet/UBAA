@@ -32,7 +32,8 @@ extension CgyyReservationSelection on CgyyReservationFlowState {
           child: const Text('清空选择'),
         ),
         FilledButton(
-          onPressed: _busy || widget.onSubmit == null
+          onPressed:
+              _busy || (widget.onSubmit == null && widget.hangzhou == null)
               ? null
               : () => _continueSelection(context, selected),
           child: const Text('下一步'),
@@ -80,6 +81,18 @@ extension CgyyReservationSelection on CgyyReservationFlowState {
     List<CgyyReserveAction> selected,
   ) async {
     final original = widget.snapshot;
+    if (widget.hangzhou case final hangzhou?) {
+      final input = await uiCollectHangzhouCgyyReservation(
+        context,
+        actions: selected,
+        selectionLabel: _selectionLabel(selected),
+        loadCaptcha: hangzhou.loadCaptcha,
+      );
+      if (mounted && input != null && identical(original, widget.snapshot)) {
+        await hangzhou.submit(input);
+      }
+      return;
+    }
     final input = await uiCollectCgyyReservation(
       context,
       selected.first,

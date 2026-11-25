@@ -65,6 +65,14 @@ impl PendingWrite {
                 classify_id: v.target.classify_id,
             },
             Self::Evaluation(_) => core::CacheInvalidation::Evaluation,
+            // 杭州读取不进本机业务缓存；仍登记场馆领域失效，避免把写结果投影成旧数据。
+            Self::HangzhouCgyyReserve(_) | Self::HangzhouCgyyCancel(_) => {
+                core::CacheInvalidation::Cgyy {
+                    site_id: None,
+                    date: None,
+                    order_id: None,
+                }
+            }
         }
     }
 }

@@ -249,3 +249,71 @@ Future<WriteIntent> _prepareIntent(
     Error.throwWithStackTrace(bridgeMapError(error), stack);
   }
 }
+
+/// 取一张杭州滑块验证码；只读，不产生预约。
+Future<HangzhouCgyyCaptcha> bridgeLoadHangzhouCgyyCaptcha(
+  BridgeContext backend,
+) async {
+  try {
+    final result = await backend.client.hangzhouCgyyCaptcha();
+    return HangzhouCgyyCaptcha(
+      token: result.data.token,
+      secretKey: result.data.secretKey,
+      originalImageBase64: result.data.originalImageBase64,
+      jigsawImageBase64: result.data.jigsawImageBase64,
+    );
+  } on BridgeError catch (error, stack) {
+    Error.throwWithStackTrace(bridgeMapError(error), stack);
+  }
+}
+
+Future<WriteIntent> bridgePrepareHangzhouCgyySubmitReservation(
+  BridgeContext backend,
+  HangzhouCgyySubmitInput input,
+) {
+  final validated = validateHangzhouCgyySubmitInput(input);
+  final target = validated.actions.first;
+  return _prepareIntent(
+    backend,
+    backend.client.prepareHangzhouCgyySubmitReservation(
+      request: BridgeHangzhouCgyyReservationRequest(
+        venueSiteId: target.venueSiteId,
+        reservationDate: target.reservationDate,
+        selections: validated.actions
+            .map(
+              (action) => BridgeCgyyReservationSelection(
+                spaceId: action.spaceId,
+                timeId: action.timeId,
+                venueSpaceGroupId: null,
+              ),
+            )
+            .toList(growable: false),
+        phone: validated.phone,
+        captchaToken: validated.captcha.token,
+        captchaSecretKey: validated.captcha.secretKey,
+        sliderOffsetX: validated.sliderOffsetX,
+        tapX: validated.tapX,
+        tapY: validated.tapY,
+      ),
+    ),
+  );
+}
+
+Future<WriteIntent> bridgePrepareHangzhouCgyyCancelOrder(
+  BridgeContext backend,
+  HangzhouCgyyCancelAction action,
+  String reason,
+) {
+  if (!action.isUsable) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  return _prepareIntent(
+    backend,
+    backend.client.prepareHangzhouCgyyCancelOrder(
+      request: BridgeHangzhouCgyyCancelRequest(
+        tradeNo: action.tradeNo,
+        reason: validateHangzhouCgyyCancelReason(reason),
+      ),
+    ),
+  );
+}

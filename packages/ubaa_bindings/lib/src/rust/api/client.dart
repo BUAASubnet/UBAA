@@ -649,6 +649,24 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedGradeOverview> gradesOverview();
 
+  /// 取一张杭州滑块验证码交给用户拖动；不产生预约。
+  Future<BridgeRoutedHangzhouCgyyCaptcha> hangzhouCgyyCaptcha();
+
+  /// 读取杭州校区空间预约某场地某日的房间与时段；暂只支持直连路线。
+  Future<BridgeRoutedCgyyDayInfo> hangzhouCgyyDayInfo({
+    required int siteId,
+    required String date,
+  });
+
+  /// 读取杭州校区空间预约（hzsm）我的预约；暂只支持直连路线。
+  Future<BridgeRoutedCgyyOrders> hangzhouCgyyOrders({
+    required int page,
+    required int size,
+  });
+
+  /// 读取杭州校区空间预约（hzsm）场馆站点；暂只支持直连路线。
+  Future<BridgeRoutedCgyySites> hangzhouCgyySites();
+
   /// 查看是否存在可恢复的本机会话，不访问网络。
   ///
   /// # Errors
@@ -993,6 +1011,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeWriteIntent> prepareEvaluationSubmitCourses({
     required BridgeEvaluationSubmitCoursesRequest request,
+  });
+
+  /// 读取取消提醒后保存一次性取消意图。
+  Future<BridgeWriteIntent> prepareHangzhouCgyyCancelOrder({
+    required BridgeHangzhouCgyyCancelRequest request,
+  });
+
+  /// 复核杭州时段仍可预约后保存一次性意图；验证码在确认提交时才校验。
+  Future<BridgeWriteIntent> prepareHangzhouCgyySubmitReservation({
+    required BridgeHangzhouCgyyReservationRequest request,
   });
 
   /// 准备同步登记的两路验证状态。

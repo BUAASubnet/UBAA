@@ -14,6 +14,7 @@ use super::support::{
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
     BridgeCgyySubmitReservationRequest, BridgeEvaluationSubmitCoursesRequest,
+    BridgeHangzhouCgyyCancelRequest, BridgeHangzhouCgyyReservationRequest,
     BridgeLibbookCancelBookingRequest, BridgeLibbookReserveRequest, BridgeLibraryLoanRenewRequest,
     BridgeLibraryLoanRenewTarget, BridgeSigninPerformRequest, BridgeWriteIntent,
     BridgeWriteOperation, BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
@@ -615,6 +616,94 @@ impl BridgeClient {
                     "提交后请刷新订单列表与详情核对结果".to_owned(),
                 ],
                 PendingWrite::CgyyCancel(request),
+                current.resolution,
+            )
+            .await
+            .map_err(PreparationError::from)
+        })
+        .await
+    }
+    /// 复核杭州时段仍可预约后保存一次性意图；验证码在确认提交时才校验。
+    pub async fn prepare_hangzhou_cgyy_submit_reservation(
+        &self,
+        request: BridgeHangzhouCgyyReservationRequest,
+    ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_hangzhou_cgyy_submit_reservation_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_hangzhou_cgyy_submit_reservation_scoped(
+        &self,
+        request: BridgeHangzhouCgyyReservationRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
+        let request = super::support::map_hangzhou_cgyy_request(request)?;
+        catch_preparation_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
+            let current = client
+                .hangzhou_cgyy_day_info(request.venue_site_id, &request.reservation_date)
+                .await
+                .map_err(|error| PreparationError::mapped(error, map_cgyy_preflight_error))?;
+            let summary = super::support::hangzhou_cgyy_target_summary(&current.data, &request)?;
+            let canonical = super::support::hangzhou_cgyy_canonical(&request);
+            self.store_write_intent(
+                BridgeWriteOperation::HangzhouCgyySubmitReservation,
+                canonical,
+                summary,
+                vec![
+                    "仅支持免费场地；提交后会自动完成 0 元确认".to_owned(),
+                    "验证码与点击位置只在本次操作内存中使用".to_owned(),
+                    "提交后请到“我的预约”核对结果".to_owned(),
+                ],
+                PendingWrite::HangzhouCgyyReserve(request),
+                current.resolution,
+            )
+            .await
+            .map_err(PreparationError::from)
+        })
+        .await
+    }
+    /// 读取取消提醒后保存一次性取消意图。
+    pub async fn prepare_hangzhou_cgyy_cancel_order(
+        &self,
+        request: BridgeHangzhouCgyyCancelRequest,
+    ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_hangzhou_cgyy_cancel_order_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_hangzhou_cgyy_cancel_order_scoped(
+        &self,
+        request: BridgeHangzhouCgyyCancelRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
+        let request = domain::HangzhouCgyyCancelRequest {
+            trade_no: request.trade_no.trim().to_owned(),
+            reason: request.reason.trim().to_owned(),
+        };
+        catch_preparation_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(|| disposed_error())?;
+            let current = client
+                .preflight_hangzhou_cgyy_cancel(&request)
+                .await
+                .map_err(PreparationError::from_routed)?;
+            let mut warnings = vec![
+                "取消操作不可恢复".to_owned(),
+                "提交后请刷新“我的预约”核对结果".to_owned(),
+            ];
+            if let Some(tip) = current.data.tip.as_deref() {
+                warnings.insert(0, safe_summary_label(tip, "场馆取消提醒"));
+            }
+            self.store_write_intent(
+                BridgeWriteOperation::HangzhouCgyyCancelOrder,
+                format!("trade_no={}", current.data.trade_no),
+                format!(
+                    "杭州预约订单 {} · 原因 {}",
+                    safe_summary_label(&current.data.trade_no, "订单"),
+                    safe_summary_label(&request.reason, "原因"),
+                ),
+                warnings,
+                PendingWrite::HangzhouCgyyCancel(request),
                 current.resolution,
             )
             .await

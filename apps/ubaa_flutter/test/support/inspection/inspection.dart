@@ -143,6 +143,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
   ) {
     final v = q.view;
     switch (feature) {
+      case FeatureId.hangzhouCgyy:
+        return original;
       case FeatureId.schedule:
       case FeatureId.exam:
       case FeatureId.grades:

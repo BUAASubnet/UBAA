@@ -62,6 +62,7 @@ class DemoBackend implements UbaaBackend, HomeTodoBackend {
       FeatureId.cgyy => '研讨室预约站点 2 个',
       FeatureId.ygdk => '本周打卡进度已加载',
       FeatureId.evaluation => '待评课程 3 门',
+      FeatureId.hangzhouCgyy => '杭州场馆 2 个',
     };
     return FeatureResult.success(
       summary: summary,

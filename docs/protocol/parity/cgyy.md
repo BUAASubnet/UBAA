@@ -31,7 +31,7 @@
 
 ### 2026-11-25 杭州校区空间预约（hzsm）与杭州统一认证（hzsso）
 
-日期：2026-11-25。来源 issue：杭州校区学生请求适配。本专项只新增**只读**的场馆站点与我的预约；预约、取消、锁码等写入与其余读取不在范围内。
+日期：2026-11-25。来源 issue：杭州校区学生请求适配。本专项先新增**只读**的场馆站点与我的预约；预约与取消见下一节，锁码等其余能力不在范围内。
 
 #### 证据来源
 
@@ -47,8 +47,8 @@
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|---|
 | hzsso 登录（北航 CAS 插件） | 入口 `http://hzsso.buaa.edu.cn`；CAS 由 `plugin_cas/login` 返回的 `loginUrl` 给出，必须是 `sso.buaa.edu.cn`/`uc.buaa.edu.cn`（`is_allowed_auth_host`），否则 `upstream_changed`。 | `loginUrl` 由主会话跟随重定向，必须落到 `hzsso.buaa.edu.cn/public/api/authenticate/plugin_cas/static/callback.html?ticket=`；落在其它地址（如北航登录页）即认证失败。 | hzsso 会话 Cookie 由 Core Cookie 罐保存在当前路线 runtime；IDaaS `accessToken` 只在本次调用内存中使用。 | 1 `GET /api/public/bff/v1.2/frontend/login_data` 取 `data.clientId`；2 `POST .../authenticate/plugin/generate_trace_id` `{enterpriseAuthId:"idaasplugin_cas", enterpriseId:"idaas", clientId}`；3 `POST /public/api/authenticate/plugin_cas/login` `{enterpriseAuthId, traceId}`；5 `POST .../plugin_cas/valid_ticket` `{enterpriseAuthId, traceId, ticket}`；6 `POST .../authenticate/plugin/validate_trace_id` `{traceId}`；7 `POST /api/bff/v1.2/commons/session/save` `{access_token}`。 | JSON 正文 `Content-Type: application/json;charset=UTF-8`；第 7 步按前端拦截器（非 `public` 路径）带 `Authorization: Bearer <accessToken>`。 | 无（IDaaS 的 SM2 只用于本地密码登录，本流程不涉及）。 | 2 `data.traceId`；3 顶层 `success`、`loginUrl`；5 顶层 `success`（另有 `frontendAdapterAddress`，未使用）；6 `data.accessToken`（前端另有 `portalBound/needBind/redirectUri` 分支，未使用）；7 `data.result=true`。 | 由业务登录单飞锁串行；只在应用入口落到 hzsso 登录页时执行一次，之后重进入口一次。 | 非直连路线 `unsupported`；缺字段/非 JSON `upstream_changed`；`success!=true`、无票据、`result!=true`、重进后仍在登录页均为 `authentication_required`；不清除北航主会话。 |
-| 杭州业务登录 | `http://hzsso.buaa.edu.cn/enduser/sp/sso/idaasplugin_jwt38?enterpriseId=idaas`（hzsm 前端 `ssoLoginUrl`）。 | 302 → `https://hzsm.buaa.edu.cn/venue-server/loginto?id_token=<JWT>` → `/venue/login`；重定向只额外放行 `hzsso.buaa.edu.cn`、`hzsm.buaa.edu.cn`，且仅限本功能。hzsso 未登录时落到 `/frontend/login/`，先执行上一行。 | `sso_buaa_h3i_token`（hzsm 主机）；业务 `access_token` 存在当前路线 `hz_cgyy` 槽位，与北京 `cgyy` 分开，不写入 `session.json`。 | `POST /venue-server/api/login`，无表单字段。 | 与北京相同的 `Accept`、`app-key`、`timestamp`、`sign`，`Sso-Token` 携带 Cookie 值；`Referer` 为 `https://hzsm.buaa.edu.cn/venue/home`（实录中前端页面地址）。 | 与北京相同（见证据 3）。 | `data.token.access_token`（hzsm 前端 `t.token.access_token`）。前端在 `roles` 存在时另调 `POST /roleLogin`；北京同产品的冻结实现不调用且可读，**本次不实现 `roleLogin`，列为真实验证项**。 | 单飞；令牌复用；业务认证失效清 `hz_cgyy` 并最多重登一次（同北京）。 | 落地页非 200 走 HTTP 状态错误；缺 Cookie/令牌为 `authentication_required`。 |
-| 杭州场馆站点 | 同业务登录。 | 同北京业务请求：不跟随重定向，落到认证主机即认证失效。 | 复用 `hz_cgyy` 令牌。 | `GET /venue-server/api/front/website/venues?page=-1&size=-1`，自动加 `nocache`；**不带**北京的 `reservationRoleId`（hzsm `getVenueListFront` 默认参数）。 | 同北京，带 `cgAuthorization`。 | 同北京。 | 前端同时兼容分页对象与数组（`"number"===typeof totalElements ? content : data`）；沿用北京 `parse_sites`，它已兼容两种结构。 | 不缓存（本 PR 未接入 facade 缓存）。 | 同北京。 |
+| 杭州业务登录 | `http://hzsso.buaa.edu.cn/enduser/sp/sso/idaasplugin_jwt38?enterpriseId=idaas`（hzsm 前端 `ssoLoginUrl`）。 | 302 → `https://hzsm.buaa.edu.cn/venue-server/loginto?id_token=<JWT>` → `/venue/login`；重定向只额外放行 `hzsso.buaa.edu.cn`、`hzsm.buaa.edu.cn`，且仅限本功能。hzsso 未登录时落到 `/frontend/login/`，先执行上一行。 | `sso_buaa_h3i_token`（hzsm 主机）；业务 `access_token` 存在当前路线 `hz_cgyy` 槽位，与北京 `cgyy` 分开，不写入 `session.json`。 | `POST /venue-server/api/login`，无表单字段。 | 与北京相同的 `Accept`、`app-key`、`timestamp`、`sign`，`Sso-Token` 携带 Cookie 值；`Referer` 为 `https://hzsm.buaa.edu.cn/venue/home`（实录中前端页面地址）。 | 与北京相同（见证据 3）。 | `data.token.access_token`（hzsm 前端 `t.token.access_token`）。前端在 `roles` 恰好一个时自动 `POST /roleLogin`（表单 `roleid=roles[0].id`，头 `cgAuthorization` 为登录令牌），之后改用其返回的 `data.token.access_token`；Core 照此实现（仅杭州，北京不变）。 | 单飞；令牌复用；业务认证失效清 `hz_cgyy` 并最多重登一次（同北京）。 | 落地页非 200 走 HTTP 状态错误；缺 Cookie/令牌为 `authentication_required`。 |
+| 杭州场馆站点 | 同业务登录。 | 同北京业务请求：不跟随重定向，落到认证主机即认证失效。 | 复用 `hz_cgyy` 令牌。 | `GET /venue-server/api/front/website/venue_information?isNeedSearchVenue=0&resourceType=1`，自动加 `nocache`（hzsm「场地预约」页 `/venue-introduce`，`chunk-c2b6f4f4`，`RESOURCE_TYPE.SITE=1`）。真机诊断显示 `website/venues` 即使 `roleLogin` 后也返回 `data:null`，故不用。2026-11-25 第二次真机诊断：`siteList` 项的场地编号字段是 `siteId`（没有 `id`），日表 `venueSiteId` 用它。 | 同北京，带 `cgAuthorization`。 | 同北京。 | 场地平铺在 `data.siteList`，项字段 `id/siteName/venueName/campusName` 与北京一致；`parse_hangzhou_sites` 复用北京字段映射，缺 `siteList` 为 `upstream_changed`。 | 不缓存（本 PR 未接入 facade 缓存）。 | 同北京。 |
 | 杭州我的预约 | 同上。 | 同上。 | 同上。 | `GET /venue-server/api/orders/mine?page=&size=`，自动加 `nocache`。 | 同北京。 | 同北京。 | `content/totalElements/totalPages`（hzsm 订单页读取这些字段）；订单字段沿用北京 `parse_orders_at`。 | 不缓存。 | 页码小于 0 或每页数量不为正数是 `invalid_input`；其余同北京。 |
 
 #### 决策
@@ -60,7 +60,48 @@
 #### 验证状态
 
 - Mock：`crates/ubaa_core/tests/hangzhou_cgyy.rs` 5 项（完整登录链请求顺序与正文、已登录复用、我的预约、WebVPN 不支持且不发请求、CAS 未签发票据）先失败后通过；`features::hzsso` 单元测试 2 项。全部使用合成值。
+- **2026-11-25 真机诊断（账号本人手机测试包，只看方法/主机/路径/参数名/状态/JSON 键结构，未记录值）**：hzsso 未登录时应用入口 302 到 `http://hzsso.buaa.edu.cn/login`（不是 `/frontend/login/`），Core 两者都视为登录页；北航 CAS 先回到 `plugin_cas/idaasplugin_cas/receive_ticket?ticket=` 再 302 到 `callback.html`；`/api/login` 返回 `roles`，`roleLogin` 必需；`website/venues` 返回 `data:null`，改用 `venue_information`。
+- **2026-11-25 日表与官网对照（浏览器，仅键结构）**：
+  - `day/info` 的 `reservationDateList` 只含所查日期。官网的“今天/明天/后天”三个日期按钮来自 `venue_info` 的 `advanceReservationDays`（实测为 3）。Core 用它按上海时区从今天起生成可选日期（只接受 1–14），并保留所查日期。
+  - 时段键含 `reservationStatus/adminTake/adminRemark/alreadyNum/useNum/…`。官网“教学使用”格对应 `adminTake=true` 加 `adminRemark`，Core 只在 `adminTake` 为真时取 `adminRemark`（trim 后不超过 20 字、不含控制字符），用于展示。官网“已售”对应 `reservationStatus=4`，UI 只在杭州场馆显示这两类说明，北京研讨室不变。
+  - 场地名“羽毛球馆（篮球场）”、场次“1号（篮球场）”是上游原名，不是合并。
+  - 健康中心等场地的 `reservationTotalNum` 远大于 1（官网显示“已约/总数”），是按人数计的容量模式。该模式下的预约请求没有实录。UBAA 在这类场地仍沿用讨论室实录的提交形状，这一点未经验证；维护者授权实测之前，不应视为已支持。
 - **真实验证未执行**：需要维护者按 AGENTS.md 授权功能与连接方式后，用杭州校区账号做 Direct 只读验证（站点、我的预约），并确认 `roleLogin` 是否必需、各响应真实结构。WebVPN 路线见上方决策。
+
+### 2026-11-25 杭州空间预约提交与取消（写入）
+
+日期：2026-11-25。在上一节只读能力之上补预约与取消。**只支持免费场地，UBAA 不做任何付款**；路线同上，只支持直连。
+
+#### 证据来源
+
+1. **账号本人浏览器实录**（2026-11-25，Claude 内置浏览器，账号本人亲手完成两次免费场地预约并各自取消；只记录方法、主机、路径、表单/查询参数名、JSON 键结构与状态，未记录值、令牌、Cookie、手机号与验证码图片）。场地为一处免费讨论室；实录中误点产生的请求已剔除。取消一次在“我的预约”、一次在“个人中心 → 场馆预约 → 校园场馆预约记录”，两处调用同一取消接口。
+2. **hzsm 前端**：滑块验证码为 AJ-Captcha `blockPuzzle`；`orderPin` 由站点配置中的公开前端常量（`k`/`v` 数组）组成 AES-128-CBC 密钥与 IV，对 `"clientX,clientY"`（用户点击“提交”的屏幕坐标）加密后输出小写十六进制。
+3. 北京冻结来源：`pointJson`/`captchaVerification` 的 AES-ECB 构造与北京 `crypto.rs` 相同。
+
+#### 逐操作对照
+
+| 操作 | 请求 | 关键字段 | 响应 | 失败与重试 |
+|---|---|---|---|---|
+| 日表 | `GET /venue-server/api/reservation/day/info?venueSiteId&searchDate`（实录另带 `hasReserveInfo=1`） | — | 键与北京相同：`reservationDateList`、`spaceTimeInfo[{id,beginTime,endTime}]`、`reservationDateSpaceInfo`、`reservationTotalNum`、`isFee` 等；状态码 1=空闲、2=不可用、3=待支付、4=已预约，复用北京 `parse_day_context`。 | 只读，同北京。 |
+| 取验证码 | `GET /venue-server/api/captcha/get?captchaType=blockPuzzle&clientUid&ts` | — | `repData{secretKey,token,originalImageBase64,jigsawImageBase64}` | 只读。图片只交给用户拖动，不落盘、不入库。 |
+| 校验滑块 | `POST /venue-server/api/captcha/check`，表单 `pointJson`、`token` | `pointJson` = AES-ECB(secretKey) 加密的 `{"x":X,"y":5}`；X 为用户拖动距离按 310 像素宽原图换算 | 失败 → `invalid_input`，**不提交预约** | 不重试，用户换一张后重新提交。 |
+| 提交预约 | `POST /venue-server/api/reservation/order/submit`，表单 `captchaVerification`、`captchaToken`、`reservationOrderJson`、`reservationDate`、`weekStartDate`、`reservationType`、`orderPrice`、`orderPin`、`venueSiteId`、`phone` | `reservationOrderJson` = `[{"spaceId":"…","timeId":"…"}]`（字符串 id）；`weekStartDate` = 日表 `reservationDateList[0]`；`reservationType` = `-1`；`captchaVerification` = AES(token + `---` + pointJson) | `data{id,tradeNo,reservationStartDate,reservationEndDate}`。**没有北京的 `order/info` 步骤。** | 业务码非 200 → `business_rejected`；已发出但结果不明 → `outcome_unknown`，不自动重试。 |
+| 0 元确认 | `GET /venue-server/api/venue/finances/order/detail?venueTradeNo` → `POST /venue-server/api/venue/finances/order/pay`，表单 `venueTradeNo`、`isApp=0` | 提交后订单处于待支付（10 分钟超时）；前端随即确认 | detail 含 `payFee`；pay 返回 `{payFee:0.0}` | `payFee > 0` 时**不调用 pay**，返回 `business_rejected` 并带订单号让用户自行处理。 |
+| 取消提醒 | `GET /venue-server/api/orders/cancel_tip` | — | `data.tip` | 只读，作为确认提示。 |
+| 取消 | `POST /venue-server/api/venue/finances/order/cancel`，表单 `venueTradeNo`、`handleReason` | 订单号来自“我的预约”的 `tradeNo`；原因由用户填写，1–200 字 | `data:null` 视为成功 | 同提交，不重试。 |
+
+#### 决策
+
+- **验证码由用户亲手完成**：北京研讨室会自动识别拼图；杭州不复用，界面显示原图与拼图块，由用户拖动，应用只做坐标换算。`orderPin` 只加密用户真实点击“提交预约”时的坐标，不构造坐标。
+- **收费场地在任何写请求前拒绝**：提交前用 fresh 日表复核，`isFee != 0`、时段资格非 Allowed、超出 `reservationTotalNum` 或两段不相邻都返回 `invalid_input`，不发校验/提交请求。
+- `orderPrice` 实录中非空，免费场地按 `"0"` 提交——这是本节唯一的推断，依据是 `isFee=0` 与 pay 返回 `payFee:0.0`；若维护者实测发现不符，以实测为准。
+- “我的预约”列表的取消入口只排除明确已取消（`orderStatus=2` 或审核状态为负）与已结束的订单；杭州的取消时限没有证据，不沿用北京“开始前 4 小时”规则，交给 `cancel_tip` 与取消接口判断。
+- 写入后以“我的预约”列表为唯一回读入口。
+
+#### 验证状态
+
+- Mock：`crates/ubaa_core/tests/hangzhou_cgyy.rs` 新增 6 项（按实录字段提交并完成 0 元确认、收费场地写前拒绝、滑块失败不提交、发现需付费不代付、路线变化不发请求、取消先读提醒再只发一次）；`hangzhou_write` 单元测试覆盖 `orderPin` 往返与表单 JSON。Dart 侧覆盖写准备参数映射与写后回读入口。全部使用合成值。
+- **真实写入验证未执行**：按 AGENTS.md 第 7 条，需要维护者对具体操作、场地、路线与时间逐次授权后，再用杭州校区账号在 Direct 路线验证一次预约与取消。WebVPN 见上一节决策。
 
 ### 2026-10-03 研讨室详情身份
 

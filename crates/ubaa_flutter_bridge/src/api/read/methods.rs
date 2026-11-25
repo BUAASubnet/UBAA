@@ -26,12 +26,13 @@ use super::{
     BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo, BridgeRoutedCgyyLockCode,
     BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders, BridgeRoutedCgyyPurposeTypes,
     BridgeRoutedCgyySites, BridgeRoutedClassroomQuery, BridgeRoutedEvaluation,
-    BridgeRoutedExamArrangement, BridgeRoutedGrades, BridgeRoutedJudgeAssignmentDetail,
-    BridgeRoutedJudgeAssignmentDetails, BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail,
-    BridgeRoutedLibBookAreaSchedule, BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings,
-    BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses,
-    BridgeRoutedSigninQr, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
-    BridgeRoutedTerms, BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
+    BridgeRoutedExamArrangement, BridgeRoutedGrades, BridgeRoutedHangzhouCgyyCaptcha,
+    BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
+    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreaSchedule,
+    BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries,
+    BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses, BridgeRoutedSigninQr,
+    BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments, BridgeRoutedTerms,
+    BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
     BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords, BridgeSigninQr,
 };
 use crate::api::client::{
@@ -572,6 +573,67 @@ impl BridgeClient {
             .execute_read(
                 Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_orders(page, size).await }),
+                map_cgyy_orders,
+            )
+            .await?;
+        Ok(BridgeRoutedCgyyOrders { data, route })
+    }
+    /// 读取杭州校区空间预约（hzsm）场馆站点；暂只支持直连路线。
+    pub async fn hangzhou_cgyy_sites(&self) -> Result<BridgeRoutedCgyySites, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Cgyy),
+                |client| Box::pin(async move { client.hangzhou_cgyy_sites().await }),
+                map_cgyy_sites,
+            )
+            .await?;
+        Ok(BridgeRoutedCgyySites { data, route })
+    }
+    /// 读取杭州校区空间预约某场地某日的房间与时段；暂只支持直连路线。
+    pub async fn hangzhou_cgyy_day_info(
+        &self,
+        site_id: i32,
+        date: String,
+    ) -> Result<BridgeRoutedCgyyDayInfo, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Cgyy),
+                move |client| {
+                    Box::pin(async move { client.hangzhou_cgyy_day_info(site_id, &date).await })
+                },
+                map_cgyy_day_info,
+            )
+            .await?;
+        Ok(BridgeRoutedCgyyDayInfo { data, route })
+    }
+    /// 取一张杭州滑块验证码交给用户拖动；不产生预约。
+    pub async fn hangzhou_cgyy_captcha(
+        &self,
+    ) -> Result<BridgeRoutedHangzhouCgyyCaptcha, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Cgyy),
+                |client| Box::pin(async move { client.hangzhou_cgyy_captcha().await }),
+                |value: domain::HangzhouCgyyCaptchaChallenge| super::BridgeHangzhouCgyyCaptcha {
+                    token: value.token,
+                    secret_key: value.secret_key,
+                    original_image_base64: value.original_image_base64,
+                    jigsaw_image_base64: value.jigsaw_image_base64,
+                },
+            )
+            .await?;
+        Ok(BridgeRoutedHangzhouCgyyCaptcha { data, route })
+    }
+    /// 读取杭州校区空间预约（hzsm）我的预约；暂只支持直连路线。
+    pub async fn hangzhou_cgyy_orders(
+        &self,
+        page: i32,
+        size: i32,
+    ) -> Result<BridgeRoutedCgyyOrders, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                Some(ReadGroup::Cgyy),
+                |client| Box::pin(async move { client.hangzhou_cgyy_orders(page, size).await }),
                 map_cgyy_orders,
             )
             .await?;

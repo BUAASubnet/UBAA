@@ -185,8 +185,60 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
         'fixture.pdf',
         transfer: BridgeBhpanTransferTask(client, _Transfer()),
       ),
+      await backend.prepareHangzhouCgyySubmitReservation(
+        const HangzhouCgyySubmitInput(
+          actions: <CgyyReserveAction>[
+            CgyyReserveAction(
+              venueSiteId: 323,
+              reservationDate: '2026-09-04',
+              spaceId: 70,
+              timeId: 9,
+              venueSpaceGroupId: null,
+              timeOrdinal: 0,
+              eligibility: ActionEligibility.allowed,
+            ),
+          ],
+          phone: '10000000000',
+          captcha: HangzhouCgyyCaptcha(
+            token: 'captcha-token',
+            secretKey: 'captcha-secret-key',
+            originalImageBase64: '',
+            jigsawImageBase64: '',
+          ),
+          sliderOffsetX: 123.5,
+          tapX: 300,
+          tapY: 600,
+        ),
+      ),
+      await backend.prepareHangzhouCgyyCancelOrder(
+        const HangzhouCgyyCancelAction(
+          tradeNo: 'D000000000001',
+          eligibility: ActionEligibility.allowed,
+        ),
+        ' 临时有事 ',
+      ),
     ];
-    expect(intents.last.readbackQuery?.assignmentId, 'work');
+    expect(
+      intents
+          .singleWhere(
+            (intent) => intent.operation == WriteOperation.spocSubmitAssignment,
+          )
+          .readbackQuery
+          ?.assignmentId,
+      'work',
+    );
+    final hzSubmit =
+        client.writeRequests[#prepareHangzhouCgyySubmitReservation]!
+            as BridgeHangzhouCgyyReservationRequest;
+    expect(hzSubmit.venueSiteId, 323);
+    expect(hzSubmit.selections.single.spaceId, 70);
+    expect(hzSubmit.selections.single.venueSpaceGroupId, isNull);
+    expect(hzSubmit.sliderOffsetX, 123.5);
+    expect((hzSubmit.tapX, hzSubmit.tapY), (300, 600));
+    final hzCancel =
+        client.writeRequests[#prepareHangzhouCgyyCancelOrder]!
+            as BridgeHangzhouCgyyCancelRequest;
+    expect((hzCancel.tradeNo, hzCancel.reason), ('D000000000001', '临时有事'));
 
     expect(
       intents.map((intent) => intent.operation).toList(growable: false),

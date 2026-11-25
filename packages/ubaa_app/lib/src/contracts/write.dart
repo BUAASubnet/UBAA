@@ -92,6 +92,19 @@ abstract interface class CgyyWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input);
 }
 
+/// 杭州空间预约写意图；滑块由用户亲手拖动，验证码材料只在本次内存中流转。
+abstract interface class HangzhouCgyyWriteBackend
+    implements WriteCommitBackend {
+  Future<HangzhouCgyyCaptcha> loadHangzhouCgyyCaptcha();
+  Future<WriteIntent> prepareHangzhouCgyySubmitReservation(
+    HangzhouCgyySubmitInput input,
+  );
+  Future<WriteIntent> prepareHangzhouCgyyCancelOrder(
+    HangzhouCgyyCancelAction action,
+    String reason,
+  );
+}
+
 /// 已接入 typed 教学评教写意图的能力。
 ///
 /// 宿主只回传 Core 在读取 action 中给出的稳定目标；完整课程、

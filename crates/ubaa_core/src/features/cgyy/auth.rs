@@ -79,9 +79,60 @@ pub(super) async fn ensure_login_at(runtime: &mut ClientRuntime, site: CgyySite)
         .ok_or_else(|| {
             authentication_error(&format!("{}登录未返回访问令牌", site.feature_name()))
         })?;
+    let token = match (site, first_role_id(&value)) {
+        (CgyySite::Hangzhou, Some(role_id)) => {
+            hangzhou_role_login(runtime, site, &token, role_id).await?
+        }
+        _ => token,
+    };
     slot.set(token.clone());
     info!(target: "ubaa::cgyy", operation = "business_login", ?site, access_token_len = token.len(), "Cgyy 业务会话建立完成");
     Ok(token)
+}
+
+/// `/api/login` 返回角色列表时取第一个角色编号；hzsm 前端在只有一个角色时自动选择它，
+/// 多个角色时弹窗且默认选中第一个（证据见杭州专项记录）。
+fn first_role_id(value: &Value) -> Option<i64> {
+    value
+        .get("roles")
+        .and_then(Value::as_array)
+        .and_then(|roles| roles.first())
+        .and_then(|role| role.get("id"))
+        .and_then(Value::as_i64)
+}
+
+/// 杭州：`POST /roleLogin`（表单 `roleid`，`cgAuthorization` 为 `/api/login` 令牌），
+/// 前端随后改用其返回的 `token.access_token`。未选角色时场馆接口返回 `data: null`。
+async fn hangzhou_role_login(
+    runtime: &mut ClientRuntime,
+    site: CgyySite,
+    login_token: &str,
+    role_id: i64,
+) -> Result<String> {
+    let params: BTreeMap<String, String> = [("roleid".to_owned(), role_id.to_string())]
+        .into_iter()
+        .collect();
+    let mut request = signed_request_at(
+        runtime,
+        site,
+        HttpMethod::Post,
+        "/roleLogin",
+        params.clone(),
+        Some(login_token),
+    )?;
+    request.body = crate::upstream::encode_form(&params);
+    let response = runtime.request(request).await?;
+    log_response(runtime, "business_login.role", &response);
+    super::super::check_response(&response, site.feature_name())?;
+    let value = data(&super::super::body(&response))?;
+    value
+        .get("token")
+        .and_then(Value::as_object)
+        .and_then(|token| string(token, "access_token"))
+        .filter(|token| !token.is_empty())
+        .ok_or_else(|| {
+            authentication_error(&format!("{}选择角色后未返回访问令牌", site.feature_name()))
+        })
 }
 
 async fn beijing_sso_token(runtime: &mut ClientRuntime) -> Result<String> {

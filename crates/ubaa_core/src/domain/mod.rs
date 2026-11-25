@@ -35,6 +35,8 @@ mod classroom;
 pub use classroom::*;
 mod cgyy;
 pub use cgyy::*;
+mod hangzhou_cgyy;
+pub use hangzhou_cgyy::*;
 mod spoc;
 pub use spoc::*;
 mod judge;

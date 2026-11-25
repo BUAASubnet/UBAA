@@ -155,4 +155,8 @@ WriteOperation bridgeToWriteOperation(BridgeWriteOperation operation) =>
       BridgeWriteOperation.cgyyCancelOrder => WriteOperation.cgyyCancelOrder,
       BridgeWriteOperation.evaluationSubmitCourses =>
         WriteOperation.evaluationSubmitCourses,
+      BridgeWriteOperation.hangzhouCgyySubmitReservation =>
+        WriteOperation.hangzhouCgyySubmitReservation,
+      BridgeWriteOperation.hangzhouCgyyCancelOrder =>
+        WriteOperation.hangzhouCgyyCancelOrder,
     };

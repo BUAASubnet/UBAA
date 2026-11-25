@@ -117,6 +117,10 @@ impl From<BridgeWriteOperation> for core::WriteReadbackOperation {
             BridgeWriteOperation::CgyySubmitReservation => Self::CgyySubmitReservation,
             BridgeWriteOperation::CgyyCancelOrder => Self::CgyyCancelOrder,
             BridgeWriteOperation::EvaluationSubmitCourses => Self::EvaluationSubmitCourses,
+            BridgeWriteOperation::HangzhouCgyySubmitReservation => {
+                Self::HangzhouCgyySubmitReservation
+            }
+            BridgeWriteOperation::HangzhouCgyyCancelOrder => Self::HangzhouCgyyCancelOrder,
         }
     }
 }
@@ -135,6 +139,10 @@ impl From<core::WriteReadbackOperation> for BridgeWriteOperation {
             core::WriteReadbackOperation::CgyySubmitReservation => Self::CgyySubmitReservation,
             core::WriteReadbackOperation::CgyyCancelOrder => Self::CgyyCancelOrder,
             core::WriteReadbackOperation::EvaluationSubmitCourses => Self::EvaluationSubmitCourses,
+            core::WriteReadbackOperation::HangzhouCgyySubmitReservation => {
+                Self::HangzhouCgyySubmitReservation
+            }
+            core::WriteReadbackOperation::HangzhouCgyyCancelOrder => Self::HangzhouCgyyCancelOrder,
         }
     }
 }

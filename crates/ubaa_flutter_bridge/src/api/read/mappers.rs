@@ -730,6 +730,7 @@ pub(crate) fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot 
 }
 fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
     BridgeCgyySlotStatus {
+        admin_remark: v.admin_remark,
         time_id: v.time_id,
         reservation_status: v.reservation_status,
         reservation_eligibility: map_action_eligibility(v.reservation_eligibility),
@@ -798,6 +799,7 @@ pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
         });
     BridgeCgyyOrder {
         id: v.id,
+        trade_no: v.trade_no,
         venue_site_id: v.venue_site_id,
         reservation_date: v.reservation_date,
         reservation_date_detail: v.reservation_date_detail,

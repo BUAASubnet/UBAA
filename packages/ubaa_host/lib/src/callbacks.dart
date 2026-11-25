@@ -330,6 +330,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           ? _controller.prepareLibraryLoanRenew
           : null,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
+      onLoadHangzhouCgyyCaptcha: _controller.canPrepareHangzhouCgyyWrite
+          ? _controller.loadHangzhouCgyyCaptcha
+          : null,
+      onPrepareHangzhouCgyySubmitWrite: _controller.canPrepareHangzhouCgyyWrite
+          ? _controller.prepareHangzhouCgyySubmitWrite
+          : null,
+      onPrepareHangzhouCgyyCancelWrite: _controller.canPrepareHangzhouCgyyWrite
+          ? _controller.prepareHangzhouCgyyCancelWrite
+          : null,
       onPrepareYgdkSubmitWrite: hasYgdkSubmissionCapabilities
           ? _controller.prepareYgdkWrite
           : null,

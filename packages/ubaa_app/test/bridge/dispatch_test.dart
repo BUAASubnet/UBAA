@@ -141,6 +141,11 @@ const _supportedViews = <FeatureId, Set<FeatureQueryView>>{
     FeatureQueryView.cgyyOrderDetail,
     FeatureQueryView.cgyyLockCode,
   },
+  FeatureId.hangzhouCgyy: <FeatureQueryView>{
+    FeatureQueryView.summary,
+    FeatureQueryView.cgyyDayInfo,
+    FeatureQueryView.cgyyOrders,
+  },
   FeatureId.ygdk: <FeatureQueryView>{
     FeatureQueryView.summary,
     FeatureQueryView.ygdkRecords,
@@ -161,6 +166,7 @@ const _successDespiteEmpty = <String>{
   'libbook/libbookAreaDetail',
   // 无空间时仍保留日期上下文，不能把可选日期丢弃。
   'cgyy/cgyyDayInfo',
+  'hangzhouCgyy/cgyyDayInfo',
   'cgyy/cgyyPurposeTypes',
   'cgyy/cgyyOrderDetail',
   'cgyy/cgyyLockCode',

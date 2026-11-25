@@ -4,6 +4,7 @@
 mod auth;
 mod captcha;
 mod crypto;
+mod hangzhou_write;
 mod http;
 pub(crate) mod lock_display;
 mod parser;
@@ -16,11 +17,15 @@ mod write;
 pub use captcha::build_captcha_check_form;
 #[allow(unused_imports)]
 pub(crate) use captcha::{CgyyCaptchaChallenge, solve_captcha_offset};
+pub(crate) use hangzhou_write::{
+    hangzhou_cancel_order, hangzhou_captcha, hangzhou_preflight_cancel, hangzhou_submit_reservation,
+};
 #[allow(unused_imports)]
 pub use parser::{parse_lock_code, parse_sites};
 pub(crate) use read::{
-    get_day_info, get_hangzhou_orders, get_hangzhou_sites, get_lock_code, get_order_detail,
-    get_orders, get_orders_observed, get_purpose_types, get_purpose_types_with_source, get_sites,
+    get_day_info, get_hangzhou_day_info, get_hangzhou_orders, get_hangzhou_sites, get_lock_code,
+    get_order_detail, get_orders, get_orders_observed, get_purpose_types,
+    get_purpose_types_with_source, get_sites,
 };
 #[allow(unused_imports)]
 pub use write::build_submit_form;

@@ -241,6 +241,7 @@ class _RecordingCgyyReadbackClient extends FixtureCompatibleBridgeClient {
 }
 
 const _cancelledBridgeOrder = BridgeCgyyOrder(
+  tradeNo: null,
   id: 17,
   orderStatus: 2,
   checkStatus: 2,

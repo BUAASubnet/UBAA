@@ -21,6 +21,10 @@ List<(String, FeatureQueryView)> uiFeatureTabs(FeatureId feature) =>
         ('预约', FeatureQueryView.summary),
         ('我的预约', FeatureQueryView.cgyyOrders),
       ],
+      FeatureId.hangzhouCgyy => const [
+        ('场馆', FeatureQueryView.summary),
+        ('我的预约', FeatureQueryView.cgyyOrders),
+      ],
       _ => const [],
     };
 
@@ -31,7 +35,8 @@ FeatureQueryView uiFeatureTabView(FeatureId feature, FeatureQuery? query) {
       view != FeatureQueryView.libbookBookings) {
     return FeatureQueryView.summary;
   }
-  if (feature == FeatureId.cgyy && view == FeatureQueryView.cgyyDayInfo) {
+  if ((feature == FeatureId.cgyy || feature == FeatureId.hangzhouCgyy) &&
+      view == FeatureQueryView.cgyyDayInfo) {
     return FeatureQueryView.summary;
   }
   return view;

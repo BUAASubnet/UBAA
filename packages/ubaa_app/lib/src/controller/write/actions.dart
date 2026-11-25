@@ -203,6 +203,52 @@ mixin ControllerWriteActions on ControllerState {
         );
       });
 
+  bool get canPrepareHangzhouCgyyWrite =>
+      internalBackend is HangzhouCgyyWriteBackend;
+
+  /// 取一张杭州滑块验证码交给用户拖动；只读。
+  Future<HangzhouCgyyCaptcha> loadHangzhouCgyyCaptcha() =>
+      internalUserSchoolAction(() async {
+        final backend = internalBackend;
+        if (backend is! HangzhouCgyyWriteBackend) {
+          throw const BackendException(UbaaErrorCode.unsupported);
+        }
+        return (backend as HangzhouCgyyWriteBackend).loadHangzhouCgyyCaptcha();
+      });
+
+  /// 准备杭州空间预约写意图；只接受读取结果中的 typed actions。
+  Future<WriteIntent> prepareHangzhouCgyySubmitWrite(
+    HangzhouCgyySubmitInput input,
+  ) => internalUserSchoolAction(() async {
+    final backend = internalBackend;
+    if (backend is! HangzhouCgyyWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    return (backend as HangzhouCgyyWriteBackend)
+        .prepareHangzhouCgyySubmitReservation(
+          validateHangzhouCgyySubmitInput(input),
+        );
+  });
+
+  /// 准备杭州预约取消写意图；订单号来自“我的预约”读取结果。
+  Future<WriteIntent> prepareHangzhouCgyyCancelWrite(
+    HangzhouCgyyCancelAction action,
+    String reason,
+  ) => internalUserSchoolAction(() async {
+    final backend = internalBackend;
+    if (backend is! HangzhouCgyyWriteBackend || !action.isUsable) {
+      throw BackendException(
+        backend is HangzhouCgyyWriteBackend
+            ? UbaaErrorCode.invalidInput
+            : UbaaErrorCode.unsupported,
+      );
+    }
+    return (backend as HangzhouCgyyWriteBackend).prepareHangzhouCgyyCancelOrder(
+      action,
+      validateHangzhouCgyyCancelReason(reason),
+    );
+  });
+
   /// 准备教学评教写意图；仅接受读取 action 中的 typed 目标。
   Future<WriteIntent> prepareEvaluationWrite(
     List<EvaluationSubmitTarget> targets,

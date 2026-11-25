@@ -141,3 +141,27 @@ typedef LibraryLoanRenewStarter = Future<WriteOutcome?> Function(String loanId);
 
 /// 图书续借准备回调；只传递当前账号读取结果中的记录标识。
 typedef LibraryLoanRenewPreparer = Future<WriteIntent> Function(String loanId);
+
+/// 杭州空间预约界面回调：取验证码只读；预约与取消都走统一写入协调器。
+final class HangzhouCgyyWriteCallbacks {
+  const HangzhouCgyyWriteCallbacks({
+    required this.loadCaptcha,
+    required this.submit,
+    required this.cancel,
+  });
+
+  final Future<HangzhouCgyyCaptcha> Function() loadCaptcha;
+  final Future<void> Function(HangzhouCgyySubmitInput input) submit;
+  final Future<void> Function(HangzhouCgyyCancelAction action) cancel;
+}
+
+/// 杭州空间预约准备回调。
+typedef HangzhouCgyyReservationPreparer =
+    Future<WriteIntent> Function(HangzhouCgyySubmitInput input);
+
+/// 杭州预约取消准备回调；原因由用户在确认框中填写。
+typedef HangzhouCgyyCancelPreparer =
+    Future<WriteIntent> Function(
+      HangzhouCgyyCancelAction action,
+      String reason,
+    );

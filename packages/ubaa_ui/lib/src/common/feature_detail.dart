@@ -90,6 +90,7 @@ class FeatureDetailView extends StatefulWidget {
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
+    this.hangzhouCgyy,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
     this.onSpocSubmitWrite,
@@ -158,6 +159,9 @@ class FeatureDetailView extends StatefulWidget {
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
+
+  /// 杭州空间预约与取消；为空时杭州页面保持只读。
+  final HangzhouCgyyWriteCallbacks? hangzhouCgyy;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
   final SpocSubmitStarter? onSpocSubmitWrite;
@@ -246,7 +250,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         _isAssignmentList || view == FeatureQueryView.judgeBatchDetails,
       FeatureId.classroom => view == FeatureQueryView.summary,
       FeatureId.libbook => view == FeatureQueryView.libbookBookings,
-      FeatureId.cgyy => view == FeatureQueryView.cgyyOrders,
+      FeatureId.cgyy ||
+      FeatureId.hangzhouCgyy => view == FeatureQueryView.cgyyOrders,
       // 阳光首页的搜索只筛选记录，由首页放在“打卡记录”标题下。
       FeatureId.ygdk => view == FeatureQueryView.ygdkRecords,
     };
@@ -284,6 +289,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     FeatureId.signin => '搜索课程',
     FeatureId.libbook => '搜索场馆或座位',
     FeatureId.cgyy => '搜索研讨室或日期',
+    FeatureId.hangzhouCgyy => '搜索场馆或日期',
     FeatureId.ygdk => '搜索打卡记录',
     FeatureId.schedule => '搜索课程',
   };
@@ -427,7 +433,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             onQuery: widget.onQuery,
           )
         : !widget.isLanding &&
-              widget.feature == FeatureId.cgyy &&
+              (widget.feature == FeatureId.cgyy ||
+                  widget.feature == FeatureId.hangzhouCgyy) &&
               {
                 FeatureQueryView.summary,
                 FeatureQueryView.cgyyDayInfo,
@@ -438,7 +445,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             cacheEpoch: widget.readCacheEpoch,
             fallback: defaultContent,
             onRetry: widget.onRetry,
-            onSubmit: widget.onCgyySubmitWrite,
+            onSubmit: widget.feature == FeatureId.cgyy
+                ? widget.onCgyySubmitWrite
+                : null,
+            hangzhou: widget.feature == FeatureId.hangzhouCgyy
+                ? widget.hangzhouCgyy
+                : null,
+            hangzhouVenue: widget.feature == FeatureId.hangzhouCgyy,
             formContext: _cgyyFormContext,
             onQuery: widget.onQuery,
             onlyAvailable: widget.cgyyOnlyAvailable,
@@ -819,6 +832,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         onLibbookReserveWrite: widget.onLibbookReserveWrite,
         onLibbookCancelWrite: widget.onLibbookCancelWrite,
         onCgyySubmitWrite: widget.onCgyySubmitWrite,
+        onHangzhouCgyyCancelWrite: widget.hangzhouCgyy?.cancel,
         cgyyFormContext: _cgyyFormContext,
         ygdkFormContext: _ygdkFormContext,
         onEvaluationWrite: widget.onEvaluationWrite,

@@ -232,6 +232,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
           ),
         );
       case #cgyyDayInfo:
+      case #hangzhouCgyyDayInfo:
         return Future<BridgeRoutedCgyyDayInfo>.value(
           BridgeRoutedCgyyDayInfo(
             data: BridgeCgyyDayInfo(
@@ -258,6 +259,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                         venueSpaceGroupId: 10,
                         slots: <BridgeCgyySlotStatus>[
                           BridgeCgyySlotStatus(
+                            adminRemark: null,
                             timeId: 9,
                             reservationStatus: 1,
                             reservationEligibility:
@@ -289,6 +291,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
         return Future<BridgeRoutedCgyyOrder>.value(
           BridgeRoutedCgyyOrder(
             data: BridgeCgyyOrder(
+              tradeNo: null,
               id: named[#id] as int,
               orderStatus: 2,
               checkStatus: 2,
@@ -301,6 +304,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
           ),
         );
       case #cgyyOrders:
+      case #hangzhouCgyyOrders:
         final page = named[#page] as int;
         final size = named[#size] as int;
         return Future<BridgeRoutedCgyyOrders>.value(
@@ -310,6 +314,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                   ? const <BridgeCgyyOrder>[]
                   : const <BridgeCgyyOrder>[
                       BridgeCgyyOrder(
+                        tradeNo: null,
                         id: 101,
                         theme: '订单分页',
                         orderStatus: 1,
@@ -341,6 +346,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
           ),
         );
       case #cgyySites:
+      case #hangzhouCgyySites:
         return Future<BridgeRoutedCgyySites>.value(
           BridgeRoutedCgyySites(
             data: emptyReads
@@ -809,6 +815,9 @@ const _readMembers = <Symbol>{
   #cgyyPurposeTypes,
   #cgyySites,
   #classroomSearch,
+  #hangzhouCgyyDayInfo,
+  #hangzhouCgyyOrders,
+  #hangzhouCgyySites,
   #evaluationAll,
   #evaluationAllOnRoute,
   #examArrangement,
@@ -848,6 +857,9 @@ const _writeMembers = <Symbol, BridgeWriteOperation>{
   #prepareCgyySubmitReservation: BridgeWriteOperation.cgyySubmitReservation,
   #prepareCgyyCancelOrder: BridgeWriteOperation.cgyyCancelOrder,
   #prepareEvaluationSubmitCourses: BridgeWriteOperation.evaluationSubmitCourses,
+  #prepareHangzhouCgyySubmitReservation:
+      BridgeWriteOperation.hangzhouCgyySubmitReservation,
+  #prepareHangzhouCgyyCancelOrder: BridgeWriteOperation.hangzhouCgyyCancelOrder,
 };
 
 BridgeWriteIntent _bridgeIntent(BridgeWriteOperation operation) =>

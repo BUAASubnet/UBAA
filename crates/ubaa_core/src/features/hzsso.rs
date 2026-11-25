@@ -25,6 +25,7 @@ const ORIGIN: &str = "http://hzsso.buaa.edu.cn";
 const HOST: &str = "hzsso.buaa.edu.cn";
 const ENTERPRISE_ID: &str = "idaas";
 const CAS_AUTH_ID: &str = "idaasplugin_cas";
+const LOGIN_PATH: &str = "/login";
 const LOGIN_PAGE_PREFIX: &str = "/frontend/login";
 const CAS_CALLBACK_PATH: &str = "/public/api/authenticate/plugin_cas/static/callback.html";
 
@@ -188,11 +189,13 @@ async fn send(
     serde_json::from_slice(&response.body).map_err(|_| changed("杭州统一认证响应不是 JSON"))
 }
 
+/// 未登录时应用入口 302 到 `/login`（2026-11-25 真机诊断），浏览器再由该页跳到
+/// `/frontend/login/`；两者都视为 hzsso 登录页。
 fn is_login_page(url: &str) -> bool {
     url::Url::parse(url).is_ok_and(|url| {
         url.host_str()
             .is_some_and(|host| host.eq_ignore_ascii_case(HOST))
-            && url.path().starts_with(LOGIN_PAGE_PREFIX)
+            && (url.path() == LOGIN_PATH || url.path().starts_with(LOGIN_PAGE_PREFIX))
     })
 }
 
@@ -284,6 +287,8 @@ mod tests {
         assert!(is_login_page(
             "http://hzsso.buaa.edu.cn/frontend/login/#/login?sp_code=x"
         ));
+        assert!(is_login_page("http://hzsso.buaa.edu.cn/login"));
+        assert!(!is_login_page("http://hzsso.buaa.edu.cn/loginx"));
         assert!(!is_login_page("https://hzsm.buaa.edu.cn/venue/login"));
     }
 }

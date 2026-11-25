@@ -65,3 +65,48 @@ class CgyySubmitInput {
   final bool isPhilosophySocialSciences;
   final bool isOffSchoolJoiner;
 }
+
+/// 杭州空间预约滑块验证码：图片交给用户拖动，令牌与密钥只在本次预约内存中使用。
+@immutable
+class HangzhouCgyyCaptcha {
+  const HangzhouCgyyCaptcha({
+    required this.token,
+    required this.secretKey,
+    required this.originalImageBase64,
+    required this.jigsawImageBase64,
+  });
+
+  final String token;
+  final String secretKey;
+  final String originalImageBase64;
+  final String jigsawImageBase64;
+
+  @override
+  String toString() => 'HangzhouCgyyCaptcha([REDACTED])';
+}
+
+/// 杭州空间预约提交参数：目标来自读取结果的 [actions]；滑块位移由用户
+/// 亲手拖动，[tapX]/[tapY] 是用户点击“提交”时的真实屏幕坐标。
+@immutable
+class HangzhouCgyySubmitInput {
+  const HangzhouCgyySubmitInput({
+    required this.actions,
+    required this.phone,
+    required this.captcha,
+    required this.sliderOffsetX,
+    required this.tapX,
+    required this.tapY,
+  });
+
+  final List<CgyyReserveAction> actions;
+  final String phone;
+  final HangzhouCgyyCaptcha captcha;
+
+  /// 拼图在 310 像素宽原图坐标系中的水平位移。
+  final double sliderOffsetX;
+  final int tapX;
+  final int tapY;
+
+  @override
+  String toString() => 'HangzhouCgyySubmitInput([REDACTED])';
+}

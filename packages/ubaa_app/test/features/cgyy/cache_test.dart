@@ -161,6 +161,7 @@ const route = BridgeRouteDecision(
   usedFallback: false,
 );
 const order = BridgeCgyyOrder(
+  tradeNo: null,
   id: 9,
   theme: '合成预约',
   cancelEligibility: BridgeActionEligibility.allowed,
@@ -346,6 +347,7 @@ class _Client implements BridgeClient {
     required int orderId,
   }) async => const BridgeCgyyDetailRefresh(
     data: BridgeCgyyOrder(
+      tradeNo: null,
       id: 88,
       theme: '别的订单',
       cancelEligibility: BridgeActionEligibility.allowed,

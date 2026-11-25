@@ -137,6 +137,8 @@ pub(super) fn assert_shared_write_route_boundary(facade_dir: &std::path::Path) -
         ("write/reservations.rs", "libbook_reserve"),
         ("write/reservations.rs", "libbook_cancel_booking"),
         ("write/reservations.rs", "cgyy_submit_reservation"),
+        ("write/hangzhou_cgyy.rs", "hangzhou_cgyy_submit_reservation"),
+        ("write/hangzhou_cgyy.rs", "hangzhou_cgyy_cancel_order"),
         ("write/library.rs", "library_loan_renew"),
     ];
     for (file, operation) in helpers {

@@ -14,4 +14,5 @@ IconData uiFeatureIcon(FeatureId feature) => switch (feature) {
   FeatureId.cgyy => Icons.groups_outlined,
   FeatureId.ygdk => Icons.wb_sunny,
   FeatureId.evaluation => Icons.rate_review_outlined,
+  FeatureId.hangzhouCgyy => Icons.stadium_outlined,
 };

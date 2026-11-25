@@ -995,6 +995,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHangzhouCgyyCancelRequest
+  dco_decode_box_autoadd_bridge_hangzhou_cgyy_cancel_request(dynamic raw);
+
+  @protected
+  BridgeHangzhouCgyyReservationRequest
+  dco_decode_box_autoadd_bridge_hangzhou_cgyy_reservation_request(dynamic raw);
+
+  @protected
   BridgeHealthCloudReport dco_decode_box_autoadd_bridge_health_cloud_report(
     dynamic raw,
   );
@@ -2019,6 +2027,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHangzhouCgyyCancelRequest
+  dco_decode_bridge_hangzhou_cgyy_cancel_request(dynamic raw);
+
+  @protected
+  BridgeHangzhouCgyyCaptcha dco_decode_bridge_hangzhou_cgyy_captcha(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeHangzhouCgyyReservationRequest
+  dco_decode_bridge_hangzhou_cgyy_reservation_request(dynamic raw);
+
+  @protected
   BridgeHealthCloudEvent dco_decode_bridge_health_cloud_event(dynamic raw);
 
   @protected
@@ -2481,6 +2502,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeRoutedGrades dco_decode_bridge_routed_grades(dynamic raw);
+
+  @protected
+  BridgeRoutedHangzhouCgyyCaptcha
+  dco_decode_bridge_routed_hangzhou_cgyy_captcha(dynamic raw);
 
   @protected
   BridgeRoutedJudgeAssignmentDetail
@@ -4515,6 +4540,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHangzhouCgyyCancelRequest
+  sse_decode_box_autoadd_bridge_hangzhou_cgyy_cancel_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHangzhouCgyyReservationRequest
+  sse_decode_box_autoadd_bridge_hangzhou_cgyy_reservation_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeHealthCloudReport sse_decode_box_autoadd_bridge_health_cloud_report(
     SseDeserializer deserializer,
   );
@@ -5851,6 +5888,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHangzhouCgyyCancelRequest
+  sse_decode_bridge_hangzhou_cgyy_cancel_request(SseDeserializer deserializer);
+
+  @protected
+  BridgeHangzhouCgyyCaptcha sse_decode_bridge_hangzhou_cgyy_captcha(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHangzhouCgyyReservationRequest
+  sse_decode_bridge_hangzhou_cgyy_reservation_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeHealthCloudEvent sse_decode_bridge_health_cloud_event(
     SseDeserializer deserializer,
   );
@@ -6477,6 +6529,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeRoutedGrades sse_decode_bridge_routed_grades(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeRoutedHangzhouCgyyCaptcha
+  sse_decode_bridge_routed_hangzhou_cgyy_captcha(SseDeserializer deserializer);
 
   @protected
   BridgeRoutedJudgeAssignmentDetail
@@ -8947,6 +9003,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_hangzhou_cgyy_cancel_request(
+    BridgeHangzhouCgyyCancelRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_hangzhou_cgyy_reservation_request(
+    BridgeHangzhouCgyyReservationRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_health_cloud_report(
     BridgeHealthCloudReport self,
     SseSerializer serializer,
@@ -10576,6 +10644,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_hangzhou_cgyy_cancel_request(
+    BridgeHangzhouCgyyCancelRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_hangzhou_cgyy_captcha(
+    BridgeHangzhouCgyyCaptcha self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_hangzhou_cgyy_reservation_request(
+    BridgeHangzhouCgyyReservationRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_health_cloud_event(
     BridgeHealthCloudEvent self,
     SseSerializer serializer,
@@ -11358,6 +11444,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_routed_grades(
     BridgeRoutedGrades self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_hangzhou_cgyy_captcha(
+    BridgeRoutedHangzhouCgyyCaptcha self,
     SseSerializer serializer,
   );
 

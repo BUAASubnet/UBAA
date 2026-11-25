@@ -20,6 +20,29 @@ extension CgyyDetailActions on _FeatureDetailListState {
     child: const Text('取消预约'),
   );
 
+  List<Widget> _hangzhouCgyyCancelWriteFields(FeatureDetail detail) {
+    final cancel = widget.onHangzhouCgyyCancelWrite;
+    final action = widget.feature == FeatureId.hangzhouCgyy
+        ? detail.action<HangzhouCgyyCancelAction>()
+        : null;
+    if (cancel == null || action == null || !action.isUsable) {
+      return const <Widget>[];
+    }
+    return <Widget>[
+      const SizedBox(height: 12),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: !widget.writesEnabled ? null : () => cancel(action),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.error,
+          ),
+          child: const Text('取消预约'),
+        ),
+      ),
+    ];
+  }
+
   List<Widget> _cgyyReserveWriteFields(
     BuildContext context,
     CgyyReserveAction? cgyyReservation,

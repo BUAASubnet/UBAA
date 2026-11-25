@@ -5,6 +5,7 @@ import '../../support/mapping.dart'
 part 'cache_projection.dart';
 part 'cached_models.dart';
 part 'day_projection.dart';
+part 'hangzhou_projection.dart';
 
 FeatureResult bridgeMapCgyyOrdersResult(
   BridgeCgyyOrdersPage data,

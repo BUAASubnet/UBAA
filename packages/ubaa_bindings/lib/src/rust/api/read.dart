@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read/graduate.dart';
 import 'read/spoc_files.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -754,6 +754,9 @@ class BridgeCgyyLockCode {
 
 class BridgeCgyyOrder {
   final int id;
+
+  /// 场馆系统订单号；杭州取消按它提交，北京仅保留不使用。
+  final String? tradeNo;
   final int? venueSiteId;
   final String? reservationDate;
   final String? reservationDateDetail;
@@ -774,6 +777,7 @@ class BridgeCgyyOrder {
 
   const BridgeCgyyOrder({
     required this.id,
+    this.tradeNo,
     this.venueSiteId,
     this.reservationDate,
     this.reservationDateDetail,
@@ -796,6 +800,7 @@ class BridgeCgyyOrder {
   @override
   int get hashCode =>
       id.hashCode ^
+      tradeNo.hashCode ^
       venueSiteId.hashCode ^
       reservationDate.hashCode ^
       reservationDateDetail.hashCode ^
@@ -820,6 +825,7 @@ class BridgeCgyyOrder {
       other is BridgeCgyyOrder &&
           runtimeType == other.runtimeType &&
           id == other.id &&
+          tradeNo == other.tradeNo &&
           venueSiteId == other.venueSiteId &&
           reservationDate == other.reservationDate &&
           reservationDateDetail == other.reservationDateDetail &&
@@ -959,6 +965,9 @@ class BridgeCgyySlotStatus {
   final String? startDate;
   final String? endDate;
 
+  /// 管理员占用说明（如“教学使用”），只用于展示。
+  final String? adminRemark;
+
   const BridgeCgyySlotStatus({
     required this.timeId,
     this.reservationStatus,
@@ -966,6 +975,7 @@ class BridgeCgyySlotStatus {
     this.reservationTarget,
     this.startDate,
     this.endDate,
+    this.adminRemark,
   });
 
   @override
@@ -975,7 +985,8 @@ class BridgeCgyySlotStatus {
       reservationEligibility.hashCode ^
       reservationTarget.hashCode ^
       startDate.hashCode ^
-      endDate.hashCode;
+      endDate.hashCode ^
+      adminRemark.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -987,7 +998,8 @@ class BridgeCgyySlotStatus {
           reservationEligibility == other.reservationEligibility &&
           reservationTarget == other.reservationTarget &&
           startDate == other.startDate &&
-          endDate == other.endDate;
+          endDate == other.endDate &&
+          adminRemark == other.adminRemark;
 }
 
 class BridgeCgyySpaceAvailability {
@@ -1512,6 +1524,38 @@ class BridgeGradeData {
           statistics == other.statistics &&
           termCode == other.termCode &&
           grades == other.grades;
+}
+
+/// 杭州滑块验证码：图片交给用户拖动；令牌与密钥只在本次预约内存中使用。
+class BridgeHangzhouCgyyCaptcha {
+  final String token;
+  final String secretKey;
+  final String originalImageBase64;
+  final String jigsawImageBase64;
+
+  const BridgeHangzhouCgyyCaptcha({
+    required this.token,
+    required this.secretKey,
+    required this.originalImageBase64,
+    required this.jigsawImageBase64,
+  });
+
+  @override
+  int get hashCode =>
+      token.hashCode ^
+      secretKey.hashCode ^
+      originalImageBase64.hashCode ^
+      jigsawImageBase64.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeHangzhouCgyyCaptcha &&
+          runtimeType == other.runtimeType &&
+          token == other.token &&
+          secretKey == other.secretKey &&
+          originalImageBase64 == other.originalImageBase64 &&
+          jigsawImageBase64 == other.jigsawImageBase64;
 }
 
 class BridgeJudgeAssignmentDetail {
@@ -2452,6 +2496,27 @@ class BridgeRoutedGrades {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeRoutedGrades &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+class BridgeRoutedHangzhouCgyyCaptcha {
+  final BridgeHangzhouCgyyCaptcha data;
+  final BridgeRouteDecision route;
+
+  const BridgeRoutedHangzhouCgyyCaptcha({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeRoutedHangzhouCgyyCaptcha &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           route == other.route;

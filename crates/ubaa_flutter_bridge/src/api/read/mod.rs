@@ -591,6 +591,23 @@ pub struct BridgeCallerPinnedYgdkRecords {
     pub pinned_route: super::client::BridgeConnectionMode,
 }
 
+/// 杭州滑块验证码：图片交给用户拖动；令牌与密钥只在本次预约内存中使用。
+#[derive(Clone)]
+pub struct BridgeHangzhouCgyyCaptcha {
+    pub token: String,
+    pub secret_key: String,
+    pub original_image_base64: String,
+    pub jigsaw_image_base64: String,
+}
+impl std::fmt::Debug for BridgeHangzhouCgyyCaptcha {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BridgeHangzhouCgyyCaptcha")
+            .field("token", &"[REDACTED]")
+            .field("secret_key", &"[REDACTED]")
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyVenueSite {
     pub id: i32,
@@ -642,6 +659,8 @@ pub struct BridgeCgyySlotStatus {
     pub reservation_target: Option<BridgeCgyyReservationTarget>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    /// 管理员占用说明（如“教学使用”），只用于展示。
+    pub admin_remark: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyySpaceAvailability {
@@ -667,6 +686,8 @@ pub struct BridgeCgyyCancelOrderTarget {
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyOrder {
     pub id: i32,
+    /// 场馆系统订单号；杭州取消按它提交，北京仅保留不使用。
+    pub trade_no: Option<String>,
     pub venue_site_id: Option<i32>,
     pub reservation_date: Option<String>,
     pub reservation_date_detail: Option<String>,
@@ -788,6 +809,7 @@ routed!(BridgeRoutedCgyyDayInfo, BridgeCgyyDayInfo);
 routed!(BridgeRoutedCgyyOrders, BridgeCgyyOrdersPage);
 routed!(BridgeRoutedCgyyOrder, BridgeCgyyOrder);
 routed!(BridgeRoutedCgyyLockCode, BridgeCgyyLockCode);
+routed!(BridgeRoutedHangzhouCgyyCaptcha, BridgeHangzhouCgyyCaptcha);
 routed!(BridgeRoutedEvaluation, BridgeEvaluationCoursesResponse);
 
 #[cfg(test)]

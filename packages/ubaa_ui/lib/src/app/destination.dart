@@ -19,6 +19,7 @@ enum UiDestination {
     FeatureId.classroom,
     FeatureId.libbook,
     FeatureId.cgyy,
+    FeatureId.hangzhouCgyy,
     FeatureId.ygdk,
   ]),
   me('我的', Icons.person_outline, Icons.person, []),

@@ -5,7 +5,8 @@ import 'package:ubaa_app/src/bridge/context.dart';
 import '../assignments/reader.dart' show bridgeLoadAssignmentFeature;
 import '../features/academic/reader.dart' show bridgeLoadAcademicFeature;
 import '../features/bykc/reader.dart' show bridgeLoadBykcFeature;
-import '../features/cgyy/reader.dart' show bridgeLoadCgyyFeature;
+import '../features/cgyy/reader.dart'
+    show bridgeLoadCgyyFeature, bridgeLoadHangzhouCgyyFeature;
 import '../features/evaluation/reader.dart' show bridgeLoadEvaluationFeature;
 import '../features/libbook/reader.dart' show bridgeLoadLibbookFeature;
 import '../features/ygdk/reader.dart' show bridgeLoadYgdkFeature;
@@ -40,6 +41,11 @@ Future<FeatureResult> bridgeLoadFeatureQuery(
         today,
       ),
       FeatureId.cgyy => bridgeLoadCgyyFeature(backend, feature, query, today),
+      FeatureId.hangzhouCgyy => bridgeLoadHangzhouCgyyFeature(
+        backend,
+        query,
+        today,
+      ),
       FeatureId.ygdk => bridgeLoadYgdkFeature(
         backend,
         feature,

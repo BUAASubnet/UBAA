@@ -12,8 +12,10 @@ import 'projection.dart'
         bridgeMapCgyyDayInfo,
         bridgeMapCgyyOrderDetailResult,
         bridgeMapCgyyOrdersResult,
+        bridgeMapHangzhouCgyyOrdersResult,
         bridgeProjectCgyyPurposes,
-        bridgeProjectCgyySites;
+        bridgeProjectCgyySites,
+        bridgeProjectHangzhouCgyySites;
 import '../../support/mapping.dart'
     show
         bridgeCacheMaintenanceFailure,
@@ -173,5 +175,44 @@ Future<FeatureResult> bridgeLoadCgyyFeature(
       }
     default:
       throw StateError('unexpected feature: $feature');
+  }
+}
+
+/// 杭州校区空间预约（hzsm）：场馆站点、日表与我的预约；Core 暂只支持直连。
+Future<FeatureResult> bridgeLoadHangzhouCgyyFeature(
+  BridgeContext backend,
+  FeatureQuery query,
+  String today,
+) async {
+  final client = backend.client;
+  switch (query.view) {
+    case FeatureQueryView.summary:
+      final result = await client.hangzhouCgyySites();
+      return bridgeProjectHangzhouCgyySites(
+        result.data,
+        bridgeToConnectionMode(result.route.resolvedRoute),
+        today,
+      );
+    case FeatureQueryView.cgyyDayInfo:
+      final siteId = bridgeRequiredPositiveInt(query.siteId, '站点 ID');
+      final result = await client.hangzhouCgyyDayInfo(
+        siteId: siteId,
+        date: today,
+      );
+      return bridgeMapCgyyDayInfo(
+        result.data,
+        bridgeToConnectionMode(result.route.resolvedRoute),
+      );
+    case FeatureQueryView.cgyyOrders:
+      // 与北京相同使用零基页码。
+      final page = query.page < 0 ? 0 : query.page;
+      final size = query.size.clamp(1, 100);
+      final result = await client.hangzhouCgyyOrders(page: page, size: size);
+      return bridgeMapHangzhouCgyyOrdersResult(
+        result.data,
+        bridgeToConnectionMode(result.route.resolvedRoute),
+      );
+    default:
+      throw const BackendException(UbaaErrorCode.invalidInput);
   }
 }

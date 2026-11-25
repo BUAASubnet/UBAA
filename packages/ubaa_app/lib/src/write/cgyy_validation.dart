@@ -83,3 +83,37 @@ List<CgyyReserveAction> _validateCgyyReserveActions(
   );
   return List<CgyyReserveAction>.unmodifiable(normalized);
 }
+
+/// 校验杭州空间预约输入：时段沿用研讨室 typed action 规则；手机号、
+/// 验证码与真实点击坐标只做形状校验，不在应用层推断或补全。
+HangzhouCgyySubmitInput validateHangzhouCgyySubmitInput(
+  HangzhouCgyySubmitInput input,
+) {
+  final phone = input.phone.trim();
+  if (!RegExp(r'^1\d{10}$').hasMatch(phone) ||
+      input.captcha.token.trim().isEmpty ||
+      input.captcha.secretKey.trim().isEmpty ||
+      !input.sliderOffsetX.isFinite ||
+      input.sliderOffsetX < 0 ||
+      input.tapX < 0 ||
+      input.tapY < 0) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  return HangzhouCgyySubmitInput(
+    actions: _validateCgyyReserveActions(input.actions),
+    phone: phone,
+    captcha: input.captcha,
+    sliderOffsetX: input.sliderOffsetX,
+    tapX: input.tapX,
+    tapY: input.tapY,
+  );
+}
+
+/// 取消原因原样提交给场馆系统，限制为 1–200 个字符。
+String validateHangzhouCgyyCancelReason(String reason) {
+  final trimmed = reason.trim();
+  if (trimmed.isEmpty || trimmed.runes.length > 200) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  return trimmed;
+}

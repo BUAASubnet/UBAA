@@ -98,6 +98,19 @@ mixin BridgeBackendWrite {
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input) =>
       bridgePrepareCgyySubmitReservation(_context, input);
 
+  Future<HangzhouCgyyCaptcha> loadHangzhouCgyyCaptcha() =>
+      bridgeLoadHangzhouCgyyCaptcha(_context);
+
+  /// 准备杭州空间预约；滑块位移与点击坐标来自用户真实操作。
+  Future<WriteIntent> prepareHangzhouCgyySubmitReservation(
+    HangzhouCgyySubmitInput input,
+  ) => bridgePrepareHangzhouCgyySubmitReservation(_context, input);
+
+  Future<WriteIntent> prepareHangzhouCgyyCancelOrder(
+    HangzhouCgyyCancelAction action,
+    String reason,
+  ) => bridgePrepareHangzhouCgyyCancelOrder(_context, action, reason);
+
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
       bridgePrepareCgyyCancelOrder(_context, id: id);
 
