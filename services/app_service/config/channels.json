@@ -1,10 +1,10 @@
 {
   "github": null,
   "app_store": {
-    "latest_version": "2.0.3",
+    "latest_version": "2.1.0",
     "min_supported_version": null,
     "url": "https://apps.apple.com/cn/app/ubaa/id6768861821",
-    "release_notes": "修复了已知问题"
+    "release_notes": "SPOC 作业详情可下载附件和课件，确认后可直接提交作业文件。\n\n新增图书馆待还图书和续借，入口在「我的 → 待还图书」。\n\niOS 新增桌面与锁屏课表组件，需要 iOS 17 及以上。\n\n财务收入明细显示项目名称和部门。"
   },
   "app_gallery": null
 }
