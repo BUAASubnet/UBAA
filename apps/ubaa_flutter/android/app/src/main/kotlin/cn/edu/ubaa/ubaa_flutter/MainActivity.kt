@@ -1,5 +1,7 @@
 package cn.edu.ubaa.ubaa_flutter
 
+import android.content.Intent
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import cn.edu.ubaa.ubaa_flutter.platform.AppearanceChannel
@@ -7,6 +9,7 @@ import cn.edu.ubaa.ubaa_flutter.platform.AgendaFileChannel
 import cn.edu.ubaa.ubaa_flutter.platform.DefaultNetworkChannel
 import cn.edu.ubaa.ubaa_flutter.platform.PrivatePaths
 import cn.edu.ubaa.ubaa_flutter.widgets.WidgetChannel
+import cn.edu.ubaa.ubaa_flutter.widgets.WidgetLaunchInbox
 
 class MainActivity : FlutterActivity() {
     private external fun initializeTls(context: android.content.Context): Boolean
@@ -15,6 +18,22 @@ class MainActivity : FlutterActivity() {
     private var scheduleWidgets: WidgetChannel? = null
     private var appearance: AppearanceChannel? = null
     private var agendaFiles: AgendaFileChannel? = null
+    private val widgetLaunch = WidgetLaunchInbox()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        receiveWidgetLink(intent)
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        receiveWidgetLink(intent)
+    }
+
+    private fun receiveWidgetLink(intent: Intent) {
+        widgetLaunch.receive(intent)?.let { scheduleWidgets?.launch(it) }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         System.loadLibrary("ubaa_flutter_bridge")
@@ -22,7 +41,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         network = DefaultNetworkChannel(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         paths = PrivatePaths(this, flutterEngine.dartExecutor.binaryMessenger)
-        scheduleWidgets = WidgetChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        scheduleWidgets = WidgetChannel(this, flutterEngine.dartExecutor.binaryMessenger, widgetLaunch)
         appearance = AppearanceChannel(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         agendaFiles = AgendaFileChannel(this, flutterEngine.dartExecutor.binaryMessenger)
     }

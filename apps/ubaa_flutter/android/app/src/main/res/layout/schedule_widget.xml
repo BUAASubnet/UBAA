@@ -1,21 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:background="@drawable/schedule_widget_background">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="32dp" android:gravity="center_vertical">
-        <TextView android:id="@+id/widget_previous" android:layout_width="32dp" android:layout_height="32dp"
-            android:text="‹" android:textSize="24sp" android:textColor="#244C86" android:gravity="center" android:contentDescription="上一周" />
-        <TextView android:id="@+id/widget_title" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
-            android:text="UBAA 周课表" android:textSize="13sp" android:textStyle="bold" android:textColor="#18304B" android:gravity="center" android:maxLines="2" />
-        <TextView android:id="@+id/widget_next" android:layout_width="32dp" android:layout_height="32dp"
-            android:text="›" android:textSize="24sp" android:textColor="#244C86" android:gravity="center" android:contentDescription="下一周" />
-        <TextView android:id="@+id/widget_current" android:layout_width="32dp" android:layout_height="32dp"
-            android:text="本周" android:textSize="13sp" android:textColor="#244C86" android:gravity="center" android:contentDescription="回到本周" />
+    android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/widget_root" android:orientation="vertical" android:background="@drawable/widget_background" android:padding="@dimen/widget_padding">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="@dimen/widget_week_header_height" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:id="@+id/widget_title" android:includeFontPadding="false" android:textSize="15sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:layout_weight="1" android:text="@string/widget_week" />
+        <TextView android:layout_width="32dp" android:layout_height="match_parent" android:id="@+id/widget_previous" android:includeFontPadding="false" android:textSize="24sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:text="‹" android:gravity="center" android:contentDescription="@string/widget_week_previous" android:visibility="gone" />
+        <TextView android:layout_width="32dp" android:layout_height="match_parent" android:id="@+id/widget_next" android:includeFontPadding="false" android:textSize="24sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:text="›" android:gravity="center" android:contentDescription="@string/widget_week_next" android:visibility="gone" />
+        <TextView android:layout_width="32dp" android:layout_height="match_parent" android:id="@+id/widget_current" android:includeFontPadding="false" android:textSize="13sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:text="@string/widget_week_current_button" android:gravity="center" android:contentDescription="@string/widget_week_current" android:visibility="gone" />
     </LinearLayout>
-    <TextView android:id="@+id/widget_message" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-        android:gravity="center" android:textColor="#42546A" android:text="请先打开 UBAA，登录并本地化课表" />
-    <ImageView android:id="@+id/widget_grid" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-        android:visibility="gone" android:scaleType="fitXY" android:contentDescription="本地周课表，点击查看详情" />
-    <TextView android:id="@+id/widget_footer" android:layout_width="match_parent" android:layout_height="16dp"
-        android:gravity="center" android:text="本地课表 · 点击查看整周" android:textSize="10sp" android:textColor="#53647A" android:maxLines="1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_message" android:includeFontPadding="false" android:textSize="15sp" android:textColor="@color/widget_ink" android:maxLines="2" android:ellipsize="end" android:textStyle="bold" android:text="@string/widget_missing" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_hint" android:includeFontPadding="false" android:textSize="12sp" android:textColor="@color/widget_secondary" android:maxLines="1" android:ellipsize="end" android:text="@string/widget_load_schedule" />
+    <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:id="@+id/widget_grid" android:layout_weight="1" android:visibility="gone" android:scaleType="fitCenter" />
 </LinearLayout>

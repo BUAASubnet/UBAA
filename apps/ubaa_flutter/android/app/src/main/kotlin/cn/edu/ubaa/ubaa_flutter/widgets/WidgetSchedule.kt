@@ -32,14 +32,34 @@ internal data class WidgetSemester(
     val name: String = termCode,
 )
 
-internal data class WidgetSnapshot(val owner: String, val semesters: List<WidgetSemester>)
+internal data class WidgetSnapshot(
+    val owner: String,
+    val semesters: List<WidgetSemester>,
+    val horizonEnd: Long? = null,
+    val upNext: List<UpNextSegment>? = null,
+    val today: List<TodaySegment>? = null,
+    val todo: List<TodoSegment>? = null,
+) {
+    fun <Segment : CardSegment> segment(table: List<Segment>?, now: Long): Segment? =
+        if (horizonEnd == null || now >= horizonEnd) null
+        else table?.lastOrNull { it.from <= now } ?: table?.firstOrNull()
+
+    fun nextRefresh(now: Long): Long? {
+        val end = horizonEnd?.takeIf { it > now } ?: return null
+        return listOfNotNull(
+            upNext?.firstOrNull { it.from > now }?.from,
+            today?.firstOrNull { it.from > now }?.from,
+            todo?.firstOrNull { it.from > now }?.from,
+            end,
+        ).minOrNull()
+    }
+}
 
 internal data class SelectedWeek(val semester: WidgetSemester, val week: WidgetWeek)
 
-internal data class SavedAgendaItem(val date: LocalDate, val course: WidgetCourse)
-
 internal fun parseWidgetSnapshot(raw: JSONObject): WidgetSnapshot {
-    require(raw.getInt("version") in 1..2)
+    val version = raw.opt("version")
+    require(version == 1 || version == 2)
     val owner = raw.getString("owner")
     require(owner.isNotBlank() && owner.length <= 128)
     val terms = raw.getJSONArray("semesters")
@@ -114,7 +134,13 @@ internal fun parseWidgetSnapshot(raw: JSONObject): WidgetSnapshot {
             )
         }
     require(semesters.map { it.termCode }.distinct().size == semesters.size)
-    return WidgetSnapshot(owner, semesters)
+    val horizon = if (version == 2) raw.epochSeconds("horizonEnd") else null
+    return WidgetSnapshot(
+        owner, semesters, horizon,
+        raw.cardTable("upNext", horizon, ::parseUpNext),
+        raw.cardTable("today", horizon, ::parseToday),
+        raw.cardTable("todo", horizon, ::parseTodo),
+    )
 }
 
 private fun JSONObject.optionalInt(key: String): Int? = if (isNull(key)) null else getInt(key)
@@ -144,23 +170,4 @@ internal fun selectSavedScheduleWeek(
             ?: weeks.firstOrNull { date in it.startDate..it.endDate }
             ?: if (date < weeks.first().startDate) weeks.first() else weeks.last()
     return SelectedWeek(semester, week)
-}
-
-internal fun savedAgenda(
-    semesters: List<WidgetSemester>,
-    today: LocalDate,
-    days: Int,
-): List<SavedAgendaItem> {
-    require(days in 1..3)
-    return (0 until days).flatMap { offset ->
-        val date = today.plusDays(offset.toLong())
-        val selected = selectSavedScheduleWeek(semesters, date)
-        if (selected == null || date.toString() !in selected.week.startDate..selected.week.endDate)
-            emptyList()
-        else
-            selected.week.arrangedList
-                .filter { it.dayOfWeek == date.dayOfWeek.value }
-                .sortedBy { it.beginTime }
-                .map { SavedAgendaItem(date, it) }
-    }
 }

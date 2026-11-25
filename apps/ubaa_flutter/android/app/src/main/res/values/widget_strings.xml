@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_up_next">接下来</string>
+    <string name="widget_today">今天</string>
+    <string name="widget_todo">待办</string>
+    <string name="widget_week">周课表</string>
+    <string name="widget_up_next_description">现在或接下来要去的课、博雅、预约和考试</string>
+    <string name="widget_today_description">今天剩下的安排，晚上自动换成明天</string>
+    <string name="widget_todo_description">7 天内要截止的作业和临近的考试</string>
+    <string name="widget_week_description">整周课表一览，可切换周次</string>
+    <string name="widget_preview_course">8:00 · 主楼 A201 · 高等数学</string>
+    <string name="widget_preview_todo">明天 · 合成考试</string>
+    <string name="widget_missing">还没有课表</string>
+    <string name="widget_load_schedule">打开 UBAA 载入课表</string>
+    <string name="widget_load_todo">打开 UBAA 载入待办</string>
+    <string name="widget_needs_update">需要更新</string>
+    <string name="widget_update">打开 UBAA 更新</string>
+    <string name="widget_ongoing">进行中</string>
+    <string name="widget_until">至 %1$s</string>
+    <string name="widget_more">还有 %1$d 项</string>
+    <string name="widget_extra">+%1$d</string>
+    <string name="widget_week_previous">上一周</string>
+    <string name="widget_week_next">下一周</string>
+    <string name="widget_week_current">回到本周</string>
+    <string name="widget_week_current_button">本周</string>
+</resources>
