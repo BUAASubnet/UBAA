@@ -94,6 +94,17 @@ pub(crate) async fn map(runtime: &mut ClientRuntime, kcid: &str) -> Result<(Stri
     let expected =
         url::Url::parse(&target).map_err(|_| msa::changed(STAGE, "mapping_request_url"))?;
     let response = msa::isolated_get(runtime, HttpRequest::get(target)).await?;
+    if response.status == 200
+        && response
+            .header_first("content-type")
+            .and_then(|value| value.split(';').next())
+            .is_some_and(|mime| mime.trim().eq_ignore_ascii_case("text/html"))
+    {
+        return Err(
+            UbaaError::business_unavailable("该课程暂未在智学北航开通课堂")
+                .with_diagnostic(STAGE, "mapping_unbound_page"),
+        );
+    }
     if response.status != 302 {
         return Err(msa::changed(STAGE, "mapping_status"));
     }

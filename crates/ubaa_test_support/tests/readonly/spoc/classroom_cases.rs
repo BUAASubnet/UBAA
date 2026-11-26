@@ -47,6 +47,48 @@ async fn 教师和未开通课程不进入后续请求() {
     }
 }
 #[tokio::test]
+async fn 两条路线仅将返回200的课堂映射网页判为未开通() {
+    let unbound = fixture!("course-url-unbound");
+    assert_eq!(unbound["body"].as_str().unwrap().len(), 1337);
+    for vpn in [false, true] {
+        for (status, content_type, unavailable) in [
+            (200, None, true),
+            (200, Some("Text/HTML"), true),
+            (200, Some("application/json"), false),
+            (200, Some("text/html-extra"), false),
+            (404, None, false),
+        ] {
+            let mut steps = super::super::files::login(vpn, "fixture");
+            let mut map = mapping(vpn, false);
+            let mut fixture = unbound.clone();
+            fixture["status"] = json!(status);
+            if let Some(content_type) = content_type {
+                fixture["headers"]["content-type"] = json!([content_type]);
+            }
+            map[2] = head(&map[2].0, &fixture);
+            steps.extend(map);
+            let (mut client, script, _root) = setup(vpn, steps);
+            let error = client
+                .spoc_classroom_catalog(&kcid())
+                .await
+                .unwrap_err()
+                .error;
+            let (code, reason) = if unavailable {
+                (ErrorCode::BusinessUnavailable, "mapping_unbound_page")
+            } else {
+                (ErrorCode::UpstreamChanged, "mapping_status")
+            };
+            assert_eq!(error.code, code, "WebVPN={vpn}, HTTP {status}");
+            if unavailable {
+                assert_eq!(error.message, "该课程暂未在智学北航开通课堂");
+            }
+            assert_eq!(error.diagnostic().stage.as_deref(), Some("spoc_mapping"));
+            assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
+            assert!(script.0.lock().unwrap().is_empty());
+        }
+    }
+}
+#[tokio::test]
 async fn 拒绝映射错误落点和认证链明文而不跟随() {
     for vpn in [false, true] {
         for target in [
