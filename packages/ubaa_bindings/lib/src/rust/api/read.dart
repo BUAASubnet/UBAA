@@ -968,6 +968,9 @@ class BridgeCgyySlotStatus {
   /// 管理员占用说明（如“教学使用”），只用于展示。
   final String? adminRemark;
 
+  /// 已约人数；杭州按人数预约的场地与 `reservation_total_num` 一起显示“已约/总数”。
+  final int? alreadyNum;
+
   const BridgeCgyySlotStatus({
     required this.timeId,
     this.reservationStatus,
@@ -976,6 +979,7 @@ class BridgeCgyySlotStatus {
     this.startDate,
     this.endDate,
     this.adminRemark,
+    this.alreadyNum,
   });
 
   @override
@@ -986,7 +990,8 @@ class BridgeCgyySlotStatus {
       reservationTarget.hashCode ^
       startDate.hashCode ^
       endDate.hashCode ^
-      adminRemark.hashCode;
+      adminRemark.hashCode ^
+      alreadyNum.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -999,7 +1004,8 @@ class BridgeCgyySlotStatus {
           reservationTarget == other.reservationTarget &&
           startDate == other.startDate &&
           endDate == other.endDate &&
-          adminRemark == other.adminRemark;
+          adminRemark == other.adminRemark &&
+          alreadyNum == other.alreadyNum;
 }
 
 class BridgeCgyySpaceAvailability {

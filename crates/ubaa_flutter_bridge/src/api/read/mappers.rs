@@ -731,6 +731,7 @@ pub(crate) fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot 
 fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
     BridgeCgyySlotStatus {
         admin_remark: v.admin_remark,
+        already_num: v.already_num,
         time_id: v.time_id,
         reservation_status: v.reservation_status,
         reservation_eligibility: map_action_eligibility(v.reservation_eligibility),

@@ -243,7 +243,8 @@ async fn preflight(
     if root.get("isFee").and_then(Value::as_i64).unwrap_or(0) != 0 {
         return Err(invalid_input("该场地需要付费，UBAA 只支持免费场地预约"));
     }
-    let context = parse_day_context(&body, request.venue_site_id, &request.reservation_date)?;
+    let mut context = parse_day_context(&body, request.venue_site_id, &request.reservation_date)?;
+    super::parser::hangzhou_apply_capacity(&mut context.info);
     if !context.requested_date_exact {
         return Err(changed("预约日期已不在可约范围内，请刷新后重试"));
     }

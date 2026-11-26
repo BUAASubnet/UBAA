@@ -132,6 +132,7 @@ pub(crate) async fn get_hangzhou_day_info(
 ) -> Result<CgyyDayInfo> {
     let body = day_body(runtime, CgyySite::Hangzhou, site_id, date).await?;
     let mut info = parse_day_context(&body, site_id, date)?.info;
+    super::parser::hangzhou_apply_capacity(&mut info);
     // 杭州日表只返回被查询的那一天；官网按 `advanceReservationDays` 从今天起列出可选日期。
     let today = crate::time::shanghai_datetime(runtime.now()).date();
     if let Some(dates) = super::parser::hangzhou_advance_dates(&body, today) {

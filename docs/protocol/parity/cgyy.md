@@ -65,7 +65,8 @@
   - `day/info` 的 `reservationDateList` 只含所查日期。官网的“今天/明天/后天”三个日期按钮来自 `venue_info` 的 `advanceReservationDays`（实测为 3）。Core 用它按上海时区从今天起生成可选日期（只接受 1–14），并保留所查日期。
   - 时段键含 `reservationStatus/adminTake/adminRemark/alreadyNum/useNum/…`。官网“教学使用”格对应 `adminTake=true` 加 `adminRemark`，Core 只在 `adminTake` 为真时取 `adminRemark`（trim 后不超过 20 字、不含控制字符），用于展示。官网“已售”对应 `reservationStatus=4`，UI 只在杭州场馆显示这两类说明，北京研讨室不变。
   - 场地名“羽毛球馆（篮球场）”、场次“1号（篮球场）”是上游原名，不是合并。
-  - 健康中心等场地的 `reservationTotalNum` 远大于 1（官网显示“已约/总数”），是按人数计的容量模式。该模式下的预约请求没有实录。UBAA 在这类场地仍沿用讨论室实录的提交形状，这一点未经验证；维护者授权实测之前，不应视为已支持。
+  - 健康中心等场地的 `reservationTotalNum` 远大于 1，是按人数计的容量模式。按 hzsm 前端 `getReservationSpaceText`：管理员占用说明优先；`reservationTotalNum > 1` 时格子显示 `alreadyNum/reservationTotalNum`；只有 `alreadyNum < reservationTotalNum` 才可选。UBAA 照此显示“已约/总数”，约满的时段（杭州专用 `hangzhou_apply_capacity`）改为不可预约，提交前的复核同样适用。
+  - 该模式下的预约请求没有实录。UBAA 沿用讨论室实录的提交形状，这一点未经验证，实测之前不应视为已支持。
 - **真实验证未执行**：需要维护者按 AGENTS.md 授权功能与连接方式后，用杭州校区账号做 Direct 只读验证（站点、我的预约），并确认 `roleLogin` 是否必需、各响应真实结构。WebVPN 路线见上方决策。
 
 ### 2026-11-25 杭州空间预约提交与取消（写入）

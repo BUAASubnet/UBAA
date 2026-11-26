@@ -661,6 +661,8 @@ pub struct BridgeCgyySlotStatus {
     pub end_date: Option<String>,
     /// 管理员占用说明（如“教学使用”），只用于展示。
     pub admin_remark: Option<String>,
+    /// 已约人数；杭州按人数预约的场地与 `reservation_total_num` 一起显示“已约/总数”。
+    pub already_num: Option<i32>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyySpaceAvailability {

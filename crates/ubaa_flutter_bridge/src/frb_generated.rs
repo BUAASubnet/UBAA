@@ -26272,6 +26272,7 @@ impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
         let mut var_startDate = <Option<String>>::sse_decode(deserializer);
         let mut var_endDate = <Option<String>>::sse_decode(deserializer);
         let mut var_adminRemark = <Option<String>>::sse_decode(deserializer);
+        let mut var_alreadyNum = <Option<i32>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyySlotStatus {
             time_id: var_timeId,
             reservation_status: var_reservationStatus,
@@ -26280,6 +26281,7 @@ impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
             start_date: var_startDate,
             end_date: var_endDate,
             admin_remark: var_adminRemark,
+            already_num: var_alreadyNum,
         };
     }
 }
@@ -40438,6 +40440,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyySlotStatus {
             self.start_date.into_into_dart().into_dart(),
             self.end_date.into_into_dart().into_dart(),
             self.admin_remark.into_into_dart().into_dart(),
+            self.already_num.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -49473,6 +49476,7 @@ impl SseEncode for crate::api::read::BridgeCgyySlotStatus {
         <Option<String>>::sse_encode(self.start_date, serializer);
         <Option<String>>::sse_encode(self.end_date, serializer);
         <Option<String>>::sse_encode(self.admin_remark, serializer);
+        <Option<i32>>::sse_encode(self.already_num, serializer);
     }
 }
 

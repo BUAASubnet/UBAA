@@ -793,3 +793,23 @@ pub(super) fn hangzhou_advance_dates(body: &str, today: chrono::NaiveDate) -> Op
             .collect(),
     )
 }
+
+/// 杭州官网只在 `alreadyNum < reservationTotalNum` 时允许选择（hzsm 前端 `reserveHandler`）；
+/// 已约满的“空闲”时段改为不可预约。北京不经过这里。
+pub(super) fn hangzhou_apply_capacity(info: &mut crate::domain::CgyyDayInfo) {
+    let Some(total) = info.reservation_total_num.filter(|total| *total > 0) else {
+        return;
+    };
+    for slot in info
+        .spaces
+        .iter_mut()
+        .flat_map(|space| space.slots.iter_mut())
+    {
+        if slot.reservation_eligibility == ActionEligibility::Allowed
+            && slot.already_num.unwrap_or(0) >= total
+        {
+            slot.reservation_eligibility = ActionEligibility::Denied;
+            slot.reservation_target = None;
+        }
+    }
+}

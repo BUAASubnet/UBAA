@@ -260,6 +260,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                         slots: <BridgeCgyySlotStatus>[
                           BridgeCgyySlotStatus(
                             adminRemark: null,
+                            alreadyNum: null,
                             timeId: 9,
                             reservationStatus: 1,
                             reservationEligibility:

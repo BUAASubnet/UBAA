@@ -299,16 +299,24 @@ extension CgyyReservationTable on CgyyReservationFlowState {
     final allowed = key != null && actions.containsKey(key);
     final selected = allowed && _selected.contains(key);
     final colors = Theme.of(context).colorScheme;
-    // 杭州场馆按官网显示占用原因：管理员占用说明（如“教学使用”）或“已售”。
+    // 杭州场馆按官网 `getReservationSpaceText`：管理员占用说明（如“教学使用”）优先；
+    // 按人数预约（`reservationTotalNum > 1`）的场地显示“已约/总数”；其余已约满显示“已售”。
     final slot = detail?.presentation;
+    final total = _day?.reservationTotalNum ?? 0;
+    final capacity =
+        widget.hangzhouVenue && total > 1 && slot is CgyySlotPresentation
+        ? '${slot.alreadyNum ?? 0}/$total'
+        : null;
     final note =
         !widget.hangzhouVenue || allowed || slot is! CgyySlotPresentation
         ? null
-        : slot.adminRemark ?? (slot.reservationStatus == 4 ? '已售' : null);
+        : slot.adminRemark ??
+              capacity ??
+              (slot.reservationStatus == 4 ? '已售' : null);
     final status = selected
         ? '已选'
         : allowed
-        ? '可预约'
+        ? (capacity == null ? '可预约' : '可预约 已约$capacity')
         : note ?? (candidates.isEmpty ? '无时段信息' : '不可预约');
     final toggle = allowed ? () => _toggleSlot(key, actions) : null;
     return Semantics(
@@ -350,7 +358,14 @@ extension CgyyReservationTable on CgyyReservationFlowState {
                   ],
                 )
               : allowed
-              ? const Icon(Icons.add, size: 20)
+              ? capacity == null
+                    ? const Icon(Icons.add, size: 20)
+                    : Text(
+                        capacity,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onPrimaryContainer,
+                        ),
+                      )
               : status == '不可预约'
               ? const Icon(Icons.remove, size: 20)
               : Text(

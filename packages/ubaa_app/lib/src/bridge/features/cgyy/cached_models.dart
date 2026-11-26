@@ -13,6 +13,7 @@ bool bridgeIsCgyyCacheQuery(FeatureId feature, FeatureQuery query) =>
 BridgeCgyySlotStatus _cachedCgyySlotStatus(BridgeCachedCgyySlotStatus v) =>
     BridgeCgyySlotStatus(
       adminRemark: null,
+      alreadyNum: null,
       timeId: v.timeId,
       reservationStatus: v.reservationStatus,
       reservationEligibility: BridgeActionEligibility.unknown,

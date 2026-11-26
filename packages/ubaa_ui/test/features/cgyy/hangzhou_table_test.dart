@@ -101,6 +101,17 @@ void main() {
     expect(find.text('已选'), findsNWidgets(3));
   });
 
+  testWidgets('杭州按人数预约的场地像官网一样显示已约/总数', (tester) async {
+    await _pumpFree(tester, hangzhou: true, total: 200);
+    expect(find.text('75/200'), findsOneWidget);
+    expect(find.text('2/200'), findsOneWidget);
+    expect(find.text('0/200'), findsNWidgets(2));
+    await tester.tap(_cell('10:00–11:00'));
+    await tester.pumpAndSettle();
+    expect(find.text('75/200'), findsNothing);
+    expect(find.text('已选'), findsOneWidget);
+  });
+
   testWidgets('北京研讨室仍只能选两个相邻时段', (tester) async {
     await _pumpFree(tester, hangzhou: false);
     for (final time in ['10:00–11:00', '11:00–12:00', '12:00–13:00']) {
@@ -118,7 +129,7 @@ void main() {
   });
 }
 
-FeatureDetail _free(int timeId, int ordinal) => FeatureDetail(
+FeatureDetail _free(int timeId, int ordinal, {int? already}) => FeatureDetail(
   title: '$timeId',
   presentation: CgyySlotPresentation(
     venueSiteId: 701,
@@ -129,6 +140,7 @@ FeatureDetail _free(int timeId, int ordinal) => FeatureDetail(
     beginTime: '$timeId:00',
     endTime: '${timeId + 1}:00',
     reservationStatus: 1,
+    alreadyNum: already,
   ),
   actions: [
     CgyyReserveAction(
@@ -143,7 +155,11 @@ FeatureDetail _free(int timeId, int ordinal) => FeatureDetail(
   ],
 );
 
-Future<void> _pumpFree(WidgetTester tester, {required bool hangzhou}) async {
+Future<void> _pumpFree(
+  WidgetTester tester, {
+  required bool hangzhou,
+  int? total,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1200, 900);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -158,9 +174,10 @@ Future<void> _pumpFree(WidgetTester tester, {required bool hangzhou}) async {
             feature: hangzhou ? FeatureId.hangzhouCgyy : FeatureId.cgyy,
             status: FeatureLoadStatus.success,
             details: [
-              const FeatureDetail(
+              FeatureDetail(
                 title: '预约时间',
                 presentation: CgyyDayPresentation(
+                  reservationTotalNum: total,
                   venueSiteId: 701,
                   reservationDate: '2026-11-27',
                   availableDates: ['2026-11-27'],
@@ -199,8 +216,8 @@ Future<void> _pumpFree(WidgetTester tester, {required bool hangzhou}) async {
                   ],
                 ),
               ),
-              _free(10, 0),
-              _free(11, 1),
+              _free(10, 0, already: total == null ? null : 75),
+              _free(11, 1, already: total == null ? null : 2),
               _free(12, 2),
               _free(13, 3),
             ],

@@ -202,6 +202,7 @@ class _RoomPresentationClient extends FixtureCharacterizationBridgeClient {
               slots: [
                 BridgeCgyySlotStatus(
                   adminRemark: null,
+                  alreadyNum: null,
                   timeId: 9,
                   reservationStatus: 1,
                   reservationEligibility: BridgeActionEligibility.allowed,
@@ -216,12 +217,14 @@ class _RoomPresentationClient extends FixtureCharacterizationBridgeClient {
                 ),
                 BridgeCgyySlotStatus(
                   adminRemark: null,
+                  alreadyNum: null,
                   timeId: 3,
                   reservationStatus: 1,
                   reservationEligibility: BridgeActionEligibility.denied,
                 ),
                 BridgeCgyySlotStatus(
                   adminRemark: null,
+                  alreadyNum: null,
                   timeId: 8,
                   reservationEligibility: BridgeActionEligibility.unknown,
                 ),

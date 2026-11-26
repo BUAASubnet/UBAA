@@ -439,6 +439,40 @@ mod contract {
     }
 
     #[test]
+    fn 杭州按人数预约的时段约满后不可预约() {
+        let body = r#"{
+            "code":200,
+            "data":{
+                "reservationTotalNum":200,
+                "spaceTimeInfo":[
+                    {"id":101,"beginTime":"08:00","endTime":"10:00"},
+                    {"id":242,"beginTime":"10:00","endTime":"13:00"}
+                ],
+                "reservationDateSpaceInfo":{
+                    "2026-03-29":[
+                        {"id":6,"spaceName":"合成中心","venueSiteId":4,"venueSpaceGroupId":null,
+                         "101":{"reservationStatus":1,"alreadyNum":200,"tradeNo":null,"orderId":null,"takeUp":false},
+                         "242":{"reservationStatus":1,"alreadyNum":75,"tradeNo":null,"orderId":null,"takeUp":false}}
+                    ]
+                }
+            }
+        }"#;
+        let mut info = parse_day_context(body, 4, "2026-03-29").unwrap().info;
+        super::super::parser::hangzhou_apply_capacity(&mut info);
+        let slots = &info.spaces[0].slots;
+        assert_eq!(
+            slots[0].reservation_eligibility,
+            crate::domain::ActionEligibility::Denied
+        );
+        assert!(slots[0].reservation_target.is_none());
+        assert_eq!(
+            slots[1].reservation_eligibility,
+            crate::domain::ActionEligibility::Allowed
+        );
+        assert_eq!(slots[1].already_num, Some(75));
+    }
+
+    #[test]
     fn 预约上下文令牌不进入公共序列化输出() {
         let day = parse_day_context(
             r#"{"code":200,"data":{"token":"reservation-token"}}"#,

@@ -76,6 +76,7 @@ FeatureResult bridgeMapCgyyDayInfo(
             startDate: slot.startDate,
             endDate: slot.endDate,
             adminRemark: slot.adminRemark,
+            alreadyNum: slot.alreadyNum,
           ),
           fields: bridgeCompactFields([
             bridgeField('站点 ID', '${data.venueSiteId}'),

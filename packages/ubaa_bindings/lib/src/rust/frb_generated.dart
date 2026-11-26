@@ -21245,8 +21245,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return BridgeCgyySlotStatus(
       timeId: dco_decode_i_32(arr[0]),
       reservationStatus: dco_decode_opt_box_autoadd_i_32(arr[1]),
@@ -21256,6 +21256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startDate: dco_decode_opt_String(arr[4]),
       endDate: dco_decode_opt_String(arr[5]),
       adminRemark: dco_decode_opt_String(arr[6]),
+      alreadyNum: dco_decode_opt_box_autoadd_i_32(arr[7]),
     );
   }
 
@@ -31872,6 +31873,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_startDate = sse_decode_opt_String(deserializer);
     var var_endDate = sse_decode_opt_String(deserializer);
     var var_adminRemark = sse_decode_opt_String(deserializer);
+    var var_alreadyNum = sse_decode_opt_box_autoadd_i_32(deserializer);
     return BridgeCgyySlotStatus(
       timeId: var_timeId,
       reservationStatus: var_reservationStatus,
@@ -31880,6 +31882,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startDate: var_startDate,
       endDate: var_endDate,
       adminRemark: var_adminRemark,
+      alreadyNum: var_alreadyNum,
     );
   }
 
@@ -43358,6 +43361,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.startDate, serializer);
     sse_encode_opt_String(self.endDate, serializer);
     sse_encode_opt_String(self.adminRemark, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.alreadyNum, serializer);
   }
 
   @protected
