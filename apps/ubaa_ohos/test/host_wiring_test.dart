@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_ohos/main.dart';
+import 'package:ubaa_ohos/ohos_video_playback.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
@@ -11,6 +12,7 @@ void main() {
       photoPicker: MemoryPhotoPicker(),
       permissionGateway: MemoryPermissionGateway(),
       locationProvider: const UnavailableLocationProvider(),
+      videoPlayback: const OhosVideoPlaybackCapability(),
       galleryImageSaver: createDefaultGalleryImageSaver(
         operatingSystem: 'ohos',
       ),
@@ -53,5 +55,7 @@ void main() {
     expect(host.locationProvider, same(capabilities.locationProvider));
     expect(host.galleryImageSaver, same(capabilities.galleryImageSaver));
     expect(host.galleryImageSaver.isAvailable, isTrue);
+    expect(host.videoPlayback, same(capabilities.videoPlayback));
+    expect(host.videoPlayback, isA<OhosVideoPlaybackCapability>());
   });
 }

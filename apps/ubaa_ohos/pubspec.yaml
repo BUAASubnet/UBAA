@@ -18,6 +18,16 @@ dependencies:
     path: ../../packages/flutter_secure_storage_ohos
   ubaa_platform:
     path: ../../packages/ubaa_platform
+  video_player:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: video_player-v2.11.1-ohos-1.0.1
+      path: packages/video_player/video_player
+  video_player_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: video_player-v2.11.1-ohos-1.0.1
+      path: packages/video_player/video_player_ohos
 
   path_provider_ohos:
     git:
@@ -43,6 +53,13 @@ dependencies:
     path: ../../packages/connectivity_plus_ohos
   package_info_plus_ohos:
     path: ../../packages/package_info_plus_ohos
+
+dependency_overrides:
+  video_player_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: video_player-v2.11.1-ohos-1.0.1
+      path: packages/video_player/video_player_ohos
 
 dev_dependencies:
   flutter_test:
