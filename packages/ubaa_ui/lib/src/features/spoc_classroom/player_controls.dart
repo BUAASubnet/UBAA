@@ -43,16 +43,38 @@ class _ClassroomPlayerControlsState extends State<ClassroomPlayerControls> {
   Timer? _hide;
   double? _dragMs;
 
+  bool _wasPlaying = false;
+
   @override
   void initState() {
     super.initState();
+    _wasPlaying = widget.playback.state.value.isPlaying;
+    widget.playback.state.addListener(_onState);
     _bump();
   }
 
   @override
+  void didUpdateWidget(ClassroomPlayerControls old) {
+    super.didUpdateWidget(old);
+    if (old.playback != widget.playback) {
+      old.playback.state.removeListener(_onState);
+      widget.playback.state.addListener(_onState);
+      _wasPlaying = widget.playback.state.value.isPlaying;
+    }
+  }
+
+  @override
   void dispose() {
+    widget.playback.state.removeListener(_onState);
     _hide?.cancel();
     super.dispose();
+  }
+
+  /// 从暂停恢复播放（例如点章节跳转）时重新计时，控件随后自动淡出。
+  void _onState() {
+    final playing = widget.playback.state.value.isPlaying;
+    if (playing && !_wasPlaying && mounted) _bump();
+    _wasPlaying = playing;
   }
 
   void _bump() {
@@ -93,13 +115,8 @@ class _ClassroomPlayerControlsState extends State<ClassroomPlayerControls> {
             onHover: (_) => _bump(),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
+              // 不注册双击：双击识别会让控件内所有按钮延迟约 300 毫秒才响应。
               onTap: _toggleVisible,
-              onDoubleTap: () {
-                state.isPlaying
-                    ? widget.playback.pause()
-                    : widget.playback.play();
-                _bump();
-              },
               child: Stack(
                 fit: StackFit.expand,
                 children: [

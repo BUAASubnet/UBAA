@@ -51,6 +51,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   VideoPlayback? _playback;
   VideoPlayback? _openingPlayback;
   Object? _openError;
+  String? _playbackError;
   var _opening = false;
   double _rate = 1;
   final _teacherPosition = ValueNotifier(Duration.zero);
@@ -171,6 +172,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     setState(() {
       _source = source;
       _playback = null;
+      _playbackError = null;
       _openError = null;
       _opening = _unsupportedReason(source) == null;
     });
@@ -193,6 +195,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       _openingPlayback = null;
       setState(() {
         _playback = playback;
+        _playbackError = playback.state.value.error;
         _opening = false;
       });
     } on Object catch (error) {
@@ -210,7 +213,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   void _onPlaybackState() {
     final playback = _playback;
     if (playback == null) return;
-    _teacherPosition.value = _toTeacher(playback.state.value.position);
+    final state = playback.state.value;
+    _teacherPosition.value = _toTeacher(state.position);
+    if (state.error != _playbackError) {
+      setState(() => _playbackError = state.error);
+    }
   }
 
   Future<void> _switch(ClassroomPlaybackSource next) async {
@@ -310,7 +317,13 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 900;
+          // 宽屏，或手机横屏（宽明显大于高）时左右排布，避免 16:9 画面超出屏幕高度。
+          final wide =
+              constraints.maxWidth >= 900 ||
+              constraints.maxWidth > constraints.maxHeight * 1.2;
+          final sideWidth = constraints.maxWidth >= 900
+              ? 380.0
+              : constraints.maxWidth * .42;
           final video = _videoArea();
           final strip = _slides == null
               ? const SizedBox.shrink()
@@ -338,7 +351,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
                   width: 1,
                   color: theme.colorScheme.outlineVariant,
                 ),
-                SizedBox(width: 380, child: tabs),
+                SizedBox(width: sideWidth, child: tabs),
               ],
             );
           }
@@ -393,17 +406,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         detail: '可以用系统里的播放器打开',
         primary: ('用外部播放器打开', _openExternally),
       );
-    } else if (_openError != null || _playback?.state.value.error != null) {
+    } else if (_openError != null || _playbackError != null) {
       child = _VideoMessage(
         icon: Icons.error_outline,
         title: '视频播放失败',
-        detail:
-            _playback?.state.value.error ??
-            switch (_openError) {
-              final VideoPlaybackException e => e.message,
-              final UiError e => e.message,
-              _ => '请重试，或用外部播放器打开',
-            },
+        detail: _failureDetail(),
         primary: (
           '重试',
           () => _open(
@@ -462,6 +469,18 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     );
   }
 
+  /// 失败说明：与标题相同的通用文案不重复显示。
+  String _failureDetail() {
+    final message =
+        _playbackError ??
+        switch (_openError) {
+          final VideoPlaybackException e => e.message,
+          final UiError e => e.message,
+          _ => null,
+        };
+    return message == null || message == '视频播放失败' ? '请重试，或用外部播放器打开' : message;
+  }
+
   Widget _liveInfo(ThemeData theme) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
     child: Column(
@@ -509,7 +528,9 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       length: 3,
       child: Column(
         children: [
-          const TabBar(
+          TabBar(
+            // 换页签时收起逐字稿搜索的键盘与输入法候选条。
+            onTap: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             tabs: [
               Tab(text: '章节'),
               Tab(text: '逐字稿'),
@@ -638,6 +659,9 @@ class _FullscreenPlayer extends StatefulWidget {
 }
 
 class _FullscreenPlayerState extends State<_FullscreenPlayer> {
+  /// 每次进入全屏递增；退出时延迟解除方向锁前核对，避免覆盖紧接着的再次全屏。
+  static int _session = 0;
+
   bool get _mobile =>
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.android;
@@ -645,6 +669,7 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   @override
   void initState() {
     super.initState();
+    _session++;
     if (_mobile) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       SystemChrome.setPreferredOrientations([
@@ -658,7 +683,14 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   void dispose() {
     if (_mobile) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setPreferredOrientations(const []);
+      // 先转回竖屏，再解除锁定，让方向重新跟随设备姿态。
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      final session = _session;
+      Future<void>.delayed(const Duration(seconds: 1), () {
+        if (session == _session) {
+          SystemChrome.setPreferredOrientations(const []);
+        }
+      });
     }
     super.dispose();
   }

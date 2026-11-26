@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show ValueListenable;
-import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -119,15 +118,14 @@ void main() {
     expect(teacher.state.value.isPlaying, isTrue);
 
     await tester.tap(find.text('倍速'));
-    await tester.pump(kDoubleTapTimeout);
+    await tester.pump();
+    expect(find.text('1.5×'), findsOneWidget);
     await tester.pumpAndSettle();
     await tapAndSettle(tester, find.text('1.5×'));
     expect(teacher.state.value.rate, 1.5);
     await teacher.seekTo(const Duration(seconds: 30));
     await tester.pump();
-    await tester.tap(find.text('PPT'));
-    await tester.pump(kDoubleTapTimeout);
-    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.text('PPT'));
 
     const slidesStart = Duration(seconds: 30);
     expect(capability.opens, [
@@ -139,6 +137,28 @@ void main() {
     expect(slides.state.value.rate, 1.5);
     expect(slides.state.value.isPlaying, isTrue);
     await _expectDisposed(teacher);
+  });
+
+  testWidgets('暂停期间控件保持显示，恢复播放三秒后隐藏', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final capability = MemoryVideoPlaybackCapability();
+    await _pumpPlayer(tester, fixture, playback: capability);
+    final playback = capability.lastPlayback!;
+    final controls = find.descendant(
+      of: find.byType(ClassroomPlayerControls),
+      matching: find.byType(AnimatedOpacity),
+    );
+    double opacity() => tester.widget<AnimatedOpacity>(controls).opacity;
+
+    await playback.pause();
+    await tester.pump(const Duration(seconds: 4));
+    expect(opacity(), 1);
+    await playback.play();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2999));
+    expect(opacity(), 1);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(opacity(), 0);
   });
 
   testWidgets('点击章节、逐字稿和摘要时间链接，按教师时间轴跳转并播放', (tester) async {
@@ -190,6 +210,27 @@ void main() {
     expect(find.byTooltip('清除'), findsNothing);
     expect(find.text('今天介绍课堂直录播的示例。'), findsOneWidget);
     expect(find.text('点击时间点可以跳到相应片段。'), findsOneWidget);
+  });
+
+  testWidgets('点击另一个资料页签时立即取消逐字稿搜索焦点', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    await _pumpPlayer(
+      tester,
+      fixture,
+      playback: MemoryVideoPlaybackCapability(),
+    );
+    await tapAndSettle(tester, find.text('逐字稿'));
+    final search = find.widgetWithText(TextField, '搜索逐字稿');
+    await tester.enterText(search, '。');
+    final focus = tester
+        .widget<EditableText>(find.byType(EditableText))
+        .focusNode;
+    expect(focus.hasFocus, isTrue);
+
+    await tester.tap(find.text('摘要'));
+    await tester.pump();
+    expect(focus.hasFocus, isFalse);
+    await tester.pumpAndSettle();
   });
 
   for (final (description, capability, reason) in [
@@ -270,31 +311,52 @@ void main() {
     await _pumpPlayer(tester, fixture, playback: capability);
 
     expect(find.text('视频播放失败'), findsOneWidget);
+    expect(find.text('演示播放失败'), findsOneWidget);
     final playback = capability.memory.lastPlayback!;
     await _expectDisposed(playback);
   });
 
-  for (final (width, wide) in [(899.0, false), (900.0, true)]) {
-    testWidgets('${width.toInt()} 逻辑像素下资料区${wide ? '位于视频右侧' : '位于视频下方'}', (
-      tester,
-    ) async {
-      final fixture = await ClassroomFixture.load();
-      await _pumpPlayer(
-        tester,
-        fixture,
-        playback: MemoryVideoPlaybackCapability(),
-        width: width,
-      );
+  testWidgets('播放错误与标题相同则显示通用失败说明', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final capability = MemoryVideoPlaybackCapability();
+    await _pumpPlayer(tester, fixture, playback: capability);
+    capability.lastPlayback!.replaceState(
+      const VideoPlaybackState(error: '视频播放失败'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('视频播放失败'), findsOneWidget);
+    expect(find.text('请重试，或用外部播放器打开'), findsOneWidget);
+  });
 
-      final video = tester.getRect(find.byType(ClassroomPlayerControls));
-      final tabs = tester.getRect(find.byType(TabBar));
-      if (wide) {
-        expect(tabs.left, greaterThan(video.right));
-        expect(tabs.top, closeTo(video.top, 1));
-      } else {
-        expect(tabs.top, greaterThanOrEqualTo(video.bottom));
-        expect(tabs.left, closeTo(video.left, 1));
-      }
-    });
+  for (final (width, height, sideWidth) in [
+    (899.0, 900.0, null),
+    (900.0, 900.0, 380.0),
+    (874.0, 402.0, 874 * 0.42),
+  ]) {
+    testWidgets(
+      '${width.toInt()}×${height.toInt()} 下资料区${sideWidth == null ? '位于视频下方' : '位于视频右侧'}',
+      (tester) async {
+        final fixture = await ClassroomFixture.load();
+        await _pumpPlayer(
+          tester,
+          fixture,
+          playback: MemoryVideoPlaybackCapability(),
+          width: width,
+          height: height,
+        );
+
+        final video = tester.getRect(find.byType(ClassroomPlayerControls));
+        final tabs = tester.getRect(find.byType(TabBar));
+        expect(tester.takeException(), isNull);
+        if (sideWidth != null) {
+          expect(tabs.left, greaterThan(video.right));
+          expect(tabs.top, closeTo(video.top, 1));
+          expect(tabs.width, closeTo(sideWidth, 1));
+        } else {
+          expect(tabs.top, greaterThanOrEqualTo(video.bottom));
+          expect(tabs.left, closeTo(video.left, 1));
+        }
+      },
+    );
   }
 }
