@@ -4,6 +4,7 @@ import 'agenda/backend.dart';
 import 'app_service.dart';
 import '../contracts/app_service.dart';
 import 'ihome/service.dart';
+import 'features/spoc/classroom.dart';
 import 'features/spoc/files.dart';
 import 'health_cloud.dart';
 import 'finance/service.dart';
@@ -122,6 +123,7 @@ class BridgeBackend
         HomeTodoBackend,
         IhomeBackend,
         SpocFilesBackend,
+        ClassroomBackend,
         HealthCloudBackend,
         FinanceBackend,
         CampusAccountBackend,

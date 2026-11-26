@@ -17,6 +17,8 @@ import '../features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
 import '../features/cgyy/reservation_flow.dart' show CgyyReservationFlow;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
+import '../features/coursework/spoc_classroom_access.dart'
+    show SpocClassroomAccess;
 import '../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../features/coursework/assignment_filters.dart'
     show AssignmentListFilters;
@@ -52,6 +54,7 @@ class FeatureDetailView extends StatefulWidget {
   const FeatureDetailView({
     required this.feature,
     this.filesAccess,
+    this.classroomAccess,
     this.isLanding = false,
     this.paginationGeneration = 0,
     this.loadingMore = false,
@@ -142,6 +145,7 @@ class FeatureDetailView extends StatefulWidget {
   final ValueChanged<bool>? onReminderChanged;
   final FeatureId feature;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
   final VoidCallback onBack;
@@ -764,6 +768,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         bykcConflictIds: hidden,
         feature: widget.feature,
         filesAccess: widget.filesAccess,
+        classroomAccess: widget.classroomAccess,
         onSpocSubmitWrite: widget.onSpocSubmitWrite,
         pickSpocSubmitFile: widget.onPickSpocSubmitFile,
         // 后台续载下一页不影响已显示条目的操作；整页读取或刷新时才禁用。

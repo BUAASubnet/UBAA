@@ -13,6 +13,7 @@ import 'assignment_submit.dart' show SpocSubmitBlock;
 import '../../write_callbacks.dart'
     show SpocSubmitFilePicker, SpocSubmitStarter;
 import 'course_files_view.dart' show CourseFilesView;
+import 'spoc_classroom_access.dart' show SpocClassroomAccess;
 import 'spoc_files_access.dart' show SpocFilesAccess;
 
 bool uiSupportsAssignmentContent(
@@ -56,6 +57,7 @@ class AssignmentContent extends StatelessWidget {
     required this.details,
     this.onNavigate,
     this.filesAccess,
+    this.classroomAccess,
     this.onSpocSubmitWrite,
     this.pickSpocSubmitFile,
     this.writesEnabled = true,
@@ -63,6 +65,7 @@ class AssignmentContent extends StatelessWidget {
   final List<FeatureDetail> details;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final SpocSubmitStarter? onSpocSubmitWrite;
   final SpocSubmitFilePicker? pickSpocSubmitFile;
   final bool writesEnabled;
@@ -142,6 +145,7 @@ class AssignmentContent extends StatelessWidget {
               wide: constraints.maxWidth >= 740,
               onNavigate: onNavigate,
               filesAccess: filesAccess,
+              classroomAccess: classroomAccess,
               onSpocSubmitWrite: onSpocSubmitWrite,
               pickSpocSubmitFile: pickSpocSubmitFile,
               writesEnabled: writesEnabled,
@@ -192,6 +196,7 @@ class AssignmentCard extends StatelessWidget {
     required this.wide,
     this.onNavigate,
     this.filesAccess,
+    this.classroomAccess,
     this.onSpocSubmitWrite,
     this.pickSpocSubmitFile,
     this.writesEnabled = true,
@@ -199,6 +204,7 @@ class AssignmentCard extends StatelessWidget {
   final FeatureDetail detail;
   final bool wide;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final SpocSubmitStarter? onSpocSubmitWrite;
   final SpocSubmitFilePicker? pickSpocSubmitFile;
   final bool writesEnabled;

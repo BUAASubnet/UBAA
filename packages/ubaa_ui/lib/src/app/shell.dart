@@ -41,6 +41,8 @@ import 'app_service/notices.dart' show AppServiceNotices;
 import 'app_service/settings.dart' show AppServiceControls;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
+import '../features/coursework/spoc_classroom_access.dart'
+    show SpocClassroomAccess;
 import '../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
@@ -163,6 +165,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
     this.spocFilesAccess,
+    this.spocClassroomAccess,
     this.onDiscardWriteIntent,
     this.onCommitWrite,
     this.onWriteSuccess,
@@ -293,6 +296,7 @@ class UbaaMainShell extends StatefulWidget {
 
   /// SPOC 附件、我的提交与课件的读取和下载；未接线的宿主为 null。
   final SpocFilesAccess? spocFilesAccess;
+  final SpocClassroomAccess? spocClassroomAccess;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;

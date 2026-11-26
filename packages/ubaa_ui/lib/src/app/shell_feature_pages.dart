@@ -42,6 +42,9 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
       child: FeatureDetailView(
         key: page.pageKey,
         filesAccess: widget.spocFilesAccess,
+        classroomAccess: feature == FeatureId.spoc
+            ? widget.spocClassroomAccess
+            : null,
         isLanding: page.isLanding,
         onOpenLockDisplay: widget.onOpenLockDisplay,
         onReadLockDisplay: widget.onReadLockDisplay,

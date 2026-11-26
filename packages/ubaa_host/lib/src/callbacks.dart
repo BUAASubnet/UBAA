@@ -110,6 +110,17 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     );
   }
 
+  SpocClassroomAccess? get _spocClassroomAccess {
+    final service = _controller.classroomService;
+    final files = _controller.spocFilesService;
+    if (service == null || files == null) return null;
+    return SpocClassroomAccess(
+      service: service,
+      courses: files.courses,
+      openExternal: widget.openExternalUrl,
+    );
+  }
+
   Future<WriteIntent> _prepareSpocSubmitWrite(SpocSubmitInput input) =>
       _controller.prepareSpocSubmitAssignment(input.action, input.file.path);
 
@@ -173,6 +184,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       campusAccountService: _controller.campusAccountService,
       bhpanService: _controller.bhpanService,
       spocFilesAccess: _spocFilesAccess,
+      spocClassroomAccess: _spocClassroomAccess,
       onPrepareSpocSubmitWrite: _prepareSpocSubmitWrite,
       onPickSpocSubmitFile: _pickSpocSubmitFile,
       cloudPrintService: _controller.cloudPrintService,

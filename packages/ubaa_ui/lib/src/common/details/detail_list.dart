@@ -36,6 +36,8 @@ import '../../features/coursework/assignment_content.dart'
         AssignmentContent,
         uiAssignmentSearchValues,
         uiSupportsAssignmentContent;
+import '../../features/coursework/spoc_classroom_access.dart'
+    show SpocClassroomAccess;
 import '../../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../../features/coursework/course_participation.dart'
     show CourseParticipationContent, uiSupportsParticipationContent;
@@ -94,6 +96,7 @@ class FeatureDetailList extends StatefulWidget {
     this.onQuery,
     this.onNavigate,
     this.filesAccess,
+    this.classroomAccess,
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onFetchSigninQr,
@@ -137,6 +140,7 @@ class FeatureDetailList extends StatefulWidget {
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
@@ -395,6 +399,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                       details: visible,
                       onNavigate: widget.onNavigate,
                       filesAccess: widget.filesAccess,
+                      classroomAccess: widget.classroomAccess,
                       onSpocSubmitWrite: widget.onSpocSubmitWrite,
                       pickSpocSubmitFile: widget.pickSpocSubmitFile,
                       writesEnabled: widget.writesEnabled,
@@ -426,6 +431,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                               wide: constraints.maxWidth >= 708,
                               onNavigate: widget.onNavigate,
                               filesAccess: widget.filesAccess,
+                              classroomAccess: widget.classroomAccess,
                               onSpocSubmitWrite: widget.onSpocSubmitWrite,
                               pickSpocSubmitFile: widget.pickSpocSubmitFile,
                               writesEnabled: widget.writesEnabled,
