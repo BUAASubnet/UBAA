@@ -36,10 +36,11 @@
 | 真实账号只读 | 已通过 | 2026-11-26，`core_live` 的 `spoc_classroom` 在 Direct 和 WebVPN 均通过。当时没有直播课，直播仅通过夹具验证。 |
 | 回放时间轴 | 已校准 | 已用真实回放校准教师与 PPT 两路，切换画面时保持同一播放位置，见[课堂协议对照](../protocol/parity/spoc-classroom.md)。 |
 | 平台构建 | 已通过 | Android、iOS、macOS、Windows、Linux 和 OHOS 的 CI 构建通过。本机 macOS、iOS 模拟器和 Android 构建通过。 |
-| 设备播放 | 待验证 | iOS 模拟器和 macOS 尚未完成真实账号端到端播放。iOS 模拟器登录态失效，待维护者登录；macOS 待解锁。HarmonyOS 无可用设备，仅通过构建验证。 |
+| 设备播放 | iOS 模拟器已通过 | 2026-11-27，维护方用真实账号在 iOS 模拟器验证了入口、节次、回放、倍速、教师/PPT 切换、章节/PPT/逐字稿跟随与搜索、摘要、全屏和退出释放。模拟器音频设备不可用，声音未验证。macOS 播放待验证，HarmonyOS 仅通过构建验证。 |
 
 ## 已知问题
 
+- iOS 随 `media_kit` 分发的 libmpv 需要随包 CA 文件才能校验 HTTPS 媒体连接；Linux 使用系统证书路径。
 - 本机 macOS 原生集成用例可能卡在将 App 切到前台的步骤。
 - 交付产物已改写到 `dist/`、CI 临时签名材料改放 `$RUNNER_TEMP`，发布工作流尚未在新路径下实际运行，下次发版时留意。
 - HarmonyOS 签名包实机验收待补；各平台的正式包覆盖升级验证尚不齐全。
