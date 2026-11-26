@@ -55,6 +55,32 @@ just verify-live feature=cgyy route=webvpn
 - 输出 `auth/prepare`、`auth/login`、`auth/status` 和 `finance/incomes` 的安全摘要；认证失败时把依赖读取标记为 `BLOCKED`。
 - 财务账号需要查询系统权限。使用其他获授权账号时，通过本机密钥管理工具只向这次验证进程注入对应账号和密码；进程环境优先于 `.env`。
 
+### SPOC 课堂直录播
+
+课堂验证不在 `all` 矩阵中。每次运行前，须取得维护者对本次功能和指定路线的授权；Direct 和 WebVPN 分别授权、分别运行。媒体探测在两条路线上都请求原媒体站点，不经学校 WebVPN，授权需包含这项直连读取。
+
+```bash
+just verify-live feature=spoc_classroom route=direct
+just verify-live feature=spoc_classroom route=webvpn
+```
+
+验证器只调用只读 facade，不打开播放页，不发送签到、播放进度或点击记录。此功能不启用 `RUST_LOG` 诊断输出，摘要也不包含课程名、标识、URL、个人资料或凭据。
+
+| 操作 | 摘要字段和判断规则 |
+|---|---|
+| `courses` | `count` 是 SPOC 课程总数。没有课程时，后续操作标记 `NOT_APPLICABLE`，原因是 `no_courses`。 |
+| `catalog` | `attempted_count` 最多为 12，按课程列表顺序取样。`count` 是成功取得目录的课程数，至少一门成功即 `PASS`，目录可以为空。`error_counts` 按稳定错误码计数，格式为 `代码:数量`，用逗号分隔；无错误时为 `none`。未开通课程对应 `business_unavailable`，教师等不支持的身份对应 `unsupported`。 |
+| `catalog` 节次 | `session_count` 为节次总数。`live_count`、`replay_count`、`no_replay_count`、`upcoming_count`、`tencent_meeting_count`、`other_count` 分别计数。腾讯会议节次只计入腾讯会议类别，不作为直播或回放媒体样本。 |
+| `catalog` 同名组 | `duplicate_name_groups` 只统计样本内同名且有多个不同 SPOC 课程标识的组。各组不同课堂标识数都等于该组不同 SPOC 课程标识数时，`distinct_mapping_matches=true`；任何一组少映射或映射重合时为 `false`。没有这样的组时为 `true`。 |
+| `replay_session` | 选择开始时间最近的回放。`count` 是轨道数；`has_teacher`、`has_slides`、`has_nonzero_offset` 分别表示教师路、PPT 路、任意轨道是否有非零时间偏移。没有回放时原操作及附加材料标记 `NOT_APPLICABLE`，原因是 `no_replay_session`。 |
+| `transcript` / `summary` / `slides` | 使用该回放教师路的资源标识。转写和 PPT 的 `count` 分别为分段数和张数；总结输出 `has_summary`、`keyword_count`、`qa_count`、`chapter_count`。上游给出空结果时仍为 `PASS`，相应计数为零。没有教师路资源标识时标记 `NOT_APPLICABLE`，原因是 `no_teacher_guid`。 |
+| `live_session` | 选择开始时间最近的直播。`has_teacher`、`has_student` 表示教师路、学生路是否存在。没有直播时标记 `NOT_APPLICABLE`，原因是 `no_live_session`。 |
+| `media_probe` | 信息项，不改变退出结果。输出 `http_proxy_env`；有回放教师 MP4 时输出 `replay_http_status` 和 `replay_is_partial`；有直播 m3u8 时优先探测教师路，否则探测学生路，输出 `live_http_status` 和 `live_starts_extm3u`。传输失败用 `replay_probe_error` 或 `live_probe_error` 记录稳定错误码。`PASS` 表示已尝试探测，HTTP 非 206、清单前缀不符或请求失败均可单独从字段判读。没有可探测的地址时标记 `NOT_APPLICABLE`，原因是 `no_media_source`。 |
+
+媒体探测使用单独的 HTTP 客户端，保留原媒体站点与路径，不跟随重定向。请求不带 Cookie、Authorization 或 Referer，也不发送原地址中可能授权播放的查询串。MP4 使用 `Range: bytes=0-1`，只读取响应头；m3u8 使用普通 GET，最多读取正文前 7 字节判断是否以 `#EXTM3U` 开头。匿名探测不能判断带原签名的媒体是否可播放。`http_proxy_env` 仅表示检测到非空 `HTTP_PROXY` 或 `HTTPS_PROXY`（含小写），不表明是否命中代理；本机系统代理也可能参与连接。
+
+登录失败时，八个课堂操作均标记 `BLOCKED`，原因是 `authentication_failed`。课程请求失败或样本的目录请求全部失败时阻塞依赖项；回放请求失败只阻塞附加材料，已有直播样本仍继续读取。
+
 ### Cgyy 窄范围日志
 
 需要排查 Cgyy 时，可以临时打开窄范围日志写入 stderr：
