@@ -101,7 +101,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 83;
+const _supportedBridgeContractVersion = 84;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。

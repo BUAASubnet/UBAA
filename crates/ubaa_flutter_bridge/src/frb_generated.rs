@@ -60,7 +60,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1953639682;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1159537077;
 
 // Section: executor
 
@@ -14968,6 +14968,317 @@ fn wire__crate__api__client__BridgeClient_spoc_assignments_impl(
         },
     )
 }
+fn wire__crate__api__client__BridgeClient_spoc_classroom_catalog_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_spoc_classroom_catalog",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_kcid = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::spoc_classroom_catalog(
+                            &*api_that_guard,
+                            api_kcid,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_spoc_classroom_session_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_spoc_classroom_session",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_course_id = <String>::sse_decode(&mut deserializer);
+            let api_sub_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::spoc_classroom_session(
+                            &*api_that_guard,
+                            api_course_id,
+                            api_sub_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_spoc_classroom_slides_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_spoc_classroom_slides",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_course_id = <String>::sse_decode(&mut deserializer);
+            let api_sub_id = <String>::sse_decode(&mut deserializer);
+            let api_resource_guid = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::spoc_classroom_slides(
+                            &*api_that_guard,
+                            api_course_id,
+                            api_sub_id,
+                            api_resource_guid,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_spoc_classroom_summary_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_spoc_classroom_summary",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_sub_id = <String>::sse_decode(&mut deserializer);
+            let api_resource_guid = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::spoc_classroom_summary(
+                            &*api_that_guard,
+                            api_sub_id,
+                            api_resource_guid,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_spoc_classroom_transcript_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_spoc_classroom_transcript",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_sub_id = <String>::sse_decode(&mut deserializer);
+            let api_resource_guid = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::client::BridgeClient::spoc_classroom_transcript(
+                                &*api_that_guard,
+                                api_sub_id,
+                                api_resource_guid,
+                            )
+                            .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__BridgeClient_spoc_course_files_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -26045,6 +26356,43 @@ impl SseDecode for crate::api::read::BridgeCgyyVenueSite {
     }
 }
 
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomCatalog {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_courseId = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_teachers = <Vec<String>>::sse_decode(deserializer);
+        let mut var_termName = <String>::sse_decode(deserializer);
+        let mut var_sessions =
+            <Vec<crate::api::read::spoc_classroom::BridgeClassroomSessionSummary>>::sse_decode(
+                deserializer,
+            );
+        return crate::api::read::spoc_classroom::BridgeClassroomCatalog {
+            course_id: var_courseId,
+            title: var_title,
+            teachers: var_teachers,
+            term_name: var_termName,
+            sessions: var_sessions,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomChapter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_startMs = <u64>::sse_decode(deserializer);
+        let mut var_endMs = <u64>::sse_decode(deserializer);
+        let mut var_headline = <String>::sse_decode(deserializer);
+        let mut var_summary = <String>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomChapter {
+            start_ms: var_startMs,
+            end_ms: var_endMs,
+            headline: var_headline,
+            summary: var_summary,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeClassroomFloor {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -26073,6 +26421,40 @@ impl SseDecode for crate::api::read::BridgeClassroomInfo {
     }
 }
 
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Teacher,
+            1 => crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Slides,
+            2 => crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Student,
+            _ => unreachable!("Invalid variant for BridgeClassroomPlaybackKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind =
+            <crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind>::sse_decode(
+                deserializer,
+            );
+        let mut var_url = <String>::sse_decode(deserializer);
+        let mut var_durationSecs = <Option<u64>>::sse_decode(deserializer);
+        let mut var_timeOffsetSecs = <Option<i64>>::sse_decode(deserializer);
+        let mut var_resourceGuid = <Option<String>>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource {
+            kind: var_kind,
+            url: var_url,
+            duration_secs: var_durationSecs,
+            time_offset_secs: var_timeOffsetSecs,
+            resource_guid: var_resourceGuid,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeClassroomQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -26084,6 +26466,154 @@ impl SseDecode for crate::api::read::BridgeClassroomQuery {
             code: var_code,
             message: var_message,
             floors: var_floors,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomQuestion {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_question = <String>::sse_decode(deserializer);
+        let mut var_answer = <String>::sse_decode(deserializer);
+        let mut var_startMs = <u64>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomQuestion {
+            question: var_question,
+            answer: var_answer,
+            start_ms: var_startMs,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomSession {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_startSecs = <i64>::sse_decode(deserializer);
+        let mut var_endSecs = <i64>::sse_decode(deserializer);
+        let mut var_status =
+            <crate::api::read::spoc_classroom::BridgeClassroomStatus>::sse_decode(deserializer);
+        let mut var_sources =
+            <Vec<crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource>>::sse_decode(
+                deserializer,
+            );
+        return crate::api::read::spoc_classroom::BridgeClassroomSession {
+            title: var_title,
+            start_secs: var_startSecs,
+            end_secs: var_endSecs,
+            status: var_status,
+            sources: var_sources,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomSessionSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_subId = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_week = <Option<u32>>::sse_decode(deserializer);
+        let mut var_startSecs = <i64>::sse_decode(deserializer);
+        let mut var_endSecs = <i64>::sse_decode(deserializer);
+        let mut var_room = <String>::sse_decode(deserializer);
+        let mut var_lecturer = <String>::sse_decode(deserializer);
+        let mut var_status =
+            <crate::api::read::spoc_classroom::BridgeClassroomStatus>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomSessionSummary {
+            sub_id: var_subId,
+            title: var_title,
+            week: var_week,
+            start_secs: var_startSecs,
+            end_secs: var_endSecs,
+            room: var_room,
+            lecturer: var_lecturer,
+            status: var_status,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomSlide {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_offsetMs = <u64>::sse_decode(deserializer);
+        let mut var_imageUrl = <String>::sse_decode(deserializer);
+        let mut var_thumbUrl = <String>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomSlide {
+            offset_ms: var_offsetMs,
+            image_url: var_imageUrl,
+            thumb_url: var_thumbUrl,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomSlides {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_slides =
+            <Vec<crate::api::read::spoc_classroom::BridgeClassroomSlide>>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomSlides { slides: var_slides };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::read::spoc_classroom::BridgeClassroomStatus::Live,
+            1 => crate::api::read::spoc_classroom::BridgeClassroomStatus::Replay,
+            2 => crate::api::read::spoc_classroom::BridgeClassroomStatus::NoReplay,
+            3 => crate::api::read::spoc_classroom::BridgeClassroomStatus::Upcoming,
+            4 => crate::api::read::spoc_classroom::BridgeClassroomStatus::TencentMeeting,
+            5 => crate::api::read::spoc_classroom::BridgeClassroomStatus::Other,
+            _ => unreachable!("Invalid variant for BridgeClassroomStatus: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_summary = <Option<String>>::sse_decode(deserializer);
+        let mut var_keywords = <Vec<String>>::sse_decode(deserializer);
+        let mut var_qa =
+            <Vec<crate::api::read::spoc_classroom::BridgeClassroomQuestion>>::sse_decode(
+                deserializer,
+            );
+        let mut var_chapters =
+            <Vec<crate::api::read::spoc_classroom::BridgeClassroomChapter>>::sse_decode(
+                deserializer,
+            );
+        return crate::api::read::spoc_classroom::BridgeClassroomSummary {
+            summary: var_summary,
+            keywords: var_keywords,
+            qa: var_qa,
+            chapters: var_chapters,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomTranscript {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_segments = <Vec<
+            crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment,
+        >>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomTranscript {
+            segments: var_segments,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_beginMs = <u64>::sse_decode(deserializer);
+        let mut var_endMs = <u64>::sse_decode(deserializer);
+        let mut var_text = <String>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment {
+            begin_ms: var_beginMs,
+            end_ms: var_endMs,
+            text: var_text,
         };
     }
 }
@@ -28816,12 +29346,77 @@ impl SseDecode for crate::api::read::BridgeRoutedCgyySites {
     }
 }
 
+impl SseDecode for crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::read::spoc_classroom::BridgeClassroomCatalog>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeRoutedClassroomQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_data = <crate::api::read::BridgeClassroomQuery>::sse_decode(deserializer);
         let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
         return crate::api::read::BridgeRoutedClassroomQuery {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSession {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::read::spoc_classroom::BridgeClassroomSession>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeRoutedClassroomSession {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::read::spoc_classroom::BridgeClassroomSlides>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::read::spoc_classroom::BridgeClassroomSummary>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::read::spoc_classroom::BridgeClassroomTranscript>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript {
             data: var_data,
             route: var_route,
         };
@@ -30675,6 +31270,22 @@ impl SseDecode for Vec<crate::api::read::BridgeCgyyVenueSite> {
     }
 }
 
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomChapter> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomChapter>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::read::BridgeClassroomFloor> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -30698,6 +31309,84 @@ impl SseDecode for Vec<crate::api::read::BridgeClassroomInfo> {
             ans_.push(<crate::api::read::BridgeClassroomInfo>::sse_decode(
                 deserializer,
             ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomQuestion> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomQuestion>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomSessionSummary> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomSessionSummary>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomSlide> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomSlide>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment>::sse_decode(
+                    deserializer,
+                ),
+            );
         }
         return ans_;
     }
@@ -34171,553 +34860,583 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        232 => wire__crate__api__client__BridgeClient_spoc_course_files_impl(
+        232 => wire__crate__api__client__BridgeClient_spoc_classroom_catalog_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        233 => wire__crate__api__client__BridgeClient_spoc_courses_impl(
+        233 => wire__crate__api__client__BridgeClient_spoc_classroom_session_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        234 => wire__crate__api__client__BridgeClient_spoc_download_assignment_file_impl(
+        234 => wire__crate__api__client__BridgeClient_spoc_classroom_slides_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        235 => wire__crate__api__client__BridgeClient_spoc_download_course_file_impl(
+        235 => wire__crate__api__client__BridgeClient_spoc_classroom_summary_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        236 => wire__crate__api__client__BridgeClient_submit_interactive_login_impl(
+        236 => wire__crate__api__client__BridgeClient_spoc_classroom_transcript_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        237 => wire__crate__api__client__BridgeClient_sync_agenda_impl(
+        237 => wire__crate__api__client__BridgeClient_spoc_course_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        238 => wire__crate__api__client__BridgeClient_take_command_login_identity_impl(
+        238 => wire__crate__api__client__BridgeClient_spoc_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        239 => {
+        239 => wire__crate__api__client__BridgeClient_spoc_download_assignment_file_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        240 => wire__crate__api__client__BridgeClient_spoc_download_course_file_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        241 => wire__crate__api__client__BridgeClient_submit_interactive_login_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        242 => wire__crate__api__client__BridgeClient_sync_agenda_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        243 => wire__crate__api__client__BridgeClient_take_command_login_identity_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        244 => {
             wire__crate__api__client__BridgeClient_user_info_impl(port, ptr, rust_vec_len, data_len)
         }
-        240 => wire__crate__api__client__BridgeClient_user_info_cached_impl(
+        245 => wire__crate__api__client__BridgeClient_user_info_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        241 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
+        246 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        242 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
+        247 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        243 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+        248 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        244 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
+        249 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        245 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
+        250 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        246 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+        251 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        253 => wire__crate__api__command__output__BridgeCommandDelivery_acknowledge_stderr_impl(
+        258 => wire__crate__api__command__output__BridgeCommandDelivery_acknowledge_stderr_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        254 => wire__crate__api__command__output__BridgeCommandDelivery_acknowledge_stdout_impl(
+        259 => wire__crate__api__command__output__BridgeCommandDelivery_acknowledge_stdout_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        255 => wire__crate__api__command__output__BridgeCommandDelivery_fail_impl(
+        260 => wire__crate__api__command__output__BridgeCommandDelivery_fail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        256 => wire__crate__api__command__output__BridgeCommandDelivery_finish_impl(
+        261 => wire__crate__api__command__output__BridgeCommandDelivery_finish_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        257 => wire__crate__api__command__output__BridgeCommandDelivery_next_stderr_impl(
+        262 => wire__crate__api__command__output__BridgeCommandDelivery_next_stderr_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        258 => wire__crate__api__command__output__BridgeCommandDelivery_next_stdout_impl(
+        263 => wire__crate__api__command__output__BridgeCommandDelivery_next_stdout_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        259 => wire__crate__api__command__BridgeCommandResult_authentication_succeeded_impl(
+        264 => wire__crate__api__command__BridgeCommandResult_authentication_succeeded_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        260 => wire__crate__api__command__BridgeCommandResult_deliver_impl(
+        265 => wire__crate__api__command__BridgeCommandResult_deliver_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        261 => wire__crate__api__command__BridgeCommandResult_recovery_failed_impl(
+        266 => wire__crate__api__command__BridgeCommandResult_recovery_failed_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        262 => wire__crate__api__command__BridgeCommandResult_registration_failed_impl(
+        267 => wire__crate__api__command__BridgeCommandResult_registration_failed_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        263 => wire__crate__api__command__BridgeCommandResult_registration_succeeded_impl(
+        268 => wire__crate__api__command__BridgeCommandResult_registration_succeeded_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        265 => wire__crate__api__command__BridgeCommand_early_result_impl(
+        270 => wire__crate__api__command__BridgeCommand_early_result_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        266 => wire__crate__api__command__BridgeCommand_execute_agenda_impl(
+        271 => wire__crate__api__command__BridgeCommand_execute_agenda_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        267 => wire__crate__api__command__BridgeCommand_execute_agenda_sync_impl(
+        272 => wire__crate__api__command__BridgeCommand_execute_agenda_sync_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        268 => wire__crate__api__command__BridgeCommand_execute_cached_agenda_impl(
+        273 => wire__crate__api__command__BridgeCommand_execute_cached_agenda_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        269 => {
+        274 => {
             wire__crate__api__command__BridgeCommand_fail_impl(port, ptr, rust_vec_len, data_len)
         }
-        270 => {
+        275 => {
             wire__crate__api__command__BridgeCommand_failure_impl(port, ptr, rust_vec_len, data_len)
         }
-        271 => wire__crate__api__command__BridgeCommand_input_request_impl(
+        276 => wire__crate__api__command__BridgeCommand_input_request_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        273 => {
+        278 => {
             wire__crate__api__command__BridgeCommand_prepare_impl(port, ptr, rust_vec_len, data_len)
         }
-        281 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
+        286 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        284 => wire__crate__api__network__BridgeNetworkChange_inspect_impl(
+        289 => wire__crate__api__network__BridgeNetworkChange_inspect_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        285 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
+        290 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        286 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
+        291 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        287 => wire__crate__api__offline__BridgeOfflineCache_clear_and_reopen_impl(
+        292 => wire__crate__api__offline__BridgeOfflineCache_clear_and_reopen_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        288 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_impl(
+        293 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        289 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_shared_impl(
+        294 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_shared_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        290 => wire__crate__api__offline__BridgeOfflineCache_close_impl(
+        295 => wire__crate__api__offline__BridgeOfflineCache_close_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        291 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
+        296 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        292 => wire__crate__api__offline__BridgeOfflineCache_dismiss_write_readback_impl(
+        297 => wire__crate__api__offline__BridgeOfflineCache_dismiss_write_readback_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        293 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
+        298 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        294 => wire__crate__api__offline__BridgeOfflineCache_open_shared_impl(
+        299 => wire__crate__api__offline__BridgeOfflineCache_open_shared_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        295 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
+        300 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        296 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
+        301 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        297 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
+        302 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        298 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_overview_impl(
+        303 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        299 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
+        304 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        300 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
+        305 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        301 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
+        306 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        302 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
+        307 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        303 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
+        308 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        304 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
+        309 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        305 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
+        310 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        306 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
+        311 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        307 => wire__crate__api__offline__BridgeOfflineCache_read_campus_impl(
+        312 => wire__crate__api__offline__BridgeOfflineCache_read_campus_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        308 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
+        313 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        309 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
+        314 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        310 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
+        315 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        311 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
+        316 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        312 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
+        317 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        313 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
+        318 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        314 => wire__crate__api__offline__BridgeOfflineCache_read_exam_terms_impl(
+        319 => wire__crate__api__offline__BridgeOfflineCache_read_exam_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        315 => wire__crate__api__offline__BridgeOfflineCache_read_finance_impl(
+        320 => wire__crate__api__offline__BridgeOfflineCache_read_finance_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        316 => wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
+        321 => wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        317 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
+        322 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        318 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
+        323 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        319 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
+        324 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        320 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
+        325 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        321 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
+        326 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        322 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
+        327 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        323 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
+        328 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        324 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
+        329 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        325 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
+        330 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        326 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
+        331 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        327 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
+        332 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        328 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
+        333 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        329 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
+        334 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        330 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
+        335 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        331 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
+        336 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        332 => wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
+        337 => wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        333 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
+        338 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        334 => wire__crate__api__offline__BridgeOfflineCache_with_shared_account_impl(
+        339 => wire__crate__api__offline__BridgeOfflineCache_with_shared_account_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        335 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
+        340 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        339 => wire__crate__api__shared_account__BridgeSharedAccount_capture_impl(
+        344 => wire__crate__api__shared_account__BridgeSharedAccount_capture_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        342 => wire__crate__api__agenda__home__agenda_project_home_impl(
+        347 => wire__crate__api__agenda__home__agenda_project_home_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        343 => wire__crate__api__agenda__agenda_teaching_week_rule_impl(
+        348 => wire__crate__api__agenda__agenda_teaching_week_rule_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        345 => wire__crate__api__judge_refresh__bridge_judge_detail_refresh_default_impl(
+        350 => wire__crate__api__judge_refresh__bridge_judge_detail_refresh_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        346 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
+        351 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        347 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+        352 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        348 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        353 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -34795,105 +35514,105 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        247 => {
+        252 => {
             wire__crate__api__command__BridgeCommandAttempt_auto_accessor_get_recovery_target_impl(
                 ptr,
                 rust_vec_len,
                 data_len,
             )
         }
-        248 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_get_result_impl(
+        253 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_get_result_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        249 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_get_route_impl(
+        254 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_get_route_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        250 => {
+        255 => {
             wire__crate__api__command__BridgeCommandAttempt_auto_accessor_set_recovery_target_impl(
                 ptr,
                 rust_vec_len,
                 data_len,
             )
         }
-        251 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_set_result_impl(
+        256 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_set_result_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        252 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_set_route_impl(
+        257 => wire__crate__api__command__BridgeCommandAttempt_auto_accessor_set_route_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        264 => wire__crate__api__command__BridgeCommand_cancel_impl(ptr, rust_vec_len, data_len),
-        272 => wire__crate__api__command__BridgeCommand_parse_impl(ptr, rust_vec_len, data_len),
-        274 => {
+        269 => wire__crate__api__command__BridgeCommand_cancel_impl(ptr, rust_vec_len, data_len),
+        277 => wire__crate__api__command__BridgeCommand_parse_impl(ptr, rust_vec_len, data_len),
+        279 => {
             wire__crate__api__command__BridgeCommand_requirements_impl(ptr, rust_vec_len, data_len)
         }
-        275 => wire__crate__api__command__BridgeCommand_transfer_progress_line_impl(
+        280 => wire__crate__api__command__BridgeCommand_transfer_progress_line_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        276 => wire__crate__api__offline_evaluation__scan__BridgeEvaluationScan_cancel_impl(
+        281 => wire__crate__api__offline_evaluation__scan__BridgeEvaluationScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        277 => wire__crate__api__judge_refresh__details__BridgeJudgeDetailsTask_cancel_impl(
+        282 => wire__crate__api__judge_refresh__details__BridgeJudgeDetailsTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        278 => wire__crate__api__judge_scan__online__BridgeJudgeOnlineTask_cancel_impl(
+        283 => wire__crate__api__judge_scan__online__BridgeJudgeOnlineTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        279 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
+        284 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        280 => {
+        285 => {
             wire__crate__api__judge_scan__BridgeJudgeScan_cancel_impl(ptr, rust_vec_len, data_len)
         }
-        282 => {
+        287 => {
             wire__crate__api__network__BridgeNetworkChange_cancel_impl(ptr, rust_vec_len, data_len)
         }
-        283 => {
+        288 => {
             wire__crate__api__network__BridgeNetworkChange_finish_impl(ptr, rust_vec_len, data_len)
         }
-        336 => wire__crate__api__recovery__control__BridgeRequiredRecoveryControl_cancel_impl(
+        341 => wire__crate__api__recovery__control__BridgeRequiredRecoveryControl_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        337 => wire__crate__api__recovery__control__BridgeRequiredRecoveryControl_new_impl(
+        342 => wire__crate__api__recovery__control__BridgeRequiredRecoveryControl_new_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        338 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
+        343 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        340 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
+        345 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        341 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
+        346 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        344 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        349 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -40122,6 +40841,53 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCgyyVenueSite>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomCatalog {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.course_id.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.teachers.into_into_dart().into_dart(),
+            self.term_name.into_into_dart().into_dart(),
+            self.sessions.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomCatalog
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomCatalog>
+    for crate::api::read::spoc_classroom::BridgeClassroomCatalog
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomCatalog {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomChapter {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.start_ms.into_into_dart().into_dart(),
+            self.end_ms.into_into_dart().into_dart(),
+            self.headline.into_into_dart().into_dart(),
+            self.summary.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomChapter
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomChapter>
+    for crate::api::read::spoc_classroom::BridgeClassroomChapter
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomChapter {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeClassroomFloor {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -40166,6 +40932,59 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeClassroomInfo>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Teacher => 0.into_dart(),
+            Self::Slides => 1.into_dart(),
+            Self::Student => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind>
+    for crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.url.into_into_dart().into_dart(),
+            self.duration_secs.into_into_dart().into_dart(),
+            self.time_offset_secs.into_into_dart().into_dart(),
+            self.resource_guid.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource,
+    > for crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeClassroomQuery {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -40184,6 +41003,213 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeClassroomQuery>
     for crate::api::read::BridgeClassroomQuery
 {
     fn into_into_dart(self) -> crate::api::read::BridgeClassroomQuery {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomQuestion {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.question.into_into_dart().into_dart(),
+            self.answer.into_into_dart().into_dart(),
+            self.start_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomQuestion
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomQuestion>
+    for crate::api::read::spoc_classroom::BridgeClassroomQuestion
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomQuestion {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomSession {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.title.into_into_dart().into_dart(),
+            self.start_secs.into_into_dart().into_dart(),
+            self.end_secs.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+            self.sources.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomSession
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomSession>
+    for crate::api::read::spoc_classroom::BridgeClassroomSession
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomSession {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeClassroomSessionSummary
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.sub_id.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.week.into_into_dart().into_dart(),
+            self.start_secs.into_into_dart().into_dart(),
+            self.end_secs.into_into_dart().into_dart(),
+            self.room.into_into_dart().into_dart(),
+            self.lecturer.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomSessionSummary
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeClassroomSessionSummary,
+    > for crate::api::read::spoc_classroom::BridgeClassroomSessionSummary
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomSessionSummary {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomSlide {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.offset_ms.into_into_dart().into_dart(),
+            self.image_url.into_into_dart().into_dart(),
+            self.thumb_url.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomSlide
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomSlide>
+    for crate::api::read::spoc_classroom::BridgeClassroomSlide
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomSlide {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomSlides {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.slides.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomSlides
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomSlides>
+    for crate::api::read::spoc_classroom::BridgeClassroomSlides
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomSlides {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Live => 0.into_dart(),
+            Self::Replay => 1.into_dart(),
+            Self::NoReplay => 2.into_dart(),
+            Self::Upcoming => 3.into_dart(),
+            Self::TencentMeeting => 4.into_dart(),
+            Self::Other => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomStatus
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomStatus>
+    for crate::api::read::spoc_classroom::BridgeClassroomStatus
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomSummary {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.summary.into_into_dart().into_dart(),
+            self.keywords.into_into_dart().into_dart(),
+            self.qa.into_into_dart().into_dart(),
+            self.chapters.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomSummary
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomSummary>
+    for crate::api::read::spoc_classroom::BridgeClassroomSummary
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomSummary {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_classroom::BridgeClassroomTranscript {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.segments.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomTranscript
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeClassroomTranscript>
+    for crate::api::read::spoc_classroom::BridgeClassroomTranscript
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomTranscript {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.begin_ms.into_into_dart().into_dart(),
+            self.end_ms.into_into_dart().into_dart(),
+            self.text.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment,
+    > for crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment {
         self
     }
 }
@@ -43941,6 +44967,31 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedCgyySites>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog,
+    > for crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeRoutedClassroomQuery {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -43958,6 +45009,105 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedClassroomQu
     for crate::api::read::BridgeRoutedClassroomQuery
 {
     fn into_into_dart(self) -> crate::api::read::BridgeRoutedClassroomQuery {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSession
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSession
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeRoutedClassroomSession,
+    > for crate::api::read::spoc_classroom::BridgeRoutedClassroomSession
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeRoutedClassroomSession {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides>
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary,
+    > for crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript,
+    > for crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript
+{
+    fn into_into_dart(self) -> crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript {
         self
     }
 }
@@ -48996,6 +50146,30 @@ impl SseEncode for crate::api::read::BridgeCgyyVenueSite {
     }
 }
 
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomCatalog {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.course_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <Vec<String>>::sse_encode(self.teachers, serializer);
+        <String>::sse_encode(self.term_name, serializer);
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomSessionSummary>>::sse_encode(
+            self.sessions,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomChapter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.start_ms, serializer);
+        <u64>::sse_encode(self.end_ms, serializer);
+        <String>::sse_encode(self.headline, serializer);
+        <String>::sse_encode(self.summary, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeClassroomFloor {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -49014,12 +50188,158 @@ impl SseEncode for crate::api::read::BridgeClassroomInfo {
     }
 }
 
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Teacher => 0,
+                crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Slides => 1,
+                crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind::Student => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomPlaybackKind>::sse_encode(
+            self.kind, serializer,
+        );
+        <String>::sse_encode(self.url, serializer);
+        <Option<u64>>::sse_encode(self.duration_secs, serializer);
+        <Option<i64>>::sse_encode(self.time_offset_secs, serializer);
+        <Option<String>>::sse_encode(self.resource_guid, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeClassroomQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.message, serializer);
         <Vec<crate::api::read::BridgeClassroomFloor>>::sse_encode(self.floors, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomQuestion {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.question, serializer);
+        <String>::sse_encode(self.answer, serializer);
+        <u64>::sse_encode(self.start_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomSession {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.title, serializer);
+        <i64>::sse_encode(self.start_secs, serializer);
+        <i64>::sse_encode(self.end_secs, serializer);
+        <crate::api::read::spoc_classroom::BridgeClassroomStatus>::sse_encode(
+            self.status,
+            serializer,
+        );
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource>>::sse_encode(
+            self.sources,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomSessionSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.sub_id, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <Option<u32>>::sse_encode(self.week, serializer);
+        <i64>::sse_encode(self.start_secs, serializer);
+        <i64>::sse_encode(self.end_secs, serializer);
+        <String>::sse_encode(self.room, serializer);
+        <String>::sse_encode(self.lecturer, serializer);
+        <crate::api::read::spoc_classroom::BridgeClassroomStatus>::sse_encode(
+            self.status,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomSlide {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.offset_ms, serializer);
+        <String>::sse_encode(self.image_url, serializer);
+        <String>::sse_encode(self.thumb_url, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomSlides {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomSlide>>::sse_encode(
+            self.slides,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::Live => 0,
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::Replay => 1,
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::NoReplay => 2,
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::Upcoming => 3,
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::TencentMeeting => 4,
+                crate::api::read::spoc_classroom::BridgeClassroomStatus::Other => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.summary, serializer);
+        <Vec<String>>::sse_encode(self.keywords, serializer);
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomQuestion>>::sse_encode(
+            self.qa, serializer,
+        );
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomChapter>>::sse_encode(
+            self.chapters,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomTranscript {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment>>::sse_encode(
+            self.segments,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.begin_ms, serializer);
+        <u64>::sse_encode(self.end_ms, serializer);
+        <String>::sse_encode(self.text, serializer);
     }
 }
 
@@ -50993,10 +52313,60 @@ impl SseEncode for crate::api::read::BridgeRoutedCgyySites {
     }
 }
 
+impl SseEncode for crate::api::read::spoc_classroom::BridgeRoutedClassroomCatalog {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomCatalog>::sse_encode(
+            self.data, serializer,
+        );
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeRoutedClassroomQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::api::read::BridgeClassroomQuery>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSession {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomSession>::sse_encode(
+            self.data, serializer,
+        );
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSlides {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomSlides>::sse_encode(
+            self.data, serializer,
+        );
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeRoutedClassroomSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomSummary>::sse_encode(
+            self.data, serializer,
+        );
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::spoc_classroom::BridgeRoutedClassroomTranscript {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::spoc_classroom::BridgeClassroomTranscript>::sse_encode(
+            self.data, serializer,
+        );
         <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
     }
 }
@@ -52358,6 +53728,18 @@ impl SseEncode for Vec<crate::api::read::BridgeCgyyVenueSite> {
     }
 }
 
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomChapter> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomChapter>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::read::BridgeClassroomFloor> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -52374,6 +53756,64 @@ impl SseEncode for Vec<crate::api::read::BridgeClassroomInfo> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::api::read::BridgeClassroomInfo>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomPlaybackSource>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomQuestion> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomQuestion>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomSessionSummary> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomSessionSummary>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomSlide> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomSlide>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::spoc_classroom::BridgeClassroomTranscriptSegment>::sse_encode(
+                item, serializer,
+            );
         }
     }
 }

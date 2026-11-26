@@ -44,6 +44,7 @@ import 'api/offline_profile.dart';
 import 'api/offline_ygdk.dart';
 import 'api/read.dart';
 import 'api/read/graduate.dart';
+import 'api/read/spoc_classroom.dart';
 import 'api/read/spoc_files.dart';
 import 'api/recovery.dart';
 import 'api/recovery/control.dart';
@@ -1893,13 +1894,59 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCgyyVenueSite dco_decode_bridge_cgyy_venue_site(dynamic raw);
 
   @protected
+  BridgeClassroomCatalog dco_decode_bridge_classroom_catalog(dynamic raw);
+
+  @protected
+  BridgeClassroomChapter dco_decode_bridge_classroom_chapter(dynamic raw);
+
+  @protected
   BridgeClassroomFloor dco_decode_bridge_classroom_floor(dynamic raw);
 
   @protected
   BridgeClassroomInfo dco_decode_bridge_classroom_info(dynamic raw);
 
   @protected
+  BridgeClassroomPlaybackKind dco_decode_bridge_classroom_playback_kind(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeClassroomPlaybackSource dco_decode_bridge_classroom_playback_source(
+    dynamic raw,
+  );
+
+  @protected
   BridgeClassroomQuery dco_decode_bridge_classroom_query(dynamic raw);
+
+  @protected
+  BridgeClassroomQuestion dco_decode_bridge_classroom_question(dynamic raw);
+
+  @protected
+  BridgeClassroomSession dco_decode_bridge_classroom_session(dynamic raw);
+
+  @protected
+  BridgeClassroomSessionSummary dco_decode_bridge_classroom_session_summary(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeClassroomSlide dco_decode_bridge_classroom_slide(dynamic raw);
+
+  @protected
+  BridgeClassroomSlides dco_decode_bridge_classroom_slides(dynamic raw);
+
+  @protected
+  BridgeClassroomStatus dco_decode_bridge_classroom_status(dynamic raw);
+
+  @protected
+  BridgeClassroomSummary dco_decode_bridge_classroom_summary(dynamic raw);
+
+  @protected
+  BridgeClassroomTranscript dco_decode_bridge_classroom_transcript(dynamic raw);
+
+  @protected
+  BridgeClassroomTranscriptSegment
+  dco_decode_bridge_classroom_transcript_segment(dynamic raw);
 
   @protected
   BridgeCommandAuth dco_decode_bridge_command_auth(dynamic raw);
@@ -2462,7 +2509,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeRoutedCgyySites dco_decode_bridge_routed_cgyy_sites(dynamic raw);
 
   @protected
+  BridgeRoutedClassroomCatalog dco_decode_bridge_routed_classroom_catalog(
+    dynamic raw,
+  );
+
+  @protected
   BridgeRoutedClassroomQuery dco_decode_bridge_routed_classroom_query(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedClassroomSession dco_decode_bridge_routed_classroom_session(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedClassroomSlides dco_decode_bridge_routed_classroom_slides(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedClassroomSummary dco_decode_bridge_routed_classroom_summary(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedClassroomTranscript dco_decode_bridge_routed_classroom_transcript(
     dynamic raw,
   );
 
@@ -2896,12 +2968,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeCgyyVenueSite> dco_decode_list_bridge_cgyy_venue_site(dynamic raw);
 
   @protected
+  List<BridgeClassroomChapter> dco_decode_list_bridge_classroom_chapter(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeClassroomFloor> dco_decode_list_bridge_classroom_floor(
     dynamic raw,
   );
 
   @protected
   List<BridgeClassroomInfo> dco_decode_list_bridge_classroom_info(dynamic raw);
+
+  @protected
+  List<BridgeClassroomPlaybackSource>
+  dco_decode_list_bridge_classroom_playback_source(dynamic raw);
+
+  @protected
+  List<BridgeClassroomQuestion> dco_decode_list_bridge_classroom_question(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeClassroomSessionSummary>
+  dco_decode_list_bridge_classroom_session_summary(dynamic raw);
+
+  @protected
+  List<BridgeClassroomSlide> dco_decode_list_bridge_classroom_slide(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeClassroomTranscriptSegment>
+  dco_decode_list_bridge_classroom_transcript_segment(dynamic raw);
 
   @protected
   List<BridgeConnectionMode> dco_decode_list_bridge_connection_mode(
@@ -5677,6 +5776,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeClassroomCatalog sse_decode_bridge_classroom_catalog(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomChapter sse_decode_bridge_classroom_chapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClassroomFloor sse_decode_bridge_classroom_floor(
     SseDeserializer deserializer,
   );
@@ -5687,9 +5796,63 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeClassroomPlaybackKind sse_decode_bridge_classroom_playback_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomPlaybackSource sse_decode_bridge_classroom_playback_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClassroomQuery sse_decode_bridge_classroom_query(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeClassroomQuestion sse_decode_bridge_classroom_question(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomSession sse_decode_bridge_classroom_session(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomSessionSummary sse_decode_bridge_classroom_session_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomSlide sse_decode_bridge_classroom_slide(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomSlides sse_decode_bridge_classroom_slides(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomStatus sse_decode_bridge_classroom_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomSummary sse_decode_bridge_classroom_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomTranscript sse_decode_bridge_classroom_transcript(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomTranscriptSegment
+  sse_decode_bridge_classroom_transcript_segment(SseDeserializer deserializer);
 
   @protected
   BridgeCommandAuth sse_decode_bridge_command_auth(
@@ -6454,7 +6617,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedClassroomCatalog sse_decode_bridge_routed_classroom_catalog(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeRoutedClassroomQuery sse_decode_bridge_routed_classroom_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedClassroomSession sse_decode_bridge_routed_classroom_session(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedClassroomSlides sse_decode_bridge_routed_classroom_slides(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedClassroomSummary sse_decode_bridge_routed_classroom_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedClassroomTranscript sse_decode_bridge_routed_classroom_transcript(
     SseDeserializer deserializer,
   );
 
@@ -7018,12 +7206,45 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeClassroomChapter> sse_decode_list_bridge_classroom_chapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeClassroomFloor> sse_decode_list_bridge_classroom_floor(
     SseDeserializer deserializer,
   );
 
   @protected
   List<BridgeClassroomInfo> sse_decode_list_bridge_classroom_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomPlaybackSource>
+  sse_decode_list_bridge_classroom_playback_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomQuestion> sse_decode_list_bridge_classroom_question(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomSessionSummary>
+  sse_decode_list_bridge_classroom_session_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomSlide> sse_decode_list_bridge_classroom_slide(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomTranscriptSegment>
+  sse_decode_list_bridge_classroom_transcript_segment(
     SseDeserializer deserializer,
   );
 
@@ -10363,6 +10584,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_classroom_catalog(
+    BridgeClassroomCatalog self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_chapter(
+    BridgeClassroomChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_classroom_floor(
     BridgeClassroomFloor self,
     SseSerializer serializer,
@@ -10375,8 +10608,74 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_classroom_playback_kind(
+    BridgeClassroomPlaybackKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_playback_source(
+    BridgeClassroomPlaybackSource self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_classroom_query(
     BridgeClassroomQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_question(
+    BridgeClassroomQuestion self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_session(
+    BridgeClassroomSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_session_summary(
+    BridgeClassroomSessionSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_slide(
+    BridgeClassroomSlide self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_slides(
+    BridgeClassroomSlides self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_status(
+    BridgeClassroomStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_summary(
+    BridgeClassroomSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_transcript(
+    BridgeClassroomTranscript self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_transcript_segment(
+    BridgeClassroomTranscriptSegment self,
     SseSerializer serializer,
   );
 
@@ -11332,8 +11631,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_routed_classroom_catalog(
+    BridgeRoutedClassroomCatalog self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_routed_classroom_query(
     BridgeRoutedClassroomQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_classroom_session(
+    BridgeRoutedClassroomSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_classroom_slides(
+    BridgeRoutedClassroomSlides self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_classroom_summary(
+    BridgeRoutedClassroomSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_classroom_transcript(
+    BridgeRoutedClassroomTranscript self,
     SseSerializer serializer,
   );
 
@@ -12022,6 +12351,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_classroom_chapter(
+    List<BridgeClassroomChapter> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_classroom_floor(
     List<BridgeClassroomFloor> self,
     SseSerializer serializer,
@@ -12030,6 +12365,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_bridge_classroom_info(
     List<BridgeClassroomInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_playback_source(
+    List<BridgeClassroomPlaybackSource> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_question(
+    List<BridgeClassroomQuestion> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_session_summary(
+    List<BridgeClassroomSessionSummary> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_slide(
+    List<BridgeClassroomSlide> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_transcript_segment(
+    List<BridgeClassroomTranscriptSegment> self,
     SseSerializer serializer,
   );
 
