@@ -203,6 +203,8 @@ impl BridgeClient {
         })
         .await
     }
+    // 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+    // 见 docs/protocol/parity/signin.md 的 2026-11-26 记录。
     pub async fn prepare_signin_perform(
         &self,
         request: BridgeSigninPerformRequest,
@@ -211,6 +213,8 @@ impl BridgeClient {
             .await
             .map_err(PreparationError::into_bridge)
     }
+    /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+    /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
     pub(crate) async fn prepare_signin_perform_scoped(
         &self,
         mut request: BridgeSigninPerformRequest,

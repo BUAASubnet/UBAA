@@ -34,6 +34,8 @@
 
 Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带用户 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时解析顶层 `STATUS/ERRMSG` 与嵌套 `result.stuSignStatus`：明确成功状态加 nested `1` 是确定成功，nested `0` 或明确业务失败是确定的 `success=false`；只有发送后畸形、非 JSON、认证跳转或 transport/Cookie 失败才是不可重放的 `outcome_unknown`。2026-09-03 审查确认当时 Core 错把 course ID 放入表单并读取顶层 `stuSignStatus`，既有合成测试也固定了错误形状；这些内容只算待修 parity gap，不能继续作为通过证据。
 
+上述签到提交为历史协议。`signin perform` 保留并标记为弃用，当前签到方式见[2026-11-26 停用记录](signin.md#2026-11-26-停用-stu_auto_sign签到统一为二维码)。
+
 Phase 11D 的公开版本边界：今日 DTO 的 `signStatus` 可空与 typed eligibility/target 使 Flutter bridge 显式升为
 contract v3、CLI envelope/schema 显式升为 v4；CLI v4 还必须收录 `SigninActionResult`。冻结 API 把
 `success=false` 作为已成功取得的确定业务结果，因此 CLI 外层保持 `ok=true` 和退出 0，调用方以 data 内层

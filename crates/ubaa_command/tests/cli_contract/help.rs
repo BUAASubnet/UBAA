@@ -72,6 +72,15 @@ fn ordinary_help_hides_route_override_and_lists_readonly_groups() {
 }
 
 #[test]
+fn signin_perform_help_marks_the_retained_school_write_as_deprecated() {
+    let help = Cli::try_parse_from(["ubaa-cli", "signin", "perform", "--help"])
+        .unwrap_err()
+        .to_string();
+    assert!(help.contains("已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码"));
+    assert!(help.contains("--confirm-write"));
+}
+
+#[test]
 fn cli_debug_formatting_redacts_sensitive_login_arguments() {
     let cli = Cli::try_parse_from([
         "ubaa-cli",

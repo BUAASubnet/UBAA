@@ -447,11 +447,13 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 执行指定课程的课堂签到。
+    /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+    /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
     ///
     /// # Errors
     ///
     /// 会话所有权校验、网络写请求或上游响应处理失败时返回错误。
+    #[allow(deprecated)]
     pub async fn signin_perform(
         &mut self,
         course_id: &str,

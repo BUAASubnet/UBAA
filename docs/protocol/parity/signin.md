@@ -25,7 +25,19 @@
 
 ## 专项记录
 
+### 2026-11-26 停用 `stu_auto_sign`，签到统一为二维码
+
+Android 2.1.0 的脱敏诊断显示，Direct 路线三次提交 `/app/course/stu_auto_sign.action` 均收到 `302`，跳转到 `/jsp/error.jsp`，正文为空。每次提交后回读今日课表，目标 `signStatus` 均保持 `0`。同一时段的业务登录与今日查询均返回 `STATUS=0`。UBAA 从未使用该接口完成真实提交，11 月 19 日的成功响应来自官方客户端抓包摘要。没有 WebVPN 提交结果。
+
+维护者裁决：二维码为唯一签到途径。界面上的“上课”只打开二维码面板，不准备或提交写入。Core、Bridge、Dart 写入合约及 `signin perform` 命令保留并标记为弃用，原有协议、错误分类和写入测试保持不变。
+
+每日课程、首页和日程共用校园时间（`Asia/Shanghai`）规则：有在线签到目标、起止时间有效，且当前时间在课前 10 分钟至下课之间（含两端）。窗口内，未签到（`signStatus=0`）课程显示可用的“上课”按钮，已签到（`signStatus=1`）课程在“已签到”状态旁显示次要按钮“二维码”，供同学扫码。窗口外不展示已签到课程的“二维码”按钮。时间窗由维护者给定，没有上游证据，也不作为 Core 写入协议或资格判断。
+
+两种入口打开的面板均每 2 秒刷新二维码，保存规则相同。只有从未签到课程打开时，面板才在前台每 3 秒只读查询今日签到状态，确认已签到后自动关闭。从已签到课程打开时不启动状态轮询，也不自动关闭。本次使用合成数据验证界面，未发送真实学校请求。
+
 ### 2026-11-23 签到预检恢复登录
+
+本节保留弃用接口的历史行为。当前界面使用[二维码签到](#2026-11-26-停用-stu_auto_sign签到统一为二维码)。
 
 Android 2.0.3（2030）的诊断记录显示，WebVPN 的课堂签到预检在本机路线会话检查处返回 `authentication_required`。应用复用[所需路线会话恢复](offline-cache.md#离线恢复逐操作来源对照)，在释放预检占用后核验课堂签到所需的会话。自动登录沿用账号身份核验、凭据许可和验证码处理。恢复成功后，应用再次调用签到预检，按当天课程状态生成一次性签到意图。
 
@@ -76,6 +88,8 @@ Android 2.0.3（2030）的诊断记录显示，WebVPN 的课堂签到预检在�
 - 全量Core-live：`just verify-live mode=direct` 与 `mode=webvpn` 均退出0；WebVPN希冀详情和批量详情因当前列表为空为NOT_APPLICABLE，其余操作PASS。所有实时过程均保持TLS验证。
 - 完整门禁首次因工作区已有传输WARN日志导致3项CLI JSON stderr断言失败；将日志改为`ubaa::transport` DEBUG，仅保留方法、超时/连接分类、HTTP状态、字节数和耗时，不输出URL或原始错误。完整`just check`复跑退出0（包含CLI端到端16项、Core/Bridge测试、Clippy、构建及文档检查）；`just refs`、`just layout-check`、`just check-sensitive`均通过。
 
+> 应用内提交已停用，见[2026-11-26 停用记录](#2026-11-26-停用-stu_auto_sign签到统一为二维码)。
+
 ### 2026-11-19 签到提交改用 `stu_auto_sign`
 
 本节覆盖课堂签到写入操作。冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 与 `examples/buaa-api` 固定提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 均没有 `stu_auto_sign` 协议；两份来源对该操作的九列均记为“不适用”。本次裁决以用户提供的 2026-11-19 脱敏抓包摘要这一真实上游证据为准，不把 HAR、业务标识、会话标识或原始响应写入仓库。
@@ -84,7 +98,7 @@ Android 2.0.3（2030）的诊断记录显示，WebVPN 的课堂签到预检在�
 |---|---|---|---|---|---|---|---|---|---|---|
 | `stu_auto_sign` 签到提交 | 不适用。冻结旧版与 `buaa-api` 均没有 `stu_auto_sign` 操作；业务登录继续沿用既有 `8346` 引导和 `8347/app/user/login.action`，本次不改登录。 | Direct 请求 `https://iclass.buaa.edu.cn:8181/app/course/stu_auto_sign.action`。WebVPN 使用现有 `to_webvpn_url` 包装同一 `8181` HTTPS 地址；WebVPN 提交尚未真实验证。 | 按 [RFC 6265 §8.5](https://www.rfc-editor.org/rfc/rfc6265#section-8.5)，Cookie 不按端口隔离。官方客户端抓包未携带 Cookie，但 2026-11-19 两次只读实测均使用带同主机 Cookie 的 Cookie jar 访问 8181，业务登录、今日课表、签到时间窗和我的课程均返回 `STATUS=0`；因此沿用共享传输的既有 Cookie 行为，不将“抓包无 Cookie”解释为禁止携带 Cookie。业务会话仍使用内存中的 `id` 与 `sessionId`；`sessionId` 通过请求头发送，主认证会话、登录锁和 generation 规则不变。 | `POST`，无查询串。表单恰好六个字段：`id`、`courseSchedId`、`routerInfo=02:00:00:00:00:00`、`longitude=0`、`latitude=0`、`machineInfo=Android`。不发送时间戳。 | 请求头包含正确的 `sessionId` 和 `Content-Type: application/x-www-form-urlencoded`。沿用 Core 既有 User-Agent 约定，不伪造官方学生端 UA。 | 不适用。 | 成功判定沿用 `parse_action_response`：`STATUS` 为 `0`、`200`（兼容数字字符串）或 `success`，且 `result.stuSignStatus` 为 `1`（兼容数字字符串）时返回成功。明确的业务失败状态或 `stuSignStatus=0` 返回失败；无法解析的写后结果归为 `outcome_unknown`。 | 写前重新读取今日课表并复核唯一排课目标和 `signStatus=0`；通过现有单次非幂等提交边界发送；不缓存写请求，不自动重试。 | 旧 `stu_scan_sign` 提交因用户确认不可用而停用；二维码读取仍保留旧时间戳接口。HTTP、传输、认证落点或响应无法确定时返回 `outcome_unknown`，先回读今日状态再决定是否重试。 |
 
-业务登录、会话缓存、登录锁和 generation 沿用既有裁决。真实上游摘要证明了 Direct `8181` 的提交参数和成功响应；WebVPN 只完成地址构造与 Mock 验证，未声称真实通过。
+业务登录、会话缓存、登录锁和 generation 沿用既有裁决。官方客户端抓包摘要记录了 Direct `8181` 的提交参数和成功响应；UBAA 未在 Direct 完成真实提交。WebVPN 只完成地址构造与 Mock 验证。
 
 ### 2026-11-19 签到二维码展示
 
@@ -95,8 +109,8 @@ Android 2.0.3（2030）的诊断记录显示，WebVPN 的课堂签到预检在�
 | 读取时间戳 | 要求主认证有效，不执行 iClass 业务登录，无新增 service | Direct 为 `http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action`；WebVPN 包装 `https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action`，沿用现有请求行为 | Cookie 按路线隔离，不读取 iClass 业务凭据 | GET，无业务参数 | 无业务会话头，无正文 | 无新增常量 | `timestamp` 为毫秒 epoch，接受 JSON 整数和数字字符串 | 每次读取，不缓存，沿用只读路线与重试策略 | 未认证返回认证错误；网络、HTTP 失败和解析错误按现有语义返回，不使用本机时间回退 |
 | 生成二维码内容 | 本地生成，无 CAS | 两条路线均生成 Direct 形式 `http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action` | 不拼接 Cookie、会话或令牌 | 不发送请求；查询串为 `courseSchedId` 和 `timestamp` | 查询参数经 URL 编码，无请求头或正文 | 无 | 返回 `content` 和加偏移后的整数 `timestamp`；偏移范围为 0 至 60,000 毫秒 | 实时面板每 2 秒读取；保存时独立读取一次 | 空课程安排 ID 或超限偏移返回参数错误；二维码交给 iClass App 或微信扫码 |
 
-参考仓库的实时二维码使用服务器原值，每 2 秒刷新。偏移和刷新间隔按用户指定的产品取舍实现，无冻结来源依据：实时偏移为 0，保存偏移为 2,000 毫秒。二维码使用独立的时间戳读取入口。应用内直接提交使用 `stu_auto_sign`，见[签到提交协议](#2026-11-19-签到提交改用-stu_auto_sign)。
+参考仓库的实时二维码使用服务器原值，每 2 秒刷新。偏移和刷新间隔按用户指定的产品取舍实现，无冻结来源依据：实时偏移为 0，保存偏移为 2,000 毫秒。二维码使用独立的时间戳读取入口。[2026-11-26 起](#2026-11-26-停用-stu_auto_sign签到统一为二维码)，界面只提供二维码签到。
 
-二维码面板打开时，若课程尚未签到，前台每 3 秒复用今日签到在线查询，回到前台时立即查询一次。查询按排课 ID 匹配结果，更新签到列表。确认已签到后关闭面板。
+从未签到课程打开面板时，前台每 3 秒复用今日签到在线查询，回到前台时立即查询一次。查询按排课 ID 匹配结果，更新签到列表。确认已签到后关闭面板。从已签到课程打开面板时，不查询签到状态，也不自动关闭。
 
 本轮不发真实账号请求。二维码内容及 Direct/WebVPN 时间戳路线用合成响应验证；两条路线的新操作均未实测，取得对应路线的只读授权后再验收。
