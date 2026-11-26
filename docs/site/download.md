@@ -67,6 +67,7 @@ provide('useBhpan', useBhpan)
 
 - 解压后得到 `bundle` 目录，运行其中的 `UBAA` 打开应用，`ubaa-cli` 是命令行程序，用法见[桌面命令模式](/features/command)。
 - 保留整个目录，不要单独移动其中的可执行文件。
+- 图形应用还需要系统的 libmpv 和 libepoxy。Ubuntu 24.04 可运行 `sudo apt install libmpv2 libepoxy0` 后再启动 `UBAA`。
 - “记住密码”需要已解锁的 Secret Service（如 GNOME 钥匙环）。
 
 ## iOS {#ios}
