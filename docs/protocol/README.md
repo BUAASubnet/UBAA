@@ -38,6 +38,7 @@
 | 本科课表、考试、成绩与空教室 | [academic.md](parity/academic.md) | 教务课表与考试、成绩、空教室、整学期下载、Android 桌面课表 |
 | 研究生系统 | [gsmis.md](parity/gsmis.md) | GSMIS 课表、当前学期、作息方案、门户身份分流 |
 | SPOC 与希冀作业 | [coursework.md](parity/coursework.md) | SPOC 认证/列表/详情、希冀列表/详情/批量缓存、正文预算、读取去重 |
+| SPOC 课堂直录播 | [spoc-classroom.md](parity/spoc-classroom.md) | 课程映射、智学北航认证、节次与媒体读取、转写、摘要和 PPT |
 | 博雅课程 | [bykc.md](parity/bykc.md) | 列表与详情、按需分页、退选截止、统计默认值、完整详情与筛选 |
 | 每日课程 | [signin.md](parity/signin.md) | 今日查询、上课端口与时间戳、2026-09-17 修复 |
 | 阳光打卡 | [ygdk.md](parity/ygdk.md) | OAuth 与 SSO 中间跳转、概览与记录、旧版界面依据 |
