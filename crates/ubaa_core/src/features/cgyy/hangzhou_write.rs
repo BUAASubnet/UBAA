@@ -182,17 +182,21 @@ pub(crate) async fn hangzhou_cancel_order(
     })
 }
 
+const MAX_SELECTIONS: usize = 48;
+
 fn validate_request(request: &HangzhouCgyyReservationRequest) -> Result<()> {
     if request.venue_site_id <= 0 || request.reservation_date.trim().is_empty() {
         return Err(invalid_input("场地和预约日期不能为空"));
     }
-    if !(1..=2).contains(&request.selections.len())
+    // 官网（BUAA_H3I）不限两段、也不要求相邻，单次上限由站点配置在服务端决定；
+    // 这里只挡掉空选择和明显异常的数量（一天的时段数不会超过 48）。
+    if !(1..=MAX_SELECTIONS).contains(&request.selections.len())
         || request
             .selections
             .iter()
             .any(|item| item.space_id <= 0 || item.time_id <= 0)
     {
-        return Err(invalid_input("请选择一至两个有效时段"));
+        return Err(invalid_input("请选择有效时段"));
     }
     let first = &request.selections[0];
     if request
@@ -202,7 +206,10 @@ fn validate_request(request: &HangzhouCgyyReservationRequest) -> Result<()> {
     {
         return Err(invalid_input("同次预约必须选择同一房间"));
     }
-    if request.selections.len() == 2 && request.selections[0] == request.selections[1] {
+    let mut times: Vec<_> = request.selections.iter().map(|item| item.time_id).collect();
+    times.sort_unstable();
+    times.dedup();
+    if times.len() != request.selections.len() {
         return Err(invalid_input("同次预约不能重复选择时段"));
     }
     let phone = request.phone.trim();
@@ -250,7 +257,6 @@ async fn preflight(
     let [space] = spaces.as_slice() else {
         return Err(changed("预约房间已变化，请刷新后重试"));
     };
-    let mut ordinals = Vec::new();
     for selection in &request.selections {
         let slots: Vec<_> = space
             .slots
@@ -268,22 +274,12 @@ async fn preflight(
                 "所选时段已不可预约，请刷新后重新选择",
             ));
         }
-        let target = slot
-            .reservation_target
-            .as_ref()
-            .ok_or_else(|| changed("预约时段缺少必要字段"))?;
-        ordinals.push(target.time_ordinal);
+        if slot.reservation_target.is_none() {
+            return Err(changed("预约时段缺少必要字段"));
+        }
     }
-    ordinals.sort_unstable();
-    if ordinals.len() == 2 && ordinals[1] - ordinals[0] != 1 {
-        return Err(invalid_input("同次预约的两个时段必须相邻"));
-    }
-    if let Some(limit) = context.info.reservation_total_num
-        && limit > 0
-        && request.selections.len() > usize::try_from(limit).unwrap_or(0)
-    {
-        return Err(invalid_input("超过该场地单次可预约的时段数"));
-    }
+    // `reservationTotalNum` 在官网是单个时段可容纳的人数（`alreadyNum < reservationTotalNum`
+    // 才可选），不是单次可选的时段数，所以不在这里限制数量；数量上限交给服务端。
     Ok(root
         .get("reservationDateList")
         .and_then(Value::as_array)

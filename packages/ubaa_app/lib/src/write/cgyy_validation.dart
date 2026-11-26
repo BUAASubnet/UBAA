@@ -29,10 +29,13 @@ CgyySubmitInput validateCgyySubmitInput(CgyySubmitInput input) {
   );
 }
 
+/// 北京研讨室最多两段且必须相邻；杭州（[hangzhou]）官网不限两段、不要求相邻，
+/// 上限交给服务端，这里只挡住异常数量。
 List<CgyyReserveAction> _validateCgyyReserveActions(
-  List<CgyyReserveAction> actions,
-) {
-  if (actions.isEmpty || actions.length > 2) {
+  List<CgyyReserveAction> actions, {
+  bool hangzhou = false,
+}) {
+  if (actions.isEmpty || actions.length > (hangzhou ? 48 : 2)) {
     throw const BackendException(UbaaErrorCode.invalidInput);
   }
   final normalized = actions
@@ -74,7 +77,8 @@ List<CgyyReserveAction> _validateCgyyReserveActions(
   final ordinals = normalized.map((action) => action.timeOrdinal).toSet();
   if (timeIds.length != normalized.length ||
       ordinals.length != normalized.length ||
-      (normalized.length == 2 &&
+      (!hangzhou &&
+          normalized.length == 2 &&
           (normalized[0].timeOrdinal - normalized[1].timeOrdinal).abs() != 1)) {
     throw const BackendException(UbaaErrorCode.invalidInput);
   }
@@ -100,7 +104,7 @@ HangzhouCgyySubmitInput validateHangzhouCgyySubmitInput(
     throw const BackendException(UbaaErrorCode.invalidInput);
   }
   return HangzhouCgyySubmitInput(
-    actions: _validateCgyyReserveActions(input.actions),
+    actions: _validateCgyyReserveActions(input.actions, hangzhou: true),
     phone: phone,
     captcha: input.captcha,
     sliderOffsetX: input.sliderOffsetX,

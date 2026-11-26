@@ -92,6 +92,24 @@ void main() {
     expect(find.text('已售'), findsOneWidget);
   });
 
+  testWidgets('杭州同一房间可选三个以上且不要求相邻的时段', (tester) async {
+    await _pumpFree(tester, hangzhou: true);
+    for (final time in ['10:00–11:00', '12:00–13:00', '13:00–14:00']) {
+      await tester.tap(_cell(time));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('已选'), findsNWidgets(3));
+  });
+
+  testWidgets('北京研讨室仍只能选两个相邻时段', (tester) async {
+    await _pumpFree(tester, hangzhou: false);
+    for (final time in ['10:00–11:00', '11:00–12:00', '12:00–13:00']) {
+      await tester.tap(_cell(time));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('已选'), findsOneWidget);
+  });
+
   testWidgets('北京研讨室表格保持原样', (tester) async {
     await _pump(tester, hangzhou: false);
     expect(find.text('研讨室'), findsOneWidget);
@@ -99,3 +117,115 @@ void main() {
     expect(find.text('已售'), findsNothing);
   });
 }
+
+FeatureDetail _free(int timeId, int ordinal) => FeatureDetail(
+  title: '$timeId',
+  presentation: CgyySlotPresentation(
+    venueSiteId: 701,
+    reservationDate: '2026-11-27',
+    spaceId: 1,
+    spaceName: '2006 合成室',
+    timeId: timeId,
+    beginTime: '$timeId:00',
+    endTime: '${timeId + 1}:00',
+    reservationStatus: 1,
+  ),
+  actions: [
+    CgyyReserveAction(
+      venueSiteId: 701,
+      reservationDate: '2026-11-27',
+      spaceId: 1,
+      timeId: timeId,
+      venueSpaceGroupId: null,
+      timeOrdinal: ordinal,
+      eligibility: ActionEligibility.allowed,
+    ),
+  ],
+);
+
+Future<void> _pumpFree(WidgetTester tester, {required bool hangzhou}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = const Size(1200, 900);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPhysicalSize);
+  final draft = CgyyFormDraft();
+  addTearDown(draft.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: CgyyReservationFlow(
+          snapshot: FeatureSnapshot(
+            feature: hangzhou ? FeatureId.hangzhouCgyy : FeatureId.cgyy,
+            status: FeatureLoadStatus.success,
+            details: [
+              const FeatureDetail(
+                title: '预约时间',
+                presentation: CgyyDayPresentation(
+                  venueSiteId: 701,
+                  reservationDate: '2026-11-27',
+                  availableDates: ['2026-11-27'],
+                  timeSlots: [
+                    CgyyTimePresentation(
+                      id: 10,
+                      beginTime: '10:00',
+                      endTime: '11:00',
+                      label: '上午',
+                    ),
+                    CgyyTimePresentation(
+                      id: 11,
+                      beginTime: '11:00',
+                      endTime: '12:00',
+                      label: '上午',
+                    ),
+                    CgyyTimePresentation(
+                      id: 12,
+                      beginTime: '12:00',
+                      endTime: '13:00',
+                      label: '下午',
+                    ),
+                    CgyyTimePresentation(
+                      id: 13,
+                      beginTime: '13:00',
+                      endTime: '14:00',
+                      label: '下午',
+                    ),
+                  ],
+                  spaces: [
+                    CgyySpacePresentation(
+                      spaceId: 1,
+                      spaceName: '2006 合成室',
+                      venueSiteId: 701,
+                    ),
+                  ],
+                ),
+              ),
+              _free(10, 0),
+              _free(11, 1),
+              _free(12, 2),
+              _free(13, 3),
+            ],
+          ),
+          query: FeatureQuery(
+            view: FeatureQueryView.cgyyDayInfo,
+            siteId: 701,
+            date: DateTime(2026, 11, 27),
+          ),
+          cacheEpoch: 0,
+          fallback: const Text('通用列表'),
+          onQuery: (_) async {},
+          onRetry: () async {},
+          onlyAvailable: false,
+          hangzhouVenue: hangzhou,
+          formContext: CgyyFormContext(draft: draft),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Finder _cell(String time) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      (widget.properties.label?.contains(' $time ') ?? false),
+);

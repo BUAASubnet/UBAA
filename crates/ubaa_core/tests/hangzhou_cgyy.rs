@@ -313,10 +313,12 @@ fn day_info_body(is_fee: i64) -> String {
         "reservationDateList": ["2026-11-26"],
         "spaceTimeInfo": [
             {"id": 331_101, "beginTime": "09:00", "endTime": "10:00", "limitRoles": null},
-            {"id": 331_102, "beginTime": "10:00", "endTime": "11:00", "limitRoles": null}
+            {"id": 331_102, "beginTime": "10:00", "endTime": "11:00", "limitRoles": null},
+            {"id": 331_103, "beginTime": "11:00", "endTime": "12:00", "limitRoles": null}
         ],
         "reservationDateSpaceInfo": {"2026-11-26": [{
-            "331101": slot(1, false), "331102": slot(2, true), "venueSpaceGroupId": null,
+            "331101": slot(1, false), "331102": slot(2, true), "331103": slot(1, false),
+            "venueSpaceGroupId": null,
             "spaceName": "合成讨论室", "id": 70, "venueSiteId": 323
         }]},
         "weekDisplay": false, "token": "day-token-fixture", "orderParamView": {}, "siteParam": {},
@@ -643,7 +645,7 @@ fn 杭州预约按实录字段提交并完成零元确认() {
         .block_on(client.hangzhou_cgyy_day_info(323, "2026-11-26"))
         .unwrap();
     assert_eq!(day.data.spaces.len(), 1);
-    assert_eq!(day.data.spaces[0].slots.len(), 2);
+    assert_eq!(day.data.spaces[0].slots.len(), 3);
     // 杭州日表只回查询日；可选日期按 advanceReservationDays 从今天起补齐，查询日也保留。
     let today = chrono::Utc::now()
         .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
@@ -849,5 +851,37 @@ fn 杭州取消先读提醒再按订单号和原因只发送一次() {
     let form = form_of(&find_request(&requests, "finances/order/cancel"));
     assert_eq!(form["venueTradeNo"], "D000000000001");
     assert_eq!(form["handleReason"], "临时有事");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn 杭州同一房间可一次预约多个不相邻时段() {
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let (mut client, _webvpn, root) =
+        routed_client("multi", HzTransport::new(Arc::clone(&requests), true));
+    let rt = runtime();
+    let challenge = rt.block_on(client.hangzhou_cgyy_captcha()).unwrap().data;
+    let mut request = hz_request(&challenge);
+    // 官网杭州站点不要求相邻，也不限两段；中间的 331102 为“教学使用”。
+    request
+        .selections
+        .push(ubaa_core::facade::CgyyReservationSelection {
+            space_id: 70,
+            time_id: 331_103,
+            venue_space_group_id: None,
+        });
+    rt.block_on(
+        client.hangzhou_cgyy_submit_reservation_if_route_matches(request, ConnectionMode::Direct),
+    )
+    .unwrap();
+    let form = form_of(&find_request(&requests, "/api/reservation/order/submit"));
+    let orders: serde_json::Value = serde_json::from_str(&form["reservationOrderJson"]).unwrap();
+    let times: Vec<_> = orders
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| item["timeId"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(times, ["331101", "331103"]);
     let _ = std::fs::remove_dir_all(&root);
 }

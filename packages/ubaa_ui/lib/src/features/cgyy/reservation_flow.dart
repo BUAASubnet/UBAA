@@ -10,7 +10,11 @@ import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
 import '../../write/cgyy/form.dart'
-    show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;
+    show
+        uiCgyyActionKey,
+        uiCollectCgyyReservation,
+        uiSelectCgyyAction,
+        uiSelectHangzhouCgyyAction;
 import '../../write/cgyy/hangzhou_form.dart'
     show uiCollectHangzhouCgyyReservation;
 import '../../common/state_panel.dart';
@@ -323,7 +327,11 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
           _selected.remove(key);
           return;
         }
-        uiSelectCgyyAction(_selected, actions, key);
+        if (widget.hangzhouVenue) {
+          uiSelectHangzhouCgyyAction(_selected, actions, key);
+        } else {
+          uiSelectCgyyAction(_selected, actions, key);
+        }
       });
 
   String _siteLabel(CgyySitePresentation site) {

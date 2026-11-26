@@ -9,6 +9,7 @@ use tracing::{debug, info, warn};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpMethod, HttpRequest};
 use crate::runtime::ClientRuntime;
+use crate::session::business_cache::{BusinessMaterial, BusinessScope, HzCgyyToken};
 
 use super::http::{
     check_business_response, log_response, method_name_value, operation_name,
@@ -237,6 +238,13 @@ pub(super) async fn business_request_at(
             }
             Err(error) if attempt == 0 && error.code == ErrorCode::AuthenticationRequired => {
                 warn!(target: "ubaa::cgyy", feature = "cgyy", operation, attempt = attempt + 1, error_code = ?error.code, "Cgyy 业务会话失效，清理令牌并重试");
+                if site == CgyySite::Hangzhou {
+                    // 共享缓存里的同一令牌也已失效，避免其他只读 worker 再次取用。
+                    runtime.reject_business_material(
+                        BusinessScope::HzCgyy,
+                        BusinessMaterial::HzCgyy(HzCgyyToken(access_token.clone())),
+                    );
+                }
                 site.state(&runtime.feature_state()).clear();
             }
             Err(error) => {

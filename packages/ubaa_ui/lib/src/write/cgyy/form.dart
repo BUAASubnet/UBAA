@@ -345,6 +345,21 @@ void uiSelectCgyyAction(
     ..add(nextKey);
 }
 
+/// 杭州空间预约按官网规则选择：同一房间可多选、不要求相邻；换房间时重新开始。
+/// 单次上限由服务端决定。
+void uiSelectHangzhouCgyyAction(
+  Set<String> selectedKeys,
+  Map<String, CgyyReserveAction> actionsByKey,
+  String nextKey,
+) {
+  final next = actionsByKey[nextKey]!;
+  final sameTarget = selectedKeys.every(
+    (key) => _sameCgyyTarget(actionsByKey[key]!, next),
+  );
+  if (!sameTarget) selectedKeys.clear();
+  selectedKeys.add(nextKey);
+}
+
 bool _sameCgyyTarget(CgyyReserveAction left, CgyyReserveAction right) =>
     left.venueSiteId == right.venueSiteId &&
     left.reservationDate.trim() == right.reservationDate.trim() &&
