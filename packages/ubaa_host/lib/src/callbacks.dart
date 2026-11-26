@@ -117,7 +117,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     return SpocClassroomAccess(
       service: service,
       courses: files.courses,
-      openExternal: widget.openExternalUrl,
+      openExternal: (url) =>
+          openExternally(url, opener: widget.openExternalUrl),
+      playback: widget.videoPlayback,
     );
   }
 

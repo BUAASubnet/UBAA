@@ -16,11 +16,13 @@ void main() {
       ),
     );
     Uri? opened;
+    final playback = MemoryVideoPlaybackCapability();
     await tester.pumpWidget(
       UbaaAppHost(
         preferenceValues: acceptedPrivacyPreferences(),
         backend: backend,
         credentialVault: MemoryCredentialVault(),
+        videoPlayback: playback,
         urlOpener: (uri) async {
           opened = uri;
           return true;
@@ -32,14 +34,14 @@ void main() {
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     final access = shell.spocClassroomAccess!;
     expect(backend.selectedCourseId, isNull);
-    expect(access.playback, isNull);
+    expect(access.playback, same(playback));
     final courses = (await access.courses()).data;
     expect(courses.first.name, courses.last.name);
     final catalog = await access.service.catalog(courses.last.courseId);
     expect(backend.selectedCourseId, 'fixture-002');
     expect(catalog.data.courseId, '102');
     final external = Uri.parse('https://example.invalid/video');
-    expect(await access.openExternal(external), isTrue);
+    await access.openExternal(external);
     expect(opened, external);
   });
 }

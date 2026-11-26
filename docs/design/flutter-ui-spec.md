@@ -26,6 +26,12 @@
 
 照片的来源依据见[照片来源对照](../protocol/parity/host-platform.md)。合成相机原生 UI 测试不代表真实设备拍照通过。
 
+## 课堂视频播放
+
+课堂入口通过宿主注入的 `VideoPlaybackCapability` 播放 HTTPS 视频，不附加请求头或学校会话凭据。`open` 初始化暂停的播放器，可接收起播位置；视图从 `state` 读取播放和缓冲状态。`buffered` 表示缓冲到的时间点，未取得画幅时 `aspectRatio` 为空。页面退出或切换视频时释放旧播放器；异步打开后若页面已退出，也要释放返回的播放器。
+
+官方五平台使用 media_kit，HarmonyOS 使用 `video_player` 的 AVPlayer 实现。界面按能力公布的 HLS 支持与倍速档位展示入口。应用内播放不可用时可用 `openExternal` 将原地址交给系统外部应用，失败时展示稳定中文提示。
+
 ## 功能状态
 
 每张卡片和详情页均支持 `idle`、`loading`、`success`、`empty`、`stale`、`failure`；刷新时

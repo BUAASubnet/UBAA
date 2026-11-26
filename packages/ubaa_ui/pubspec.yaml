@@ -18,6 +18,8 @@ dependencies:
   qr_flutter: ^4.1.0
   ubaa_domain:
     path: ../ubaa_domain
+  ubaa_platform:
+    path: ../ubaa_platform
 
 dev_dependencies:
   ubaa_test_support:
