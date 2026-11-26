@@ -1,5 +1,134 @@
 use super::*;
 
+#[tokio::test]
+async fn 课堂异常正文和授权头在入缓冲前脱敏() {
+    let diagnostics = RawDiagnostics::default();
+    diagnostics.enable();
+    let transport = RecordingTransport {
+        inner: Fixture,
+        diagnostics: diagnostics.clone(),
+        route: ConnectionMode::Direct,
+    };
+    let endpoint =
+        "https://classroom.msa.buaa.edu.cn/courseapi/v3/portal-home-setting/get-sub-info";
+    let mut response = HttpResponse::new(
+        502,
+        endpoint,
+        b"upstream failure: ?auth_key=fixture-media-secret".to_vec(),
+    );
+    response.headers.insert(
+        "aUtHoRiZaTiOn".into(),
+        vec!["Bearer fixture-token-secret".into()],
+    );
+    response.headers.insert(
+        "Cookie".into(),
+        vec!["mode=1; _token=fixture-cookie-secret".into()],
+    );
+    transport
+        .capture(
+            super::super::HttpMethod::Get,
+            endpoint.into(),
+            false,
+            async { Ok(response) },
+        )
+        .await
+        .unwrap();
+    let text = diagnostics.export_json();
+    for secret in [
+        "fixture-media-secret",
+        "fixture-token-secret",
+        "fixture-cookie-secret",
+    ] {
+        assert!(!text.contains(secret));
+    }
+    assert!(text.contains("mode=[已隐藏]"));
+}
+
+#[test]
+fn 课堂诊断递归处理字符串化对象数组和混合大小写地址() {
+    let inner = json!([{"auth_key":"inner-secret","link":"  HtTpS://example.test/x?auth_key=url-secret","other":7}]);
+    let body = json!({"content":json!({"items":inner.to_string()}).to_string(),"link":"\tHTTP://example.test/x?ticket=outer-secret"});
+    let masked = redact::body("https://example.test/", body.to_string().as_bytes()).unwrap();
+    assert!(!masked.contains("-secret"));
+    let outer: Value = serde_json::from_str(&masked).unwrap();
+    let middle: Value = serde_json::from_str(outer["content"].as_str().unwrap()).unwrap();
+    let items: Value = serde_json::from_str(middle["items"].as_str().unwrap()).unwrap();
+    assert_eq!(items[0]["auth_key"], "[已隐藏]");
+    assert_eq!(items[0]["other"], 7);
+}
+
+#[test]
+fn 课堂诊断遮盖跳转片段中的敏感键() {
+    for target in [
+        "/x#Ticket=fragment-secret&keep=ok",
+        "/x?username=query-secret#/player?auth_key=fragment-secret&keep=ok",
+    ] {
+        let mut response = HttpResponse::new(302, "https://example.test/start", vec![]);
+        response
+            .headers
+            .insert("Location".into(), vec![target.into()]);
+        let safe = &redact::headers(&response.final_url, &response)["Location"][0];
+        assert!(!safe.contains("-secret"));
+        assert!(safe.contains("keep=ok"));
+    }
+}
+
+#[tokio::test]
+async fn 课堂两主机及网关快照按请求或响应地址遮盖全部cookie值() {
+    let diagnostics = RawDiagnostics::default();
+    diagnostics.enable();
+    let transport = RecordingTransport {
+        inner: Fixture,
+        diagnostics: diagnostics.clone(),
+        route: ConnectionMode::WebVpn,
+    };
+    let other = "https://example.test/";
+    for target in [
+        "https://yjapi.msa.buaa.edu.cn/other",
+        "https://classroom.msa.buaa.edu.cn/other",
+        "https://yjapi.msa.buaa.edu.cn/casapi/index.php",
+        "https://d.buaa.edu.cn/wengine-vpn/cookie?method=get",
+    ] {
+        for url in [
+            target.to_owned(),
+            crate::connection::to_webvpn_url(target).unwrap(),
+        ] {
+            for (request_url, response_url) in [(url.as_str(), other), (other, url.as_str())] {
+                let mut response = HttpResponse::new(200, response_url, vec![]);
+                response.headers.insert(
+                    "Cookie".into(),
+                    vec!["mode=mode-secret; SID=sid-secret".into()],
+                );
+                response.headers.insert(
+                    "Set-Cookie".into(),
+                    vec![
+                        "other=cookie-secret; Path=/x; Secure".into(),
+                        "another=another-secret".into(),
+                    ],
+                );
+                transport
+                    .capture(
+                        super::super::HttpMethod::Get,
+                        request_url.into(),
+                        false,
+                        async { Ok(response) },
+                    )
+                    .await
+                    .unwrap();
+            }
+        }
+    }
+    let report: Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
+    for record in report["records"].as_array().unwrap() {
+        let headers = &record["response"]["headers"];
+        assert_eq!(headers["Cookie"], json!(["mode=[已隐藏]; SID=[已隐藏]"]));
+        assert_eq!(
+            headers["Set-Cookie"],
+            json!(["other=[已隐藏]; Path=/x; Secure", "another=[已隐藏]"])
+        );
+    }
+}
+
 struct Fixture;
 #[async_trait]
 impl HttpTransport for Fixture {
