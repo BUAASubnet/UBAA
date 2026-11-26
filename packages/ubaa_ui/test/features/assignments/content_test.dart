@@ -1,5 +1,6 @@
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -34,20 +35,27 @@ void main() {
     expect(find.textContaining('分值'), findsOneWidget);
     expect(find.text('成绩'), findsNothing);
   });
-  testWidgets('上课缺少目标时不从课程编号生成动作', (tester) async {
-    await showFeature(tester, FeatureId.signin, [
-      const FeatureDetail(
-        title: '合成上课课',
-        presentation: SigninPresentation(
-          courseId: '课程不是上课目标',
-          classBeginTime: '08:00',
-          classEndTime: '09:40',
-          signStatus: 0,
-        ),
-      ),
-    ], []);
-    expect(find.text('上课'), findsNothing);
-  });
+  // 固定在签到窗口内（北京时间 08:10）：结果不随测试运行时刻变化。
+  testWidgets(
+    '上课缺少目标时不从课程编号生成动作',
+    (tester) =>
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 28, 0, 10)), () async {
+          await showFeature(tester, FeatureId.signin, [
+            const FeatureDetail(
+              title: '合成上课课',
+              presentation: SigninPresentation(
+                courseId: '课程不是上课目标',
+                classBeginTime: '08:00',
+                classEndTime: '09:40',
+                signStatus: 0,
+              ),
+            ),
+          ], []);
+          final button = find.widgetWithText(FilledButton, '上课');
+          expect(button, findsOneWidget);
+          expect(tester.widget<FilledButton>(button).onPressed, isNull);
+        }),
+  );
   testWidgets('宽屏评教使用课程行并提供详情入口', (tester) async {
     await showFeature(
       tester,
