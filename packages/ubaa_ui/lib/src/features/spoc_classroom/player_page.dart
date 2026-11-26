@@ -21,12 +21,9 @@ import 'classroom_panels.dart';
 import 'player_controls.dart';
 import 'slide_strip.dart';
 
-/// 两路回放的时间轴换算方向。
-///
-/// 上游给出每路 `time_offset`（秒，PPT 路观察到 -120），但方向没有文档：
-/// 教师时间轴位置 = 本路位置 + [_offsetSign] ×（本路偏移 − 教师路偏移）。
-/// 由真实回放校准（PPT 路某时刻画面与 PPT 截图时间戳对比），结论见协议文档。
-const _offsetSign = 1;
+// 两路回放共用同一时间轴：2026-11-26 用真实回放校准，PPT 路比教师路只晚约 2–3 秒，
+// PPT 截图时间戳对应 PPT 路自身位置。上游 `time_offset`（PPT 路 -120）不是播放位置的平移量，
+// 因此切换画面时保持同一位置，资料面板的时间也直接用于两路。详见协议文档。
 
 /// 课堂播放页：回放（教师 / PPT 切换）或直播（教师 / 学生切换），
 /// 以及章节、逐字稿、摘要和 PPT 缩略图条。所有资料按教师路时间轴对齐。
@@ -145,24 +142,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     return null;
   }
 
-  int get _teacherOffsetSecs =>
-      _session == null ? 0 : (_teacherSource(_session!)?.timeOffsetSecs ?? 0);
+  /// 两路共用时间轴（见文件头说明），位置无需换算。
+  Duration _toTeacher(Duration streamPos) => streamPos;
 
-  Duration _shift(ClassroomPlaybackSource source) => Duration(
-    seconds: _offsetSign * ((source.timeOffsetSecs ?? 0) - _teacherOffsetSecs),
-  );
-
-  Duration _toTeacher(Duration streamPos) {
-    final source = _source;
-    if (source == null || _isLive) return streamPos;
-    final t = streamPos + _shift(source);
-    return t.isNegative ? Duration.zero : t;
-  }
-
-  Duration _fromTeacher(Duration teacherPos, ClassroomPlaybackSource source) {
-    final s = teacherPos - _shift(source);
-    return s.isNegative ? Duration.zero : s;
-  }
+  Duration _fromTeacher(Duration teacherPos, ClassroomPlaybackSource source) =>
+      teacherPos;
 
   /// 当前平台不能在应用内播放这一路时给出原因；能播放返回 null。
   String? _unsupportedReason(ClassroomPlaybackSource source) {

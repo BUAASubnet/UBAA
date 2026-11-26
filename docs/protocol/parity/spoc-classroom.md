@@ -39,7 +39,7 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 - App 拒绝含反斜杠、空白、ASCII 控制字符、用户信息或非默认端口的媒体和 PPT 地址。直播允许显式 HTTPS 443 端口。Direct 拒绝网关包装；WebVPN 解包后复核 HTTPS 和媒体主机。交付给宿主的是规范化地址，调试输出不包含地址。
 - Direct 的含 `auType=cmc` 入口曾返回 `http://yjapi.msa.buaa.edu.cn/…`，再由上游升回 HTTPS。App 从不带 `auType` 的 HTTPS 入口起步，也不接受先降级后升级。
 - 前端对 `_token` 做百分号解码，从 `{i:<序号>;s:<长度>:"_token";i:<序号>;s:<长度>:"<JWT>";}` 片段取 JWT。Direct 从 casapi 下发的 Cookie 取 `_token`，WebVPN 从课堂 Cookie 快照取 `_token`。两条路线的解析和后续 Bearer 读取均已通过真实验证。
-- 未带 Bearer 的样本是 HTTP 200、`{"code":5002,"msg":"未传入token"}`，无 `data`。回放样本的 PPT 路 `time_offset` 为 `"-120"`，教师路为 `"0"`；偏移方向待核对。直播只采用已验证的 `output.m3u8` 和 `output_student.m3u8`。
+- 未带 Bearer 的样本是 HTTP 200、`{"code":5002,"msg":"未传入token"}`，无 `data`。回放样本的 PPT 路 `time_offset` 为 `"-120"`，教师路为 `"0"`；它不是播放位置的平移量，见下方“两路时间轴校准”。直播只采用已验证的 `output.m3u8` 和 `output_student.m3u8`。
 - 回放两路及转写响应的 `resource_guid` 均为含字母的 32 位小写十六进制字符串。夹具使用相同形态的假值。Core 接受 1–64 个 ASCII 字母或数字，并逐项编码查询参数。目录的 `student` 取当前课程签名响应的 `username`。
 - 课堂读取共用既有 SPOC 角色激活的 `POST /spocnewht/sys/casLogin`；课程映射、msa 认证和业务读取均为 GET。首次 `5002` 或 HTTP 401 只重试原 GET 一次，再次失败后核验主会话。主会话有效或无法确认时返回 `UpstreamUnavailable`，确认失效时返回 `AuthenticationRequired`。单独缺少可解析的课堂令牌时保留主会话。
 - 摘要样本另有 `MindMapSummary`（嵌套 `topic`，时间为秒字符串），以及空的 `Asr`、`PptExtraction`。本期用学校自带转写，不接外部语音识别。PPT 缩略图与原图均按返回地址读取。
@@ -55,11 +55,18 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 - `get-bh-course-url` 对 9 门课返回 HTTP 302，目标为 `classroom.msa.buaa.edu.cn/coursedetail`；另 3 门课返回 HTTP 200，`Content-Type: text/html; charset=utf-8`，且正文完全相同，均为 1337 字节。脱敏诊断未保留正文。同批签名可用于成功映射的 9 门课，维护者据此将该响应判为课程级未开通。App 对 HTTP 200 且媒体类型为 `text/html` 的映射响应提示“该课程暂未在智学北航开通课堂”，返回 `BusinessUnavailable`，诊断原因为 `mapping_unbound_page`。其他非 302 响应仍返回 `UpstreamChanged`，诊断原因为 `mapping_status`。
 - 当时没有直播节次，直播仅通过夹具验证。有直播课时，按授权分别运行 `just verify-live feature=spoc_classroom route=<direct|webvpn>`。
 
+### 2026-11-26 两路时间轴校准
+
+用上述真实回放（两路时长均为 5941 秒，PPT 路 `time_offset="-120"`、教师路 `"0"`），按 Range 只读抽取画面比对，未下载整段视频：
+
+- 选 PPT 截图时间戳 811.7 秒（前一张 506.6 秒，后一张 945.7 秒）。PPT 路在 808.7 秒仍为前一页、810.7 秒已切换；在 688.7/694.7 秒与 928.7/934.7 秒（即按 ±120 秒平移的候选位置）前后画面均无此切换。因此 PPT 截图时间戳对应 PPT 路自身的播放位置，检测时刻比实际换页晚约 1–3 秒。
+- 教师路画面中的投影在 805.7 秒仍为前一页、807.7 秒已切换，即教师路领先 PPT 路约 2–3 秒；按 ±120 秒平移的候选位置同样无此切换。
+- 结论：两路共用同一时间轴，`time_offset` 不用于播放位置换算。App 切换画面时保持同一位置，章节、逐字稿、问答与 PPT 的时间直接用于两路。同节 `begin_time` 比 `start_at` 早 120 秒，与 `time_offset` 数值相同，含义无文档，不据此推断。
+
 ### 未验证项
 
 | 项目 | 当前边界与重跑条件 |
 |---|---|
 | 离开回放页是否上报进度 | 已观察的加载及播放窗口内未见进度 POST。离页行为未验证。App 不加载上游页面，不受影响。 |
 | `livepgc.msa.buaa.edu.cn` 清晰度及音频变体 | 此前观察到 HTTP 503。有活动直播且原响应仍提供 `m3u8_lhd`、`m3u8_lsd` 或 `m3u8_audio` 时，按授权只读复测。 |
-| 两路 `time_offset` 的方向 | B5 使用两路齐全且偏移非零的真实回放，用两个画面都可辨认的事件校准播放时间。 |
 | 两路音频是否一致 | 取得同一节次的两路音轨并按可确认的时间对齐，比较声音内容；轨道参数不能证明音源相同。 |

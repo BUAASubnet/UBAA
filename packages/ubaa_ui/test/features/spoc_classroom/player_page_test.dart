@@ -107,7 +107,9 @@ Finder get _playerBack => find.descendant(
 );
 
 void main() {
-  testWidgets('回放默认打开教师路并开始播放，切换 PPT 路时保留时间点和倍速', (tester) async {
+  testWidgets('回放默认打开教师路并开始播放，切换 PPT 路时保持同一位置（不按 time_offset 平移）和倍速', (
+    tester,
+  ) async {
     final fixture = await ClassroomFixture.load();
     final capability = _RecordingPlayback();
     await _pumpPlayer(tester, fixture, playback: capability);
@@ -127,7 +129,7 @@ void main() {
     await tester.pump(kDoubleTapTimeout);
     await tester.pumpAndSettle();
 
-    final slidesStart = Duration(seconds: 150);
+    const slidesStart = Duration(seconds: 30);
     expect(capability.opens, [
       (_teacherUrl, Duration.zero),
       (_slidesUrl, slidesStart),
