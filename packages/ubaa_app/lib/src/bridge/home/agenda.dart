@@ -201,9 +201,7 @@ HomeTodoProjection bridgeHomeTodoProjection(
     final school = row.school;
     final detail = school == null ? null : _freshSigninDetail(school, request);
     final signin = detail?.presentation as SigninPresentation?;
-    if (school?.upstreamStatus.signStatus == 1 &&
-        (signin == null ||
-            signinPhase(signin, now) != SigninPhase.completedOpen)) {
+    if (signin != null && !signinPhase(signin, now).canOpenQr) {
       continue;
     }
     todos.add(

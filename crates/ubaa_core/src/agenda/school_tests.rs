@@ -139,7 +139,9 @@ fn signin_today_and_ten_minute_window_never_restore_write_authority() {
     for (start, end, status, visible) in [
         ("12:10", "13:00", Some(0), true),
         ("12:11", "13:00", Some(0), false),
-        ("11:00", "12:00", Some(0), false),
+        ("11:00", "12:00", Some(0), true),
+        ("11:00", "11:59", Some(0), false),
+        ("11:00", "12:00", Some(1), false),
         ("12:05", "13:00", None, false),
         ("25:00", "26:00", Some(0), false),
     ] {
@@ -153,7 +155,18 @@ fn signin_today_and_ten_minute_window_never_restore_write_authority() {
             home(&records, &ctx)
                 .iter()
                 .any(|v| v.key.source == "signin"),
-            visible
+            visible,
+            "{start}–{end}，状态 {status:?}"
+        );
+        let rows = project_home_agenda(&home_reads(&records), &ctx, None).unwrap();
+        let signin = rows.iter().find_map(|row| match &row.item {
+            AgendaEntryItem::School(item) if item.key.source == "signin" => Some(item),
+            _ => None,
+        });
+        assert_eq!(
+            signin.map(|item| item.status_label.as_str()),
+            visible.then_some("状态待更新"),
+            "{start}–{end}，状态 {status:?}"
         );
     }
     records[4] = original;
@@ -515,17 +528,24 @@ fn home_reads(records: &[CacheRecord]) -> Vec<HomeAgendaRead> {
         .collect()
 }
 #[test]
-fn online_home_signin_rows_include_signed_candidates_for_ui_window() {
+fn online_home_signin_rows_require_the_inclusive_qr_window() {
     let (records, ctx) = fixture();
     let CachePayload::SigninToday(classes) = &records[4].payload else {
         unreachable!();
     };
     for (start, end, status, visible) in [
-        ("12:11", "13:00", Some(0), true),
+        ("12:11", "13:00", Some(0), false),
+        ("12:10", "13:00", Some(0), true),
         ("11:00", "12:00", Some(0), true),
-        ("11:00", "11:59", Some(0), true),
-        ("11:00", "13:00", Some(1), true),
+        ("11:00", "11:59", Some(0), false),
+        ("12:11", "13:00", Some(1), false),
+        ("12:10", "13:00", Some(1), true),
+        ("11:00", "12:00", Some(1), true),
+        ("11:00", "11:59", Some(1), false),
         ("11:00", "13:00", None, false),
+        ("", "13:00", Some(0), false),
+        ("11:00", "25:00", Some(1), false),
+        ("12:05", "12:00", Some(1), false),
     ] {
         let mut class = classes[0].clone();
         class.class_begin_time = start.into();
@@ -541,7 +561,11 @@ fn online_home_signin_rows_include_signed_candidates_for_ui_window() {
             None,
         )
         .unwrap();
-        assert_eq!(rows.len(), usize::from(visible));
+        assert_eq!(
+            rows.len(),
+            usize::from(visible),
+            "{start}–{end}，状态 {status:?}"
+        );
         if let Some(row) = rows.first() {
             let AgendaEntryItem::School(item) = &row.item else {
                 unreachable!();

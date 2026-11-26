@@ -189,11 +189,18 @@ pub(super) fn signin(
     item.subtitle = "每日课程".into();
     // 持久读永远没有新鲜操作资格；保留首页离线状态文案。
     item.status_label = "状态待更新".into();
-    item.home_todo = v.sign_status == Some(0)
-        && now < end
-        && now.datetime >= start.datetime - Duration::minutes(10);
+    item.home_todo = v.sign_status == Some(0) && signin_in_window(&item.timing, now);
     Some(item)
 }
+
+pub(super) fn signin_in_window(timing: &AgendaTiming, now: AgendaTime) -> bool {
+    matches!(
+        timing,
+        AgendaTiming::Period { start: Some(start), end: Some(end) }
+            if start <= end && now <= *end && now.datetime >= start.datetime - Duration::minutes(10)
+    )
+}
+
 pub(super) fn exam(v: &Exam, term: &str, now: AgendaTime) -> Option<SchoolAgendaItem> {
     static EXAM_END: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"^[0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\.[0-9]{1,9})?)?$")

@@ -149,7 +149,8 @@ fn signin(
 ) -> Option<SchoolAgendaItem> {
     let mut item = school::signin(course, date, now)?;
     if fresh {
-        item.home_todo = matches!(course.sign_status, Some(0 | 1));
+        item.home_todo = matches!(course.sign_status, Some(0 | 1))
+            && school::signin_in_window(&item.timing, now);
         item.status_label = if course.sign_status == Some(1) {
             "已签到"
         } else {
