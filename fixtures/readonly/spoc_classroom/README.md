@@ -10,12 +10,13 @@
 |---|---|
 | `course-list.json` | 按已记录字段构造：`evidence.md` 第 1 节，保留同名课程条目的 `kcid`、`kcmc`。 |
 | `identity.json` | 按已记录字段构造：`evidence.md` 第 2 节；`req1.txt` 仅记录请求。 |
-| `signature-a.json` | 按已记录字段构造：`evidence.md` 第 2 节；`req2.txt` 仅记录请求。本样本使用字符串标量，签名接口 JSON 原始类型待 B2 真实验证核对。 |
-| `signature-b.json` | 按已记录字段构造：`evidence.md` 第 2 节。本样本使用数字和布尔标量，签名接口 JSON 原始类型待 B2 真实验证核对。 |
+| `signature-a.json` | 按已记录字段构造：`evidence.md` 第 2 节；`req2.txt` 仅记录请求。本样本覆盖字符串标量。B2 两条路线均解析成功，未单独记录原始类型。 |
+| `signature-b.json` | 按已记录字段构造：`evidence.md` 第 2 节。本样本覆盖 `tenant_code`、`timestamp` 为数字以及 `allow_live` 为布尔值的解析。 |
 | `course-url-a.json` | 按已记录字段构造：`findings.md`“总链路”与 `evidence.md` 第 1、2 节；302 头形态取自 `req_tab1_1.txt`。 |
 | `course-url-b.json` | 按已记录字段构造：`findings.md`“总链路”与 `evidence.md` 第 1、2 节；沿用 `req_tab1_1.txt` 的 302 头形态，使用另一假 `course_id`。 |
-| `casapi-direct.json` | 按已记录字段构造：`findings.md`“智学北航（msa）鉴权”与 `evidence.md` 第 4 节。按前端解析构造 `Set-Cookie`，其中 `_token` 原值形态待 B2 真实验证核对。 |
-| `casapi-webvpn.json` | 按已记录字段构造：`findings.md`“智学北航（msa）鉴权”“WebVPN”与 `evidence.md` 第 4、5 节。按既有网关格式和前端解析构造快照，`/wengine-vpn/cookie` 快照正文待 B2 真实验证核对。 |
+| `course-url-unbound.json` | 按真实观察的状态码 / 类型 / 长度构造：HTTP 200、`text/html; charset=utf-8`、1337 字节。正文未取证。 |
+| `casapi-direct.json` | 按已记录字段构造：`findings.md`“智学北航（msa）鉴权”与 `evidence.md` 第 4 节。按前端解析构造 `Set-Cookie`。B2 确认 Direct 由 casapi 下发的 `_token` 可解析，后续 Bearer 读取通过。 |
+| `casapi-webvpn.json` | 按已记录字段构造：`findings.md`“智学北航（msa）鉴权”“WebVPN”与 `evidence.md` 第 4、5 节。按既有网关格式和前端解析构造快照。B2 确认 `/wengine-vpn/cookie` 快照含可解析的 `_token`，后续 Bearer 读取通过。 |
 | `casapi-http-redirect.json` | 裁剪自原始抓包：`fresh229.txt`，含 `auType` 入口的明文 HTTP 跳转。 |
 | `course-detail.json` | 裁剪自原始抓包：`resp45.json`，覆盖有回放和未开始；`vpn_detail.json` 中目录字段形态一致。 |
 | `sub-recording.json` | 裁剪自原始抓包：`rec_subinfo.json`，教师与 PPT 两路回放。 |
