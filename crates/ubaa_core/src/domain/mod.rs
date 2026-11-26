@@ -33,6 +33,8 @@ mod grades;
 pub use grades::*;
 mod classroom;
 pub use classroom::*;
+pub(crate) mod spoc_classroom;
+pub use spoc_classroom::*;
 mod cgyy;
 pub use cgyy::*;
 mod spoc;

@@ -22,6 +22,7 @@ pub struct RouteConfig {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct FeaturePolicies {
+    spoc_classroom: Option<RoutePolicy>,
     portal: Option<RoutePolicy>,
     network: Option<RoutePolicy>,
     finance: Option<RoutePolicy>,
@@ -63,6 +64,7 @@ struct RawRoute {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawFeatures {
+    spoc_classroom: Option<RoutePolicy>,
     portal: Option<RoutePolicy>,
     network: Option<RoutePolicy>,
     finance: Option<RoutePolicy>,
@@ -127,6 +129,7 @@ impl RouteConfig {
                 grades: raw.route.features.grades,
                 classroom: raw.route.features.classroom,
                 spoc: raw.route.features.spoc,
+                spoc_classroom: raw.route.features.spoc_classroom,
                 judge: raw.route.features.judge,
                 evaluation: raw.route.features.evaluation,
             },
@@ -255,13 +258,14 @@ impl RouteConfig {
             ReadonlyFeature::Grades => self.features.grades,
             ReadonlyFeature::Classroom => self.features.classroom,
             ReadonlyFeature::Spoc => self.features.spoc,
+            ReadonlyFeature::SpocClassroom => self.features.spoc_classroom,
             ReadonlyFeature::Judge => self.features.judge,
             ReadonlyFeature::Evaluation => self.features.evaluation,
         }
         .unwrap_or(self.default)
     }
 
-    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 18] {
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 19] {
         [
             (ReadonlyFeature::Portal, self.features.portal),
             (ReadonlyFeature::Network, self.features.network),
@@ -279,6 +283,7 @@ impl RouteConfig {
             (ReadonlyFeature::Grades, self.features.grades),
             (ReadonlyFeature::Classroom, self.features.classroom),
             (ReadonlyFeature::Spoc, self.features.spoc),
+            (ReadonlyFeature::SpocClassroom, self.features.spoc_classroom),
             (ReadonlyFeature::Judge, self.features.judge),
             (ReadonlyFeature::Evaluation, self.features.evaluation),
         ]

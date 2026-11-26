@@ -94,6 +94,11 @@ pub use sensitive::CgyyLockDisplayLease;
 pub use types::{CallerPinned, Routed, RoutedError, RoutedResult};
 
 // 逐项列出宿主稳定合同，避免新增领域实现时被通配重导出意外纳入公共 API。
+pub use crate::domain::spoc_classroom::{
+    ClassChapter, ClassQuestion, ClassSlide, ClassSummary, ClassroomCatalog, ClassroomPeriod,
+    ClassroomSession, ClassroomStatus, PlaybackKind, PlaybackSource, SlideTimeline, Transcript,
+    TranscriptSegment,
+};
 pub use crate::domain::{
     ActionEligibility, Assignment, AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse,
     BykcCourseAttendanceDisplay, BykcCourseCatalogItem, BykcCourseCatalogPage, BykcCourseCategory,

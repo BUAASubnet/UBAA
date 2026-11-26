@@ -1,5 +1,7 @@
 #[path = "spoc/auth.rs"]
 mod auth;
+#[path = "spoc/classroom.rs"]
+mod classroom;
 #[path = "spoc/detail.rs"]
 mod detail;
 #[path = "spoc/files.rs"]
