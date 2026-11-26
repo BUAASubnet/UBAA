@@ -115,6 +115,7 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 | 服务端/本地翻页控件与错误卡 | [common/paged_results.dart](../../packages/ubaa_ui/lib/src/common/paged_results.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
 | 课表、考试、成绩、空教室查询控件 | [features/academic/](../../packages/ubaa_ui/lib/src/features/academic/) |
 | SPOC/Judge 作业与每日课程查询、签到二维码 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
+| SPOC 课堂选择、节次列表与播放页 | [features/spoc_classroom/](../../packages/ubaa_ui/lib/src/features/spoc_classroom/) |
 | 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook/](../../packages/ubaa_ui/lib/src/features/libbook/) |
 | 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk/](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation_actions.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
 | 研讨室预约与阳光打卡输入表单 | [common/details/cgyy_form.dart](../../packages/ubaa_ui/lib/src/common/details/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/common/details/ygdk_form.dart) |
