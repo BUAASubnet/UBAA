@@ -47,6 +47,20 @@ just verify-live feature=cgyy route=webvpn
 
 缩小范围的运行不等于完整验收。
 
+### 导出诊断
+
+在 macOS 或 Linux 上，按已授权的功能和路线添加 `diagnostics=<路径>`：
+
+```bash
+just verify-live feature=spoc_classroom route=direct diagnostics=.ubaa_local/spoc-classroom/direct.json
+```
+
+相对路径以仓库根目录为准，也可以使用仓库内的绝对路径。文件只放在 `.ubaa_local/<任务>/` 下，不能包含 `..` 或经过符号链接。工具按 `0700` 创建缺少的目录，已有目录也须为 `0700`。每次运行使用新文件名：工具以 `0600` 创建文件，不覆盖已有文件。
+
+指定参数后，Core 在登录前启用与客户端完整诊断相同的录制器，正常收尾时写入 JSON，包括认证或业务检查失败的运行。stdout 仍只有原有摘要；省略参数时不录制、不写文件。现有规则会遮盖 `get-bh-course-url` 的正文，可查看响应状态、`Content-Type`（若返回）与 `body_bytes`，不能据此确认被遮盖的正文内容。
+
+完整诊断只遮盖部分字段，仍可能含个人数据或认证材料。不要提交或分享原始文件；报告只摘录已核对的状态、类型等非敏感事实。
+
 ### 财务
 
 `feature=finance` 使用固定为 Direct 或 WebVPN 的 `UbaaClient`：

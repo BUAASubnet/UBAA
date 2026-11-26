@@ -90,3 +90,34 @@ fn core_live_rejects_incomplete_stdin_without_session_material() {
     assert!(!config.join(".session.lock").exists());
     let _ = std::fs::remove_dir_all(config);
 }
+
+#[test]
+fn core_live_rejects_diagnostics_outside_allowlist_before_reading_stdin() {
+    let config = temp_dir("diagnostics-path");
+    let output = Command::new(core_live_binary())
+        .current_dir(&config)
+        .args([
+            "--route",
+            "direct",
+            "--feature",
+            "auth",
+            "--config-dir",
+            config.to_str().unwrap(),
+            "--date",
+            "2026-08-31",
+            "--username-stdin",
+            "--password-stdin",
+            "--diagnostics",
+            "outside.json",
+        ])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(output.stdout.len(), 0);
+    assert!(String::from_utf8_lossy(&output.stderr).contains("诊断路径无效"));
+    assert!(!config.join("outside.json").exists());
+    assert!(!config.join("session.json").exists());
+    let _ = std::fs::remove_dir_all(config);
+}

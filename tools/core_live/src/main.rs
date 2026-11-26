@@ -5,6 +5,7 @@
 
 mod args;
 mod authentication;
+mod diagnostics;
 mod evidence;
 mod spoc_classroom;
 mod steps;

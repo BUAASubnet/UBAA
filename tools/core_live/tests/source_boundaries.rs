@@ -40,6 +40,7 @@ fn core_live_source_bundle() -> String {
         [
             "args.rs",
             "authentication.rs",
+            "diagnostics.rs",
             "evidence.rs",
             "main.rs",
             "spoc_classroom/media.rs",
