@@ -18,7 +18,7 @@
     "play_msg": "未找到任务信息",
     "video_list": {
       "0": {
-        "resource_guid": "00000000000000000000000000000001",
+        "resource_guid": "abcdef0123456789abcdef0123456789",
         "duration": "5280",
         "type": "2",
         "preview_url": "https://resource.msa.buaa.edu.cn/play/2/firm_files/ppt2026/video/2001-09-09/TEST_PPT_1920_1080.mp4",
@@ -27,7 +27,7 @@
         "play_msg": ""
       },
       "1": {
-        "resource_guid": "00000000000000000000000000000002",
+        "resource_guid": "fedcba9876543210fedcba9876543210",
         "duration": "5400",
         "type": "3",
         "preview_url": "https://resource.msa.buaa.edu.cn/play/2/firm_files/teache2026/video/2001-09-09/TEST_TEACHER_1920_1080.mp4",

@@ -2,7 +2,8 @@
 
 ## 当前规则
 
-- 按精确 `kcid` 进入课堂。同名课程可能有不同 `kcid`，并签出不同的 `bind_id` 和 `course_id`。本期只支持学生身份。
+- 按 `kcid` 进入课堂。同名课程可能有不同 `kcid`，并签出不同的 `bind_id` 和 `course_id`。App 去除 `kcid` 首尾空白，拒绝空值、控制字符或超过 128 个字符的标识。`course_id` 和 `sub_id` 只接受 1–20 位 ASCII 数字。
+- `queryYhSflx` 的学生样本只有字符串 `"2"`。前端源码将非 `1`、`3` 的身份按学生模式处理；App 只允许 `"2"` 继续请求签名。`"1"`、`"3"`、`"6"` 提示“暂不支持教师身份”，其余值提示“暂不支持当前身份”。
 - 只读课程映射、目录、节次、转写、摘要、PPT 和媒体。不加载上游网页，不实现 `courseapi/v2/sign/sign`（维护者确认已废弃）、观看进度上报、点击计数或弹幕。
 - 智学北航（msa）的 JWT 和 casapi Cookie 只在内存中持有，按账号、路线和认证代次隔离，不并入主 Cookie Jar。登出或认证代次变化时清空，不调用远端 casapi 登出。业务 `5002` 或 HTTP `401` 时，在当前路线重新认证一次，只重试原只读请求一次；再次失败交给既有 UC 会话仲裁。
 - 目录与附加数据只在页面生命周期内持有，不写离线仓库。签名、`bind_id`、账号字段、Cookie 和 JWT 不传给宿主；日志和诊断也不保留这些值及媒体 `auth_key`。
@@ -34,16 +35,20 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 **证据来源：**2026-11-26 维护者授权的浏览器只读抓取（Direct + WebVPN）；前端源码 `getToken`（2026-11-26 抓取的 app/0 chunk）；既有 WebVPN Cookie 同步规则（[cgyy.md](cgyy.md) / [auth-session.md L-B](auth-session.md#研讨室门锁逐操作九列)）。[脱敏夹具清单](../../../fixtures/readonly/spoc_classroom/README.md)区分抓包裁剪和按记录构造的样本。
 
 - SPOC 课程标识取自 `queryKclb` 的 `content[].kcid`；`kcmc` 仅用于显示。学生签名请求固定空 `type`、`isxs=1`，不调用教师的任务号选择接口。
+- 映射请求保留签名响应中的 `ktsl_url`，只接受表中以 `?` 结尾的固定入口。按表中顺序拼接参数，只有 `realname` 按 `encodeURIComponent` 编码（空格为 `%20`）。其余参数保留原值，只接受 ASCII 字母、数字及 `._-`，否则返回 `UpstreamChanged`。
+- App 拒绝含反斜杠、空白、ASCII 控制字符、用户信息或非默认端口的媒体和 PPT 地址。直播允许显式 HTTPS 443 端口。Direct 拒绝网关包装；WebVPN 解包后复核 HTTPS 和媒体主机。交付给宿主的是规范化地址，调试输出不包含地址。
 - Direct 的含 `auType=cmc` 入口曾返回 `http://yjapi.msa.buaa.edu.cn/…`，再由上游升回 HTTPS。App 从不带 `auType` 的 HTTPS 入口起步，也不接受先降级后升级。
 - 前端对 `_token` 做百分号解码，从 `{i:<序号>;s:<长度>:"_token";i:<序号>;s:<长度>:"<JWT>";}` 片段取 JWT。WebVPN 已观察到课堂 Cookie 快照请求返回 HTTP 200，随后带 Bearer 的业务请求成功。快照正文格式依据既有网关规则；课堂快照是否含 `_token` 待核对。
 - 未带 Bearer 的样本是 HTTP 200、`{"code":5002,"msg":"未传入token"}`，无 `data`。回放样本的 PPT 路 `time_offset` 为 `"-120"`，教师路为 `"0"`；偏移方向待核对。直播只采用已验证的 `output.m3u8` 和 `output_student.m3u8`。
+- 回放两路及转写响应的 `resource_guid` 均为含字母的 32 位小写十六进制字符串。夹具使用相同形态的假值。Core 接受 1–64 个 ASCII 字母或数字，并逐项编码查询参数。目录的 `student` 取当前课程签名响应的 `username`。
+- 课堂读取共用既有 SPOC 角色激活的 `POST /spocnewht/sys/casLogin`；课程映射、msa 认证和业务读取均为 GET。首次 `5002` 或 HTTP 401 只重试原 GET 一次，再次失败后核验主会话。主会话有效或无法确认时返回 `UpstreamUnavailable`，确认失效时返回 `AuthenticationRequired`。单独缺少可解析的课堂令牌时保留主会话。
 - 摘要样本另有 `MindMapSummary`（嵌套 `topic`，时间为秒字符串），以及空的 `Asr`、`PptExtraction`。本期用学校自带转写，不接外部语音识别。PPT 缩略图与原图均按返回地址读取。
 
 ### 未验证项
 
 | 项目 | 当前边界与重跑条件 |
 |---|---|
-| Direct `Set-Cookie` 的 `_token` 原值形态 | 浏览器工具未提供原头。B2 `spoc_classroom` Direct 真实验证用现有 SSO 会话核对百分号编码与 PHP 序列化结构，只记录是否可解析。 |
+| Direct `Set-Cookie` 的 `_token` 原值形态与 Path | 浏览器工具未提供原头。B2 Direct 核对 Cookie 的适用路径、百分号编码和 PHP 序列化结构，只记录作用域和解析结果，不保存原值。 |
 | WebVPN Cookie 快照是否含 `_token` | 浏览器工具未提供正文。B2 `spoc_classroom` WebVPN 真实验证确认名称存在且值可解析，不保存完整快照。 |
 | 签名接口 JSON 原始类型 | 已记录拼接后的形态。B2 `spoc_classroom` 两条路线的真实验证只记录 `tenant_code`、`timestamp`、`allow_live` 的类型，不记录值。 |
 | 离开回放页是否上报进度 | 已观察的加载及播放窗口内未见进度 POST。只有在另行授权且允许网页可能上报进度后，才能观察离页请求；B2 只读验证不打开该页。 |

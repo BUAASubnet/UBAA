@@ -4,6 +4,8 @@
 
 业务正文 JSON 可直接作为响应字节。带头响应使用 `{status, headers, body}`，`headers` 的键为小写，值为字符串数组，`body` 为原始文本。认证链文件是按顺序排列的响应数组，每条按请求地址填入 `HttpResponse.final_url`，再交给 `ExpectedRequest`。第一跳的请求地址见[协议矩阵](../../../docs/protocol/parity/spoc-classroom.md#逐操作基线矩阵)，后续地址按上一跳的 `location`；WebVPN 链的最后一项由 Cookie 快照 GET 返回。加载方式见[确定性传输](../../../crates/ubaa_test_support/src/http.rs)。
 
+回放的教师路假 GUID 为 `fedcba9876543210fedcba9876543210`，PPT 路为 `abcdef0123456789abcdef0123456789`。转写及摘要请求样本使用教师路，PPT 请求样本使用 PPT 路。只有转写响应包含 GUID，摘要和 PPT 响应不添加该字段。图片路径中的目录名保留原有格式。
+
 | 文件 | 来源与覆盖 |
 |---|---|
 | `course-list.json` | 按已记录字段构造：`evidence.md` 第 1 节，保留同名课程条目的 `kcid`、`kcmc`。 |
