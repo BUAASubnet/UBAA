@@ -1,5 +1,5 @@
 ---
-description: 下载 UBAA：App Store 链接，Android、Windows、macOS 和 Linux 安装包，以及各平台的系统要求与安装步骤。
+description: 下载 UBAA：App Store 与 AppGallery 链接，Android、Windows、macOS 和 Linux 安装包，以及各平台的系统要求与安装步骤。
 ---
 
 <script setup>
@@ -75,7 +75,7 @@ provide('useBhpan', useBhpan)
 
 ## HarmonyOS {#ohos}
 
-HarmonyOS 版在 AppGallery 的状态为**待审核**，上架后在这里提供下载链接。
+HarmonyOS 版已上架：[在 AppGallery 下载 UBAA](https://appgallery.huawei.com/app/detail?id=cn.edu.ubaa)。
 
 ## 其他下载
 

@@ -8,7 +8,7 @@ description: 下载安装 UBAA、完成第一次登录，并认识应用的主�
 
 ## 获取应用
 
-前往[下载 UBAA](/download)，按设备选择安装包。Android、Windows、macOS 和 Linux 可以直接下载。iOS 版已上架 App Store，HarmonyOS 版待上架 AppGallery。UBAA v2.0 没有网页版。
+前往[下载 UBAA](/download)，按设备选择安装包。Android、Windows、macOS 和 Linux 可以直接下载。iOS 版已上架 App Store，HarmonyOS 版已上架 AppGallery。UBAA v2.0 没有网页版。
 
 用过旧版 v1.x？先看[从 v1.x 升级](/guide/ubaa2#upgrade)。
 
