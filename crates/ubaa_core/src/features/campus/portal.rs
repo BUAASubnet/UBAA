@@ -98,7 +98,52 @@ async fn metric_count(
     record(result, now(runtime)?)
 }
 
-async fn card(runtime: &mut ClientRuntime, items: &[Value]) -> Result<CampusMetric<CampusAmount>> {
+/// 杭州校区学生只显示杭州易通余额（北京账户通常为 0，不同时显示）；失败只影响本项。
+async fn hangzhou_card(runtime: &mut ClientRuntime) -> Result<CampusMetric<CampusAmount>> {
+    let fetched_at = now(runtime)?;
+    Ok(match super::hangzhou_card::balance(runtime).await {
+        Ok(value) => CampusMetric::Success { value, fetched_at },
+        Err(error) => {
+            let message = if error.code == ErrorCode::Unsupported {
+                error.message.clone()
+            } else {
+                "杭州校园卡余额暂时不可用".to_owned()
+            };
+            CampusMetric::Failure {
+                error: crate::error::UbaaError::new(
+                    error.code,
+                    error.kind,
+                    error.retryable,
+                    message,
+                ),
+                fetched_at,
+            }
+        }
+    })
+}
+
+/// 杭州校区学生的网费改读杭州认证网关；失败只影响本项，消息已是面向用户的说明。
+async fn hangzhou_network(
+    runtime: &mut ClientRuntime,
+    school_id: Option<&str>,
+) -> Result<CampusMetric<CampusAmount>> {
+    let fetched_at = now(runtime)?;
+    Ok(
+        match super::hangzhou_network::balance(runtime, school_id).await {
+            Ok(value) => CampusMetric::Success { value, fetched_at },
+            Err(error) => CampusMetric::Failure { error, fetched_at },
+        },
+    )
+}
+
+async fn card(
+    runtime: &mut ClientRuntime,
+    items: &[Value],
+    hangzhou: bool,
+) -> Result<CampusMetric<CampusAmount>> {
+    if hangzhou {
+        return hangzhou_card(runtime).await;
+    }
     if let Err(error) = item(items, KEYS[1]) {
         return record(Err(error), now(runtime)?);
     }
@@ -129,7 +174,18 @@ async fn card(runtime: &mut ClientRuntime, items: &[Value]) -> Result<CampusMetr
 }
 
 pub(crate) async fn get_metrics(runtime: &mut ClientRuntime) -> Result<CampusMetrics> {
-    authenticated_info(runtime).await?;
+    let info = authenticated_info(runtime).await?;
+    let person = info.get("d").and_then(|d| d.get("info"));
+    let text = |key: &str| {
+        person
+            .and_then(|person| person.get(key))
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+    };
+    // 门户 `info.xgh` 为学工号；缺失时退回登录时记住的账号。
+    let school_id = text("xgh").or_else(|| runtime.account_name().map(str::to_owned));
+    let hangzhou =
+        super::hangzhou_card::is_hangzhou(text("depart").as_deref(), school_id.as_deref());
     let payload = json(
         runtime,
         &format!("{BASE}/personal/frontend/data/items?type=personal_data"),
@@ -139,8 +195,12 @@ pub(crate) async fn get_metrics(runtime: &mut ClientRuntime) -> Result<CampusMet
         .get("data")
         .and_then(Value::as_array)
         .ok_or_else(parser::invalid)?;
-    let network_balance = metric_amount(runtime, items, KEYS[0]).await?;
-    let card_balance = card(runtime, items).await?;
+    let network_balance = if hangzhou {
+        hangzhou_network(runtime, school_id.as_deref()).await?
+    } else {
+        metric_amount(runtime, items, KEYS[0]).await?
+    };
+    let card_balance = card(runtime, items, hangzhou).await?;
     let unread_mail = metric_count(runtime, items, KEYS[2]).await?;
     let borrowed_books = metric_count(runtime, items, KEYS[3]).await?;
     let cloud_storage_remaining = metric_amount(runtime, items, KEYS[4]).await?;

@@ -120,7 +120,11 @@ fn resolve_feature_redirect(
             && matches!(
                 host.to_ascii_lowercase().as_str(),
                 "hzsso.buaa.edu.cn" | "hzsm.buaa.edu.cn"
-            )))
+            ))
+        || (feature == crate::features::campus::HANGZHOU_CARD_FEATURE
+            && (host.eq_ignore_ascii_case("hzsso.buaa.edu.cn")
+                || (host == crate::features::campus::HANGZHOU_CARD_HOST
+                    && target.port() == Some(18080)))))
     {
         return Err(feature_redirect_error(feature));
     }

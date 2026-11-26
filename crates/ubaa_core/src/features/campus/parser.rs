@@ -183,11 +183,11 @@ pub(super) fn traffic(page: &str, fetched_at: i64) -> Result<NetworkUsage> {
             products.push(NetworkProductUsage {
                 product_name: name.into(),
                 used: traffic_amount(get(LABELS[1])?)?,
-                free_remaining: super::packages::free_remaining(
+                free_remaining: Some(super::packages::free_remaining(
                     row,
                     traffic_amount(get(LABELS[2])?)?,
-                )?,
-                billable_remaining: traffic_amount(get(LABELS[3])?)?,
+                )?),
+                billable_remaining: Some(traffic_amount(get(LABELS[3])?)?),
             });
         }
         if products.is_empty() {

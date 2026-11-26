@@ -32,7 +32,10 @@ pub(super) fn write<W: Write>(
                     ("freeRemaining", free_label),
                     ("billableRemaining", "计费流量剩余（不含套餐）"),
                 ] {
-                    writeln!(stdout, "{label}：{}", amount(&product[key]))?;
+                    // 杭州认证网关只提供已用流量，缺失的剩余项不输出。
+                    if !product[key].is_null() {
+                        writeln!(stdout, "{label}：{}", amount(&product[key]))?;
+                    }
                 }
             }
         }

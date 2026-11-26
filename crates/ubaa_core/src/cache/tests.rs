@@ -915,8 +915,8 @@ fn campus_snapshots_round_trip_and_reject_mismatched_payloads() {
         products: vec![NetworkProductUsage {
             product_name: "合成产品".into(),
             used: amount("1.5", "G"),
-            free_remaining: amount("0", "byte"),
-            billable_remaining: amount("2", "G"),
+            free_remaining: Some(amount("0", "byte")),
+            billable_remaining: Some(amount("2", "G")),
         }],
         remaining_excludes_packages: true,
         fetched_at: 100,

@@ -45,13 +45,17 @@ pub struct CampusMetrics {
 }
 
 /// 一个网络产品的流量；在线免费剩余包含套餐可用流量，计费剩余保持上游值。
+///
+/// 杭州认证网关只提供已用流量，两个剩余项为 `None`，不补造数值。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProductUsage {
     pub product_name: String,
     pub used: CampusAmount,
-    pub free_remaining: CampusAmount,
-    pub billable_remaining: CampusAmount,
+    #[serde(default)]
+    pub free_remaining: Option<CampusAmount>,
+    #[serde(default)]
+    pub billable_remaining: Option<CampusAmount>,
 }
 
 /// 网费首页提供的完整产品流量表。

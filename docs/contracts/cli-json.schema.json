@@ -671,10 +671,10 @@
           "$ref": "#/$defs/campusAmount"
         },
         "freeRemaining": {
-          "$ref": "#/$defs/campusAmount"
+          "anyOf": [{ "$ref": "#/$defs/campusAmount" }, { "type": "null" }]
         },
         "billableRemaining": {
-          "$ref": "#/$defs/campusAmount"
+          "anyOf": [{ "$ref": "#/$defs/campusAmount" }, { "type": "null" }]
         }
       },
       "additionalProperties": false

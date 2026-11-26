@@ -127,6 +127,35 @@ Core 对 `code=0` 的响应只读取目标
 
 引导限制 HTTPS 默认端口、精确业务路径、SSO service 和有限跳数。WebVPN 使用现有编解码，仅在 WebVPN 路线接受合法网关包装。嵌套 service 和 redirect 同样校验，拒绝外域、用户信息、错误 ticket 目标及未证明的最终页面。
 
+#### 杭州校园卡（易通一卡通）
+
+杭州校区学生同时有北京校园卡账户（余额通常为 0）。`campus_metrics()` 读完门户 `info` 后按以下规则判定校区，杭州学生的「校园卡余额」改读易通，北京学生仍走上表门户路径，二者不同时显示、无需用户选择：
+
+- `d.info.depart` 含「杭州」「中法航空」「中法未来」之一（北京另有中法工程师学院，故不只匹配「中法」）；或
+- 学工号 `d.info.xgh`（缺失时用登录账号）去掉字母前缀后第 3–4 位院系代码属于 57、60、61、63（用户提供）。其余一律按北京处理。
+
+协议证据：2026-11-26 账号本人在内置浏览器经 hzsso 打开「易通系统-一卡通」，只记录主机、路径、参数名与 JSON 键形状，并用独立实现的签名重放成功（不带 Cookie，仅凭 `Authorization`）。
+
+| 步骤 | 请求 | 要点 |
+|---|---|---|
+| 进入 | hzsso 门户应用 `GET /api/bff/v1.2/enduser/portal/sso/go_a2c70d41711752874339a2f988e506ad2MG8YcfZPmG`（`idaasplugin_cas` 应用；hzsso 未登录时先走北航 CAS 插件登录） | 落到 `http://221.12.169.12:18080/easytong_webapp/static/getAuthInfo.html?etToken=&jumpMod=homeIndex&IDNo=&AccNum=&IDType=`；`AccNum` 三次 Base64，解码为纯数字账号。重定向白名单只放行 hzsso 与 `221.12.169.12:18080` |
+| 账户 | `POST /easytong_app/GetAccInfo`，`AccNum` | `code==1`；取 `epid` |
+| 钱包 | `POST /easytong_app/GetWalletMoney`，`AccNum`、`EPID=<epid>` | `code==1`；`list[]` 含 `ewalletName`、`ewalletMoney`（元字符串）、`walletMoney`、`eWalletId`、`cardAccNum` 等；余额 = 各钱包 `ewalletMoney` 之和，与官方「余额查询」页「总钱包余额」一致 |
+
+公共要求：表单编码；头 `h5Req: Y`、`Authorization: <etToken>`；补 `Time`（北京时间 `yyyyMMddHHmmss`），按键名排序取值以 `|` 连接（含末尾 `|`）后拼前端公开常量 `Md5Key` 求小写 MD5 作 `Sign`，再附 `ContentType=application/json`。`code==40004`（「无效的access_token」）表示令牌失效。暂只支持直连，WebVPN 下该项返回「暂只支持直连」失败而不回退北京余额；任何失败只影响该项，不写成零余额。令牌与账号不落盘、不写日志。
+
+#### 杭州网费（深澜认证网关）
+
+杭州上网自助服务平台 `https://221.12.169.17:8800/login` 不接统一认证（`/sso/cas/index` 仍是未配置模板），需杭州统一认证密码与图片验证码，证书为自签名；hzsso 的「深澜认证」OAuth 应用配置错误（跳到第三方网站），均不可用于自动读取。
+
+可用来源：认证网关 `http://10.60.0.100/cgi-bin/rad_user_info?callback=<fn>`（门户页 `srun_portal_pc?ac_id=1&theme=pro`）。2026-11-26 账号本人设备核对：对已认证在线的设备直接返回 JSONP，无需 Cookie 或密码，键包括 `error`（`ok`）、`user_name`、`user_balance`（数字）、`sum_bytes`、`sum_seconds`、`products_name`、`online_ip`、`user_mac` 等；官方成功页以 `user_balance.toFixed(2)` 显示「账户余额」。
+
+- 杭州学生的「网费余额」改读该网关，北京学生不变；
+- 只有 `error == "ok"` 且 `user_name` 等于本人学工号（`info.xgh`，缺失时用登录账号）才显示，否则提示未登录或不是本人账号；
+- 网关是杭州私网地址：不在杭州校园网时本项提示「连接杭州校园网后可查看网费」，最多等待 4 秒，且不把该失败计入北京业务域的线路判断；直连、WebVPN 模式都直接请求网关；
+- 不读取、不展示 MAC、IP 等其他字段。
+- 「校园网流量」：流量查询不读门户资料，按登录学工号院系代码识别杭州学生后改读同一网关。已用 = `sum_bytes` 按 1000 进制换算（与认证页 `formatFlow(…, TrafficCarry=1000)` 一致）；免费剩余 = 70 GB（用户提供的每月免费额度）减已用，超出为 0；计费剩余 = `user_balance` × 4 GB（用户提供的超出单价 0.25 元/GB），最低 0。网关的 `remain_bytes` 在电脑上等于余额 × 4 × 2^30，但同一账号在手机上返回 0，不可靠，不使用。
+
 #### 验证与交付
 
 先运行失败 Fixture/请求测试，再实施最小修复。覆盖混合数字类型、零值、单项失败、校园卡回退、动态 ID、HTML 列重排和多产品、Cookie 隔离、嵌套跳转、登录 HTML、会话代次，以及 CLI JSON/人类输出与二进制入口。

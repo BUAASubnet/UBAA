@@ -52,14 +52,14 @@ pub(crate) async fn enter_application(
     require_direct_route(runtime)?;
     let response =
         super::get_with_redirects(runtime, application_url.to_owned(), &[], feature).await?;
-    if !is_login_page(&response.final_url) {
+    if !needs_login(&response) {
         debug!(target: "ubaa::hzsso", operation = "application.enter", reused_session = true, "hzsso 会话有效，直接进入应用");
         return Ok(response);
     }
     login(runtime, feature).await?;
     let response =
         super::get_with_redirects(runtime, application_url.to_owned(), &[], feature).await?;
-    if is_login_page(&response.final_url) {
+    if needs_login(&response) {
         warn!(target: "ubaa::hzsso", operation = "application.enter", "hzsso 登录完成后仍回到登录页");
         return Err(authentication_error("杭州统一认证登录后仍未进入应用"));
     }
@@ -189,6 +189,17 @@ async fn send(
     serde_json::from_slice(&response.body).map_err(|_| changed("杭州统一认证响应不是 JSON"))
 }
 
+/// JWT 插件入口未登录时跳登录页；门户 `enduser/portal/sso/go_*` 应用入口未登录时直接
+/// 返回 401 JSON（2026-11-26 真机诊断），两者都需要先登录 hzsso。
+fn needs_login(response: &HttpResponse) -> bool {
+    is_login_page(&response.final_url)
+        || (response.status == 401
+            && url::Url::parse(&response.final_url).is_ok_and(|url| {
+                url.host_str()
+                    .is_some_and(|host| host.eq_ignore_ascii_case(HOST))
+            }))
+}
+
 /// 未登录时应用入口 302 到 `/login`（2026-11-25 真机诊断），浏览器再由该页跳到
 /// `/frontend/login/`；两者都视为 hzsso 登录页。
 fn is_login_page(url: &str) -> bool {
@@ -280,6 +291,18 @@ mod tests {
             ),
             None
         );
+    }
+
+    #[test]
+    fn 门户应用入口401也需要先登录() {
+        let go = "http://hzsso.buaa.edu.cn/api/bff/v1.2/enduser/portal/sso/go_x";
+        assert!(needs_login(&HttpResponse::new(401, go, Vec::new())));
+        assert!(!needs_login(&HttpResponse::new(200, go, Vec::new())));
+        assert!(!needs_login(&HttpResponse::new(
+            401,
+            "http://221.12.169.12:18080/easytong_app/GetAccInfo",
+            Vec::new()
+        )));
     }
 
     #[test]

@@ -71,19 +71,21 @@ class CampusMetrics {
 }
 
 /// 一个网络产品的流量；免费剩余是否包含套餐由 NetworkUsage 标志说明。
+///
+/// 上游未提供的剩余项为 null。
 @immutable
 class NetworkProductUsage {
   const NetworkProductUsage({
     required this.productName,
     required this.used,
-    required this.freeRemaining,
-    required this.billableRemaining,
+    this.freeRemaining,
+    this.billableRemaining,
   });
 
   final String productName;
   final CampusAmount used;
-  final CampusAmount freeRemaining;
-  final CampusAmount billableRemaining;
+  final CampusAmount? freeRemaining;
+  final CampusAmount? billableRemaining;
 }
 
 @immutable

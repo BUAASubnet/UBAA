@@ -136,20 +136,21 @@ impl From<domain::CampusMetrics> for BridgeCampusMetrics {
 }
 
 /// 一个网络产品的流量；免费剩余是否包含套餐由结果标志说明。
+/// 杭州认证网关只给已用流量，两个剩余项为空。
 #[derive(Clone, Debug)]
 pub struct BridgeNetworkProductUsage {
     pub product_name: String,
     pub used: BridgeCampusAmount,
-    pub free_remaining: BridgeCampusAmount,
-    pub billable_remaining: BridgeCampusAmount,
+    pub free_remaining: Option<BridgeCampusAmount>,
+    pub billable_remaining: Option<BridgeCampusAmount>,
 }
 impl From<domain::NetworkProductUsage> for BridgeNetworkProductUsage {
     fn from(v: domain::NetworkProductUsage) -> Self {
         Self {
             product_name: v.product_name,
             used: v.used.into(),
-            free_remaining: v.free_remaining.into(),
-            billable_remaining: v.billable_remaining.into(),
+            free_remaining: v.free_remaining.map(Into::into),
+            billable_remaining: v.billable_remaining.map(Into::into),
         }
     }
 }
@@ -534,20 +535,23 @@ mod tests {
                     value: "36.42".to_owned(),
                     unit: "G".to_owned(),
                 },
-                free_remaining: domain::CampusAmount {
+                free_remaining: Some(domain::CampusAmount {
                     value: "13.58".to_owned(),
                     unit: "G".to_owned(),
-                },
-                billable_remaining: domain::CampusAmount {
+                }),
+                billable_remaining: Some(domain::CampusAmount {
                     value: "0".to_owned(),
                     unit: "M".to_owned(),
-                },
+                }),
             }],
             remaining_excludes_packages: true,
             fetched_at: 7,
         });
         assert_eq!(usage.products.len(), 1);
-        assert_eq!(usage.products[0].billable_remaining.unit, "M");
+        assert_eq!(
+            usage.products[0].billable_remaining.as_ref().unwrap().unit,
+            "M"
+        );
         assert!(usage.remaining_excludes_packages);
         assert_eq!(usage.fetched_at, 7);
     }

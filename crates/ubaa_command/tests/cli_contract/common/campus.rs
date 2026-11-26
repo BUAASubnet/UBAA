@@ -48,8 +48,8 @@ pub(crate) fn campus_network() -> NetworkUsage {
         products: vec![NetworkProductUsage {
             product_name: "合成学生产品".into(),
             used: amount("90.001", "G"),
-            free_remaining: amount("0", "byte"),
-            billable_remaining: amount("40.125", "G"),
+            free_remaining: Some(amount("0", "byte")),
+            billable_remaining: Some(amount("40.125", "G")),
         }],
         remaining_excludes_packages: false,
         fetched_at: 128,

@@ -28617,9 +28617,9 @@ impl SseDecode for crate::api::campus::BridgeNetworkProductUsage {
         let mut var_productName = <String>::sse_decode(deserializer);
         let mut var_used = <crate::api::campus::BridgeCampusAmount>::sse_decode(deserializer);
         let mut var_freeRemaining =
-            <crate::api::campus::BridgeCampusAmount>::sse_decode(deserializer);
+            <Option<crate::api::campus::BridgeCampusAmount>>::sse_decode(deserializer);
         let mut var_billableRemaining =
-            <crate::api::campus::BridgeCampusAmount>::sse_decode(deserializer);
+            <Option<crate::api::campus::BridgeCampusAmount>>::sse_decode(deserializer);
         return crate::api::campus::BridgeNetworkProductUsage {
             product_name: var_productName,
             used: var_used,
@@ -51136,8 +51136,14 @@ impl SseEncode for crate::api::campus::BridgeNetworkProductUsage {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.product_name, serializer);
         <crate::api::campus::BridgeCampusAmount>::sse_encode(self.used, serializer);
-        <crate::api::campus::BridgeCampusAmount>::sse_encode(self.free_remaining, serializer);
-        <crate::api::campus::BridgeCampusAmount>::sse_encode(self.billable_remaining, serializer);
+        <Option<crate::api::campus::BridgeCampusAmount>>::sse_encode(
+            self.free_remaining,
+            serializer,
+        );
+        <Option<crate::api::campus::BridgeCampusAmount>>::sse_encode(
+            self.billable_remaining,
+            serializer,
+        );
     }
 }
 

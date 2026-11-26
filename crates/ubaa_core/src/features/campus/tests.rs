@@ -95,9 +95,18 @@ fn 流量按表头匹配重排列并保留多个产品和单位() {
     let usage = parser::traffic(NETWORK, 456).unwrap();
     assert_eq!(usage.products.len(), 2);
     assert_eq!(usage.products[0].used.value, "90.001");
-    assert_eq!(usage.products[0].billable_remaining.value, "40.125");
-    assert_eq!(usage.products[0].free_remaining.unit, "byte");
-    assert_eq!(usage.products[1].billable_remaining.unit, "M");
+    assert_eq!(
+        usage.products[0].billable_remaining.as_ref().unwrap().value,
+        "40.125"
+    );
+    assert_eq!(
+        usage.products[0].free_remaining.as_ref().unwrap().unit,
+        "byte"
+    );
+    assert_eq!(
+        usage.products[1].billable_remaining.as_ref().unwrap().unit,
+        "M"
+    );
     assert!(!usage.remaining_excludes_packages);
     assert_eq!(usage.fetched_at, 456);
 }
@@ -111,10 +120,10 @@ fn 套餐可用流量只计入所属产品免费剩余() {
         1,
     );
     let mut expected = parser::traffic(NETWORK, 456).unwrap();
-    expected.products[0].free_remaining = crate::domain::CampusAmount {
+    expected.products[0].free_remaining = Some(crate::domain::CampusAmount {
         value: "5.500011".into(),
         unit: "G".into(),
-    };
+    });
     assert_eq!(parser::traffic(&page, 456).unwrap(), expected);
     assert!(parser::traffic(&page.replace("可用流量：5G", "可用流量：未知"), 456).is_err());
 }

@@ -150,8 +150,14 @@ NetworkUsage _network(BridgeNetworkUsage data) => NetworkUsage(
       NetworkProductUsage(
         productName: product.productName,
         used: _amount(product.used),
-        freeRemaining: _amount(product.freeRemaining),
-        billableRemaining: _amount(product.billableRemaining),
+        freeRemaining: switch (product.freeRemaining) {
+          final amount? => _amount(amount),
+          null => null,
+        },
+        billableRemaining: switch (product.billableRemaining) {
+          final amount? => _amount(amount),
+          null => null,
+        },
       ),
   ],
   remainingExcludesPackages: data.remainingExcludesPackages,

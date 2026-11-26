@@ -23108,8 +23108,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BridgeNetworkProductUsage(
       productName: dco_decode_String(arr[0]),
       used: dco_decode_bridge_campus_amount(arr[1]),
-      freeRemaining: dco_decode_bridge_campus_amount(arr[2]),
-      billableRemaining: dco_decode_bridge_campus_amount(arr[3]),
+      freeRemaining: dco_decode_opt_box_autoadd_bridge_campus_amount(arr[2]),
+      billableRemaining: dco_decode_opt_box_autoadd_bridge_campus_amount(
+        arr[3],
+      ),
     );
   }
 
@@ -34094,8 +34096,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_productName = sse_decode_String(deserializer);
     var var_used = sse_decode_bridge_campus_amount(deserializer);
-    var var_freeRemaining = sse_decode_bridge_campus_amount(deserializer);
-    var var_billableRemaining = sse_decode_bridge_campus_amount(deserializer);
+    var var_freeRemaining = sse_decode_opt_box_autoadd_bridge_campus_amount(
+      deserializer,
+    );
+    var var_billableRemaining = sse_decode_opt_box_autoadd_bridge_campus_amount(
+      deserializer,
+    );
     return BridgeNetworkProductUsage(
       productName: var_productName,
       used: var_used,
@@ -44998,8 +45004,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.productName, serializer);
     sse_encode_bridge_campus_amount(self.used, serializer);
-    sse_encode_bridge_campus_amount(self.freeRemaining, serializer);
-    sse_encode_bridge_campus_amount(self.billableRemaining, serializer);
+    sse_encode_opt_box_autoadd_bridge_campus_amount(
+      self.freeRemaining,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_campus_amount(
+      self.billableRemaining,
+      serializer,
+    );
   }
 
   @protected

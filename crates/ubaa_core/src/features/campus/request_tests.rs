@@ -116,7 +116,9 @@ impl HttpTransport for Transport {
         assert_eq!(request.method, step.method);
         match &step.request_body {
             Some(body) => assert_eq!(&request.body, body),
-            None => assert_eq!(request.body.len(), 0),
+            None if step.method == HttpMethod::Get => assert_eq!(request.body.len(), 0),
+            // 带时间戳签名的表单无法逐字预置，由测试事后检查已记录的请求。
+            None => {}
         }
         let mut response = HttpResponse::new(step.status, &request.url, step.body.into_bytes());
         if let Some(location) = step.location {
@@ -984,5 +986,144 @@ fn 借阅引导只接受嵌套图书馆入口的统一认证服务() {
         let (mut client, scenario, _) = runtime(ConnectionMode::Direct, steps);
         assert!(super::super::current_loans(&mut client).await.is_err());
         assert_eq!(scenario.lock().unwrap().requests.len(), 2);
+    });
+}
+
+const HZ_GO: &str = "http://hzsso.buaa.edu.cn/api/bff/v1.2/enduser/portal/sso/go_a2c70d41711752874339a2f988e506ad2MG8YcfZPmG";
+const HZ_GATEWAY: &str = "http://10.60.0.100/cgi-bin/rad_user_info?callback=ubaa";
+const HZ_APP: &str = "http://221.12.169.12:18080/easytong_app";
+
+fn hz_post(method: &str, response: &serde_json::Value) -> Step {
+    let mut step = Step::post(&format!("{HZ_APP}/{method}"), "", &response.to_string());
+    step.request_body = None;
+    step
+}
+
+#[test]
+fn 杭州校区学生校园卡只读易通余额且不请求北京余额() {
+    use base64::Engine as _;
+    use base64::engine::general_purpose::STANDARD;
+    block_on_test(async {
+        let mut profile: serde_json::Value = serde_json::from_str(PROFILE).unwrap();
+        profile["d"]["info"]["depart"] = json!("中法航空学院");
+        profile["d"]["info"]["xgh"] = json!("10000000");
+        let account = STANDARD.encode(STANDARD.encode(STANDARD.encode("10000")));
+        let auth = format!(
+            "http://221.12.169.12:18080/easytong_webapp/static/getAuthInfo.html?etToken=fixture-et&jumpMod=homeIndex&AccNum={account}"
+        );
+        let steps = vec![
+            Step::json("/personal/frontend/data/info", profile.to_string()),
+            Step::json("/personal/frontend/data/items?type=personal_data", ITEMS),
+            Step::html(
+                HZ_GATEWAY,
+                r#"ubaa({"error":"ok","user_name":"10000000","user_balance":25.015088,"sum_bytes":197450000000,"products_name":"学生"})"#,
+            ),
+            Step::redirect(HZ_GO, &auth),
+            Step::html(&auth, "<html></html>"),
+            hz_post(
+                "GetAccInfo",
+                &json!({"code":1,"msg":"成功","epid":1,"accNum":10000}),
+            ),
+            hz_post(
+                "GetWalletMoney",
+                &json!({"code":1,"msg":"成功","list":[
+                    {"ewalletMoney":"15.00","walletMoney":15.0,"eWalletId":1},
+                    {"ewalletMoney":"0.00","walletMoney":0,"eWalletId":2}
+                ]}),
+            ),
+            details("fixture-mail-id", json!(1), ""),
+            details("fixture-book-id", json!(0), ""),
+            details("fixture-cloud-id", json!("80"), "G"),
+        ];
+        let (mut client, scenario, _) = runtime(ConnectionMode::Direct, steps);
+        let metrics = super::super::get_metrics(&mut client).await.unwrap();
+        assert!(
+            matches!(&metrics.card_balance, CampusMetric::Success { value, .. } if value.value == "15.00" && value.unit == "元")
+        );
+        assert!(
+            matches!(&metrics.network_balance, CampusMetric::Success { value, .. } if value.value == "25.02")
+        );
+        let scenario = scenario.lock().unwrap();
+        assert_eq!(scenario.steps.len(), 0);
+        let wallet = scenario
+            .requests
+            .iter()
+            .find(|r| r.url.ends_with("/GetWalletMoney"))
+            .unwrap();
+        assert_eq!(
+            wallet.headers.get("Authorization").map(String::as_str),
+            Some("fixture-et")
+        );
+        assert_eq!(wallet.headers.get("h5Req").map(String::as_str), Some("Y"));
+        let form: std::collections::BTreeMap<String, String> =
+            url::form_urlencoded::parse(&wallet.body)
+                .into_owned()
+                .collect();
+        assert_eq!(form.get("AccNum").map(String::as_str), Some("10000"));
+        assert_eq!(form.get("EPID").map(String::as_str), Some("1"));
+        assert_eq!(form.get("Time").map(String::len), Some(14));
+        assert_eq!(form.get("Sign").map(String::len), Some(32));
+        let wire = serde_json::to_string(&metrics).unwrap();
+        assert!(!wire.contains("fixture-et"));
+    });
+}
+
+#[test]
+fn 杭州校园卡和网费在webvpn或校外只标记本项不可用() {
+    block_on_test(async {
+        let mut profile: serde_json::Value = serde_json::from_str(PROFILE).unwrap();
+        profile["d"]["info"]["depart"] = json!("中法未来科技学院");
+        let mut gateway = Step::html(HZ_GATEWAY, "Internal Server Error");
+        gateway.status = 500;
+        let steps = vec![
+            Step::json("/personal/frontend/data/info", profile.to_string()),
+            Step::json("/personal/frontend/data/items?type=personal_data", ITEMS),
+            gateway,
+            details("fixture-mail-id", json!(1), ""),
+            details("fixture-book-id", json!(0), ""),
+            details("fixture-cloud-id", json!("80"), "G"),
+        ];
+        let (mut client, scenario, _) = runtime(ConnectionMode::WebVpn, steps);
+        let metrics = super::super::get_metrics(&mut client).await.unwrap();
+        assert!(
+            matches!(&metrics.card_balance, CampusMetric::Failure { error, .. } if error.message.contains("直连"))
+        );
+        assert!(
+            matches!(&metrics.network_balance, CampusMetric::Failure { error, .. } if error.message.contains("杭州校园网"))
+        );
+        assert!(matches!(
+            metrics.borrowed_books,
+            CampusMetric::Success { .. }
+        ));
+        assert_eq!(scenario.lock().unwrap().steps.len(), 0);
+    });
+}
+
+#[test]
+fn 杭州学号的流量改读认证网关并给出免费与计费剩余() {
+    block_on_test(async {
+        let steps = vec![Step::html(
+            HZ_GATEWAY,
+            r#"ubaa({"error":"ok","user_name":"26610000","user_balance":1.5,"sum_bytes":197450000000,"products_name":"学生"})"#,
+        )];
+        let (mut client, scenario, _) = runtime(ConnectionMode::Direct, steps);
+        client.remember_account_name(Some("26610000"));
+        let usage = super::super::get_usage(&mut client).await.unwrap();
+        assert_eq!(usage.products.len(), 1);
+        let product = &usage.products[0];
+        assert_eq!(product.product_name, "学生");
+        assert_eq!(
+            (product.used.value.as_str(), product.used.unit.as_str()),
+            ("197.45", "GB")
+        );
+        let free = product.free_remaining.as_ref().unwrap();
+        assert_eq!((free.value.as_str(), free.unit.as_str()), ("0.00", "GB"));
+        let billable = product.billable_remaining.as_ref().unwrap();
+        assert_eq!(
+            (billable.value.as_str(), billable.unit.as_str()),
+            ("6.00", "GB")
+        );
+        assert!(usage.remaining_excludes_packages);
+        assert_eq!(scenario.lock().unwrap().steps.len(), 0);
     });
 }
