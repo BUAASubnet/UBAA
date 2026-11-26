@@ -12,6 +12,9 @@ dependencies:
   flutter_rust_bridge: 2.13.0
   flutter:
     sdk: flutter
+  media_kit: 1.2.6
+  media_kit_video: 2.0.1
+  media_kit_libs_video: 1.0.7
   ubaa_app:
     path: ../../packages/ubaa_app
   ubaa_bindings:
