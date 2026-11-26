@@ -194,50 +194,53 @@ HomeTodoProjection bridgeHomeTodoProjection(
   List<BridgeAgendaEntry> rows,
   HomeTodoRequest request, {
   AgendaFailure? overlayFailure,
-}) => HomeTodoProjection([
-  for (final row in rows)
-    formatHomeTodo(
-      fromAgendaEntry(row),
-      now: homeCampusTime(request.now),
-      navigation: row.school == null
-          ? null
-          : agendaNavigation(fromAgendaNavigation(row.school!.navigation)),
-      signinAction: row.school == null
-          ? null
-          : _signinAction(row.school!, request),
-    ),
-], overlayFailure: overlayFailure);
+}) {
+  final now = homeCampusTime(request.now);
+  final todos = <HomeTodo>[];
+  for (final row in rows) {
+    final school = row.school;
+    final detail = school == null ? null : _freshSigninDetail(school, request);
+    final signin = detail?.presentation as SigninPresentation?;
+    if (school?.upstreamStatus.signStatus == 1 &&
+        (signin == null ||
+            signinPhase(signin, now) != SigninPhase.completedOpen)) {
+      continue;
+    }
+    todos.add(
+      formatHomeTodo(
+        fromAgendaEntry(row),
+        now: now,
+        navigation: school == null
+            ? null
+            : agendaNavigation(fromAgendaNavigation(school.navigation)),
+        signinAction: detail == null ? null : _signinAction(detail, signin!),
+        signin: signin,
+      ),
+    );
+  }
+  return HomeTodoProjection(todos, overlayFailure: overlayFailure);
+}
 
-SigninPerformAction? _signinAction(
+FeatureDetail? _freshSigninDetail(
   BridgeSchoolAgendaItem item,
   HomeTodoRequest request,
 ) {
+  final date = homeDateKey(homeCampusTime(request.now));
   if (item.navigation.feature != BridgeAgendaFeature.signin ||
-      item.navigation.date != homeDateKey(homeCampusTime(request.now)))
+      item.navigation.date != date)
     return null;
-  final source = request.snapshots[FeatureId.signin];
-  if (source == null ||
-      source.resolvedRoute == null ||
-      source.status != FeatureLoadStatus.success ||
-      source.evidence?.origin == DataOrigin.persisted ||
-      source.evidence?.complete == false)
-    return null;
-  if (source.evidence?.scopeDate != null &&
-      source.evidence!.scopeDate != item.navigation.date)
-    return null;
-  final matches = source.details
-      .where(
-        (d) =>
-            d.presentation is SigninPresentation &&
-            (d.presentation as SigninPresentation).courseId ==
-                item.navigation.courseId,
-      )
-      .toList();
-  if (matches.length != 1) return null;
-  final actions = matches.single.actions
-      .whereType<SigninPerformAction>()
-      .toList();
-  final presentation = matches.single.presentation as SigninPresentation;
+  return freshSigninDetail(
+    request.snapshots[FeatureId.signin],
+    courseId: item.navigation.courseId,
+    date: date,
+  );
+}
+
+SigninPerformAction? _signinAction(
+  FeatureDetail detail,
+  SigninPresentation presentation,
+) {
+  final actions = detail.actions.whereType<SigninPerformAction>().toList();
   if (actions.length != 1 ||
       actions.single.eligibility != ActionEligibility.allowed ||
       actions.single.scheduleId != presentation.actionTarget ||

@@ -82,7 +82,6 @@ class FeatureDetailView extends StatefulWidget {
     required this.onRetry,
     this.onBykcWrite,
     this.onBykcSignWrite,
-    this.onSigninWrite,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
     this.onCheckSigninStatus,
@@ -150,7 +149,6 @@ class FeatureDetailView extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
-  final SigninStarter? onSigninWrite;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
   final SigninStatusChecker? onCheckSigninStatus;
@@ -811,7 +809,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         onNavigate: widget.onNavigate,
         onBykcWrite: onWrite,
         onBykcSignWrite: widget.onBykcSignWrite,
-        onSigninWrite: widget.onSigninWrite,
         onFetchSigninQr: widget.onFetchSigninQr,
         onSaveSigninQr: widget.onSaveSigninQr,
         onCheckSigninStatus: widget.onCheckSigninStatus,

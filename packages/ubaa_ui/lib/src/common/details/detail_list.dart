@@ -54,7 +54,6 @@ import '../../shared/when.dart'
     show uiCampusNow, uiParseCampusTime, uiShortDateTime, uiShortRange;
 import '../tag.dart';
 
-part 'assignments.dart';
 part 'evaluation_row.dart';
 part 'bykc_actions.dart';
 part 'bykc_details.dart';
@@ -97,7 +96,6 @@ class FeatureDetailList extends StatefulWidget {
     this.filesAccess,
     this.onBykcWrite,
     this.onBykcSignWrite,
-    this.onSigninWrite,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
     this.onCheckSigninStatus,
@@ -142,7 +140,6 @@ class FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
-  final SigninStarter? onSigninWrite;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
   final SigninStatusChecker? onCheckSigninStatus;
@@ -387,11 +384,9 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                   ? CourseParticipationContent(
                       feature: widget.feature,
                       details: visible,
-                      onSignin: widget.onSigninWrite,
                       onFetchSigninQr: widget.onFetchSigninQr,
                       onSaveSigninQr: widget.onSaveSigninQr,
                       onCheckSigninStatus: widget.onCheckSigninStatus,
-                      writesEnabled: widget.writesEnabled,
                       evaluationRow: (detail) =>
                           _evaluationCourseRow(detail, setState),
                     )
@@ -507,8 +502,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                           detail,
                           BykcSignKind.signOut,
                         );
-                        final signinAction = detail
-                            .action<SigninPerformAction>();
                         final cgyyCancelAction = _cgyyCancelAction(detail);
                         final libbookReserveAction = detail
                             .action<LibbookReserveAction>();
@@ -529,10 +522,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                         final canBykcDeselect =
                             bykcDeselectAction?.eligibility ==
                             ActionEligibility.allowed;
-                        final canSignin =
-                            signinAction?.eligibility ==
-                                ActionEligibility.allowed &&
-                            signinAction!.scheduleId.trim().isNotEmpty;
                         final canLibbookReserve =
                             libbookReserveAction?.eligibility ==
                                 ActionEligibility.allowed &&
@@ -637,11 +626,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                                   bykcSignOutAction,
                                   canBykcSign,
                                   canBykcSignOut,
-                                ),
-                                ..._signinWriteFields(
-                                  context,
-                                  signinAction,
-                                  canSignin,
                                 ),
                                 ..._libbookCancelWriteFields(
                                   context,

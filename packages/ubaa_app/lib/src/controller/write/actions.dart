@@ -96,7 +96,8 @@ mixin ControllerWriteActions on ControllerState {
     );
   });
 
-  /// 准备课堂签到的 typed 一次性意图；目标和资格必须来自读取白名单。
+  /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+  /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
   Future<WriteIntent> prepareSigninWrite(SigninPerformAction action) =>
       internalUserSchoolAction(() async {
         final backend = internalBackend;

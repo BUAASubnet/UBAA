@@ -69,7 +69,6 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   bool get _writeBusy =>
       _directWriteActive != null ||
       _bykcWriteActive != null ||
-      _homeSigninActive ||
       widget.writeState.isSubmitting ||
       widget.writeState.intent != null;
 
@@ -192,16 +191,6 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       failureMessage: action.kind == BykcSignKind.signOut
           ? '下课失败，请刷新后重试'
           : '提交失败，请刷新后重试',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startSigninWrite(SigninPerformAction action) async {
-    final prepare = widget.onPrepareSigninWrite;
-    if (prepare == null) return;
-    await _runDirectWrite(
-      prepare: () => prepare(action),
-      failureMessage: '提交失败，请刷新后重试',
       expectedOperation: action.operation,
     );
   }
@@ -391,46 +380,6 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     } on Object catch (error) {
       if (!mounted) return;
       UbaaFeedback.showError(context, '操作失败，请重试', error);
-    }
-  }
-}
-
-extension UbaaHomeSignin on _UbaaMainShellState {
-  Future<WriteOutcome?> _performHomeSignin(SigninPerformAction action) async {
-    final run = widget.onRunWritePrepare;
-    final prepare = widget.onPrepareSigninWrite;
-    final confirm = widget.onConfirmWrite;
-    if (_homeSigninActive ||
-        widget.writeState.isSubmitting ||
-        widget.writeState.intent != null ||
-        run == null ||
-        prepare == null ||
-        confirm == null ||
-        action.eligibility != ActionEligibility.allowed ||
-        action.scheduleId.trim().isEmpty)
-      return null;
-    final generation = _accountGeneration;
-    _setHomeSigninActive(true);
-    try {
-      final intent = await run(
-        () => prepare(action),
-        expectedOperation: action.operation,
-      );
-      if (!mounted || generation != _accountGeneration || intent == null)
-        return null;
-      final outcome = await confirm();
-      if (!mounted || generation != _accountGeneration) return null;
-      if (outcome != null) {
-        UbaaFeedback.showOutcome(context, outcome);
-      }
-      return outcome;
-    } on Object catch (error) {
-      if (mounted && generation == _accountGeneration) {
-        UbaaFeedback.showError(context, '提交失败，请刷新后重试', error);
-      }
-      return null;
-    } finally {
-      if (mounted) _setHomeSigninActive(false);
     }
   }
 }

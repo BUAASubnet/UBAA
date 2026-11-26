@@ -1,107 +1,179 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/coursework/signin_qr_sheet.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../support/write_harness.dart';
 import '../../support/navigation.dart';
+import '../../support/write_harness.dart';
 
-void _registerSigninWriteResultTests() {
-  testWidgets('每日课程明确业务失败消费意图且不显示成功或刷新', (tester) async {
-    var commitCalls = 0;
-    var refreshCalls = 0;
-    await _pumpSigninResult(
-      tester,
-      onCommit: () {
-        commitCalls++;
-        return const WriteCommitResult(
-          operation: WriteOperation.signinPerform,
-          success: false,
-          message: '上课未完成',
-          outcomeUnknown: false,
-        );
-      },
-      onRefresh: () => refreshCalls++,
-    );
+final _clock = Clock.fixed(DateTime.utc(2026, 11, 26, 7));
+final _sheet = find.byType(SigninQrSheet);
 
-    expect(commitCalls, 1);
-    expect(refreshCalls, 0);
-    expect(find.text('上课未完成'), findsOneWidget);
-    expect(find.text('每日课程已提交'), findsNothing);
-    expect(find.text('确认每日课程'), findsNothing);
+void main() {
+  testWidgets('已签到课程的二维码持续刷新，不查询状态或自动关闭', (tester) async {
+    await withClock(_clock, () async {
+      final offsets = <Duration>[];
+      var checks = 0;
+      await _mount(
+        tester,
+        signed: true,
+        fetch: (target, offset) async {
+          expect(target, 'synthetic-target');
+          offsets.add(offset);
+          return '合成二维码';
+        },
+        check: (_) async {
+          checks++;
+          return true;
+        },
+        save: (_, _) async => true,
+      );
+      expect(find.text('已签到'), findsOneWidget);
+      expect(find.text('上课'), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, '二维码'));
+      await tester.pumpAndSettle();
+      expect(_sheet, findsOneWidget);
+      expect(offsets, [Duration.zero]);
+      await tester.pump(const Duration(seconds: 2));
+      expect(offsets, [Duration.zero, Duration.zero]);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(_sheet, findsOneWidget);
+      expect(checks, 0);
+      await tester.tap(find.textContaining(RegExp(r'^保存(?:图片|到相册)$')));
+      await tester.pump();
+      expect(offsets.last, const Duration(seconds: 2));
+    });
   });
 
-  testWidgets('每日课程结果未知消费意图并刷新一次且只显示固定提示', (tester) async {
-    var commitCalls = 0;
-    var refreshCalls = 0;
-    await _pumpSigninResult(
-      tester,
-      onCommit: () {
-        commitCalls++;
-        return const WriteCommitResult(
-          operation: WriteOperation.signinPerform,
-          success: false,
-          message: '不可信响应 token=secret-safe@example.test',
-          outcomeUnknown: true,
-        );
-      },
-      onRefresh: () => refreshCalls++,
-    );
+  for (final instant in [
+    DateTime.utc(2026, 11, 26, 6, 49),
+    DateTime.utc(2026, 11, 26, 9, 1),
+  ]) {
+    testWidgets('已签到课程在窗口外没有二维码入口（$instant）', (tester) async {
+      await withClock(Clock.fixed(instant), () async {
+        await _mount(tester, signed: true, fetch: (_, _) async => '合成二维码');
+        expect(find.text('已签到'), findsOneWidget);
+        expect(find.text('二维码'), findsNothing);
+        expect(find.text('上课'), findsNothing);
+      });
+    });
+  }
 
-    expect(commitCalls, 1);
-    expect(refreshCalls, 1);
-    expect(find.text('结果未确认，请刷新后查看，勿重复提交'), findsOneWidget);
-    expect(find.textContaining('secret-safe@example.test'), findsNothing);
-    expect(find.text('确认每日课程'), findsNothing);
+  testWidgets('每日课程二维码获取失败只显示固定提示，可手动重取', (tester) async {
+    await withClock(_clock, () async {
+      var fetches = 0;
+      await _open(
+        tester,
+        fetch: (_, _) async {
+          if (++fetches == 1) throw StateError('合成内部错误');
+          return '合成二维码';
+        },
+      );
+      expect(find.text('二维码获取失败'), findsOneWidget);
+      expect(find.textContaining('合成内部错误'), findsNothing);
+      await tester.pump(const Duration(seconds: 2));
+      expect(fetches, 1);
+      await tester.tap(find.text('重新获取'));
+      await tester.pumpAndSettle();
+      expect(fetches, 2);
+      expect(find.text('二维码获取失败'), findsNothing);
+    });
+  });
+
+  testWidgets('每日课程签到状态读取失败时面板保留，直到读到已签到', (tester) async {
+    await withClock(_clock, () async {
+      var checks = 0;
+      await _open(
+        tester,
+        fetch: (_, _) async => '合成二维码',
+        check: (_) async {
+          if (++checks == 1) throw StateError('合成内部错误');
+          return true;
+        },
+      );
+      await tester.pump(const Duration(seconds: 3));
+      expect(_sheet, findsOneWidget);
+      expect(find.textContaining('合成内部错误'), findsNothing);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(checks, 2);
+      expect(_sheet, findsNothing);
+    });
+  });
+
+  testWidgets('每日课程点击上课直接打开二维码且不调用写入', (tester) async {
+    await withClock(_clock, () async {
+      final targets = <String>[];
+      await _open(
+        tester,
+        fetch: (target, _) async {
+          targets.add(target);
+          return '合成二维码';
+        },
+      );
+      expect(_sheet, findsOneWidget);
+      expect(targets, ['synthetic-target']);
+      expect(find.text('确认每日课程'), findsNothing);
+    });
   });
 }
 
-Future<void> _pumpSigninResult(
+Future<void> _open(
   WidgetTester tester, {
-  required WriteCommitResult Function() onCommit,
-  required void Function() onRefresh,
+  required SigninCourseQrFetcher fetch,
+  SigninStatusChecker? check,
 }) async {
-  final snapshots = <FeatureId, FeatureSnapshot>{
-    for (final feature in FeatureId.values)
-      feature: FeatureSnapshot(
-        feature: feature,
-        status: FeatureLoadStatus.success,
-        summary: '已加载',
-        details: feature == FeatureId.signin
-            ? const <FeatureDetail>[
-                FeatureDetail(
-                  title: '每日课程',
-                  actions: <FeatureAction>[
-                    SigninPerformAction(
-                      scheduleId: 'schedule-result-safe',
-                      eligibility: ActionEligibility.allowed,
-                    ),
-                  ],
-                ),
-              ]
-            : const <FeatureDetail>[],
-      ),
-  };
-  final intent = WriteIntent(
-    intentId: 'signin-result-intent',
-    operation: WriteOperation.signinPerform,
-    targetSummary: '每日课程',
-    resolvedRoute: ConnectionMode.direct,
-    warnings: const <String>[],
-    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-    requestDigest: 'digest',
-  );
+  await _mount(tester, fetch: fetch, check: check);
+  await tester.tap(find.widgetWithText(FilledButton, '上课'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _mount(
+  WidgetTester tester, {
+  required SigninCourseQrFetcher fetch,
+  SigninStatusChecker? check,
+  SigninQrImageSaver? save,
+  bool signed = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
       home: coordinatedShell(
-        user: const UserSummary(username: 'student'),
-        snapshots: snapshots,
+        user: const UserSummary(username: 'synthetic'),
+        snapshots: {
+          FeatureId.signin: FeatureSnapshot(
+            feature: FeatureId.signin,
+            status: FeatureLoadStatus.success,
+            details: [
+              FeatureDetail(
+                title: '合成课程',
+                presentation: SigninPresentation(
+                  courseId: 'synthetic-course',
+                  actionTarget: 'synthetic-target',
+                  classBeginTime: '15:00',
+                  classEndTime: '17:00',
+                  signStatus: signed ? 1 : 0,
+                ),
+                actions: const [
+                  SigninPerformAction(
+                    scheduleId: 'legacy-target',
+                    eligibility: ActionEligibility.allowed,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        },
         routePolicy: RoutePolicy.auto,
         onRefresh: () async {},
         onRetryFeature: (_) async {},
-        onPrepareSigninWrite: (_) async => intent,
-        onCommitWrite: (_) async => onCommit(),
-        onWriteSuccess: (_, __) async => onRefresh(),
+        onFetchSigninQr: fetch,
+        onSaveSigninQr: save,
+        onCheckSigninStatus: check,
+        onWritePrepareAttempt: (_) => fail('二维码入口不得准备写入'),
+        onCommitWrite: (_) async => fail('二维码入口不得提交写入'),
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
@@ -111,11 +183,4 @@ Future<void> _pumpSigninResult(
   await tester.tap(find.byIcon(UiDestination.study.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.signin);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('上课'));
-  await tester.pumpAndSettle();
-}
-
-void main() {
-  _registerSigninWriteResultTests();
 }

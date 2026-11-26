@@ -26,6 +26,7 @@ List<Widget> agendaListSlivers({
   required DateTime now,
   required ValueChanged<AgendaEntry> onOpen,
   required void Function(AgendaEntry, bool) onComplete,
+  Widget? Function(AgendaEntry)? signinAction,
   VoidCallback? onCreate,
   bool busy = false,
 
@@ -150,8 +151,7 @@ List<Widget> agendaListSlivers({
                   entry: entry,
                   now: now,
                   displayEnd: end,
-                  signin: signin,
-                  onOpenSignin: signin == null ? null : () => onOpen(signin),
+                  signinAction: signinAction?.call(signin ?? entry),
                   conflicts: agendaEntryConflicts(entry, allEntries),
                   onOpen: () => onOpen(entry),
                   busy: busy,
@@ -283,8 +283,7 @@ class AgendaEntryTile extends StatelessWidget {
     this.conflicts = const [],
     this.busy = false,
     this.displayEnd,
-    this.signin,
-    this.onOpenSignin,
+    this.signinAction,
   });
   final AgendaEntry entry;
   final DateTime? now;
@@ -296,9 +295,7 @@ class AgendaEntryTile extends StatelessWidget {
   /// 合并连续课程后的显示结束时间。
   final DateTime? displayEnd;
 
-  /// 归入本课程的签到条目。
-  final AgendaEntry? signin;
-  final VoidCallback? onOpenSignin;
+  final Widget? signinAction;
 
   @override
   Widget build(BuildContext context) {
@@ -473,13 +470,10 @@ class AgendaEntryTile extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (signin case final s?)
+                              if (signinAction case final action?)
                                 Padding(
                                   padding: const EdgeInsets.only(right: 8),
-                                  child: _SigninPill(
-                                    signin: s,
-                                    onTap: onOpenSignin,
-                                  ),
+                                  child: action,
                                 )
                               else if (checkable)
                                 Checkbox(
@@ -520,56 +514,4 @@ class _StatusPill extends StatelessWidget {
   final Color color;
   @override
   Widget build(BuildContext context) => UiTag(label, color: color);
-}
-
-class _SigninPill extends StatelessWidget {
-  const _SigninPill({required this.signin, this.onTap});
-  final AgendaEntry signin;
-  final VoidCallback? onTap;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final done =
-        signin.completed || signin.school?.upstreamStatus.completed == true;
-    final status = signin.school?.statusLabel ?? '';
-    final label = done ? '已上课' : (status.contains('上课') ? status : '上课');
-    final (fg, bg) = UiTag.colorsOf(
-      context,
-      tone: done ? UiTagTone.primary : UiTagTone.neutral,
-      color: done ? null : colors.primary,
-    );
-    return Semantics(
-      button: true,
-      label: '每日课程：$label',
-      excludeSemantics: true,
-      child: Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(UiTag.radius),
-        child: InkWell(
-          key: ValueKey('agenda-signin-${agendaEntryKey(signin)}'),
-          borderRadius: BorderRadius.circular(UiTag.radius),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  done ? Icons.check_circle : Icons.how_to_reg_outlined,
-                  size: 14,
-                  color: fg,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: theme.textTheme.labelMedium?.copyWith(color: fg),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

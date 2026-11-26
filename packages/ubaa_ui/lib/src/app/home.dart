@@ -3,9 +3,13 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
+import '../write_callbacks.dart'
+    show SigninCourseQrFetcher, SigninStatusChecker;
 import '../common/section.dart';
 import '../features/coursework/assignment_filters.dart'
     show AssignmentListFilters;
+import '../features/coursework/signin_qr_sheet.dart'
+    show SigninQrImageSaver, showSigninQrSheet;
 import '../features/home/schedule.dart';
 import '../features/home/todo_card.dart';
 import '../features/home/todo_grid.dart';
@@ -25,7 +29,9 @@ class HomeView extends StatefulWidget {
     required this.visible,
     required this.onTodoTap,
     this.onVisibilityChanged,
-    this.onSignin,
+    this.onFetchSigninQr,
+    this.onSaveSigninQr,
+    this.onCheckSigninStatus,
     this.onObserveProgress,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -45,7 +51,9 @@ class HomeView extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final bool visible;
   final ValueChanged<HomeTodo> onTodoTap;
-  final Future<WriteOutcome?> Function(SigninPerformAction)? onSignin;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
+  final SigninStatusChecker? onCheckSigninStatus;
   final void Function(WeekPresentation, YgdkOverview)? onObserveProgress;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -79,54 +87,44 @@ class HomeViewState extends State<HomeView> {
 
   Future<void> refresh() => widget.onRefresh();
   DateTime get _now => widget.state.now;
-  String? _signingTodo;
-  final _completedSignins = <String>{};
-  final _uncertainSignins = <String>{};
-  String _signinKey(HomeTodo item) =>
-      '${homeCampusTime(_now).toIso8601String().split('T').first}:${item.id}';
+  bool _signinQrOpen = false;
+  String? _refreshingSignin;
 
-  Future<void> _signin(HomeTodo item) async {
-    if (_signingTodo != null) return;
-    final currentTime = (widget.homeClock ?? clock).now();
-    if (homeDateKey(homeCampusTime(currentTime)) !=
-        homeDateKey(homeCampusTime(_now))) {
+  Future<void> _openSigninQr(HomeTodo item) async {
+    if (_signinQrOpen || !widget.visible) return;
+    final now = homeCampusTime((widget.homeClock ?? clock).now());
+    if (homeDateKey(now) != homeDateKey(homeCampusTime(_now))) {
       await _refreshSignin(item);
       return;
     }
-    final action = item.signinAction;
-    if (action == null || widget.onSignin == null) return;
-    final key = _signinKey(item);
-    setState(() => _signingTodo = item.id);
+    final course = item.signin;
+    final fetch = widget.onFetchSigninQr;
+    if (course == null || fetch == null) return;
+    final phase = signinPhase(course, now);
+    if (!phase.canOpenQr) return;
+    final target = course.actionTarget!.trim();
+    final check = phase.isCompleted ? null : widget.onCheckSigninStatus;
+    _signinQrOpen = true;
     try {
-      final outcome = await widget.onSignin!(action);
-      if (!mounted) return;
-      setState(() {
-        if (outcome?.operation == WriteOperation.signinPerform &&
-            outcome?.result?.success == true &&
-            outcome?.result?.outcomeUnknown == false) {
-          _completedSignins.add(key);
-        } else if (outcome?.result?.outcomeUnknown == true ||
-            outcome?.error?.code == UbaaErrorCode.outcomeUnknown) {
-          _uncertainSignins.add(key);
-        }
-      });
+      await showSigninQrSheet(
+        context,
+        courseTitle: item.title,
+        fetch: (offset) => fetch(target, offset),
+        save: widget.onSaveSigninQr,
+        closeWhenSigned: check == null ? null : () => check(target),
+      );
     } finally {
-      if (mounted) setState(() => _signingTodo = null);
+      _signinQrOpen = false;
     }
   }
 
   Future<void> _refreshSignin(HomeTodo item) async {
-    if (_signingTodo != null) return;
-    setState(() => _signingTodo = item.id);
+    if (_refreshingSignin != null) return;
+    setState(() => _refreshingSignin = item.id);
     try {
       await widget.onRetryFeature(FeatureId.signin);
-      if (mounted &&
-          widget.state.sources[FeatureId.signin]?.status ==
-              FeatureLoadStatus.success) {
-        setState(() => _uncertainSignins.remove(_signinKey(item)));
-      }
     } finally {
-      if (mounted) setState(() => _signingTodo = null);
+      if (mounted) setState(() => _refreshingSignin = null);
     }
   }
 
@@ -142,9 +140,7 @@ class HomeViewState extends State<HomeView> {
             .toList() ??
         [];
     final week = weeks.length == 1 ? weeks.single : null;
-    final tasks = widget.state.todos
-        .where((task) => !_completedSignins.contains(_signinKey(task)))
-        .toList();
+    final tasks = widget.state.todos;
     final overview = sources[FeatureId.ygdk]?.overview;
     if (widget.visible &&
         week != null &&
@@ -242,16 +238,11 @@ class HomeViewState extends State<HomeView> {
                 moreCount: more,
                 now: campusNow,
                 onTap: () => widget.onTodoTap(task),
-                signing: _signingTodo == task.id,
-                signinUncertain: _uncertainSignins.contains(_signinKey(task)),
-                onSignin:
-                    _signingTodo == null &&
-                        task.signinAction != null &&
-                        widget.onSignin != null &&
-                        !_uncertainSignins.contains(_signinKey(task))
-                    ? () => _signin(task)
+                refreshingSignin: _refreshingSignin == task.id,
+                onOpenSigninQr: widget.onFetchSigninQr != null
+                    ? () => _openSigninQr(task)
                     : null,
-                onRefreshSignin: _signingTodo == null
+                onRefreshSignin: _refreshingSignin == null
                     ? () => _refreshSignin(task)
                     : null,
               ),

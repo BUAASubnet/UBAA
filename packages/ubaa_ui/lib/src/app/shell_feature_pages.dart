@@ -100,9 +100,6 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
         onFetchSigninQr: widget.onFetchSigninQr,
         onSaveSigninQr: widget.onSaveSigninQr,
         onCheckSigninStatus: widget.onCheckSigninStatus,
-        onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-            ? null
-            : _startSigninWrite,
         onCgyyCancelWrite:
             !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
             ? null

@@ -129,7 +129,8 @@ class BykcSignAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.bykcSignCourse;
 }
 
-/// 单门课堂签到的 Core 已核对安排目标。
+/// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+/// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
 @immutable
 class SigninPerformAction extends FeatureAction {
   const SigninPerformAction({

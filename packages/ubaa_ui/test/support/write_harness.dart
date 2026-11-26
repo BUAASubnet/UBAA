@@ -1,5 +1,7 @@
 import 'home_shell_harness.dart';
 import 'package:ubaa_ui/src/features/agenda/format.dart' show AgendaAccess;
+import 'package:ubaa_ui/src/features/coursework/signin_qr_sheet.dart'
+    show SigninQrImageSaver;
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -22,8 +24,10 @@ Widget coordinatedShell({
   Future<void> Function(FeatureId, FeatureQuery)? onFeatureQuery,
   Future<WriteIntent> Function(WriteOperation, int)? onPrepareBykcWrite,
   BykcSignPreparer? onPrepareBykcSignWrite,
-  SigninPreparer? onPrepareSigninWrite,
+  ValueChanged<WriteOperation>? onWritePrepareAttempt,
   SigninCourseQrFetcher? onFetchSigninQr,
+  SigninQrImageSaver? onSaveSigninQr,
+  SigninStatusChecker? onCheckSigninStatus,
   CgyyCancelPreparer? onPrepareCgyyCancelWrite,
   LibbookReservePreparer? onPrepareLibbookReserveWrite,
   LibbookCancelPreparer? onPrepareLibbookCancelWrite,
@@ -43,6 +47,7 @@ Widget coordinatedShell({
 }) => _WriteHarness(
   key: key,
   loadSupplement: onLoadHomeSupplement,
+  onWritePrepareAttempt: onWritePrepareAttempt,
   shell: UbaaMainShell(
     user: user,
     snapshots: snapshots,
@@ -70,8 +75,9 @@ Widget coordinatedShell({
     onFeatureQuery: onFeatureQuery,
     onPrepareBykcWrite: onPrepareBykcWrite,
     onPrepareBykcSignWrite: onPrepareBykcSignWrite,
-    onPrepareSigninWrite: onPrepareSigninWrite,
     onFetchSigninQr: onFetchSigninQr,
+    onSaveSigninQr: onSaveSigninQr,
+    onCheckSigninStatus: onCheckSigninStatus,
     onPrepareCgyyCancelWrite: onPrepareCgyyCancelWrite,
     onPrepareLibbookReserveWrite: onPrepareLibbookReserveWrite,
     onPrepareLibbookCancelWrite: onPrepareLibbookCancelWrite,
@@ -91,8 +97,14 @@ Widget coordinatedShell({
 );
 
 class _WriteHarness extends StatefulWidget {
-  const _WriteHarness({required this.shell, this.loadSupplement, super.key});
+  const _WriteHarness({
+    required this.shell,
+    this.loadSupplement,
+    this.onWritePrepareAttempt,
+    super.key,
+  });
   final Future<FeatureResult> Function(HomeSupplement, bool)? loadSupplement;
+  final ValueChanged<WriteOperation>? onWritePrepareAttempt;
 
   final UbaaMainShell shell;
 
@@ -153,15 +165,22 @@ class _WriteHarnessState extends State<_WriteHarness> {
           agenda: shell.agenda,
           activeRoutes: shell.activeRoutes,
           writeState: _coordinator.state,
-          onRunWritePrepare: _coordinator.prepareForUi,
+          onRunWritePrepare: (prepare, {required expectedOperation}) {
+            widget.onWritePrepareAttempt?.call(expectedOperation);
+            return _coordinator.prepareForUi(
+              prepare,
+              expectedOperation: expectedOperation,
+            );
+          },
           onCancelWrite: _coordinator.cancelForUi,
           onConfirmWrite: _coordinator.confirmForUi,
           onLoadCgyyPurposes: shell.onLoadCgyyPurposes,
           onFeatureQuery: shell.onFeatureQuery,
           onPrepareBykcWrite: shell.onPrepareBykcWrite,
           onPrepareBykcSignWrite: shell.onPrepareBykcSignWrite,
-          onPrepareSigninWrite: shell.onPrepareSigninWrite,
           onFetchSigninQr: shell.onFetchSigninQr,
+          onSaveSigninQr: shell.onSaveSigninQr,
+          onCheckSigninStatus: shell.onCheckSigninStatus,
           onPrepareCgyyCancelWrite: shell.onPrepareCgyyCancelWrite,
           onPrepareLibbookReserveWrite: shell.onPrepareLibbookReserveWrite,
           onPrepareLibbookCancelWrite: shell.onPrepareLibbookCancelWrite,

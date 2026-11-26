@@ -1,4 +1,4 @@
-import 'package:clock/clock.dart' show clock;
+import 'package:clock/clock.dart' show Clock, clock;
 import '../../shared/dialogs/sheet.dart'
     show showUiSheet, UiSheetBody, UiInfoRow;
 import '../../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
@@ -28,12 +28,19 @@ import '../../shared/refresh.dart';
 import '../../shared/layout/page_transition.dart' show UiPageTransition;
 import '../../shared/sync_status.dart' show UiSyncStatus;
 import '../../common/state_panel.dart';
+import '../../common/tag.dart';
+import '../../write_callbacks.dart'
+    show SigninCourseQrFetcher, SigninStatusChecker;
+import '../coursework/signin_qr_button.dart';
+import '../coursework/signin_qr_sheet.dart'
+    show SigninQrImageSaver, showSigninQrSheet;
 import '../../theme.dart';
 part 'details.dart';
 part 'export.dart';
 part 'filters.dart';
 part 'toolbar.dart';
 part 'data_sheet.dart';
+part 'signin.dart';
 
 enum AgendaViewMode { list, week, month }
 
@@ -56,6 +63,11 @@ class AgendaView extends StatefulWidget {
     this.visible = true,
     this.reminder,
     this.now,
+    this.agendaClock,
+    this.signinSnapshot,
+    this.onFetchSigninQr,
+    this.onSaveSigninQr,
+    this.onCheckSigninStatus,
     this.failure,
     this.onRefreshSchool,
     this.prepareSync,
@@ -83,6 +95,11 @@ class AgendaView extends StatefulWidget {
   final bool visible;
   final YgdkReminderSettings? reminder;
   final DateTime? now;
+  final Clock? agendaClock;
+  final FeatureSnapshot? signinSnapshot;
+  final SigninCourseQrFetcher? onFetchSigninQr;
+  final SigninQrImageSaver? onSaveSigninQr;
+  final SigninStatusChecker? onCheckSigninStatus;
   final AgendaFailure? failure;
   final Future<void> Function()? onRefreshSchool;
   final AgendaSyncPrepare? prepareSync;
@@ -124,7 +141,8 @@ class AgendaViewState extends State<AgendaView> {
   String? _contentAccount;
   bool _projectionDirty = false;
   bool _widgetDateActive = false;
-
+  Timer? _signinTick;
+  bool _tickerEnabled = true;
   Object get _liveScope => (
     widget.service,
     widget.service?.accountGeneration,
@@ -209,16 +227,11 @@ class AgendaViewState extends State<AgendaView> {
     );
   }
 
-  DateTime get now {
-    final value = widget.now ?? campusDate(clock.now());
-    return DateTime.utc(
-      value.year,
-      value.month,
-      value.day,
-      value.hour,
-      value.minute,
-      value.second,
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerEnabled = TickerMode.of(context);
+    _updateSigninTick();
   }
 
   AgendaService get service => widget.service!;
@@ -244,6 +257,7 @@ class AgendaViewState extends State<AgendaView> {
   @override
   void didUpdateWidget(covariant AgendaView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _updateSigninTick();
     final becameVisible = !oldWidget.visible && widget.visible;
     if (becameVisible) _lastSyncKey = null;
     if (oldWidget.service != widget.service) _listenSync();
@@ -321,6 +335,7 @@ class AgendaViewState extends State<AgendaView> {
 
   @override
   void dispose() {
+    _signinTick?.cancel();
     generation.value++;
     editorGeneration.value++;
     sheetTick.dispose();
@@ -550,12 +565,6 @@ class AgendaViewState extends State<AgendaView> {
     });
     unawaited(load());
   }
-
-  int get selectedFilterCount =>
-      (filter == '全部' ? 0 : 1) +
-      (todos ? 1 : 0) +
-      (includeCompleted ? 0 : 1) +
-      (includeHidden ? 1 : 0);
 
   Widget filters({VoidCallback? onUpdate}) => _buildFilters(onUpdate: onUpdate);
 
@@ -852,6 +861,7 @@ class AgendaViewState extends State<AgendaView> {
                     now: now,
                     busy: busy,
                     onOpen: open,
+                    signinAction: _signinAction,
                     onComplete: (e, v) => unawaited(complete(e, v)),
                     onCreate: available && !busy ? () => edit() : null,
                     compactEmpty: mode == AgendaViewMode.month

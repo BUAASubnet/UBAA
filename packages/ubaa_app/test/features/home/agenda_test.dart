@@ -219,6 +219,82 @@ void main() {
     );
     expect(values.exam.single.term, 'resolved-term');
   });
+  test('首页仅在二维码窗口内投影有在线目标的已签到课程', () {
+    const start = BridgeAgendaTime(
+      rfc3339: '2026-03-24T12:00:00+08:00',
+      timezone: 'Asia/Shanghai',
+    );
+    const timing = BridgeAgendaTiming(
+      kind: BridgeAgendaTimingKind.period,
+      start: start,
+    );
+    const row = BridgeAgendaEntry(
+      timing: timing,
+      sortTime: start,
+      soon: false,
+      completed: false,
+      hidden: false,
+      school: BridgeSchoolAgendaItem(
+        key: BridgeSchoolAgendaKey(source: 'signin', upstreamId: 'course'),
+        timing: timing,
+        title: '合成课程',
+        subtitle: '每日课程',
+        statusLabel: '已签到',
+        upstreamStatus: BridgeAgendaUpstreamStatus(
+          feature: BridgeAgendaFeature.signin,
+          completed: true,
+          signStatus: 1,
+        ),
+        navigation: BridgeAgendaNavigation(
+          feature: BridgeAgendaFeature.signin,
+          date: '2026-03-24',
+          courseId: 'course',
+        ),
+        homeTodo: true,
+      ),
+    );
+    const snapshot = FeatureSnapshot(
+      feature: FeatureId.signin,
+      status: FeatureLoadStatus.success,
+      resolvedRoute: ConnectionMode.direct,
+      details: [
+        FeatureDetail(
+          title: '合成课程',
+          presentation: SigninPresentation(
+            courseId: 'course',
+            classBeginTime: '12:00',
+            classEndTime: '13:00',
+            signStatus: 1,
+            actionTarget: 'qr-target',
+          ),
+        ),
+      ],
+    );
+    for (final (time, source, visible) in [
+      ('03:49', snapshot, false),
+      ('03:50', snapshot, true),
+      ('05:00', snapshot, true),
+      ('05:01', snapshot, false),
+      ('04:00', snapshot.copyWith(status: FeatureLoadStatus.stale), false),
+    ]) {
+      final result = bridgeHomeTodoProjection(
+        const [row],
+        HomeTodoRequest(
+          now: DateTime.parse('2026-03-24T$time:00Z'),
+          snapshots: {FeatureId.signin: source},
+        ),
+      );
+      expect(result.todos.length, visible ? 1 : 0, reason: time);
+      if (visible) {
+        final todo = result.todos.single;
+        expect(todo.signin?.actionTarget, 'qr-target');
+        final retained = todo.withoutSigninAction().signin!;
+        expect(retained.signStatus, 1);
+        expect(retained.actionTarget, isNull);
+      }
+    }
+  });
+
   test('无缓存上课读取跨校园午夜时拒绝结果，不能恢复昨日动作', () async {
     final times = [
       DateTime.parse('2026-03-24T15:59:59Z'),

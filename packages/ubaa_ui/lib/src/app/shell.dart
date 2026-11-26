@@ -8,7 +8,7 @@ import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
 import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
-import '../features/agenda/format.dart' show campusDate, AgendaAccess;
+import '../features/agenda/format.dart' show AgendaAccess;
 import '../shared/tab_navigation.dart' show TabPager, currentTabPager;
 import '../features/ihome/view.dart';
 import '../features/health_cloud/view.dart';
@@ -148,7 +148,6 @@ class UbaaMainShell extends StatefulWidget {
     this.onReadLockDisplay,
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
-    this.onPrepareSigninWrite,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
     this.onCheckSigninStatus,
@@ -278,7 +277,6 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
   final BykcSignPreparer? onPrepareBykcSignWrite;
-  final SigninPreparer? onPrepareSigninWrite;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
   final SigninStatusChecker? onCheckSigninStatus;
@@ -428,15 +426,12 @@ class _UbaaMainShellState extends WidgetNavigationState {
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
-  bool _homeSigninActive = false;
   WriteOperation? _directWriteActive;
   void _setDirectWriteActive(WriteOperation? operation) =>
       setState(() => _directWriteActive = operation);
   (WriteOperation, int)? _bykcWriteActive;
   void _setBykcWriteActive((WriteOperation, int)? action) =>
       setState(() => _bykcWriteActive = action);
-  void _setHomeSigninActive(bool active) =>
-      setState(() => _homeSigninActive = active);
   @override
   void initState() {
     super.initState();

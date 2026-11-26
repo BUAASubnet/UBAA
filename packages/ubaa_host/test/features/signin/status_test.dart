@@ -22,7 +22,7 @@ void main() {
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.signin);
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('上课二维码'));
+      await tester.tap(find.widgetWithText(FilledButton, '上课'));
       await tester.pumpAndSettle();
       expect(backend.qrTargets, ['课次']);
       await tester.pump(const Duration(seconds: 3));

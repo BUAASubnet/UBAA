@@ -515,6 +515,50 @@ fn home_reads(records: &[CacheRecord]) -> Vec<HomeAgendaRead> {
         .collect()
 }
 #[test]
+fn online_home_signin_rows_include_signed_candidates_for_ui_window() {
+    let (records, ctx) = fixture();
+    let CachePayload::SigninToday(classes) = &records[4].payload else {
+        unreachable!();
+    };
+    for (start, end, status, visible) in [
+        ("12:11", "13:00", Some(0), true),
+        ("11:00", "12:00", Some(0), true),
+        ("11:00", "11:59", Some(0), true),
+        ("11:00", "13:00", Some(1), true),
+        ("11:00", "13:00", None, false),
+    ] {
+        let mut class = classes[0].clone();
+        class.class_begin_time = start.into();
+        class.class_end_time = end.into();
+        class.sign_status = status;
+        let rows = project_home_agenda(
+            &[HomeAgendaRead::Signin {
+                date: ctx.now.datetime.date_naive(),
+                fresh: true,
+                classes: vec![class],
+            }],
+            &ctx,
+            None,
+        )
+        .unwrap();
+        assert_eq!(rows.len(), usize::from(visible));
+        if let Some(row) = rows.first() {
+            let AgendaEntryItem::School(item) = &row.item else {
+                unreachable!();
+            };
+            assert_eq!(
+                item.status_label,
+                if status == Some(1) {
+                    "已签到"
+                } else {
+                    "未签到"
+                }
+            );
+        }
+    }
+}
+
+#[test]
 fn home_reads_match_seven_sources_without_cache_and_preserve_progressive_order() {
     let (records, ctx) = fixture();
     let expected = home(&records, &ctx);

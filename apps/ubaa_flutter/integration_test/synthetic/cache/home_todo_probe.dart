@@ -276,23 +276,45 @@ Future<void> probeHomeTodos(String directory) async {
     ));
     expect(items.map((e) => e.id), ['bykc:101', 'cgyy:4']);
   });
-  await scenario('上课开始前十分钟和结束边界，状态未知或缺资格不伪造动作', () async {
+  await scenario('在线签到待办保留窗口外状态，二维码不依赖旧写入资格', () async {
     final items = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.signin: source(FeatureId.signin, [
           signin('visible', '12:10', '13:00'),
           signin('early', '12:11', '13:00'),
-          signin('ended', '11:00', '12:00'),
+          signin('end-boundary', '11:00', '12:00'),
+          signin('ended', '11:00', '11:59'),
           signin('unknown', '12:05', '13:00', state: null),
           signin('no-action', '12:05', '13:00', action: false),
           signin('bad-time', '25:00', '26:00'),
         ]),
       },
     ));
-    expect(items.map((e) => e.id), ['signin:no-action', 'signin:visible']);
-    expect(items.first.signinAction, isNull);
-    expect(items.last.statusLabel, '即将上课');
+    final courses = {for (final item in items) item.id: item};
+    expect(
+      courses.keys,
+      unorderedEquals([
+        'signin:no-action',
+        'signin:visible',
+        'signin:early',
+        'signin:end-boundary',
+        'signin:ended',
+      ]),
+    );
+    expect(courses['signin:no-action']!.signinAction, isNull);
+    expect(courses['signin:ended']!.statusLabel, '未签到');
+    final campusNow = homeCampusTime(now);
+    expect(
+      {for (final item in items) item.id: signinPhase(item.signin!, campusNow)},
+      {
+        'signin:visible': SigninPhase.open,
+        'signin:no-action': SigninPhase.open,
+        'signin:early': SigninPhase.upcoming,
+        'signin:end-boundary': SigninPhase.open,
+        'signin:ended': SigninPhase.ended,
+      },
+    );
     final stale = (await projectTodos(
       now: now,
       snapshots: {
@@ -302,6 +324,7 @@ Future<void> probeHomeTodos(String directory) async {
       },
     ));
     expect(stale.single.signinAction, isNull);
+    expect(stale.single.signin, isNull);
   });
   await scenario('阳光旧提醒只在11到14周且未达4和16，不把缺数据当零', () async {
     Future<List<HomeTodo>> reminders({

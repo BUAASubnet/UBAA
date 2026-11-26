@@ -16,6 +16,7 @@ export 'src/feature/health_cloud.dart';
 
 export 'src/feature/schedule/home.dart';
 export 'src/feature/home_state.dart';
+export 'src/feature/signin/window.dart';
 
 export 'src/agenda/models.dart';
 export 'src/agenda/bykc_conflicts.dart';

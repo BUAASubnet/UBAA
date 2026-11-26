@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -59,6 +60,13 @@ void _registerQueryTests() {
               ? const <FeatureDetail>[
                   FeatureDetail(
                     title: '已完成上课课程',
+                    presentation: SigninPresentation(
+                      courseId: 'synthetic-done',
+                      actionTarget: 'schedule-done',
+                      classBeginTime: '08:00',
+                      classEndTime: '09:00',
+                      signStatus: 1,
+                    ),
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '误导目标'),
                       FeatureField(label: '上课状态', value: '未上课'),
@@ -74,7 +82,7 @@ void _registerQueryTests() {
               : const <FeatureDetail>[],
         ),
     };
-    var prepareCalls = 0;
+    var reads = 0;
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
@@ -84,9 +92,9 @@ void _registerQueryTests() {
           routePolicy: RoutePolicy.auto,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
-          onPrepareSigninWrite: (_) async {
-            prepareCalls++;
-            throw StateError('should not be called');
+          onFetchSigninQr: (_, _) async {
+            reads++;
+            throw StateError('已签到课程不读取二维码');
           },
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
@@ -99,75 +107,86 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
 
-    final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '上课'),
-    );
-    expect(button.onPressed, isNull);
-    expect(find.text('该课程已上课，不能重复提交。'), findsOneWidget);
-    expect(prepareCalls, 0);
+    expect(find.widgetWithText(FilledButton, '上课'), findsNothing);
+    expect(find.text('已签到'), findsOneWidget);
+    expect(reads, 0);
   });
 
-  testWidgets('每日课程 action 缺失或 unknown 时默认拒绝', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.signin
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '缺失 action',
-                    fields: <FeatureField>[
-                      FeatureField(label: '课程 ID', value: 'legacy-target'),
-                      FeatureField(label: '上课状态', value: '未上课'),
-                    ],
-                  ),
-                  FeatureDetail(
-                    title: '未知资格',
-                    actions: <FeatureAction>[
-                      SigninPerformAction(
-                        scheduleId: 'unknown-target',
-                        eligibility: ActionEligibility.unknown,
+  testWidgets(
+    '每日课程目标缺失或状态未知时不开二维码',
+    (tester) => withClock(Clock.fixed(DateTime.utc(2026, 11, 26)), () async {
+      final snapshots = <FeatureId, FeatureSnapshot>{
+        for (final feature in FeatureId.values)
+          feature: FeatureSnapshot(
+            feature: feature,
+            status: FeatureLoadStatus.success,
+            summary: '已加载',
+            details: feature == FeatureId.signin
+                ? const <FeatureDetail>[
+                    FeatureDetail(
+                      title: '缺失签到目标',
+                      presentation: SigninPresentation(
+                        courseId: 'public-course',
+                        classBeginTime: '08:00',
+                        classEndTime: '09:00',
+                        signStatus: 0,
                       ),
-                    ],
-                  ),
-                ]
-              : const <FeatureDetail>[],
+                      fields: <FeatureField>[
+                        FeatureField(label: '课程 ID', value: 'legacy-target'),
+                        FeatureField(label: '上课状态', value: '未上课'),
+                      ],
+                    ),
+                    FeatureDetail(
+                      title: '未知签到状态',
+                      presentation: SigninPresentation(
+                        courseId: 'unknown-course',
+                        actionTarget: 'unknown-target',
+                        classBeginTime: '08:00',
+                        classEndTime: '09:00',
+                      ),
+                      actions: <FeatureAction>[
+                        SigninPerformAction(
+                          scheduleId: 'unknown-target',
+                          eligibility: ActionEligibility.unknown,
+                        ),
+                      ],
+                    ),
+                  ]
+                : const <FeatureDetail>[],
+          ),
+      };
+      var reads = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: coordinatedShell(
+            user: const UserSummary(username: 'student'),
+            snapshots: snapshots,
+            routePolicy: RoutePolicy.auto,
+            onRefresh: () async {},
+            onRetryFeature: (_) async {},
+            onFetchSigninQr: (_, _) async {
+              reads++;
+              throw StateError('无可用签到目标');
+            },
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+          ),
         ),
-    };
-    var prepareCalls = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareSigninWrite: (_) async {
-            prepareCalls++;
-            throw StateError('unknown action must not be called');
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-        ),
-      ),
-    );
-    await tester.tap(find.byIcon(UiDestination.study.icon));
-    await tester.pumpAndSettle();
-    await openFeature(tester, FeatureId.signin);
-    await tester.pumpAndSettle();
+      );
+      await tester.tap(find.byIcon(UiDestination.study.icon));
+      await tester.pumpAndSettle();
+      await openFeature(tester, FeatureId.signin);
+      await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(OutlinedButton, '上课'), findsOneWidget);
-    final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '上课'),
-    );
-    expect(button.onPressed, isNull);
-    expect(prepareCalls, 0);
-  });
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, '上课'),
+      );
+      expect(button.onPressed, isNull);
+      expect(reads, 0);
+    }),
+  );
 
   testWidgets('成绩筛选点选已出成绩即提交派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{

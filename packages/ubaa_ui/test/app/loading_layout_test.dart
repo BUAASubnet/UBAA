@@ -183,14 +183,16 @@ void main() {
   testWidgets('刷新中的旧写入按钮原位禁用，新结果返回后恢复', (tester) async {
     var writes = 0;
     const ready = FeatureSnapshot(
-      feature: FeatureId.signin,
+      feature: FeatureId.libbook,
       status: FeatureLoadStatus.success,
       details: [
         FeatureDetail(
-          title: '合成上课课程',
+          title: '合成图书馆预约',
           actions: [
-            SigninPerformAction(
-              scheduleId: 's',
+            LibbookCancelAction(
+              bookingId: 'synthetic-booking',
+              page: 1,
+              limit: 10,
               eligibility: ActionEligibility.allowed,
             ),
           ],
@@ -202,13 +204,13 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: FeatureDetailView(
-            feature: FeatureId.signin,
+            feature: FeatureId.libbook,
             snapshot: snapshot,
             bykcFilters: const BykcCourseFilters.defaults(),
             onBykcFiltersChanged: (_) {},
             onBack: () {},
             onRetry: () async {},
-            onSigninWrite: (_) async {
+            onLibbookCancelWrite: (_) async {
               writes++;
             },
           ),
@@ -216,7 +218,7 @@ void main() {
       ),
     );
     await mount(ready);
-    final button = find.widgetWithText(OutlinedButton, '上课');
+    final button = find.widgetWithText(OutlinedButton, '取消预约');
     final before = tester.getTopLeft(find.text('下方内容'));
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
     expect(tester.getTopLeft(find.text('下方内容')), before);

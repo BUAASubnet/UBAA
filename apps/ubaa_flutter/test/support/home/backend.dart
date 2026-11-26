@@ -8,7 +8,16 @@ import '../assignments/backend.dart';
 import 'package:ubaa_test_support/home_todos.dart';
 
 /// 首页七来源合成数据，所有时间围绕本次运行；绝不使用学校账号或网络。
-class HomeBackend extends CourseworkBackend implements HomeTodoBackend {
+class HomeBackend extends CourseworkBackend
+    implements HomeTodoBackend, SigninQrBackend {
+  final signinQrTargets = <String>[];
+
+  @override
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) async {
+    signinQrTargets.add(courseId);
+    return const SigninQr(content: '合成二维码', timestamp: 0);
+  }
+
   @override
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
     final projected = await homeTodoFixture(request);
@@ -259,6 +268,7 @@ class HomeBackend extends CourseworkBackend implements HomeTodoBackend {
           title: '合成上课待办',
           presentation: SigninPresentation(
             courseId: 'signin-c',
+            actionTarget: 'signin-target',
             classBeginTime: time(5),
             classEndTime: time(65),
             signStatus: 0,

@@ -10,7 +10,7 @@ final class SigninPresentation extends FeaturePresentation {
   });
   final String courseId;
 
-  /// 当次在线 DTO 的目标，只用于核对同次 typed action。缓存不保存。
+  /// 当次在线 DTO 的签到目标，用于生成二维码及核对旧 typed action。缓存不保存。
   final String? actionTarget;
   final String classBeginTime;
   final String classEndTime;

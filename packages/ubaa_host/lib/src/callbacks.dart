@@ -303,7 +303,6 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareBykcWrite: (operation, courseId) =>
           _controller.prepareBykcWrite(operation, courseId),
       onPrepareBykcSignWrite: _prepareBykcSignWrite,
-      onPrepareSigninWrite: _controller.prepareSigninWrite,
       onFetchSigninQr: _controller.canFetchSigninQr
           ? (courseId, offset) async {
               localOwner.checkCurrent();
