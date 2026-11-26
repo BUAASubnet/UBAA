@@ -6,11 +6,11 @@
 mod args;
 mod authentication;
 mod evidence;
+mod spoc_classroom;
 mod steps;
 
 #[tokio::main]
 async fn main() {
-    init_logging();
     std::process::exit(steps::process().await);
 }
 

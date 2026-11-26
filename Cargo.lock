@@ -4114,6 +4114,8 @@ version = "2.1.0"
 dependencies = [
  "async-trait",
  "clap",
+ "futures-util",
+ "reqwest",
  "tokio",
  "tracing-subscriber",
  "ubaa-core",

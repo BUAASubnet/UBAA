@@ -10,6 +10,8 @@ version.workspace = true
 
 [dependencies]
 clap.workspace = true
+futures-util = { workspace = true, features = ["io"] }
+reqwest = { workspace = true, features = ["stream"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
 ubaa-core = { path = "../../crates/ubaa_core" }

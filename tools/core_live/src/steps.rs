@@ -18,6 +18,9 @@ pub(crate) async fn process() -> i32 {
             std::process::exit(2);
         }
     };
+    if args.feature != crate::spoc_classroom::FEATURE {
+        crate::init_logging();
+    }
     match run(args).await {
         Ok(evidence) if evidence.failed() => 5,
         Ok(_) => 0,
@@ -83,6 +86,9 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
     }
     if args.feature == "all" || args.feature == "spoc" {
         run_spoc(&mut client, &mut evidence).await;
+    }
+    if args.feature == crate::spoc_classroom::FEATURE {
+        crate::spoc_classroom::run(&mut client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "judge" {
         run_judge(&mut client, &mut evidence).await;
@@ -214,12 +220,21 @@ fn authentication_dependencies(
         ("health_cloud", "years"),
         ("health_cloud", "report"),
     ];
-    ALL.iter().copied().filter(move |(operation_feature, _)| {
-        (feature == "all" && *operation_feature != "health_cloud")
-            || feature == *operation_feature
-            || *operation_feature == "auth"
-            || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
-    })
+    ALL.iter()
+        .copied()
+        .filter(move |(operation_feature, _)| {
+            (feature == "all" && *operation_feature != "health_cloud")
+                || feature == *operation_feature
+                || *operation_feature == "auth"
+                || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
+        })
+        .chain(
+            crate::spoc_classroom::OPERATIONS
+                .iter()
+                .copied()
+                .filter(move |_| feature == crate::spoc_classroom::FEATURE)
+                .map(|operation| (crate::spoc_classroom::FEATURE, operation)),
+        )
 }
 
 fn read_credentials() -> Result<(String, String)> {
@@ -850,6 +865,37 @@ mod tests {
                 super::authentication_dependencies(feature).any(|(scope, _)| scope == *feature),
                 "{feature} 缺少认证失败后的阻塞操作"
             );
+        }
+    }
+
+    #[test]
+    fn 课堂验证需要显式选择且认证失败后逐项阻塞() {
+        let operations = [
+            "courses",
+            "catalog",
+            "replay_session",
+            "transcript",
+            "summary",
+            "slides",
+            "live_session",
+            "media_probe",
+        ];
+        let actual = super::authentication_dependencies("spoc_classroom")
+            .filter_map(|(feature, operation)| (feature == "spoc_classroom").then_some(operation))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, operations);
+        assert!(crate::args::FEATURES.contains(&"spoc_classroom"));
+        assert!(
+            super::authentication_dependencies("all").all(|(scope, _)| scope != "spoc_classroom")
+        );
+        let mut evidence = super::Evidence::capturing("webvpn");
+        super::block_after_auth_failure(&mut evidence, "spoc_classroom");
+        assert!(evidence.failed());
+        let lines = evidence.captured();
+        assert_eq!(lines.len(), operations.len() + 1);
+        for (line, operation) in lines[1..].iter().zip(operations) {
+            assert!(line.contains(&format!("operation={operation} status=BLOCKED ")));
+            assert!(line.ends_with("reason=authentication_failed"));
         }
     }
 

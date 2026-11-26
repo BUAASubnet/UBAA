@@ -42,6 +42,9 @@ fn core_live_source_bundle() -> String {
             "authentication.rs",
             "evidence.rs",
             "main.rs",
+            "spoc_classroom/media.rs",
+            "spoc_classroom/tests.rs",
+            "spoc_classroom.rs",
             "steps.rs"
         ]
     );
@@ -417,6 +420,7 @@ fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
             "\"grades\"",
             "\"classroom\"",
             "\"spoc\"",
+            "\"spoc_classroom\"",
             "\"judge\"",
             "\"signin\"",
             "\"ygdk\"",
@@ -440,6 +444,7 @@ fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
             "run_schedule",
             "run_classroom",
             "run_spoc",
+            "crate::spoc_classroom::run",
             "run_judge",
             "signin_today",
             "run_ygdk",

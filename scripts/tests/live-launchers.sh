@@ -56,6 +56,19 @@ if grep -F 'test-password' "$test_root/stderr" >/dev/null; then
 fi
 grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root/stderr" >/dev/null
 
+for route in direct webvpn; do
+  output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+    "$test_root/scripts/live/verify.sh" route="$route" feature=spoc_classroom 2>"$test_root/spoc-classroom.err")
+  [[ $output == *"route=$route feature=spoc_classroom"* && $output == *'stdin_lines=2'* ]]
+done
+output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+  "$test_root/scripts/live/verify.sh" route=direct 2>"$test_root/all.err")
+[[ $output == *'route=direct feature=all'* && $output != *'spoc_classroom'* ]]
+if grep -F 'spoc_classroom' "$test_root/all.err" >/dev/null; then
+  printf '%s\n' '默认矩阵不应转发 SPOC 课堂验证' >&2
+  exit 1
+fi
+
 # 同时通过真实启动器覆盖文档主名称，兼容名称与主名称选择规则由解析器测试保护。
 printf 'UBAA_TEST_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env"
 output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
@@ -146,6 +159,8 @@ UBAA_CORE_LIVE_BINARY="$test_root/scripts/fake-core-live-runtime.sh" UBAA_CORE_L
   "$repo_root/scripts/live/core-live.sh" route=direct feature=auth config-dir="$explicit_dir" >/dev/null 2>"$test_root/explicit.err"
 [[ -f "$explicit_dir/session.json" && -f "$explicit_dir/.session.lock" ]]
 grep -F -- '--route direct --feature auth --config-dir' "$explicit_dir/argv.txt" >/dev/null
+run_core_live 0 route=webvpn feature=spoc_classroom config-dir="$explicit_dir"
+grep -F -- '--route webvpn --feature spoc_classroom --config-dir' "$explicit_dir/argv.txt" >/dev/null
 
 # 构建失败也必须清理自动目录。
 mkdir -p "$test_root/fake-bin"

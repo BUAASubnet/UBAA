@@ -39,6 +39,7 @@ pub(crate) const FEATURES: &[&str] = &[
     "grades",
     "classroom",
     "spoc",
+    "spoc_classroom",
     "judge",
     "signin",
     "ygdk",
