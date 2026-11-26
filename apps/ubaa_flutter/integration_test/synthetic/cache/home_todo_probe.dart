@@ -276,7 +276,7 @@ Future<void> probeHomeTodos(String directory) async {
     ));
     expect(items.map((e) => e.id), ['bykc:101', 'cgyy:4']);
   });
-  await scenario('在线签到待办保留窗口外状态，二维码不依赖旧写入资格', () async {
+  await scenario('在线签到待办只保留课前 10 分钟到下课的课程，二维码不依赖旧写入资格', () async {
     final items = (await projectTodos(
       now: now,
       snapshots: {
@@ -297,22 +297,17 @@ Future<void> probeHomeTodos(String directory) async {
       unorderedEquals([
         'signin:no-action',
         'signin:visible',
-        'signin:early',
         'signin:end-boundary',
-        'signin:ended',
       ]),
     );
     expect(courses['signin:no-action']!.signinAction, isNull);
-    expect(courses['signin:ended']!.statusLabel, '未签到');
     final campusNow = homeCampusTime(now);
     expect(
       {for (final item in items) item.id: signinPhase(item.signin!, campusNow)},
       {
         'signin:visible': SigninPhase.open,
         'signin:no-action': SigninPhase.open,
-        'signin:early': SigninPhase.upcoming,
         'signin:end-boundary': SigninPhase.open,
-        'signin:ended': SigninPhase.ended,
       },
     );
     final stale = (await projectTodos(
