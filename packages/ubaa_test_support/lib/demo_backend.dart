@@ -1,9 +1,21 @@
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'demo_classroom.dart';
 import 'home_todos.dart';
 
 /// UI 开发和 widget 测试使用的脱敏后端，不访问网络或真实账号。
-class DemoBackend implements UbaaBackend, HomeTodoBackend {
+class DemoBackend
+    implements
+        UbaaBackend,
+        HomeTodoBackend,
+        ClassroomBackend,
+        SpocFilesBackend {
+  @override
+  ClassroomService get classroom => const DemoClassroomService();
+
+  @override
+  SpocFilesService get spocFiles => const DemoClassroomService();
+
   @override
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) =>
       homeTodoFixture(request);
