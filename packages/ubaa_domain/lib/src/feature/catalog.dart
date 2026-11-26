@@ -87,7 +87,7 @@ extension FeatureIdText on FeatureId {
     FeatureId.cgyy => '查询、预约和管理研讨室',
     FeatureId.ygdk => '查看学期进度与打卡记录',
     FeatureId.evaluation => '查看待评课程和完成进度',
-    FeatureId.hangzhouCgyy => '查看杭州校区场馆和我的预约（只读，暂只支持直连）',
+    FeatureId.hangzhouCgyy => '预约和管理杭州校区免费场馆（暂只支持直连）',
   };
 
   String get wireName => switch (this) {

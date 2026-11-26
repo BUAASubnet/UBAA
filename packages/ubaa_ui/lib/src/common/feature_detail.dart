@@ -160,7 +160,7 @@ class FeatureDetailView extends StatefulWidget {
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
 
-  /// 杭州空间预约与取消；为空时杭州页面保持只读。
+  /// 杭州空间预约与取消；为空时杭州页面只显示、不能提交。
   final HangzhouCgyyWriteCallbacks? hangzhouCgyy;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
