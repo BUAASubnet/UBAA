@@ -70,6 +70,7 @@ just verify-live feature=spoc_classroom route=webvpn
 |---|---|
 | `courses` | `count` 是 SPOC 课程总数。没有课程时，后续操作标记 `NOT_APPLICABLE`，原因是 `no_courses`。 |
 | `catalog` | `attempted_count` 最多为 12，按课程列表顺序取样。`count` 是成功取得目录的课程数，至少一门成功即 `PASS`，目录可以为空。`error_counts` 按稳定错误码计数，格式为 `代码:数量`，用逗号分隔；无错误时为 `none`。未开通课程对应 `business_unavailable`，教师等不支持的身份对应 `unsupported`。 |
+| `catalog` 诊断 | `error_reasons` 按 `阶段.原因:数量` 汇总有诊断的失败。`other_status_values` 按 `sub_status/playback_status:数量` 汇总计入 `other_count` 的节次。两项均按键排序，用逗号分隔，无记录时为 `none`。状态数值直接输出，字符串仅保留 1–8 个 ASCII 字母或数字，其余值和缺失值记为 `invalid`。 |
 | `catalog` 节次 | `session_count` 为节次总数。`live_count`、`replay_count`、`no_replay_count`、`upcoming_count`、`tencent_meeting_count`、`other_count` 分别计数。腾讯会议节次只计入腾讯会议类别，不作为直播或回放媒体样本。 |
 | `catalog` 同名组 | `duplicate_name_groups` 只统计样本内同名且有多个不同 SPOC 课程标识的组。各组不同课堂标识数都等于该组不同 SPOC 课程标识数时，`distinct_mapping_matches=true`；任何一组少映射或映射重合时为 `false`。没有这样的组时为 `true`。 |
 | `replay_session` | 选择开始时间最近的回放。`count` 是轨道数；`has_teacher`、`has_slides`、`has_nonzero_offset` 分别表示教师路、PPT 路、任意轨道是否有非零时间偏移。没有回放时原操作及附加材料标记 `NOT_APPLICABLE`，原因是 `no_replay_session`。 |

@@ -108,14 +108,20 @@ async fn 映射拒绝篡改入口和不安全签名字段() {
         map[1].1.body = signature.to_string().into_bytes();
         steps.extend(map.into_iter().take(2));
         let (mut client, script, _root) = setup(false, steps);
+        let error = client
+            .spoc_classroom_catalog(&kcid())
+            .await
+            .unwrap_err()
+            .error;
+        assert_eq!(error.code, ErrorCode::UpstreamChanged);
+        assert_eq!(error.diagnostic().stage.as_deref(), Some("spoc_mapping"));
         assert_eq!(
-            client
-                .spoc_classroom_catalog(&kcid())
-                .await
-                .unwrap_err()
-                .error
-                .code,
-            ErrorCode::UpstreamChanged
+            error.diagnostic().reason.as_deref(),
+            Some(if key == "ktsl_url" {
+                "ktsl_url_untrusted"
+            } else {
+                "signature_field_unsafe"
+            })
         );
         assert!(script.0.lock().unwrap().is_empty());
     }

@@ -10,7 +10,7 @@ use crate::{
             ClassSummary, ClassroomCatalog, ClassroomSession, SlideTimeline, Transcript,
         },
     },
-    error::{Result, UbaaError},
+    error::{ErrorCode, Result, UbaaError},
     features::spoc,
     ports::{HttpRequest, HttpResponse},
     runtime::ClientRuntime,
@@ -20,8 +20,20 @@ use url::Url;
 pub(super) const CLASS: &str = "classroom.msa.buaa.edu.cn";
 const YJ: &str = "yjapi.msa.buaa.edu.cn";
 const RESOURCE: &str = "resource.msa.buaa.edu.cn";
-pub(super) fn changed() -> UbaaError {
-    UbaaError::upstream_changed("课堂直录播上游协议变化")
+#[track_caller]
+pub(super) fn changed(stage: &'static str, reason: &'static str) -> UbaaError {
+    UbaaError::upstream_changed("课堂直录播上游协议变化").with_diagnostic(stage, reason)
+}
+pub(super) fn diagnose_changed(
+    error: UbaaError,
+    stage: &'static str,
+    reason: &'static str,
+) -> UbaaError {
+    if error.code == ErrorCode::UpstreamChanged {
+        error.with_diagnostic(stage, reason)
+    } else {
+        error
+    }
 }
 pub(super) fn digits(id: &str) -> bool {
     (1..=20).contains(&id.len()) && id.bytes().all(|byte| byte.is_ascii_digit())
@@ -36,7 +48,7 @@ fn check(ids: &[&str], resource: Option<&str>) -> Result<()> {
         Err(UbaaError::invalid_input("课堂标识无效"))
     }
 }
-fn origin(url: &Url, host: &str) -> bool {
+pub(super) fn origin(url: &Url, host: &str) -> bool {
     url.scheme() == "https"
         && url.host_str() == Some(host)
         && url.port().is_none()
@@ -46,22 +58,28 @@ fn origin(url: &Url, host: &str) -> bool {
 pub(super) fn endpoint(url: &Url, host: &str, path: &str) -> bool {
     origin(url, host) && url.path() == path && url.fragment().is_none()
 }
-pub(super) fn redirect(response: &HttpResponse, mode: ConnectionMode) -> Result<Url> {
-    let location = response.header_first("location").ok_or_else(changed)?;
+pub(super) fn redirect(
+    response: &HttpResponse,
+    mode: ConnectionMode,
+    stage: &'static str,
+) -> Result<Url> {
+    let location = response
+        .header_first("location")
+        .ok_or_else(|| changed(stage, "redirect_location_missing"))?;
     let raw = Url::parse(&response.final_url)
         .and_then(|base| base.join(location))
-        .map_err(|_| changed())?;
+        .map_err(|_| changed(stage, "redirect_location_invalid"))?;
     if raw.scheme() != "https"
         || (raw.host_str() == Some("d.buaa.edu.cn")
             && (mode != ConnectionMode::WebVpn
                 || !crate::connection::is_valid_webvpn_gateway(&raw)))
     {
-        return Err(changed());
+        return Err(changed(stage, "redirect_location_untrusted"));
     }
     let url = crate::connection::business_redirect_target(&response.final_url, location)
-        .map_err(|_| changed())?;
+        .map_err(|_| changed(stage, "redirect_location_unwrap"))?;
     if url.scheme() != "https" {
-        return Err(changed());
+        return Err(changed(stage, "redirect_target_scheme"));
     }
     Ok(url)
 }
@@ -120,6 +138,16 @@ enum Api {
     Slides,
 }
 impl Api {
+    fn stage(&self) -> &'static str {
+        match self {
+            Self::Catalog => "msa_catalog",
+            Self::Session => "msa_session",
+            Self::Transcript => "msa_transcript",
+            Self::Summary => "msa_summary",
+            Self::Slides => "msa_slides",
+        }
+    }
+
     fn endpoint(&self) -> &'static str {
         match self {
             Self::Catalog => {
@@ -138,6 +166,7 @@ impl Api {
         }
     }
     async fn get(&self, runtime: &mut ClientRuntime, pairs: &[(&str, &str)]) -> Result<Value> {
+        let stage = self.stage();
         let mut target = Url::parse(self.endpoint()).expect("固定课堂接口");
         target.query_pairs_mut().extend_pairs(pairs.iter().copied());
         let routed = runtime.url(target.as_str())?;
@@ -147,14 +176,15 @@ impl Api {
                 .with_header("Authorization", format!("Bearer {}", jwt.expose_secret()));
             let response = isolated_get(runtime, request).await?;
             if response.final_url != routed {
-                return Err(changed());
+                return Err(changed(stage, "api_final_target"));
             }
             if response.status != 401 {
                 if response.status != 200 {
-                    return Err(super::http::http_status_error(&response, "课堂直录播"));
+                    let error = super::http::http_status_error(&response, "课堂直录播");
+                    return Err(diagnose_changed(error, stage, "api_http_status"));
                 }
-                let payload: Value =
-                    serde_json::from_slice(&response.body).map_err(|_| changed())?;
+                let payload: Value = serde_json::from_slice(&response.body)
+                    .map_err(|_| changed(stage, "api_json_invalid"))?;
                 let code = payload["code"]
                     .as_i64()
                     .or_else(|| {
@@ -162,7 +192,7 @@ impl Api {
                             .then(|| payload["result"]["code"].as_i64())
                             .flatten()
                     })
-                    .ok_or_else(changed)?;
+                    .ok_or_else(|| changed(stage, "api_code_shape"))?;
                 if code != 5002 {
                     let success = if matches!(self, Self::Summary) {
                         payload["success"] == true && code == 200

@@ -1,5 +1,57 @@
 use super::*;
+use crate::domain::spoc_classroom::ClassroomStatus;
 use serde_json::json;
+
+#[test]
+fn 课堂目录区分结构错误并且只保留安全的未知状态() {
+    let mut data = json!({
+        "id":"1", "title":"夹具课", "teachers":[], "term_name":"夹具学期",
+        "sub_list":{"2026":{"11":{"26":[{
+            "id":"2","sub_title":"夹具节次","class_begin":1,"class_over":2,
+            "room_name":"夹具教室","lecturer_name":"夹具教师",
+            "sub_status":"6","playback_status":-12
+        }]}}}
+    });
+    let status = parse::catalog(&data, "1")
+        .unwrap()
+        .sessions
+        .remove(0)
+        .status;
+    assert_eq!(
+        status,
+        ClassroomStatus::Other {
+            sub_status: "6".into(),
+            playback_status: "-12".into()
+        }
+    );
+    data["sub_list"]["2026"]["11"]["26"][0]["sub_status"] = json!("fixture-private");
+    for (value, safe) in [
+        (json!("R9Ab1234"), "R9Ab1234"),
+        (json!("a-b"), "invalid"),
+        (json!("012345678"), "invalid"),
+        (json!("中文"), "invalid"),
+        (json!(""), "invalid"),
+        (json!(null), "invalid"),
+        (json!({}), "invalid"),
+    ] {
+        data["sub_list"]["2026"]["11"]["26"][0]["playback_status"] = value;
+        let status = parse::catalog(&data, "1")
+            .unwrap()
+            .sessions
+            .remove(0)
+            .status;
+        assert_eq!(
+            status,
+            ClassroomStatus::Other {
+                sub_status: "invalid".into(),
+                playback_status: safe.into()
+            }
+        );
+    }
+    data["sub_list"] = json!([]);
+    let error = parse::catalog(&data, "1").unwrap_err();
+    assert_eq!(error.diagnostic().reason.as_deref(), Some("sub_list_shape"));
+}
 
 fn recording(link: &str, mode: ConnectionMode) -> Result<ClassroomSession> {
     parse::session(

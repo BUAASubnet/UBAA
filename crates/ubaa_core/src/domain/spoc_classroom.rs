@@ -4,7 +4,11 @@ pub enum ClassroomStatus {
     Replay,
     NoReplay,
     Upcoming,
-    Other(String),
+    /// 两个上游状态的安全表示；无法导出的值记为 `invalid`。
+    Other {
+        sub_status: String,
+        playback_status: String,
+    },
 }
 
 #[derive(Debug)]

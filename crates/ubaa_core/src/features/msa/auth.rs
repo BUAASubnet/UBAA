@@ -1,4 +1,4 @@
-use super::{CLASS, YJ, changed, endpoint, isolated, observe, redirect};
+use super::{CLASS, YJ, changed, diagnose_changed, endpoint, isolated, observe, redirect};
 use crate::{
     domain::{ConnectionMode, SecretValue},
     error::{Result, UbaaError},
@@ -12,6 +12,7 @@ use std::{
 use url::Url;
 const LOGIN: &str = "https://yjapi.msa.buaa.edu.cn/casapi/index.php?r=auth/login&tenant_code=21&forward=https://classroom.msa.buaa.edu.cn/";
 const FORWARD: &str = "https://classroom.msa.buaa.edu.cn/";
+const STAGE: &str = "msa_auth";
 static TOKEN: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r#"\{i:[0-9]+;s:6:"_token";i:[0-9]+;s:([0-9]+):"([A-Za-z0-9._-]+)";\}"#)
         .expect("课堂令牌格式")
@@ -23,7 +24,7 @@ fn missing() -> UbaaError {
         false,
         "未取得课堂认证凭据",
     )
-    .with_diagnostic("msa_auth", "msa_token_missing")
+    .with_diagnostic(STAGE, "msa_token_missing")
 }
 fn token(raw: &str) -> Result<Arc<SecretValue>> {
     let mut bytes = raw.bytes();
@@ -101,19 +102,17 @@ async fn chain(
         };
         let response = runtime.request(HttpRequest::get(&url)).await?;
         if response.final_url != url {
-            return Err(changed());
+            return Err(changed(STAGE, "auth_final_target"));
         }
         if response.status != 302 {
             return if matches!(response.status, 200 | 401) {
                 Err(missing())
             } else {
-                Err(crate::features::http::http_status_error(
-                    &response,
-                    "课堂认证",
-                ))
+                let error = crate::features::http::http_status_error(&response, "课堂认证");
+                Err(diagnose_changed(error, STAGE, "auth_http_status"))
             };
         }
-        let next = redirect(&response, mode)?;
+        let next = redirect(&response, mode, STAGE)?;
         if (hop == 0 || hop == 3) && endpoint(&next, CLASS, "/") && next.query().is_none() {
             if mode == ConnectionMode::Direct {
                 let cookie = lane.cookie_value("_token", LOGIN)?.ok_or_else(missing)?;
@@ -153,11 +152,11 @@ async fn chain(
             2 => cas(&next, false),
             _ => false,
         } {
-            return Err(changed());
+            return Err(changed(STAGE, "auth_hop_target"));
         }
         current = next;
     }
-    Err(changed())
+    Err(changed(STAGE, "auth_hops_exhausted"))
 }
 pub(super) async fn credential(
     runtime: &mut ClientRuntime,

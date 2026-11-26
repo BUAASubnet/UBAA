@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use ubaa_core::facade::{
     ClassSummary, ClassroomCatalog, ClassroomPeriod, ClassroomSession, ClassroomStatus, ErrorCode,
-    PlaybackKind, PlaybackSource, SlideTimeline, SpocCourse, Transcript, UbaaClient,
+    PlaybackKind, PlaybackSource, SlideTimeline, SpocCourse, Transcript, UbaaClient, UbaaError,
 };
 
 use crate::evidence::{Evidence, error_code};
@@ -30,9 +30,28 @@ const COURSE_LIMIT: usize = 12;
 
 type ReadResult<T> = Result<T, ErrorCode>;
 
+pub(crate) struct CatalogFailure {
+    code: ErrorCode,
+    reason: Option<String>,
+}
+
+impl From<UbaaError> for CatalogFailure {
+    fn from(error: UbaaError) -> Self {
+        let diagnostic = error.diagnostic();
+        Self {
+            code: error.code,
+            reason: diagnostic
+                .stage
+                .as_deref()
+                .zip(diagnostic.reason.as_deref())
+                .map(|(stage, reason)| format!("{stage}.{reason}")),
+        }
+    }
+}
+
 pub(crate) trait ClassroomReads {
     async fn courses(&mut self) -> ReadResult<Vec<SpocCourse>>;
-    async fn catalog(&mut self, kcid: &str) -> ReadResult<ClassroomCatalog>;
+    async fn catalog(&mut self, kcid: &str) -> Result<ClassroomCatalog, CatalogFailure>;
     async fn session(&mut self, course: &str, sub: &str) -> ReadResult<ClassroomSession>;
     async fn transcript(&mut self, sub: &str, guid: &str) -> ReadResult<Transcript>;
     async fn summary(&mut self, sub: &str, guid: &str) -> ReadResult<ClassSummary>;
@@ -48,11 +67,11 @@ impl ClassroomReads for UbaaClient {
             .map_err(|error| error.error.code)
     }
 
-    async fn catalog(&mut self, kcid: &str) -> ReadResult<ClassroomCatalog> {
+    async fn catalog(&mut self, kcid: &str) -> Result<ClassroomCatalog, CatalogFailure> {
         self.spoc_classroom_catalog(kcid)
             .await
             .map(|result| result.data)
-            .map_err(|error| error.error.code)
+            .map_err(|error| error.error.into())
     }
 
     async fn session(&mut self, course: &str, sub: &str) -> ReadResult<ClassroomSession> {
@@ -155,6 +174,8 @@ async fn catalogs(
     let courses = &courses[..courses.len().min(COURSE_LIMIT)];
     let mut catalogs = Vec::new();
     let mut errors = BTreeMap::new();
+    let mut reasons = BTreeMap::new();
+    let mut other_statuses = BTreeMap::new();
     let mut groups = HashMap::<&str, (HashSet<&str>, HashSet<String>)>::new();
     let mut sessions = [0usize; 6];
     for course in courses {
@@ -167,33 +188,37 @@ async fn catalogs(
                     let index = if period.tencent_meeting {
                         4
                     } else {
-                        match period.status {
+                        match &period.status {
                             ClassroomStatus::Live => 0,
                             ClassroomStatus::Replay => 1,
                             ClassroomStatus::NoReplay => 2,
                             ClassroomStatus::Upcoming => 3,
-                            ClassroomStatus::Other(_) => 5,
+                            ClassroomStatus::Other {
+                                sub_status,
+                                playback_status,
+                            } => {
+                                *other_statuses
+                                    .entry(format!("{sub_status}/{playback_status}"))
+                                    .or_insert(0) += 1;
+                                5
+                            }
                         }
                     };
                     sessions[index] += 1;
                 }
                 catalogs.push(catalog);
             }
-            Err(code) => *errors.entry(error_code(code)).or_insert(0usize) += 1,
+            Err(error) => {
+                *errors.entry(error_code(error.code)).or_insert(0) += 1;
+                if let Some(reason) = error.reason {
+                    *reasons.entry(reason).or_insert(0) += 1;
+                }
+            }
         }
     }
     let mut duplicate_groups = groups.values().filter(|(kcids, _)| kcids.len() > 1);
     let group_count = duplicate_groups.clone().count();
     let mapping_matches = duplicate_groups.all(|(kcids, mapped)| kcids.len() == mapped.len());
-    let error_counts = if errors.is_empty() {
-        "none".into()
-    } else {
-        errors
-            .iter()
-            .map(|(code, count)| format!("{code}:{count}"))
-            .collect::<Vec<_>>()
-            .join(",")
-    };
     let fields = [
         ("attempted_count", courses.len().to_string()),
         ("session_count", sessions.iter().sum::<usize>().to_string()),
@@ -205,7 +230,9 @@ async fn catalogs(
         ("other_count", sessions[5].to_string()),
         ("duplicate_name_groups", group_count.to_string()),
         ("distinct_mapping_matches", mapping_matches.to_string()),
-        ("error_counts", error_counts),
+        ("error_counts", format_counts(errors)),
+        ("error_reasons", format_counts(reasons)),
+        ("other_status_values", format_counts(other_statuses)),
     ];
     if catalogs.is_empty() {
         evidence.fail_with_fields(FEATURE, "catalog", "no_catalog_mapping", Some(0), &fields);
@@ -213,6 +240,18 @@ async fn catalogs(
         evidence.pass_with_fields(FEATURE, "catalog", Some(catalogs.len()), &fields);
     }
     catalogs
+}
+
+fn format_counts(counts: BTreeMap<impl std::fmt::Display, usize>) -> String {
+    if counts.is_empty() {
+        "none".into()
+    } else {
+        counts
+            .into_iter()
+            .map(|(key, count)| format!("{key}:{count}"))
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }
 
 fn latest<'catalogs>(

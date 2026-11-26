@@ -67,14 +67,27 @@ impl ClassroomReads for Fixture {
             .collect()))
     }
 
-    fn catalog(&mut self, kcid: &str) -> impl Future<Output = ReadResult<ClassroomCatalog>> {
+    fn catalog(
+        &mut self,
+        kcid: &str,
+    ) -> impl Future<Output = Result<ClassroomCatalog, CatalogFailure>> {
         self.catalog_calls.push(kcid.into());
         let index = self.catalog_calls.len();
         if index > 2 {
-            return ready(Err(if index.is_multiple_of(2) {
-                ErrorCode::Unsupported
+            let (code, reason) = if index.is_multiple_of(2) {
+                (
+                    ErrorCode::Unsupported,
+                    "spoc_mapping.role_teacher_unsupported",
+                )
             } else {
-                ErrorCode::BusinessUnavailable
+                (
+                    ErrorCode::BusinessUnavailable,
+                    "spoc_mapping.bind_id_missing",
+                )
+            };
+            return ready(Err(CatalogFailure {
+                code,
+                reason: Some(reason.into()),
             }));
         }
         let mut sessions = Vec::new();
@@ -84,16 +97,30 @@ impl ClassroomReads for Fixture {
                 period("fixture-live", 30, ClassroomStatus::Live),
                 period("fixture-no-replay", 31, ClassroomStatus::NoReplay),
                 period("fixture-upcoming", 32, ClassroomStatus::Upcoming),
-                period(
-                    "fixture-other",
-                    33,
-                    ClassroomStatus::Other("fixture-status".into()),
-                ),
                 ClassroomPeriod {
                     tencent_meeting: true,
                     ..period("fixture-meeting", 40, ClassroomStatus::Live)
                 },
             ]);
+            sessions.extend(
+                [
+                    ("R9", "invalid"),
+                    ("R9", "12"),
+                    ("invalid", "-12"),
+                    ("R9", "12"),
+                ]
+                .into_iter()
+                .map(|(sub_status, playback_status)| {
+                    period(
+                        "fixture-other",
+                        33,
+                        ClassroomStatus::Other {
+                            sub_status: sub_status.into(),
+                            playback_status: playback_status.into(),
+                        },
+                    )
+                }),
+            );
         } else if self.periods {
             sessions.push(period("fixture-replay-new", 20, ClassroomStatus::Replay));
         }
@@ -230,7 +257,7 @@ async fn 课堂证据只含聚合字段且媒体错误不影响结论() {
     assert_eq!(lines.len(), 8);
     for (line, expected) in lines.iter().zip([
         "operation=courses status=PASS count=13",
-        "operation=catalog status=PASS count=2 attempted_count=12 session_count=7 live_count=1 replay_count=2 no_replay_count=1 upcoming_count=1 tencent_meeting_count=1 other_count=1 duplicate_name_groups=1 distinct_mapping_matches=true error_counts=business_unavailable:5,unsupported:5",
+        "operation=catalog status=PASS count=2 attempted_count=12 session_count=10 live_count=1 replay_count=2 no_replay_count=1 upcoming_count=1 tencent_meeting_count=1 other_count=4 duplicate_name_groups=1 distinct_mapping_matches=true error_counts=business_unavailable:5,unsupported:5 error_reasons=spoc_mapping.bind_id_missing:5,spoc_mapping.role_teacher_unsupported:5 other_status_values=R9/12:2,R9/invalid:1,invalid/-12:1",
         "operation=replay_session status=PASS count=2 has_teacher=true has_slides=true has_nonzero_offset=true",
         "operation=transcript status=PASS count=1",
         "operation=summary status=PASS has_summary=true keyword_count=1 qa_count=1 chapter_count=0",
@@ -253,7 +280,6 @@ async fn 课堂证据只含聚合字段且媒体错误不影响结论() {
     ] {
         assert!(!output.contains(value));
     }
-    println!("{output}");
 }
 
 #[tokio::test]
@@ -270,6 +296,7 @@ async fn 空目录保留成功映射并标记缺少直播与回放() {
     assert_eq!(lines.len(), 8);
     assert!(lines[1].contains("count=2 attempted_count=2 session_count=0"));
     assert!(lines[1].contains("duplicate_name_groups=1 distinct_mapping_matches=false"));
+    assert!(lines[1].ends_with("error_reasons=none other_status_values=none"));
     for line in &lines[2..=5] {
         assert!(
             line.contains("status=NOT_APPLICABLE") && line.ends_with("reason=no_replay_session")

@@ -9,7 +9,14 @@ fn kcid() -> String {
 #[tokio::test]
 async fn 教师和未开通课程不进入后续请求() {
     for vpn in [false, true] {
-        for role in ["1", "3", "6", "2"] {
+        for (role, reason) in [
+            (json!("1"), "role_teacher_unsupported"),
+            (json!("3"), "role_teacher_unsupported"),
+            (json!("6"), "role_teacher_unsupported"),
+            (json!("2"), "bind_id_missing"),
+            (json!("0"), "role_unsupported"),
+            (json!(2), "role_shape"),
+        ] {
             let mut steps = super::super::files::login(vpn, "fixture");
             let mut map = mapping(vpn, false);
             map[0].1.body = json!({"code":200,"content":role}).to_string().into_bytes();
@@ -34,6 +41,7 @@ async fn 教师和未开通课程不进入后续请求() {
                     ErrorCode::Unsupported
                 }
             );
+            assert_eq!(error.diagnostic().reason.as_deref(), Some(reason));
             assert!(script.0.lock().unwrap().is_empty());
         }
     }
