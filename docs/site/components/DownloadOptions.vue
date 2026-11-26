@@ -1,14 +1,27 @@
 <script setup>
 import { inject, computed } from "vue";
+import { STORES } from "./stores.js";
 const release = inject("release");
 
 const useBhpan = inject("useBhpan", true);
 const props = defineProps({ platform: { type: String, required: true } });
+const store = computed(() => STORES[props.platform]);
 const rows = computed(() => release.value?.platforms[props.platform] ?? []);
 </script>
 
 <template>
-  <ul class="download-options">
+  <ul v-if="store" class="download-options">
+    <li>
+      <div class="info">
+        <strong>{{ store.label }}</strong>
+        <span>{{ store.hint }}</span>
+      </div>
+      <a class="download-button" :href="store.url" target="_blank" rel="noreferrer">
+        前往 {{ store.name }}
+      </a>
+    </li>
+  </ul>
+  <ul v-else class="download-options">
     <li v-for="row in rows" :key="row.name">
       <div class="info">
         <strong>{{ row.label }}</strong>

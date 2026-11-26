@@ -71,11 +71,15 @@ provide('useBhpan', useBhpan)
 
 ## iOS {#ios}
 
-需要 iOS 15 或更高版本，iPhone 和 iPad 都可以使用。iOS 版已上架：[在 App Store 下载 UBAA](https://apps.apple.com/cn/app/ubaa/id6768861821)。
+需要 iOS 15 或更高版本，iPhone 和 iPad 都可以使用。
+
+<DownloadOptions platform="ios" />
 
 ## HarmonyOS {#ohos}
 
-HarmonyOS 版已上架：[在 AppGallery 下载 UBAA](https://appgallery.huawei.com/app/detail?id=cn.edu.ubaa)。
+HarmonyOS 版通过华为应用市场（AppGallery）分发。
+
+<DownloadOptions platform="ohos" />
 
 ## 其他下载
 
