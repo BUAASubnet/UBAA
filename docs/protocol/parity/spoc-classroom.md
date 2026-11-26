@@ -31,7 +31,7 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 
 ### 课堂映射、认证与播放读取（2026-11-26）
 
-**证据来源：**2026-11-26 维护者授权的浏览器只读抓取（Direct + WebVPN）；前端源码 `getToken`（2026-11-26 抓取的 app/0 chunk）；既有 WebVPN Cookie 同步规则（[cgyy.md](cgyy.md) / [auth-session.md L-B](auth-session.md#研讨室门锁逐操作九列)）。[脱敏夹具清单](../../../fixtures/readonly/spoc-classroom/README.md)区分抓包裁剪和按记录构造的样本。
+**证据来源：**2026-11-26 维护者授权的浏览器只读抓取（Direct + WebVPN）；前端源码 `getToken`（2026-11-26 抓取的 app/0 chunk）；既有 WebVPN Cookie 同步规则（[cgyy.md](cgyy.md) / [auth-session.md L-B](auth-session.md#研讨室门锁逐操作九列)）。[脱敏夹具清单](../../../fixtures/readonly/spoc_classroom/README.md)区分抓包裁剪和按记录构造的样本。
 
 - SPOC 课程标识取自 `queryKclb` 的 `content[].kcid`；`kcmc` 仅用于显示。学生签名请求固定空 `type`、`isxs=1`，不调用教师的任务号选择接口。
 - Direct 的含 `auType=cmc` 入口曾返回 `http://yjapi.msa.buaa.edu.cn/…`，再由上游升回 HTTPS。App 从不带 `auType` 的 HTTPS 入口起步，也不接受先降级后升级。
