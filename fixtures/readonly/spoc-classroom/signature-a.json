@@ -1,0 +1,14 @@
+{
+  "code": 200,
+  "msg": "操作成功",
+  "content": {
+    "ktsl_url": "https://yjapi.msa.buaa.edu.cn/coursescheduleapi/v2/bh-university/get-bh-course-url?",
+    "bind_id": "190019011T000000001001",
+    "username": "00000001",
+    "realname": "测试学生",
+    "tenant_code": "21",
+    "timestamp": "1000000001",
+    "signature": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "allow_live": "true"
+  }
+}

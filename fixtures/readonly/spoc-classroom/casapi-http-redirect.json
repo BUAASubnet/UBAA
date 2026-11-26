@@ -1,0 +1,5 @@
+{
+  "status": 302,
+  "headers": {"location": ["http://yjapi.msa.buaa.edu.cn/casapi/index.php?r=auth/login&tenant_code=21&forward=https%3A%2F%2Fclassroom.msa.buaa.edu.cn%2F"]},
+  "body": ""
+}

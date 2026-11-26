@@ -1,0 +1,29 @@
+[
+  {
+    "status": 302,
+    "headers": {
+      "location": ["https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fyjapi.msa.buaa.edu.cn%2Fcasapi%2Findex.php%3Fr%3Dauth%2Flogin%26tenant_code%3D21%26forward%3Dhttps%3A%2F%2Fclassroom.msa.buaa.edu.cn%2F"]
+    },
+    "body": ""
+  },
+  {
+    "status": 302,
+    "headers": {
+      "location": ["https://yjapi.msa.buaa.edu.cn/casapi/index.php?r=auth/login&tenant_code=21&forward=https://classroom.msa.buaa.edu.cn/&ticket=ST-TEST"]
+    },
+    "body": ""
+  },
+  {
+    "status": 302,
+    "headers": {
+      "location": ["https://yjapi.msa.buaa.edu.cn/casapi/index.php?r=auth/login&tenant_code=21&forward=https://classroom.msa.buaa.edu.cn/"],
+      "set-cookie": ["_token=a%3A2%3A%7Bi%3A0%3Bs%3A6%3A%22_token%22%3Bi%3A1%3Bs%3A8%3A%22TEST_JWT%22%3B%7D; Domain=.msa.buaa.edu.cn"]
+    },
+    "body": ""
+  },
+  {
+    "status": 302,
+    "headers": {"location": ["https://classroom.msa.buaa.edu.cn/"]},
+    "body": ""
+  }
+]

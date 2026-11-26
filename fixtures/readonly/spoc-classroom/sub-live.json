@@ -1,0 +1,30 @@
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "course_id": "100002",
+    "sub_id": "200003",
+    "sub_title": "第1周星期日第3,4节",
+    "sub_type": "course_live",
+    "start_at": "1000007200",
+    "end_at": "1000012600",
+    "begin_time": "1000007200",
+    "sub_status": "1",
+    "is_allow_video_drag": "1",
+    "is_allow_speed_up": null,
+    "room_name": "测试教室",
+    "lecturer_name": "测试教师",
+    "is_m3u8": "no",
+    "play_msg": "获取直播信息",
+    "video_list": {},
+    "playurl": {"0": ""},
+    "live_url": {
+      "output": {
+        "m3u8": "https://lmt9.buaa.edu.cn:443/live/_definst_/TEST_TEACHER.stream/playlist.m3u8?auth_key=1000000001-0-0-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "output_student": {
+        "m3u8": "https://lmt9.buaa.edu.cn:443/live/_definst_/TEST_STUDENT.stream/playlist.m3u8?auth_key=1000000002-0-0-ffffffffffffffffffffffffffffffff"
+      }
+    }
+  }
+}
