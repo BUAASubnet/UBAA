@@ -52,6 +52,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   Object? _sessionError;
   ClassroomPlaybackSource? _source;
   VideoPlayback? _playback;
+  VideoPlayback? _openingPlayback;
   Object? _openError;
   var _opening = false;
   double _rate = 1;
@@ -78,7 +79,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     WidgetsBinding.instance.removeObserver(this);
     _openGeneration++;
     _playback?.state.removeListener(_onPlaybackState);
-    unawaited(_playback?.dispose());
+    unawaited((_playback ?? _openingPlayback)?.dispose());
     _teacherPosition.dispose();
     _transcript?.dispose();
     _summary?.dispose();
@@ -180,17 +181,18 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     required bool play,
   }) async {
     final generation = ++_openGeneration;
-    final old = _playback;
-    old?.state.removeListener(_onPlaybackState);
+    final old = _playback ?? _openingPlayback;
+    _playback?.state.removeListener(_onPlaybackState);
+    _openingPlayback = null;
     setState(() {
       _source = source;
       _playback = null;
       _openError = null;
       _opening = _unsupportedReason(source) == null;
     });
-    if (old != null) await old.dispose();
-    if (_unsupportedReason(source) != null || !mounted) return;
     try {
+      if (old != null) await old.dispose();
+      if (!mounted || generation != _openGeneration || !_opening) return;
       final playback = await _capability!.open(
         Uri.parse(source.url),
         startAt: _isLive ? null : startAt,
@@ -199,20 +201,25 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         await playback.dispose();
         return;
       }
-      playback.state.addListener(_onPlaybackState);
+      _openingPlayback = playback;
       if (_rate != 1 && !_isLive) await playback.setRate(_rate);
       if (play) await playback.play();
       if (!mounted || generation != _openGeneration) return;
+      playback.state.addListener(_onPlaybackState);
+      _openingPlayback = null;
       setState(() {
         _playback = playback;
         _opening = false;
       });
     } on Object catch (error) {
       if (!mounted || generation != _openGeneration) return;
+      final failed = _openingPlayback;
+      _openingPlayback = null;
       setState(() {
         _opening = false;
         _openError = error;
       });
+      await failed?.dispose();
     }
   }
 
