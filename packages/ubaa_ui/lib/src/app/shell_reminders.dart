@@ -19,7 +19,7 @@ extension UbaaShellReminders on _UbaaMainShellState {
       term: widget.agenda.term,
       now: (widget.homeClock ?? clock).now(),
       changed: () {
-        if (mounted) _changeNavigation(_publishReminder);
+        if (mounted) _updateShell(_publishReminder);
       },
     ),
   );
@@ -44,14 +44,14 @@ extension UbaaShellReminders on _UbaaMainShellState {
       if (mounted &&
           generation == _accountGeneration &&
           revision == _reminderRevision) {
-        _changeNavigation(() => _reminderSettings = value);
+        _updateShell(() => _reminderSettings = value);
         _publishReminder();
       }
     } on Object {
       if (mounted &&
           generation == _accountGeneration &&
           revision == _reminderRevision)
-        _changeNavigation(() => _reminderError = '提醒设置读取失败');
+        _updateShell(() => _reminderError = '提醒设置读取失败');
     }
   }
 
@@ -60,7 +60,7 @@ extension UbaaShellReminders on _UbaaMainShellState {
     if (save == null) return;
     final before = _reminderSettings, generation = _accountGeneration;
     final revision = ++_reminderRevision;
-    _changeNavigation(() {
+    _updateShell(() {
       _reminderSettings = value;
       _publishReminder();
       _reminderError = null;
@@ -71,7 +71,7 @@ extension UbaaShellReminders on _UbaaMainShellState {
       if (mounted &&
           generation == _accountGeneration &&
           revision == _reminderRevision) {
-        _changeNavigation(() {
+        _updateShell(() {
           _reminderSettings = before;
           _publishReminder();
           _reminderError = '提醒设置保存失败，请重试';

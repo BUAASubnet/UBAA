@@ -1,7 +1,7 @@
 import Foundation
 
 /// 与 Android `WidgetSchedule.kt` 同合同的离线课表投影模型与选择逻辑。
-/// 快照 JSON 版本 1：{version, owner, semesters:[{term, name, updatedAt, weeks:[…]}]}。
+/// 第一版与第二版快照共用周课表字段。
 /// 本文件由 Runner 与 ScheduleWidget 扩展共同编译。
 
 enum ScheduleDisplay {
@@ -133,6 +133,121 @@ struct WidgetSemester {
 struct WidgetSnapshot {
     var owner: String
     var semesters: [WidgetSemester]
+    var horizonEnd: Date?
+    var upNext: [WidgetUpNextSegment]?
+    var today: [WidgetTodaySegment]?
+    var todo: [WidgetTodoSegment]?
+}
+
+protocol WidgetCardSegment: Decodable {
+    var from: Date { get }
+    var hasPayload: Bool { get }
+}
+
+enum WidgetItemKind: String, Decodable {
+    case course, exam, bykc, cgyy, judge, spoc, ygdk, local
+}
+
+struct WidgetCountdown: Decodable {
+    enum Label: String, Decodable {
+        case remaining = "还剩"
+        case until = "还有"
+    }
+
+    let label: Label
+    let target: Date
+}
+
+struct WidgetUpNextSegment: WidgetCardSegment {
+    enum State: String, Decodable { case item, none, partial, termEnd }
+
+    struct Primary: Decodable {
+        let kind: WidgetItemKind
+        let tag: String?
+        let title: String
+        let place: String?
+        let timeText: String
+        let dayText: String
+        let startText: String
+        let endText: String?
+        let startAt: Date?
+        let endAt: Date?
+        let ongoing: Bool
+        let countdown: WidgetCountdown?
+        let extraCount: Int
+        let `private`: Bool
+        let link: String?
+    }
+
+    struct Secondary: Decodable {
+        enum Kind: String, Decodable { case exam, next }
+        let kind: Kind
+        let text: String
+        let `private`: Bool
+        let link: String?
+    }
+
+    let from: Date
+    let state: State
+    let message: String?
+    let primary: Primary?
+    let secondary: Secondary?
+    let cardLink: String?
+
+    var hasPayload: Bool { state == .item ? primary != nil : message != nil }
+}
+
+struct WidgetTodaySegment: WidgetCardSegment {
+    enum State: String, Decodable { case items, none, partial, termEnd }
+
+    struct Row: Decodable {
+        let kind: WidgetItemKind
+        let tag: String?
+        let title: String
+        let place: String?
+        let timeText: String
+        let endText: String?
+        let rangeText: String?
+        let ongoing: Bool
+        let `private`: Bool
+        let link: String?
+    }
+
+    let from: Date
+    let state: State
+    let message: String?
+    let dayLabel: String?
+    let rows: [Row]
+    let dueLine: String?
+    let cardLink: String?
+
+    var hasPayload: Bool { state == .items ? dayLabel != nil && !rows.isEmpty : message != nil }
+}
+
+struct WidgetTodoSegment: WidgetCardSegment {
+    enum State: String, Decodable { case items, empty, noData }
+
+    struct Row: Decodable {
+        let kind: WidgetItemKind
+        let title: String
+        let leftText: String
+        let sub: String
+        let urgent: Bool
+        let `private`: Bool
+        let link: String?
+    }
+
+    let from: Date
+    let state: State
+    let message: String?
+    let smallRow: Row?
+    let smallFooter: String?
+    let mediumRows: [Row]
+    let mediumFooter: String?
+    let staleText: String?
+    let cardLink: String?
+
+    var hasPayload: Bool { state == .items ? smallRow != nil && !mediumRows.isEmpty : message != nil }
 }
 
 struct SelectedWeek {
@@ -183,7 +298,9 @@ enum ScheduleWeekLanes {
 
 enum ScheduleWidgetParser {
     static func parseSnapshot(_ raw: [String: Any]) throws -> WidgetSnapshot {
-        guard (raw["version"] as? Int) == 1 else { throw ScheduleWidgetModelError.invalidFormat }
+        guard let version = raw["version"] as? Int, (1...2).contains(version) else {
+            throw ScheduleWidgetModelError.invalidFormat
+        }
         let owner = try string(raw["owner"], max: 128, allowEmpty: false)
         let terms = (raw["semesters"] as? [[String: Any]]) ?? []
         guard terms.count <= 32 else { throw ScheduleWidgetModelError.invalidFormat }
@@ -267,7 +384,43 @@ enum ScheduleWidgetParser {
         }
         guard Set(semesters.map(\.termCode)).count == semesters.count
         else { throw ScheduleWidgetModelError.invalidFormat }
-        return WidgetSnapshot(owner: owner, semesters: semesters)
+        var snapshot = WidgetSnapshot(owner: owner, semesters: semesters)
+        if version == 2 {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .custom { value in
+                let seconds = try value.singleValueContainer().decode(Int64.self)
+                return Date(timeIntervalSince1970: TimeInterval(seconds))
+            }
+            if let horizon = decode(Date.self, raw["horizonEnd"], with: decoder) {
+                snapshot.horizonEnd = horizon
+                snapshot.upNext = decodeTable(raw["upNext"], before: horizon, with: decoder)
+                snapshot.today = decodeTable(raw["today"], before: horizon, with: decoder)
+                snapshot.todo = decodeTable(raw["todo"], before: horizon, with: decoder)
+            }
+        }
+        return snapshot
+    }
+
+    private static func decode<Value: Decodable>(
+        _ type: Value.Type, _ raw: Any?, with decoder: JSONDecoder
+    ) -> Value? {
+        guard let raw, JSONSerialization.isValidJSONObject([raw]),
+              let data = try? JSONSerialization.data(withJSONObject: raw, options: [.fragmentsAllowed])
+        else { return nil }
+        return try? decoder.decode(type, from: data)
+    }
+
+    private static func decodeTable<Segment: WidgetCardSegment>(
+        _ raw: Any?, before horizon: Date, with decoder: JSONDecoder
+    ) -> [Segment]? {
+        guard let table = decode([Segment].self, raw, with: decoder), !table.isEmpty else { return nil }
+        var previous: Date?
+        for segment in table {
+            guard segment.hasPayload, segment.from < horizon,
+                  previous.map({ $0 < segment.from }) ?? true else { return nil }
+            previous = segment.from
+        }
+        return table
     }
 
     /// 与冻结旧版同序：指定学期、本日覆盖的最新学期、起始日期最新学期。

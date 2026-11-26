@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/widget_row" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:layout_width="48dp" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="end" android:layout_marginEnd="6dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_time" android:includeFontPadding="false" android:textSize="14sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:gravity="end" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_end" android:includeFontPadding="false" android:textSize="10sp" android:textColor="@color/widget_tertiary" android:maxLines="1" android:ellipsize="end" android:gravity="end" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_ongoing" android:includeFontPadding="false" android:textSize="10sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:gravity="end" android:text="@string/widget_ongoing" android:visibility="gone" />
+    </LinearLayout>
+    <FrameLayout android:layout_width="3dp" android:layout_height="match_parent" android:layout_marginEnd="6dp" android:background="@color/widget_accent" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:orientation="vertical" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/widget_tag" android:includeFontPadding="false" android:textSize="10sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:background="@drawable/widget_tag" android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="2dp" android:paddingBottom="2dp" android:layout_marginEnd="4dp" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:id="@+id/widget_item_title" android:includeFontPadding="false" android:textSize="14sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:layout_weight="1" />
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_place" android:includeFontPadding="false" android:textSize="11sp" android:textColor="@color/widget_secondary" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>

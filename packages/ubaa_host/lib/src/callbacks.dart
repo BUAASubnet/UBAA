@@ -117,6 +117,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_disposed && _controller.phase == AppPhase.home) {
         _homeFrameReported = true;
+        if (_pendingWidgetLink case final raw?) {
+          _pendingWidgetLink = null;
+          unawaited(_launchWidgetLink(raw));
+        }
+        unawaited(_takeWidgetLink(cold: true));
         _controller.onHomeFirstFrame();
         _retryPendingRecovery();
       }
@@ -129,6 +134,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final localOwner = _controller.localDataOwnerScope;
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
+      key: _shellKey,
       agendaSchoolRoute: _controller.currentAgendaRoute,
       agenda: AgendaAccess(
         service: _controller.agenda,

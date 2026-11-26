@@ -30,6 +30,20 @@ final class ScheduleWidgetStore {
         case corrupt
     }
 
+    enum ReadState {
+        case missing
+        case unavailable
+        case corrupt
+        case available(WidgetSnapshot)
+
+        var snapshot: WidgetSnapshot? {
+            if case let .available(snapshot) = self { return snapshot }
+            return nil
+        }
+
+        var owner: String? { snapshot?.owner }
+    }
+
     // MARK: - 容器与密钥
 
     private var fileURL: URL? {
@@ -61,11 +75,12 @@ final class ScheduleWidgetStore {
         #if targetEnvironment(simulator)
         // 模拟器无签名 entitlements，访问组不可用；退回容器内密钥文件（仅调试环境）。
         guard let keyURL else { throw StoreError.unavailable }
-        if let data = try? Data(contentsOf: keyURL) {
+        let stored = create ? try? readFile(at: keyURL) : try readFile(at: keyURL)
+        if let data = stored {
             guard data.count == 32 else { throw StoreError.corrupt }
             return SymmetricKey(data: data)
         }
-        guard create else { throw StoreError.unavailable }
+        guard create else { throw StoreError.corrupt }
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
         else { throw StoreError.unavailable }
@@ -83,7 +98,7 @@ final class ScheduleWidgetStore {
             }
             return SymmetricKey(data: data)
         case errSecItemNotFound:
-            guard create else { throw StoreError.unavailable }
+            guard create else { throw StoreError.corrupt }
             var bytes = [UInt8](repeating: 0, count: 32)
             guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
             else { throw StoreError.unavailable }
@@ -120,10 +135,19 @@ final class ScheduleWidgetStore {
 
     // MARK: - 读写
 
+    private func readFile(at url: URL) throws -> Data? {
+        do {
+            return try Data(contentsOf: url)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
+            return nil
+        } catch {
+            throw StoreError.unavailable
+        }
+    }
+
     private func readLocked() throws -> [String: Any]? {
-        guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path)
-        else { return nil }
-        let bytes = try Data(contentsOf: fileURL)
+        guard let fileURL else { throw StoreError.unavailable }
+        guard let bytes = try readFile(at: fileURL) else { return nil }
         guard bytes.count >= 29, bytes.first == 1, bytes.count <= limit + 64
         else { throw StoreError.corrupt }
         let nonce = try AES.GCM.Nonce(data: bytes[1..<13])
@@ -191,15 +215,20 @@ final class ScheduleWidgetStore {
         }
     }
 
-    /// 读取 `{owner, snapshot?}`；快照校验失败按无快照处理。
-    func readState() -> (owner: String?, snapshot: WidgetSnapshot?) {
+    func readState() -> ReadState {
         queue.sync {
-            guard let state = try? readLocked(),
-                  let raw = state["snapshot"] as? [String: Any],
-                  let snapshot = try? ScheduleWidgetParser.parseSnapshot(raw),
-                  state["owner"] as? String == snapshot.owner
-            else { return (nil, nil) }
-            return (snapshot.owner, snapshot)
+            do {
+                guard let state = try readLocked() else { return .missing }
+                guard let raw = state["snapshot"] as? [String: Any],
+                      let snapshot = try? ScheduleWidgetParser.parseSnapshot(raw),
+                      state["owner"] as? String == snapshot.owner
+                else { return .corrupt }
+                return .available(snapshot)
+            } catch StoreError.unavailable {
+                return .unavailable
+            } catch {
+                return .corrupt
+            }
         }
     }
 }

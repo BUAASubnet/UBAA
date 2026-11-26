@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/widget_root" android:orientation="vertical" android:background="@drawable/widget_background" android:padding="@dimen/widget_padding">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/widget_content" android:orientation="vertical" android:visibility="gone" android:gravity="center_vertical">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_time" android:includeFontPadding="false" android:textSize="22sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:layout_marginBottom="4dp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <FrameLayout android:layout_width="3dp" android:layout_height="match_parent" android:layout_marginEnd="6dp" android:background="@color/widget_accent" />
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:orientation="vertical" android:layout_weight="1">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_place" android:includeFontPadding="false" android:textSize="15sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_item_title" android:includeFontPadding="false" android:textSize="13sp" android:textColor="@color/widget_secondary" android:maxLines="1" android:ellipsize="end" android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_message" android:includeFontPadding="false" android:textSize="15sp" android:textColor="@color/widget_ink" android:maxLines="2" android:ellipsize="end" android:textStyle="bold" android:text="@string/widget_missing" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_hint" android:includeFontPadding="false" android:textSize="12sp" android:textColor="@color/widget_secondary" android:maxLines="2" android:ellipsize="end" android:text="@string/widget_load_schedule" android:layout_marginTop="4dp" />
+</LinearLayout>

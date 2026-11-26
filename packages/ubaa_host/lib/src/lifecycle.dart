@@ -170,6 +170,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   ScheduleWidgetPublisher? _scheduleWidgetPublisher;
+  final _shellKey = GlobalKey<WidgetNavigationState>();
+  WidgetLaunchChannel? _widgetLaunch;
+  String? _widgetColdOwner;
+  String? _pendingWidgetLink;
   void _checkHomeGrades() {
     if (_disposed ||
         !_controller.homeVisible ||
@@ -320,6 +324,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _scheduleWidgetPublisher = ScheduleWidgetPublisher(widgetGateway);
       _controller.addListener(_syncScheduleWidgets);
     }
+    _widgetLaunch =
+        widget.widgetLaunchChannel ??
+        (Platform.isIOS || Platform.isAndroid ? WidgetLaunchChannel() : null);
+    _widgetLaunch?.listen(_launchWidgetLink);
+    if (_widgetLaunch != null) _controller.addListener(_syncWidgetLaunchOwner);
     _networkChanges =
         widget.networkChanges ??
         (widget.backend == null && widget.backendFactory == null
@@ -343,6 +352,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   @override
   void dispose() {
     _disposed = true;
+    _widgetLaunch?.dispose();
     _appServiceTimer?.cancel();
     _updateReminderTimer?.cancel();
     _crashHandlers?.dispose();
@@ -360,6 +370,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_syncAppServicePopup);
     unawaited(_updatePromptSubscription?.cancel());
     _controller.removeListener(_syncScheduleWidgets);
+    _controller.removeListener(_syncWidgetLaunchOwner);
     _scheduleWidgetPublisher?.dispose();
     _gradeWatch.dispose();
     _controller.dispose();
@@ -368,6 +379,14 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_wasBackgrounded &&
+        (state == AppLifecycleState.hidden ||
+            state == AppLifecycleState.paused) &&
+        _readyController?.phase == AppPhase.home) {
+      _publishScheduleWidgets(immediate: true);
+    }
+    if (state == AppLifecycleState.resumed && _widgetColdOwner != null)
+      unawaited(_takeWidgetLink());
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {

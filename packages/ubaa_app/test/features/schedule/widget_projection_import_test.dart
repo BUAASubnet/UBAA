@@ -4,6 +4,41 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('日程查询失败保留周课表，迟到日程结果丢弃', () async {
+    var current = true;
+    Future<ScheduleWidgetSnapshot> read(bool supersede) =>
+        readScheduleWidgetSnapshot(
+          backend: _Cache(),
+          owner: 'owner',
+          policy: RoutePolicy.webvpn,
+          agendaTerm: 'term',
+          now: DateTime.utc(2026, 9, 28, 20),
+          isCurrent: () => current,
+          queryAgenda: (weeks, route, day) async {
+            expect(weeks.map((week) => week.number), [1, 2]);
+            expect(day, DateTime.utc(2026, 9, 29));
+            if (supersede) {
+              current = false;
+              return AgendaQueryResult(entries: [], sources: []);
+            }
+            throw const AgendaException(AgendaFailure.inactive);
+          },
+        );
+    final data = (await read(false)).toJson();
+    expect(data['semesters'], hasLength(1));
+    for (final key in ['upNext', 'today', 'todo'])
+      expect(data, containsPair(key, null));
+    await expectLater(
+      read(true),
+      throwsA(
+        isA<BackendException>().having(
+          (e) => e.code,
+          'code',
+          UbaaErrorCode.operationConflict,
+        ),
+      ),
+    );
+  });
   test('组件从完整本地学期读取空周和原课程，不携带秘密或写资格', () async {
     final backend = _Cache();
     final value = await readScheduleWidgetSnapshot(
@@ -13,6 +48,10 @@ void main() {
       isCurrent: () => true,
     );
     expect(value.semesters, hasLength(1));
+    expect(value.toJson()['version'], 2);
+    for (final name in ['upNext', 'today', 'todo']) {
+      expect(value.toJson(), containsPair(name, null));
+    }
     expect(value.semesters.single['name'], '合成学期');
     final weeks = value.semesters.single['weeks']! as List;
     expect(weeks, hasLength(2));

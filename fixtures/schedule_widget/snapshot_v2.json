@@ -1,0 +1,1197 @@
+{
+  "version": 2,
+  "owner": "虚构 账号",
+  "semesters": [
+    {
+      "term": "合成学期",
+      "name": "合成秋季学期",
+      "updatedAt": "2026-11-15T12:30:00.000Z",
+      "weeks": [
+        {
+          "number": 1,
+          "name": "第一周",
+          "start": "2026-11-16",
+          "end": "2026-11-22",
+          "courses": [
+            {
+              "name": "高等数学",
+              "day": 1,
+              "begin": 1,
+              "end": 2,
+              "startTime": "08:00",
+              "endTime": "09:35",
+              "place": "主楼 A201",
+              "weeksAndTeachers": null
+            }
+          ],
+          "times": [
+            {
+              "section": 1,
+              "start": "08:00",
+              "end": "08:45"
+            },
+            {
+              "section": 2,
+              "start": "08:55",
+              "end": "09:35"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "dayStart": 1794758400,
+  "horizonEnd": 1795968000,
+  "upNext": [
+    {
+      "from": 1794758400,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "高等数学",
+        "place": "主楼 A201",
+        "timeText": "8:00",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794787200,
+        "endAt": 1794792900,
+        "ongoing": false,
+        "countdown": null,
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794783600,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "高等数学",
+        "place": "主楼 A201",
+        "timeText": "8:00",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794787200,
+        "endAt": 1794792900,
+        "ongoing": false,
+        "countdown": {
+          "label": "还有",
+          "target": 1794787200
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794787200,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "高等数学",
+        "place": "主楼 A201",
+        "timeText": "8:00–9:35",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794787200,
+        "endAt": 1794792900,
+        "ongoing": true,
+        "countdown": {
+          "label": "还剩",
+          "target": 1794792900
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "secondary": {
+        "kind": "next",
+        "text": "下一节 10:10 教一 B305",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794792900,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "大学英语",
+        "place": "教一 B305",
+        "timeText": "10:10",
+        "dayText": "",
+        "startText": "10:10",
+        "endText": "11:45",
+        "startAt": 1794795000,
+        "endAt": 1794800700,
+        "ongoing": false,
+        "countdown": {
+          "label": "还有",
+          "target": 1794795000
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794795000,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "大学英语",
+        "place": "教一 B305",
+        "timeText": "10:10–11:45",
+        "dayText": "",
+        "startText": "10:10",
+        "endText": "11:45",
+        "startAt": 1794795000,
+        "endAt": 1794800700,
+        "ongoing": true,
+        "countdown": {
+          "label": "还剩",
+          "target": 1794800700
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+      },
+      "secondary": {
+        "kind": "next",
+        "text": "下一节 14:00 研讨室 305",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794800700,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "cgyy",
+        "tag": "预约",
+        "title": "研讨室预约",
+        "place": "研讨室 305",
+        "timeText": "14:00",
+        "dayText": "",
+        "startText": "14:00",
+        "endText": "16:00",
+        "startAt": 1794808800,
+        "endAt": 1794816000,
+        "ongoing": false,
+        "countdown": null,
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+    },
+    {
+      "from": 1794805200,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "cgyy",
+        "tag": "预约",
+        "title": "研讨室预约",
+        "place": "研讨室 305",
+        "timeText": "14:00",
+        "dayText": "",
+        "startText": "14:00",
+        "endText": "16:00",
+        "startAt": 1794808800,
+        "endAt": 1794816000,
+        "ongoing": false,
+        "countdown": {
+          "label": "还有",
+          "target": 1794808800
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+    },
+    {
+      "from": 1794808800,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "cgyy",
+        "tag": "预约",
+        "title": "研讨室预约",
+        "place": "研讨室 305",
+        "timeText": "14:00–16:00",
+        "dayText": "",
+        "startText": "14:00",
+        "endText": "16:00",
+        "startAt": 1794808800,
+        "endAt": 1794816000,
+        "ongoing": true,
+        "countdown": {
+          "label": "还剩",
+          "target": 1794816000
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+      },
+      "secondary": {
+        "kind": "next",
+        "text": "下一节 19:00 学术交流厅",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+    },
+    {
+      "from": 1794816000,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "bykc",
+        "tag": "博雅",
+        "title": "博雅讲座",
+        "place": "学术交流厅",
+        "timeText": "19:00",
+        "dayText": "",
+        "startText": "19:00",
+        "endText": "21:00",
+        "startAt": 1794826800,
+        "endAt": 1794834000,
+        "ongoing": false,
+        "countdown": null,
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+    },
+    {
+      "from": 1794823200,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "bykc",
+        "tag": "博雅",
+        "title": "博雅讲座",
+        "place": "学术交流厅",
+        "timeText": "19:00",
+        "dayText": "",
+        "startText": "19:00",
+        "endText": "21:00",
+        "startAt": 1794826800,
+        "endAt": 1794834000,
+        "ongoing": false,
+        "countdown": {
+          "label": "还有",
+          "target": 1794826800
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+    },
+    {
+      "from": 1794826800,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "bykc",
+        "tag": "博雅",
+        "title": "博雅讲座",
+        "place": "学术交流厅",
+        "timeText": "19:00–21:00",
+        "dayText": "",
+        "startText": "19:00",
+        "endText": "21:00",
+        "startAt": 1794826800,
+        "endAt": 1794834000,
+        "ongoing": true,
+        "countdown": {
+          "label": "还剩",
+          "target": 1794834000
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+    },
+    {
+      "from": 1794834000,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "线性代数",
+        "place": "主楼 A201",
+        "timeText": "明天 8:00",
+        "dayText": "明天",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794873600,
+        "endAt": 1794879300,
+        "ongoing": false,
+        "countdown": null,
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+      },
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794844800,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "线性代数",
+        "place": "主楼 A201",
+        "timeText": "8:00",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794873600,
+        "endAt": 1794879300,
+        "ongoing": false,
+        "countdown": null,
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+      },
+      "secondary": {
+        "kind": "exam",
+        "text": "今天有考试 · 时间待定 · 考场待定",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794870000,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "线性代数",
+        "place": "主楼 A201",
+        "timeText": "8:00",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794873600,
+        "endAt": 1794879300,
+        "ongoing": false,
+        "countdown": {
+          "label": "还有",
+          "target": 1794873600
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+      },
+      "secondary": {
+        "kind": "exam",
+        "text": "今天有考试 · 时间待定 · 考场待定",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794873600,
+      "state": "item",
+      "message": null,
+      "primary": {
+        "kind": "course",
+        "tag": null,
+        "title": "线性代数",
+        "place": "主楼 A201",
+        "timeText": "8:00–9:35",
+        "dayText": "",
+        "startText": "8:00",
+        "endText": "9:35",
+        "startAt": 1794873600,
+        "endAt": 1794879300,
+        "ongoing": true,
+        "countdown": {
+          "label": "还剩",
+          "target": 1794879300
+        },
+        "extraCount": 0,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+      },
+      "secondary": {
+        "kind": "exam",
+        "text": "今天有考试 · 时间待定 · 考场待定",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794879300,
+      "state": "termEnd",
+      "message": "本学期课程已结束",
+      "primary": null,
+      "secondary": {
+        "kind": "exam",
+        "text": "今天有考试 · 时间待定 · 考场待定",
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=home"
+    },
+    {
+      "from": 1794931200,
+      "state": "termEnd",
+      "message": "本学期课程已结束",
+      "primary": null,
+      "secondary": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=home"
+    }
+  ],
+  "today": [
+    {
+      "from": 1794758400,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "高等数学",
+          "place": "主楼 A201",
+          "timeText": "8:00",
+          "endText": "9:35",
+          "rangeText": "8:00–9:35",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "大学英语",
+          "place": "教一 B305",
+          "timeText": "10:10",
+          "endText": "11:45",
+          "rangeText": "10:10–11:45",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794787200,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "高等数学",
+          "place": "主楼 A201",
+          "timeText": "8:00",
+          "endText": "9:35",
+          "rangeText": "8:00–9:35",
+          "ongoing": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "大学英语",
+          "place": "教一 B305",
+          "timeText": "10:10",
+          "endText": "11:45",
+          "rangeText": "10:10–11:45",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794792900,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "大学英语",
+          "place": "教一 B305",
+          "timeText": "10:10",
+          "endText": "11:45",
+          "rangeText": "10:10–11:45",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794795000,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "大学英语",
+          "place": "教一 B305",
+          "timeText": "10:10",
+          "endText": "11:45",
+          "rangeText": "10:10–11:45",
+          "ongoing": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+        },
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794800700,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794808800,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "cgyy",
+          "tag": "预约",
+          "title": "研讨室预约",
+          "place": "研讨室 305",
+          "timeText": "14:00",
+          "endText": "16:00",
+          "rangeText": "14:00–16:00",
+          "ongoing": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=cgyy&view=cgyyOrders"
+        },
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794816000,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": "今天 1 项截止",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794819600,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794826800,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "bykc",
+          "tag": "博雅",
+          "title": "博雅讲座",
+          "place": "学术交流厅",
+          "timeText": "19:00",
+          "endText": "21:00",
+          "rangeText": "19:00–21:00",
+          "ongoing": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=bykc&view=bykcDetail&courseId=7"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-16"
+    },
+    {
+      "from": 1794834000,
+      "state": "items",
+      "message": null,
+      "dayLabel": "明天",
+      "rows": [
+        {
+          "kind": "exam",
+          "tag": "考试",
+          "title": "合成考试",
+          "place": "考场待定",
+          "timeText": "待定",
+          "endText": null,
+          "rangeText": null,
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "线性代数",
+          "place": "主楼 A201",
+          "timeText": "8:00",
+          "endText": "9:35",
+          "rangeText": "8:00–9:35",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794844800,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "exam",
+          "tag": "考试",
+          "title": "合成考试",
+          "place": "考场待定",
+          "timeText": "待定",
+          "endText": null,
+          "rangeText": null,
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "线性代数",
+          "place": "主楼 A201",
+          "timeText": "8:00",
+          "endText": "9:35",
+          "rangeText": "8:00–9:35",
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794873600,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "exam",
+          "tag": "考试",
+          "title": "合成考试",
+          "place": "考场待定",
+          "timeText": "待定",
+          "endText": null,
+          "rangeText": null,
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "course",
+          "tag": null,
+          "title": "线性代数",
+          "place": "主楼 A201",
+          "timeText": "8:00",
+          "endText": "9:35",
+          "rangeText": "8:00–9:35",
+          "ongoing": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794879300,
+      "state": "items",
+      "message": null,
+      "dayLabel": "今天",
+      "rows": [
+        {
+          "kind": "exam",
+          "tag": "考试",
+          "title": "合成考试",
+          "place": "考场待定",
+          "timeText": "待定",
+          "endText": null,
+          "rangeText": null,
+          "ongoing": false,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        }
+      ],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=schedule&date=2026-11-17"
+    },
+    {
+      "from": 1794931200,
+      "state": "termEnd",
+      "message": "本学期课程已结束",
+      "dayLabel": null,
+      "rows": [],
+      "dueLine": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=home"
+    }
+  ],
+  "todo": [
+    {
+      "from": 1794758400,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "exam",
+        "title": "合成考试",
+        "leftText": "明天",
+        "sub": "11-17 时间待定 · 考场待定",
+        "urgent": true,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "smallFooter": "还有 2 项",
+      "mediumRows": [
+        {
+          "kind": "exam",
+          "title": "合成考试",
+          "leftText": "明天",
+          "sub": "11-17 时间待定 · 考场待定",
+          "urgent": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "judge",
+          "title": "合成作业",
+          "leftText": "今天 17:00",
+          "sub": "希冀作业",
+          "urgent": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=judge&view=judgeDetail&courseId=%E8%AF%BE%E7%A8%8B%E7%94%B2&assignmentId=%E4%BD%9C%E4%B8%9A%E7%94%B2"
+        },
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "周四 19:00",
+          "sub": "待办",
+          "urgent": false,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1794819600,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "exam",
+        "title": "合成考试",
+        "leftText": "明天",
+        "sub": "11-17 时间待定 · 考场待定",
+        "urgent": true,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "smallFooter": "还有 1 项",
+      "mediumRows": [
+        {
+          "kind": "exam",
+          "title": "合成考试",
+          "leftText": "明天",
+          "sub": "11-17 时间待定 · 考场待定",
+          "urgent": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "周四 19:00",
+          "sub": "待办",
+          "urgent": false,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": null,
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1794832200,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "exam",
+        "title": "合成考试",
+        "leftText": "明天",
+        "sub": "11-17 时间待定 · 考场待定",
+        "urgent": true,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "smallFooter": "还有 1 项",
+      "mediumRows": [
+        {
+          "kind": "exam",
+          "title": "合成考试",
+          "leftText": "明天",
+          "sub": "11-17 时间待定 · 考场待定",
+          "urgent": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "周四 19:00",
+          "sub": "待办",
+          "urgent": false,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": "截至 昨天 20:30",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1794844800,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "exam",
+        "title": "合成考试",
+        "leftText": "今天",
+        "sub": "11-17 时间待定 · 考场待定",
+        "urgent": true,
+        "private": false,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+      },
+      "smallFooter": "还有 1 项",
+      "mediumRows": [
+        {
+          "kind": "exam",
+          "title": "合成考试",
+          "leftText": "今天",
+          "sub": "11-17 时间待定 · 考场待定",
+          "urgent": true,
+          "private": false,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=feature&feature=exam&view=examArranged&term=%E5%90%88%E6%88%90%E5%AD%A6%E6%9C%9F"
+        },
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "周四 19:00",
+          "sub": "待办",
+          "urgent": false,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": "截至 11-15 20:30",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1794931200,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "local",
+        "title": "合成待办",
+        "leftText": "明天 19:00",
+        "sub": "待办",
+        "urgent": false,
+        "private": true,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+      },
+      "smallFooter": null,
+      "mediumRows": [
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "明天 19:00",
+          "sub": "待办",
+          "urgent": false,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": "截至 11-15 20:30",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1795017600,
+      "state": "items",
+      "message": null,
+      "smallRow": {
+        "kind": "local",
+        "title": "合成待办",
+        "leftText": "今天 19:00",
+        "sub": "待办",
+        "urgent": true,
+        "private": true,
+        "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+      },
+      "smallFooter": null,
+      "mediumRows": [
+        {
+          "kind": "local",
+          "title": "合成待办",
+          "leftText": "今天 19:00",
+          "sub": "待办",
+          "urgent": true,
+          "private": true,
+          "link": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agenda&date=2026-11-19"
+        }
+      ],
+      "mediumFooter": null,
+      "staleText": "截至 11-15 20:30",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    },
+    {
+      "from": 1795086000,
+      "state": "empty",
+      "message": "近期没有待办",
+      "smallRow": null,
+      "smallFooter": null,
+      "mediumRows": [],
+      "mediumFooter": null,
+      "staleText": "截至 11-15 20:30",
+      "cardLink": "ubaa://widget/open?owner=%E8%99%9A%E6%9E%84+%E8%B4%A6%E5%8F%B7&target=agendaTodo"
+    }
+  ]
+}

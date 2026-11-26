@@ -41,23 +41,27 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".widgets.ScheduleWidgetActivity" android:exported="false" android:label="离线课表" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
-        <receiver android:name=".widgets.ScheduleWidgetProvider" android:exported="false" android:label="UBAA 周课表">
+        <receiver android:name=".widgets.ScheduleWidgetProvider" android:exported="false" android:label="@string/widget_week">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_widget_info" />
         </receiver>
-        <receiver android:name=".widgets.TodayScheduleWidgetProvider" android:exported="false" android:label="UBAA 今日课程">
+        <receiver android:name=".widgets.TodayScheduleWidgetProvider" android:exported="false" android:label="@string/widget_up_next">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_up_next_info" />
         </receiver>
-        <receiver android:name=".widgets.UpcomingScheduleWidgetProvider" android:exported="false" android:label="UBAA 未来三天">
+        <receiver android:name=".widgets.UpcomingScheduleWidgetProvider" android:exported="false" android:label="@string/widget_today">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_info" />
+        </receiver>
+        <receiver android:name=".widgets.TodoWidgetProvider" android:exported="false" android:label="@string/widget_todo">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_todo_info" />
         </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

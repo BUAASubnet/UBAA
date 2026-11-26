@@ -201,43 +201,12 @@ HomeTodoProjection bridgeHomeTodoProjection(
       now: homeCampusTime(request.now),
       navigation: row.school == null
           ? null
-          : _navigation(row.school!.navigation),
+          : agendaNavigation(fromAgendaNavigation(row.school!.navigation)),
       signinAction: row.school == null
           ? null
           : _signinAction(row.school!, request),
     ),
 ], overlayFailure: overlayFailure);
-
-FeatureReadNavigation _navigation(BridgeAgendaNavigation n) {
-  final feature = FeatureId.values.byName(n.feature.name);
-  final query = switch (n.feature) {
-    BridgeAgendaFeature.bykc => FeatureQuery(
-      view: FeatureQueryView.bykcDetail,
-      courseId: '${n.bykcCourseId}',
-    ),
-    BridgeAgendaFeature.spoc => FeatureQuery(
-      view: FeatureQueryView.spocDetail,
-      assignmentId: n.assignmentId,
-    ),
-    BridgeAgendaFeature.judge => FeatureQuery(
-      view: FeatureQueryView.judgeDetail,
-      courseId: n.courseId,
-      assignmentId: n.assignmentId,
-    ),
-    BridgeAgendaFeature.exam => FeatureQuery(
-      view: FeatureQueryView.examArranged,
-      term: n.term?.isEmpty == true ? null : n.term,
-    ),
-    BridgeAgendaFeature.signin => const FeatureQuery(
-      view: FeatureQueryView.signinPending,
-    ),
-    BridgeAgendaFeature.cgyy => const FeatureQuery(
-      view: FeatureQueryView.cgyyOrders,
-    ),
-    _ => const FeatureQuery(),
-  };
-  return FeatureReadNavigation(feature: feature, query: query);
-}
 
 SigninPerformAction? _signinAction(
   BridgeSchoolAgendaItem item,

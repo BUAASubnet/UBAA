@@ -2,4 +2,12 @@
 <resources>
     <!-- 与 Flutter 主题浅色 surface 一致。 -->
     <color name="launch_background">#FCFDFF</color>
+    <color name="widget_canvas">#ECF3FB</color>
+    <color name="widget_ink">#1C293B</color>
+    <color name="widget_secondary">#52687F</color>
+    <color name="widget_tertiary">#B852687F</color>
+    <color name="widget_accent">#256EDC</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <color name="widget_wash">#1F256EDC</color>
+    <color name="widget_tag_wash">#24256EDC</color>
 </resources>

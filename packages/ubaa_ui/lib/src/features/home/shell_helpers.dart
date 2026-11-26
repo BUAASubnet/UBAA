@@ -2,6 +2,8 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:flutter/material.dart';
 import '../../shared/feedback.dart';
 
+export 'package:ubaa_domain/ubaa_domain.dart' show agendaRoute;
+
 String? homeSyncNotice(HomeState? home) {
   if (home == null) return null;
   if (home.offline) return '离线，显示已保存数据';
@@ -138,21 +140,6 @@ FeatureReadNavigation gradeNoticeTarget(GradeScoreNotice notice) =>
       feature: FeatureId.grades,
       query: FeatureQuery(term: notice.termCode),
     );
-ConnectionMode agendaRoute(
-  RoutePolicy policy,
-  List<ConnectionMode> active, {
-  ConnectionMode? schoolRoute,
-}) => switch (policy) {
-  RoutePolicy.direct => ConnectionMode.direct,
-  RoutePolicy.webvpn => ConnectionMode.webvpn,
-  RoutePolicy.auto =>
-    schoolRoute ??
-        (active.contains(ConnectionMode.direct)
-            ? ConnectionMode.direct
-            : active.contains(ConnectionMode.webvpn)
-            ? ConnectionMode.webvpn
-            : ConnectionMode.direct),
-};
 
 /// 体育课决定默认提醒，用户手动选择优先。
 YgdkReminderSettings effectiveYgdkReminder(

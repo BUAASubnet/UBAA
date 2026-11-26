@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'package:clock/clock.dart';
+import '../agenda/flow_test.dart' show opened;
+import '../agenda/support.dart';
+import '../agenda/view/view_modes_test.dart' show at;
 import '../support/home_shell_harness.dart';
 import '../support/home_todos.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +13,187 @@ import 'package:ubaa_ui/src/app/home.dart' show HomeView;
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 
 void main() {
+  for (final tab in [UiDestination.home, UiDestination.agenda]) {
+    testWidgets('${tab.label}点击课程保留学期和周次', (tester) async {
+      final navigation = AgendaNavigation(
+        feature: AgendaFeature.schedule,
+        term: '合成学期',
+        week: 3,
+      );
+      final item = SchoolAgendaItem(
+        key: SchoolAgendaKey(source: 'schedule', upstreamId: 'synthetic'),
+        timing: AgendaTiming(
+          kind: AgendaTimingKind.period,
+          start: at(5, 10),
+          end: at(5, 11),
+        ),
+        sortTime: at(5, 10),
+        title: '合成课表课程',
+        subtitle: '合成地点',
+        statusLabel: '',
+        upstreamStatus: AgendaUpstreamStatus(
+          feature: AgendaFeature.schedule,
+          completed: false,
+        ),
+        navigation: navigation,
+        homeTodo: true,
+      );
+      final service = await opened(MemoryAgenda()..school.add(item));
+      final queries = <FeatureQuery>[];
+      await mount(
+        tester,
+        tab: tab,
+        queries: queries,
+        service: service,
+        homeClock: Clock.fixed(DateTime.utc(2026, 11, 5, 1)),
+        project: (request) async => HomeTodoProjection([
+          formatHomeTodo(
+            AgendaEntry(
+              school: item,
+              timing: item.timing,
+              sortTime: item.sortTime,
+              completed: false,
+              hidden: false,
+              soon: true,
+            ),
+            now: homeCampusTime(request.now),
+            navigation: agendaNavigation(navigation),
+          ),
+        ]),
+      );
+      final course = find.text(item.title).hitTestable();
+      await tester.tap(course);
+      if (tab == UiDestination.agenda) {
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('查看原页面'));
+      }
+      await tester.pump();
+      expect(queries.first.view, FeatureQueryView.summary);
+      expect(queries.first.term, navigation.term);
+      expect(queries.first.week, navigation.week);
+    });
+  }
+  testWidgets('组件日程日期只使用一次，切回日程时显示今天', (tester) async {
+    await mount(tester, homeClock: Clock.fixed(DateTime.utc(2026, 11, 16, 1)));
+    final shell = tester.state<WidgetNavigationState>(
+      find.byType(UbaaMainShell),
+    );
+    final date = DateTime.utc(2026, 11, 20);
+    await shell.openWidget(
+      WidgetLaunch('agenda', date: date),
+      (_) async => null,
+      () => true,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.state<AgendaViewState>(find.byType(AgendaView)).focusDate,
+      date,
+    );
+    for (final tab in [UiDestination.study, UiDestination.agenda]) {
+      await tester.tap(find.byType(NavigationDestination).at(tab.index));
+      await tester.pumpAndSettle();
+    }
+    expect(
+      tester.state<AgendaViewState>(find.byType(AgendaView)).focusDate,
+      DateTime.utc(2026, 11, 16),
+    );
+  });
+  testWidgets('组件查周未返回时切页，迟到的结果不改变当前页面', (tester) async {
+    final queries = <FeatureQuery>[];
+    await mount(tester, queries: queries);
+    final shell = tester.state<WidgetNavigationState>(
+      find.byType(UbaaMainShell),
+    );
+    final week = Completer<WeekPresentation?>();
+    final pending = shell.openWidget(
+      WidgetLaunch('schedule', date: DateTime.utc(2026, 11, 16)),
+      (_) => week.future,
+      () => true,
+    );
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.study.index),
+    );
+    await tester.pumpAndSettle();
+    week.complete(
+      const WeekPresentation(
+        requestTerm: '合成学期',
+        responseTerm: '合成学期',
+        number: 3,
+        current: false,
+        startDate: '2026-11-16',
+        endDate: '2026-11-22',
+      ),
+    );
+    await pending;
+    await tester.pump();
+    expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
+    expect(queries, isEmpty);
+  });
+  testWidgets('日程隐藏时不因组件日期查询，显示后定位并关闭搜索', (tester) async {
+    final backend = MemoryAgenda();
+    final service = await opened(backend);
+    final date = DateTime.utc(2026, 11, 20);
+    Future<void> render({required bool visible, DateTime? initialDate}) =>
+        tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AgendaView(
+                service: service,
+                scopeKey: 1,
+                route: ConnectionMode.direct,
+                term: '',
+                now: DateTime.utc(2026, 11, 16),
+                visible: visible,
+                initialDate: initialDate,
+                onOpenSchool: (_) {},
+              ),
+            ),
+          ),
+        );
+    await render(visible: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('搜索日程'));
+    await tester.pumpAndSettle();
+    final state = tester.state<AgendaViewState>(find.byType(AgendaView));
+    expect(state.searchVisible, isTrue);
+    final previous = backend.lastQuery;
+    await render(visible: false, initialDate: date);
+    expect(backend.lastQuery, same(previous));
+    await render(visible: true, initialDate: date);
+    expect(state.focusDate, date);
+    expect(state.searchVisible, isFalse);
+  });
+  testWidgets('组件日程定位和查看全部待办复用现有页面', (tester) async {
+    await mount(tester);
+    final shell = tester.state<WidgetNavigationState>(
+      find.byType(UbaaMainShell),
+    );
+    final date = DateTime.utc(2026, 11, 20);
+    await shell.openWidget(
+      WidgetLaunch('agenda', date: date),
+      (_) async => null,
+      () => true,
+    );
+    await tester.pumpAndSettle();
+    final agenda = tester.state<AgendaViewState>(find.byType(AgendaView));
+    expect(agenda.focusDate, date);
+    expect(agenda.todos, false);
+    await shell.openWidget(
+      const WidgetLaunch('agendaTodo'),
+      (_) async => null,
+      () => true,
+    );
+    await tester.pumpAndSettle();
+    expect(agenda.todos, true);
+    await shell.openWidget(
+      WidgetLaunch('agenda', date: date),
+      (_) async => null,
+      () => true,
+    );
+    await tester.pumpAndSettle();
+    expect(agenda.focusDate, date);
+    expect(agenda.todos, false);
+  });
   for (final inset in [24.0, 34.0, 48.0]) {
     testWidgets('底栏完整避开 $inset 像素系统导航区', (tester) async {
       tester.view.padding = FakeViewPadding(bottom: inset);
@@ -155,6 +341,13 @@ void main() {
       ),
     );
     await tester.drag(find.byType(PageView), const Offset(-350, 0));
+    await tester
+        .state<WidgetNavigationState>(find.byType(UbaaMainShell))
+        .openWidget(
+          WidgetLaunch('schedule', date: DateTime.utc(2026, 11, 16)),
+          (_) async => fail('写入期间不读取周索引'),
+          () => true,
+        );
     await tester.pumpAndSettle();
     await tester.tap(
       find.byType(NavigationDestination).at(UiDestination.campus.index),
@@ -278,6 +471,9 @@ Future<void> mount(
   String username = 'synthetic',
   WriteState writeState = const WriteState.idle(),
   List<FeatureQuery>? queries,
+  AgendaService? service,
+  Clock? homeClock,
+  HomeTodoReader? project,
   ValueChanged<RoutePolicy>? onRoutePolicyChanged,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -288,10 +484,12 @@ Future<void> mount(
     MaterialApp(
       theme: UbaaTheme.light(),
       home: HomeShellHarness(
-        project: homeTodoFixture,
+        project: project ?? homeTodoFixture,
         child: UbaaMainShell(
           user: UserSummary(username: username),
           initialDestination: tab,
+          agenda: AgendaAccess(service: service, term: ''),
+          homeClock: homeClock,
           writeState: writeState,
           snapshots: {
             for (final id in FeatureId.values)

@@ -1,9 +1,6 @@
 import SwiftUI
 import WidgetKit
 
-// 主屏：主题色只管底板、今天和状态；课程按课名分色，色相与应用内课表一致。
-// 渲染管线不能横向滚动，竖向 ScrollView 会画出裁剪诊断带，近日列表因此固定三行。
-
 private struct SchedulePaletteKey: EnvironmentKey {
     static let defaultValue = SchedulePalette.resolve(
         theme: .ocean, scheme: .light, accented: false)
@@ -34,7 +31,7 @@ extension View {
 }
 
 @available(iOS 16.0, *)
-private func scheduleAccessory(_ family: WidgetFamily) -> Bool {
+func scheduleAccessory(_ family: WidgetFamily) -> Bool {
     switch family {
     case .accessoryInline, .accessoryCircular, .accessoryRectangular:
         return true
@@ -103,23 +100,8 @@ private struct ScheduleWidgetModeChrome<Content: View>: View {
     }
 }
 
-private let weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-
-private func weekdayTitle(_ date: LocalDate) -> String {
-    let index = min(max(date.isoWeekday - 1, 0), 6)
-    return "\(weekdayNames[index]) \(date.monthDay)"
-}
-
-private func relativeDay(_ date: LocalDate, today: LocalDate) -> String {
-    if date == today { return "今天" }
-    if date == today.adding(days: 1) { return "明天" }
-    if date == today.adding(days: 2) { return "后天" }
-    return date.monthDay
-}
-
-// MARK: - 共用部件
-
 struct ScheduleWidgetEmpty: View {
+    var needsUpdate = false
     @Environment(\.schedulePalette) private var palette
 
     var body: some View {
@@ -128,10 +110,10 @@ struct ScheduleWidgetEmpty: View {
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(palette.accent)
                 .scheduleAccentable()
-            Text("还没有课表")
+            Text(needsUpdate ? "需要更新" : "还没有课表")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(palette.ink)
-            Text("打开 UBAA，登录并保存整个学期")
+            Text(needsUpdate ? "打开 UBAA 更新" : "打开 UBAA 载入课表")
                 .font(.system(size: 12))
                 .foregroundStyle(palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -141,362 +123,419 @@ struct ScheduleWidgetEmpty: View {
     }
 }
 
-struct ScheduleFooter: View {
-    var updatedAt: String?
-    var extra: Int = 0
-    @Environment(\.schedulePalette) private var palette
-
-    var body: some View {
-        let stamp = "更新于 \(updatedAt.map(Self.trim) ?? "--")"
-        Text(extra > 0 ? "还有 \(extra) 门，\(stamp)" : stamp)
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(palette.tertiary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// `2026-11-15T12:34:56.000Z` → `11-15 20:34`（北京时间）。
-    private static func trim(_ raw: String) -> String {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        let date = f.date(from: raw) ?? plain.date(from: raw)
-        guard let date else {
-            return String(raw.prefix(16)).replacingOccurrences(of: "T", with: " ")
-        }
-        let out = DateFormatter()
-        out.calendar = LocalDate.calendar
-        out.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        out.dateFormat = "MM-dd HH:mm"
-        return out.string(from: date)
-    }
+private func widgetLink(_ raw: String?) -> URL? {
+    guard let raw, raw.hasPrefix("ubaa://widget/open?") else { return nil }
+    return URL(string: raw)
 }
 
-private struct StatusCapsule: View {
-    var inClass: Bool
-    @Environment(\.schedulePalette) private var palette
-
-    var body: some View {
-        // 着色模式下不用实心胶囊：字和底会变成同一种强调色，挤在一起看不清。
-        Text(inClass ? "进行中" : "下一节")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(labelColor)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background {
-                if !palette.accented {
-                    Capsule().fill(inClass ? palette.accent : palette.accent.opacity(0.14))
-                }
-            }
-    }
-
-    private var labelColor: Color {
-        if palette.accented { return inClass ? Color.primary : Color.secondary }
-        return inClass ? palette.onAccent : palette.accent
-    }
+private func joinedText(_ fields: String?..., separator: String) -> String {
+    fields.compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: separator)
 }
 
-// MARK: - 今日课程（小卡片与锁屏）
-
-struct TodayScheduleWidgetView: View {
-    var entry: ScheduleEntry
-    @Environment(\.schedulePalette) private var palette
-
-    var body: some View {
-        Group {
-            if entry.isEmpty {
-                ScheduleWidgetEmpty()
-            } else {
-                let today = LocalDate.today(now: entry.date)
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center, spacing: 6) {
-                        Text(weekdayTitle(today))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(palette.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Spacer(minLength: 4)
-                        if entry.nextCourse != nil {
-                            StatusCapsule(inClass: entry.inClass)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    if let item = entry.nextCourse {
-                        hero(item.course)
-                    } else {
-                        Text(entry.todayAgenda.isEmpty ? "今天没有课" : "今天的课都上完了")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(palette.ink)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 8)
-                    if entry.todayAgenda.count > 0 {
-                        Text("今天 \(entry.todayAgenda.count) 门")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(palette.tertiary)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-        }
-        .dynamicTypeSize(.xSmall ... .large)
-    }
-
-    private func hero(_ course: WidgetCourse) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(course.courseName)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(palette.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-            if let begin = course.beginTime, let end = course.endTime,
-               !begin.isEmpty, !end.isEmpty {
-                Text("\(begin)–\(end)")
-                    .font(.system(size: 13, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(entry.inClass ? palette.accent : palette.secondary)
-                    .lineLimit(1)
-            }
-            placeLine(course)
-        }
-        .padding(.leading, 10)
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(palette.accent)
-                .frame(width: 4)
-                .frame(maxHeight: .infinity)
-                .scheduleAccentable()
-        }
-    }
-
+private extension View {
     @ViewBuilder
-    private func placeLine(_ course: WidgetCourse) -> some View {
-        let place = course.placeName.flatMap { $0.isEmpty ? nil : $0 }
-        let teacher = ScheduleDisplay.teacher(from: course.weeksAndTeachers)
-        if place != nil || teacher != nil {
-            HStack(spacing: 6) {
-                if let place {
-                    Text(place)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(palette.ink)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                }
-                if let teacher {
-                    Text(teacher)
-                        .font(.system(size: 12))
-                        .foregroundStyle(palette.secondary)
-                        .lineLimit(1)
-                }
-            }
-        }
-    }
-}
-
-// 锁屏矩形：课名一行，时间地点一行。系统负责单色，这里不铺主题色。
-struct AccessoryTodayView: View {
-    var entry: ScheduleEntry
-
-    var body: some View {
-        if let item = entry.nextCourse {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.course.courseName)
-                    .font(.system(size: 15, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(meta(item.course))
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(entry.inClass ? "进行中" : "下一节")
-                    .font(.system(size: 11, weight: .medium))
-                    .scheduleAccentable()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    func widgetRowLink(_ raw: String?) -> some View {
+        if let url = widgetLink(raw) {
+            Link(destination: url) { self }
         } else {
-            Text(entry.todayAgenda.isEmpty ? "今天没有课" : "今日课程已结束")
-                .font(.system(size: 14, weight: .medium))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            self
         }
     }
 
-    private func meta(_ course: WidgetCourse) -> String {
-        var parts: [String] = []
-        if let begin = course.beginTime, !begin.isEmpty {
-            parts.append("\(begin)–\(course.endTime ?? "")")
-        }
-        if let place = course.placeName, !place.isEmpty {
-            parts.append(place)
-        }
-        return parts.joined(separator: "  ")
-    }
-}
-
-// MARK: - 近日课程（中组件，今天起三天）
-
-struct UpcomingScheduleWidgetView: View {
-    var entry: ScheduleEntry
-    @Environment(\.schedulePalette) private var palette
-
-    var body: some View {
-        Group {
-            if entry.isEmpty {
-                ScheduleWidgetEmpty()
-            } else {
-                let window = visibleAgenda()
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("近日课程")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(palette.ink)
-                        Spacer(minLength: 8)
-                        Text("今天起三天")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(palette.secondary)
-                            .lineLimit(1)
-                    }
-                    if window.items.isEmpty {
-                        Spacer(minLength: 8)
-                        Text("这三天没有课")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(palette.secondary)
-                        Spacer(minLength: 8)
-                    } else {
-                        Spacer(minLength: 8)
-                        rows(window.items)
-                        Spacer(minLength: 8)
-                    }
-                    ScheduleFooter(updatedAt: entry.updatedAt, extra: window.extra)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .dynamicTypeSize(.xSmall ... .large)
-        .clipped()
-    }
-
-    /// 中组件只放两行，行距才放得开；其余记在底部。
-    private func visibleAgenda() -> (items: [SavedAgendaItem], extra: Int) {
-        let limit = 2
-        let today = LocalDate.today(now: entry.date)
-        let clock = ScheduleTimeline.clock(now: entry.date)
-        let all = entry.upcomingAgenda
-        let ended = { (item: SavedAgendaItem) in
-            ScheduleTimeline.hasEnded(item, today: today, clock: clock, agenda: entry.todayAgenda)
-        }
-        let upcoming = all.filter { !ended($0) }
-        let finished = all.filter(ended)
-        let items: [SavedAgendaItem]
-        if upcoming.count >= limit {
-            items = Array(upcoming.prefix(limit))
-        } else if upcoming.isEmpty {
-            items = Array(finished.suffix(limit))
-        } else {
-            let need = min(limit - upcoming.count, finished.count)
-            items = Array(finished.suffix(need)) + upcoming
-        }
-        return (items, max(0, upcoming.count - limit))
-    }
-
-    private func rows(_ items: [SavedAgendaItem]) -> some View {
-        let today = LocalDate.today(now: entry.date)
-        let clock = ScheduleTimeline.clock(now: entry.date)
-        return VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                let focused = isFocus(item)
-                AgendaRow(
-                    item: item,
-                    today: today,
-                    showsDay: index == 0 || items[index - 1].date != item.date,
-                    focused: focused
-                )
-                .opacity(ScheduleTimeline.hasEnded(item, today: today, clock: clock, agenda: entry.todayAgenda)
-                         && !focused ? 0.42 : 1)
-            }
-        }
-    }
-
-    private func isFocus(_ item: SavedAgendaItem) -> Bool {
-        guard let next = entry.nextCourse else { return false }
-        return item.date == next.date
-            && item.course.courseName == next.course.courseName
-            && item.course.beginTime == next.course.beginTime
-    }
-}
-
-struct AgendaRow: View {
-    var item: SavedAgendaItem
-    var today: LocalDate
-    var showsDay: Bool
-    var focused: Bool
-    @Environment(\.schedulePalette) private var palette
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(relativeDay(item.date, today: today))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(focused ? palette.accent : palette.secondary)
-                    .opacity(showsDay ? 1 : 0)
-                Text(timeRange)
-                    .font(.system(size: 13, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(palette.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-            .frame(width: 84, alignment: .trailing)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.course.courseName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(palette.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                meta
-            }
-            .padding(.leading, 10)
+    func agendaBar(_ color: Color, width: CGFloat, inset: CGFloat, accented: Bool) -> some View {
+        padding(.leading, inset)
             .overlay(alignment: .leading) {
-                Capsule()
-                    .fill(CourseTint.bar(name: item.course.courseName, palette: palette))
-                    .frame(width: 4)
-                    .frame(maxHeight: .infinity)
-                    .padding(.vertical, 2)
+                Group {
+                    if accented {
+                        Capsule().strokeBorder(color, lineWidth: 1)
+                    } else {
+                        Capsule().fill(color)
+                    }
+                }
+                    .frame(width: width)
                     .scheduleAccentable()
             }
-            Spacer(minLength: 0)
-        }
     }
 
-    private var timeRange: String {
-        let begin = item.course.beginTime ?? ""
-        let end = item.course.endTime ?? ""
-        if begin.isEmpty { return "--:--" }
-        if end.isEmpty { return begin }
-        return "\(begin)–\(end)"
+    func cardAlignment() -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct AgendaTag: View {
+    let text: String
+    @Environment(\.schedulePalette) private var palette
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(palette.accent)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background {
+                if !palette.accented { Capsule().fill(palette.accent.opacity(0.14)) }
+            }
+            .scheduleAccentable()
+    }
+}
+
+private struct AgendaMessage: View {
+    let text: String?
+    var partial = false
+    let size: CGFloat
+    let color: Color
+    @Environment(\.schedulePalette) private var palette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            if let text {
+                Text(text).font(.system(size: size, weight: .semibold)).foregroundStyle(color)
+            }
+            if partial {
+                Text("打开 UBAA 更新").font(.system(size: 12)).foregroundStyle(palette.secondary)
+            }
+        }
+    }
+}
+
+@available(iOS 17.0, *)
+struct UpNextWidgetContent: View {
+    let entry: ScheduleEntry
+    let family: WidgetFamily
+    @Environment(\.schedulePalette) private var palette
+
+    var body: some View {
+        Group {
+            if let segment = entry.upNext {
+                switch family {
+                case .accessoryInline: inline(segment)
+                case .accessoryRectangular: rectangular(segment)
+                case .accessoryCircular: circular(segment)
+                default: small(segment)
+                }
+            } else {
+                switch family {
+                case .accessoryInline: Text("打开 UBAA").foregroundStyle(palette.ink)
+                case .accessoryRectangular:
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("UBAA").font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(palette.ink).scheduleAccentable()
+                        Text("打开以载入课表").font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(palette.secondary)
+                    }
+                case .accessoryCircular:
+                    Image(systemName: "calendar").foregroundStyle(palette.accent).scheduleAccentable()
+                default: ScheduleWidgetEmpty(needsUpdate: !entry.isEmpty)
+                }
+            }
+        }
+        .widgetURL(widgetLink(entry.upNext?.cardLink))
+    }
+
+    private func countdown(_ primary: WidgetUpNextSegment.Primary) -> Text? {
+        guard let value = primary.countdown, value.target >= entry.date else { return nil }
+        return Text("\(value.label.rawValue) \(Text(timerInterval: entry.date...value.target, countsDown: true))")
     }
 
     @ViewBuilder
-    private var meta: some View {
-        let place = item.course.placeName.flatMap { $0.isEmpty ? nil : $0 }
-        let teacher = ScheduleDisplay.teacher(from: item.course.weeksAndTeachers)
-        if place != nil || teacher != nil {
-            HStack(spacing: 6) {
-                if let place {
-                    Text(place)
+    private func small(_ segment: WidgetUpNextSegment) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if segment.state == .item, let primary = segment.primary {
+                let timer = countdown(primary)
+                HStack(spacing: 4) {
+                    (primary.ongoing ? timer ?? Text(primary.timeText) : Text(primary.timeText))
+                        .font(.system(size: 24, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(primary.ongoing && timer != nil ? palette.accent : palette.ink)
                         .lineLimit(1)
-                        .layoutPriority(1)
+                        .minimumScaleFactor(0.6)
+                        .scheduleAccentable()
+                    Spacer(minLength: 0)
+                    if let tag = primary.tag, !tag.isEmpty { AgendaTag(text: tag) }
+                    if primary.extraCount > 0 {
+                        Text("+\(primary.extraCount)").font(.system(size: 11))
+                            .foregroundStyle(palette.tertiary).fixedSize()
+                    }
                 }
-                if let teacher {
-                    Text(teacher)
-                        .foregroundStyle(palette.secondary)
-                        .lineLimit(1)
+                if primary.ongoing, timer != nil {
+                    Text(primary.timeText).font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(palette.secondary).lineLimit(1).minimumScaleFactor(0.6)
+                } else if !primary.ongoing, let timer {
+                    timer.font(.system(size: 12, weight: .semibold)).foregroundStyle(palette.accent)
+                        .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6).scheduleAccentable()
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    if let place = primary.place, !place.isEmpty {
+                        Text(place).font(.system(size: 15, weight: .semibold)).foregroundStyle(palette.ink)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    Text(primary.title).font(.system(size: 13, weight: .medium)).foregroundStyle(palette.secondary)
+                        .lineLimit(segment.secondary == nil ? 2 : 1)
+                        .privacySensitive(primary.private)
+                }
+                .agendaBar(palette.accent, width: 4, inset: 9, accented: palette.accented)
+            } else {
+                AgendaMessage(text: segment.message, partial: segment.state == .partial, size: 16, color: palette.ink)
+            }
+            if let secondary = segment.secondary {
+                Spacer(minLength: 0)
+                secondaryLine(secondary, size: 11).minimumScaleFactor(0.8)
+            }
+        }
+        .cardAlignment()
+    }
+
+    private func inline(_ segment: WidgetUpNextSegment) -> some View {
+        let text: Text
+        if segment.state == .item, let primary = segment.primary {
+            if primary.ongoing {
+                let place = primary.place.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+                let time = countdown(primary) ?? Text(primary.timeText)
+                text = Text("\(time)\(place)")
+            } else {
+                text = Text(joinedText(primary.timeText, primary.place, primary.private ? nil : primary.title, separator: " "))
+            }
+        } else {
+            text = Text(segment.message ?? "")
+        }
+        return text.foregroundStyle(palette.ink).monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+    }
+
+    private func rectangular(_ segment: WidgetUpNextSegment) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if segment.state == .item, let primary = segment.primary {
+                let time = primary.ongoing
+                    ? countdown(primary) ?? Text(primary.timeText)
+                    : Text(joinedText(primary.timeText, primary.place, separator: " "))
+                rectangleHeadline(time)
+                HStack(spacing: 0) {
+                    if primary.ongoing, let place = primary.place, !place.isEmpty {
+                        Text(place)
+                        if !primary.title.isEmpty { Text(" · ") }
+                    }
+                    Text(primary.title).privacySensitive(primary.private)
+                }
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(palette.ink)
+                .lineLimit(1)
+            } else {
+                rectangleHeadline(Text(segment.message ?? ""))
+            }
+            if let secondary = segment.secondary {
+                secondaryLine(secondary, size: 12)
+            } else if segment.state == .item, let count = segment.primary?.extraCount, count > 0 {
+                Text("+\(count)").font(.system(size: 12)).foregroundStyle(palette.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func rectangleHeadline(_ text: Text) -> some View {
+        text.font(.system(size: 15, weight: .semibold)).monospacedDigit()
+            .foregroundStyle(palette.ink)
+            .lineLimit(1).minimumScaleFactor(0.6).scheduleAccentable()
+    }
+
+    @ViewBuilder
+    private func circular(_ segment: WidgetUpNextSegment) -> some View {
+        if segment.state == .item, let primary = segment.primary {
+            if primary.ongoing, let start = primary.startAt, let end = primary.endAt, start < end {
+                ProgressView(timerInterval: start...end, countsDown: true) {
+                    EmptyView()
+                } currentValueLabel: {
+                    if end >= entry.date {
+                        Text(timerInterval: entry.date...end, countsDown: true)
+                            .font(.system(size: 11)).foregroundStyle(palette.ink)
+                            .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
+                    }
+                }
+                .progressViewStyle(.circular)
+                .tint(palette.accent)
+                .scheduleAccentable()
+            } else {
+                VStack(spacing: 0) {
+                    if !primary.dayText.isEmpty {
+                        Text(primary.dayText).font(.system(size: 10)).foregroundStyle(palette.secondary)
+                            .lineLimit(1).minimumScaleFactor(0.6)
+                    }
+                    Text(primary.startText).font(.system(size: 16, weight: .semibold)).monospacedDigit()
+                        .foregroundStyle(palette.ink)
+                        .lineLimit(1).minimumScaleFactor(0.6).scheduleAccentable()
                 }
             }
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(palette.ink)
+        } else {
+            Text("—").foregroundStyle(palette.ink).scheduleAccentable()
         }
+    }
+
+    private func secondaryLine(_ secondary: WidgetUpNextSegment.Secondary, size: CGFloat) -> some View {
+        Text(secondary.text).font(.system(size: size, weight: .medium))
+            .foregroundStyle(secondary.kind == .exam ? palette.accent : palette.tertiary)
+            .lineLimit(1).privacySensitive(secondary.private).scheduleAccentable(secondary.kind == .exam)
+    }
+}
+
+@available(iOS 17.0, *)
+struct TodayCardView: View {
+    let entry: ScheduleEntry
+    @Environment(\.schedulePalette) private var palette
+
+    var body: some View {
+        Group {
+            if let segment = entry.today {
+                VStack(alignment: .leading, spacing: 6) {
+                    header(segment)
+                    if segment.state == .items {
+                        ForEach(Array(segment.rows.prefix(3).enumerated()), id: \.offset) { _, row in
+                            agendaRow(row).widgetRowLink(row.link)
+                        }
+                    } else {
+                        AgendaMessage(text: segment.message, partial: segment.state == .partial,
+                                      size: 16, color: palette.secondary)
+                    }
+                }
+                .cardAlignment()
+            } else {
+                ScheduleWidgetEmpty(needsUpdate: !entry.isEmpty)
+            }
+        }
+        .widgetURL(widgetLink(entry.today?.cardLink))
+    }
+
+    private func header(_ segment: WidgetTodaySegment) -> some View {
+        HStack(spacing: 4) {
+            Text(segment.dayLabel ?? "今天").font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(palette.ink).lineLimit(1).layoutPriority(1)
+            if segment.state == .items {
+                Spacer(minLength: 0)
+                let count = segment.rows.count - 3
+                HStack(spacing: 0) {
+                    if count > 0 { Text("还有 \(count) 项") }
+                    if let due = segment.dueLine, !due.isEmpty {
+                        if count > 0 { Text(" · ") }
+                        Text(due).foregroundStyle(palette.accent).scheduleAccentable()
+                    }
+                }
+                .font(.system(size: 11, weight: .medium)).foregroundStyle(palette.tertiary)
+                .lineLimit(1).minimumScaleFactor(0.8)
+            }
+        }
+    }
+
+    private func agendaRow(_ row: WidgetTodaySegment.Row) -> some View {
+        let bar = row.kind == .course ? CourseTint.bar(name: row.title, palette: palette) : palette.accent
+        return HStack(spacing: 6) {
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(row.timeText).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(palette.ink).lineLimit(1).minimumScaleFactor(0.8)
+                if row.ongoing {
+                    Text("进行中").font(.system(size: 10, weight: .semibold)).foregroundStyle(palette.accent)
+                        .scheduleAccentable()
+                } else {
+                    Text(row.endText.flatMap { $0.isEmpty ? nil : "至 \($0)" } ?? "")
+                        .font(.system(size: 10)).foregroundStyle(palette.tertiary)
+                        .monospacedDigit().lineLimit(1, reservesSpace: true).minimumScaleFactor(0.8)
+                }
+            }
+            .frame(width: 46, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    if let tag = row.tag, !tag.isEmpty { AgendaTag(text: tag) }
+                    Text(row.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(palette.ink)
+                        .lineLimit(1).privacySensitive(row.private)
+                }
+                Text(row.place ?? "").font(.system(size: 11, weight: .medium)).foregroundStyle(palette.secondary)
+                    .lineLimit(1, reservesSpace: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .agendaBar(bar, width: 3, inset: 8, accented: palette.accented)
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 34)
+        .background {
+            if row.ongoing && !palette.accented {
+                RoundedRectangle(cornerRadius: 8).fill(palette.todayWash)
+            }
+        }
+    }
+}
+
+@available(iOS 17.0, *)
+struct TodoCardView: View {
+    let entry: ScheduleEntry
+    let medium: Bool
+    @Environment(\.schedulePalette) private var palette
+
+    var body: some View {
+        let segment = entry.todo
+        let hasItems = segment?.state == .items
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Text("待办").font(.system(size: 13, weight: .semibold)).foregroundStyle(palette.ink)
+                if medium {
+                    Spacer(minLength: 0)
+                    footer(hasItems ? segment?.mediumFooter : nil, segment?.staleText)
+                }
+            }
+            if let segment, hasItems {
+                if medium {
+                    ForEach(Array(segment.mediumRows.prefix(3).enumerated()), id: \.offset) { _, row in
+                        mediumRow(row).widgetRowLink(row.link)
+                    }
+                } else if let row = segment.smallRow {
+                    smallRow(row)
+                }
+            } else {
+                let message = segment?.message ?? (entry.isEmpty ? "打开 UBAA 载入待办" : "打开 UBAA 更新")
+                AgendaMessage(text: message, size: 15, color: palette.secondary)
+            }
+            if !medium {
+                Spacer(minLength: 0)
+                footer(hasItems ? segment?.smallFooter : nil, segment?.staleText)
+            }
+        }
+        .cardAlignment()
+        .widgetURL(widgetLink(segment?.cardLink))
+    }
+
+    @ViewBuilder
+    private func footer(_ more: String?, _ stale: String?) -> some View {
+        let text = joinedText(more, stale, separator: " · ")
+        if !text.isEmpty {
+            Text(text).font(.system(size: 10, weight: .medium)).foregroundStyle(palette.tertiary)
+                .lineLimit(1).minimumScaleFactor(0.8)
+        }
+    }
+
+    private func smallRow(_ row: WidgetTodoSegment.Row) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            due(row, size: 17)
+            Text(row.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(palette.ink)
+                .lineLimit(2).privacySensitive(row.private)
+            Text(row.sub).font(.system(size: 12, weight: .medium)).foregroundStyle(palette.secondary).lineLimit(1)
+        }
+    }
+
+    private func mediumRow(_ row: WidgetTodoSegment.Row) -> some View {
+        HStack(spacing: 6) {
+            due(row, size: 13).frame(width: 72, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(row.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(palette.ink)
+                    .lineLimit(1).privacySensitive(row.private)
+                Text(row.sub).font(.system(size: 11, weight: .medium)).foregroundStyle(palette.secondary).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .agendaBar(row.kind == .exam ? palette.accent : palette.tertiary, width: 3, inset: 8, accented: palette.accented)
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 34)
+    }
+
+    private func due(_ row: WidgetTodoSegment.Row, size: CGFloat) -> some View {
+        Text(row.leftText).font(.system(size: size, weight: .semibold)).monospacedDigit()
+            .foregroundStyle(row.urgent ? palette.accent : palette.ink).lineLimit(1)
+            .minimumScaleFactor(0.8).scheduleAccentable(row.urgent)
     }
 }

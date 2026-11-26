@@ -51,6 +51,8 @@ class AgendaView extends StatefulWidget {
     this.onSaveFile,
     this.onChanged,
     this.todoRequest = 0,
+    this.initialDate,
+    this.dateRequest = 0,
     this.visible = true,
     this.reminder,
     this.now,
@@ -76,6 +78,8 @@ class AgendaView extends StatefulWidget {
   onSaveFile;
   final VoidCallback? onChanged;
   final int todoRequest;
+  final DateTime? initialDate;
+  final int dateRequest;
   final bool visible;
   final YgdkReminderSettings? reminder;
   final DateTime? now;
@@ -119,6 +123,7 @@ class AgendaViewState extends State<AgendaView> {
   late Object _contentScope;
   String? _contentAccount;
   bool _projectionDirty = false;
+  bool _widgetDateActive = false;
 
   Object get _liveScope => (
     widget.service,
@@ -223,8 +228,9 @@ class AgendaViewState extends State<AgendaView> {
   @override
   void initState() {
     super.initState();
-    todos = widget.todoRequest > 0;
-    focusDate = agendaDay(now);
+    todos = widget.todoRequest > 0 && widget.initialDate == null;
+    _widgetDateActive = widget.initialDate != null;
+    focusDate = agendaDay(widget.initialDate ?? now);
     alignRange();
     _scope = _liveScope;
     _contentAccount = widget.service?.accountId;
@@ -242,12 +248,34 @@ class AgendaViewState extends State<AgendaView> {
     if (becameVisible) _lastSyncKey = null;
     if (oldWidget.service != widget.service) _listenSync();
     final scopeChanged = _refreshScope();
-    if (scopeChanged || oldWidget.projectionKey != widget.projectionKey) {
+    if (widget.visible &&
+        widget.initialDate != null &&
+        (becameVisible ||
+            widget.dateRequest != oldWidget.dateRequest ||
+            widget.initialDate != oldWidget.initialDate)) {
+      _widgetDateActive = true;
+      todos = false;
+      filter = '全部';
+      search = '';
+      searchField.clear();
+      searchVisible = false;
+      mode = AgendaViewMode.list;
+      selectedKey = null;
+      goDate(widget.initialDate!);
+    } else if (oldWidget.todoRequest != widget.todoRequest) {
+      _showAllTodos();
+    } else if (oldWidget.visible && !widget.visible && _widgetDateActive) {
+      _widgetDateActive = false;
+      focusDate = agendaDay(now);
+      customRange = false;
+      alignRange();
+      _invalidateProjection();
+    } else if (scopeChanged ||
+        oldWidget.projectionKey != widget.projectionKey) {
       _invalidateProjection();
     } else if (becameVisible && (_projectionDirty || result == null)) {
       unawaited(load());
     }
-    if (oldWidget.todoRequest != widget.todoRequest) _showAllTodos();
     _pullSync();
     if (becameVisible ||
         scopeChanged ||
@@ -278,6 +306,7 @@ class AgendaViewState extends State<AgendaView> {
 
   /// 首页「查看全部」：清除遗留筛选与搜索，回到列表并显示全部待办。
   void _showAllTodos() {
+    _widgetDateActive = false;
     todos = true;
     filter = '全部';
     search = '';

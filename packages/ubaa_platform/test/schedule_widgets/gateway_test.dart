@@ -5,6 +5,35 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('启动通道取出后清空，热启动只接收字符串', () async {
+    const launch = MethodChannel('cn.edu.buaa.ubaa/widget-launch');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final gateway = WidgetLaunchChannel();
+    String? pending = '冷启动';
+    final opened = <String>[];
+    messenger.setMockMethodCallHandler(launch, (call) async {
+      expect(call.method, 'take');
+      final value = pending;
+      pending = null;
+      return value;
+    });
+    addTearDown(() {
+      gateway.dispose();
+      messenger.setMockMethodCallHandler(launch, null);
+    });
+    expect(await gateway.take(), '冷启动');
+    expect(await gateway.take(), isNull);
+    gateway.listen((raw) async => opened.add(raw));
+    for (final value in ['热启动', 42]) {
+      await messenger.handlePlatformMessage(
+        launch.name,
+        launch.codec.encodeMethodCall(MethodCall('launch', value)),
+        (_) {},
+      );
+    }
+    expect(opened, ['热启动']);
+  });
   const channel = MethodChannel('cn.edu.buaa.ubaa/schedule-widgets');
   final calls = <MethodCall>[];
   Object? beginReply;

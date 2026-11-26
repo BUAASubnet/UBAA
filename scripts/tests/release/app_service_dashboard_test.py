@@ -70,6 +70,11 @@ class AppServiceDashboardTest(unittest.TestCase):
                 self.assertEqual(organize['id'], 'organize')
                 self.assertEqual(list(organize['options']['indexByName']), names, panel['title'])
 
+    def test_time_range_uses_backend_macros(self):
+        # 公开看板只在后端展开 SQL 宏，不替换 ${__from}/${__to} 这类前端变量。
+        for title, target in queries(self.dash):
+            self.assertIsNone(TIME.search(target['rawSql']), title)
+
     def test_feature_labels_cover_schema(self):
         schema = json.loads(SCHEMA.read_text(encoding='utf-8'))
         features = set(schema['$defs']['feature']['enum'])

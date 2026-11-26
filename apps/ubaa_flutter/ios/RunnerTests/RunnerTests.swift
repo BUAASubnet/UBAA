@@ -112,9 +112,18 @@ final class ScheduleWidgetParserTests: XCTestCase {
         XCTAssertEqual(parsed.semesters.single?.weeks.single?.arrangedList.single?.courseName, "合成1")
     }
 
+    func test第二版保留原课表() throws {
+        var raw = snapshotJSON()
+        raw["version"] = 2
+        raw["upNext"] = NSNull()
+        let parsed = try ScheduleWidgetParser.parseSnapshot(raw)
+        XCTAssertEqual(parsed.owner, "owner-1")
+        XCTAssertEqual(parsed.semesters.single?.weeks.single?.arrangedList.single?.courseName, "合成1")
+    }
+
     func test解析校验拒绝非法快照() {
         var badVersion = snapshotJSON()
-        badVersion["version"] = 2
+        badVersion["version"] = 3
         XCTAssertThrowsError(try ScheduleWidgetParser.parseSnapshot(badVersion))
         let badDay = snapshotJSON(day: 8)
         XCTAssertThrowsError(try ScheduleWidgetParser.parseSnapshot(badDay))
@@ -164,7 +173,7 @@ final class ScheduleWidgetStoreTests: XCTestCase {
 
     func test删密钥失败返回存储错误且不请求刷新() throws {
         let directory = try fixtureDirectory()
-        let store = ScheduleWidgetStore(directory: directory) { url in
+        let store = Runner.ScheduleWidgetStore(directory: directory) { url in
             if url.lastPathComponent == "schedule-widgets.key",
                FileManager.default.fileExists(atPath: url.path) {
                 throw CocoaError(.fileWriteNoPermission)

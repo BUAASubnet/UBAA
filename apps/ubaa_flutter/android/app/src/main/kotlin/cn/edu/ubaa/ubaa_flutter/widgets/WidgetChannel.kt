@@ -7,11 +7,20 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONObject
 
-class WidgetChannel(private val context: Context, messenger: BinaryMessenger) {
+internal class WidgetChannel(
+    private val context: Context,
+    messenger: BinaryMessenger,
+    private val inbox: WidgetLaunchInbox,
+) {
     private val channel = MethodChannel(messenger, "cn.edu.buaa.ubaa/schedule-widgets")
+    private val launchChannel = MethodChannel(messenger, "cn.edu.buaa.ubaa/widget-launch")
     private val main = Handler(Looper.getMainLooper())
 
     init {
+        inbox.awaitTake()
+        launchChannel.setMethodCallHandler { call, result ->
+            if (call.method == "take") result.success(inbox.take()) else result.notImplemented()
+        }
         channel.setMethodCallHandler { call, result ->
             val arguments = call.arguments as? Map<*, *>
             if (call.method !in listOf("begin", "publish")) {
@@ -42,7 +51,11 @@ class WidgetChannel(private val context: Context, messenger: BinaryMessenger) {
         }
     }
 
+    fun launch(link: String) = launchChannel.invokeMethod("launch", link)
+
     fun dispose() {
+        inbox.awaitTake()
+        launchChannel.setMethodCallHandler(null)
         channel.setMethodCallHandler(null)
     }
 }

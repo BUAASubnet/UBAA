@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/widget_root" android:orientation="vertical" android:background="@drawable/widget_background" android:padding="@dimen/widget_padding">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:id="@+id/widget_title" android:includeFontPadding="false" android:textSize="13sp" android:textColor="@color/widget_ink" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:layout_weight="1" android:text="@string/widget_today" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/widget_more" android:includeFontPadding="false" android:textSize="11sp" android:textColor="@color/widget_tertiary" android:maxLines="1" android:ellipsize="end" android:visibility="gone" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/widget_due" android:includeFontPadding="false" android:textSize="11sp" android:textColor="@color/widget_accent" android:maxLines="1" android:ellipsize="end" android:visibility="gone" />
+    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:id="@+id/widget_slot_1" android:layout_weight="1" android:layout_marginTop="3dp" android:visibility="gone" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:id="@+id/widget_slot_2" android:layout_weight="1" android:layout_marginTop="3dp" android:visibility="gone" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:id="@+id/widget_slot_3" android:layout_weight="1" android:layout_marginTop="3dp" android:visibility="gone" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_message" android:includeFontPadding="false" android:textSize="15sp" android:textColor="@color/widget_ink" android:maxLines="2" android:ellipsize="end" android:textStyle="bold" android:text="@string/widget_missing" android:layout_marginTop="8dp" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/widget_hint" android:includeFontPadding="false" android:textSize="12sp" android:textColor="@color/widget_secondary" android:maxLines="2" android:ellipsize="end" android:text="@string/widget_load_schedule" android:layout_marginTop="4dp" />
+</LinearLayout>

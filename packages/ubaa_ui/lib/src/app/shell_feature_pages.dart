@@ -86,8 +86,7 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
         onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
         onLoadCgyyDefaults: widget.onLoadCgyyDefaults,
         cgyyOnlyAvailable: _cgyyOnlyAvailable,
-        onCgyyShowAll: () =>
-            _changeNavigation(() => _cgyyOnlyAvailable = false),
+        onCgyyShowAll: () => _updateShell(() => _cgyyOnlyAvailable = false),
         onSaveCgyyDefaults: widget.onSaveCgyyDefaults,
         onScheduleTitle: page.onScheduleTitle,
         readCacheEpoch: _contentEpoch,

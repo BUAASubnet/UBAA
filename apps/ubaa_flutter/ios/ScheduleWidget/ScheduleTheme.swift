@@ -203,7 +203,8 @@ struct ScheduleConfiguredProvider: AppIntentTimelineProvider {
     func snapshot(
         for configuration: ScheduleWidgetConfig, in context: Context
     ) async -> ScheduleEntry {
-        entry(now: Date(), theme: configuration.theme?.theme ?? .ocean)
+        let theme = configuration.theme?.theme ?? .ocean
+        return context.isPreview ? .preview(theme: theme) : ScheduleTimelineProvider().currentEntry(now: Date(), theme: theme)
     }
 
     func timeline(
@@ -212,7 +213,4 @@ struct ScheduleConfiguredProvider: AppIntentTimelineProvider {
         ScheduleTimelineProvider().timeline(now: Date(), theme: configuration.theme?.theme ?? .ocean)
     }
 
-    private func entry(now: Date, theme: ScheduleTheme) -> ScheduleEntry {
-        ScheduleTimelineProvider().currentEntry(now: now, theme: theme)
-    }
 }

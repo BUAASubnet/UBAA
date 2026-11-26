@@ -71,6 +71,7 @@ val toolVersions = Properties().apply {
 @Suppress("DEPRECATION")
 android {
     namespace = "cn.edu.ubaa.ubaa_flutter"
+    sourceSets.getByName("androidTest").assets.srcDir(rootProject.file("../../../fixtures/schedule_widget"))
     compileSdkVersion("android-${toolVersions.getProperty("ANDROID_API")}")
     buildToolsVersion = toolVersions.getProperty("ANDROID_BUILD_TOOLS")
     ndkVersion = toolVersions.getProperty("ANDROID_NDK")

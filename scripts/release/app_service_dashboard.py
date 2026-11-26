@@ -18,8 +18,11 @@ DIAGNOSTICS_DS = {"type": "grafana-postgresql-datasource", "uid": "ubaa-diagnost
 C = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
 GOOD, WARN, SERIOUS, CRIT, MUTED = "#0ca30c", "#fab219", "#ec835a", "#d03b3b", "#6e6e6e"
 
-FROM = "to_char(to_timestamp(${__from}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
-TO = "to_char(to_timestamp(${__to}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
+# 公开看板只在后端展开 SQL 宏，不替换 ${__from}/${__to}，时间范围统一用 Unix 秒宏。
+FROM_MS = "($__unixEpochFrom()::bigint*1000)"
+TO_MS = "($__unixEpochTo()::bigint*1000)"
+FROM = "to_char(to_timestamp($__unixEpochFrom()) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
+TO = "to_char(to_timestamp($__unixEpochTo()) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
 TODAY = "to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD')"
 RANGE = f"day BETWEEN {FROM} AND {TO}"
 
@@ -43,7 +46,7 @@ FEATURES = [("schedule", "课表"), ("exam", "考试"), ("grades", "成绩"), ("
             ("classroom", "空教室"), ("spoc", "SPOC 作业"), ("judge", "希冀作业"),
             ("libbook", "图书馆"), ("signin", "每日课程"), ("cgyy", "场馆预约"),
             ("ygdk", "阳光打卡"), ("evaluation", "评教"), ("auth", "登录"), ("app", "应用"),
-            ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "i 北航"),
+            ("cloud_print", "云打印"), ("bhpan", "北航云盘"), ("ihome", "iHome"),
             ("portal", "校园门户"), ("network", "校园网络"), ("finance", "校园财务"),
             ("health_cloud", "健康云")]
 
@@ -345,20 +348,20 @@ def build():
     # ───────── 使用时段（分钟级） ─────────
     panels.append(row("使用时段", y)); y += 1
     MFILT = FILT
-    SPAN = "(${__to}-${__from})"
+    SPAN = f"({TO_MS}-{FROM_MS})"
     BUCKET = (f"CASE WHEN {SPAN}<=21600000 THEN 60000 WHEN {SPAN}<=172800000 THEN 300000 "
               f"WHEN {SPAN}<=691200000 THEN 600000 WHEN {SPAN}<=2764800000 THEN 3600000 ELSE 86400000 END")
     B = "(SELECT b FROM p)"
     OFF = 28800000
-    MIN_FROM = "to_char(to_timestamp(${__from}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
-    MIN_TO = "to_char(to_timestamp(${__to}/1000.0) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
+    MIN_FROM = "to_char(to_timestamp($__unixEpochFrom()) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
+    MIN_TO = "to_char(to_timestamp($__unixEpochTo()) AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD\"T\"HH24:MI')"
 
 
     def minute_sql(cols, where):
         # 先汇总为时间桶，阻止连接展开后为每个时间点重复扫描分钟明细。
         return (f"WITH RECURSIVE p(b) AS (SELECT {BUCKET}), "
-                f"k(t) AS (SELECT ((${{__from}}+{OFF})/{B})*{B}-{OFF} UNION ALL SELECT t+{B} FROM k "
-                f"WHERE t+{B} <= LEAST(${{__to}}, (extract(epoch FROM now())*1000)::bigint)), "
+                f"k(t) AS (SELECT (({FROM_MS}+{OFF})/{B})*{B}-{OFF} UNION ALL SELECT t+{B} FROM k "
+                f"WHERE t+{B} <= LEAST({TO_MS}, (extract(epoch FROM now())*1000)::bigint)), "
                 f"m AS (SELECT (((extract(epoch FROM (minute_at||':00+08:00')::timestamptz)*1000)::bigint+{OFF})/{B})*{B}-{OFF} AS t, event, feature, result, SUM(count) AS count "
                 f"FROM minute_counts WHERE minute_at BETWEEN {MIN_FROM} AND {MIN_TO} AND {MFILT} AND {where} "
                 f"GROUP BY t, event, feature, result) "

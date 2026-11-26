@@ -2,6 +2,8 @@ package cn.edu.ubaa.ubaa_flutter.widgets
 
 // 绘制结构来自冻结UBAA旧版，MIT许可；仅替换本地模型与java.time日期适配。
 
+import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -11,32 +13,52 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
+import androidx.core.graphics.ColorUtils
+import cn.edu.ubaa.ubaa_flutter.R
 import java.time.LocalDate
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
-/** 原生 Canvas 绘制七天网格，RemoteViews 只携带一张有尺寸上限的图片。 */
+internal const val WEEK_BITMAP_PIXEL_LIMIT = 1_500_000
+
+internal fun weekGridSize(context: Context, widthDp: Int, heightDp: Int): android.util.Size {
+    val resources = context.resources
+    val density = resources.displayMetrics.density
+    val padding = resources.getDimensionPixelSize(R.dimen.widget_padding)
+    val header = resources.getDimensionPixelSize(R.dimen.widget_week_header_height)
+    val widthPx = ((widthDp * density).roundToInt() - 2 * padding).coerceAtLeast(1)
+    val heightPx = ((heightDp * density).roundToInt() - 2 * padding - header).coerceAtLeast(1)
+    return android.util.Size(widthPx, heightPx)
+}
+
+/** 原生 Canvas 按位图预算绘制七天网格。 */
 internal fun renderScheduleWidget(
+    context: Context,
     week: WidgetWeek,
-    schedule: WidgetWeek?,
-    width: Int,
-    height: Int,
+    widthDp: Int,
+    heightDp: Int,
+    pixelBudget: Int = WEEK_BITMAP_PIXEL_LIMIT,
 ): Bitmap {
-    if (height < 230 || width < 240) return renderCompactWeek(week, schedule, width, height)
-    val scale = 1.5f
-    val bitmap =
-        Bitmap.createBitmap(
-            (width * scale).toInt(),
-            (height * scale).toInt(),
-            Bitmap.Config.ARGB_8888,
-        )
+    val resources = context.resources
+    val density = resources.displayMetrics.density
+    val size = weekGridSize(context, widthDp, heightDp)
+    val reduction = sqrt(pixelBudget / (size.width.toDouble() * size.height)).coerceAtMost(1.0)
+    val bitmapWidth = (size.width * reduction).toInt().coerceIn(1, pixelBudget)
+    val bitmapHeight = (size.height * reduction).toInt().coerceIn(1, pixelBudget / bitmapWidth)
+    val bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+    bitmap.density = Bitmap.DENSITY_NONE
+    val dark = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    val width = size.width / density
+    val height = size.height / density
     val canvas = Canvas(bitmap)
-    canvas.scale(scale, scale)
+    canvas.scale(bitmap.width / width, bitmap.height / height)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     val text =
         TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(40, 58, 80)
+            color = context.getColor(R.color.widget_ink)
             textSize = 10f
         }
-    val courses = schedule?.arrangedList.orEmpty()
+    val courses = week.arrangedList
     val times = week.times
     val periods = times.size
     val left = 38f
@@ -50,7 +72,7 @@ internal fun renderScheduleWidget(
         canvas.drawText("周$day", center, 11f, text)
         canvas.drawText(start.plusDays(index.toLong()).toString().substring(5), center, 25f, text)
     }
-    paint.color = Color.rgb(220, 229, 241)
+    paint.color = if (dark) 0x1AFFFFFF else 0x12000000
     for (i in 0..periods) canvas.drawLine(
         left,
         top + i * row,
@@ -104,7 +126,8 @@ internal fun renderScheduleWidget(
                         left + (day - 1) * column + (lane + 1) * laneWidth - 1f,
                         top + end * row - 1f,
                     )
-                paint.color = Color.rgb(222, 234, 253)
+                paint.color = courseTint(course.courseName, dark)
+                text.color = if (dark) Color.rgb(245, 247, 250) else Color.rgb(31, 41, 56)
                 canvas.drawRoundRect(rect, 4f, 4f, paint)
                 val label =
                     "${course.courseName}\n${course.beginTime.orEmpty()}\n${course.placeName.orEmpty()}"
@@ -124,11 +147,11 @@ internal fun renderScheduleWidget(
                 canvas.restore()
             }
         }
-    if (schedule == null || courses.isEmpty()) {
+    if (courses.isEmpty()) {
         text.textSize = 14f
         text.textAlign = Paint.Align.CENTER
         canvas.drawText(
-            if (schedule == null) "此周数据缺失，请在应用内更新" else "本周没有已安排课程",
+            "本周没有已安排课程",
             width / 2f,
             height / 2f,
             text,
@@ -137,108 +160,13 @@ internal fun renderScheduleWidget(
     return bitmap
 }
 
-private fun drawWidgetText(
-    canvas: Canvas,
-    value: String,
-    x: Float,
-    y: Float,
-    width: Int,
-    height: Int,
-    size: Float,
-) {
-    val paint =
-        TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(35, 57, 82)
-            textSize = size
-        }
-    val layout =
-        StaticLayout.Builder.obtain(value, 0, value.length, paint, width.coerceAtLeast(1))
-            .setIncludePad(false)
-            .setMaxLines((height / (size * 1.2f)).toInt().coerceAtLeast(1))
-            .setEllipsize(TextUtils.TruncateAt.END)
-            .build()
-    canvas.save()
-    canvas.clipRect(x, y, x + width, y + height)
-    canvas.translate(x, y)
-    layout.draw(canvas)
-    canvas.restore()
-}
+private val courseHues = floatArrayOf(
+    210f, 25f, 155f, 285f, 55f, 335f, 185f, 95f, 255f, 5f,
+    130f, 310f, 235f, 75f, 175f, 45f, 270f, 355f, 115f, 195f,
+)
 
-private fun renderCompactWeek(
-    week: WidgetWeek,
-    schedule: WidgetWeek?,
-    width: Int,
-    height: Int,
-): Bitmap {
-    val bitmap = Bitmap.createBitmap(width * 2, height * 2, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap).apply { scale(2f, 2f) }
-    val column = width / 2
-    val row = height / 4
-    val start = LocalDate.parse(week.startDate)
-    for (day in 1..7) {
-        val classes =
-            schedule
-                ?.arrangedList
-                .orEmpty()
-                .filter { it.dayOfWeek == day }
-                .sortedBy { it.beginTime }
-        val date = start.plusDays((day - 1).toLong()).toString().substring(5)
-        val label =
-            "周${"一二三四五六日"[day - 1]} $date · ${classes.size}门\n" +
-                classes
-                    .joinToString(" / ") { "${it.beginTime.orEmpty()} ${it.courseName}" }
-                    .ifEmpty { "无课" }
-        drawWidgetText(
-            canvas,
-            label,
-            ((day - 1) % 2 * column + 2).toFloat(),
-            ((day - 1) / 2 * row).toFloat(),
-            column - 6,
-            row - 2,
-            10f,
-        )
-    }
-    drawWidgetText(
-        canvas,
-        "点击查看整周\n拉高显示时间网格",
-        (column + 2).toFloat(),
-        (row * 3).toFloat(),
-        column - 6,
-        row - 2,
-        10f,
-    )
-    return bitmap
-}
-
-internal fun renderAgendaWidget(items: List<SavedAgendaItem>, width: Int, height: Int): Bitmap {
-    val bitmap = Bitmap.createBitmap(width * 2, height * 2, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap).apply { scale(2f, 2f) }
-    if (items.isEmpty()) {
-        drawWidgetText(canvas, "没有已安排课程", 4f, 8f, width - 8, height - 8, 13f)
-        return bitmap
-    }
-    val rows = ((height - 16) / 44).coerceAtLeast(1)
-    items.take(rows).forEachIndexed { index, item ->
-        val course = item.course
-        drawWidgetText(
-            canvas,
-            "${item.date.toString().substring(5)} ${course.beginTime.orEmpty()}–${course.endTime.orEmpty()}\n${course.courseName}  ${course.placeName.orEmpty()}",
-            4f,
-            (index * 44).toFloat(),
-            width - 8,
-            42,
-            12f,
-        )
-    }
-    if (items.size > rows)
-        drawWidgetText(
-            canvas,
-            "另 ${items.size - rows} 门 · 点击查看",
-            4f,
-            (height - 15).toFloat(),
-            width - 8,
-            15,
-            10f,
-        )
-    return bitmap
+private fun courseTint(name: String, dark: Boolean): Int {
+    val seed = name.trim().codePoints().reduce(0) { result, scalar -> (result * 31 + scalar) and Int.MAX_VALUE }
+    val hue = courseHues[seed % courseHues.size]
+    return ColorUtils.HSLToColor(if (dark) floatArrayOf(hue, 0.42f, 0.30f) else floatArrayOf(hue, 0.62f, 0.82f))
 }

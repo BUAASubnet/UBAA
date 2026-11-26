@@ -1,10 +1,13 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-DateTime campusDate(DateTime value) =>
-    value.toUtc().add(const Duration(hours: 8));
-String agendaDate(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
-const agendaWeekdays = ['一', '二', '三', '四', '五', '六', '日'];
+export 'package:ubaa_domain/ubaa_domain.dart'
+    show
+        campusDate,
+        agendaDate,
+        agendaWeekdays,
+        agendaTime,
+        agendaValue,
+        agendaNavigation;
 
 /// 「11月8日」，列表、日历与详情共用。
 String agendaMonthDay(DateTime value) => '${value.month}月${value.day}日';
@@ -16,13 +19,6 @@ String agendaMonthDayWeek(DateTime value) =>
 /// 「09:50」，使用已换算到北京时间的值。
 String agendaHm(DateTime value) =>
     '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-AgendaTime agendaTime(DateTime value) => AgendaTime(
-  rfc3339:
-      '${agendaDate(value)}T${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}:00+08:00',
-  timezone: 'Asia/Shanghai',
-);
-DateTime? agendaValue(AgendaTime? value) =>
-    value == null ? null : campusDate(DateTime.parse(value.rfc3339));
 String agendaTitle(AgendaEntry e) => e.local?.content.title ?? e.school!.title;
 String agendaSource(AgendaEntry e) => e.local != null
     ? '我的'
@@ -51,41 +47,6 @@ AgendaTime? recurrenceAt(AgendaOccurrence occurrence) =>
     occurrence.recurrenceId == 'undated'
     ? null
     : AgendaTime(rfc3339: occurrence.recurrenceId, timezone: 'Asia/Shanghai');
-FeatureReadNavigation agendaNavigation(AgendaNavigation n) =>
-    FeatureReadNavigation(
-      feature: FeatureId.values.byName(n.feature.name),
-      query: switch (n.feature) {
-        AgendaFeature.schedule => FeatureQuery(
-          view: FeatureQueryView.summary,
-          term: n.term,
-          week: n.week,
-        ),
-        AgendaFeature.bykc => FeatureQuery(
-          view: FeatureQueryView.bykcDetail,
-          courseId: '${n.bykcCourseId}',
-        ),
-        AgendaFeature.spoc => FeatureQuery(
-          view: FeatureQueryView.spocDetail,
-          assignmentId: n.assignmentId,
-        ),
-        AgendaFeature.judge => FeatureQuery(
-          view: FeatureQueryView.judgeDetail,
-          courseId: n.courseId,
-          assignmentId: n.assignmentId,
-        ),
-        AgendaFeature.exam => FeatureQuery(
-          view: FeatureQueryView.examArranged,
-          term: n.term,
-        ),
-        AgendaFeature.signin => const FeatureQuery(
-          view: FeatureQueryView.signinPending,
-        ),
-        AgendaFeature.cgyy => const FeatureQuery(
-          view: FeatureQueryView.cgyyOrders,
-        ),
-        _ => const FeatureQuery(),
-      },
-    );
 
 /// 本机日程入口所需的服务与状态由宿主一起投影。
 final class AgendaAccess {
