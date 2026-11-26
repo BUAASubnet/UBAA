@@ -338,7 +338,7 @@ jobs:
         run: |-
           just quality-tools-bootstrap
           just flutter-dependencies
-          (cd apps/ubaa_ohos && just flutter-ohos pub get --enforce-lockfile)
+          (cd apps/ubaa_ohos && GIT_LFS_SKIP_SMUDGE=1 just flutter-ohos pub get --enforce-lockfile)
           (cd packages/ubaa_bindings/cargokit/build_tool && just dart pub get --enforce-lockfile)
           just release-preflight "$GITHUB_WORKSPACE/dist/release/licenses"
           mkdir -p dist/release/public

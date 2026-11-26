@@ -238,6 +238,7 @@ jobs:
         run: node --test scripts/tests/release/ohos_signing_test.mjs
       - name: 检查并构建 HarmonyOS
         env:
+          GIT_LFS_SKIP_SMUDGE: '1'
           UBAA_OHOS_NO_CODESIGN: '1'
           UBAA_TEST_TMP: ${{ runner.temp }}/ubaa_test_tmp
         run: just ohos-check mode=debug
