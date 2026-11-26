@@ -76,6 +76,7 @@ fn cgyy_day_data() -> Value {
                     already_num: Some(0),
                     take_up: Some(false),
                     take_up_explain: None,
+                    admin_remark: None,
                 },
                 CgyySlotStatus {
                     time_id: 243,
@@ -90,6 +91,7 @@ fn cgyy_day_data() -> Value {
                     already_num: None,
                     take_up: None,
                     take_up_explain: None,
+                    admin_remark: None,
                 },
             ],
         }],
