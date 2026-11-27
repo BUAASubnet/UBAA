@@ -32,7 +32,7 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
     await tester.tap(target.first);
   }
   await tester.pumpAndSettle();
-  final landingPage = find.byKey(const ValueKey('course-hub-landing'));
+  final landingPage = find.byKey(const PageStorageKey('course-hub-landing'));
   Finder card = find.widgetWithText(Card, feature.title);
   if (destination == UiDestination.study && landingPage.evaluate().isNotEmpty) {
     if ({FeatureId.spoc, FeatureId.judge, FeatureId.signin}.contains(feature)) {

@@ -256,6 +256,30 @@ void main() {
     expect(find.text('未归属'), findsOneWidget);
   });
 
+  testWidgets('全部作业筛选沿用快照课程顺序，未归属项按名称排在末尾', (tester) async {
+    await show(
+      tester,
+      CourseHubAssignmentsPage(
+        snapshot: snapshot(
+          [course('D 课程'), course('无作业课程'), course('B 课程')],
+          all: [
+            assignment('作业一', name: 'C 来源', due: '2099-01-01'),
+            assignment('作业二', courseName: 'B 课程', due: '2099-01-02'),
+            assignment('作业三', name: 'A 来源', due: '2099-01-03'),
+            assignment('作业四', courseName: 'D 课程', due: '2099-01-04'),
+          ],
+        ),
+        onOpenAssignment: (_) {},
+      ),
+    );
+    expect(
+      tester
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .map((chip) => (chip.label as Text).data),
+      ['全部课程', 'D 课程', 'B 课程', 'A 来源', 'C 来源'],
+    );
+  });
+
   testWidgets('作业列表分组标题与详情课程链接打开同一门课', (tester) async {
     final opened = <String>[];
     for (final detail in [false, true]) {

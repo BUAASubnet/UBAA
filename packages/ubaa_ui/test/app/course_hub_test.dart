@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/course_hub/entries.dart';
+import 'package:ubaa_ui/src/features/course_hub/study_landing.dart';
 import 'package:ubaa_ui/src/features/schedule/detail.dart';
 
 void main() {
@@ -84,6 +85,74 @@ void main() {
       }
       await tester.pumpAndSettle();
     }
+  });
+
+  testWidgets('从课程主页返回后学习列表恢复到原滚动位置', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(402, 874);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final hub = ValueNotifier(
+      CourseHubSnapshot(
+        termCode: 'term',
+        courses: [
+          for (var index = 0; index < 24; index++)
+            CourseHubCourse(
+              key: 'course-$index',
+              name: '合成课程 $index',
+              courseCode: null,
+              credit: null,
+              teachers: const [],
+              slots: const [],
+              nextClass: null,
+              spocCourses: const [],
+              judgeLinks: const [],
+              assignments: const [],
+              exams: const [],
+              grades: const [],
+            ),
+        ],
+      ),
+    );
+    addTearDown(hub.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'synthetic'),
+          initialDestination: UiDestination.study,
+          courseHub: hub,
+          routePolicy: RoutePolicy.direct,
+          activeRoutes: const [ConnectionMode.direct],
+          snapshots: const {},
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onRoutePolicyChanged: (_) {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find.descendant(
+      of: find.byType(CourseHubLanding),
+      matching: find.byType(Scrollable),
+    );
+    final course = find.byKey(const ValueKey('course-hub-course-course-17'));
+    await tester.scrollUntilVisible(course, 300, scrollable: scrollable);
+    await tester.pumpAndSettle();
+    final before = tester.state<ScrollableState>(scrollable).position.pixels;
+    expect(before, greaterThan(0));
+    await tester.tap(course.hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.byType(CourseHubCoursePage), findsOneWidget);
+    expect(scrollable, findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      closeTo(before, 0.1),
+    );
+    expect(course.hitTestable(), findsOneWidget);
   });
   for (final width in [402.0, 1100.0]) {
     testWidgets('课程、全部作业和来源导航 $width', (tester) async {
