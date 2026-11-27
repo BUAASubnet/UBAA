@@ -14,7 +14,7 @@
 
 **错误与产品语义。** 课程代码用于后续按教务课程代码关联课表、考试和成绩。缺失时仍返回课程，课件和课堂继续以 `kcid` 定位。相同课程代码的课程行仍分别返回。不解析 `rwh`，也不从 `kcid` 提取课程代码。全局作业列表在课程元数据读取失败时仍按原规则继续读取。
 
-**其余七项与真实验证。** 变更只读取成功响应的新字段。`features::spoc::list` 的 `course_map` 和 `fetch_courses` 仍按原路线构造请求、附加请求头，`features::spoc::auth` 仍沿用路线内认证、Cookie、角色和令牌。CAS/service、重定向与最终地址、Cookie/凭据、方法与参数、头与正文、加密签名均沿用[信封错误分类表](#spoc-信封错误分类)中的课程元数据记录。课程读取和全局作业列表的调用顺序、缓存、并发与重试也保持不变。官方前端的参数与 Core 的 `kcmc=&xnxq=<mrxq>` 不同，Core 参数下的真实验证待维护方执行。
+**其余七项与真实验证。** 变更只读取成功响应的新字段。`features::spoc::list` 的 `course_map` 和 `fetch_courses` 仍按原路线构造请求、附加请求头，`features::spoc::auth` 仍沿用路线内认证、Cookie、角色和令牌。CAS/service、重定向与最终地址、Cookie/凭据、方法与参数、头与正文、加密签名均沿用[信封错误分类表](#spoc-信封错误分类)中的课程元数据记录。课程读取和全局作业列表的调用顺序、缓存、并发与重试也保持不变。官方前端的参数与 Core 的 `kcmc=&xnxq=<mrxq>` 不同。2026-11-27 维护者授权用本地账号经 Direct 只读验证：`just verify-live feature=spoc route=direct` 通过，Core 以 `kcmc=&xnxq=2026-20271` 请求 `queryKclb`，返回的各行均带 `jw_kcdm`，课程代码集合与浏览器观察一致。同日 `feature=exam` 通过，本科考试 `courseNo` 与课表 `courseCode` 逐字相等，可按课程代码对应。原始诊断留在仓库外的本地验收目录。WebVPN 路线未验证：本次只增可选字段，按协议门禁一条路线即可；重跑条件为维护者授权后执行同一命令并加 `route=webvpn`。
 
 ### SPOC 作业附件与文件服务
 
