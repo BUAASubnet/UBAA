@@ -308,13 +308,18 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(hub.value.courses.single.scheduleLinked, isTrue);
     expect(hub.value.courses.single.grades, hasLength(1));
-    backend.catalog = () async => throw StateError('合成课程读取失败');
+    backend.catalog = () async => throw const BackendException(
+      UbaaErrorCode.upstreamUnavailable,
+      kind: UbaaErrorKind.upstream,
+      resolvedRoute: ConnectionMode.direct,
+    );
     await hub.refresh();
     expect(hub.value.courses.single.spocCourses, hasLength(1));
-    expect(
-      hub.value.sources[CourseHubSource.spocCourses]!.state,
-      CourseHubSourceState.failed,
-    );
+    final catalogStatus = hub.value.sources[CourseHubSource.spocCourses]!;
+    expect(catalogStatus.state, CourseHubSourceState.failed);
+    expect(catalogStatus.error?.code, UbaaErrorCode.upstreamUnavailable);
+    expect(catalogStatus.error?.kind, UbaaErrorKind.upstream);
+    expect(catalogStatus.error?.resolvedRoute, ConnectionMode.direct);
     final pending = Completer<List<SpocCourse>>();
     backend.catalog = () => pending.future;
     final refresh = hub.refresh();

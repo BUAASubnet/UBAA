@@ -194,7 +194,7 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
           if (ticket == _catalogTicket)
             _catalogStatus = CourseHubSourceStatus(
               CourseHubSourceState.failed,
-              UbaaErrorMapper.fromObject(error),
+              error is UiError ? error : UbaaErrorMapper.fromObject(error),
             );
         })
         .whenComplete(() {
