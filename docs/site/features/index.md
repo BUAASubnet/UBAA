@@ -18,6 +18,8 @@ description: 按 UBAA 应用里的导航列出全部功能：首页、日程、�
 
 ## 学习
 
+- [课程](/features/courses)：课程主页、全部作业和按来源浏览
+
 - [课表与考试](/features/schedule-and-exam)：按周查看课表，查看考试时间、考场和座位
 - [每日课程](/features/daily-courses)：查看今日课程的上课状态
 - [SPOC 作业](/features/spoc)：作业截止时间与提交状态
