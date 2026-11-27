@@ -8,7 +8,7 @@
 
 | 文件 | 来源与覆盖 |
 |---|---|
-| `course-list.json` | 按已记录字段构造：`evidence.md` 第 1 节，保留同名课程条目的 `kcid`、`kcmc`。 |
+| `course-list.json` | 按已记录字段构造：`evidence.md` 第 1 节保留同名课程条目的 `kcid`、`kcmc`，课程元数据对照记录补充共用的虚构 `jw_kcdm`。 |
 | `identity.json` | 按已记录字段构造：`evidence.md` 第 2 节；`req1.txt` 仅记录请求。 |
 | `signature-a.json` | 按已记录字段构造：`evidence.md` 第 2 节；`req2.txt` 仅记录请求。本样本覆盖字符串标量。B2 两条路线均解析成功，未单独记录原始类型。 |
 | `signature-b.json` | 按已记录字段构造：`evidence.md` 第 2 节。本样本覆盖 `tenant_code`、`timestamp` 为数字以及 `allow_live` 为布尔值的解析。 |
