@@ -22,7 +22,12 @@ Widget buildStudyRoot({
           builder: (_, snapshot, _) => ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              if(onRefresh!=null) IconButton(tooltip:'刷新课程中心',onPressed:onRefresh,icon:const Icon(Icons.refresh)),
+              if (onRefresh != null)
+                IconButton(
+                  tooltip: '刷新课程中心',
+                  onPressed: onRefresh,
+                  icon: const Icon(Icons.refresh),
+                ),
               TextButton(onPressed: onAssignments, child: const Text('全部作业')),
               TextButton(onPressed: onSources, child: const Text('按来源浏览')),
               for (final course in snapshot.courses)

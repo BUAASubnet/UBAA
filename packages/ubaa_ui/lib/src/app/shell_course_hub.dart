@@ -33,8 +33,8 @@ extension _ShellCourseHub on _UbaaMainShellState {
     return buildStudyRoot(
       grid: grid,
       courseHub: widget.courseHub,
-      onOpenFeature:_openFeatureList,
-      onRefresh:widget.onRefreshCourseHub,
+      onOpenFeature: _openFeatureList,
+      onRefresh: widget.onRefreshCourseHub,
       onCourse: (key) => _openHub(_HubPage.course, key),
       onAssignments: () => _openHub(_HubPage.assignments),
       onSources: () => _openHub(_HubPage.sources),
