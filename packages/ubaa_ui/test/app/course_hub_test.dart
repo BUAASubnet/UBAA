@@ -14,6 +14,13 @@ void main() {
     feature: FeatureId.spoc,
     detail: FeatureDetail(
       title: '合成练习',
+      presentation: SpocAssignmentPresentation(
+        courseId: 'k',
+        courseName: '合成课程',
+        assignmentId: 'task',
+        status: AssignmentSubmissionStatus.unsubmitted,
+        statusText: '未提交',
+      ),
       readNavigation: FeatureReadNavigation(
         feature: FeatureId.spoc,
         query: query,
@@ -85,12 +92,14 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final queries = <FeatureQuery>[];
+      var needs = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: UbaaMainShell(
             user: const UserSummary(username: "synthetic"),
             initialDestination: UiDestination.study,
             courseHub: ValueNotifier(snapshot),
+            onNeedCourseHub: () => needs++,
             routePolicy: RoutePolicy.direct,
             activeRoutes: const [ConnectionMode.direct],
             snapshots: {
@@ -121,11 +130,16 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      for (final label in ['合成课程', '全部作业']) {
+      expect(needs, 1);
+      await tester.tap(find.byKey(const ValueKey('course-hub-quick-schedule')));
+      await tester.pump();
+      expect(needs, 1);
+      await back();
+      for (final label in ['合成课程', '作业']) {
         await tap(label);
         await tap('合成练习');
         expect(queries.last, query);
-        if (width > 600) {
+        if (width > 600 && label == '合成课程') {
           await tester.tap(find.byTooltip('返回').hitTestable().first);
           await tester.pumpAndSettle();
         } else {

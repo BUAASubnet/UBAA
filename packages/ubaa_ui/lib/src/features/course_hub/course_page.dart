@@ -276,12 +276,9 @@ class _AssignmentsTab extends StatelessWidget {
       }
     }
     final missing = [
-      if (course.spocCourses.isNotEmpty &&
-          !_complete(snapshot, CourseHubSource.spocAssignments))
-        'SPOC 作业',
-      if (course.judgeLinks.any((l) => l.linked) &&
-          !_complete(snapshot, CourseHubSource.judgeAssignments))
-        '希冀作业',
+      if (!_complete(snapshot, CourseHubSource.spocCourses)) 'SPOC 课程',
+      if (!_complete(snapshot, CourseHubSource.spocAssignments)) 'SPOC 作业',
+      if (!_complete(snapshot, CourseHubSource.judgeAssignments)) '希冀作业',
     ];
     final wide = MediaQuery.sizeOf(context).width >= 740;
     Widget card(CourseHubAssignment a) => Padding(

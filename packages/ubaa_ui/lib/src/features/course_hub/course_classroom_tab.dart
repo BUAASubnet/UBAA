@@ -83,7 +83,9 @@ class _CourseClassroomTabState extends State<CourseClassroomTab>
         if (r.catalog != null || (ok.isEmpty || !_unavailable(r.error))) r,
     ];
     if (ok.isEmpty) {
-      final error = reads.first.error;
+      final error =
+          reads.where((read) => !_unavailable(read.error)).firstOrNull?.error ??
+          reads.first.error;
       final ui = error is UiError ? error : null;
       return ListView(
         padding: UbaaTheme.pageInsets(context, top: 12),
@@ -93,8 +95,8 @@ class _CourseClassroomTabState extends State<CourseClassroomTab>
             title: _unavailable(error) ? '暂无课堂' : '课堂读取失败',
             detail: ui?.message ?? '请稍后重试',
             error: ui,
-            action: _unavailable(error) ? null : '重试',
-            onAction: _unavailable(error) || _loading ? null : _load,
+            action: '重试',
+            onAction: _loading ? null : _load,
           ),
         ],
       );
