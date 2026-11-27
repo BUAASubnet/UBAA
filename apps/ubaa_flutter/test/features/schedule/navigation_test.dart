@@ -24,7 +24,7 @@ Future<void> mount(
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(Card, FeatureId.schedule.title));
+  await tester.tap(find.byKey(const ValueKey('course-hub-quick-schedule')));
   if (backend.weekGate != null) {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
@@ -136,7 +136,7 @@ void main() {
     gate.complete();
     await tester.pumpAndSettle();
     expect(backend.scheduleReads, isEmpty);
-    await tap(tester, find.widgetWithText(Card, FeatureId.schedule.title));
+    await tap(tester, find.byKey(const ValueKey('course-hub-quick-schedule')));
     expect(backend.scheduleReads, hasLength(1));
     expect(find.text('7日'), findsOneWidget);
   });

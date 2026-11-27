@@ -118,10 +118,8 @@ class CourseHubLanding extends StatelessWidget {
       hub.sources.isEmpty ||
       hub.sources[CourseHubSource.schedule]?.state ==
           CourseHubSourceState.loading ||
-      switch (hub.sources[CourseHubSource.spocCourses]?.state) {
-        CourseHubSourceState.loading || CourseHubSourceState.notLoaded => true,
-        _ => false,
-      };
+      hub.sources[CourseHubSource.spocCourses]?.state ==
+          CourseHubSourceState.loading;
 
   static bool _assignmentsComplete(CourseHubSnapshot hub) =>
       [

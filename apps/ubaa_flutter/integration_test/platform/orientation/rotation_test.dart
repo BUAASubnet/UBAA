@@ -42,7 +42,7 @@ void main() {
     Future<void> openSchedule() async {
       await tester.tap(uiDestinationFinder(tester, UiDestination.study));
       await tester.pumpAndSettle();
-      final card = find.widgetWithText(Card, FeatureId.schedule.title);
+      final card = find.byKey(const ValueKey('course-hub-quick-schedule'));
       await tester.ensureVisible(card);
       await tester.tap(card);
       await tester.pumpAndSettle();

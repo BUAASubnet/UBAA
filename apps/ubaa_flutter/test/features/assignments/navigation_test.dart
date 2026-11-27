@@ -3,7 +3,6 @@ import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
@@ -80,7 +79,8 @@ void main() {
     FocusManager.instance.primaryFocus?.unfocus();
     await tap(find.widgetWithText(FilledButton, '登录'));
     await tap(find.widgetWithText(NavigationDestination, '学习'));
-    await tap(find.widgetWithText(Card, FeatureId.judge.title));
+    await tap(find.byKey(const ValueKey('course-hub-open-sources')));
+    await tap(find.byKey(const ValueKey('course-hub-source-judge')));
     await panel();
     await tap(find.text('显示已截止'));
     await closePanel();
