@@ -99,15 +99,21 @@ class BridgeSpocCourse {
   final String courseId;
   final String name;
   final String? teacher;
+  final String? courseCode;
 
   const BridgeSpocCourse({
     required this.courseId,
     required this.name,
     this.teacher,
+    this.courseCode,
   });
 
   @override
-  int get hashCode => courseId.hashCode ^ name.hashCode ^ teacher.hashCode;
+  int get hashCode =>
+      courseId.hashCode ^
+      name.hashCode ^
+      teacher.hashCode ^
+      courseCode.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -116,7 +122,8 @@ class BridgeSpocCourse {
           runtimeType == other.runtimeType &&
           courseId == other.courseId &&
           name == other.name &&
-          teacher == other.teacher;
+          teacher == other.teacher &&
+          courseCode == other.courseCode;
 }
 
 class BridgeSpocCourseFile {

@@ -81,7 +81,7 @@ void main() {
     expect(client.disposeCalls, 0);
   });
 
-  for (final version in [8, 79, 80]) {
+  for (final version in [8, 79, 80, 84]) {
     test('BridgeBackend 拒绝旧 v$version 合同', () {
       final client = FixtureContractVersionClient(version);
 

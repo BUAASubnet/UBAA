@@ -29,7 +29,7 @@ fn preflight(vpn: bool, id: &str, modes: &str) -> Vec<Step> {
         ("spocnewht/inco/ht/queryOne", json!({"mrxq":"term"})),
         (
             "spocnewht/jxkj/queryKclb?kcmc=&xnxq=term",
-            json!([{"kcid":"course","kcmc":"合成课"}]),
+            json!([{"kcid":"course","kcmc":"合成课","jw_kcdm":"FIX0000001"}]),
         ),
         (
             "spocnewht/inco/ht/queryListByPage",

@@ -26,6 +26,7 @@ final class BridgeSpocFilesService implements SpocFilesService {
             courseId: item.courseId,
             name: item.name,
             teacher: item.teacher,
+            courseCode: item.courseCode,
           ),
       ],
     );

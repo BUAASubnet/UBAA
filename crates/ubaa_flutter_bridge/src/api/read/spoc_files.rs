@@ -43,6 +43,7 @@ pub struct BridgeSpocCourse {
     pub course_id: String,
     pub name: String,
     pub teacher: Option<String>,
+    pub course_code: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct BridgeSpocCourseFile {
@@ -88,6 +89,7 @@ impl BridgeClient {
                             course_id: item.course_id,
                             name: item.name,
                             teacher: item.teacher,
+                            course_code: item.course_code,
                         })
                         .collect()
                 },

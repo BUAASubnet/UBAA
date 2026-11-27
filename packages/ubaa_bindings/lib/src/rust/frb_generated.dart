@@ -24320,12 +24320,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeSpocCourse dco_decode_bridge_spoc_course(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return BridgeSpocCourse(
       courseId: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       teacher: dco_decode_opt_String(arr[2]),
+      courseCode: dco_decode_opt_String(arr[3]),
     );
   }
 
@@ -35520,10 +35521,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_courseId = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     var var_teacher = sse_decode_opt_String(deserializer);
+    var var_courseCode = sse_decode_opt_String(deserializer);
     return BridgeSpocCourse(
       courseId: var_courseId,
       name: var_name,
       teacher: var_teacher,
+      courseCode: var_courseCode,
     );
   }
 
@@ -46473,6 +46476,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.courseId, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.teacher, serializer);
+    sse_encode_opt_String(self.courseCode, serializer);
   }
 
   @protected

@@ -41,7 +41,14 @@ final class DemoClassroomService implements ClassroomService, SpocFilesService {
 
   @override
   Future<SpocRead<List<SpocCourse>>> courses() async => (
-    data: const [SpocCourse(courseId: _kcid, name: _title, teacher: '演示教师')],
+    data: const [
+      SpocCourse(
+        courseId: _kcid,
+        name: _title,
+        teacher: '演示教师',
+        courseCode: 'DEMO000001',
+      ),
+    ],
     route: ConnectionMode.direct,
   );
 

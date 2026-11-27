@@ -30028,10 +30028,12 @@ impl SseDecode for crate::api::read::spoc_files::BridgeSpocCourse {
         let mut var_courseId = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_teacher = <Option<String>>::sse_decode(deserializer);
+        let mut var_courseCode = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::spoc_files::BridgeSpocCourse {
             course_id: var_courseId,
             name: var_name,
             teacher: var_teacher,
+            course_code: var_courseCode,
         };
     }
 }
@@ -45987,6 +45989,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::spoc_files::BridgeSpocC
             self.course_id.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.teacher.into_into_dart().into_dart(),
+            self.course_code.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -52776,6 +52779,7 @@ impl SseEncode for crate::api::read::spoc_files::BridgeSpocCourse {
         <String>::sse_encode(self.course_id, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.teacher, serializer);
+        <Option<String>>::sse_encode(self.course_code, serializer);
     }
 }
 

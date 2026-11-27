@@ -29,6 +29,7 @@ pub(crate) async fn courses(runtime: &mut ClientRuntime) -> Result<Vec<SpocCours
             course_id: course.kcid,
             name: course.kcmc,
             teacher: course.skjs,
+            course_code: course.jw_kcdm,
         })
         .collect();
     courses.sort_by(|left, right| left.course_id.cmp(&right.course_id));

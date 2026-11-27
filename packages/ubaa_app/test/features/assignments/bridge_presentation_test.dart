@@ -7,14 +7,18 @@ import '../../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient, fixtureWebVpnRoute;
 
 void registerCourseworkTests() {
-  test('课件服务保留路线、列表标识、许可和宿主选择的路径', () async {
+  test('课件服务保留课程标识、可选课程代码、路线、许可和下载路径', () async {
     final native = _FilesClient();
     final service = BridgeBackend(native).spocFiles!;
     final courses = await service.courses();
     expect(courses.route, ConnectionMode.webvpn);
-    expect(courses.data.single.teacher, '合成教师');
+    expect(courses.data.first.teacher, '合成教师');
+    expect(courses.data.map((course) => course.courseCode), [
+      'FIX0000001',
+      null,
+    ]);
     final items = (await service.courseFiles(
-      courses.data.single.courseId,
+      courses.data.first.courseId,
       folderId: 'folder',
     )).data;
     expect(items.first.uploadedAtText, '2026-03-01');
@@ -208,7 +212,13 @@ class _FilesClient extends FixtureCharacterizationBridgeClient {
       const BridgeRoutedSpocCourses(
         route: fixtureWebVpnRoute,
         data: [
-          BridgeSpocCourse(courseId: 'course', name: '合成课', teacher: '合成教师'),
+          BridgeSpocCourse(
+            courseId: 'course',
+            name: '合成课',
+            teacher: '合成教师',
+            courseCode: 'FIX0000001',
+          ),
+          BridgeSpocCourse(courseId: 'other', name: '另一门合成课'),
         ],
       );
   @override
