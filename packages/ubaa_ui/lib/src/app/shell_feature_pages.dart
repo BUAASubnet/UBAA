@@ -42,6 +42,9 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
       child: FeatureDetailView(
         key: page.pageKey,
         filesAccess: widget.spocFilesAccess,
+        classroomAccess: feature == FeatureId.spoc
+            ? widget.spocClassroomAccess
+            : null,
         isLanding: page.isLanding,
         onOpenLockDisplay: widget.onOpenLockDisplay,
         onReadLockDisplay: widget.onReadLockDisplay,
@@ -100,9 +103,6 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
         onFetchSigninQr: widget.onFetchSigninQr,
         onSaveSigninQr: widget.onSaveSigninQr,
         onCheckSigninStatus: widget.onCheckSigninStatus,
-        onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-            ? null
-            : _startSigninWrite,
         onCgyyCancelWrite:
             !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
             ? null

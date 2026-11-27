@@ -99,6 +99,10 @@ abstract interface class SpocFilesBackend {
   SpocFilesService? get spocFiles;
 }
 
+abstract interface class ClassroomBackend {
+  ClassroomService? get classroom;
+}
+
 abstract interface class HealthCloudBackend {
   ReadHealthCloud? get healthCloud;
 }

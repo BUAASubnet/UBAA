@@ -257,7 +257,7 @@ void _registerInitialWriteTests() {
   });
 
   testWidgets(
-    '每日课程从 typed 上课目标一点即提交',
+    '每日课程读取二维码目标，不使用旧 typed 写入目标',
     (tester) =>
         withClock(Clock.fixed(DateTime.utc(2026, 10, 29, 0, 10)), () async {
           const expectedAction = SigninPerformAction(
@@ -267,16 +267,7 @@ void _registerInitialWriteTests() {
           final snapshots = _signinSnapshots(expectedAction);
           var prepareCalls = 0;
           var commitCalls = 0;
-          var refreshCalls = 0;
-          final intent = WriteIntent(
-            intentId: 'signin-intent',
-            operation: WriteOperation.signinPerform,
-            targetSummary: '每日课程',
-            resolvedRoute: ConnectionMode.webvpn,
-            warnings: const <String>['提交后请刷新今日课程状态确认结果'],
-            expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-            requestDigest: 'digest',
-          );
+          final reads = <String>[];
           await tester.pumpWidget(
             MaterialApp(
               theme: UbaaTheme.light(),
@@ -286,26 +277,14 @@ void _registerInitialWriteTests() {
                 routePolicy: RoutePolicy.auto,
                 onRefresh: () async {},
                 onRetryFeature: (_) async {},
-                onPrepareSigninWrite: (action) async {
-                  prepareCalls++;
-                  expect(identical(action, expectedAction), isTrue);
-                  expect(action.scheduleId, 'schedule-7');
-                  expect(action.eligibility, ActionEligibility.allowed);
-                  return intent;
+                onWritePrepareAttempt: (_) => prepareCalls++,
+                onFetchSigninQr: (target, _) async {
+                  reads.add(target);
+                  return '合成二维码';
                 },
-                onCommitWrite: (intentId) async {
+                onCommitWrite: (_) async {
                   commitCalls++;
-                  expect(intentId, 'signin-intent');
-                  return const WriteCommitResult(
-                    operation: WriteOperation.signinPerform,
-                    success: true,
-                    message: '上课结果已提交，请刷新确认',
-                    outcomeUnknown: false,
-                  );
-                },
-                onWriteSuccess: (operation, _) async {
-                  expect(operation, WriteOperation.signinPerform);
-                  refreshCalls++;
+                  throw StateError('二维码入口不应提交写入');
                 },
                 onLogout: () async {},
                 onLogoutAndClearAccount: () async {},
@@ -319,9 +298,9 @@ void _registerInitialWriteTests() {
           await tester.pumpAndSettle();
           await tester.tap(find.widgetWithText(FilledButton, '上课'));
           await tester.pumpAndSettle();
-          expect(prepareCalls, 1);
-          expect(commitCalls, 1);
-          expect(refreshCalls, 1);
+          expect(prepareCalls, 0);
+          expect(commitCalls, 0);
+          expect(reads, ['qr-target']);
         }),
   );
 
@@ -351,10 +330,7 @@ void _registerInitialWriteTests() {
                   reads.add((scheduleId, offset));
                   return '合成二维码';
                 },
-                onPrepareSigninWrite: (_) async {
-                  prepareCalls++;
-                  throw StateError('二维码入口不应准备写入');
-                },
+                onWritePrepareAttempt: (_) => prepareCalls++,
                 onCommitWrite: (_) async {
                   commitCalls++;
                   throw StateError('二维码入口不应提交写入');
@@ -369,10 +345,10 @@ void _registerInitialWriteTests() {
           await tester.pumpAndSettle();
           await openFeature(tester, FeatureId.signin);
           await tester.pumpAndSettle();
-          await tester.tap(find.byTooltip('上课二维码'));
+          await tester.tap(find.widgetWithText(FilledButton, '上课'));
           await tester.pumpAndSettle();
           expect(find.byType(SigninQrSheet), findsWidgets);
-          expect(reads, [('schedule-7', Duration.zero)]);
+          expect(reads, [('qr-target', Duration.zero)]);
           expect(prepareCalls, 0);
           expect(commitCalls, 0);
           await tester.pumpWidget(const SizedBox());
@@ -390,6 +366,7 @@ Map<FeatureId, FeatureSnapshot> _signinSnapshots(SigninPerformAction action) =>
             title: '每日课程',
             presentation: const SigninPresentation(
               courseId: '展示课程编号',
+              actionTarget: 'qr-target',
               classBeginTime: '08:00',
               classEndTime: '09:40',
               signStatus: 0,

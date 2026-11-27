@@ -13,6 +13,8 @@ import 'assignment_submit.dart' show SpocSubmitBlock;
 import '../../write_callbacks.dart'
     show SpocSubmitFilePicker, SpocSubmitStarter;
 import 'course_files_view.dart' show CourseFilesView;
+import 'spoc_classroom_access.dart' show SpocClassroomAccess;
+import '../spoc_classroom/classroom_entry.dart' show ClassroomEntryButton;
 import 'spoc_files_access.dart' show SpocFilesAccess;
 
 bool uiSupportsAssignmentContent(
@@ -56,6 +58,7 @@ class AssignmentContent extends StatelessWidget {
     required this.details,
     this.onNavigate,
     this.filesAccess,
+    this.classroomAccess,
     this.onSpocSubmitWrite,
     this.pickSpocSubmitFile,
     this.writesEnabled = true,
@@ -63,6 +66,7 @@ class AssignmentContent extends StatelessWidget {
   final List<FeatureDetail> details;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final SpocSubmitStarter? onSpocSubmitWrite;
   final SpocSubmitFilePicker? pickSpocSubmitFile;
   final bool writesEnabled;
@@ -124,7 +128,15 @@ class AssignmentContent extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // 课件是整门课的资源，入口放在课程标题行而不是单份作业里。
+                  // 课堂与课件都是整门课的资源，入口放在课程标题行而不是单份作业里。
+                  if (classroomAccess != null &&
+                      course is SpocAssignmentPresentation &&
+                      uiNonBlank(row) != null)
+                    ClassroomEntryButton(
+                      access: classroomAccess!,
+                      courseName: row,
+                      fallbackCourseId: courseId,
+                    ),
                   if (courseId != null && filesAccess?.canBrowseCourses == true)
                     _CourseFilesButton(
                       access: filesAccess!,
@@ -142,6 +154,7 @@ class AssignmentContent extends StatelessWidget {
               wide: constraints.maxWidth >= 740,
               onNavigate: onNavigate,
               filesAccess: filesAccess,
+              classroomAccess: classroomAccess,
               onSpocSubmitWrite: onSpocSubmitWrite,
               pickSpocSubmitFile: pickSpocSubmitFile,
               writesEnabled: writesEnabled,
@@ -192,6 +205,7 @@ class AssignmentCard extends StatelessWidget {
     required this.wide,
     this.onNavigate,
     this.filesAccess,
+    this.classroomAccess,
     this.onSpocSubmitWrite,
     this.pickSpocSubmitFile,
     this.writesEnabled = true,
@@ -199,6 +213,7 @@ class AssignmentCard extends StatelessWidget {
   final FeatureDetail detail;
   final bool wide;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final SpocSubmitStarter? onSpocSubmitWrite;
   final SpocSubmitFilePicker? pickSpocSubmitFile;
   final bool writesEnabled;
@@ -222,6 +237,7 @@ class AssignmentCard extends StatelessWidget {
         detail: detail,
         wide: wide,
         filesAccess: filesAccess,
+        classroomAccess: classroomAccess,
         onSpocSubmitWrite: onSpocSubmitWrite,
         pickSpocSubmitFile: pickSpocSubmitFile,
         writesEnabled: writesEnabled,
@@ -367,6 +383,7 @@ class _AssignmentDetail extends StatelessWidget {
     required this.detail,
     required this.wide,
     this.filesAccess,
+    this.classroomAccess,
     this.onSpocSubmitWrite,
     this.pickSpocSubmitFile,
     this.writesEnabled = true,
@@ -374,6 +391,7 @@ class _AssignmentDetail extends StatelessWidget {
   final FeatureDetail detail;
   final bool wide;
   final SpocFilesAccess? filesAccess;
+  final SpocClassroomAccess? classroomAccess;
   final SpocSubmitStarter? onSpocSubmitWrite;
   final SpocSubmitFilePicker? pickSpocSubmitFile;
   final bool writesEnabled;
@@ -458,18 +476,31 @@ class _AssignmentDetail extends StatelessWidget {
                 if (p is SpocAssignmentPresentation &&
                     uiNonBlank(p.teacherName) != null)
                   _assignmentLine(context, '教师：${p.teacherName}'),
-                if (filesAccess?.canBrowseCourses == true &&
-                    p is SpocAssignmentPresentation &&
-                    uiNonBlank(p.courseId) != null)
+                if (p is SpocAssignmentPresentation &&
+                    ((filesAccess?.canBrowseCourses == true &&
+                            uiNonBlank(p.courseId) != null) ||
+                        (classroomAccess != null &&
+                            uiNonBlank(course) != null)))
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _CourseFilesButton(
-                        access: filesAccess!,
-                        courseId: p.courseId,
-                        courseName: course,
-                      ),
+                    child: Wrap(
+                      spacing: 4,
+                      children: [
+                        if (classroomAccess != null &&
+                            uiNonBlank(course) != null)
+                          ClassroomEntryButton(
+                            access: classroomAccess!,
+                            courseName: course,
+                            fallbackCourseId: uiNonBlank(p.courseId),
+                          ),
+                        if (filesAccess?.canBrowseCourses == true &&
+                            uiNonBlank(p.courseId) != null)
+                          _CourseFilesButton(
+                            access: filesAccess!,
+                            courseId: p.courseId,
+                            courseName: course,
+                          ),
+                      ],
                     ),
                   ),
               ],

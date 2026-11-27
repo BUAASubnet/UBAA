@@ -38,4 +38,56 @@ void main() {
       throwsA(isA<BackendException>()),
     );
   });
+
+  test('演示课程包含四种节次状态及回放资料', () async {
+    final backend = DemoBackend(loginDelay: Duration.zero);
+    final courses = (await backend.spocFiles.courses()).data;
+    final service = backend.classroom;
+    final catalog = (await service.catalog(courses.single.courseId)).data;
+    expect(catalog.sessions.map((period) => period.status), [
+      ClassroomStatus.replay,
+      ClassroomStatus.live,
+      ClassroomStatus.noReplay,
+      ClassroomStatus.upcoming,
+    ]);
+    for (final period in catalog.sessions) {
+      final session = (await service.session(
+        catalog.courseId,
+        period.subId,
+      )).data;
+      expect(session.status, period.status);
+      expect(
+        session.sources.map((source) => source.kind),
+        switch (period.status) {
+          ClassroomStatus.replay => [
+            ClassroomPlaybackKind.teacher,
+            ClassroomPlaybackKind.slides,
+          ],
+          ClassroomStatus.live => [
+            ClassroomPlaybackKind.teacher,
+            ClassroomPlaybackKind.student,
+          ],
+          _ => <ClassroomPlaybackKind>[],
+        },
+      );
+      if (period.status != ClassroomStatus.replay) continue;
+      final guid = session.sources.first.resourceGuid!;
+      expect(
+        (await service.transcript(period.subId, guid)).data.segments,
+        isNotEmpty,
+      );
+      expect(
+        (await service.summary(period.subId, guid)).data.summary,
+        isNotEmpty,
+      );
+      expect(
+        (await service.slides(
+          catalog.courseId,
+          period.subId,
+          guid,
+        )).data.slides,
+        isNotEmpty,
+      );
+    }
+  });
 }

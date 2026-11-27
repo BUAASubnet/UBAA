@@ -28,6 +28,8 @@ pub(crate) struct Args {
     /// 空教室校区编号。
     #[arg(long, default_value_t = 1)]
     pub(crate) campus_id: i32,
+    #[arg(long, help = "可选诊断文件，路径必须位于仓库根目录的 .ubaa_local/ 内")]
+    pub(crate) diagnostics: Option<PathBuf>,
 }
 
 pub(crate) const FEATURES: &[&str] = &[
@@ -39,6 +41,7 @@ pub(crate) const FEATURES: &[&str] = &[
     "grades",
     "classroom",
     "spoc",
+    "spoc_classroom",
     "judge",
     "signin",
     "ygdk",

@@ -67,6 +67,7 @@ export 'src/rust/api/command.dart';
 export 'src/rust/api/command/output.dart';
 
 export 'src/rust/api/read/graduate.dart';
+export 'src/rust/api/read/spoc_classroom.dart';
 export 'src/rust/api/read/spoc_files.dart';
 export 'src/rust/api/write/spoc.dart';
 

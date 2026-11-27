@@ -35,6 +35,11 @@ for key in UBAA_USERNAME UBAA_PASSWORD UBAA_TEST_USERNAME UBAA_TEST_PASSWORD CLO
   [[ -z ${!key+x} ]] || exit 32
 done
 printf 'argv=%s\n' "$*" >&2
+for argument in "$@"; do
+  if [[ $argument == diagnostics=* ]]; then
+    printf 'diagnostic-arg=%s\n' "$argument" >&2
+  fi
+done
 if [[ $fake_user != test-user || $fake_password != test-password ]]; then
   exit 31
 fi
@@ -55,6 +60,29 @@ if grep -F 'test-password' "$test_root/stderr" >/dev/null; then
   exit 1
 fi
 grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root/stderr" >/dev/null
+if grep -F 'diagnostics' "$test_root/stderr" >/dev/null; then
+  exit 1
+fi
+
+diagnostics_path='.ubaa_local/spoc classroom/direct.json'
+output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+  "$test_root/scripts/live/verify.sh" route=direct feature=spoc_classroom \
+  "diagnostics=$diagnostics_path" 2>"$test_root/diagnostics.err")
+[[ $output == *'route=direct feature=spoc_classroom'* && $output == *'stdin_lines=2'* ]]
+grep -Fx -- "diagnostic-arg=diagnostics=$diagnostics_path" "$test_root/diagnostics.err" >/dev/null
+
+for route in direct webvpn; do
+  output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+    "$test_root/scripts/live/verify.sh" route="$route" feature=spoc_classroom 2>"$test_root/spoc-classroom.err")
+  [[ $output == *"route=$route feature=spoc_classroom"* && $output == *'stdin_lines=2'* ]]
+done
+output=$(UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+  "$test_root/scripts/live/verify.sh" route=direct 2>"$test_root/all.err")
+[[ $output == *'route=direct feature=all'* && $output != *'spoc_classroom'* ]]
+if grep -F 'spoc_classroom' "$test_root/all.err" >/dev/null; then
+  printf '%s\n' '默认矩阵不应转发 SPOC 课堂验证' >&2
+  exit 1
+fi
 
 # 同时通过真实启动器覆盖文档主名称，兼容名称与主名称选择规则由解析器测试保护。
 printf 'UBAA_TEST_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env"
@@ -105,6 +133,7 @@ for argument in "$@"; do
 done
 [[ -n "$config_dir" ]]
 printf '%s\n' "$*" >"$config_dir/argv.txt"
+printf '%s\n' "$@" >"$config_dir/args.txt"
 printf '%s\n' 'session-material' >"$config_dir/session.json"
 printf '%s\n' 'lock-material' >"$config_dir/.session.lock"
 if [[ ${FAKE_CORE_LIVE_SLEEP:-no} == yes ]]; then
@@ -146,6 +175,13 @@ UBAA_CORE_LIVE_BINARY="$test_root/scripts/fake-core-live-runtime.sh" UBAA_CORE_L
   "$repo_root/scripts/live/core-live.sh" route=direct feature=auth config-dir="$explicit_dir" >/dev/null 2>"$test_root/explicit.err"
 [[ -f "$explicit_dir/session.json" && -f "$explicit_dir/.session.lock" ]]
 grep -F -- '--route direct --feature auth --config-dir' "$explicit_dir/argv.txt" >/dev/null
+run_core_live 0 route=webvpn feature=spoc_classroom config-dir="$explicit_dir"
+grep -F -- '--route webvpn --feature spoc_classroom --config-dir' "$explicit_dir/argv.txt" >/dev/null
+if grep -Fx -- '--diagnostics' "$explicit_dir/args.txt" >/dev/null; then
+  exit 1
+fi
+run_core_live 0 route=webvpn feature=spoc_classroom config-dir="$explicit_dir" "diagnostics=$diagnostics_path"
+grep -A1 -Fx -- '--diagnostics' "$explicit_dir/args.txt" | grep -Fx -- "$diagnostics_path" >/dev/null
 
 # 构建失败也必须清理自动目录。
 mkdir -p "$test_root/fake-bin"

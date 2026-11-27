@@ -13,12 +13,14 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
   Future<AgendaQueryResult?> Function(
     List<WeekPresentation>,
     ConnectionMode?,
-    DateTime,
+    DateTime day,
+    DateTime at,
   )?
   queryAgenda,
 }) async {
   final buildTime = now ?? DateTime.now();
-  final campusDay = agendaDay(campusDate(buildTime));
+  final campusAt = campusDate(buildTime);
+  final campusDay = agendaDay(campusAt);
   void check() {
     if (!isCurrent())
       throw const BackendException(UbaaErrorCode.operationConflict);
@@ -155,7 +157,12 @@ Future<ScheduleWidgetSnapshot> readScheduleWidgetSnapshot({
   AgendaQueryResult? agenda;
   try {
     check();
-    agenda = await queryAgenda?.call(currentWeeks ?? [], weekRoute, campusDay);
+    agenda = await queryAgenda?.call(
+      currentWeeks ?? [],
+      weekRoute,
+      campusDay,
+      campusAt,
+    );
   } on Object {
     check();
   }

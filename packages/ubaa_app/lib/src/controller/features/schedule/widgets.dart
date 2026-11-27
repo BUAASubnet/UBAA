@@ -96,7 +96,7 @@ mixin ControllerScheduleWidgets on ControllerState {
       policy: _policy,
       agendaTerm: term,
       isCurrent: current,
-      queryAgenda: (weeks, weekRoute, day) async {
+      queryAgenda: (weeks, weekRoute, day, at) async {
         final service = agenda;
         if (service == null || internalAgendaFailure != null) return null;
         final sunlight = homeSnapshots[FeatureId.ygdk]?.resolvedRoute;
@@ -104,14 +104,16 @@ mixin ControllerScheduleWidgets on ControllerState {
             sunlight != null && weekRoute != null && sunlight != weekRoute
             ? null
             : homeWeekOn(weeks, day, term: term);
-        // 固定到校园日零点，保证当天重复构建一致；零点后才开放的 SPOC 作业当天不进入待办。
+        // 与首页待办一样按构建时刻（精确到分钟）查询，状态表仍从校园日零点起算。
+        // 构建时尚未开放的 SPOC 作业不会自行出现，要等查询分钟到达开放时刻之后的
+        // 下一次发布（如打开应用或日程同步完成）才进入待办。
         return service.query(
           AgendaQuery(
             route: route,
             term: term,
             from: agendaDate(day),
             to: agendaDate(day.add(const Duration(days: 28))),
-            now: agendaTime(day),
+            now: agendaTime(at),
             includeHidden: false,
             ygdkEnabled: reminder.enabled,
             ygdkWeekDone:

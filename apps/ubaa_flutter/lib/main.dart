@@ -4,6 +4,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import 'command_main.dart';
+import 'media_kit_playback.dart';
 
 /// 保留官方 Flutter 宿主的既有公开名称。
 typedef UbaaFlutterApp = UbaaAppHost;
@@ -27,6 +28,10 @@ Future<void> bootstrapUbaaFlutterApp({
       ensureInitialized ?? WidgetsFlutterBinding.ensureInitialized,
   initializeSdk: initializeRust ?? RustLib.init,
   debugHello: debugHello ?? bridgeHello,
-  createCapabilities: createCapabilities ?? createDefaultPlatformCapabilities,
+  createCapabilities:
+      createCapabilities ??
+      () => createDefaultPlatformCapabilities(
+        videoPlayback: createMediaKitVideoPlaybackCapability(),
+      ),
   runApplication: runApplication ?? runApp,
 );

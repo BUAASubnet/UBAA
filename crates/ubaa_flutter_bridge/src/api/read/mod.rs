@@ -33,6 +33,9 @@ pub(super) use mappers::{
     map_signin_classes, map_spoc_assignments, map_spoc_detail, map_ygdk_overview, map_ygdk_summary,
 };
 mod methods;
+pub mod spoc_classroom;
+#[cfg(test)]
+mod spoc_classroom_tests;
 pub mod spoc_files;
 mod write_readback;
 

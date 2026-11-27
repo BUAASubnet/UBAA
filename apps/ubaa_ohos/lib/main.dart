@@ -3,6 +3,8 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
+import 'ohos_video_playback.dart';
+
 /// 保留 HarmonyOS 宿主的既有公开名称。
 typedef UbaaOhosApp = UbaaAppHost;
 
@@ -22,6 +24,10 @@ Future<void> bootstrapUbaaOhosApp({
       ensureInitialized ?? WidgetsFlutterBinding.ensureInitialized,
   initializeSdk: initializeRust ?? RustLib.init,
   debugHello: debugHello ?? bridgeHello,
-  createCapabilities: createCapabilities ?? createDefaultPlatformCapabilities,
+  createCapabilities:
+      createCapabilities ??
+      () => createDefaultPlatformCapabilities(
+        videoPlayback: const OhosVideoPlaybackCapability(),
+      ),
   runApplication: runApplication ?? runApp,
 );

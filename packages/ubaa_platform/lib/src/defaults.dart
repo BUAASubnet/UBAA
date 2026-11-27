@@ -8,6 +8,7 @@ import 'infrastructure/gallery_image_saver.dart';
 import 'location.dart';
 import 'media.dart';
 import 'paths.dart';
+import 'video_playback.dart';
 
 /// 生产宿主的默认平台能力组合。
 ///
@@ -22,6 +23,7 @@ final class PlatformCapabilities {
     this.secureMaterials,
     this.materialRecovery,
     this.galleryImageSaver = const UnavailableGalleryImageSaver(),
+    this.videoPlayback = const UnavailableVideoPlayback(),
   });
 
   final CredentialVault credentialVault;
@@ -31,6 +33,7 @@ final class PlatformCapabilities {
   final PlatformPermissionGateway permissionGateway;
   final PlatformLocationProvider locationProvider;
   final GalleryImageSaver galleryImageSaver;
+  final VideoPlaybackCapability videoPlayback;
 }
 
 /// 命令与 GUI 共用的最小账号能力，不初始化图片、位置或首页。
@@ -73,6 +76,7 @@ Future<SessionPlatformCapabilities> createDefaultSessionPlatformCapabilities({
 Future<PlatformCapabilities> createDefaultPlatformCapabilities({
   MaterialCoordinator? coordinator,
   SecureMaterialTransport? transport,
+  VideoPlaybackCapability videoPlayback = const UnavailableVideoPlayback(),
 }) async {
   final session = await createDefaultSessionPlatformCapabilities(
     coordinator: coordinator,
@@ -90,6 +94,7 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities({
     permissionGateway: photos.permissions,
     locationProvider: locationProvider,
     galleryImageSaver: createDefaultGalleryImageSaver(),
+    videoPlayback: videoPlayback,
   );
 }
 

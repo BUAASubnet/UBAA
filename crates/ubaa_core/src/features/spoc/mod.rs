@@ -3,6 +3,18 @@
 
 mod auth;
 mod calendar;
+pub(crate) mod classroom;
+pub(super) async fn arbitrate_classroom_auth<T>(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<T> {
+    auth::resolve_required_spoc_result(
+        runtime,
+        Err(crate::error::UbaaError::authentication_required(
+            "课堂业务认证失败",
+        )),
+    )
+    .await
+}
 pub(crate) mod course_files;
 mod crypto;
 mod detail;

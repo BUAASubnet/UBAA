@@ -158,14 +158,13 @@ void _registerCallbackTests() {
     await shell.onDiscardWriteIntent!(' intent-bykc-sign ');
     expect(backend.discardedIntentId, 'intent-bykc-sign');
 
-    const signinAction = SigninPerformAction(
-      scheduleId: ' signin-course-41004 ',
-      eligibility: ActionEligibility.allowed,
+    final qr = await shell.onFetchSigninQr!(
+      'signin-course-41004',
+      Duration.zero,
     );
-    final signinIntent = await shell.onPrepareSigninWrite!(signinAction);
-    expect(signinIntent.operation, WriteOperation.signinPerform);
-    expect(signinIntent.intentId, 'intent-signin');
-    expect(backend.signinCourseId, 'signin-course-41004');
+    expect(qr, '合成二维码');
+    expect(backend.signinQrRead, ('signin-course-41004', Duration.zero));
+    expect(backend.signinCourseId, isNull);
 
     final libbookCancelIntent = await shell.onPrepareLibbookCancelWrite!(
       const LibbookCancelAction(

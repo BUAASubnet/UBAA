@@ -5,7 +5,9 @@ use crate::{
         CacheError, CacheResult, CachedBykcChosenCourse, CachedCgyyOrder, CachedSemesterSchedule,
         CachedSigninClass, CachedYgdkOverview,
     },
-    domain::agenda::{AgendaEntry, AgendaEntryItem, AgendaTime, AgendaTiming, SchoolAgendaOverlay},
+    domain::agenda::{
+        AgendaEntry, AgendaEntryItem, AgendaTime, SchoolAgendaItem, SchoolAgendaOverlay,
+    },
     domain::{
         Exam, JudgeAssignmentSummary, JudgeSubmissionStatus, SpocAssignmentSummary,
         SpocSubmissionStatus, Week,
@@ -75,10 +77,7 @@ pub fn project_home_agenda(
                 date,
                 classes,
                 fresh,
-            } => items.extend(classes.iter().filter_map(|v| school::signin(v, *date, now)).map(|mut item| {
-                if *fresh { item.status_label = if matches!(&item.timing, AgendaTiming::Period { start: Some(start), .. } if now < *start) { "即将上课" } else { "待上课" }.into(); }
-                item
-            })),
+            } => items.extend(classes.iter().filter_map(|v| signin(v, *date, now, *fresh))),
             HomeAgendaRead::Exam { term, exams } => {
                 items.extend(exams.iter().filter_map(|v| school::exam(v, term, now)));
             }
@@ -140,6 +139,26 @@ pub fn project_home_agenda(
     } else {
         merge(&BTreeMap::new())
     }
+}
+
+fn signin(
+    course: &CachedSigninClass,
+    date: NaiveDate,
+    now: AgendaTime,
+    fresh: bool,
+) -> Option<SchoolAgendaItem> {
+    let mut item = school::signin(course, date, now)?;
+    if fresh {
+        item.home_todo = matches!(course.sign_status, Some(0 | 1))
+            && school::signin_in_window(&item.timing, now);
+        item.status_label = if course.sign_status == Some(1) {
+            "已签到"
+        } else {
+            "未签到"
+        }
+        .into();
+    }
+    Some(item)
 }
 
 fn current_week(week: Option<&Week>, now: AgendaTime) -> Option<Week> {

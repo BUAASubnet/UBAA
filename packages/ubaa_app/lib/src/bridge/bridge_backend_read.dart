@@ -70,6 +70,9 @@ mixin BridgeBackendRead {
   late final SpocFilesService? spocFiles = client.contractVersion() < 82
       ? null
       : BridgeSpocFilesService(client);
+  late final ClassroomService? classroom = client.contractVersion() < 84
+      ? null
+      : BridgeClassroomService(client);
 
   ReadHealthCloud? get healthCloud => client.contractVersion() < 74
       ? null

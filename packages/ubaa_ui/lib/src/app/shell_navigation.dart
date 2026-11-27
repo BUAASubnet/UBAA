@@ -232,9 +232,9 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       gradeCheckRoute: widget.gradeCheckRoute,
       onOpenGradeNotice: _openGradeNotice,
       onDismissGradeNotice: widget.onConsumeGradeNotice,
-      onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
-          ? _performHomeSignin
-          : null,
+      onFetchSigninQr: widget.onFetchSigninQr,
+      onSaveSigninQr: widget.onSaveSigninQr,
+      onCheckSigninStatus: widget.onCheckSigninStatus,
       onObserveProgress: _observeHomeProgress,
       onFeatureTap: _openFeatureList,
       onRetryFeature: widget.onRetryHomeSource ?? widget.onRetryFeature,
@@ -265,9 +265,11 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       visible:
           _selectedIndex == UiDestination.agenda.index &&
           _openedFeature == null,
-      now: widget.homeClock == null
-          ? null
-          : campusDate(widget.homeClock!.now()),
+      agendaClock: widget.homeClock,
+      signinSnapshot: widget.snapshots[FeatureId.signin],
+      onFetchSigninQr: widget.onFetchSigninQr,
+      onSaveSigninQr: widget.onSaveSigninQr,
+      onCheckSigninStatus: widget.onCheckSigninStatus,
       reminder:
           _effectiveReminder ?? const YgdkReminderSettings(enabled: false),
       onOpenSchool: _openHomeNavigation,

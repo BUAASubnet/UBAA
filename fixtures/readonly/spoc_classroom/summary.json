@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "result": {
+    "code": 200,
+    "msg": "获取成功",
+    "data": [
+      {"from": "qz", "type": "Asr", "content": []},
+      {"from": "qz", "type": "QA", "content": [{"question": "本节讨论什么？", "answer": "测试主题。", "start": 4000, "end": 8000}]},
+      {"from": "qz", "type": "Q&A", "content": [{"question": "本节讨论什么？", "answer": "测试主题。", "start": 4000, "end": 8000}]},
+      {"from": "qz", "type": "Keywords", "content": ["测试关键词"]},
+      {"from": "qz", "type": "Summarization", "content": "本节介绍测试主题。"},
+      {"from": "qz", "type": "AutoChapters", "content": [{"start": 0, "end": 12000, "headline": "测试章节", "summary": "测试章节摘要。"}]},
+      {"from": "qz", "type": "PptExtraction", "content": []},
+      {"from": "qz", "type": "MindMapSummary", "content": [{
+        "start": "0",
+        "end": "12",
+        "title": "测试主题",
+        "topic": [{"start": "4", "end": "8", "title": "测试分支", "topic": []}]
+      }]}
+    ]
+  }
+}

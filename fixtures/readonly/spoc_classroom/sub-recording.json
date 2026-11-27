@@ -1,0 +1,43 @@
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "course_id": "100001",
+    "sub_id": "200001",
+    "sub_title": "第1周星期日第1,2节",
+    "sub_type": "course_live",
+    "start_at": "1000000000",
+    "end_at": "1000005400",
+    "begin_time": "1000000000",
+    "sub_status": "6",
+    "is_allow_video_drag": "1",
+    "is_allow_speed_up": null,
+    "room_name": "测试教室",
+    "lecturer_name": "测试教师",
+    "is_m3u8": "no",
+    "play_msg": "未找到任务信息",
+    "video_list": {
+      "0": {
+        "resource_guid": "abcdef0123456789abcdef0123456789",
+        "duration": "5280",
+        "type": "2",
+        "preview_url": "https://resource.msa.buaa.edu.cn/play/2/firm_files/ppt2026/video/2001-09-09/TEST_PPT_1920_1080.mp4",
+        "thumb": "https://resource.msa.buaa.edu.cn/play/2/firm_files/ppt2024/Pic/thumb/2001-09-09/TEST_PPT.jpg",
+        "time_offset": "-120",
+        "play_msg": ""
+      },
+      "1": {
+        "resource_guid": "fedcba9876543210fedcba9876543210",
+        "duration": "5400",
+        "type": "3",
+        "preview_url": "https://resource.msa.buaa.edu.cn/play/2/firm_files/teache2026/video/2001-09-09/TEST_TEACHER_1920_1080.mp4",
+        "thumb": "https://resource.msa.buaa.edu.cn/play/2/firm_files/teacher2024/Pic/thumb/2001-09-09/TEST_TEACHER.jpg",
+        "time_offset": "0",
+        "play_msg": ""
+      }
+    },
+    "playurl": {
+      "0": "https://resource.msa.buaa.edu.cn/play/2/firm_files/teache2026/video/2001-09-09/TEST_TEACHER_1920_1080.mp4"
+    }
+  }
+}

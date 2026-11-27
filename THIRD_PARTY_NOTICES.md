@@ -29,6 +29,14 @@ UBAA v1 的来源为 [BUAASubnet/UBAA](https://github.com/BUAASubnet/UBAA)，提
 
 OHOS 宿主中通过 Git 依赖引用的其他 CPF-Flutter 包按普通依赖记录，不属于本仓库直接保留的源码。发布时还应核对依赖报告中的许可证与源码可用状态。
 
+## TLS 根证书
+
+- 文件：`apps/ubaa_flutter/assets/tls/cacert.pem`，随应用分发，仅供 libmpv 校验 HTTPS 媒体连接。
+- 来源：[certifi 2026.11.20 的证书包](https://github.com/certifi/python-certifi/blob/2026.11.20/certifi/cacert.pem)，由 Mozilla NSS 的 `certdata.txt` 提取。
+- SHA-256：`bb92c6ac31c92f4f553bffd6bf093db02c858c23e111b0b4df9bafa3fdbe00d1`。
+- 许可证：[MPL-2.0 原文](docs/licenses/certifi-MPL-2.0.txt)。
+- 更新：从 certifi 的发布标签复制原始 `certifi/cacert.pem` 覆盖资源，核对许可证并用 `shasum -a 256 apps/ubaa_flutter/assets/tls/cacert.pem` 更新本节的版本和摘要，再运行播放器回归测试。
+
 ## 行为准则
 
 [行为准则](CODE_OF_CONDUCT.md)采用 Contributor Covenant 2.1 简体中文版，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.zh-hans) 使用。来源与修改说明见文件末尾。

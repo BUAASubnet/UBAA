@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_flutter/main.dart';
+import 'package:ubaa_flutter/media_kit_playback.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
       photoPicker: MemoryPhotoPicker(),
       permissionGateway: MemoryPermissionGateway(),
       locationProvider: const UnavailableLocationProvider(),
+      videoPlayback: createMediaKitVideoPlaybackCapability(initialize: () {}),
     );
     Widget? launchedApp;
 
@@ -50,6 +52,8 @@ void main() {
     expect(host.photoPicker, same(capabilities.photoPicker));
     expect(host.permissionGateway, same(capabilities.permissionGateway));
     expect(host.locationProvider, same(capabilities.locationProvider));
+    expect(host.videoPlayback, same(capabilities.videoPlayback));
+    expect(host.videoPlayback, isA<MediaKitVideoPlaybackCapability>());
   });
 
   test('安全材料不可用时不把本地账号仓库接入宿主', () async {

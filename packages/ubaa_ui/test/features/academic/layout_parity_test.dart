@@ -206,11 +206,11 @@ void main() {
         ],
       ),
     ], []);
-    expect(find.text('已上课'), findsOneWidget);
+    expect(find.text('已签到'), findsOneWidget);
     expect(find.byType(Chip), findsNothing);
     expect(find.text('更多信息'), findsNothing);
     final title = tester.getRect(find.text('合成已上课课程'));
-    final icon = tester.getRect(find.text('已上课'));
+    final icon = tester.getRect(find.text('已签到'));
     expect(icon.left, greaterThan(title.left));
     expect((icon.center.dy - title.center.dy).abs(), lessThan(60));
     await tester.tap(find.byTooltip('课程详情'));

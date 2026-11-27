@@ -146,7 +146,8 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 执行指定课程的课堂签到。
+    /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+    /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
     ///
     /// # Errors
     ///
@@ -156,7 +157,9 @@ impl UbaaClient {
         self.signin_perform_resolved(course_id, resolution).await
     }
 
-    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+    /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
+    /// 仅在本次权威解析仍匹配确认路线时重新核对资格并提交一次。
     ///
     /// # Errors
     /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
@@ -169,6 +172,7 @@ impl UbaaClient {
         self.signin_perform_resolved(course_id, resolution).await
     }
 
+    #[allow(deprecated)]
     async fn signin_perform_resolved(
         &mut self,
         course_id: &str,

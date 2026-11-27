@@ -8,6 +8,8 @@ pub(crate) struct Evidence {
     route: &'static str,
     started: Instant,
     failed: bool,
+    #[cfg(test)]
+    lines: Option<std::cell::RefCell<Vec<String>>>,
 }
 
 impl Evidence {
@@ -16,7 +18,22 @@ impl Evidence {
             route,
             started: Instant::now(),
             failed: false,
+            #[cfg(test)]
+            lines: None,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn capturing(route: &'static str) -> Self {
+        Self {
+            lines: Some(std::cell::RefCell::default()),
+            ..Self::new(route)
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn captured(self) -> Vec<String> {
+        self.lines.expect("已启用证据捕获").into_inner()
     }
 
     pub(crate) const fn failed(&self) -> bool {
@@ -35,14 +52,13 @@ impl Evidence {
         extra_fields: &[(&str, String)],
     ) {
         emit(
-            self.route,
+            self,
             feature,
             operation,
             "PASS",
             None,
             count,
             None,
-            self.started.elapsed().as_millis(),
             extra_fields,
         );
     }
@@ -65,14 +81,13 @@ impl Evidence {
     ) {
         self.failed = true;
         emit(
-            self.route,
+            self,
             feature,
             operation,
             "FAIL",
             Some(code),
             count,
             None,
-            self.started.elapsed().as_millis(),
             fields,
         );
     }
@@ -80,28 +95,26 @@ impl Evidence {
     pub(crate) fn blocked(&mut self, feature: &str, operation: &str, reason: &str) {
         self.failed = true;
         emit(
-            self.route,
+            self,
             feature,
             operation,
             "BLOCKED",
             None,
             None,
             Some(reason),
-            self.started.elapsed().as_millis(),
             &[],
         );
     }
 
     pub(crate) fn not_applicable(&self, feature: &str, operation: &str, reason: &str) {
         emit(
-            self.route,
+            self,
             feature,
             operation,
             "NOT_APPLICABLE",
             None,
             None,
             Some(reason),
-            self.started.elapsed().as_millis(),
             &[],
         );
     }
@@ -109,16 +122,17 @@ impl Evidence {
 
 #[allow(clippy::too_many_arguments)]
 fn emit(
-    route: &str,
+    evidence: &Evidence,
     feature: &str,
     operation: &str,
     status: &str,
     code: Option<&str>,
     count: Option<usize>,
     reason: Option<&str>,
-    elapsed_ms: u128,
     extra_fields: &[(&str, String)],
 ) {
+    let route = evidence.route;
+    let elapsed_ms = evidence.started.elapsed().as_millis();
     let mut fields = vec![
         format!("route={route}"),
         format!("feature={feature}"),
@@ -139,7 +153,13 @@ fn emit(
     for (key, value) in extra_fields {
         fields.push(format!("{key}={value}"));
     }
-    println!("{}", fields.join(" "));
+    let line = fields.join(" ");
+    #[cfg(test)]
+    if let Some(lines) = &evidence.lines {
+        lines.borrow_mut().push(line);
+        return;
+    }
+    println!("{line}");
 }
 
 pub(crate) fn error_code(code: ErrorCode) -> &'static str {

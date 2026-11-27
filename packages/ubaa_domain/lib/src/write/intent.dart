@@ -12,6 +12,9 @@ enum WriteOperation {
   bykcSelectCourse,
   bykcDeselectCourse,
   bykcSignCourse,
+
+  /// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+  /// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
   signinPerform,
   libbookReserve,
   libbookCancelBooking,

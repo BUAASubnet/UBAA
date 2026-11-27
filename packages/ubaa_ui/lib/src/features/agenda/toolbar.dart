@@ -1,6 +1,12 @@
 part of 'view.dart';
 
 extension _AgendaToolbar on AgendaViewState {
+  int get _selectedFilterCount =>
+      (filter == '全部' ? 0 : 1) +
+      (todos ? 1 : 0) +
+      (includeCompleted ? 0 : 1) +
+      (includeHidden ? 1 : 0);
+
   /// 与外壳标题栏同高、同左边线和同字号，切换到日程时标题不跳动。
   Widget _buildToolbar({required bool wide}) {
     final width = MediaQuery.sizeOf(context).width;
@@ -49,8 +55,8 @@ extension _AgendaToolbar on AgendaViewState {
                 tooltip: '筛选日程',
                 onPressed: showFilters,
                 icon: Badge(
-                  isLabelVisible: selectedFilterCount > 0,
-                  label: Text('$selectedFilterCount'),
+                  isLabelVisible: _selectedFilterCount > 0,
+                  label: Text('$_selectedFilterCount'),
                   child: const Icon(Icons.tune),
                 ),
               ),

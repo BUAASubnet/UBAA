@@ -13,6 +13,7 @@ final class FixtureRecordingBackend
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
+        SigninQrBackend,
         CancellationWriteBackend,
         LibbookWriteBackend,
         YgdkWriteBackend,
@@ -43,6 +44,7 @@ final class FixtureRecordingBackend
   int? bykcDeselectCourseId;
   ({int courseId, double? lat, double? lng, int signType})? bykcSign;
   String? signinCourseId;
+  (String, Duration)? signinQrRead;
   String? libbookCancellationId;
   int? libbookCancellationPage;
   int? libbookCancellationLimit;
@@ -235,6 +237,12 @@ final class FixtureRecordingBackend
   Future<WriteIntent> prepareSigninPerform({required String courseId}) async {
     signinCourseId = courseId;
     return _intent('signin', WriteOperation.signinPerform);
+  }
+
+  @override
+  Future<SigninQr> fetchSigninQr(String courseId, Duration offset) async {
+    signinQrRead = (courseId, offset);
+    return const SigninQr(content: '合成二维码', timestamp: 0);
   }
 
   @override

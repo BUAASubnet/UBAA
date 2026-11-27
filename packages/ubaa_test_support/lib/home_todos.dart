@@ -9,29 +9,44 @@ Future<HomeTodoProjection> homeTodoFixture(
   if (visible)
     for (final source in request.snapshots.values)
       for (final detail in source.details)
-        if (_navigation(source.feature, detail.presentation)
-            case final navigation?)
-          HomeTodo(
-            id: '${source.feature.name}:${detail.title}',
-            feature: source.feature,
-            title: detail.title,
-            subtitle: switch (detail.presentation) {
-              SpocAssignmentPresentation p => [
-                p.courseName,
-                p.teacherName,
-              ].whereType<String>().join(' · '),
-              _ => detail.subtitle ?? '合成来源',
-            },
-            statusLabel: statuses[detail.title] ?? '',
-            timeLabel: '明天 12:00 截止',
-            sortTime: request.now,
-            navigation: navigation,
-            signinAction:
-                source.status == FeatureLoadStatus.success &&
-                    source.evidence?.origin != DataOrigin.persisted
-                ? detail.action<SigninPerformAction>()
-                : null,
-          ),
+        if (switch (detail.presentation) {
+          SigninPresentation(signStatus: 1) &&
+              final SigninPresentation course =>
+            source.status == FeatureLoadStatus.success &&
+                source.evidence?.origin != DataOrigin.persisted &&
+                signinPhase(course, homeCampusTime(request.now)) ==
+                    SigninPhase.completedOpen,
+          _ => true,
+        })
+          if (_navigation(source.feature, detail.presentation)
+              case final navigation?)
+            HomeTodo(
+              id: '${source.feature.name}:${detail.title}',
+              feature: source.feature,
+              title: detail.title,
+              subtitle: switch (detail.presentation) {
+                SpocAssignmentPresentation p => [
+                  p.courseName,
+                  p.teacherName,
+                ].whereType<String>().join(' · '),
+                _ => detail.subtitle ?? '合成来源',
+              },
+              statusLabel: statuses[detail.title] ?? '',
+              timeLabel: '明天 12:00 截止',
+              sortTime: request.now,
+              navigation: navigation,
+              signin:
+                  source.status == FeatureLoadStatus.success &&
+                      source.evidence?.origin != DataOrigin.persisted &&
+                      detail.presentation is SigninPresentation
+                  ? detail.presentation! as SigninPresentation
+                  : null,
+              signinAction:
+                  source.status == FeatureLoadStatus.success &&
+                      source.evidence?.origin != DataOrigin.persisted
+                  ? detail.action<SigninPerformAction>()
+                  : null,
+            ),
 ]);
 FeatureReadNavigation? _navigation(FeatureId feature, FeaturePresentation? p) {
   final query = switch (p) {

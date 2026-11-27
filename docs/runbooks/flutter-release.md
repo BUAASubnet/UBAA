@@ -148,6 +148,10 @@ iOS 合并验收、正式归档和上传使用 GitHub 的 `xcode-27` 镜像，�
 | iOS / iPadOS | App Store IPA，上传后等待 Apple 处理完成 |
 | HarmonyOS | arm64 发布 APP 包，上传后等待 AppGallery 软件包解析完成 |
 
+Linux 构建需要 `libmpv-dev` 和 `libepoxy-dev`。图形应用动态链接系统库，tar.gz 不自带这些库；在 Ubuntu 24.04 上运行需要 `libmpv2` 和 `libepoxy0`。Windows 安装器递归打包 Release 目录，其中包含播放器插件和随构建产出的 libmpv DLL。
+
+HarmonyOS 播放器 fork 的 Git LFS 文件都是示例视频，应用构建不需要这些文件。CI 在解析依赖时跳过 LFS 下载；启用了 Git LFS 过滤器的本机可用 `GIT_LFS_SKIP_SMUDGE=1 UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 构建无签名调试 HAP。
+
 公开产物与许可证材料上传到 GitHub Release 草稿。服务器从同一次 Actions 运行直接下载并核对清单，再上传北航云盘的版本目录。服务器下载地址为 `https://download.ubaa.top:10443/releases/<tag>/<构建号>/`，带一年 immutable 缓存，同一路径不得替换成不同内容。`release.json` 记录版本、构建号、源码提交、文件长度、SHA-256 和下载地址，服务器实际读取摘要核对下载内容。云盘重跑只跳过已确认成功且长度一致的文件，结果未知时停止重复写入。
 
 HarmonyOS APP 与 iOS IPA 只用于对应商店，不进入公开安装包清单。网站在草稿公开且分发完整后才展示新版本。

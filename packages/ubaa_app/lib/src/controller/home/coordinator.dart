@@ -153,11 +153,14 @@ final class HomeCoordinator {
       _dirtyProjection = true;
       // 其他来源重算不改变签到资格；读取范围或签到来源变化才撤销旧操作。
       if ((newEpoch || signinChanged) &&
-          _todos.any((todo) => todo.signinAction != null)) {
+          _todos.any(
+            (todo) => todo.signinAction != null || todo.signin != null,
+          )) {
         _todos = _todos
             .map(
-              (todo) =>
-                  todo.signinAction == null ? todo : todo.withoutSigninAction(),
+              (todo) => todo.signinAction == null && todo.signin == null
+                  ? todo
+                  : todo.withoutSigninAction(),
             )
             .toList();
       }

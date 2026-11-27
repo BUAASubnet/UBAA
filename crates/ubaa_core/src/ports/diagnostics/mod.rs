@@ -9,6 +9,7 @@ use serde_json::{Value, json};
 
 use super::{HttpFileRange, HttpRequest, HttpResponse, HttpTransferObserver, HttpTransport};
 use crate::{domain::ConnectionMode, error::Result};
+mod redact;
 
 const MAX_BYTES: usize = 32 * 1024 * 1024;
 const MAX_RECORDS: usize = 256;
@@ -65,6 +66,7 @@ impl RawDiagnostics {
             "completed_requests": journal.completed,
             "unfinished_requests": journal.sequence.saturating_sub(journal.completed),
             "redacted": false,
+            "redaction_scope": "selected_fields",
             "records": records,
         })
         .to_string()
@@ -164,21 +166,31 @@ impl<T: HttpTransport> RecordingTransport<T> {
         if let Some(id) = id {
             let mut record = json!({
                 "request_id": id, "route": self.route,
-                "method": method, "url": url,
+                "method": method, "url": redact::url(&url),
                 "started_at_unix_ms": started, "elapsed_ms": timer.elapsed().as_millis(),
             });
             match &result {
                 Ok((response, capture)) => {
-                    let (encoding, body) = match std::str::from_utf8(&response.body) {
-                        Ok(text) => ("utf8", text.to_owned()),
-                        Err(_) => (
-                            "base64",
-                            base64::engine::general_purpose::STANDARD.encode(&response.body),
-                        ),
+                    let masked = redact::body(&url, &response.body);
+                    let capture = if masked.is_some() {
+                        "redacted"
+                    } else {
+                        *capture
+                    };
+                    let (encoding, body) = if let Some(text) = masked {
+                        ("utf8", text)
+                    } else {
+                        match std::str::from_utf8(&response.body) {
+                            Ok(text) => ("utf8", text.to_owned()),
+                            Err(_) => (
+                                "base64",
+                                base64::engine::general_purpose::STANDARD.encode(&response.body),
+                            ),
+                        }
                     };
                     record["response"] = json!({
-                        "status": response.status, "url": response.final_url,
-                        "headers": response.headers, "body": body, "body_encoding": encoding,
+                        "status": response.status, "url": redact::url(&response.final_url),
+                        "headers": redact::headers(&url, response), "body": body, "body_encoding": encoding,
                         "body_bytes": response.body.len(),
                         "body_capture": capture,
                     });

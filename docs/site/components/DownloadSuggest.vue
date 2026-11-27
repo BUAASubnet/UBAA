@@ -1,5 +1,6 @@
 <script setup>
 import { inject, onMounted, ref, watch } from "vue";
+import { STORES } from "./stores.js";
 const release = inject("release");
 
 // 服务端渲染时不知道访问设备，挂载后按浏览器信息推荐；识别不了就不显示。
@@ -19,13 +20,13 @@ async function architecture() {
 }
 
 async function detect() {
+  const agent = navigator.userAgent;
+  if (/OpenHarmony/i.test(agent)) return { store: "HarmonyOS", id: "ohos" };
+  if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) {
+    return { store: "iOS", id: "ios" };
+  }
   if (!release.value) return null;
   const { android, windows, macos, linux } = release.value.platforms;
-  const agent = navigator.userAgent;
-  if (/OpenHarmony/i.test(agent)) return { store: "HarmonyOS", anchor: "#ohos" };
-  if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) {
-    return { store: "iOS", anchor: "#ios" };
-  }
   if (/Android/.test(agent)) return { platform: "android", rows: [android[0]] };
   if (/Windows/.test(agent)) return { platform: "windows", rows: windows };
   const arch = await architecture();
@@ -51,12 +52,13 @@ onMounted(async () => {
 <template>
   <div v-if="suggestion" class="download-suggest">
     <template v-if="suggestion.store">
-      <p v-if="suggestion.store === 'iOS'">
-        看起来你在使用 iOS 设备。<a href="https://apps.apple.com/cn/app/ubaa/id6768861821">在 App Store 下载 UBAA</a>。
-      </p>
-      <p v-else>
-        看起来你在使用 HarmonyOS 设备。AppGallery 待审核，<a :href="suggestion.anchor">查看说明</a>。
-      </p>
+      <p>看起来你在使用 {{ suggestion.store }} 设备，请从应用商店安装：</p>
+      <div class="actions">
+        <a class="primary" :href="STORES[suggestion.id].url" target="_blank" rel="noreferrer">
+          前往 {{ STORES[suggestion.id].name }}
+          <small>{{ STORES[suggestion.id].label }}</small>
+        </a>
+      </div>
     </template>
     <template v-else>
       <p>看起来你在使用 {{ NAMES[suggestion.platform] }} 设备，推荐下载：</p>

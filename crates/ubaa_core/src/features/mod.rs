@@ -17,6 +17,7 @@ pub(crate) mod hzsso;
 pub(crate) mod ihome;
 pub mod judge;
 pub mod libbook;
+pub(crate) mod msa;
 pub mod schedule;
 pub mod signin;
 pub mod spoc;

@@ -31,6 +31,8 @@ ResultHandle.render(control, stdout, stderr) -> exitCode
 
 固定路线、显式聚合认证和本机日程提供各自的执行适配。`ResultHandle` 不允许宿主自行构造成功正文。`PreparedCommand` 保留一次输入快照，业务重跑不再次消费 stdin。命令分类为 `Local`、`Readonly`、`ExplicitAuth`、`SchoolWrite`，按具体操作判断。Signin perform、LibBook reserve/cancel、Bykc select/deselect/sign、Cgyy submit/cancel、Ygdk submit 和 Evaluation submit-pending 均属于学校写入。
 
+`signin perform` [已弃用](../protocol/parity/signin.md#2026-11-26-停用-stu_auto_sign签到统一为二维码)，保留原有学校写入分类和确认要求。
+
 生产命令使用 App 共享材料和当前账号，不使用旧独立 Rust 宿主、专用账号索引或材料 worker。公共协议和命令回归位于 `crates/ubaa_command/tests`，`core-live` 位于独立的 `tools/core_live`，覆盖归属见[测试策略](../development/testing.md#命令宿主替换后的覆盖)。
 
 ## 身份、本机数据与恢复

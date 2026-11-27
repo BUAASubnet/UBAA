@@ -2,15 +2,15 @@
 import { inject } from "vue";
 const release = inject("release");
 const loading = inject("releaseLoading");
-const available = (platform) => platform.id === "ios" || Boolean(release.value?.platforms[platform.id]?.length);
+const available = (platform) => platform.store || Boolean(release.value?.platforms[platform.id]?.length);
 // 下载页顶部的平台入口；点击跳到对应平台的下载与安装说明。
 const platforms = [
-  { id: "android", name: "Android", detail: "APK · Android 7.0+", ready: true },
-  { id: "windows", name: "Windows", detail: "EXE · Windows 10 / 11", ready: true },
-  { id: "macos", name: "macOS", detail: "DMG · macOS 12+", ready: true },
-  { id: "linux", name: "Linux", detail: "tar.gz · x64 / ARM64", ready: true },
-  { id: "ios", name: "iOS", detail: "App Store", ready: true },
-  { id: "ohos", name: "HarmonyOS", detail: "AppGallery", ready: false },
+  { id: "android", name: "Android", detail: "APK · Android 7.0+" },
+  { id: "windows", name: "Windows", detail: "EXE · Windows 10 / 11" },
+  { id: "macos", name: "macOS", detail: "DMG · macOS 12+" },
+  { id: "linux", name: "Linux", detail: "tar.gz · x64 / ARM64" },
+  { id: "ios", name: "iOS", detail: "App Store", store: true },
+  { id: "ohos", name: "HarmonyOS", detail: "AppGallery", store: true },
 ];
 </script>
 
@@ -19,7 +19,7 @@ const platforms = [
     <a v-for="platform in platforms" :key="platform.id" :href="`#${platform.id}`">
       <strong>{{ platform.name }}</strong>
       <span>{{ platform.detail }}</span>
-      <em :class="{ soon: !available(platform) }">{{ available(platform) ? "可下载" : !platform.ready ? "待审核" : loading ? "加载中" : "暂不可用" }}</em>
+      <em :class="{ soon: !available(platform) }">{{ available(platform) ? "可下载" : loading ? "加载中" : "暂不可用" }}</em>
     </a>
   </nav>
 </template>

@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/src/controller/home/coordinator.dart';
 import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/features/home/schedule.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart' show SigninCourseQrFetcher;
 
 class HomeHarness extends StatefulWidget {
   const HomeHarness({
@@ -20,7 +21,7 @@ class HomeHarness extends StatefulWidget {
     required this.onTodoTap,
     this.onLoadSupplement,
     this.onLoadDaySchedule,
-    this.onSignin,
+    this.onFetchSigninQr,
     this.reminderSettings,
     this.onObserveProgress,
     this.gradeScoreNotice,
@@ -67,7 +68,7 @@ class HomeHarness extends StatefulWidget {
   final int cacheEpoch;
   final int businessCacheEpoch;
   final ValueChanged<HomeTodo> onTodoTap;
-  final Future<WriteOutcome?> Function(SigninPerformAction)? onSignin;
+  final SigninCourseQrFetcher? onFetchSigninQr;
   final Future<FeatureResult> Function(HomeSupplement, bool)? onLoadSupplement;
   final Future<FeatureResult> Function(String, bool)? onLoadDaySchedule;
   final YgdkReminderSettings? reminderSettings;
@@ -140,7 +141,7 @@ class _HomeHarnessState extends State<HomeHarness> {
     onRefresh: model.refresh,
     visible: widget.visible,
     onTodoTap: widget.onTodoTap,
-    onSignin: widget.onSignin,
+    onFetchSigninQr: widget.onFetchSigninQr,
     onObserveProgress: widget.onObserveProgress,
     gradeScoreNotice: widget.gradeScoreNotice,
     gradeCheckRoute: widget.gradeCheckRoute,

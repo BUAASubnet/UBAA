@@ -26,6 +26,7 @@ final class HomeTodo {
     this.soon = false,
     this.navigation,
     this.signinAction,
+    this.signin,
     this.deadline,
     this.startsAt,
     this.endsAt,
@@ -50,6 +51,16 @@ final class HomeTodo {
     timeLabel: timeLabel,
     sortTime: sortTime,
     navigation: navigation,
+    signin: switch (signin) {
+      final SigninPresentation course when course.signStatus == 1 =>
+        SigninPresentation(
+          courseId: course.courseId,
+          classBeginTime: course.classBeginTime,
+          classEndTime: course.classEndTime,
+          signStatus: 1,
+        ),
+      _ => null,
+    },
     deadline: deadline,
     startsAt: startsAt,
     endsAt: endsAt,
@@ -61,6 +72,7 @@ final class HomeTodo {
 
   final FeatureReadNavigation? navigation;
   final SigninPerformAction? signinAction;
+  final SigninPresentation? signin;
 }
 
 String _clockHome(DateTime time) =>
@@ -155,6 +167,7 @@ HomeTodo formatHomeTodo(
   required DateTime now,
   FeatureReadNavigation? navigation,
   SigninPerformAction? signinAction,
+  SigninPresentation? signin,
 }) {
   if (entry.local case final local?) {
     final start = local.content.start?.rfc3339;
@@ -216,5 +229,6 @@ HomeTodo formatHomeTodo(
     soon: entry.soon,
     navigation: navigation,
     signinAction: signinAction,
+    signin: signin,
   );
 }

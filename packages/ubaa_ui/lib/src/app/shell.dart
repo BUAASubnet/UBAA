@@ -9,7 +9,7 @@ import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
 import '../features/cloud_print/view.dart';
 import '../features/agenda/view.dart';
-import '../features/agenda/format.dart' show campusDate, AgendaAccess;
+import '../features/agenda/format.dart' show AgendaAccess;
 import '../shared/tab_navigation.dart' show TabPager, currentTabPager;
 import '../features/ihome/view.dart';
 import '../features/health_cloud/view.dart';
@@ -42,6 +42,8 @@ import 'app_service/notices.dart' show AppServiceNotices;
 import 'app_service/settings.dart' show AppServiceControls;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
+import '../features/coursework/spoc_classroom_access.dart'
+    show SpocClassroomAccess;
 import '../features/coursework/spoc_files_access.dart' show SpocFilesAccess;
 import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
@@ -149,7 +151,6 @@ class UbaaMainShell extends StatefulWidget {
     this.onReadLockDisplay,
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
-    this.onPrepareSigninWrite,
     this.onFetchSigninQr,
     this.onSaveSigninQr,
     this.onCheckSigninStatus,
@@ -168,6 +169,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
     this.spocFilesAccess,
+    this.spocClassroomAccess,
     this.onDiscardWriteIntent,
     this.onCommitWrite,
     this.onWriteSuccess,
@@ -282,7 +284,6 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
   final BykcSignPreparer? onPrepareBykcSignWrite;
-  final SigninPreparer? onPrepareSigninWrite;
   final SigninCourseQrFetcher? onFetchSigninQr;
   final SigninQrImageSaver? onSaveSigninQr;
   final SigninStatusChecker? onCheckSigninStatus;
@@ -302,6 +303,7 @@ class UbaaMainShell extends StatefulWidget {
 
   /// SPOC 附件、我的提交与课件的读取和下载；未接线的宿主为 null。
   final SpocFilesAccess? spocFilesAccess;
+  final SpocClassroomAccess? spocClassroomAccess;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
@@ -435,15 +437,12 @@ class _UbaaMainShellState extends WidgetNavigationState {
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
-  bool _homeSigninActive = false;
   WriteOperation? _directWriteActive;
   void _setDirectWriteActive(WriteOperation? operation) =>
       setState(() => _directWriteActive = operation);
   (WriteOperation, int)? _bykcWriteActive;
   void _setBykcWriteActive((WriteOperation, int)? action) =>
       setState(() => _bykcWriteActive = action);
-  void _setHomeSigninActive(bool active) =>
-      setState(() => _homeSigninActive = active);
   @override
   void initState() {
     super.initState();

@@ -86,6 +86,8 @@ impl UbaaClient {
         };
         if !same {
             self.invalidate_read_recovery_batch();
+            self.direct_runtime.reset_msa();
+            self.webvpn_runtime.reset_msa();
             self.cloud_print = None;
         }
         self.direct_runtime.shared_account.clone_from(&guard);

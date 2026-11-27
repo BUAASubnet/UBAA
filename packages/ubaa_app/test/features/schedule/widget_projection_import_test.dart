@@ -14,9 +14,10 @@ void main() {
           agendaTerm: 'term',
           now: DateTime.utc(2026, 9, 28, 20),
           isCurrent: () => current,
-          queryAgenda: (weeks, route, day) async {
+          queryAgenda: (weeks, route, day, at) async {
             expect(weeks.map((week) => week.number), [1, 2]);
             expect(day, DateTime.utc(2026, 9, 29));
+            expect(at, DateTime.utc(2026, 9, 29, 4));
             if (supersede) {
               current = false;
               return AgendaQueryResult(entries: [], sources: []);

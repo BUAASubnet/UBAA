@@ -103,13 +103,32 @@ void main() {
     final epoch = shell.agendaEpoch;
     final reads = backend.storage.widgetQueries.length;
     expect(reads, greaterThan(0));
+    final before = DateTime.now().toUtc();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     await tester.pump();
     await accounts.settle(tester);
     expect(backend.storage.widgetQueries.length, greaterThan(reads));
     final query = backend.storage.widgetQueries.last;
+    final after = DateTime.now().toUtc();
     expect(query.from, query.now.rfc3339.substring(0, 10));
-    expect(query.now.rfc3339, endsWith('T00:00:00+08:00'));
+    final queriedAt = DateTime.parse(query.now.rfc3339);
+    final beforeMinute = DateTime.utc(
+      before.year,
+      before.month,
+      before.day,
+      before.hour,
+      before.minute,
+    );
+    expect(
+      queriedAt.isBefore(beforeMinute),
+      isFalse,
+      reason: '查询时间 $queriedAt 早于触发时间下限 $beforeMinute',
+    );
+    expect(
+      queriedAt.isAfter(after),
+      isFalse,
+      reason: '查询时间 $queriedAt 晚于读取时间 $after',
+    );
     expect(query.includeHidden, false);
     expect(
       tester.widget<UbaaMainShell>(find.byType(UbaaMainShell)).agendaEpoch,

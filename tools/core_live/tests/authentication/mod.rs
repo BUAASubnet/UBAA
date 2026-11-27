@@ -98,7 +98,22 @@ impl HttpTransport for Transport {
             }
             _ => panic!("出现预期外的学校请求"),
         };
-        Ok(sso_fixture_response(status, request.url, body))
+        let mut response = sso_fixture_response(status, request.url, body);
+        if url.path() == "/serviceValidate" {
+            let body = String::from_utf8(response.body).unwrap();
+            let payload = body.strip_suffix('}').unwrap();
+            response.body =
+                format!(r#"{payload},"auth_key":"fixture-media-secret"}}"#).into_bytes();
+            response.headers.insert(
+                "aUtHoRiZaTiOn".into(),
+                vec!["Bearer fixture-token-secret".into()],
+            );
+            response.headers.insert(
+                "Cookie".into(),
+                vec!["mode=1; _token=fixture-cookie-secret".into()],
+            );
+        }
+        Ok(response)
     }
 }
 
@@ -167,6 +182,81 @@ async fn exercise(
     drop(requests);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn 诊断按需导出并复用课堂脱敏规则() {
+    use std::os::unix::fs::PermissionsExt as _;
+    use std::path::PathBuf;
+
+    for (enabled, login_fails) in [(false, false), (true, false), (true, true)] {
+        let root = ubaa_test_support::test_temp_dir("core_live_diagnostics_export").unwrap();
+        let config_dir = root.join("config");
+        let transport = Transport {
+            requests: Arc::default(),
+            scenario: Scenario {
+                refusals: if login_fails { 3 } else { 0 },
+                ..Scenario::default()
+            },
+        };
+        let mut client =
+            with_routing_in_config_directory(transport.clone(), transport, &config_dir, NoProbe)
+                .unwrap();
+        set_captcha_recognizer(&mut client, |_| Some("a2b3c4".into()));
+        let recorder = client.raw_diagnostics();
+        let args = crate::args::Args {
+            route: "direct".into(),
+            feature: "auth".into(),
+            config_dir,
+            username_stdin: true,
+            password_stdin: true,
+            date: "2026-08-31".into(),
+            campus_id: 1,
+            diagnostics: enabled.then(|| PathBuf::from(".ubaa_local/课堂/direct.json")),
+        };
+        let path = args
+            .diagnostics
+            .as_deref()
+            .map(|path| crate::diagnostics::prepare_path(&root, path).unwrap());
+        let result = crate::steps::run_with_client(
+            &args,
+            &mut client,
+            ConnectionMode::Direct,
+            LoginInput {
+                username: USER.into(),
+                password: SecretValue::new("synthetic-password"),
+            },
+            path.clone(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.failed(), login_fails);
+        let Some(path) = path else {
+            assert!(!root.join(".ubaa_local").exists());
+            assert!(recorder.export_json().contains(r#""enabled":false"#));
+            continue;
+        };
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            std::fs::metadata(path).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert!(text.contains(r#""enabled":true"#));
+        assert!(!text.contains(r#""records":[]"#));
+        for secret in [
+            "fixture-media-secret",
+            "fixture-token-secret",
+            "fixture-cookie-secret",
+        ] {
+            assert!(!text.contains(secret));
+        }
+        if !login_fails {
+            assert!(text.contains(r#""body_capture":"redacted""#));
+            assert!(text.contains(r#""aUtHoRiZaTiOn":["[已隐藏]"]"#));
+            assert!(text.contains("_token=[已隐藏]"));
+        }
+    }
 }
 
 #[tokio::test]

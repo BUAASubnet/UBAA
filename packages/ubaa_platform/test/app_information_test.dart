@@ -48,6 +48,12 @@ void main() {
     expect(await openExternalUrl(safe), isTrue);
     expect(launcher.urls, [safe.toString()]);
     expect(launcher.modes, [PreferredLaunchMode.externalApplication]);
+    await openExternally(safe);
+    expect(launcher.urls, [safe.toString(), safe.toString()]);
+    expect(
+      launcher.modes,
+      everyElement(PreferredLaunchMode.externalApplication),
+    );
     launcher.result = false;
     expect(await openExternalUrl(safe), isFalse);
   });

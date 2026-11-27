@@ -219,6 +219,102 @@ void main() {
     );
     expect(values.exam.single.term, 'resolved-term');
   });
+  test('首页仅在二维码窗口内投影有在线目标的签到课程', () {
+    const start = BridgeAgendaTime(
+      rfc3339: '2026-03-24T12:00:00+08:00',
+      timezone: 'Asia/Shanghai',
+    );
+    const timing = BridgeAgendaTiming(
+      kind: BridgeAgendaTimingKind.period,
+      start: start,
+    );
+    BridgeAgendaEntry row(int signStatus, {String? statusLabel}) =>
+        BridgeAgendaEntry(
+          timing: timing,
+          sortTime: start,
+          soon: false,
+          completed: false,
+          hidden: false,
+          school: BridgeSchoolAgendaItem(
+            key: const BridgeSchoolAgendaKey(
+              source: 'signin',
+              upstreamId: 'course',
+            ),
+            timing: timing,
+            title: '合成课程',
+            subtitle: '每日课程',
+            statusLabel: statusLabel ?? (signStatus == 1 ? '已签到' : '未签到'),
+            upstreamStatus: BridgeAgendaUpstreamStatus(
+              feature: BridgeAgendaFeature.signin,
+              completed: signStatus == 1,
+              signStatus: signStatus,
+            ),
+            navigation: const BridgeAgendaNavigation(
+              feature: BridgeAgendaFeature.signin,
+              date: '2026-03-24',
+              courseId: 'course',
+            ),
+            homeTodo: true,
+          ),
+        );
+    FeatureSnapshot snapshot(int signStatus) => FeatureSnapshot(
+      feature: FeatureId.signin,
+      status: FeatureLoadStatus.success,
+      resolvedRoute: ConnectionMode.direct,
+      details: [
+        FeatureDetail(
+          title: '合成课程',
+          presentation: SigninPresentation(
+            courseId: 'course',
+            classBeginTime: '12:00',
+            classEndTime: '13:00',
+            signStatus: signStatus,
+            actionTarget: 'qr-target',
+          ),
+        ),
+      ],
+    );
+    for (final signStatus in [0, 1]) {
+      for (final (time, visible) in [
+        ('03:49', false),
+        ('03:50', true),
+        ('05:00', true),
+        ('05:01', false),
+      ]) {
+        final result = bridgeHomeTodoProjection(
+          [row(signStatus)],
+          HomeTodoRequest(
+            now: DateTime.parse('2026-03-24T$time:00Z'),
+            snapshots: {FeatureId.signin: snapshot(signStatus)},
+          ),
+        );
+        expect(
+          result.todos.length,
+          visible ? 1 : 0,
+          reason: '$time，状态 $signStatus',
+        );
+        if (visible) {
+          final todo = result.todos.single;
+          expect(todo.signin?.actionTarget, 'qr-target');
+          final retained = todo.withoutSigninAction().signin;
+          expect(retained?.signStatus, signStatus == 1 ? 1 : null);
+          expect(retained?.actionTarget, isNull);
+        }
+      }
+    }
+    final stale = snapshot(0).copyWith(status: FeatureLoadStatus.stale);
+    final cached = bridgeHomeTodoProjection(
+      [row(0, statusLabel: '状态待更新')],
+      HomeTodoRequest(
+        now: DateTime.parse('2026-03-24T05:00:00Z'),
+        snapshots: {FeatureId.signin: stale},
+      ),
+    ).todos.single;
+    expect(cached.statusLabel, '状态待更新');
+    expect(cached.signin, isNull);
+    expect(cached.signinAction, isNull);
+  });
+
   test('无缓存上课读取跨校园午夜时拒绝结果，不能恢复昨日动作', () async {
     final times = [
       DateTime.parse('2026-03-24T15:59:59Z'),

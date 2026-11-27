@@ -1,0 +1,17 @@
+{
+  "code": 0,
+  "list": [
+    {
+      "content": "{\"detecttype\":\"ppt\",\"is_key\":false,\"pptimgurl\":\"https://resource.msa.buaa.edu.cn/play/2//ai3/ppt/00000003/00000000-0000-4000-8000-000000000003/0.jpg\",\"status\":\"running\",\"pptthumb\":\"https://resource.msa.buaa.edu.cn/play/2//ai3/ppt/00000003/00000000-0000-4000-8000-000000000003/0.jpg\"}",
+      "course_id": "100001",
+      "sub_id": "200001"
+    },
+    {
+      "content": "{\"detecttype\":\"ppt\",\"is_key\":false,\"pptimgurl\":\"https://resource.msa.buaa.edu.cn/play/2//ai3/ppt/00000003/00000000-0000-4000-8000-000000000003/12000.jpg\",\"status\":\"running\",\"pptthumb\":\"https://resource.msa.buaa.edu.cn/play/2//ai3/ppt/00000003/00000000-0000-4000-8000-000000000003/12000.jpg\"}",
+      "course_id": "100001",
+      "sub_id": "200001"
+    }
+  ],
+  "msg": "success",
+  "total": 2
+}

@@ -139,6 +139,8 @@ pub(in crate::facade) fn allowed(domain: &str) -> bool {
             | "gsmis.buaa.edu.cn"
             | "app.buaa.edu.cn"
             | "spoc.buaa.edu.cn"
+            | "yjapi.msa.buaa.edu.cn"
+            | "classroom.msa.buaa.edu.cn"
             | "judge.buaa.edu.cn"
             | "iclass.buaa.edu.cn"
             | "i.buaa.edu.cn"
@@ -164,6 +166,11 @@ fn domains(operation: Operation) -> &'static [&'static str] {
             }
             ReadonlyFeature::Classroom => &["app.buaa.edu.cn"],
             ReadonlyFeature::Spoc | ReadonlyFeature::Evaluation => &["spoc.buaa.edu.cn"],
+            ReadonlyFeature::SpocClassroom => &[
+                "spoc.buaa.edu.cn",
+                "yjapi.msa.buaa.edu.cn",
+                "classroom.msa.buaa.edu.cn",
+            ],
             ReadonlyFeature::Judge => &["judge.buaa.edu.cn"],
             ReadonlyFeature::Signin => &["iclass.buaa.edu.cn"],
             ReadonlyFeature::Ihome => &["i.buaa.edu.cn"],

@@ -37,6 +37,7 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'read/graduate.dart';
+import 'read/spoc_classroom.dart';
 import 'read/spoc_files.dart';
 import 'recovery.dart';
 import 'recovery/control.dart';
@@ -1165,6 +1166,31 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedSpocAssignments> spocAssignments();
+
+  Future<BridgeRoutedClassroomCatalog> spocClassroomCatalog({
+    required String kcid,
+  });
+
+  Future<BridgeRoutedClassroomSession> spocClassroomSession({
+    required String courseId,
+    required String subId,
+  });
+
+  Future<BridgeRoutedClassroomSlides> spocClassroomSlides({
+    required String courseId,
+    required String subId,
+    required String resourceGuid,
+  });
+
+  Future<BridgeRoutedClassroomSummary> spocClassroomSummary({
+    required String subId,
+    required String resourceGuid,
+  });
+
+  Future<BridgeRoutedClassroomTranscript> spocClassroomTranscript({
+    required String subId,
+    required String resourceGuid,
+  });
 
   Future<BridgeRoutedSpocCourseFiles> spocCourseFiles({
     required String courseId,

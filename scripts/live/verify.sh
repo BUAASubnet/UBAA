@@ -14,6 +14,7 @@ core_live=${UBAA_CORE_LIVE_SCRIPT:-$repo_root/scripts/live/core-live.sh}
 
 route=
 feature=all
+diagnostics=
 date_value=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
 campus_id=${UBAA_VERIFY_CAMPUS_ID:-1}
 
@@ -31,6 +32,11 @@ for argument in "$@"; do
     --date=*) date_value=${argument#--date=} ;;
     campus-id=*) campus_id=${argument#campus-id=} ;;
     --campus-id=*) campus_id=${argument#--campus-id=} ;;
+    diagnostics=|--diagnostics=)
+      printf '%s\n' 'diagnostics 需要指定导出文件路径' >&2
+      exit 2
+      ;;
+    diagnostics=*|--diagnostics=*) diagnostics=${argument#*=} ;;
     '') ;;
     *) printf 'verify-live 参数无效: %s\n' "$argument" >&2; exit 2 ;;
   esac
@@ -50,6 +56,10 @@ if [[ ! -x "$core_live" ]]; then
   exit 2
 fi
 
+live_args=("$core_live" "route=$route" "feature=$feature" "date=$date_value" "campus-id=$campus_id")
+if [[ -n $diagnostics ]]; then
+  live_args+=("diagnostics=$diagnostics")
+fi
+
 # 共用加载器校验凭据，再通过 stdin 启动 Core-live。
-exec python3 "$repo_root/scripts/lib/toolchain.py" live \
-  "$core_live" "route=$route" "feature=$feature" "date=$date_value" "campus-id=$campus_id"
+exec python3 "$repo_root/scripts/lib/toolchain.py" live "${live_args[@]}"

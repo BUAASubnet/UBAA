@@ -88,7 +88,11 @@ bool _sameTodos(List<HomeTodo> a, List<HomeTodo> b) {
         (x.navigation != null &&
             !x.navigation!.query.hasSameParameters(y.navigation!.query)) ||
         x.signinAction?.scheduleId != y.signinAction?.scheduleId ||
-        x.signinAction?.eligibility != y.signinAction?.eligibility)
+        x.signinAction?.eligibility != y.signinAction?.eligibility ||
+        x.signin?.actionTarget != y.signin?.actionTarget ||
+        x.signin?.signStatus != y.signin?.signStatus ||
+        x.signin?.classBeginTime != y.signin?.classBeginTime ||
+        x.signin?.classEndTime != y.signin?.classEndTime)
       return false;
   }
   return true;

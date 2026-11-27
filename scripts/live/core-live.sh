@@ -16,6 +16,7 @@ binary=${UBAA_CORE_LIVE_BINARY:-$repo_root/target/debug/core-live}
 route=
 feature=all
 config_dir=
+diagnostics=
 date_value=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
 campus_id=${UBAA_VERIFY_CAMPUS_ID:-1}
 
@@ -35,6 +36,11 @@ for argument in "$@"; do
     --campus-id=*) campus_id=${argument#--campus-id=} ;;
     config-dir=*) config_dir=${argument#config-dir=} ;;
     --config-dir=*) config_dir=${argument#--config-dir=} ;;
+    diagnostics=|--diagnostics=)
+      printf '%s\n' 'diagnostics 需要指定导出文件路径' >&2
+      exit 2
+      ;;
+    diagnostics=*|--diagnostics=*) diagnostics=${argument#*=} ;;
     '') ;;
     *) printf 'Core-live 参数无效: %s\n' "$argument" >&2; exit 2 ;;
   esac
@@ -80,14 +86,13 @@ if [[ ! -x "$binary" || ${UBAA_CORE_LIVE_BUILD:-yes} == yes ]]; then
   cargo build --locked --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-core-live --bin core-live
 fi
 
-if "$binary" \
-  --route "$route" \
-  --feature "$feature" \
-  --config-dir "$config_dir" \
-  --date "$date_value" \
-  --campus-id "$campus_id" \
-  --username-stdin \
-  --password-stdin; then
+live_args=(--route "$route" --feature "$feature" --config-dir "$config_dir"
+  --date "$date_value" --campus-id "$campus_id" --username-stdin --password-stdin)
+if [[ -n $diagnostics ]]; then
+  live_args+=(--diagnostics "$diagnostics")
+fi
+
+if "$binary" "${live_args[@]}"; then
   status=0
 else
   status=$?

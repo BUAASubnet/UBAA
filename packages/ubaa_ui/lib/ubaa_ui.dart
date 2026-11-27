@@ -9,6 +9,7 @@ export 'src/features/bhpan/write_flow.dart'
 export 'src/theme.dart';
 export 'src/shared/feedback.dart';
 export 'src/write_callbacks.dart';
+export 'src/features/coursework/spoc_classroom_access.dart';
 export 'src/features/coursework/spoc_files_access.dart';
 export 'src/features/coursework/course_files_view.dart'
     show CourseFilesView, uiCourseFileIcon, uiFileSize;

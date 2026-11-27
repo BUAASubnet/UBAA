@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../support/bridge/fixtures.dart' show currentBridgeContractVersion;
 import '../../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient, fixtureWebVpnRoute;
 
@@ -201,7 +202,7 @@ void registerCourseworkTests() {
 
 class _FilesClient extends FixtureCharacterizationBridgeClient {
   @override
-  int contractVersion() => 83;
+  int contractVersion() => currentBridgeContractVersion;
   @override
   Future<BridgeRoutedSpocCourses> spocCourses() async =>
       const BridgeRoutedSpocCourses(

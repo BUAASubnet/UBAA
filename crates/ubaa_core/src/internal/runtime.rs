@@ -37,6 +37,8 @@ pub(crate) struct ClientRuntime {
     authentication_generation: uuid::Uuid,
     authentication_revoked: Arc<AtomicBool>,
     feature_state: Arc<RouteFeatureState>,
+    pub(crate) msa:
+        Arc<crate::internal::route_state::CredentialState<Arc<crate::domain::SecretValue>>>,
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
     non_idempotent_boundary_crossed: bool,
@@ -136,6 +138,7 @@ impl ClientRuntime {
             authentication_generation: uuid::Uuid::new_v4(),
             authentication_revoked: Arc::new(AtomicBool::new(false)),
             feature_state: Arc::new(RouteFeatureState::default()),
+            msa: Arc::default(),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             campus_network_write_status: None,
@@ -201,6 +204,7 @@ impl ClientRuntime {
             authentication_generation: self.authentication_generation,
             authentication_revoked: Arc::clone(&self.authentication_revoked),
             feature_state: Arc::clone(&self.feature_state),
+            msa: Arc::clone(&self.msa),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             campus_network_write_status: None,
@@ -350,10 +354,13 @@ impl ClientRuntime {
     }
 
     pub(crate) fn remember_account_name(&mut self, account_name: Option<&str>) {
-        self.account_name = account_name
+        let account = account_name
             .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_owned);
+            .filter(|value| !value.is_empty());
+        if self.account_name.is_some() && self.account_name.as_deref() != account {
+            self.reset_msa();
+        }
+        self.account_name = account.map(str::to_owned);
     }
 
     pub(crate) fn url(&self, direct: &str) -> Result<String> {
@@ -460,6 +467,7 @@ impl ClientRuntime {
 
     /// 同代派生共享撤销，新登录使用独立标记，旧响应不能撤销后续登录。
     pub(crate) fn renew_authentication_generation(&mut self) {
+        self.reset_msa();
         self.authentication_revoked.store(true, Ordering::Release);
         self.authentication_revoked = Arc::new(AtomicBool::new(false));
         self.authentication_generation = uuid::Uuid::new_v4();
@@ -477,6 +485,11 @@ impl ClientRuntime {
         if let Some(owner) = &self.readonly_generation {
             owner.invalidate();
         }
+    }
+
+    pub(crate) fn reset_msa(&mut self) {
+        self.msa.clear();
+        self.msa = Arc::default();
     }
 }
 

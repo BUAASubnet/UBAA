@@ -1,0 +1,49 @@
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "id": "100001",
+    "title": "测试课程",
+    "realname": "测试教师",
+    "teachers": [{"username": "92024683", "realname": "测试教师"}],
+    "term_name": "测试学期",
+    "sub_list": {
+      "2001": {
+        "9": {
+          "9": [
+            {
+              "id": "200001",
+              "sub_title": "第1周星期日第1,2节",
+              "type": "course_live",
+              "olive_type": "course_live",
+              "class_begin": "1000000000",
+              "class_over": "1000005400",
+              "room_name": "测试教室",
+              "lecturer_name": "测试教师",
+              "sub_status": "6",
+              "playback_status": "1",
+              "play_time": "60",
+              "finished": 0
+            }
+          ],
+          "10": [
+            {
+              "id": "200002",
+              "sub_title": "第2周星期一第1,2节",
+              "type": "olive",
+              "olive_type": "tencent_meeting",
+              "class_begin": "1000086400",
+              "class_over": "1000091800",
+              "room_name": "测试教室",
+              "lecturer_name": "测试教师",
+              "sub_status": "2",
+              "playback_status": "0",
+              "play_time": 0,
+              "finished": 0
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -110,7 +110,11 @@ pub(crate) async fn preflight_signin(
     }
 }
 
-/// 提交课堂签到请求。该接口有意保持低层；宿主调用前必须要求显式写操作确认。
+/// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+/// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
+#[deprecated(
+    note = "2026-11-26 学校拒绝该接口，签到统一为二维码；见 docs/protocol/parity/signin.md"
+)]
 pub(crate) async fn perform_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     course_id: &str,

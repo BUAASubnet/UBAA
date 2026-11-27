@@ -41,7 +41,8 @@ abstract interface class BykcWriteBackend implements WriteCommitBackend {
   });
 }
 
-/// 已接入 typed 课堂签到写意图的能力。
+/// 已弃用：2026-11-26 学校拒绝该接口，签到统一为二维码。
+/// 见 `docs/protocol/parity/signin.md` 的 2026-11-26 记录。
 ///
 /// 课程编号直接来自签到读取 DTO 的公开字段；位置/挑战等未证明参数不在
 /// 该简化入口中猜测，Core 会按冻结合同决定是否需要额外条件。

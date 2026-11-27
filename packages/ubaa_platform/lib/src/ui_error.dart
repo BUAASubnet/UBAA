@@ -470,6 +470,26 @@ ConnectionMode? _parseRoute(Object? value) => switch (value) {
   UiErrorKind kind,
   ErrorDiagnostic? diagnostic,
 ) => switch ((code, diagnostic?.reason)) {
+  (UbaaErrorCode.unsupported, 'role_teacher_unsupported') => (
+    title: '暂不支持',
+    message: '暂不支持教师身份',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.unsupported, 'role_unsupported' || 'role_shape') => (
+    title: '暂不支持',
+    message: '暂不支持当前身份',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.businessUnavailable, 'bind_id_missing') => (
+    title: '课堂未开通',
+    message: '该课程未开通课堂直录播',
+    actionLabel: null,
+  ),
+  (UbaaErrorCode.businessUnavailable, 'mapping_unbound_page') => (
+    title: '课堂未开通',
+    message: '该课程暂未在智学北航开通课堂',
+    actionLabel: null,
+  ),
   (UbaaErrorCode.invalidInput, 'spoc_file_changed') => (
     title: '文件已变化',
     message: '请重新选择文件并准备提交',

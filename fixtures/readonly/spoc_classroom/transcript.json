@@ -1,0 +1,17 @@
+{
+  "code": 0,
+  "msg": "获取同传结果成功",
+  "total": 1,
+  "list": [
+    {
+      "all_content": [
+        {"BeginSec": 0, "Text": "这是第一段测试转写。", "TransText": "", "EndSec": 4},
+        {"BeginSec": 4, "Text": "这是第二段测试转写。", "TransText": "", "EndSec": 8}
+      ],
+      "trans_content": "[{\"BeginSec\":0,\"Text\":\"这是第一段测试转写。\",\"TransText\":\"\",\"EndSec\":4},{\"BeginSec\":4,\"Text\":\"这是第二段测试转写。\",\"TransText\":\"\",\"EndSec\":8}]",
+      "sub_id": "200001",
+      "resource_guid": "fedcba9876543210fedcba9876543210",
+      "trans_type": "ainew"
+    }
+  ]
+}

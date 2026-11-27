@@ -1,20 +1,32 @@
 PODS:
   - Flutter (1.0.0)
+  - media_kit_libs_ios_video (1.0.4):
+    - Flutter
+  - media_kit_video (0.0.1):
+    - Flutter
   - ubaa_bindings (2.1.0):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - media_kit_libs_ios_video (from `.symlinks/plugins/media_kit_libs_ios_video/ios`)
+  - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
   - ubaa_bindings (from `.symlinks/plugins/ubaa_bindings/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  media_kit_libs_ios_video:
+    :path: ".symlinks/plugins/media_kit_libs_ios_video/ios"
+  media_kit_video:
+    :path: ".symlinks/plugins/media_kit_video/ios"
   ubaa_bindings:
     :path: ".symlinks/plugins/ubaa_bindings/ios"
 
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  media_kit_libs_ios_video: 5a18affdb97d1f5d466dc79988b13eff6c5e2854
+  media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
   ubaa_bindings: 0997aebdd33298cfbf77a17d85376da7c45266d1
 
 PODFILE CHECKSUM: db004619a67c57db80fa00ba2dde45687fafad13

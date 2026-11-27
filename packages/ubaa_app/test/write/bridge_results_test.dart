@@ -5,6 +5,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_app/src/bridge/write/projection.dart' show bridgeMapIntent;
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../support/bridge/fixtures.dart' show currentBridgeContractVersion;
 import '../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient;
 
@@ -509,7 +510,7 @@ final class _Transfer extends Fake implements BridgeBhpanTransfer {}
 
 final class _FileWriteClient extends FixtureCharacterizationBridgeClient {
   @override
-  int contractVersion() => 83;
+  int contractVersion() => currentBridgeContractVersion;
   @override
   Future<BridgeWriteIntent> prepareSpocSubmitAssignment({
     required BridgeSpocSubmitAction action,

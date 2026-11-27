@@ -3,7 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/tag.dart';
 import '../../common/agenda_colors.dart';
 import '../../shared/feature_icons.dart' show uiFeatureIcon;
-import '../../shared/when.dart' show uiClock, uiDirectSigninOpensAt;
+import '../coursework/signin_qr_button.dart';
 import '../../theme.dart';
 
 /// 首页待办和加载提示使用的来源短名。
@@ -27,10 +27,9 @@ class HomeTodoCard extends StatelessWidget {
     required this.item,
     required this.now,
     required this.onTap,
-    this.onSignin,
+    this.onOpenSigninQr,
     this.onRefreshSignin,
-    this.signing = false,
-    this.signinUncertain = false,
+    this.refreshingSignin = false,
     this.moreCount = 0,
   });
 
@@ -39,27 +38,27 @@ class HomeTodoCard extends StatelessWidget {
   final HomeTodo item;
   final DateTime now;
   final VoidCallback onTap;
-  final Future<void> Function()? onSignin, onRefreshSignin;
-  final bool signing, signinUncertain;
+  final VoidCallback? onOpenSigninQr, onRefreshSignin;
+  final bool refreshingSignin;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSignin = item.feature == FeatureId.signin;
-    final startsAt = item.startsAt;
-    final opensAt = isSignin && startsAt != null
-        ? uiDirectSigninOpensAt(startsAt)
-        : null;
-    final upcomingSignin = opensAt != null && now.isBefore(opensAt)
-        ? opensAt
-        : null;
-    final signinTap = signing
-        ? null
-        : (upcomingSignin == null ? onSignin : null) ?? onRefreshSignin;
-    final status = isSignin && signing
-        ? '上课处理中'
-        : signinUncertain
-        ? '结果未确认'
-        : item.statusLabel;
+    final course = item.signin;
+    final phase = course == null
+        ? SigninPhase.unknown
+        : signinPhase(course, now);
+    final signinTap = switch (phase) {
+      SigninPhase.open => onOpenSigninQr,
+      SigninPhase.unknown => onRefreshSignin,
+      _ => null,
+    };
+    final status = refreshingSignin
+        ? '正在刷新'
+        : switch (phase) {
+            SigninPhase.ended => '未签到',
+            _ => item.statusLabel,
+          };
     final subtitle = item.subtitle.trim();
     final remaining = uiTodoRemaining(item.deadline, now);
     // 三天内截止与数据层标记的“临近”同样用警示色。
@@ -122,7 +121,8 @@ class HomeTodoCard extends StatelessWidget {
                               UiTag('另有 $moreCount 项'),
                             ],
                             // “待××”与时间信息重复，不显示。
-                            if (!status.startsWith('待')) ...[
+                            if (!phase.isCompleted &&
+                                !status.startsWith('待')) ...[
                               const SizedBox(width: 6),
                               UiTag(status),
                             ],
@@ -165,17 +165,12 @@ class HomeTodoCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isSignin) ...[
+              if (isSignin && phase != SigninPhase.ended) ...[
                 const SizedBox(width: 8),
                 Center(
-                  child: upcomingSignin != null
-                      ? UiTag('${uiClock(upcomingSignin)} 起可上课')
-                      : FilledButton(
-                          onPressed: signinTap,
-                          child: Text(signing ? '处理中…' : '上课'),
-                        ),
+                  child: SigninQrButton(phase: phase, onOpen: onOpenSigninQr),
                 ),
-              ] else if (item.navigation != null)
+              ] else if (!isSignin && item.navigation != null)
                 Icon(
                   Icons.chevron_right,
                   color: theme.colorScheme.onSurfaceVariant,

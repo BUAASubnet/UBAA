@@ -1,13 +1,15 @@
 //! Core-live 单路线只读执行步骤。
 
 use std::io::{self, Read as _};
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::facade::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
-use ubaa_core::facade::{ErrorCode, Result};
+use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
 use crate::args::{Args, FEATURES};
+use crate::diagnostics::{DiagnosticsExport, prepare_path};
 use crate::evidence::{Evidence, error_code};
 
 pub(crate) async fn process() -> i32 {
@@ -18,6 +20,9 @@ pub(crate) async fn process() -> i32 {
             std::process::exit(2);
         }
     };
+    if args.feature != crate::spoc_classroom::FEATURE {
+        crate::init_logging();
+    }
     match run(args).await {
         Ok(evidence) if evidence.failed() => 5,
         Ok(_) => 0,
@@ -33,9 +38,9 @@ async fn run(args: Args) -> Result<Evidence> {
         eprintln!("core-live 必须通过 stdin 注入用户名和密码");
         std::process::exit(2);
     }
-    let (mode, route_name) = match args.route.as_str() {
-        "direct" => (ConnectionMode::Direct, "direct"),
-        "webvpn" => (ConnectionMode::WebVpn, "webvpn"),
+    let mode = match args.route.as_str() {
+        "direct" => ConnectionMode::Direct,
+        "webvpn" => ConnectionMode::WebVpn,
         _ => {
             eprintln!("core-live 只允许 route=direct 或 route=webvpn");
             std::process::exit(2);
@@ -45,29 +50,67 @@ async fn run(args: Args) -> Result<Evidence> {
         eprintln!("core-live 不支持 feature={}", args.feature);
         std::process::exit(2);
     }
+    let diagnostics = args.diagnostics.as_deref().map(|requested| {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        prepare_path(&repo, requested).unwrap_or_else(|_| {
+            eprintln!("core-live 诊断路径无效：请指定 .ubaa_local/ 内的新文件，目录须为 0700 且不经过符号链接");
+            std::process::exit(2);
+        })
+    });
     let (username, password) = read_credentials()?;
     let mut client = UbaaClient::open(&args.config_dir)?;
-    let mut evidence = Evidence::new(route_name);
-    if !crate::authentication::login(
+    run_with_client(
+        &args,
         &mut client,
         mode,
         LoginInput {
             username,
             password: SecretValue::new(password),
         },
-        &mut evidence,
+        diagnostics,
     )
     .await
-    {
-        block_after_auth_failure(&mut evidence, &args.feature);
-        return Ok(evidence);
-    }
-    run_reads(args, client, evidence).await
 }
 
-async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -> Result<Evidence> {
-    run_auth_status(&mut client, &mut evidence).await;
-    run_user(&mut client, &mut evidence, &args.feature).await;
+pub(crate) async fn run_with_client(
+    args: &Args,
+    client: &mut UbaaClient,
+    mode: ConnectionMode,
+    input: LoginInput,
+    diagnostics: Option<PathBuf>,
+) -> Result<Evidence> {
+    let export = DiagnosticsExport::start(diagnostics, client);
+    let mut evidence = Evidence::new(match mode {
+        ConnectionMode::Direct => "direct",
+        ConnectionMode::WebVpn => "webvpn",
+    });
+    let result = if crate::authentication::login(client, mode, input, &mut evidence).await {
+        run_reads(args, client, evidence).await
+    } else {
+        block_after_auth_failure(&mut evidence, &args.feature);
+        Ok(evidence)
+    };
+    if let Some(export) = export {
+        export.finish().map_err(|_| {
+            eprintln!("core-live 无法写入诊断文件");
+            UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "诊断导出失败",
+            )
+        })?;
+    }
+    result
+}
+
+async fn run_reads(
+    args: &Args,
+    client: &mut UbaaClient,
+    mut evidence: Evidence,
+) -> Result<Evidence> {
+    run_auth_status(client, &mut evidence).await;
+    run_user(client, &mut evidence, &args.feature).await;
     if args.feature == "auth" || args.feature == "user" {
         return Ok(evidence);
     }
@@ -76,16 +119,19 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
         || args.feature == "exam"
         || args.feature == "grades"
     {
-        run_schedule(&mut client, &mut evidence, &args.feature).await;
+        run_schedule(client, &mut evidence, &args.feature).await;
     }
     if args.feature == "all" || args.feature == "classroom" {
-        run_classroom(&mut client, &mut evidence, args.campus_id, &args.date).await;
+        run_classroom(client, &mut evidence, args.campus_id, &args.date).await;
     }
     if args.feature == "all" || args.feature == "spoc" {
-        run_spoc(&mut client, &mut evidence).await;
+        run_spoc(client, &mut evidence).await;
+    }
+    if args.feature == crate::spoc_classroom::FEATURE {
+        crate::spoc_classroom::run(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "judge" {
-        run_judge(&mut client, &mut evidence).await;
+        run_judge(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "signin" {
         match client.signin_today().await {
@@ -94,7 +140,7 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
         }
     }
     if args.feature == "all" || args.feature == "finance" {
-        run_finance(&mut client, &mut evidence).await;
+        run_finance(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "library_loans" {
         match client.current_library_loans().await {
@@ -103,27 +149,27 @@ async fn run_reads(args: Args, mut client: UbaaClient, mut evidence: Evidence) -
         }
     }
     if args.feature == "all" || args.feature == "ihome" {
-        run_ihome(&mut client, &mut evidence).await;
+        run_ihome(client, &mut evidence).await;
     }
     if args.feature == "health_cloud" {
-        run_health_cloud(&mut client, &mut evidence).await;
+        run_health_cloud(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "ygdk" {
-        run_ygdk(&mut client, &mut evidence).await;
+        run_ygdk(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "libbook" {
-        run_libbook(&mut client, &mut evidence, &args.date).await;
+        run_libbook(client, &mut evidence, &args.date).await;
     }
     if args.feature == "all" || args.feature == "bykc" {
-        run_bykc(&mut client, &mut evidence).await;
+        run_bykc(client, &mut evidence).await;
     }
     if args.feature == "all" || args.feature == "cgyy" {
-        run_cgyy(&mut client, &mut evidence, &args.date).await;
+        run_cgyy(client, &mut evidence, &args.date).await;
     }
     if args.feature == "all" || args.feature == "evaluation" {
-        run_evaluation(&mut client, &mut evidence).await;
+        run_evaluation(client, &mut evidence).await;
     }
-    run_campus(&mut client, &mut evidence, &args.feature).await;
+    run_campus(client, &mut evidence, &args.feature).await;
     Ok(evidence)
 }
 
@@ -214,12 +260,21 @@ fn authentication_dependencies(
         ("health_cloud", "years"),
         ("health_cloud", "report"),
     ];
-    ALL.iter().copied().filter(move |(operation_feature, _)| {
-        (feature == "all" && *operation_feature != "health_cloud")
-            || feature == *operation_feature
-            || *operation_feature == "auth"
-            || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
-    })
+    ALL.iter()
+        .copied()
+        .filter(move |(operation_feature, _)| {
+            (feature == "all" && *operation_feature != "health_cloud")
+                || feature == *operation_feature
+                || *operation_feature == "auth"
+                || (matches!(feature, "exam" | "grades") && *operation_feature == "schedule")
+        })
+        .chain(
+            crate::spoc_classroom::OPERATIONS
+                .iter()
+                .copied()
+                .filter(move |_| feature == crate::spoc_classroom::FEATURE)
+                .map(|operation| (crate::spoc_classroom::FEATURE, operation)),
+        )
 }
 
 fn read_credentials() -> Result<(String, String)> {
@@ -850,6 +905,37 @@ mod tests {
                 super::authentication_dependencies(feature).any(|(scope, _)| scope == *feature),
                 "{feature} 缺少认证失败后的阻塞操作"
             );
+        }
+    }
+
+    #[test]
+    fn 课堂验证需要显式选择且认证失败后逐项阻塞() {
+        let operations = [
+            "courses",
+            "catalog",
+            "replay_session",
+            "transcript",
+            "summary",
+            "slides",
+            "live_session",
+            "media_probe",
+        ];
+        let actual = super::authentication_dependencies("spoc_classroom")
+            .filter_map(|(feature, operation)| (feature == "spoc_classroom").then_some(operation))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, operations);
+        assert!(crate::args::FEATURES.contains(&"spoc_classroom"));
+        assert!(
+            super::authentication_dependencies("all").all(|(scope, _)| scope != "spoc_classroom")
+        );
+        let mut evidence = super::Evidence::capturing("webvpn");
+        super::block_after_auth_failure(&mut evidence, "spoc_classroom");
+        assert!(evidence.failed());
+        let lines = evidence.captured();
+        assert_eq!(lines.len(), operations.len() + 1);
+        for (line, operation) in lines[1..].iter().zip(operations) {
+            assert!(line.contains(&format!("operation={operation} status=BLOCKED ")));
+            assert!(line.ends_with("reason=authentication_failed"));
         }
     }
 

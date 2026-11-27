@@ -1,5 +1,5 @@
 ---
-description: 下载 UBAA：App Store 链接，Android、Windows、macOS 和 Linux 安装包，以及各平台的系统要求与安装步骤。
+description: 下载 UBAA：App Store 与 AppGallery 链接，Android、Windows、macOS 和 Linux 安装包，以及各平台的系统要求与安装步骤。
 ---
 
 <script setup>
@@ -67,15 +67,20 @@ provide('useBhpan', useBhpan)
 
 - 解压后得到 `bundle` 目录，运行其中的 `UBAA` 打开应用，`ubaa-cli` 是命令行程序，用法见[桌面命令模式](/features/command)。
 - 保留整个目录，不要单独移动其中的可执行文件。
+- 图形应用还需要系统的 libmpv 和 libepoxy。Ubuntu 24.04 可运行 `sudo apt install libmpv2 libepoxy0` 后再启动 `UBAA`。
 - “记住密码”需要已解锁的 Secret Service（如 GNOME 钥匙环）。
 
 ## iOS {#ios}
 
-需要 iOS 15 或更高版本，iPhone 和 iPad 都可以使用。iOS 版已上架：[在 App Store 下载 UBAA](https://apps.apple.com/cn/app/ubaa/id6768861821)。
+需要 iOS 15 或更高版本，iPhone 和 iPad 都可以使用。
+
+<DownloadOptions platform="ios" />
 
 ## HarmonyOS {#ohos}
 
-HarmonyOS 版在 AppGallery 的状态为**待审核**，上架后在这里提供下载链接。
+HarmonyOS 版通过华为应用市场（AppGallery）分发。
+
+<DownloadOptions platform="ohos" />
 
 ## 其他下载
 

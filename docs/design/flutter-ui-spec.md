@@ -26,6 +26,12 @@
 
 照片的来源依据见[照片来源对照](../protocol/parity/host-platform.md)。合成相机原生 UI 测试不代表真实设备拍照通过。
 
+## 课堂视频播放
+
+课堂入口通过宿主注入的 `VideoPlaybackCapability` 播放 HTTPS 视频，不附加请求头或学校会话凭据。`open` 初始化暂停的播放器，可接收起播位置；视图从 `state` 读取播放和缓冲状态。`buffered` 表示缓冲到的时间点，未取得画幅时 `aspectRatio` 为空。页面退出或切换视频时释放旧播放器；异步打开后若页面已退出，也要释放返回的播放器。
+
+官方五平台使用 media_kit，HarmonyOS 使用 `video_player` 的 AVPlayer 实现。界面按能力公布的 HLS 支持与倍速档位展示入口。应用内播放不可用时可用 `openExternal` 将原地址交给系统外部应用，失败时展示稳定中文提示。
+
 ## 功能状态
 
 每张卡片和详情页均支持 `idle`、`loading`、`success`、`empty`、`stale`、`failure`；刷新时
@@ -48,11 +54,16 @@ authority，仍是最终业务权威。
 |---|---|---|
 | 博雅选课/退选 | 消费对应 typed action；退选目标使用课程 ID，不能使用外层选择记录 ID | 成功或 `outcome_unknown` 时刷新关联课程/已选视图 |
 | 博雅上课/下课 | 消费 typed 上课 action；位置由平台能力提供，时间窗和上课点由 Core 重读校验，展示层不恢复 `canSign/canSignOut` | 成功或 `outcome_unknown` 时刷新关联考勤信息 |
-| 每日课程上课 | 消费 `SigninPerformAction`；公开编号本身不能放行 | 成功或 `outcome_unknown` 时刷新今日课程 |
 | 图书馆预约/取消 | 预约消费完整座位/日期/时段 action；取消 action 固定 `id/page/limit`，状态文本只展示 | 刷新对应预约页；取消 prepare、commit 和回读保持同页 |
 | 研讨室预约/取消 | 预约只选择一至两个同站点、日期、空间和空间组的 allowed action，时段 ID/原始序号唯一且序号相邻；取消消费 typed target | 预约成功收据与订单列表核对；取消成功或 unknown 固定原路线读取首页列表与同 ID 详情，仅消费本次严格取消证明 |
 | 阳光打卡 | typed 提交、照片选择与回读能力齐备才开放入口；表单消费 Core 签发的分类/项目 target、完整本地时间和内存照片，权限失败或缺照片不进入 prepare | 成功或 unknown 按 intent 原路线各尝试一次概览与记录首页读取，结果不确定仍保持 unknown |
 | 教学评教 | 单门或批量选择非空、有序、无重复的 typed targets；完整问卷、题目和答案只留在 Core | 确定结果、部分失败、unknown 或 commit 异常都至多按原路线回读一次，保留逐课程四态结果 |
+
+每日课程、首页和日程共用[签到二维码](../protocol/parity/signin.md#2026-11-26-停用-stu_auto_sign签到统一为二维码)的开放规则：有当日有效的在线签到目标，且校园时间在课前 10 分钟至下课之间（含两端）。窗口内，未签到课程用主按钮“上课”打开面板，已签到课程并列显示“已签到”状态和次要按钮“二维码”，供同学扫码。
+
+首页待办只在这个时间窗内显示课堂签到项。离线时，仅保留缓存中的未签到课程，显示“状态待更新”，不启用“上课”。每日课程和日程仍显示全天课程：开放前“上课”禁用并显示提示，下课后未签到课程保留“未签到”状态，已签到课程隐藏“二维码”按钮。
+
+两种入口打开的面板都每 2 秒刷新二维码，并在平台支持时提供保存。仅从未签到课程打开时，面板在前台每 3 秒查询签到状态，确认已签到后自动关闭。从已签到课程打开时不查询签到状态，面板由用户关闭。
 
 需要确认的流程显示 `WriteIntent` 的摘要、实际路线、警告与过期时间；直接操作继续经同一 prepare/commit 协调器执行，不因省去弹窗绕过 Core 校验。应用层唯一 `WriteCoordinator` 拥有
 prepare、待确认、取消、提交、回读与失效状态；共享 Host 将 domain `WriteState` 和三个命令注入 UI，
@@ -103,7 +114,8 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 | 本地筛选、详情行组合与选择集合生命周期 | [common/details/detail_list.dart](../../packages/ubaa_ui/lib/src/common/details/detail_list.dart)；字段展示在 [detail_fields.dart](../../packages/ubaa_ui/lib/src/common/detail_fields.dart) |
 | 服务端/本地翻页控件与错误卡 | [common/paged_results.dart](../../packages/ubaa_ui/lib/src/common/paged_results.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
 | 课表、考试、成绩、空教室查询控件 | [features/academic/](../../packages/ubaa_ui/lib/src/features/academic/) |
-| SPOC/Judge 作业与 Signin 每日课程查询、上课按钮 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
+| SPOC/Judge 作业与每日课程查询、签到二维码 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
+| SPOC 课堂选择、节次列表与播放页 | [features/spoc_classroom/](../../packages/ubaa_ui/lib/src/features/spoc_classroom/) |
 | 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook/](../../packages/ubaa_ui/lib/src/features/libbook/) |
 | 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk/](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation_actions.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
 | 研讨室预约与阳光打卡输入表单 | [common/details/cgyy_form.dart](../../packages/ubaa_ui/lib/src/common/details/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/common/details/ygdk_form.dart) |

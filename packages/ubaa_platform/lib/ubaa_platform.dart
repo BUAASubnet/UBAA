@@ -10,6 +10,7 @@ export 'diagnostic_operation.dart';
 export 'src/diagnostics.dart';
 export 'src/location.dart';
 export 'src/media.dart';
+export 'src/video_playback.dart';
 export 'src/paths.dart';
 export 'src/telemetry.dart';
 export 'src/ui_error.dart';

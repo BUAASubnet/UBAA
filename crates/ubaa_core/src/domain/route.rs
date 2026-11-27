@@ -60,6 +60,9 @@ pub enum ReadonlyFeature {
     Classroom,
     /// SPOC 作业查询。
     Spoc,
+    /// SPOC 课程的课堂直录播。
+    #[serde(rename = "spoc_classroom")]
+    SpocClassroom,
     /// 希冀作业查询。
     Judge,
     /// 教学评教查询。
@@ -87,6 +90,7 @@ impl ReadonlyFeature {
             Self::Grades => "grades",
             Self::Classroom => "classroom",
             Self::Spoc => "spoc",
+            Self::SpocClassroom => "spoc_classroom",
             Self::Judge => "judge",
             Self::Evaluation => "evaluation",
         }
