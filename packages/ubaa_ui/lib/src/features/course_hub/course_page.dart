@@ -5,7 +5,6 @@ import '../../common/state_panel.dart' show UiInlineRetry, UiStatePanel;
 import '../../write_callbacks.dart'
     show SigninCourseQrFetcher, SigninStatusChecker;
 import '../coursework/signin_qr_sheet.dart' show SigninQrImageSaver;
-import 'pages.dart' show SetJudgeLink;
 import '../../shared/dialogs/sheet.dart' show UiInfoRow;
 import '../../shared/text.dart' show uiNonBlank;
 import '../../shared/when.dart' show uiCampusNow;
@@ -16,6 +15,9 @@ import '../coursework/spoc_files_access.dart' show SpocFilesAccess;
 import 'course_classroom_tab.dart' show CourseClassroomTab;
 import 'course_files_tab.dart' show CourseFilesTab;
 import 'course_format.dart';
+
+typedef SetJudgeLink =
+    Future<void> Function(String courseKey, String judgeCourseId, bool linked);
 
 /// 课程主页：课头写清下次在哪上课，下面四个页签各自加载、互不拖累。
 class CourseHubCoursePage extends StatelessWidget {

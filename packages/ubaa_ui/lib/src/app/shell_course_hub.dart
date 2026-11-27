@@ -1,28 +1,11 @@
 part of 'shell.dart';
 
-enum _HubPage {
-  course('课程主页'),
-  assignments('全部作业'),
-  sources('按来源浏览');
-
-  const _HubPage(this.title);
-  final String title;
-}
-
 extension _ShellCourseHub on _UbaaMainShellState {
   /// 课程主页的标题用课程名；找不到课程时退回页面名。
-  String? get _hubTitle {
-    final page = _hubPage;
-    if (page == null) return null;
-    if (page == _HubPage.course) {
-      for (final course in widget.courseHub?.value.courses ?? const []) {
-        if (course.key == _courseKey) return course.name;
-      }
-    }
-    return page.title;
-  }
+  String? get _hubTitle =>
+      _hubPage?.pageTitle(widget.courseHub?.value, _courseKey);
 
-  void _openHub(_HubPage page, [String? key]) {
+  void _openHub(CourseHubPage page, [String? key]) {
     if (_writeBusy || widget.courseHub == null) return;
     final snapshot = widget.courseHub!.value;
     if (key != null && !snapshot.courses.any((item) => item.key == key)) return;
@@ -47,45 +30,32 @@ extension _ShellCourseHub on _UbaaMainShellState {
       courseHub: widget.courseHub,
       onOpenFeature: _openFeatureList,
       onRefresh: widget.onRefreshCourseHub,
-      onCourse: (key) => _openHub(_HubPage.course, key),
-      onAssignments: () => _openHub(_HubPage.assignments),
-      onSources: () => _openHub(_HubPage.sources),
+      onCourse: (key) => _openHub(CourseHubPage.course, key),
+      onAssignments: () => _openHub(CourseHubPage.assignments),
+      onSources: () => _openHub(CourseHubPage.sources),
     );
   }
 
   Widget _buildHubPage() => ValueListenableBuilder(
     valueListenable: widget.courseHub!,
-    builder: (_, snapshot, _) => switch (_hubPage!) {
-      _HubPage.course when _courseTerm != snapshot.termCode => const Center(
-        child: Text('课程所属学期已变化'),
-      ),
-      _HubPage.course => CourseHubCoursePage(
-        courseKey: _courseKey!,
-        snapshot: snapshot,
-        onOpenAssignment: _openHomeNavigation,
-        onOpenFeature: _openFeatureList,
-        onRefresh: widget.onRefreshCourseHub,
-        onSetJudgeLink: widget.onSetJudgeLink,
-        classroomAccess: widget.spocClassroomAccess,
-        filesAccess: widget.spocFilesAccess,
-        onFetchSigninQr: widget.onFetchSigninQr,
-        onSaveSigninQr: widget.onSaveSigninQr,
-        onCheckSigninStatus: widget.onCheckSigninStatus,
-      ),
-      _HubPage.assignments => CourseHubAssignmentsPage(
-        snapshot: snapshot,
-        onOpenAssignment: _openHomeNavigation,
-        onRefresh: widget.onRefreshCourseHub,
-      ),
-      _HubPage.sources => CourseHubSourcesPage(
-        snapshot: snapshot,
-        onOpenFeature: _openFeatureList,
-      ),
-    },
+    builder: (_, snapshot, _) => _hubPage!.build(
+      snapshot,
+      courseKey: _courseKey,
+      term: _courseTerm,
+      onOpenAssignment: _openHomeNavigation,
+      onOpenFeature: _openFeatureList,
+      onRefresh: widget.onRefreshCourseHub,
+      onSetJudgeLink: widget.onSetJudgeLink,
+      classroomAccess: widget.spocClassroomAccess,
+      filesAccess: widget.spocFilesAccess,
+      onFetchSigninQr: widget.onFetchSigninQr,
+      onSaveSigninQr: widget.onSaveSigninQr,
+      onCheckSigninStatus: widget.onCheckSigninStatus,
+    ),
   );
 
   Widget _courseEntries(String? term, Widget child) =>
       CourseHubEntries.wrap(widget.courseHub, term, child, (key) {
-        if (mounted) _openHub(_HubPage.course, key);
+        if (mounted) _openHub(CourseHubPage.course, key);
       });
 }

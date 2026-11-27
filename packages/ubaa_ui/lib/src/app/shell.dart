@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import '../features/course_hub/pages.dart';
+import '../features/course_hub/navigation.dart';
 import '../features/course_hub/entries.dart';
 import '../features/bykc/agenda_conflicts.dart';
 import '../shared/layout/rail_identity.dart';
@@ -435,7 +436,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
     },
   );
   void _updateShell(VoidCallback change) => setState(change);
-  _HubPage? _hubPage;
+  CourseHubPage? _hubPage;
   String? _courseKey, _courseTerm;
   bool get _hubVisible =>
       _selectedIndex == UiDestination.study.index &&

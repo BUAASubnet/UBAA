@@ -6,10 +6,7 @@ import '../../shared/feature_icons.dart' show uiFeatureIcon;
 import '../../theme.dart' show UbaaTheme;
 
 export 'assignments_page.dart' show CourseHubAssignmentsPage;
-export 'course_page.dart' show CourseHubCoursePage;
-
-typedef SetJudgeLink =
-    Future<void> Function(String courseKey, String judgeCourseId, bool linked);
+export 'course_page.dart' show CourseHubCoursePage, SetJudgeLink;
 
 /// 按来源浏览：保留原来按学校系统划分的三个入口，承接对不上课程的内容和往年希冀。
 class CourseHubSourcesPage extends StatelessWidget {
