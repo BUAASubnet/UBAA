@@ -619,7 +619,7 @@ mod tests {
         .unwrap();
         let guard = client.inner.lock().await;
         let record = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.read_academic_grades(BridgeConnectionMode::Direct, "2025-2026-1".into()),
         )
         .await

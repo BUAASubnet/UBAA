@@ -249,7 +249,7 @@ async fn dispose在等待读取时取消旧上传准备() {
     gate.entered.notified().await;
     let disposing_bridge = bridge.clone();
     let disposing = tokio::spawn(async move { disposing_bridge.dispose().await });
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(crate::TEST_HANG_TIMEOUT, async {
         while !bridge.is_disposed.load(Ordering::Acquire) {
             tokio::task::yield_now().await;
         }

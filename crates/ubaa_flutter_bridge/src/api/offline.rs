@@ -482,14 +482,14 @@ mod tests {
         .unwrap();
         let guard = client.inner.lock().await;
         let local = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.read_today(BridgeConnectionMode::Direct),
         )
         .await
         .unwrap()
         .unwrap();
         assert!(local.is_none());
-        tokio::time::timeout(std::time::Duration::from_secs(1), cache.deactivate())
+        tokio::time::timeout(crate::TEST_HANG_TIMEOUT, cache.deactivate())
             .await
             .unwrap()
             .unwrap();
@@ -558,7 +558,7 @@ mod judge_tests {
         .unwrap();
         let _guard = client.inner.lock().await;
         let record = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.read_judge_detail(BridgeConnectionMode::Direct, "12".into(), "101".into()),
         )
         .await

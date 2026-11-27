@@ -89,7 +89,7 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
     assert_eq!(scan.courses().await.len(), 1);
     // 扫描尚未消费任何作业时，另一个真实 Bridge 调用可获得同一共享锁并完成。
     tokio::time::timeout(
-        std::time::Duration::from_secs(1),
+        crate::TEST_HANG_TIMEOUT,
         bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
     )
     .await

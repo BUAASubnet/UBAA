@@ -28,5 +28,7 @@ mod upstream;
 /// 当前 Core 包版本。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg(test)]
+mod test_timeout;
+#[cfg(test)]
 #[path = "../../ubaa_test_support/src/test_tmp.rs"]
 pub(crate) mod test_tmp;

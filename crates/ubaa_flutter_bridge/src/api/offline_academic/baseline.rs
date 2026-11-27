@@ -127,7 +127,7 @@ mod tests {
             }],
         };
         let previous = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.update_grade_score_baseline(BridgeConnectionMode::Direct, value.clone(), None),
         )
         .await

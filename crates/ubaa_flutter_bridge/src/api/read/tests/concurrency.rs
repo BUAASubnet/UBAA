@@ -117,7 +117,7 @@ async fn 换网与手动切换丢弃在途网络读取并立即释放客户端�
                     .code,
                 BridgeErrorCode::NetworkError
             );
-            tokio::time::timeout(Duration::from_secs(1), bridge.route_settings())
+            tokio::time::timeout(crate::TEST_HANG_TIMEOUT, bridge.route_settings())
                 .await
                 .unwrap()
                 .unwrap();
@@ -160,10 +160,8 @@ async fn 慢考试在途时签到和课表仍可完成() {
         () = transport.exam_started.notified() => {},
         result = &mut exam => panic!("考试应等待释放：{:?}", result.err()),
     }
-    let signin =
-        tokio::time::timeout(std::time::Duration::from_secs(1), bridge.signin_today()).await;
-    let schedule =
-        tokio::time::timeout(std::time::Duration::from_secs(1), bridge.schedule_today()).await;
+    let signin = tokio::time::timeout(crate::TEST_HANG_TIMEOUT, bridge.signin_today()).await;
+    let schedule = tokio::time::timeout(crate::TEST_HANG_TIMEOUT, bridge.schedule_today()).await;
     transport.finish_exam.notify_one();
     exam.await.unwrap();
     bridge.dispose().await.unwrap();

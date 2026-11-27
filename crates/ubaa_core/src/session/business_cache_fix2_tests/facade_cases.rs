@@ -160,7 +160,7 @@ async fn 修复三_首个远端注销请求处取消时墓碑已生效() {
         let request = std::pin::pin!(a.logout());
         tokio::select! {
             result = request => panic!("注销不应先结束：{result:?}"),
-            result = tokio::time::timeout(std::time::Duration::from_secs(5), entered.notified()) => result.unwrap(),
+            result = tokio::time::timeout(crate::test_timeout::TEST_HANG_TIMEOUT, entered.notified()) => result.unwrap(),
         }
     }
     let after = document(&path);

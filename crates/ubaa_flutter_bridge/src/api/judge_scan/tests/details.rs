@@ -43,7 +43,7 @@ async fn 批量持久详情逐批让位且写意图不被清除_结果可离线�
         .await
         .unwrap();
     tokio::time::timeout(
-        std::time::Duration::from_secs(1),
+        crate::TEST_HANG_TIMEOUT,
         bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
     )
     .await

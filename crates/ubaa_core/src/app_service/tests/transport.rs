@@ -3,16 +3,15 @@ use crate::{
     app_service::{AppServiceConfig, Platform},
     error::ErrorCode,
     ports::{HttpRequest, HttpTransport},
+    test_timeout::TEST_HANG_TIMEOUT,
 };
-use std::{net::Ipv4Addr, time::Duration};
+use std::net::Ipv4Addr;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
     time::timeout,
 };
 use url::Url;
-
-const IO_BUDGET: Duration = Duration::from_secs(3);
 
 fn request(url: &Url) -> HttpRequest {
     HttpRequest::post(url.as_str(), b"{}".to_vec()).with_header("content-type", "application/json")
@@ -47,7 +46,7 @@ async fn 不跟随跨主机跳转也不重用服务端设置的_cookie() {
     let redirect = format!(
         "HTTP/1.1 307 Temporary Redirect\r\nLocation: {target_url}\r\nSet-Cookie: sample=1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     );
-    let (result, received) = timeout(IO_BUDGET, async {
+    let (result, received) = timeout(TEST_HANG_TIMEOUT, async {
         tokio::join!(
             transport.execute(request(&source_url)),
             capture_http(&source, &redirect)
@@ -57,7 +56,7 @@ async fn 不跟随跨主机跳转也不重用服务端设置的_cookie() {
     .unwrap();
     assert_eq!(result.unwrap().status, 307);
 
-    let (second, received_again) = timeout(IO_BUDGET, async {
+    let (second, received_again) = timeout(TEST_HANG_TIMEOUT, async {
         tokio::join!(
             transport.execute(request(&source_url)),
             capture_http(
@@ -107,7 +106,7 @@ async fn 回环_https_执行握手而不向明文监听器交付正文() {
     let config = make_config(false);
     let url = &config.available().unwrap().url;
     let transport = AppServiceTransport::new(url).unwrap();
-    let (result, ()) = timeout(IO_BUDGET, async {
+    let (result, ()) = timeout(TEST_HANG_TIMEOUT, async {
         tokio::join!(transport.execute(request(url)), async {
             let (mut stream, _) = listener.accept().await.unwrap();
             let mut tls_header = [0_u8; 3];

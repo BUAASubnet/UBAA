@@ -218,7 +218,7 @@ async fn 换网也取消回退前的网关会话核验() {
         result = &mut read => panic!("必须等待网关核验：{:?}", result.err()),
     }
     let change = control.begin_change(true, Duration::from_secs(30)).unwrap();
-    let result = tokio::time::timeout(Duration::from_secs(1), read)
+    let result = tokio::time::timeout(crate::test_timeout::TEST_HANG_TIMEOUT, read)
         .await
         .expect("核验属于只读回退，不应阻塞换网");
     assert!(result.unwrap_err().error.is_network_changed());

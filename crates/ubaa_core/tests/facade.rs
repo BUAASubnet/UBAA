@@ -12,6 +12,8 @@ use ubaa_core::facade::{
     YgdkClockinSubmitRequest, YgdkPhotoUpload, YgdkSubmitTarget,
 };
 
+#[path = "../src/test_timeout.rs"]
+mod test_timeout;
 #[path = "../../ubaa_test_support/src/test_tmp.rs"]
 mod test_tmp;
 

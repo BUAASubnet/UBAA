@@ -110,7 +110,7 @@ async fn 评教生产_bridge_课程批次间共享锁可用且写意图阻止推
         assert!(!first.finished);
         assert!(first.refresh.data.courses[0].submit_target.is_none());
         tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
         )
         .await
