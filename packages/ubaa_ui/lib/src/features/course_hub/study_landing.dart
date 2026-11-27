@@ -116,11 +116,12 @@ class CourseHubLanding extends StatelessWidget {
   /// 还没读到任何来源（启动时）或仍在读取时显示占位，不先说“没有课程”。
   static bool _loading(CourseHubSnapshot hub) =>
       hub.sources.isEmpty ||
-      hub.sources.values.any(
-        (s) =>
-            s.state == CourseHubSourceState.loading ||
-            s.state == CourseHubSourceState.notLoaded,
-      );
+      hub.sources[CourseHubSource.schedule]?.state ==
+          CourseHubSourceState.loading ||
+      switch (hub.sources[CourseHubSource.spocCourses]?.state) {
+        CourseHubSourceState.loading || CourseHubSourceState.notLoaded => true,
+        _ => false,
+      };
 
   static bool _assignmentsComplete(CourseHubSnapshot hub) =>
       [

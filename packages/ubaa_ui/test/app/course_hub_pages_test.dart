@@ -116,6 +116,23 @@ void main() {
     await landing(const CourseHubSnapshot());
     expect(find.byType(LoadingPlaceholder), findsOneWidget);
     expect(find.textContaining('还没有本学期课程'), findsNothing);
+    await landing(
+      const CourseHubSnapshot(
+        sources: {
+          CourseHubSource.schedule: CourseHubSourceStatus(
+            CourseHubSourceState.notApplicable,
+          ),
+          CourseHubSource.spocCourses: CourseHubSourceStatus(
+            CourseHubSourceState.ready,
+          ),
+          CourseHubSource.grades: CourseHubSourceStatus(
+            CourseHubSourceState.notLoaded,
+          ),
+        },
+      ),
+    );
+    expect(find.byType(LoadingPlaceholder), findsNothing);
+    expect(find.textContaining('还没有本学期课程'), findsOneWidget);
     final courses = [
       course('独立'),
       course('已结课', scheduled: true),
