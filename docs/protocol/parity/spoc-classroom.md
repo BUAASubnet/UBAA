@@ -26,7 +26,7 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 | `search-trans-result` | Direct：完成 msa 认证后访问 `yjapi.msa.buaa.edu.cn`；WebVPN：同主机经网关。无新增 service。 | Direct：最终为 `yjapi` 接口；WebVPN：为包装后的接口。两条路线均不跟随到网页。 | 两条路线均用 msa 读取的凭据规则。 | 两条路线均 GET `/courseapi/v3/web-socket/search-trans-result?sub_id=<节次标识>&format=json&resource_guid=<教师路标识>`。 | 两条路线均用 msa 读取的请求头，无正文。 | 两条路线均无业务签名参数。 | 两条路线均读取 `code=0` 与 `list[].all_content[]`；`BeginSec`、`EndSec` 为数字，`Text`、`TransText` 为字符串；`trans_content` 样本为同结构的 JSON 字符串。 | 两条路线均只在播放页持有，使用 msa 读取恢复。 | 两条路线均显示学校转写，空列表可独立显示无转写；转写故障不代替播放结果。 |
 | `intelligent-summary/detail` | Direct：完成 msa 认证后访问 `classroom.msa.buaa.edu.cn`；WebVPN：同主机经网关。无新增 service。 | Direct：最终为 `classroom` 接口；WebVPN：为包装后的接口。两条路线均不跟随到网页。 | 两条路线均用 msa 读取的凭据规则。 | 两条路线均 GET `/courseapi/v2/intelligent-summary/detail?sub_id=<节次标识>&resource_guid=<媒体标识>`。 | 两条路线均用 msa 读取的请求头，无正文。 | 两条路线均无业务签名参数。 | 两条路线均读取 `success` 和 `result`，样本 `result.code=200`。`result.data[]` 按 `type` 解释 `content`：总结是字符串，关键词是字符串数组，问答和章节是对象数组，`start`、`end` 为毫秒。`QA` 与 `Q&A` 可重复；其余已见类型见专项记录。 | 两条路线均只在播放页持有，使用 msa 读取恢复。 | 两条路线均独立展示摘要与章节；没有摘要不影响回放，重复问答不显示两次。 |
 | `search-ppt` | Direct：完成 msa 认证后访问 `classroom.msa.buaa.edu.cn`；WebVPN：同主机经网关。无新增 service。 | Direct：最终为 `classroom` 接口；WebVPN：为包装后的接口。图片读取按媒体规则。 | 两条路线均用 msa 读取的凭据规则，图片无需业务凭据。 | 两条路线均 GET `/pptnote/v1/schedule/search-ppt?course_id=<课程标识>&sub_id=<节次标识>&page=1&per_page=100&resource_guid=<媒体标识>`。 | 两条路线均用 msa 读取的请求头，无正文。 | 两条路线均无业务签名参数。 | 两条路线均读取 `code=0` 与 `list[]`，再解析 `content` 中的 JSON；取 `pptimgurl`、`pptthumb`、`detecttype`、`is_key`、`status`。文件名给出毫秒偏移。 | 两条路线均只在播放页持有，使用 msa 读取恢复。取第一页；实测页码 2 返回同一完整列表。 | 两条路线均将空结果显示为无幻灯片；PPT 错误不代替播放结果。 |
-| 媒体 URL（HLS、MP4、PPT 图片） | Direct：使用 msa 已返回的 `lmt9.buaa.edu.cn`、`resource.msa.buaa.edu.cn` HTTPS 地址；WebVPN：相关主机已验证可包装访问，仅作备选。无 CAS 或 service。 | Direct：仅交付精确媒体主机上的 HTTPS URL，不拼接流 ID；WebVPN：备选地址使用 Core 包装，HLS 相对分片沿播放列表解析。 | 两条路线均不向播放器传 Cookie、JWT 或 SPOC Token；网关探测结果不作为复制网关 Cookie 给播放器的依据。 | 两条路线均 GET URL；HLS 按播放列表读取 TS；MP4 支持 Range；PPT 图片使用返回地址。 | 两条路线均无正文；播放器可发送 `Range`，无业务鉴权头；Direct 探测无 Cookie 或 Referer。 | 不计算或篡改 `auth_key`。Direct 样本未强制其值，但不得依赖免校验；WebVPN 备选也保留原查询。 | 已观察到 Direct HLS 为 200、MP4 Range 为 206；WebVPN 验证了 HLS、分片、MP4 Range 和 PPT 图片。 | 两条路线均只在播放器生命周期内使用地址，退出释放播放器，不做离线缓存或本机流代理。 | 两条路线均不把媒体故障视作业务认证失效；播放失败提供外部播放器入口，未验证的清晰度变体不作为可用来源。 |
+| 媒体 URL（HLS、MP4、PPT 图片） | Direct：使用 msa 下发的 HTTPS 地址。直播主机随上游分配，回放和 PPT 使用 `resource.msa.buaa.edu.cn`；WebVPN：可还原网关包装后的地址。无 CAS 或 service。 | Direct：沿用上游下发的媒体地址，不拼接流 ID；WebVPN：解包后交付原始 HTTPS 地址。HLS 相对分片沿播放列表解析。 | 两条路线均不向播放器传 Cookie、JWT 或 SPOC Token；网关探测结果不作为复制网关 Cookie 给播放器的依据。 | 两条路线均 GET URL；HLS 按播放列表读取 TS；MP4 支持 Range；PPT 图片使用返回地址。 | 两条路线均无正文；播放器可发送 `Range`，无业务鉴权头；Direct 探测无 Cookie 或 Referer。 | 不计算或篡改 `auth_key`。Direct 样本未强制其值，但不得依赖免校验；WebVPN 备选也保留原查询。 | 已观察到 Direct HLS 为 200、MP4 Range 为 206；WebVPN 验证了 HLS、分片、MP4 Range 和 PPT 图片。 | 两条路线均只在播放器生命周期内使用地址，退出释放播放器，不做离线缓存或本机流代理。 | 两条路线均不把媒体故障视作业务认证失效；播放失败提供外部播放器入口，未验证的清晰度变体不作为可用来源。 |
 
 ## 专项记录
 
@@ -36,7 +36,7 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 
 - SPOC 课程标识取自 `queryKclb` 的 `content[].kcid`；`kcmc` 仅用于显示。学生签名请求固定空 `type`、`isxs=1`，不调用教师的任务号选择接口。
 - 映射请求保留签名响应中的 `ktsl_url`，只接受表中以 `?` 结尾的固定入口。按表中顺序拼接参数，只有 `realname` 按 `encodeURIComponent` 编码（空格为 `%20`）。其余参数保留原值，只接受 ASCII 字母、数字及 `._-`，否则返回 `UpstreamChanged`。
-- App 拒绝含反斜杠、空白、ASCII 控制字符、用户信息或非默认端口的媒体和 PPT 地址。直播允许显式 HTTPS 443 端口。Direct 拒绝网关包装；WebVPN 解包后复核 HTTPS 和媒体主机。交付给宿主的是规范化地址，调试输出不包含地址。
+- App 拒绝含反斜杠、空白、ASCII 控制字符、用户信息或非默认端口的媒体和 PPT 地址。直播允许显式 HTTPS 443 端口。Direct 拒绝网关包装；WebVPN 解包后复核 HTTPS。直播沿用接口下发的主机，回放和 PPT 继续校验资源主机。交付给宿主的是规范化地址，调试输出不包含地址。
 - Direct 的含 `auType=cmc` 入口曾返回 `http://yjapi.msa.buaa.edu.cn/…`，再由上游升回 HTTPS。App 从不带 `auType` 的 HTTPS 入口起步，也不接受先降级后升级。
 - 前端对 `_token` 做百分号解码，从 `{i:<序号>;s:<长度>:"_token";i:<序号>;s:<长度>:"<JWT>";}` 片段取 JWT。Direct 从 casapi 下发的 Cookie 取 `_token`，WebVPN 从课堂 Cookie 快照取 `_token`。两条路线的解析和后续 Bearer 读取均已通过真实验证。
 - 未带 Bearer 的样本是 HTTP 200、`{"code":5002,"msg":"未传入token"}`，无 `data`。回放样本的 PPT 路 `time_offset` 为 `"-120"`，教师路为 `"0"`；它不是播放位置的平移量，见下方“两路时间轴校准”。直播只采用已验证的 `output.m3u8` 和 `output_student.m3u8`。
@@ -54,6 +54,13 @@ Direct 使用表中的上游主机；WebVPN 使用 `d.buaa.edu.cn`，上游地�
 - 签名响应中的 `tenant_code` 和 `timestamp` 接受字符串或数字，`allow_live` 接受字符串或布尔值。两条路线均解析成功。诊断隐藏完整签名响应正文，未单独记录字段的原始类型。
 - `get-bh-course-url` 对 9 门课返回 HTTP 302，目标为 `classroom.msa.buaa.edu.cn/coursedetail`；另 3 门课返回 HTTP 200，`Content-Type: text/html; charset=utf-8`，且正文完全相同，均为 1337 字节。脱敏诊断未保留正文。同批签名可用于成功映射的 9 门课，维护者据此将该响应判为课程级未开通。App 对 HTTP 200 且媒体类型为 `text/html` 的映射响应提示“该课程暂未在智学北航开通课堂”，返回 `BusinessUnavailable`，诊断原因为 `mapping_unbound_page`。其他非 302 响应仍返回 `UpstreamChanged`，诊断原因为 `mapping_status`。
 - 当时没有直播节次，直播仅通过夹具验证。有直播课时，按授权分别运行 `just verify-live feature=spoc_classroom route=<direct|webvpn>`。
+
+### 2026-11-27 直播媒体主机
+
+- iOS 模拟器的 WebVPN 诊断中，`get-sub-info` 返回 HTTP 200、`code=0`、`sub_status="1"`。教师和学生的主 HLS 地址均使用 `lmt5.buaa.edu.cn:443`，早期直播夹具使用 `lmt9.buaa.edu.cn:443`。
+- 两条路线均沿用 `output.m3u8` 和 `output_student.m3u8` 下发的主机名。认证、请求参数、业务状态和媒体凭据规则沿用矩阵。
+- Core-live 在 Direct 和 WebVPN 两条业务路线均读到一节直播及教师、学生两路源。两次验证均从直连媒体地址取得 HTTP 200 和 `#EXTM3U` 播放列表标记。
+- iOS 模拟器打开同一节直播后，教师画面正常显示，切换到学生画面后也正常显示。
 
 ### 2026-11-26 两路时间轴校准
 

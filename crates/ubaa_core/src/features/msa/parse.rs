@@ -124,7 +124,7 @@ pub(super) fn session(data: &Value, mode: ConnectionMode) -> Result<ClassroomSes
         ] {
             if let Some(url) = data["live_url"][key]["m3u8"]
                 .as_str()
-                .and_then(|raw| media_url(raw, "lmt9.buaa.edu.cn", mode))
+                .and_then(|raw| media_url(raw, None, mode))
             {
                 sources.push(PlaybackSource {
                     kind,
@@ -148,7 +148,7 @@ pub(super) fn session(data: &Value, mode: ConnectionMode) -> Result<ClassroomSes
             };
             let Some(url) = row["preview_url"]
                 .as_str()
-                .and_then(|raw| media_url(raw, super::RESOURCE, mode))
+                .and_then(|raw| media_url(raw, Some(super::RESOURCE), mode))
             else {
                 continue;
             };
@@ -168,7 +168,7 @@ pub(super) fn session(data: &Value, mode: ConnectionMode) -> Result<ClassroomSes
         if !sources
             .iter()
             .any(|source| source.kind == PlaybackKind::Teacher)
-            && let Some(url) = fallback.and_then(|raw| media_url(raw, super::RESOURCE, mode))
+            && let Some(url) = fallback.and_then(|raw| media_url(raw, Some(super::RESOURCE), mode))
         {
             sources.push(PlaybackSource {
                 kind: PlaybackKind::Teacher,
@@ -271,7 +271,7 @@ pub(super) fn slides(body: &Value, mode: ConnectionMode) -> Result<SlideTimeline
         let link = |key: &str, reason| {
             content[key]
                 .as_str()
-                .and_then(|value| media_url(value, super::RESOURCE, mode))
+                .and_then(|value| media_url(value, Some(super::RESOURCE), mode))
                 .ok_or_else(|| changed(STAGE, reason))
         };
         let image_url = link("pptimgurl", "slide_image_untrusted")?;
