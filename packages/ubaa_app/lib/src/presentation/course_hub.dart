@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 String _name(String name) => name
@@ -16,7 +17,7 @@ DateTime? _instant(String? text) {
   )?.toUtc();
 }
 
-typedef _SlotKey = (int?, int?, int?, String?);
+typedef _SlotKey = (int?, int?, int?, String?, String);
 
 final class _Course {
   _Course(this.key, this.name, this.code);
@@ -91,20 +92,30 @@ CourseHubSnapshot buildCourseHub({
           slot.beginSection,
           slot.endSection,
           slot.place,
+          slot.weeksAndTeachers?.trim() ?? '',
         ), () => detail);
         final day = slot.dayOfWeek, section = slot.beginSection ?? 999;
         if (day == null || day < 1 || day > 7) continue;
         if (day < course.first.$1 ||
             (day == course.first.$1 && section < course.first.$2))
           course.first = (day, section);
-        final date = agendaDate(campusDate(begin.add(Duration(days: day - 1))));
-        final opening = _instant('$date ${slot.beginTime}');
+        final occurrence = begin.add(
+          Duration(days: (day - campusDate(begin).weekday) % 7),
+        );
+        if (!occurrence.isBefore(finish)) continue;
+        final date = agendaDate(campusDate(occurrence));
+        DateTime? at(String? time) => time == null
+            ? null
+            : _instant(
+                '$date ${time.replaceFirstMapped(RegExp(r'^(\d):'), (match) => '0${match[1]}:')}',
+              );
+        final opening = at(slot.beginTime);
         if (opening != null &&
             opening.isAfter(now) &&
             (course.next == null || opening.isBefore(course.next!.start))) {
           course.next = (
             start: opening,
-            end: _instant('$date ${slot.endTime}'),
+            end: at(slot.endTime),
             place: slot.place,
             beginSection: slot.beginSection,
             endSection: slot.endSection,
@@ -184,7 +195,7 @@ CourseHubSnapshot buildCourseHub({
     if (item is JudgeAssignmentPresentation && !item.isDetail)
       add(FeatureId.judge, detail, matches[item.courseId]);
   }
-  if (termCode != null) {
+  if (graduate == false && termCode != null && termCode.isNotEmpty) {
     for (final detail in exams) {
       final exam = detail.presentation;
       if (exam is ExamPresentation &&
@@ -229,4 +240,43 @@ CourseHubSnapshot buildCourseHub({
 
 extension on bool {
   int get index => this ? 1 : 0;
+}
+
+bool courseHubSameContent(CourseHubSnapshot previous, CourseHubSnapshot next) {
+  if (previous.termCode != next.termCode ||
+      previous.termName != next.termName ||
+      previous.graduate != next.graduate ||
+      previous.courses.length != next.courses.length)
+    return false;
+  for (final source in CourseHubSource.values) {
+    final before = previous.sources[source], after = next.sources[source];
+    if (before?.state != after?.state || before?.error != after?.error)
+      return false;
+  }
+  if (previous.allAssignments.length != next.allAssignments.length)
+    return false;
+  for (final (index, after) in next.allAssignments.indexed) {
+    final before = previous.allAssignments[index];
+    if (before.detail != after.detail ||
+        before.feature != after.feature ||
+        before.courseKey != after.courseKey ||
+        before.courseName != after.courseName)
+      return false;
+  }
+  for (final (index, after) in next.courses.indexed) {
+    final before = previous.courses[index];
+    if (before.key != after.key ||
+        before.name != after.name ||
+        before.credit != after.credit ||
+        before.courseCode != after.courseCode ||
+        before.nextClass != after.nextClass ||
+        !listEquals(before.teachers, after.teachers) ||
+        !listEquals(before.slots, after.slots) ||
+        !listEquals(before.spocCourses, after.spocCourses) ||
+        !listEquals(before.judgeLinks, after.judgeLinks) ||
+        !listEquals(before.exams, after.exams) ||
+        !listEquals(before.grades, after.grades))
+      return false;
+  }
+  return true;
 }

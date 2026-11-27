@@ -81,7 +81,7 @@ void main() {
     expect(client.disposeCalls, 0);
   });
 
-  for (final version in [8, 79, 80, 84]) {
+  for (final version in [8, 79, 80, 84, 85]) {
     test('BridgeBackend 拒绝旧 v$version 合同', () {
       final client = FixtureContractVersionClient(version);
 
@@ -98,6 +98,29 @@ void main() {
       expect(client.disposeCalls, 1);
     });
   }
+
+  test('兼容合同 v54 不提供课程中心的本地接口', () async {
+    final backend = BridgeBackend(FixtureContractVersionClient(54));
+    final unsupported = throwsA(
+      isA<BackendException>().having(
+        (error) => error.code,
+        '错误码',
+        UbaaErrorCode.unsupported,
+      ),
+    );
+    await expectLater(
+      backend.courseHubWeeks('synthetic', ConnectionMode.direct, 'term'),
+      unsupported,
+    );
+    await expectLater(
+      backend.courseHubOverrides('synthetic', 'term'),
+      unsupported,
+    );
+    await expectLater(
+      backend.saveCourseHubLink('synthetic', 'term', 'judge', false),
+      unsupported,
+    );
+  });
 
   test('BridgeBackend 博雅已选课程投影上课时间和位置要求但不暴露坐标', () async {
     final response = BridgeRoutedBykcChosenCourses(

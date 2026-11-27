@@ -172,6 +172,7 @@ class UbaaMainShell extends StatefulWidget {
     this.spocFilesAccess,
     this.courseHub,
     this.onNeedCourseHub,
+    this.onLeaveCourseHub,
     this.onRefreshCourseHub,
     this.onSetJudgeLink,
     this.spocClassroomAccess,
@@ -307,6 +308,7 @@ class UbaaMainShell extends StatefulWidget {
   final SpocFilesAccess? spocFilesAccess;
   final ValueListenable<CourseHubSnapshot>? courseHub;
   final VoidCallback? onNeedCourseHub;
+  final VoidCallback? onLeaveCourseHub;
   final Future<void> Function()? onRefreshCourseHub;
   final SetJudgeLink? onSetJudgeLink;
   final SpocClassroomAccess? spocClassroomAccess;
@@ -435,11 +437,19 @@ class _UbaaMainShellState extends WidgetNavigationState {
   void _updateShell(VoidCallback change) => setState(change);
   _HubPage? _hubPage;
   String? _courseKey, _courseTerm;
+  bool get _hubVisible =>
+      _selectedIndex == UiDestination.study.index &&
+      _utilityPage == null &&
+      _openedFeature == null;
 
   void _changeNavigation(VoidCallback change, {String? openedFeature}) {
     _navigationGeneration++;
     _widgetAgendaDate = null;
+    final wasVisible = _hubVisible;
     _updateShell(change);
+    if (wasVisible != _hubVisible) {
+      (_hubVisible ? widget.onNeedCourseHub : widget.onLeaveCourseHub)?.call();
+    }
     if (openedFeature != null) widget.onFeatureOpened?.call(openedFeature);
   }
 
@@ -458,7 +468,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
     _selectedIndex = widget.initialDestination.index;
     if (_selectedIndex == UiDestination.study.index)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onNeedCourseHub?.call();
+        if (mounted && _hubVisible) widget.onNeedCourseHub?.call();
       });
     _tabPager = PageController(keepPage: false);
     _checkYgdkSchedule();
@@ -540,6 +550,10 @@ class _UbaaMainShellState extends WidgetNavigationState {
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
+      if (_hubVisible)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _hubVisible) widget.onNeedCourseHub?.call();
+        });
     }
     if (accountChanged) {
       _recentRevision++;
@@ -572,8 +586,6 @@ class _UbaaMainShellState extends WidgetNavigationState {
   }
 
   void _openFeatureList(FeatureId feature) {
-    if ({FeatureId.schedule, FeatureId.spoc, FeatureId.judge}.contains(feature))
-      widget.onNeedCourseHub?.call();
     final generation = _accountGeneration;
     // 打开功能列表会回到第一层；先按第一层播放进入过渡，避免随后再反向播放一次。
     _readDepths[feature] = 1;
@@ -593,6 +605,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
 
   @override
   void dispose() {
+    if (_hubVisible) widget.onLeaveCourseHub?.call();
     _ygdkSchedule.dispose();
     _campusLoader.dispose();
     _bhpanModalScope.value++;

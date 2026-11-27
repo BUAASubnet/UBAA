@@ -150,6 +150,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       key: _shellKey,
       courseHub: _courseHub,
       onNeedCourseHub: _courseHub.ensureLoaded,
+      onLeaveCourseHub: _courseHub.leave,
       onRefreshCourseHub: _courseHub.refresh,
       onSetJudgeLink: _courseHub.setJudgeLink,
       agendaSchoolRoute: _controller.currentAgendaRoute,

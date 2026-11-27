@@ -9,6 +9,20 @@ pub struct BridgeCourseHubWeek {
     pub schedule: BridgeWeeklySchedule,
 }
 
+fn complete_weeks(
+    weeks: Vec<BridgeWeek>,
+    mut read: impl FnMut(i32) -> Result<Option<BridgeWeeklySchedule>, BridgeError>,
+) -> Result<Vec<BridgeCourseHubWeek>, BridgeError> {
+    let mut result = Vec::with_capacity(weeks.len());
+    for week in weeks {
+        let Some(schedule) = read(week.serial_number)? else {
+            return Ok(vec![]);
+        };
+        result.push(BridgeCourseHubWeek { week, schedule });
+    }
+    Ok(result)
+}
+
 impl BridgeOfflineCache {
     /// 只投影完整导入的各周，未导入返回空集合。
     ///
@@ -33,24 +47,19 @@ impl BridgeOfflineCache {
             let core::CachePayload::Weeks(weeks) = record.payload else {
                 return Err(corrupt());
             };
-            let mut result = Vec::new();
-            for week in map_weeks(weeks) {
+            complete_weeks(map_weeks(weeks), |number| {
                 let Some(record) = read(core::CacheQuery::ScheduleWeek {
                     term: term.clone(),
-                    week: week.serial_number,
+                    week: number,
                 })?
                 else {
-                    return Ok(vec![]);
+                    return Ok(None);
                 };
                 let core::CachePayload::Week(schedule) = record.payload else {
                     return Err(corrupt());
                 };
-                result.push(BridgeCourseHubWeek {
-                    week,
-                    schedule: map_weekly_schedule(schedule),
-                });
-            }
-            Ok(result)
+                Ok(Some(map_weekly_schedule(schedule)))
+            })
         })
         .await
     }
@@ -77,5 +86,30 @@ impl BridgeOfflineCache {
                 .map_err(cache_error)
         })
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn 缺少后续周时不返回不完整的学期课表() {
+        let weeks = map_weeks(
+            (1..=2)
+                .map(|serial_number| core::Week {
+                    serial_number,
+                    ..Default::default()
+                })
+                .collect(),
+        );
+        let mut reads = Vec::new();
+        let result = complete_weeks(weeks, |number| {
+            reads.push(number);
+            Ok((number == 1).then(|| map_weekly_schedule(core::WeeklySchedule::default())))
+        })
+        .unwrap();
+        assert_eq!(reads, [1, 2]);
+        assert!(result.is_empty());
     }
 }

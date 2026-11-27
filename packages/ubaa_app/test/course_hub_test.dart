@@ -47,7 +47,7 @@ void main() {
     ),
   );
   CourseHubSnapshot build({
-    bool graduate = false,
+    bool? graduate = false,
     String? semester = term,
     bool imported = true,
     bool ambiguous = false,
@@ -152,6 +152,54 @@ void main() {
     expect(hub.graduate, isNull);
     expect(hub.courses.expand((course) => course.slots), isEmpty);
     expect(hub.allAssignments.map((item) => item.courseKey), ['code:A', null]);
+  });
+  test('研究生与身份未知时不跨系统合并考试和成绩', () {
+    for (final graduate in [true, null]) {
+      final course = build(
+        graduate: graduate,
+      ).courses.singleWhere((course) => course.key == 'code:A');
+      expect(course.exams, isEmpty);
+      expect(course.grades, isEmpty);
+    }
+  });
+  CourseHubCourse laboratory(int weekday) => buildCourseHub(
+    termCode: term,
+    graduate: false,
+    now: DateTime.utc(2026, 9, 1),
+    weeks: [
+      CourseHubWeek(
+        startDate: '2026-09-02',
+        endDate: '2026-09-06',
+        slots: [
+          for (final label in ['前半学期/甲', ' 后半学期/乙 ', '后半学期/乙'])
+            FeatureDetail(
+              title: name,
+              presentation: ScheduleCoursePresentation(
+                courseCode: 'A',
+                dayOfWeek: weekday,
+                beginTime: '8:00',
+                endTime: '9:35',
+                place: '机房',
+                weeksAndTeachers: label,
+              ),
+            ),
+        ],
+      ),
+    ],
+  ).courses.single;
+  test('非周一起始的教学周内匹配星期，单数字小时可解析', () {
+    expect(laboratory(3).nextClass?.start, DateTime.utc(2026, 9, 2));
+    expect(laboratory(3).nextClass?.end, DateTime.utc(2026, 9, 2, 1, 35));
+    expect(laboratory(1).nextClass, isNull);
+  });
+  test('同地点节次保留不同周次与教师，首尾空白不产生重复', () {
+    expect(
+      laboratory(7).slots.map(
+        (row) =>
+            (row.presentation as ScheduleCoursePresentation).weeksAndTeachers,
+      ),
+      ['前半学期/甲', ' 后半学期/乙 '],
+    );
   });
   test('取消关联可恢复，一对多不猜测', () {
     final course = build(overrides: {'first'}).courses.first;

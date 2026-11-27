@@ -6,6 +6,25 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('门户不识别的身份文案不会撤销已确认的身份', () async {
+    final client = _Client();
+    final observed = <bool?>[];
+    final backend = BridgeBackend(client)..onAcademicIdentity = observed.add;
+    await backend.campusAccount.identity();
+    client.gate = Completer<BridgePortalProfileResult>()
+      ..complete(
+        const BridgePortalProfileResult(
+          data: BridgePortalProfile(
+            identity: '其他',
+            department: '合成学院',
+            fetchedAt: 100,
+          ),
+          route: _route,
+        ),
+      );
+    await backend.campusAccount.identity();
+    expect(observed, [false]);
+  });
   test('无缓存时调用三个只读接口，保留金额、单位、零值与缺失项', () async {
     final client = _Client();
     final service = BridgeBackend(client).campusAccount;

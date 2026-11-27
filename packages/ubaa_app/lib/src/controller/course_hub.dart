@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../contracts/course_hub.dart';
@@ -14,7 +15,7 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
   }
   final AppController app;
   Timer? _timer;
-  Object? _owner, _catalogKey, _localKey, _revision;
+  Object? _owner, _identityOwner, _localKey, _revision;
   CourseHubBackend? _backend;
   bool _needed = false, _closed = false;
   bool? _graduate;
@@ -28,13 +29,15 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
   CourseHubSourceStatus _catalogStatus = _idle, _scheduleStatus = _idle;
   Future<void>? _catalogWork;
   Future<void>? _localWork;
+  Future<void> _writes = Future.value();
+  int _linkVersion = 0;
   bool _linksAvailable = false;
   String? get _term =>
       app.currentAgendaTerm.isEmpty ? null : app.currentAgendaTerm;
   ConnectionMode? get _spocRoute => switch (app.loginForm.routePolicy) {
     RoutePolicy.direct => ConnectionMode.direct,
     RoutePolicy.webvpn => ConnectionMode.webvpn,
-    RoutePolicy.auto => app.internalHomeDefaults[FeatureId.spoc]?.resolvedRoute,
+    RoutePolicy.auto => null,
   };
   bool get _online =>
       app.networkOnline &&
@@ -49,8 +52,22 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
     _sync();
   }
 
-  void _sync() {
+  void leave() {
+    _needed = false;
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _sync({bool refreshLocal = false}) {
     if (_closed) return;
+    final identityOwner =
+        app.phase == AppPhase.home && !app.internalIsSigningOut
+        ? (app.cacheAccountId, app.user?.username)
+        : null;
+    if (_identityOwner != identityOwner) {
+      _identityOwner = identityOwner;
+      _graduate = null;
+    }
     final owner =
         app.phase != AppPhase.home ||
             app.internalIsSigningOut ||
@@ -71,27 +88,30 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       _backend = owner != null && backend is CourseHubBackend
           ? backend as CourseHubBackend
           : null;
-      _graduate = null;
       _backend?.onAcademicIdentity = (value) {
-        if (!_closed && _owner == owner && _graduate != value) {
+        if (!_closed &&
+            _owner == owner &&
+            value != null &&
+            _graduate != value) {
           _graduate = value;
           _sync();
         }
       };
-      _catalogKey = null;
       _catalogTicket++;
       _catalogWork = null;
       _catalog = const [];
       _catalogStatus = _idle;
       _localKey = null;
       _localTicket++;
+      _localWork = null;
+      _writes = Future.value();
       _weeks = const [];
       _linksAvailable = false;
       _overrides = const {};
       _scheduleStatus = _idle;
       _revision = null;
-      if (owner == null) {
-        _needed = false;
+      if (owner == null || !_needed) {
+        if (identityOwner == null) _needed = false;
         value = const CourseHubSnapshot();
       }
     }
@@ -100,15 +120,8 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       _timer = null;
       return;
     }
+    final resumed = _timer == null;
     _timer ??= Timer.periodic(const Duration(minutes: 1), (_) => _publish());
-    final catalogKey = (_term, _spocRoute, app.recoveredRoute);
-    if (_catalogKey != catalogKey) {
-      _catalogKey = catalogKey;
-      _catalogTicket++;
-      _catalogWork = null;
-      _catalog = const [];
-      _catalogStatus = _idle;
-    }
     if (_online && _catalogStatus == _idle && app.spocFilesService != null)
       unawaited(_loadCatalog());
     final term = _term,
@@ -123,11 +136,15 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       _graduate,
       saved?.status == ScheduleImportStatus.saved ? saved : null,
     );
-    if (localKey != _localKey) {
+    if (localKey != _localKey || refreshLocal) {
+      if (localKey != _localKey) {
+        _weeks = const [];
+        _overrides = const {};
+        _linksAvailable = false;
+      }
       _localKey = localKey;
       final ticket = ++_localTicket;
-      _weeks = const [];
-      _overrides = const {};
+      _localWork = null;
       _scheduleStatus = _graduate == false
           ? _idle
           : const CourseHubSourceStatus(CourseHubSourceState.notApplicable);
@@ -149,9 +166,9 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       _catalogStatus,
       _scheduleStatus,
       _localKey,
-      _catalogKey,
+      _graduate,
     );
-    if (revision != _revision) {
+    if (resumed || revision != _revision) {
       _revision = revision;
       _publish();
     }
@@ -200,22 +217,23 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       if (ticket != _localTicket) return;
       final weeks = await backend.courseHubWeeks(account, route, term);
       if (ticket != _localTicket) return;
-      _weeks = weeks;
-      _linksAvailable = false;
+      if (!_linksAvailable) _weeks = weeks;
+      final linkVersion = _linkVersion;
       final overrides = (await backend.courseHubOverrides(
         account,
         term,
       )).toSet();
       if (ticket != _localTicket) return;
-      _overrides = overrides;
+      _weeks = weeks;
+      if (linkVersion == _linkVersion) _overrides = overrides;
       _linksAvailable = true;
       _scheduleStatus = weeks.isEmpty ? _idle : _ready;
     } on Object catch (error) {
       if (ticket != _localTicket) return;
       _scheduleStatus = CourseHubSourceStatus(
-        _weeks.isEmpty
-            ? CourseHubSourceState.failed
-            : CourseHubSourceState.partial,
+        _linksAvailable || _weeks.isNotEmpty
+            ? CourseHubSourceState.partial
+            : CourseHubSourceState.failed,
         UbaaErrorMapper.fromObject(error),
       );
     }
@@ -225,8 +243,7 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
   Future<void> refresh() async {
     ensureLoaded();
     if (_owner == null) return;
-    _localKey = null;
-    _sync();
+    _sync(refreshLocal: true);
     await Future.wait([
       if (_localWork case final work?) work,
       if (_online) ...[
@@ -244,7 +261,8 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
     final term = _term,
         account = app.cacheAccountId,
         backend = _backend,
-        ticket = _localTicket;
+        owner = _owner,
+        localKey = _localKey;
     final link = value.courses
         .where((c) => c.key == courseKey)
         .expand((c) => c.judgeLinks)
@@ -252,19 +270,28 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
         .singleOrNull;
     if (link == null || term == null || account == null || backend == null)
       throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
-    await backend.saveCourseHubLink(account, term, judgeCourseId, linked);
-    if (ticket != _localTicket) return;
-    _overrides = {..._overrides};
-    if (linked) {
-      _overrides.remove(judgeCourseId);
-    } else {
-      _overrides.add(judgeCourseId);
-    }
-    _publish();
+    bool current() => !_closed && owner == _owner && localKey == _localKey;
+    final write = _writes.then((_) async {
+      if (!current())
+        throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
+      await backend.saveCourseHubLink(account, term, judgeCourseId, linked);
+      if (!current()) return;
+      _linkVersion++;
+      _overrides = {..._overrides};
+      if (linked) {
+        _overrides.remove(judgeCourseId);
+      } else {
+        _overrides.add(judgeCourseId);
+      }
+      _publish();
+    });
+    _writes = write.catchError((Object _) {});
+    await write;
   }
 
   void _publish() {
-    if (_closed || _owner == null || !_needed) return;
+    if (_closed || _owner == null || !_needed || !app.internalAppForeground)
+      return;
     final defaults = app.internalHomeDefaults;
     final sources = {
       CourseHubSource.schedule: _scheduleStatus,
@@ -275,6 +302,18 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
           ? app.internalSnapshots[feature]!
           : defaults[feature]!;
       final policy = app.loginForm.routePolicy;
+      if (feature == FeatureId.grades) {
+        final term = _term,
+            query = snap.readContext?.query,
+            overview = snap.overview;
+        if (term == null ||
+            query?.view == FeatureQueryView.gradesTerms ||
+            (query?.term != null && query!.term != term) ||
+            (overview is GradesTermOverview
+                ? overview.requestTerm != term || overview.termCode != term
+                : query?.term != term))
+          return const [];
+      }
       if ((snap.evidence != null &&
               snap.evidence!.accountId != app.cacheAccountId) ||
           (snap.resolvedRoute != null &&
@@ -298,13 +337,13 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
     }
 
     final termInfo = defaults[FeatureId.spoc]?.overview;
-    value = buildCourseHub(
+    final next = buildCourseHub(
       termCode: _term,
       termName: termInfo is SpocTermOverview && termInfo.termCode == _term
           ? termInfo.termName
           : null,
       graduate: _graduate,
-      now: DateTime.now(),
+      now: clock.now(),
       weeks: _weeks,
       spocCourses: _catalog,
       overrides: _overrides,
@@ -318,6 +357,7 @@ final class CourseHubController extends ValueNotifier<CourseHubSnapshot> {
       grades: details(FeatureId.grades, CourseHubSource.grades),
       sources: sources,
     );
+    if (!courseHubSameContent(value, next)) value = next;
   }
 
   @override

@@ -47,7 +47,6 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _tabPager.jumpToPage(index);
     }
     if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
-    if (index == UiDestination.study.index) widget.onNeedCourseHub?.call();
   }
 
   DateTime? _takeAgendaDate() {
