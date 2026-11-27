@@ -333,13 +333,13 @@ v16 读的是网关的 `remain_bytes`。在电脑上它正好等于余额 × 4 G
 export PATH="$HOME/.cargo/bin:$PATH" AWS_LC_SYS_PREBUILT_NASM=1 CARGO_TARGET_DIR="<纯英文路径>/ubaa-target"
 
 # Core 是独立 workspace
-cd crates/ubaa_core && cargo test --features test-contract
-cargo clippy --all-targets --all-features -- -D warnings
+cd crates/ubaa_core && cargo test --locked --features test-contract
+cargo clippy --locked --all-targets --all-features -- -D warnings
 
 # 仓库根目录
-cargo test -p ubaa_flutter_bridge
-cargo test -p ubaa-command
-cargo clippy -p ubaa_flutter_bridge -p ubaa-command --all-targets -- -D warnings
+cargo test --locked -p ubaa_flutter_bridge
+cargo test --locked -p ubaa-command
+cargo clippy --locked -p ubaa_flutter_bridge -p ubaa-command --all-targets -- -D warnings
 
 # Flutter / Dart
 export PATH="<Flutter SDK>/bin:$PATH"
