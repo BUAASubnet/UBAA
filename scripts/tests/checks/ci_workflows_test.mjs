@@ -161,6 +161,60 @@ test("Android 并行作业覆盖三个 ABI 且产物名称互不覆盖", () => {
   assert.equal(job.strategy["fail-fast"], false);
 });
 
+test("Gradle 依赖缓存只用于非 Release 的 Android 验收", () => {
+  const { steps } = workflow("flutter-platforms").jobs["native-debug"];
+  const cache = steps.find((step) => step.with?.path === "~/.gradle/caches/modules-2");
+  const wrapper = steps.find((step) => step.with?.path === "~/.gradle/wrapper");
+  assert.ok(cache);
+  assert.equal(cache.uses, wrapper.uses);
+  assert.equal(cache.env.TAR_OPTIONS, "--exclude=*.lock --exclude=gc.properties");
+  assert.ok(cache.with.key.startsWith(cache.with["restore-keys"].trim()));
+  assert.match(cache.with["restore-keys"], /runner\.os.*gradle-wrapper\.properties/);
+  for (const file of ["apps/ubaa_flutter/android/**/*.gradle.kts", "pubspec.lock", "scripts/tools/versions.env"]) {
+    assert.ok(cache.with.key.includes(`'${file}'`), file);
+  }
+  assert.equal(workflow("release").jobs.verify.uses, "./.github/workflows/ci.yml");
+  assert.equal(workflow("ci").jobs.native.uses, "./.github/workflows/flutter-platforms.yml");
+  const evaluate = new Function("matrix", "github", `return ${cache.if}`);
+  const enabled = (platform, name) => evaluate({ platform }, { workflow: workflow(name).name, ref: "refs/heads/main" });
+  assert.equal(enabled("android-apk", "dev-nightly"), true);
+  assert.equal(enabled("android-apk", "release"), false);
+  assert.equal(enabled("linux", "ci"), false);
+});
+
+test("Android 只重试 Gradle 下载失败并保留最后一次构建退出码", () => {
+  const { steps } = workflow("flutter-platforms").jobs["native-debug"];
+  const build = steps.find((step) => step.name === "构建原生宿主");
+  const networkError = "Gradle threw an error while downloading artifacts from the network.";
+  const rateLimit = "Received status code 429 from server: Too Many Requests";
+  const cases = [
+    { results: ["0|成功"], waits: [], exitCode: 0 },
+    { results: [`1|${networkError}`, `2|${rateLimit}`, "0|成功"], waits: [60, 120], exitCode: 0 },
+    { results: [`1|${rateLimit}`, `1|${rateLimit}`, `37|${rateLimit}`], waits: [60, 120], exitCode: 37 },
+    { results: ["23|编译失败"], waits: [], exitCode: 23 },
+    { results: [`1|${rateLimit}`, "23|编译失败 status code 4290"], waits: [60], exitCode: 23 },
+    { platform: "linux", results: [`23|${rateLimit}`], waits: [], exitCode: 23 },
+  ];
+  for (const { platform = "android-apk", results, waits, exitCode } of cases) {
+    const execution = spawnSync("bash", ["-eo", "pipefail", "-c", `
+      just() {
+        IFS='|' read -r exit_code output || return 99
+        printf '构建 %s\\n' "$*"
+        printf '%s\\n' "$output" >&2
+        return "$exit_code"
+      }
+      sleep() { printf '等待 %s\\n' "$1"; }
+      ${build.run.replaceAll("${{ matrix.platform }}", platform)}
+    `], { env: { ...process.env, PLATFORM: platform }, input: `${results.join("\n")}\n`, encoding: "utf8" });
+    const output = execution.stdout + execution.stderr;
+    assert.equal(execution.status, exitCode, output);
+    assert.deepEqual([...output.matchAll(/^等待 (\d+)$/gm)].map((match) => Number(match[1])), waits, output);
+    const command = `构建 flutter-build platform=${platform} mode=debug`;
+    assert.deepEqual(output.split("\n").filter((line) => line.startsWith("构建 ")), results.map(() => command), output);
+    for (const result of results) assert.ok(output.includes(result.split("|")[1]), output);
+  }
+});
+
 const runnerFor = (job, local, os, event = "workflow_dispatch", ref = "refs/heads/main") => {
   const evaluate = new Function("inputs", "matrix", "github", `return ${job["runs-on"].slice(3, -2)}`);
   return evaluate({ local_macos: local }, { os }, { event_name: event, ref, workflow: "Release 构建与草稿" });
