@@ -10,6 +10,7 @@ import 'client.dart';
 import 'finance.dart';
 import 'offline_academic.dart';
 import 'offline_academic/baseline.dart';
+import 'offline_academic/course_hub.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
@@ -87,6 +88,15 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
   Future<void> close();
+
+  /// 只投影完整导入的各周，未导入返回空集合。
+  ///
+  /// # Errors
+  /// 账号不可用、范围无效或导入记录损坏时返回本地错误。
+  Future<List<BridgeCourseHubWeek>> courseHubSchedule({
+    required BridgeConnectionMode route,
+    required String term,
+  });
 
   /// 关闭本地账号的在途回写资格。
   ///
@@ -372,6 +382,10 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     required String assignmentId,
   });
 
+  /// # Errors
+  /// 账号或本地仓库不可用时返回缓存错误。
+  Future<List<String>> readJudgeOverrides({required String term});
+
   /// 本地读取不获取网络锁，也不授予学校操作资格。
   ///
   /// # Errors
@@ -454,6 +468,14 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// 缺值返回 None，退出或损坏保持稳定错误。
   Future<BridgeCachedYgdkSelection?> readYgdkRecordsSelection({
     required BridgeConnectionMode route,
+  });
+
+  /// # Errors
+  /// 账号或范围无效、保存失败时返回缓存错误。
+  Future<void> setJudgeLink({
+    required String term,
+    required String courseId,
+    required bool linked,
   });
 
   /// 原基线读取与新观察保存共享本地锁；旧文件基线仅在缺失时迁入。

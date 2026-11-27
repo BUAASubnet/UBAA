@@ -103,6 +103,9 @@ pub enum CacheQuery {
     GradeScoreBaseline {
         term: String,
     },
+    JudgeLinkOverrides {
+        term: String,
+    },
     Classrooms {
         campus: i32,
         date: String,
@@ -210,6 +213,10 @@ pub enum CachePayload {
     Grades(GradeData),
     GradesOverview(GradeOverview),
     GradeScoreBaseline(CachedGradeScoreBaseline),
+    JudgeLinkOverrides {
+        term: String,
+        unlinked: std::collections::BTreeSet<String>,
+    },
     Classrooms(ClassroomQuery),
     JudgeCourses(Vec<Course>),
     JudgeCourseReview(JudgeCourseReview),
@@ -389,7 +396,8 @@ impl CacheScope {
             CacheQuery::SpocTerm { term }
             | CacheQuery::ScheduleImport { term }
             | CacheQuery::ScheduleWeeks { term }
-            | CacheQuery::Exams { term } => id(term),
+            | CacheQuery::Exams { term }
+            | CacheQuery::JudgeLinkOverrides { term } => id(term),
             CacheQuery::Grades { term } | CacheQuery::GradeScoreBaseline { term } => {
                 id(term) && crate::features::grades::parse_term_code(term).is_ok()
             }
@@ -450,6 +458,15 @@ impl CachePayload {
     }
     fn grades_matches(&self, query: &CacheQuery) -> Option<bool> {
         Some(match (self, query) {
+            (
+                Self::JudgeLinkOverrides { term, unlinked },
+                CacheQuery::JudgeLinkOverrides { term: requested },
+            ) => {
+                term == requested
+                    && unlinked
+                        .iter()
+                        .all(|id| !id.trim().is_empty() && id.len() <= 1024)
+            }
             (Self::GradeScoreBaseline(data), CacheQuery::GradeScoreBaseline { term }) => {
                 &data.term_code == term && data.valid()
             }

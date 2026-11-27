@@ -148,6 +148,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
       key: _shellKey,
+      courseHub: _courseHub,
+      onNeedCourseHub: _courseHub.ensureLoaded,
+      onRefreshCourseHub: _courseHub.refresh,
+      onSetJudgeLink: _courseHub.setJudgeLink,
       agendaSchoolRoute: _controller.currentAgendaRoute,
       agenda: AgendaAccess(
         service: _controller.agenda,

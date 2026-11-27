@@ -89,15 +89,25 @@ class BridgeCampusAccountService implements CampusAccountService {
 
   @override
   Future<PortalIdentity> identity() => _call(() async {
+    final observe = _context.onAcademicIdentity;
+    PortalIdentity project(BridgePortalProfile value) {
+      observe?.call(switch (value.identity) {
+        '本科生' => false,
+        '研究生' || '硕士研究生' || '博士研究生' => true,
+        _ => null,
+      });
+      return _identity(value);
+    }
+
     final section = await _refresh(BridgeCampusCacheQuery.profile);
     if (section != null) {
       final value = section.data.profile;
       if (value == null) {
         throw const BackendException(UbaaErrorCode.internalError);
       }
-      return _identity(value);
+      return project(value);
     }
-    return _identity((await _client.portalProfile()).data);
+    return project((await _client.portalProfile()).data);
   });
 
   @override

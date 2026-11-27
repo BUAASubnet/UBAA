@@ -1,5 +1,6 @@
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
+import '../course_hub/entries.dart';
 import 'package:flutter/material.dart';
 import '../../common/detail_fields.dart' show DetailField;
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -129,6 +130,13 @@ class AssignmentContent extends StatelessWidget {
                     ),
                   ),
                   // 课堂与课件都是整门课的资源，入口放在课程标题行而不是单份作业里。
+                  if (CourseHubEntries.of(context)?.group(group)
+                      case final open?)
+                    IconButton(
+                      tooltip: '打开课程',
+                      icon: const Icon(Icons.school_outlined),
+                      onPressed: open,
+                    ),
                   if (classroomAccess != null &&
                       course is SpocAssignmentPresentation &&
                       uiNonBlank(row) != null)

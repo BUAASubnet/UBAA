@@ -14,6 +14,7 @@ use std::{
 };
 
 mod grade_baseline;
+mod judge_links;
 mod refresh;
 pub use refresh::CachedRefresh;
 pub(super) use refresh::SharedProjection;

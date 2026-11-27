@@ -156,6 +156,7 @@ pub(super) fn classify(record: &CacheRecord, context: &Context, now: i64) -> Pri
         CachePayload::Grades(_)
         | CachePayload::GradesOverview(_)
         | CachePayload::GradeScoreBaseline(_)
+        | CachePayload::JudgeLinkOverrides { .. }
         | CachePayload::Terms(_)
         | CachePayload::Weeks(_)
         | CachePayload::JudgeCourses(_)

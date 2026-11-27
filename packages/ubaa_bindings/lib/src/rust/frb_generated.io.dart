@@ -32,6 +32,7 @@ import 'api/network.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
 import 'api/offline_academic/baseline.dart';
+import 'api/offline_academic/course_hub.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
@@ -1973,6 +1974,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCourseClass dco_decode_bridge_course_class(dynamic raw);
 
   @protected
+  BridgeCourseHubWeek dco_decode_bridge_course_hub_week(dynamic raw);
+
+  @protected
   BridgeError dco_decode_bridge_error(dynamic raw);
 
   @protected
@@ -3009,6 +3013,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeCourseClass> dco_decode_list_bridge_course_class(dynamic raw);
+
+  @protected
+  List<BridgeCourseHubWeek> dco_decode_list_bridge_course_hub_week(dynamic raw);
 
   @protected
   List<BridgeEvaluationCourse> dco_decode_list_bridge_evaluation_course(
@@ -5895,6 +5902,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCourseHubWeek sse_decode_bridge_course_hub_week(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeError sse_decode_bridge_error(SseDeserializer deserializer);
 
   @protected
@@ -7255,6 +7267,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeCourseClass> sse_decode_list_bridge_course_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCourseHubWeek> sse_decode_list_bridge_course_hub_week(
     SseDeserializer deserializer,
   );
 
@@ -10728,6 +10745,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_course_hub_week(
+    BridgeCourseHubWeek self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_error(BridgeError self, SseSerializer serializer);
 
   @protected
@@ -12407,6 +12430,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_bridge_course_class(
     List<BridgeCourseClass> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_course_hub_week(
+    List<BridgeCourseHubWeek> self,
     SseSerializer serializer,
   );
 

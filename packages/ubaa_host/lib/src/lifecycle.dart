@@ -3,6 +3,7 @@ part of 'ubaa_app_host.dart';
 class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   AppController? _readyController;
   AppController get _controller => _readyController!;
+  late CourseHubController _courseHub;
   late YgdkReminderStore _reminderStore;
   late GradeScoreStore _gradeScoreStore;
   late BykcCourseFilterStore _bykcFilterStore;
@@ -268,6 +269,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       telemetry: widget.telemetry,
       onReadSchedulerTrace: widget.onReadSchedulerTrace,
     );
+    _courseHub = CourseHubController(_controller);
     _controller.setAppForeground(!_wasBackgrounded);
     _controller.attachHomePresentation(
       visible: widget.initialDestination == UiDestination.home,
@@ -373,6 +375,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_syncWidgetLaunchOwner);
     _scheduleWidgetPublisher?.dispose();
     _gradeWatch.dispose();
+    _courseHub.dispose();
     _controller.dispose();
     super.dispose();
   }

@@ -13,6 +13,10 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   void _goBack() {
     _navigationGeneration++;
+    if (_openedFeature == null && _hubPage != null) {
+      _changeNavigation(() => _hubPage = null);
+      return;
+    }
     if (_utilityPage == '云盘' && _bhpanBack.handleBack()) return;
     if (_utilityPage != null) {
       _changeNavigation(() => _utilityPage = null);
@@ -32,6 +36,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     }
     _changeNavigation(() {
       _selectedIndex = index;
+      _hubPage = null;
       _utilityPage = null;
       _openedFeature = null;
       _widgetAgendaDate = agendaDate;
@@ -42,6 +47,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       _tabPager.jumpToPage(index);
     }
     if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
+    if (index == UiDestination.study.index) widget.onNeedCourseHub?.call();
   }
 
   DateTime? _takeAgendaDate() {
@@ -63,6 +69,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       () {
         _openedFeature = null;
         _utilityPage = page;
+        _hubPage = null;
       },
       openedFeature: switch (page) {
         '图书馆云打印' => 'cloud_print',
@@ -161,6 +168,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 openLink: widget.onOpenAppLink,
               )
             : _buildProfile()
+      : _hubPage != null
+      ? _buildHubPage()
       : _selectedIndex == UiDestination.settings.index
       ? _buildProfile()
       : MediaQuery.sizeOf(context).width >= 600
@@ -279,26 +288,19 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       onChanged: widget.agenda.onChanged,
       onSaveFile: widget.agenda.saveFile,
     ),
-    1 || 3 => FeatureGridView(
-      onOpenCloudPrint:
-          index == UiDestination.campus.index &&
-              widget.cloudPrintService != null
-          ? () => _openUtility('图书馆云打印')
-          : null,
-      onOpenBhpan: index == UiDestination.campus.index
-          ? () => _openUtility('云盘')
-          : null,
-      onOpenIhome: index == UiDestination.campus.index
-          ? () => _openUtility('iHome')
-          : null,
-      onOpenHealthCloud:
-          index == UiDestination.campus.index && widget.healthCloudRead != null
-          ? () => _openUtility(healthCloudTitle)
-          : null,
-      onOpenFinance:
-          index == UiDestination.campus.index && widget.financeService != null
-          ? () => _openUtility('财务查询')
-          : null,
+    1 => _buildStudyRoot(),
+    3 => FeatureGridView(
+      onOpenCloudPrint: widget.cloudPrintService == null
+          ? null
+          : () => _openUtility('图书馆云打印'),
+      onOpenBhpan: () => _openUtility('云盘'),
+      onOpenIhome: () => _openUtility('iHome'),
+      onOpenHealthCloud: widget.healthCloudRead == null
+          ? null
+          : () => _openUtility(healthCloudTitle),
+      onOpenFinance: widget.financeService == null
+          ? null
+          : () => _openUtility('财务查询'),
       features: _UbaaMainShellState._tabs[index].features,
       homeState: widget.homeState,
       snapshots: widget.snapshots,

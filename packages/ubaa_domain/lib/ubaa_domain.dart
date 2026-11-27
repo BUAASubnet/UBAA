@@ -12,6 +12,7 @@ export 'src/feature/schedule/widget_snapshot.dart';
 
 export 'src/feature/ihome.dart';
 export 'src/feature/classroom/models.dart';
+export 'src/feature/course_hub/models.dart';
 export 'src/feature/spoc_files.dart';
 export 'src/feature/health_cloud.dart';
 
