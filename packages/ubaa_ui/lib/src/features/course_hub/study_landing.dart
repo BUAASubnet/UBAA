@@ -35,7 +35,8 @@ class CourseHubLanding extends StatelessWidget {
     return PullToRefresh(
       onRefresh: onRefresh,
       child: ListView(
-        key: const ValueKey('course-hub-landing'),
+        // 进课程主页再返回时学习页会重建，PageStorageKey 让列表回到原来的位置。
+        key: const PageStorageKey('course-hub-landing'),
         padding: UbaaTheme.pageInsets(context, top: 8, bottom: 24),
         children: [
           _QuickRow(

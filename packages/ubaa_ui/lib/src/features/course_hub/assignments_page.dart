@@ -41,7 +41,16 @@ class _CourseHubAssignmentsPageState extends State<CourseHubAssignmentsPage> {
     String courseOf(CourseHubAssignment a) =>
         a.courseName ??
         (uiNonBlank(courseHubAssignmentCourse(a.detail)) ?? '其他');
-    final courses = <String>{for (final a in all) courseOf(a)}.toList();
+    // 筛选按学习页的课程顺序排列，对不上课程的作业按课程名排在后面。
+    final present = {for (final a in all) courseOf(a)};
+    final ordered = [
+      for (final c in hub.courses)
+        if (present.contains(c.name)) c.name,
+    ];
+    final courses = [
+      ...ordered,
+      ...(present.difference(ordered.toSet()).toList()..sort()),
+    ];
     final visible = [
       for (final a in all)
         if (_course == null || courseOf(a) == _course) a,

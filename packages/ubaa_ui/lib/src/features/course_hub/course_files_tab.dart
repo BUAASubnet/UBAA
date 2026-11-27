@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-import '../../common/state_panel.dart' show UiStatePanel;
+import '../../common/state_panel.dart' show UiInlineRetry, UiStatePanel;
 import '../../shared/text.dart' show uiNonBlank;
 import '../../theme.dart' show UbaaTheme;
 import '../coursework/course_files_view.dart' show CourseFilesView;
 import '../coursework/spoc_files_access.dart' show SpocFilesAccess;
 
-/// 课件页签：逐个读取本课各 SPOC 课程的根目录，至少一个有文件时略过空的和
-/// 业务不可用的；只剩一个就直接显示，多个时按教师分段切换。
+/// 课件页签：逐个读取本课各 SPOC 课程的根目录。空的和业务不可用的直接略过；
+/// 有文件的只剩一个就直接显示，多个时分段切换；其他失败只在顶部提示一行并可重试。
 class CourseFilesTab extends StatefulWidget {
   const CourseFilesTab({
     super.key,
@@ -80,47 +80,72 @@ class _CourseFilesTabState extends State<CourseFilesTab>
     super.build(context);
     final roots = _roots;
     if (roots == null) return const Center(child: CircularProgressIndicator());
+    bool unavailable(Object? e) =>
+        e is UiError && e.code == UbaaErrorCode.businessUnavailable;
+    // 只有一个课程时不预读（items 与 error 都为空），交给课件页自己加载。
     final withFiles = [
       for (final r in roots)
         if (r.items == null && r.error == null ||
             (r.items?.isNotEmpty ?? false))
           r,
     ];
+    // 业务不可用不算失败；其他失败只在顶部提示一行并可重试，不占分段。
     final failed = [
       for (final r in roots)
-        if (r.error != null &&
-            !(r.error is UiError &&
-                (r.error as UiError).code == UbaaErrorCode.businessUnavailable))
-          r,
+        if (r.error != null && !unavailable(r.error)) r,
     ];
-    final shown = [...withFiles, ...failed];
-    if (shown.isEmpty) {
+    if (withFiles.isEmpty) {
+      final error = failed.firstOrNull?.error;
       return ListView(
         padding: UbaaTheme.pageInsets(context, top: 12),
-        children: const [
-          UiStatePanel(
-            icon: Icons.folder_open,
-            title: '这里还没有文件',
-            detail: '老师上传课件后会显示在这里',
-          ),
+        children: [
+          if (failed.isEmpty)
+            const UiStatePanel(
+              icon: Icons.folder_open,
+              title: '这里还没有文件',
+              detail: '老师上传课件后会显示在这里',
+            )
+          else
+            UiStatePanel(
+              icon: Icons.folder_open,
+              title: '课件读取失败',
+              detail: error is UiError ? error.message : '请稍后重试',
+              error: error is UiError ? error : null,
+              action: '重试',
+              onAction: _load,
+            ),
         ],
       );
     }
-    final index = _selected.clamp(0, shown.length - 1);
-    final current = shown[index];
+    final index = _selected.clamp(0, withFiles.length - 1);
+    final current = withFiles[index];
+    final teachers = [for (final r in withFiles) uiNonBlank(r.course.teacher)];
+    final byTeacher =
+        !teachers.contains(null) && teachers.toSet().length == teachers.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (shown.length > 1)
+        if (failed.isNotEmpty)
+          Padding(
+            padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
+            child: UiInlineRetry(
+              message: '另有 ${failed.length} 个课程的课件未能读取',
+              error: failed.first.error is UiError
+                  ? failed.first.error as UiError
+                  : null,
+              onRetry: _load,
+            ),
+          ),
+        if (withFiles.length > 1)
           Padding(
             padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
             child: SegmentedButton<int>(
               showSelectedIcon: false,
               segments: [
-                for (final (i, r) in shown.indexed)
+                for (final (i, t) in teachers.indexed)
                   ButtonSegment(
                     value: i,
-                    label: Text(uiNonBlank(r.course.teacher) ?? '课件 ${i + 1}'),
+                    label: Text(byTeacher ? t! : '课件 ${i + 1}'),
                   ),
               ],
               selected: {index},

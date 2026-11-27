@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-import '../../common/state_panel.dart' show UiStatePanel;
+import '../../common/state_panel.dart' show UiInlineRetry, UiStatePanel;
 import '../../shared/text.dart' show uiNonBlank;
 import '../../theme.dart' show UbaaTheme;
 import '../coursework/spoc_classroom_access.dart' show SpocClassroomAccess;
 import '../spoc_classroom/classroom_view.dart' show ClassroomSessionList;
 
-/// 课堂页签：一门课可能有多个 SPOC 课程（例如实验班）。逐个读取课堂目录，
-/// 至少一个读到时略过“未开通课堂”等业务不可用的；只剩一个就直接显示，
-/// 多个时按教师分段切换。网络等其他失败照常显示重试，不静默吞掉。
+/// 课堂页签：一门课可能有多个 SPOC 课程（例如实验班）。逐个读取课堂目录：
+/// 未开通课堂等业务不可用的直接略过；读到的按课堂去重，只剩一个就直接显示，
+/// 多个时分段切换。网络等其他失败只在顶部提示一行并可重试，不占分段、也不静默吞掉。
 class CourseClassroomTab extends StatefulWidget {
   const CourseClassroomTab({
     super.key,
@@ -73,26 +73,26 @@ class _CourseClassroomTabState extends State<CourseClassroomTab>
     super.build(context);
     final reads = _reads;
     if (reads == null) return const Center(child: CircularProgressIndicator());
+    // 两个 SPOC 课程可能签到同一个智学北航课堂，按课堂去重。
+    final seen = <String>{};
     final ok = [
       for (final r in reads)
-        if (r.catalog != null) r,
+        if (r.catalog case final c? when seen.add(c.courseId)) r,
     ];
-    // 有读到的就略过业务不可用的；其他失败仍要让人看见并能重试。
-    final shown = [
+    // 业务不可用（未开通课堂等）不算失败；其他失败在顶部提示并可重试。
+    final failed = [
       for (final r in reads)
-        if (r.catalog != null || (ok.isEmpty || !_unavailable(r.error))) r,
+        if (r.catalog == null && !_unavailable(r.error)) r,
     ];
     if (ok.isEmpty) {
-      final error =
-          reads.where((read) => !_unavailable(read.error)).firstOrNull?.error ??
-          reads.first.error;
+      final error = failed.firstOrNull?.error ?? reads.first.error;
       final ui = error is UiError ? error : null;
       return ListView(
         padding: UbaaTheme.pageInsets(context, top: 12),
         children: [
           UiStatePanel(
             icon: Icons.smart_display_outlined,
-            title: _unavailable(error) ? '暂无课堂' : '课堂读取失败',
+            title: failed.isEmpty ? '暂无课堂' : '课堂读取失败',
             detail: ui?.message ?? '请稍后重试',
             error: ui,
             action: '重试',
@@ -101,51 +101,55 @@ class _CourseClassroomTabState extends State<CourseClassroomTab>
         ],
       );
     }
-    final index = _selected.clamp(0, shown.length - 1);
-    final current = shown[index];
+    final index = _selected.clamp(0, ok.length - 1);
+    final current = ok[index];
+    final labels = _labels(ok);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (shown.length > 1)
+        if (failed.isNotEmpty)
+          Padding(
+            padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
+            child: UiInlineRetry(
+              message: '另有 ${failed.length} 个课堂未能读取',
+              error: failed.first.error is UiError
+                  ? failed.first.error as UiError
+                  : null,
+              onRetry: _loading ? null : _load,
+            ),
+          ),
+        if (ok.length > 1)
           Padding(
             padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
             child: SegmentedButton<int>(
               showSelectedIcon: false,
               segments: [
-                for (final (i, r) in shown.indexed)
-                  ButtonSegment(value: i, label: Text(_label(r, i))),
+                for (final (i, _) in ok.indexed)
+                  ButtonSegment(value: i, label: Text(labels[i])),
               ],
               selected: {index},
               onSelectionChanged: (v) => setState(() => _selected = v.single),
             ),
           ),
         Expanded(
-          child: current.catalog == null
-              ? ListView(
-                  padding: UbaaTheme.pageInsets(context, top: 12),
-                  children: [
-                    UiStatePanel(
-                      icon: Icons.smart_display_outlined,
-                      title: '课堂读取失败',
-                      detail: current.error is UiError
-                          ? (current.error as UiError).message
-                          : '请稍后重试',
-                      action: '重试',
-                      onAction: _loading ? null : _load,
-                    ),
-                  ],
-                )
-              : ClassroomSessionList(
-                  access: widget.access,
-                  catalog: current.catalog!,
-                  courseName: widget.courseName,
-                  onRefresh: _load,
-                ),
+          child: ClassroomSessionList(
+            access: widget.access,
+            catalog: current.catalog!,
+            courseName: widget.courseName,
+            onRefresh: _load,
+          ),
         ),
       ],
     );
   }
 
-  static String _label(_Read r, int i) =>
-      uiNonBlank(r.course.teacher) ?? '课堂 ${i + 1}';
+  /// 教师各不相同时按教师标注，否则按顺序编号，避免两个同名分段。
+  static List<String> _labels(List<_Read> reads) {
+    final teachers = [for (final r in reads) uiNonBlank(r.course.teacher)];
+    final distinct =
+        !teachers.contains(null) && teachers.toSet().length == teachers.length;
+    return [
+      for (final (i, t) in teachers.indexed) distinct ? t! : '课堂 ${i + 1}',
+    ];
+  }
 }
