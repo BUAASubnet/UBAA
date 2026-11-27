@@ -10,6 +10,18 @@ enum _HubPage {
 }
 
 extension _ShellCourseHub on _UbaaMainShellState {
+  /// 课程主页的标题用课程名；找不到课程时退回页面名。
+  String? get _hubTitle {
+    final page = _hubPage;
+    if (page == null) return null;
+    if (page == _HubPage.course) {
+      for (final course in widget.courseHub?.value.courses ?? const []) {
+        if (course.key == _courseKey) return course.name;
+      }
+    }
+    return page.title;
+  }
+
   void _openHub(_HubPage page, [String? key]) {
     if (_writeBusy || widget.courseHub == null) return;
     final snapshot = widget.courseHub!.value;

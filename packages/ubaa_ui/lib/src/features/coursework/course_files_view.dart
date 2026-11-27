@@ -17,9 +17,17 @@ class CourseFilesView extends StatefulWidget {
     required this.access,
     this.courseId,
     this.courseName,
+    this.embedded = false,
+    this.initialItems,
   });
   final SpocFilesAccess access;
   final String? courseId, courseName;
+
+  /// 嵌在课程主页的页签里：不带自己的标题栏和课程名，只保留文件夹路径。
+  final bool embedded;
+
+  /// 已经预读到的根目录（课程主页判断哪个课程有文件时读过），避免重复请求。
+  final List<SpocCourseFile>? initialItems;
 
   @override
   State<CourseFilesView> createState() => _CourseFilesViewState();
@@ -43,6 +51,8 @@ class _CourseFilesViewState extends State<CourseFilesView> {
     _courseName = widget.courseName;
     if (_courseId == null) {
       _loadCourses();
+    } else if (widget.initialItems case final items?) {
+      _items = items;
     } else {
       _loadFiles();
     }
@@ -182,6 +192,52 @@ class _CourseFilesViewState extends State<CourseFilesView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final list = ListView(
+      key: const ValueKey('spoc-course-files'),
+      padding: UbaaTheme.pageInsets(
+        context,
+        top: widget.embedded ? 12 : 8,
+        bottom: 24,
+      ),
+      children: [
+        if (widget.embedded)
+          if (_path.isNotEmpty) ...[
+            _crumbs(theme, colors),
+            const SizedBox(height: 12),
+          ] else
+            const SizedBox.shrink()
+        else ...[
+          if (_courses.isNotEmpty || _courseId != null) _header(theme, colors),
+          const SizedBox(height: 12),
+        ],
+        if (_coursesLoading || _loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 48),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          _errorPanel()
+        else if (_courseId == null)
+          UiStatePanel(
+            icon: Icons.folder_open,
+            title: '暂无课程',
+            detail: '本学期还没有可浏览的课程文件',
+            action: '重新加载',
+            onAction: _loadCourses,
+          )
+        else if ((_items ?? const []).isEmpty)
+          const UiStatePanel(
+            icon: Icons.folder_open,
+            title: '这里还没有文件',
+            detail: '老师上传课件后会显示在这里',
+          )
+        else
+          _fileCard(theme, colors),
+      ],
+    );
+    if (widget.embedded) {
+      return RefreshIndicator(onRefresh: _loadFiles, child: list);
+    }
     return Scaffold(
       appBar: AppBar(
         // 与应用内其它下钻页保持一致：同一枚返回箭头、同样的标题间距和字号。
@@ -205,44 +261,11 @@ class _CourseFilesViewState extends State<CourseFilesView> {
           ),
         ],
       ),
-      body: ListView(
-        key: const ValueKey('spoc-course-files'),
-        padding: UbaaTheme.pageInsets(context, top: 8, bottom: 24),
-        children: [
-          if (_courses.isNotEmpty || _courseId != null) _header(theme, colors),
-          const SizedBox(height: 12),
-          if (_coursesLoading || _loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_error != null)
-            _errorPanel()
-          else if (_courseId == null)
-            UiStatePanel(
-              icon: Icons.folder_open,
-              title: '暂无课程',
-              detail: '本学期还没有可浏览的课程文件',
-              action: '重新加载',
-              onAction: _loadCourses,
-            )
-          else if ((_items ?? const []).isEmpty)
-            const UiStatePanel(
-              icon: Icons.folder_open,
-              title: '这里还没有文件',
-              detail: '老师上传课件后会显示在这里',
-            )
-          else
-            _fileCard(theme, colors),
-        ],
-      ),
+      body: list,
     );
   }
 
   Widget _header(ThemeData theme, ColorScheme colors) {
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: colors.onSurfaceVariant,
-    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,23 +298,25 @@ class _CourseFilesViewState extends State<CourseFilesView> {
             ),
           ),
         const SizedBox(height: 4),
-        Wrap(
-          spacing: 4,
-          runSpacing: 2,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _crumb('全部文件', 0, muted),
-            for (var i = 0; i < _path.length; i++) ...[
-              Text('›', style: muted),
-              _crumb(
-                _path[i].name,
-                i + 1,
-                muted,
-                current: i == _path.length - 1,
-              ),
-            ],
-          ],
-        ),
+        _crumbs(theme, colors),
+      ],
+    );
+  }
+
+  Widget _crumbs(ThemeData theme, ColorScheme colors) {
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    return Wrap(
+      spacing: 4,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _crumb('全部文件', 0, muted),
+        for (var i = 0; i < _path.length; i++) ...[
+          Text('›', style: muted),
+          _crumb(_path[i].name, i + 1, muted, current: i == _path.length - 1),
+        ],
       ],
     );
   }

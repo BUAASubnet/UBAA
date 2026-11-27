@@ -8,14 +8,11 @@ import '../../shared/text.dart' show uiNonBlank;
 import '../../shared/when.dart'
     show uiCampusNow, uiDeadlineHint, uiParseCampusTime, uiShortDateTime;
 import '../../common/tag.dart';
-import '../../shared/dialogs/form_page.dart' show showUiPage;
 import 'assignment_files.dart' show SpocAssignmentFiles;
 import 'assignment_submit.dart' show SpocSubmitBlock;
 import '../../write_callbacks.dart'
     show SpocSubmitFilePicker, SpocSubmitStarter;
-import 'course_files_view.dart' show CourseFilesView;
 import 'spoc_classroom_access.dart' show SpocClassroomAccess;
-import '../spoc_classroom/classroom_entry.dart' show ClassroomEntryButton;
 import 'spoc_files_access.dart' show SpocFilesAccess;
 
 bool uiSupportsAssignmentContent(
@@ -110,49 +107,45 @@ class AssignmentContent extends StatelessWidget {
           final row = rows[index];
           if (row is String) {
             final group = groups[row] ?? const <FeatureDetail>[];
-            final course = group.isEmpty ? null : group.first.presentation;
-            final courseId = switch (course) {
-              SpocAssignmentPresentation p => uiNonBlank(p.courseId),
-              _ => null,
-            };
+            // 课件、课堂已移到课程主页；能对上课程时，整行标题可点进入课程。
+            final open = CourseHubEntries.of(context)?.group(group);
+            final theme = Theme.of(context);
+            final title = Text(
+              uiNonBlank(row) ?? '课程名称未提供',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: open == null
+                    ? theme.colorScheme.onSurfaceVariant
+                    : theme.colorScheme.primary,
+              ),
+            );
             return Padding(
               // 组间多留一段，课程标题归属下方卡片而不是上一组。
               padding: EdgeInsets.only(top: index == 0 ? 0 : 12, bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      uiNonBlank(row) ?? '课程名称未提供',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+              child: open == null
+                  ? title
+                  : Align(
+                      alignment: Alignment.centerLeft,
+                      child: InkWell(
+                        key: ValueKey('assignment-course-${uiNonBlank(row)}'),
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: open,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(child: title),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  // 课堂与课件都是整门课的资源，入口放在课程标题行而不是单份作业里。
-                  if (CourseHubEntries.of(context)?.group(group)
-                      case final open?)
-                    IconButton(
-                      tooltip: '打开课程',
-                      icon: const Icon(Icons.school_outlined),
-                      onPressed: open,
-                    ),
-                  if (classroomAccess != null &&
-                      course is SpocAssignmentPresentation &&
-                      uiNonBlank(row) != null)
-                    ClassroomEntryButton(
-                      access: classroomAccess!,
-                      courseName: row,
-                      fallbackCourseId: courseId,
-                    ),
-                  if (courseId != null && filesAccess?.canBrowseCourses == true)
-                    _CourseFilesButton(
-                      access: filesAccess!,
-                      courseId: courseId,
-                      courseName: row,
-                    ),
-                ],
-              ),
             );
           }
           return Padding(
@@ -174,37 +167,39 @@ class AssignmentContent extends StatelessWidget {
   );
 }
 
-/// 课程标题行右侧的课件入口：打开该课程的课程文件页。
-class _CourseFilesButton extends StatelessWidget {
-  const _CourseFilesButton({
-    required this.access,
-    required this.courseId,
-    required this.courseName,
-  });
-  final SpocFilesAccess access;
-  final String courseId, courseName;
+/// 作业详情里的课程名：能对上课程中心的课程时可点，进入课程主页看课件和课堂。
+class _CourseLink extends StatelessWidget {
+  const _CourseLink({required this.detail, required this.name});
+  final FeatureDetail detail;
+  final String? name;
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-    style: TextButton.styleFrom(
-      visualDensity: VisualDensity.compact,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      minimumSize: const Size(0, 32),
-    ),
-    onPressed: () => showUiPage<void>(
-      context,
-      fixedHeight: true,
-      dialogWidth: 720,
-      builder: (_) => CourseFilesView(
-        access: access,
-        courseId: courseId,
-        courseName: courseName,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final open = CourseHubEntries.of(context)?.group([detail]);
+    final text = Text(
+      uiNonBlank(name) ?? '课程名称未提供',
+      style: theme.textTheme.bodyMedium?.copyWith(
+        height: 1.5,
+        color: open == null
+            ? theme.colorScheme.onSurfaceVariant
+            : theme.colorScheme.primary,
       ),
-    ),
-    icon: const Icon(Icons.folder_open_outlined, size: 18),
-    label: const Text('课件'),
-  );
+    );
+    if (open == null) return text;
+    return InkWell(
+      key: const ValueKey('assignment-detail-course'),
+      borderRadius: BorderRadius.circular(8),
+      onTap: open,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: text),
+          Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.primary),
+        ],
+      ),
+    );
+  }
 }
 
 class AssignmentCard extends StatelessWidget {
@@ -474,43 +469,10 @@ class _AssignmentDetail extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  uiNonBlank(course) ?? '课程名称未提供',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                _CourseLink(detail: detail, name: course),
                 if (p is SpocAssignmentPresentation &&
                     uiNonBlank(p.teacherName) != null)
                   _assignmentLine(context, '教师：${p.teacherName}'),
-                if (p is SpocAssignmentPresentation &&
-                    ((filesAccess?.canBrowseCourses == true &&
-                            uiNonBlank(p.courseId) != null) ||
-                        (classroomAccess != null &&
-                            uiNonBlank(course) != null)))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Wrap(
-                      spacing: 4,
-                      children: [
-                        if (classroomAccess != null &&
-                            uiNonBlank(course) != null)
-                          ClassroomEntryButton(
-                            access: classroomAccess!,
-                            courseName: course,
-                            fallbackCourseId: uiNonBlank(p.courseId),
-                          ),
-                        if (filesAccess?.canBrowseCourses == true &&
-                            uiNonBlank(p.courseId) != null)
-                          _CourseFilesButton(
-                            access: filesAccess!,
-                            courseId: p.courseId,
-                            courseName: course,
-                          ),
-                      ],
-                    ),
-                  ),
               ],
             ),
           ),

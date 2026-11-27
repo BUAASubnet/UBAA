@@ -1,79 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../write_callbacks.dart';
-import '../coursework/spoc_classroom_access.dart';
-import '../coursework/spoc_files_access.dart';
+
+import '../../common/section.dart' show UiEntryCard, UiEntryList;
+import '../../shared/feature_icons.dart' show uiFeatureIcon;
+import '../../theme.dart' show UbaaTheme;
+
+export 'assignments_page.dart' show CourseHubAssignmentsPage;
+export 'course_page.dart' show CourseHubCoursePage;
 
 typedef SetJudgeLink =
     Future<void> Function(String courseKey, String judgeCourseId, bool linked);
 
-class CourseHubCoursePage extends StatelessWidget {
-  const CourseHubCoursePage({
-    super.key,
-    required this.courseKey,
-    required this.snapshot,
-    required this.onOpenAssignment,
-    this.onRefresh,
-    this.onSetJudgeLink,
-    this.classroomAccess,
-    this.filesAccess,
-    this.onFetchSigninQr,
-    this.onSaveSigninQr,
-    this.onCheckSigninStatus,
-    required this.onOpenFeature,
-  });
-  final String courseKey;
-  final CourseHubSnapshot snapshot;
-  final ValueChanged<FeatureReadNavigation> onOpenAssignment;
-  final Future<void> Function()? onRefresh;
-  final SetJudgeLink? onSetJudgeLink;
-  final SpocClassroomAccess? classroomAccess;
-  final SpocFilesAccess? filesAccess;
-  final SigninCourseQrFetcher? onFetchSigninQr;
-  final SigninQrImageSaver? onSaveSigninQr;
-  final SigninStatusChecker? onCheckSigninStatus;
-  final ValueChanged<FeatureId> onOpenFeature;
-  @override
-  Widget build(BuildContext context) {
-    final course = snapshot.courses
-        .where((item) => item.key == courseKey)
-        .singleOrNull;
-    return ListView(
-      children: [
-        ListTile(title: Text(course?.name ?? '课程暂不可用')),
-        for (final task in course?.assignments ?? const <CourseHubAssignment>[])
-          _assignment(task, onOpenAssignment),
-      ],
-    );
-  }
-}
-
-Widget _assignment(
-  CourseHubAssignment task,
-  ValueChanged<FeatureReadNavigation> open,
-) => ListTile(
-  title: Text(task.detail.title),
-  onTap: task.navigation == null ? null : () => open(task.navigation!),
-);
-
-class CourseHubAssignmentsPage extends StatelessWidget {
-  const CourseHubAssignmentsPage({
-    super.key,
-    required this.snapshot,
-    required this.onOpenAssignment,
-    this.onRefresh,
-  });
-  final CourseHubSnapshot snapshot;
-  final ValueChanged<FeatureReadNavigation> onOpenAssignment;
-  final Future<void> Function()? onRefresh;
-  @override
-  Widget build(BuildContext context) => ListView.builder(
-    itemCount: snapshot.allAssignments.length,
-    itemBuilder: (_, index) =>
-        _assignment(snapshot.allAssignments[index], onOpenAssignment),
-  );
-}
-
+/// 按来源浏览：保留原来按学校系统划分的三个入口，承接对不上课程的内容和往年希冀。
 class CourseHubSourcesPage extends StatelessWidget {
   const CourseHubSourcesPage({
     super.key,
@@ -82,18 +20,30 @@ class CourseHubSourcesPage extends StatelessWidget {
   });
   final CourseHubSnapshot snapshot;
   final ValueChanged<FeatureId> onOpenFeature;
+
+  static const _entries = [
+    (FeatureId.spoc, '按课程分组的全部 SPOC 作业'),
+    (FeatureId.judge, '全部希冀作业，可加载往年记录'),
+    (FeatureId.signin, '今天每节课的上课状态与签到'),
+  ];
+
   @override
   Widget build(BuildContext context) => ListView(
+    key: const ValueKey('course-hub-sources'),
+    padding: UbaaTheme.pageInsets(context, top: 8, bottom: 24),
     children: [
-      for (final feature in const [
-        FeatureId.spoc,
-        FeatureId.judge,
-        FeatureId.signin,
-      ])
-        ListTile(
-          title: Text(feature.title),
-          onTap: () => onOpenFeature(feature),
-        ),
+      UiEntryList(
+        children: [
+          for (final (feature, subtitle) in _entries)
+            UiEntryCard(
+              key: ValueKey('course-hub-source-${feature.name}'),
+              title: feature.title,
+              icon: uiFeatureIcon(feature),
+              subtitle: subtitle,
+              onTap: () => onOpenFeature(feature),
+            ),
+        ],
+      ),
     ],
   );
 }

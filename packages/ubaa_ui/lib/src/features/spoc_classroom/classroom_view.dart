@@ -60,21 +60,6 @@ class _ClassroomViewState extends State<ClassroomView> {
     }
   }
 
-  void _open(ClassroomSessionSummary session) {
-    final catalog = _catalog;
-    if (catalog == null) return;
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ClassroomPlayerPage(
-          access: widget.access,
-          courseId: catalog.courseId,
-          courseTitle: uiNonBlank(catalog.title) ?? widget.courseName,
-          session: session,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -126,6 +111,58 @@ class _ClassroomViewState extends State<ClassroomView> {
       );
     }
     if (catalog == null) return const SizedBox.shrink();
+    return ClassroomSessionList(
+      access: widget.access,
+      catalog: catalog,
+      courseName: widget.courseName,
+      onRefresh: _load,
+      stale: _error != null,
+      header: _CourseHeader(
+        title: uiNonBlank(catalog.title) ?? widget.courseName,
+        term: uiNonBlank(catalog.termName),
+        teachers: catalog.teachers,
+      ),
+    );
+  }
+}
+
+/// 一门课的节次列表：直播置顶，其余按教学周分组、新周在上。
+///
+/// 独立的课堂页与课程主页的课堂页签共用；[header] 只在独立页面里显示课程名。
+class ClassroomSessionList extends StatelessWidget {
+  const ClassroomSessionList({
+    super.key,
+    required this.access,
+    required this.catalog,
+    required this.courseName,
+    required this.onRefresh,
+    this.header,
+    this.stale = false,
+  });
+  final SpocClassroomAccess access;
+  final ClassroomCatalog catalog;
+  final String courseName;
+  final Future<void> Function() onRefresh;
+  final Widget? header;
+
+  /// 刷新失败、显示的是上次读到的目录。
+  final bool stale;
+
+  void _open(BuildContext context, ClassroomSessionSummary session) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ClassroomPlayerPage(
+          access: access,
+          courseId: catalog.courseId,
+          courseTitle: uiNonBlank(catalog.title) ?? courseName,
+          session: session,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final live = [
       for (final s in catalog.sessions)
         if (s.status == ClassroomStatus.live) s,
@@ -135,23 +172,19 @@ class _ClassroomViewState extends State<ClassroomView> {
         if (s.status != ClassroomStatus.live) s,
     ]);
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: onRefresh,
       child: ListView(
         key: const ValueKey('spoc-classroom-sessions'),
         padding: UbaaTheme.pageInsets(context, top: 8, bottom: 24),
         children: [
-          _CourseHeader(
-            title: uiNonBlank(catalog.title) ?? widget.courseName,
-            term: uiNonBlank(catalog.termName),
-            teachers: catalog.teachers,
-          ),
-          if (_error != null) ...[
+          ?header,
+          if (stale) ...[
             const SizedBox(height: 12),
-            _StaleBanner(onRetry: _load),
+            _StaleBanner(onRetry: onRefresh),
           ],
           for (final session in live) ...[
             const SizedBox(height: 12),
-            _LiveCard(session: session, onOpen: () => _open(session)),
+            _LiveCard(session: session, onOpen: () => _open(context, session)),
           ],
           if (catalog.sessions.isEmpty) ...[
             const SizedBox(height: 12),
@@ -161,11 +194,16 @@ class _ClassroomViewState extends State<ClassroomView> {
               detail: '老师开课后，直播和回放会显示在这里',
             ),
           ],
-          for (final group in groups) ...[
-            const SizedBox(height: 16),
+          for (final (index, group) in groups.indexed) ...[
+            SizedBox(
+              height: header == null && index == 0 && live.isEmpty ? 4 : 16,
+            ),
             _WeekHeader(label: group.label, count: group.sessions.length),
             const SizedBox(height: 8),
-            _SessionCard(sessions: group.sessions, onOpen: _open),
+            _SessionCard(
+              sessions: group.sessions,
+              onOpen: (session) => _open(context, session),
+            ),
           ],
         ],
       ),

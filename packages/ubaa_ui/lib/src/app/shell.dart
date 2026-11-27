@@ -639,6 +639,9 @@ class _UbaaMainShellState extends WidgetNavigationState {
         ? _refreshHome
         : _onMeTab && widget.campusAccountService != null
         ? _refreshCampusAccount
+        : _utilityPage == null && _selectedIndex == UiDestination.study.index
+        // 学习页与课程中心各页的刷新：重读 SPOC 课程与两类作业。
+        ? widget.onRefreshCourseHub
         : null;
     // 宽屏侧栏直接列出“关于”，它与分类同级，不显示返回。
     final atRoot =
@@ -652,7 +655,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
       feature: _openedFeature,
       rootTitle:
           _utilityPage ??
-          _hubPage?.title ??
+          _hubTitle ??
           (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label),
       visiblePage: _visiblePage,
       slots: _appBarSlot,

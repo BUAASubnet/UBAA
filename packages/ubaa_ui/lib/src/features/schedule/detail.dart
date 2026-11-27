@@ -79,15 +79,19 @@ Future<void> uiShowScheduleDetails(
     builder: (context) => UiSheetBody(
       title: detail.title,
       subtitle: weeks,
+      // 课程主页集中了这门课的作业、课件和课堂，作为弹层的主要操作。
+      primaryAction: open == null
+          ? null
+          : FilledButton.tonalIcon(
+              key: const ValueKey('schedule-open-course'),
+              onPressed: () {
+                Navigator.pop(context);
+                open();
+              },
+              icon: const Icon(Icons.school_outlined),
+              label: const Text('进入课程'),
+            ),
       children: [
-        if (open != null)
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              open();
-            },
-            child: const Text('进入课程'),
-          ),
         // 星期、节次和时间合成一行，便于一眼看懂何时上课。
         if (_when(p) case final slot?)
           UiInfoRow(icon: Icons.schedule_outlined, text: slot),
