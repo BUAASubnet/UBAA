@@ -819,20 +819,35 @@ void main() {
     expect(capability.opens, isEmpty);
   });
 
-  testWidgets('从节次列表进入回放后返回，播放实例不再更新', (tester) async {
+  testWidgets('返回节次列表且画面卸载后进入后台，释放不等下一帧', (tester) async {
     final fixture = await ClassroomFixture.load();
-    final capability = MemoryVideoPlaybackCapability();
+    final capability = _RecordingPlayback();
     setViewport(tester);
     await pumpClassroom(tester, fixture.view(playback: capability));
     final replay = fixture.period(ClassroomStatus.replay);
     await tapAndSettle(tester, find.text(replay.title));
-    final playback = capability.lastPlayback!;
+    final playback = capability.playbacks.single;
     expect(playback.state.value.isPlaying, isTrue);
 
-    await tapAndSettle(tester, _playerBack);
-    expect(find.byType(ClassroomPlayerPage), findsNothing);
+    await tester.tap(_playerBack);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(ClassroomPlayerPage, skipOffstage: false), findsNothing);
+    expect(
+      find.byKey(ValueKey(_teacherUrl), skipOffstage: false),
+      findsNothing,
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    try {
+      await tester.idle();
+      expect(playback.calls, ['播放', '释放']);
+      await _expectDisposed(playback.memory);
+    } finally {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+    await tester.pumpAndSettle();
     expect(find.text(replay.title), findsOneWidget);
-    await _expectDisposed(playback);
+    expect(playback.calls, ['播放', '释放']);
   });
 
   testWidgets('退出时也释放仍在等待开始播放的实例', (tester) async {

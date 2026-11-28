@@ -57,6 +57,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       ));
   VideoPlayback? get _playback => _playbackView.value.playback;
   ({VideoPlayback playback, int generation})? _pendingPlayback;
+  final _attachedPlaybackViews = Map<VideoPlayback, int>.identity();
   final _retiringPlaybacks = Set<VideoPlayback>.identity();
   Future<Object?>? _releasingPlayback;
   double _rate = 1;
@@ -145,21 +146,35 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     } else {
       updateView();
     }
-    return playback == null
-        ? null
-        : _releasePlayback(playback, afterFrame: visible != null);
+    return playback == null ? null : _releasePlayback(playback);
   }
 
-  Future<Object?> _releasePlayback(
-    VideoPlayback playback, {
-    bool afterFrame = false,
-  }) {
+  void _attachPlaybackView(VideoPlayback playback) {
+    _attachedPlaybackViews.update(
+      playback,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+  }
+
+  void _detachPlaybackView(VideoPlayback playback) {
+    final count = _attachedPlaybackViews[playback]!;
+    if (count == 1) {
+      _attachedPlaybackViews.remove(playback);
+    } else {
+      _attachedPlaybackViews[playback] = count - 1;
+    }
+  }
+
+  Future<Object?> _releasePlayback(VideoPlayback playback) {
     final previous = _releasingPlayback;
     // 等待卸载帧或前一项释放期间，后台事件仍须能暂停这个句柄。
     _retiringPlaybacks.add(playback);
     final task = Future<Object?>.microtask(() async {
-      // 已交付的句柄须等普通页和全屏都卸下画面与控件。
-      if (afterFrame) await WidgetsBinding.instance.endOfFrame;
+      // 普通页或全屏还持有句柄时，等画面与控件卸载。
+      if (_attachedPlaybackViews.containsKey(playback)) {
+        await WidgetsBinding.instance.endOfFrame;
+      }
       await previous;
       _retiringPlaybacks.remove(playback);
       try {
@@ -541,12 +556,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     } else {
       final playback = view.playback!;
       final controls = _controlsFor(playback, fullscreen: fullscreen);
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          Center(child: _AspectView(playback: playback)),
-          if (fullscreen) SafeArea(child: controls) else controls,
-        ],
+      return _PlaybackView(
+        playback: playback,
+        controls: fullscreen ? SafeArea(child: controls) : controls,
+        onAttach: _attachPlaybackView,
+        onDetach: _detachPlaybackView,
       );
     }
     return fullscreen
@@ -712,23 +726,54 @@ class _SeekByIntent extends Intent {
   final int seconds;
 }
 
-/// 按视频自身宽高比显示画面。
-class _AspectView extends StatelessWidget {
-  const _AspectView({required this.playback});
+/// 登记画面和控件对播放器句柄的引用，画面按视频自身宽高比显示。
+class _PlaybackView extends StatefulWidget {
+  _PlaybackView({
+    required this.playback,
+    required this.controls,
+    required this.onAttach,
+    required this.onDetach,
+  }) : super(key: ObjectKey(playback));
   final VideoPlayback playback;
+  final Widget controls;
+  final ValueChanged<VideoPlayback> onAttach, onDetach;
 
   @override
-  Widget build(BuildContext context) =>
-      ValueListenableBuilder<VideoPlaybackState>(
-        valueListenable: playback.state,
-        builder: (context, state, _) => AspectRatio(
-          aspectRatio: switch (state.aspectRatio) {
-            final r? when r > 0 => r,
-            _ => 16 / 9,
-          },
-          child: playback.buildView(),
+  State<_PlaybackView> createState() => _PlaybackViewState();
+}
+
+class _PlaybackViewState extends State<_PlaybackView> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onAttach(widget.playback);
+  }
+
+  @override
+  void dispose() {
+    widget.onDetach(widget.playback);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      Center(
+        child: ValueListenableBuilder<VideoPlaybackState>(
+          valueListenable: widget.playback.state,
+          builder: (context, state, _) => AspectRatio(
+            aspectRatio: switch (state.aspectRatio) {
+              final r? when r > 0 => r,
+              _ => 16 / 9,
+            },
+            child: widget.playback.buildView(),
+          ),
         ),
-      );
+      ),
+      widget.controls,
+    ],
+  );
 }
 
 class _VideoMessage extends StatelessWidget {
