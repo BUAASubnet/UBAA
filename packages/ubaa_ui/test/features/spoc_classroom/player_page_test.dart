@@ -278,6 +278,78 @@ void main() {
     }, variant: TargetPlatformVariant({platform}));
 
     if (ohos) {
+      for (final (menu, option, withNotice) in [
+        ('更多', '用外部播放器打开', false),
+        ('倍速', '1.5×', false),
+        ('更多', '用外部播放器打开', true),
+      ]) {
+        testWidgets('OHOS 迟到的全屏进入失败会关闭$menu菜单${withNotice ? '并保留上层公告' : ''}', (
+          tester,
+        ) async {
+          final landscape = Completer<void>();
+          final messenger = tester.binding.defaultBinaryMessenger;
+          messenger.setMockMethodCallHandler(SystemChannels.platform, (
+            call,
+          ) async {
+            if (call.method == 'SystemChrome.setPreferredOrientations' &&
+                (call.arguments as List).contains(
+                  'DeviceOrientation.landscapeLeft',
+                )) {
+              await landscape.future;
+              throw PlatformException(code: '合成横屏设置失败');
+            }
+            return null;
+          });
+          addTearDown(
+            () => messenger.setMockMethodCallHandler(
+              SystemChannels.platform,
+              null,
+            ),
+          );
+          final fixture = await ClassroomFixture.load();
+          final capability = _RecordingPlayback();
+          await _pumpPlayer(tester, fixture, playback: capability);
+          await tapAndSettle(tester, find.byTooltip('全屏'));
+          await tapAndSettle(tester, find.byTooltip(menu));
+          expect(find.text(option), findsOneWidget);
+
+          if (withNotice) {
+            final context = tester.element(find.byTooltip('退出全屏'));
+            unawaited(
+              showDialog<void>(
+                context: context,
+                builder: (_) => const AlertDialog(title: Text('演示公告')),
+              ),
+            );
+            await tester.pumpAndSettle();
+          } else {
+            await tester.binding.handlePopRoute();
+            await tester.pumpAndSettle();
+            expect(find.text(option), findsNothing);
+            expect(find.byTooltip('退出全屏'), findsOneWidget);
+            await tapAndSettle(tester, find.byTooltip(menu));
+            expect(find.text(option), findsOneWidget);
+          }
+
+          landscape.complete();
+          try {
+            await tester.pumpAndSettle();
+            if (withNotice) {
+              expect(find.text('演示公告'), findsOneWidget);
+              await tester.binding.handlePopRoute();
+              await tester.pumpAndSettle();
+            }
+
+            expect(find.byTooltip('退出全屏'), findsNothing);
+            expect(find.text(option, skipOffstage: false), findsNothing);
+            expect(find.byTooltip('全屏'), findsOneWidget);
+            await tapAndSettle(tester, find.byTooltip('暂停'));
+            expect(capability.playbacks.single.calls, ['播放', '暂停']);
+          } finally {
+            await tester.pump(const Duration(seconds: 1));
+          }
+        }, variant: TargetPlatformVariant({platform}));
+      }
       for (final noReply in [true, false]) {
         testWidgets('OHOS 全屏通道${noReply ? '未回包时仍可手动退出' : '都报错时退出并尝试恢复'}', (
           tester,

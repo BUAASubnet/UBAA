@@ -380,9 +380,17 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         pageBuilder: (_, _, _) => _FullscreenPlayer(
           content: ListenableBuilder(
             listenable: _playbackView,
-            builder: (_, _) => mounted
+            builder: (viewContext, _) => mounted
                 ? _videoContent(fullscreen: true)
-                : const Center(child: BackButton(color: Colors.white)),
+                : Center(
+                    child: BackButton(
+                      color: Colors.white,
+                      onPressed: () => Navigator.of(
+                        viewContext,
+                        rootNavigator: true,
+                      ).maybePop(),
+                    ),
+                  ),
           ),
         ),
       ),
@@ -849,6 +857,7 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   /// 每次进入全屏递增；退出时延迟解除方向锁前核对，避免覆盖紧接着的再次全屏。
   static int _session = 0;
   late final int _generation;
+  final _menuNavigator = GlobalKey<NavigatorState>();
 
   bool get _mobile => uiIsTouchPlatformName(defaultTargetPlatform.name);
   bool get _ohos => defaultTargetPlatform.name == 'ohos';
@@ -934,8 +943,22 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      Scaffold(backgroundColor: Colors.black, body: widget.content);
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    // OHOS 进入失败可直接移除全屏路由，菜单随全屏子树一起卸载。
+    body: _ohos
+        ? NavigatorPopHandler<void>(
+            onPopWithResult: (_) => _menuNavigator.currentState?.maybePop(),
+            child: Navigator(
+              key: _menuNavigator,
+              onGenerateRoute: (settings) => PageRouteBuilder<void>(
+                settings: settings,
+                pageBuilder: (_, _, _) => widget.content,
+              ),
+            ),
+          )
+        : widget.content,
+  );
 }
 
 /// 便于测试替换：页面用到的位置流。
