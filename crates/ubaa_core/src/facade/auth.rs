@@ -50,8 +50,9 @@ impl UbaaClient {
     ) -> Result<super::types::CallerPinned<UserProfile>> {
         self.verified_login = None;
         self.guard_latest_session_ownership()?;
+        self.runtime_for(route).check_school_requests()?;
+        self.raw_diagnostics.clear();
         let (runtime, auth) = self.route_parts_for(route);
-        runtime.check_school_requests()?;
         let result = auth.login_automatically(runtime, input).await;
         self.clear_on_session_conflict()?;
         result
@@ -99,6 +100,7 @@ impl UbaaClient {
         self.guard_latest_session_ownership()?;
         self.check_school_requests()?;
         self.clear_interactive_context();
+        self.raw_diagnostics.clear();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         let mut identities = Vec::new();
@@ -190,6 +192,7 @@ impl UbaaClient {
         self.webvpn_auth
             .remote_logout(&mut self.webvpn_runtime)
             .await;
+        self.raw_diagnostics.clear();
         self.direct_runtime.clear_memory();
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();

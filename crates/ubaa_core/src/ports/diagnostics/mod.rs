@@ -22,11 +22,17 @@ pub struct RawDiagnostics(Arc<Mutex<Journal>>);
 struct Journal {
     enabled: bool,
     started_ms: u64,
+    generation: u64,
     sequence: u64,
     dropped: u64,
     completed: u64,
     bytes: usize,
     records: VecDeque<(u64, String)>,
+}
+
+struct CaptureId {
+    generation: u64,
+    sequence: u64,
 }
 
 impl RawDiagnostics {
@@ -72,7 +78,21 @@ impl RawDiagnostics {
         .to_string()
     }
 
-    fn begin(&self) -> Option<u64> {
+    /// 清空当前记录，已开始的旧请求即使稍后完成也不能写入新的缓冲。
+    pub(crate) fn clear(&self) {
+        let mut journal = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *journal = Journal {
+            enabled: journal.enabled,
+            started_ms: if journal.enabled { now_ms() } else { 0 },
+            generation: journal.generation + 1,
+            ..Journal::default()
+        };
+    }
+
+    fn begin(&self) -> Option<CaptureId> {
         let mut journal = self
             .0
             .lock()
@@ -81,15 +101,21 @@ impl RawDiagnostics {
             return None;
         }
         journal.sequence += 1;
-        Some(journal.sequence)
+        Some(CaptureId {
+            generation: journal.generation,
+            sequence: journal.sequence,
+        })
     }
 
-    fn push(&self, id: u64, record: &Value) {
+    fn push(&self, id: &CaptureId, record: &Value) {
         let text = record.to_string();
         let mut journal = self
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if id.generation != journal.generation {
+            return;
+        }
         journal.completed += 1;
         if text.len() > MAX_BYTES {
             journal.dropped += 1;
@@ -108,9 +134,9 @@ impl RawDiagnostics {
         let position = journal
             .records
             .iter()
-            .position(|(other, _)| *other > id)
+            .position(|(other, _)| *other > id.sequence)
             .unwrap_or(journal.records.len());
-        journal.records.insert(position, (id, text));
+        journal.records.insert(position, (id.sequence, text));
     }
 }
 
@@ -165,7 +191,7 @@ impl<T: HttpTransport> RecordingTransport<T> {
         let result = pending.await;
         if let Some(id) = id {
             let mut record = json!({
-                "request_id": id, "route": self.route,
+                "request_id": id.sequence, "route": self.route,
                 "method": method, "url": redact::url(&url),
                 "started_at_unix_ms": started, "elapsed_ms": timer.elapsed().as_millis(),
             });
@@ -200,7 +226,7 @@ impl<T: HttpTransport> RecordingTransport<T> {
                         json!({"code": error.code, "diagnostic": error.diagnostic()});
                 }
             }
-            self.diagnostics.push(id, &record);
+            self.diagnostics.push(&id, &record);
         }
         result.map(|(response, _)| response)
     }

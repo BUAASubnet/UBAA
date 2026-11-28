@@ -32,7 +32,9 @@
 
 地址和 `Location` 的查询与片段均遮盖票据、签名、账号及媒体密钥。JSON 正文及其字符串化的 JSON 对象和数组也按同一规则处理，字符串化字段仍保持字符串。研讨室业务登录响应中的 `access_token`，以及验证码挑战响应中的 `secretKey` 和 `token`，在 Direct 和 WebVPN 两条路线均会遮盖。课堂签名、签名映射、casapi 及网关 Cookie 快照不录制正文。`body_capture=redacted` 表示正文已处理，`body_bytes` 仍是原始大小。
 
-`redaction_scope=selected_fields` 表示只遮盖指定字段。其余响应仍可能包含个人数据、Cookie 和业务 Token，只私下发送给可信任的维护者，不发到群聊、论坛或 GitHub Issues 等公开场所。该信息不自动上传，不保存到偏好存储。原始缓冲只在当前客户端生命周期有效，路线切换与派生读取共享记录；重建客户端或重启后需要重新复现。普通错误历史仍可保留七天。
+`redaction_scope=selected_fields` 表示只遮盖指定字段。其余响应仍可能包含个人数据、Cookie 和业务 Token，只私下发送给可信任的维护者，不发到群聊、论坛或 GitHub Issues 等公开场所。该信息不自动上传，不保存到偏好存储。
+
+原始缓冲保存在当前客户端内存中，路线切换与派生读取共享记录。退出登录时清空原始缓冲。开始新的交互登录或使用账号密码登录时重新采集，同一账号重新登录也适用。重建客户端或重启应用后需要重新复现。普通错误历史仍可保留七天。
 
 缓冲最多保存 256 条、32 MiB 序列化记录，按完整记录淘汰，不截断正文。超过容量的单条记录不保留，`dropped_records` 统计全部淘汰与超限记录。`started_requests`、`completed_requests` 和 `unfinished_requests` 区分已开始、已完成以及尚未完成或被取消的请求。流式下载文件不复制进报告，`body_capture=delivered_to_file` 明确标记；传输未能返回响应时只有 `transport_error`，不能补回未接收的字节。传输原有响应体预算仍然有效。
 

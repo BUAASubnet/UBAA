@@ -21,6 +21,69 @@ fn posts(fixture: &Fixture) -> usize {
 }
 
 #[tokio::test]
+async fn 完整诊断从本次登录重新采集() {
+    const ACCOUNT_A: &str = "synthetic-diagnostics-account-a";
+    const ACCOUNT_B: &str = "synthetic-diagnostics-account-b";
+    const OLD_RESPONSE: &str = "synthetic-prior-login-response";
+    const NEW_RESPONSE: &str = "synthetic-current-login-response";
+
+    for (logout, next_account) in [(true, ACCOUNT_B), (false, ACCOUNT_B), (false, ACCOUNT_A)] {
+        let mut fixture = Fixture::new(RoutePolicy::Direct);
+        let diagnostics = fixture.client.raw_diagnostics();
+        diagnostics.enable();
+        login_for_diagnostics(&mut fixture, ACCOUNT_A, OLD_RESPONSE).await;
+        assert!(diagnostics.export_json().contains(OLD_RESPONSE));
+        let signed_out = if logout {
+            fixture.client.logout().await.unwrap();
+            Some(serde_json::from_str::<serde_json::Value>(&diagnostics.export_json()).unwrap())
+        } else {
+            None
+        };
+        login_for_diagnostics(&mut fixture, next_account, NEW_RESPONSE).await;
+        let report = diagnostics.export_json();
+        assert!(report.contains(NEW_RESPONSE));
+        assert!(!report.contains(OLD_RESPONSE), "诊断仍包含上一轮登录的响应");
+        if let Some(signed_out) = signed_out {
+            assert_eq!(signed_out["records"], serde_json::json!([]));
+        }
+    }
+}
+
+async fn login_for_diagnostics(fixture: &mut Fixture, account: &str, response: &str) {
+    {
+        let mut state = fixture.direct.state.lock().unwrap();
+        state.page = PLAIN_PAGE.into();
+        state.username = account.into();
+        state.post_body = response.into();
+    }
+    let login = fixture
+        .client
+        .interactive_login_cancellation()
+        .begin(account)
+        .unwrap();
+    fixture
+        .client
+        .prepare_quiet_login_for(&login)
+        .await
+        .unwrap();
+    let mut credentials = input();
+    credentials.username = account.into();
+    fixture
+        .client
+        .submit_quiet_login(&login, credentials)
+        .await
+        .unwrap();
+    let completed = fixture
+        .client
+        .continue_interactive_login(&login, ConnectionMode::Direct, false)
+        .unwrap();
+    assert_eq!(
+        completed.profile.unwrap().school_id.as_deref(),
+        Some(account)
+    );
+}
+
+#[tokio::test]
 async fn 身份核对失败保留安全原因() {
     let mut fixture = Fixture::new(RoutePolicy::Direct);
     {

@@ -269,12 +269,29 @@ fn 容量淘汰明确报告且保留完整记录() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
     for id in 1..=257 {
-        diagnostics.push(id, &json!({"request_id": id}));
+        diagnostics.push(&diagnostics.begin().unwrap(), &json!({"request_id": id}));
     }
     let report: Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
     assert_eq!(report["dropped_records"], 1);
     assert_eq!(report["records"].as_array().unwrap().len(), 256);
     assert_eq!(report["records"][0]["request_id"], 2);
+}
+
+#[test]
+fn 清空诊断后忽略上一轮请求的迟到响应() {
+    let diagnostics = RawDiagnostics::default();
+    diagnostics.enable();
+    let previous = diagnostics.begin().unwrap();
+    diagnostics.clear();
+    let current = diagnostics.begin().unwrap();
+    diagnostics.push(&previous, &json!({"message": "合成旧响应"}));
+    diagnostics.push(&current, &json!({"message": "合成新响应"}));
+
+    let report: Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
+    assert_eq!(report["records"], json!([{"message": "合成新响应"}]));
+    assert_eq!(report["started_requests"], 1);
+    assert_eq!(report["completed_requests"], 1);
+    assert_eq!(report["unfinished_requests"], 0);
 }
 
 #[tokio::test]
