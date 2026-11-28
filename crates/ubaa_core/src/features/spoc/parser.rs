@@ -373,6 +373,24 @@ pub(super) struct CourseRaw {
     pub(super) kcmc: String,
     #[serde(default)]
     pub(super) skjs: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_course_code")]
+    pub(super) jw_kcdm: Option<String>,
+}
+
+fn deserialize_course_code<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<String>, D::Error> {
+    let Some(raw) = Option::<String>::deserialize(deserializer)? else {
+        return Ok(None);
+    };
+    let code = raw.trim();
+    if code.is_empty() {
+        return Ok(None);
+    }
+    if raw.chars().any(char::is_control) || code.chars().count() > 64 {
+        return Err(serde::de::Error::custom("SPOC 教务课程代码无效"));
+    }
+    Ok(Some(code.to_owned()))
 }
 
 #[derive(Debug, Deserialize)]

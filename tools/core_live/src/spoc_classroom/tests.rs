@@ -63,6 +63,7 @@ impl ClassroomReads for Fixture {
                     format!("夹具课程{index}")
                 },
                 teacher: Some("夹具学号102938".into()),
+                course_code: None,
             })
             .collect()))
     }

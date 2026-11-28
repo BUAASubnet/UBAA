@@ -1,5 +1,6 @@
 //! 学业缓存的 typed 绑定，不把任意载荷交给宿主。
 pub mod baseline;
+pub mod course_hub;
 use super::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error, map_route,
 };
@@ -618,7 +619,7 @@ mod tests {
         .unwrap();
         let guard = client.inner.lock().await;
         let record = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.read_academic_grades(BridgeConnectionMode::Direct, "2025-2026-1".into()),
         )
         .await

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'course_hub.dart';
 
 import 'agenda/backend.dart';
 import 'app_service.dart';
@@ -105,7 +106,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 84;
+const _supportedBridgeContractVersion = 86;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -118,7 +119,8 @@ class BridgeBackend
         BridgeBackendAppService,
         BridgeBackendAuth,
         BridgeBackendRead,
-        BridgeBackendWrite
+        BridgeBackendWrite,
+        BridgeCourseHub
     implements
         UbaaBackend,
         RawDiagnosticsBackend,
@@ -227,6 +229,8 @@ class BridgeBackend
 
   @override
   final BridgeContext _context;
+  @override
+  BridgeContext get courseHubContext => _context;
   @override
   BridgeClient get client => _context.client;
   String? get configDirectory => _context.configDirectory;

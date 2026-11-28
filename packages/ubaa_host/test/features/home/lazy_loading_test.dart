@@ -56,7 +56,9 @@ void main() {
       final tab = UiDestination.forFeature(feature).index;
       await tester.tap(find.byType(NavigationDestination).at(tab));
       await tester.pumpAndSettle();
-      final card = find.widgetWithText(Card, feature.title);
+      final card = feature == FeatureId.grades
+          ? find.byKey(const ValueKey('course-hub-quick-grades'))
+          : find.widgetWithText(Card, feature.title);
       await tester.ensureVisible(card);
       await tester.tap(card);
       await tester.pumpAndSettle();

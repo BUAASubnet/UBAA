@@ -66,7 +66,7 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
             response(
                 200,
                 "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262",
-                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher"},{"kcid":"course-2","kcmc":"Networks","skjs":"Another Teacher"}]}"#,
+                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher","jw_kcdm":"FIX0000001"},{"kcid":"course-2","kcmc":"Networks","skjs":"Another Teacher","jw_kcdm":"FIX0000002"}]}"#,
             ),
         ),
         (

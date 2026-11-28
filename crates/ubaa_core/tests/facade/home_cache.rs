@@ -75,7 +75,7 @@ impl HttpTransport for HomeTransport {
                 r#"{"code":200,"content":{"mrxq":"2025-20262","dqxq":"合成学期"}}"#
             }
             "/spocnewht/jxkj/queryKclb" => {
-                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"合成课程","skjs":"合成教师"}]}"#
+                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"合成课程","skjs":"合成教师","jw_kcdm":"FIX0000001"}]}"#
             }
             "/spocnewht/inco/ht/queryListByPage" => {
                 r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","zymc":"合成作业","sskcid":"course-1","tjzt":"未做"}]}}"#

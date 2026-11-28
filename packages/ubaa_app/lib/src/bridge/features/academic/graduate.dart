@@ -55,7 +55,9 @@ Future<FeatureResult?> _graduateGrades(
     FeatureQueryView.gradesOverview,
   }.contains(query.view))
     throw const BackendException(UbaaErrorCode.invalidInput);
+  final identity = reader.backend.onAcademicIdentity;
   final result = await reader.gradesOverview();
+  identity?.call(result.data.graduate);
   final value = result.data;
   final route = result.route;
   if (!value.graduate)

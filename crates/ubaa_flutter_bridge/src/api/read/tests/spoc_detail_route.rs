@@ -1,6 +1,6 @@
 //! 列表来源与详情执行路线相互独立。
 use super::{Fixture, SPOC_OLD, Transport, offline, restored};
-use std::{sync::Arc, sync::atomic::Ordering::SeqCst, time::Duration};
+use std::{sync::Arc, sync::atomic::Ordering::SeqCst};
 use tokio::sync::Notify;
 use ubaa_core::facade::{CachePublication, ConnectionMode, HomeQuery, HomeReadData};
 
@@ -47,7 +47,7 @@ async fn spoc_detail_reuses_competing_list(list_policy: &str, list_source: Conne
                 .await
         }
     });
-    tokio::time::timeout(Duration::from_secs(5), pause.0.notified())
+    tokio::time::timeout(crate::TEST_HANG_TIMEOUT, pause.0.notified())
         .await
         .unwrap();
     assert_eq!(slow.calls.spoc_terms.load(SeqCst), 1);

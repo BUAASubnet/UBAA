@@ -110,6 +110,85 @@ fn page(vpn: bool, folder: Option<&str>, number: u32, pages: u32, items: &Value)
     )
 }
 
+fn course_steps(vpn: bool, body: &str) -> [Step; 2] {
+    [
+        step(
+            "spocnewht/inco/ht/queryOne",
+            vpn,
+            200,
+            "application/json",
+            r#"{"code":200,"content":{"mrxq":"term"}}"#,
+        ),
+        step(
+            "spocnewht/jxkj/queryKclb?kcmc=&xnxq=term",
+            vpn,
+            200,
+            "application/json",
+            body,
+        ),
+    ]
+}
+
+#[tokio::test]
+async fn 无效教务课程代码拒绝本次课程元数据读取() {
+    for (case, code) in [
+        ("数字", json!(123)),
+        ("对象", json!({})),
+        ("控制字符", json!("FIX\u{0000}000001")),
+        ("首尾控制字符", json!("FIX0000001\n")),
+        ("超长", json!("A".repeat(65))),
+    ] {
+        let mut script = login(false, "fixture");
+        let body = json!({"code":200,"content":[
+            {"kcid":"course","kcmc":"合成课","jw_kcdm":"FIX0000001"},
+            {"kcid":"other","kcmc":"合成课","jw_kcdm":code},
+        ]});
+        script.extend(course_steps(false, &body.to_string()));
+        let (mut client, transport, _root) = client(script, false);
+        let error = client.spoc_courses().await.expect_err(case).error;
+        assert_eq!(error.code, ErrorCode::UpstreamChanged, "{case}");
+        assert_eq!(
+            error.diagnostic().reason.as_deref(),
+            Some("content_shape_invalid"),
+            "{case}"
+        );
+        transport.assert_exhausted();
+    }
+}
+
+#[tokio::test]
+async fn 教务课程代码保留有效值与缺失状态且不合并课程行() {
+    let longest = "界".repeat(64);
+    let body = json!({"code":200,"content":[
+        {"kcid":"course","kcmc":"合成课","jw_kcdm":" FIX0000001 "},
+        {"kcid":"courseS","kcmc":"合成课","jw_kcdm":"FIX0000001"},
+        {"kcid":"missing-FIX0000002","kcmc":"合成课"},
+        {"kcid":"null","kcmc":"合成课","jw_kcdm":null},
+        {"kcid":"space","kcmc":"合成课","jw_kcdm":" \t "},
+        {"kcid":"long","kcmc":"合成课","jw_kcdm":longest},
+    ]});
+    let mut script = login(false, "fixture");
+    script.extend(course_steps(false, &body.to_string()));
+    let (mut client, transport, _root) = client(script, false);
+    let courses = client.spoc_courses().await.unwrap().data;
+    let rows: Vec<_> = courses
+        .iter()
+        .map(|course| (course.course_id.as_str(), course.course_code.as_deref()))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("course", Some("FIX0000001")),
+            ("courseS", Some("FIX0000001")),
+            ("long", Some(longest.as_str())),
+            ("missing-FIX0000002", None),
+            ("null", None),
+            ("space", None),
+        ]
+    );
+    transport.assert_exhausted();
+}
+
 #[tokio::test]
 async fn 课程来源与两条路线目录分页及下载权限() {
     for vpn in [false, true] {
@@ -119,21 +198,11 @@ async fn 课程来源与两条路线目录分页及下载权限() {
             {"id":"denied","wjmc":"不可下载","sfwjj":"0","sfkxz":"0"}
         ]);
         let child = json!([{"id":"inner","wjmc":"课件.pdf","sfwjj":"0","sfkxz":"1","wjhzm":"pdf","wjsize":"1MB","czsj":"2026-09-22"}]);
+        script.extend(course_steps(
+            vpn,
+            r#"{"code":200,"content":[{"kcid":"course","kcmc":"合成课","skjs":"合成教师","jw_kcdm":"FIX0000001"}]}"#,
+        ));
         script.extend([
-            step(
-                "spocnewht/inco/ht/queryOne",
-                vpn,
-                200,
-                "application/json",
-                r#"{"code":200,"content":{"mrxq":"term"}}"#,
-            ),
-            step(
-                "spocnewht/jxkj/queryKclb?kcmc=&xnxq=term",
-                vpn,
-                200,
-                "application/json",
-                r#"{"code":200,"content":[{"kcid":"course","kcmc":"合成课","skjs":"合成教师"}]}"#,
-            ),
             page(vpn, None, 1, 2, &first),
             page(
                 vpn,
@@ -149,6 +218,7 @@ async fn 课程来源与两条路线目录分页及下载权限() {
         let courses = client.spoc_courses().await.unwrap().data;
         assert_eq!(courses[0].course_id, "course");
         assert_eq!(courses[0].teacher.as_deref(), Some("合成教师"));
+        assert_eq!(courses[0].course_code.as_deref(), Some("FIX0000001"));
         let items = client.spoc_course_files("course", None).await.unwrap().data;
         assert_eq!(items.len(), 3);
         assert!(items[0].is_folder && items[0].download_allowed);

@@ -77,13 +77,14 @@ mixin ControllerLifecycleActions on ControllerState, ControllerAppService {
 
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
-    final becameForeground = foreground && !internalAppForeground;
+    final changed = foreground != internalAppForeground;
     internalAppForeground = foreground;
     if (!foreground) {
       internalCancelLoginVerification();
       internalLockDisplay?.cancel();
     }
-    if (becameForeground &&
+    if (changed &&
+        foreground &&
         internalPhase == AppPhase.login &&
         internalBackendNeedsRebuild) {
       unawaited(rebuildBackend());
@@ -91,6 +92,7 @@ mixin ControllerLifecycleActions on ControllerState, ControllerAppService {
     if (foreground) internalDrainDeferredRecovery();
     internalSyncRecoveryRetries();
     internalPumpReadTasks();
+    if (changed) internalNotify();
   }
 
   /// 本地网络变化只是唤醒提示，成功与否仍由原会话检查判断。

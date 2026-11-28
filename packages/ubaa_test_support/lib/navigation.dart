@@ -32,7 +32,30 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
     await tester.tap(target.first);
   }
   await tester.pumpAndSettle();
-  final card = find.widgetWithText(Card, feature.title);
+  final landingPage = find.byKey(const PageStorageKey('course-hub-landing'));
+  Finder card = find.widgetWithText(Card, feature.title);
+  if (destination == UiDestination.study && landingPage.evaluate().isNotEmpty) {
+    if ({FeatureId.spoc, FeatureId.judge, FeatureId.signin}.contains(feature)) {
+      final sources = find.byKey(const ValueKey('course-hub-open-sources'));
+      if (sources.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          sources,
+          200,
+          scrollable: find
+              .descendant(of: landingPage, matching: find.byType(Scrollable))
+              .first,
+        );
+      }
+      await tapVisible(tester, sources);
+      card = find.byKey(ValueKey('course-hub-source-${feature.name}'));
+    } else if ({
+      FeatureId.schedule,
+      FeatureId.exam,
+      FeatureId.grades,
+    }.contains(feature)) {
+      card = find.byKey(ValueKey('course-hub-quick-${feature.name}'));
+    }
+  }
   if (card.evaluate().isEmpty) {
     await tester.scrollUntilVisible(
       card,

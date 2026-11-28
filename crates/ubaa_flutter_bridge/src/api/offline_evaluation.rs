@@ -168,7 +168,7 @@ mod tests {
         .unwrap();
         let guard = client.inner.lock().await;
         let record = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
+            crate::TEST_HANG_TIMEOUT,
             cache.read_evaluation(BridgeConnectionMode::Direct),
         )
         .await

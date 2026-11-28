@@ -6,6 +6,7 @@ use crate::{
     },
     error::{ErrorCode, ErrorKind, Result, UbaaError},
     ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport},
+    test_timeout::TEST_HANG_TIMEOUT,
 };
 use async_trait::async_trait;
 use std::{collections::VecDeque, path::Path, process::Command, sync::Mutex, time::Duration};
@@ -354,7 +355,7 @@ async fn 基础模式删除结果未知后重启仅图形宿主重试() {
         status: 204,
     };
     let (gui_attempt, ()) = tokio::join!(gui.upload_with(&transport), async {
-        let request = tokio::time::timeout(Duration::from_secs(3), received)
+        let request = tokio::time::timeout(TEST_HANG_TIMEOUT, received)
             .await
             .unwrap()
             .unwrap();
@@ -387,7 +388,7 @@ async fn 上传等响应时另一连接可删除且晚到的503不会恢复批�
         status: 503,
     };
     let (attempt, ()) = tokio::join!(gui.upload_with(&transport), async {
-        let request = tokio::time::timeout(Duration::from_secs(3), received)
+        let request = tokio::time::timeout(TEST_HANG_TIMEOUT, received)
             .await
             .unwrap()
             .unwrap();

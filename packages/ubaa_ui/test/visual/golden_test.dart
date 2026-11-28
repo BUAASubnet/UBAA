@@ -100,6 +100,27 @@ void _visual(
 Widget _menu() => UbaaMainShell(
   user: const UserSummary(username: 'synthetic', displayName: '测试同学'),
   initialDestination: UiDestination.study,
+  courseHub: ValueNotifier(
+    CourseHubSnapshot(
+      termName: '合成学期',
+      courses: const [
+        CourseHubCourse(
+          key: 'kcid:synthetic',
+          name: '航空航天概论',
+          courseCode: null,
+          credit: null,
+          teachers: [],
+          slots: [],
+          nextClass: null,
+          spocCourses: [SpocCourse(courseId: 'synthetic', name: '航空航天概论')],
+          judgeLinks: [],
+          assignments: [],
+          exams: [],
+          grades: [],
+        ),
+      ],
+    ),
+  ),
   snapshots: {
     for (final feature in FeatureId.values)
       feature: FeatureSnapshot(feature: feature),

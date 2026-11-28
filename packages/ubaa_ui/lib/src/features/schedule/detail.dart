@@ -1,5 +1,7 @@
 import '../../shared/schedule_values.dart' show uiWeekdays;
 import 'dart:async';
+import '../course_hub/entries.dart';
+import 'flow.dart' show ScheduleWeekScope;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/dialogs/sheet.dart';
@@ -10,29 +12,54 @@ import '../../shared/text.dart'
 Future<void> uiShowScheduleGroup(
   BuildContext context,
   List<FeatureDetail> details,
-) => showUiSheet<void>(
-  context,
-  builder: (context) => UiSheetBody(
-    title: '同一时段的课程',
-    subtitle: '${details.length}门课程',
-    children: [
-      for (final detail in details)
-        if (detail.presentation case final ScheduleCoursePresentation p)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(detail.title),
-            subtitle: Text(
-              '第${p.beginSection}–${p.endSection}节 · ${uiNonBlank(p.place) ?? '地点待公布'}',
+) async {
+  final entries = CourseHubEntries.of(context);
+  final term = ScheduleWeekScope.of(context)?.requestTerm;
+  await showUiSheet<void>(
+    context,
+    builder: (context) => UiSheetBody(
+      title: '同一时段的课程',
+      subtitle: '${details.length}门课程',
+      children: [
+        for (final detail in details)
+          if (detail.presentation case final ScheduleCoursePresentation p)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(detail.title),
+              subtitle: Text(
+                '第${p.beginSection}–${p.endSection}节 · ${uiNonBlank(p.place) ?? '地点待公布'}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                final open = entries?.schedule(p.courseCode, term);
+                uiShowScheduleDetails(
+                  context,
+                  detail,
+                  onOpenCourse: open == null
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                          open();
+                        },
+                );
+              },
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => uiShowScheduleDetails(context, detail),
-          ),
-    ],
-  ),
-);
+      ],
+    ),
+  );
+}
 
-Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
+Future<void> uiShowScheduleDetails(
+  BuildContext context,
+  FeatureDetail detail, {
+  VoidCallback? onOpenCourse,
+}) {
   final p = detail.presentation! as ScheduleCoursePresentation;
+  final open =
+      onOpenCourse ??
+      CourseHubEntries.of(
+        context,
+      )?.schedule(p.courseCode, ScheduleWeekScope.of(context)?.requestTerm);
   // 「1周,4-6周[理论]/谭火彬[主讲]」拆成副标题里的周次和单独的教师行。
   final combined = uiNonBlank(p.weeksAndTeachers);
   final parts = combined?.split('/');
@@ -52,6 +79,18 @@ Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
     builder: (context) => UiSheetBody(
       title: detail.title,
       subtitle: weeks,
+      // 课程主页集中了这门课的作业、课件和课堂，作为弹层的主要操作。
+      primaryAction: open == null
+          ? null
+          : FilledButton.tonalIcon(
+              key: const ValueKey('schedule-open-course'),
+              onPressed: () {
+                Navigator.pop(context);
+                open();
+              },
+              icon: const Icon(Icons.school_outlined),
+              label: const Text('进入课程'),
+            ),
       children: [
         // 星期、节次和时间合成一行，便于一眼看懂何时上课。
         if (_when(p) case final slot?)

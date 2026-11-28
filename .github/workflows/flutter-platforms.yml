@@ -128,6 +128,19 @@ jobs:
           path: ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
 
+      - name: 缓存 Gradle 依赖
+        if: matrix.platform == 'android-apk' && github.workflow != 'Release 构建与草稿'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          TAR_OPTIONS: '--exclude=*.lock --exclude=gc.properties'
+        with:
+          path: ~/.gradle/caches/modules-2
+          key: >-
+            ${{ runner.os }}-gradle-deps-v1-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}-${{ hashFiles('apps/ubaa_flutter/android/**/*.gradle.kts',
+            'apps/ubaa_flutter/android/gradle.properties', 'packages/ubaa_bindings/android/build.gradle', 'pubspec.lock', 'scripts/tools/versions.env') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-deps-v1-${{ hashFiles('apps/ubaa_flutter/android/gradle/wrapper/gradle-wrapper.properties') }}-
+
       - name: 准备 Gradle Wrapper
         if: matrix.platform == 'android-apk'
         shell: bash
@@ -153,11 +166,34 @@ jobs:
       - name: 构建原生宿主
         shell: bash
         env:
+          PLATFORM: ${{ matrix.platform }}
           ANDROID_TARGET: ${{ matrix.android_target }}
           ANDROID_ABI: ${{ matrix.abi }}
           CARGOKIT_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
           UBAA_FLUTTER_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
-        run: just flutter-build platform=${{ matrix.platform }} mode=debug
+        run: |
+          if [[ "$PLATFORM" != android-apk ]]; then
+            just flutter-build "platform=$PLATFORM" mode=debug
+            exit
+          fi
+          build_log=$(mktemp)
+          trap 'rm -f "$build_log"' EXIT
+          for attempt in 1 2 3; do
+            if just flutter-build "platform=$PLATFORM" mode=debug 2>&1 | tee "$build_log"; then
+              exit 0
+            else
+              build_result=("${PIPESTATUS[@]}")
+            fi
+            if (( build_result[0] == 0 )); then
+              exit "${build_result[1]}"
+            fi
+            if [[ "$attempt" == 3 ]] || ! grep -Eq 'Gradle threw an error while downloading artifacts from the network|status code 429([^[:alnum:]_]|$)' "$build_log"; then
+              exit "${build_result[0]}"
+            fi
+            delay=$((attempt * 60))
+            printf 'Gradle 依赖下载失败，%s 秒后重试（%s/3）\n' "$delay" "$attempt" >&2
+            sleep "$delay"
+          done
 
       - name: 检查无签名产物结构
         shell: bash

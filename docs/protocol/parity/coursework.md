@@ -6,6 +6,16 @@
 
 ## 当前规则
 
+### SPOC 课程元数据（2026-11-27）
+
+**DTO 与解析。** 维护者从浏览器观察到 SPOC 官方前端以 `GET /spocnewht/jxkj/queryKclb?xnxq=2026-20271&lx=1` 获得 `code=200`。15 行均包含非空字符串 `jw_kcdm`，值为 10 位大写字母或数字，与同一账号课表 `getMyScheduleDetail.do` 的 `courseCode` 逐字相等。理论班和实验班可共用课程代码，但 `kcid` 不同。
+
+`jw_kcdm` 解析为 `Option<String>`。缺失、`null` 或去掉首尾空白后为空时记为缺失。非空字符串去掉首尾空白后原样保留，最多 64 个字符；类型不符、非空值含控制字符或超长时，按成功信封的 DTO 结构错误分类为 `content_shape_invalid`。
+
+**错误与产品语义。** 课程代码用于后续按教务课程代码关联课表、考试和成绩。缺失时仍返回课程，课件和课堂继续以 `kcid` 定位。相同课程代码的课程行仍分别返回。不解析 `rwh`，也不从 `kcid` 提取课程代码。全局作业列表在课程元数据读取失败时仍按原规则继续读取。
+
+**其余七项与真实验证。** 变更只读取成功响应的新字段。`features::spoc::list` 的 `course_map` 和 `fetch_courses` 仍按原路线构造请求、附加请求头，`features::spoc::auth` 仍沿用路线内认证、Cookie、角色和令牌。CAS/service、重定向与最终地址、Cookie/凭据、方法与参数、头与正文、加密签名均沿用[信封错误分类表](#spoc-信封错误分类)中的课程元数据记录。课程读取和全局作业列表的调用顺序、缓存、并发与重试也保持不变。官方前端的参数与 Core 的 `kcmc=&xnxq=<mrxq>` 不同。2026-11-27 维护者授权用本地账号经 Direct 只读验证：`just verify-live feature=spoc route=direct` 通过，Core 以 `kcmc=&xnxq=2026-20271` 请求 `queryKclb`，返回的各行均带 `jw_kcdm`，课程代码集合与浏览器观察一致。同日 `feature=exam` 通过，本科考试 `courseNo` 与课表 `courseCode` 逐字相等，可按课程代码对应。原始诊断留在仓库外的本地验收目录。WebVPN 路线未验证：本次只增可选字段，按协议门禁一条路线即可；重跑条件为维护者授权后执行同一命令并加 `route=webvpn`。
+
 ### SPOC 作业附件与文件服务
 
 作业详情给出个人文件作业的提交资格。提交方式须含 `5`，小组作业不开放。次数达到有限上限时不再提供操作，`9999` 表示无限。附件与提交记录仍可只读查看。[作业文件提交](write-actions.md#spoc-作业文件提交2026-11-24)记录准备、上传、提交及回查的九项对照。
@@ -36,7 +46,7 @@
 | 方法与参数 | 课程 GET `jxkj/queryKclb?kcmc=&xnxq=<当前学期>`。根目录 POST `kcwj/queryListPageXs`，`pid=0`；子目录 POST `grwj1/queryKcwjListgr`，`pid=<文件夹标识>`。两者均传 `pageNum`（从 1 起）、`pageSize=50`、`pid`、`mcTab=`、`kcid`、`lmlxdm=`、`wjlx=`。下载 POST `grwj1/downLoadFile?id=<列表项标识>`。 |
 | 请求头与正文 | Token、RoleCode、`X-Requested-With: XMLHttpRequest`。参数在 URL 查询串中，POST 无正文。 |
 | 加密与签名 | 无。 |
-| DTO 与解析 | 课程取 `kcid/kcmc/skjs`。目录取 `content.list` 的 `id/wjmc/sfwjj/wjsize/wjhzm/czsj/sfkxz`；`sfwjj="1"` 为文件夹，仅 `sfkxz="0"` 表示不允许下载。大小和上传时间保留展示文本；下载名取列表项 `wjmc`。 |
+| DTO 与解析 | 课程取 `kcid/kcmc/skjs` 和[可选课程代码 `jw_kcdm`](#spoc-课程元数据2026-11-27)。目录取 `content.list` 的 `id/wjmc/sfwjj/wjsize/wjhzm/czsj/sfkxz`；`sfwjj="1"` 为文件夹，仅 `sfkxz="0"` 表示不允许下载。大小和上传时间保留展示文本；下载名取列表项 `wjmc`。 |
 | 缓存、并发与重试 | 本次不缓存，原因：按需下载、列表轻量。按顺序取页，`hasNextPage=false` 或到达 `pages` 时结束；读完 100 页仍有下一页则返回错误，不交付不完整目录。 |
 | 错误与产品语义 | 空目录正常返回空列表。HTTP 200 的 JSON 仍按业务信封分类；二进制交付规则同作业附件。不使用存储文件标识代替列表项标识，不打包目录，也不写课程访问记录。 |
 
@@ -338,7 +348,7 @@ WebVPN 当前另一次样本为 9994 ms。Direct 样本波动较大，当前证�
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 建立角色 | 旧 GET CAS 后 POST `/sys/casLogin`；示例仅 CAS，角色 POST 不适用 | 两来源的终点差异沿原矩阵 | 旧路线内 Cookie、令牌和角色；示例无角色 | 旧正文 `{token}`；示例无 | 旧 JSON、XHR、Inco Token | 无 | 旧 `content` 角色字段 | 保留单飞、恢复与主会话仲裁 | 先读状态再解成功内容；认证标记维持原边界 |
 | 当前学期 | 共用认证；旧 `queryOne`，示例同路径的周查询用途和参数不同 | 原路线、原 SSO 识别 | 原路由 Cookie + 角色/令牌 | 各自固定 SQL；沿旧学期 POST | 旧 JSON `param`、XHR、RoleCode/Token；示例无角色 | 原 AES CBC；示例对齐填充不同 | 旧 `dqxq/mrxq`，示例 Week 不等价 | 原必需调用及有界认证恢复 | 非成功码为拒绝，缺成功数据为结构错误 |
-| 课程元数据 | 共用认证；两份来源均读 `queryKclb` | 原路线与终点 | 原角色/令牌，示例仅令牌 | 旧 GET `kcmc=""&xnxq=...`，示例无 `kcmc` | 旧 XHR/角色，示例通用 Token | 无 | 原 `kcid/kcmc/skjs` | 仍可选，不阻断全局作业读取 | 同信封分类；调用者的可选语义保留 |
+| 课程元数据 | 共用认证；两份来源均读 `queryKclb` | 原路线与终点 | 原角色/令牌，示例仅令牌 | 旧 GET `kcmc=""&xnxq=...`，示例无 `kcmc` | 旧 XHR/角色，示例通用 Token | 无 | 保留 `kcid/kcmc/skjs`，增读可选字符串 `jw_kcdm` | 仍可选，不阻断全局作业读取 | 缺失不改变课程列表、课件和课堂行为；无效值按结构错误拒绝本次元数据读取 |
 | 全局作业分页 | 共用认证；旧 `queryListByPage`，示例同协议不适用 | 原路线与终点 | 旧角色、令牌及路线 Cookie | 旧版[分页精确参数](#spoc-列表)；示例按课程 GET，不借用 | 原 `{param}`/XHR/角色/令牌 | 原无额外整块填充的 AES CBC | 原页码、总数和作业字段 | 原页终止、认证恢复和缓存 | 有效非成功码为业务拒绝；无效 JSON 与字段类型错误分开 |
 | 作业详情 | 共用认证；两源都调用 `queryKczyInfoByid` | 原路线 | 旧令牌/角色；示例只有令牌 | GET `id` | 原 XHR/Token/角色；示例无角色 | 无 | 旧完整详情，示例只取部分字段 | 原列表匹配与顺序读取 | 同信封分类，仍校验请求与返回 id |
 | 可选提交信息 | 共用认证；旧 `queryXsSubmitKczyInfo` 有实现，示例无同一只读操作 | 原路线 | 旧令牌/角色 | GET `kczyid` | 原 XHR/Token/角色 | 无 | 原可空内容、`tjzt/tjsj` | 仍可选 | 缺或空内容允许返回 None；显式业务失败仍分类为拒绝 |

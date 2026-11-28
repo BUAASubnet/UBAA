@@ -133,7 +133,7 @@ mod tests {
         let guard = client.inner.lock().await;
         // 全程持有网络锁；超时用于发现死锁，并为本地磁盘 I/O 保留时间。
         let value = tokio::time::timeout(
-            std::time::Duration::from_secs(10),
+            crate::TEST_HANG_TIMEOUT,
             BridgeOfflineCache::clear_or_rebuild(
                 root.to_string_lossy().into(),
                 account.into(),
@@ -168,11 +168,10 @@ mod tests {
         .unwrap();
         let guard = client.inner.lock().await;
         // 全程持有网络锁；超时用于发现死锁，并为本地磁盘 I/O 保留时间。
-        let value =
-            tokio::time::timeout(std::time::Duration::from_secs(10), old.clear_and_reopen())
-                .await
-                .expect("本地缓存清理不得等待网络锁")
-                .unwrap();
+        let value = tokio::time::timeout(crate::TEST_HANG_TIMEOUT, old.clear_and_reopen())
+            .await
+            .expect("本地缓存清理不得等待网络锁")
+            .unwrap();
         assert!(value.report.compacted);
         assert!(value.report.maintenance_error.is_none());
         assert_eq!(value.report.usage.unwrap().entry_count, 0);

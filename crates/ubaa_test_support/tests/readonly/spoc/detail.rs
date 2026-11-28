@@ -175,7 +175,7 @@ async fn spoc_detail_reads_submission_without_writing() {
             response(
                 200,
                 courses_url,
-                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher"}]}"#,
+                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher","jw_kcdm":"FIX0000001"}]}"#,
             ),
         ),
         (

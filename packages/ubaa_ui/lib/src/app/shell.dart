@@ -1,4 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show ValueListenable;
+import '../features/course_hub/pages.dart';
+import '../features/course_hub/navigation.dart';
+import '../features/course_hub/entries.dart';
 import '../features/bykc/agenda_conflicts.dart';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
@@ -24,8 +28,7 @@ import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import '../shared/layout/refresh_shortcuts.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../shared/sync_status.dart'
-    show UiSyncStatus, uiIsTouchPlatform, uiOldestUpdate;
+import '../shared/sync_status.dart' show uiIsTouchPlatform;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
 import 'about.dart' show AboutView;
@@ -33,7 +36,9 @@ import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
 import 'navigation/rail.dart' show uiShellRail;
 import 'navigation/bottom_bar.dart' show uiShellBottomBar;
+import 'navigation/sync.dart';
 import '../features/home/shell_helpers.dart';
+import '../features/course_hub/study_root.dart';
 import '../features/home/ygdk_schedule.dart';
 import '../theme.dart';
 import 'account/me.dart' show MeView;
@@ -51,6 +56,7 @@ import 'account/campus_account_loader.dart';
 
 part 'shell_write.dart';
 part 'shell_navigation.dart';
+part 'shell_course_hub.dart';
 part 'shell_reminders.dart';
 part 'shell_feature_pages.dart';
 
@@ -169,6 +175,11 @@ class UbaaMainShell extends StatefulWidget {
     this.onPickYgdkPhoto,
     this.onCaptureYgdkPhoto,
     this.spocFilesAccess,
+    this.courseHub,
+    this.onNeedCourseHub,
+    this.onLeaveCourseHub,
+    this.onRefreshCourseHub,
+    this.onSetJudgeLink,
     this.spocClassroomAccess,
     this.onDiscardWriteIntent,
     this.onCommitWrite,
@@ -303,6 +314,11 @@ class UbaaMainShell extends StatefulWidget {
 
   /// SPOC 附件、我的提交与课件的读取和下载；未接线的宿主为 null。
   final SpocFilesAccess? spocFilesAccess;
+  final ValueListenable<CourseHubSnapshot>? courseHub;
+  final VoidCallback? onNeedCourseHub;
+  final VoidCallback? onLeaveCourseHub;
+  final Future<void> Function()? onRefreshCourseHub;
+  final SetJudgeLink? onSetJudgeLink;
   final SpocClassroomAccess? spocClassroomAccess;
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
@@ -348,6 +364,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
             target.navigation ?? await target.scheduleNavigation(weekOn);
         if (!current()) return;
         _utilityPage = null;
+        _hubPage = null;
         if (nav != null) {
           _openHomeNavigation(nav);
         } else {
@@ -426,11 +443,21 @@ class _UbaaMainShellState extends WidgetNavigationState {
     },
   );
   void _updateShell(VoidCallback change) => setState(change);
+  CourseHubPage? _hubPage;
+  String? _courseKey, _courseTerm;
+  bool get _hubVisible =>
+      _selectedIndex == UiDestination.study.index &&
+      _utilityPage == null &&
+      _openedFeature == null;
 
   void _changeNavigation(VoidCallback change, {String? openedFeature}) {
     _navigationGeneration++;
     _widgetAgendaDate = null;
+    final wasVisible = _hubVisible;
     _updateShell(change);
+    if (wasVisible != _hubVisible) {
+      (_hubVisible ? widget.onNeedCourseHub : widget.onLeaveCourseHub)?.call();
+    }
     if (openedFeature != null) widget.onFeatureOpened?.call(openedFeature);
   }
 
@@ -447,6 +474,10 @@ class _UbaaMainShellState extends WidgetNavigationState {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialDestination.index;
+    if (_selectedIndex == UiDestination.study.index)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _hubVisible) widget.onNeedCourseHub?.call();
+      });
     _tabPager = PageController(keepPage: false);
     _checkYgdkSchedule();
     unawaited(_loadReminderSettings());
@@ -506,6 +537,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
         oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
+      _hubPage = null;
       _refreshes.clear();
       _readPageKeys[FeatureId.bykc]?.currentState?.cancelBykcCourseWrite();
     }
@@ -526,6 +558,10 @@ class _UbaaMainShellState extends WidgetNavigationState {
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
+      if (_hubVisible)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _hubVisible) widget.onNeedCourseHub?.call();
+        });
     }
     if (accountChanged) {
       _recentRevision++;
@@ -577,6 +613,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
 
   @override
   void dispose() {
+    if (_hubVisible) widget.onLeaveCourseHub?.call();
     _ygdkSchedule.dispose();
     _campusLoader.dispose();
     _bhpanModalScope.value++;
@@ -623,10 +660,14 @@ class _UbaaMainShellState extends WidgetNavigationState {
         ? _refreshHome
         : _onMeTab && widget.campusAccountService != null
         ? _refreshCampusAccount
+        : _utilityPage == null && _selectedIndex == UiDestination.study.index
+        // 学习页与课程中心各页的刷新：重读 SPOC 课程与两类作业。
+        ? widget.onRefreshCourseHub
         : null;
     // 宽屏侧栏直接列出“关于”，它与分类同级，不显示返回。
     final atRoot =
         _openedFeature == null &&
+        _hubPage == null &&
         (_utilityPage == null || (wide && _utilityPage == '关于'));
     final header = uiShellHeader(
       context,
@@ -635,6 +676,7 @@ class _UbaaMainShellState extends WidgetNavigationState {
       feature: _openedFeature,
       rootTitle:
           _utilityPage ??
+          _hubTitle ??
           (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label),
       visiblePage: _visiblePage,
       slots: _appBarSlot,
@@ -647,7 +689,8 @@ class _UbaaMainShellState extends WidgetNavigationState {
       syncStatus: _buildSyncStatus(touchRefresh ? null : refreshPage),
     );
     final shell = PopScope<void>(
-      canPop: _openedFeature == null && _utilityPage == null,
+      canPop:
+          _openedFeature == null && _utilityPage == null && _hubPage == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _goBack();
       },
@@ -678,11 +721,17 @@ class _UbaaMainShellState extends WidgetNavigationState {
                       builder: (context, _, child) {
                         final depth = atRoot
                             ? 0
-                            : _utilityPage != null
+                            : _utilityPage != null ||
+                                  (_openedFeature == null && _hubPage != null)
                             ? 1
                             : _readDepths[_openedFeature] ?? 1;
                         return UiPageTransition(
-                          pageKey: (_openedFeature, _utilityPage, depth),
+                          pageKey: (
+                            _openedFeature,
+                            _utilityPage,
+                            _hubPage,
+                            depth,
+                          ),
                           order: depth,
                           onBack:
                               touchRefresh &&

@@ -33,7 +33,7 @@ async fn 无缓存逐批共享锁可让位_意图保护及取消不发出后续�
         .await
         .unwrap();
     tokio::time::timeout(
-        std::time::Duration::from_secs(1),
+        crate::TEST_HANG_TIMEOUT,
         bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
     )
     .await

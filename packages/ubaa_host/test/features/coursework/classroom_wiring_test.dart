@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_host/src/ubaa_app_host.dart' show SpocFilesDelivery;
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/demo_backend.dart';
@@ -44,6 +45,66 @@ void main() {
     await access.openExternal(external);
     expect(opened, external);
   });
+
+  test('作业附件和课件下载清理暂存后仍向页面抛出 UiError', () async {
+    final app = AppController(backend: _Backend());
+    addTearDown(app.dispose);
+    final saver = _Saver();
+    final delivery = SpocFilesDelivery(
+      service: app.spocFilesService!,
+      saver: saver,
+    );
+    final expected = isA<UiError>()
+        .having((error) => error.code, 'code', UbaaErrorCode.timeout)
+        .having((error) => error.kind, 'kind', UbaaErrorKind.network);
+    await expectLater(
+      delivery.downloadAssignment(const SpocSubmittedFile(fileId: 'fixture')),
+      throwsA(expected),
+    );
+    await expectLater(
+      delivery.downloadCourse(
+        const SpocCourseFile(
+          id: 'fixture',
+          name: '讲义',
+          isFolder: false,
+          downloadAllowed: true,
+        ),
+      ),
+      throwsA(expected),
+    );
+    expect(saver.destinations, hasLength(2));
+    for (final destination in saver.destinations) {
+      expect(destination.discarded, isTrue);
+      expect(destination.delivered, isFalse);
+    }
+  });
+}
+
+class _Saver implements BhpanFileSaver {
+  final destinations = <_Destination>[];
+
+  @override
+  Future<BhpanDownloadDestination> select(
+    String name,
+    bool Function() isCurrent,
+  ) async {
+    final destination = _Destination();
+    destinations.add(destination);
+    return destination;
+  }
+}
+
+class _Destination implements BhpanDownloadDestination {
+  var discarded = false, delivered = false;
+
+  @override
+  String get path => 'fixture.pdf';
+  @override
+  bool get overwrite => false;
+  @override
+  Future<void> deliver(bool Function() isCurrent) async => delivered = true;
+  @override
+  Future<void> discard() async => discarded = true;
 }
 
 class _Backend extends DemoBackend
@@ -85,6 +146,23 @@ class _Backend extends DemoBackend
       ),
     );
   }
+
+  static const _downloadFailure = BackendException(
+    UbaaErrorCode.timeout,
+    kind: UbaaErrorKind.network,
+  );
+
+  @override
+  Future<SpocRead<SpocDownloadReceipt>> downloadAssignmentFile(
+    SpocSubmittedFile file,
+    String destPath,
+  ) async => throw _downloadFailure;
+
+  @override
+  Future<SpocRead<SpocDownloadReceipt>> downloadCourseFile(
+    SpocCourseFile file,
+    String destPath,
+  ) async => throw _downloadFailure;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

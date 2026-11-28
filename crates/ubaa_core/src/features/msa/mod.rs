@@ -83,14 +83,20 @@ pub(super) fn redirect(
     }
     Ok(url)
 }
-fn media_url(raw: &str, host: &str, mode: ConnectionMode) -> Option<String> {
+fn media_url(raw: &str, host: Option<&str>, mode: ConnectionMode) -> Option<String> {
     let url = parse_media_url(raw)?;
-    let direct = if mode == ConnectionMode::WebVpn && origin(&url, "d.buaa.edu.cn") {
+    let direct = if url.host_str() == Some("d.buaa.edu.cn") {
+        if mode != ConnectionMode::WebVpn || !origin(&url, "d.buaa.edu.cn") {
+            return None;
+        }
         parse_media_url(&crate::connection::from_webvpn_url(url.as_str()).ok()?)?
     } else {
         url
     };
-    origin(&direct, host).then(|| direct.into())
+    (direct.scheme() == "https"
+        && direct.port().is_none()
+        && host.is_none_or(|host| direct.host_str() == Some(host)))
+    .then(|| direct.into())
 }
 fn parse_media_url(raw: &str) -> Option<Url> {
     if raw

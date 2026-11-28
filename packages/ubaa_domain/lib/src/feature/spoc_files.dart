@@ -27,9 +27,15 @@ final class SpocAttachment extends SpocSubmittedFile {
 }
 
 final class SpocCourse {
-  const SpocCourse({required this.courseId, required this.name, this.teacher});
+  const SpocCourse({
+    required this.courseId,
+    required this.name,
+    this.teacher,
+    this.courseCode,
+  });
   final String courseId, name;
   final String? teacher;
+  final String? courseCode;
 }
 
 final class SpocCourseFile {

@@ -214,6 +214,7 @@ fn verify(path: &std::path::Path) {
         let bytes = std::fs::read(path).unwrap();
         for text in [
             "synthetic-grade-only",
+            "synthetic-judge-only",
             "synthetic-score-only",
             "合成课程正文不得明文出现",
             "2026-2027-1",
@@ -225,4 +226,53 @@ fn verify(path: &std::path::Path) {
             );
         }
     }
+}
+
+#[test]
+fn 希冀取消关联按账号学期加密保存且缺失损坏和清除均无覆盖() {
+    let root = super::test_root("judge-link-override");
+    let cache = open(&root, ACCOUNT);
+    let id = "synthetic-judge-only";
+    assert_eq!(
+        cache.read_judge_overrides(TERM).unwrap(),
+        Vec::<String>::new()
+    );
+    cache.set_judge_link(TERM, id, false).unwrap();
+    let other = open(&root, "abcdef0123456789abcdef0123456789");
+    assert_eq!(
+        other.read_judge_overrides(TERM).unwrap(),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        cache.read_judge_overrides("2026-2027-2").unwrap(),
+        Vec::<String>::new()
+    );
+    drop(cache);
+    verify(&root);
+    let cache = open(&root, ACCOUNT);
+    assert_eq!(cache.read_judge_overrides(TERM).unwrap(), [id]);
+    cache.set_judge_link(TERM, id, true).unwrap();
+    assert_eq!(
+        cache.read_judge_overrides(TERM).unwrap(),
+        Vec::<String>::new()
+    );
+    cache.set_judge_link(TERM, id, false).unwrap();
+    let db =
+        rusqlite::Connection::open(root.join(format!("business-cache/{ACCOUNT}.sqlite"))).unwrap();
+    db.execute("UPDATE entries SET body=?1", [vec![0_u8; 32]])
+        .unwrap();
+    assert_eq!(
+        cache.read_judge_overrides(TERM).unwrap(),
+        Vec::<String>::new()
+    );
+    cache.set_judge_link(TERM, id, false).unwrap();
+    other.set_judge_link(TERM, id, false).unwrap();
+    let (next, _) = cache.clear_and_reopen().unwrap();
+    assert_eq!(
+        next.read_judge_overrides(TERM).unwrap(),
+        Vec::<String>::new()
+    );
+    assert_eq!(other.read_judge_overrides(TERM).unwrap(), [id]);
+    drop((db, next, cache, other));
+    std::fs::remove_dir_all(root).unwrap();
 }

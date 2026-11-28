@@ -43,6 +43,7 @@ class BridgeCampusAccountService implements CampusAccountService {
 
   @override
   Future<CampusAccountSnapshot> cached() async {
+    final observe = _context.onAcademicIdentity;
     try {
       await bridgeAwaitOfflineScope(_context);
     } on Object {
@@ -74,6 +75,7 @@ class BridgeCampusAccountService implements CampusAccountService {
     if (_context.cache.account?.id != account.id) {
       return const CampusAccountSnapshot();
     }
+    _notifyIdentity(profile?.data.profile, observe);
     return CampusAccountSnapshot(
       identity: profile?.data.profile == null
           ? null
@@ -87,17 +89,35 @@ class BridgeCampusAccountService implements CampusAccountService {
     );
   }
 
+  static void _notifyIdentity(
+    BridgePortalProfile? profile,
+    void Function(bool?)? observe,
+  ) {
+    final graduate = switch (profile?.identity) {
+      '本科生' => false,
+      '研究生' || '硕士研究生' || '博士研究生' => true,
+      _ => null,
+    };
+    if (graduate != null) observe?.call(graduate);
+  }
+
   @override
   Future<PortalIdentity> identity() => _call(() async {
+    final observe = _context.onAcademicIdentity;
+    PortalIdentity project(BridgePortalProfile value) {
+      _notifyIdentity(value, observe);
+      return _identity(value);
+    }
+
     final section = await _refresh(BridgeCampusCacheQuery.profile);
     if (section != null) {
       final value = section.data.profile;
       if (value == null) {
         throw const BackendException(UbaaErrorCode.internalError);
       }
-      return _identity(value);
+      return project(value);
     }
-    return _identity((await _client.portalProfile()).data);
+    return project((await _client.portalProfile()).data);
   });
 
   @override

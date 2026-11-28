@@ -2,6 +2,8 @@
 library;
 
 export 'src/backend.dart';
+export 'src/presentation/course_hub.dart';
+export 'src/controller/course_hub.dart';
 export 'src/presentation/schedule_widget.dart';
 export 'src/controller/schedule_widget_publisher.dart';
 export 'src/bridge_backend.dart';

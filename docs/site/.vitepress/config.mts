@@ -86,6 +86,7 @@ export default defineConfig({
         items: [
           { text: '日程与待办', link: '/features/agenda' },
           { text: '课表与考试', link: '/features/schedule-and-exam' },
+          { text: '课程', link: '/features/courses' },
           { text: '每日课程', link: '/features/daily-courses' },
           { text: 'SPOC 作业', link: '/features/spoc' },
           { text: '希冀作业', link: '/features/judge' },

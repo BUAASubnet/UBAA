@@ -382,7 +382,7 @@ async fn 云打印批量上传停发排队任务并保留输入顺序() {
         })
         .collect();
     let upload = tokio::time::timeout(
-        Duration::from_secs(5),
+        crate::TEST_HANG_TIMEOUT,
         bridge.cloud_print_upload(files, options()),
     )
     .await

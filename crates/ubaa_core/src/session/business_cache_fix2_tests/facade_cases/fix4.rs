@@ -244,7 +244,7 @@ async fn 修复四_固定路线远端注销取消前已撤销目标路线() {
         let request = std::pin::pin!(client.logout());
         tokio::select! {
             result = request => panic!("注销不应先结束：{result:?}"),
-            result = tokio::time::timeout(std::time::Duration::from_secs(5), entered.notified()) => result.unwrap(),
+            result = tokio::time::timeout(crate::test_timeout::TEST_HANG_TIMEOUT, entered.notified()) => result.unwrap(),
         }
     }
     let after = document(&path);

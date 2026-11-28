@@ -941,7 +941,7 @@ async fn spoc_refresh_reuses_offline_last_batch(detail: bool) {
             }
         }
     });
-    tokio::time::timeout(std::time::Duration::from_secs(5), pause.0.notified())
+    tokio::time::timeout(crate::TEST_HANG_TIMEOUT, pause.0.notified())
         .await
         .unwrap();
     assert_eq!(slow.calls.spoc_terms.load(SeqCst), 1);

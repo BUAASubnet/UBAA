@@ -83,7 +83,7 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
     assert_eq!(value.completed_weeks, 0);
     assert!(!value.finished);
     tokio::time::timeout(
-        std::time::Duration::from_secs(1),
+        crate::TEST_HANG_TIMEOUT,
         bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
     )
     .await

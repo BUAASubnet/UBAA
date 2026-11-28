@@ -53,6 +53,39 @@ fn 课堂目录区分结构错误并且只保留安全的未知状态() {
     assert_eq!(error.diagnostic().reason.as_deref(), Some("sub_list_shape"));
 }
 
+#[test]
+fn 课堂直播使用上游下发的教师和学生流地址() {
+    use crate::domain::spoc_classroom::PlaybackKind;
+
+    for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        for host in ["lmt5.buaa.edu.cn", "live.example.invalid"] {
+            let student_url = format!("https://{host}/student.m3u8?auth_key=fixture");
+            let student_source = if mode == ConnectionMode::WebVpn {
+                crate::connection::to_webvpn_url(&student_url).unwrap()
+            } else {
+                student_url.clone()
+            };
+            let data = json!({
+                "sub_status": "1", "sub_title": "夹具节次", "start_at": "1", "end_at": "2",
+                "live_url": {
+                    "output": {"m3u8": format!("https://{host}:443/teacher.m3u8?auth_key=fixture")},
+                    "output_student": {"m3u8": student_source}
+                }
+            });
+            let session = parse::session(&data, mode).unwrap();
+            assert_eq!(session.status, ClassroomStatus::Live);
+            assert_eq!(session.sources.len(), 2);
+            assert_eq!(session.sources[0].kind, PlaybackKind::Teacher);
+            assert_eq!(
+                session.sources[0].url,
+                format!("https://{host}/teacher.m3u8?auth_key=fixture")
+            );
+            assert_eq!(session.sources[1].kind, PlaybackKind::Student);
+            assert_eq!(session.sources[1].url, student_url);
+        }
+    }
+}
+
 fn recording(link: &str, mode: ConnectionMode) -> Result<ClassroomSession> {
     parse::session(
         &json!({"sub_status":"6","sub_title":"课","start_at":1,"end_at":2,"video_list":{},"playurl":{"0":link}}),

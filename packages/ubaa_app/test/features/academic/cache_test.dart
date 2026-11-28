@@ -20,6 +20,24 @@ void main() {
     return value;
   }
 
+  test('离线门户资料与本地成绩概览分别通知已知身份', () async {
+    final value = await backend();
+    final observed = <bool?>[];
+    value.onAcademicIdentity = observed.add;
+    await value.campusAccount.cached();
+    expect(observed, [true]);
+    api.cache.overview = const BridgeGradeOverview(
+      graduate: false,
+      grades: [],
+      terms: [],
+    );
+    await value.readCachedQuery(
+      FeatureId.grades,
+      const FeatureQuery(),
+      RoutePolicy.direct,
+    );
+    expect(observed, [true, false]);
+  });
   test('学期周次考试与教室缓存保持参数、筛选和原字段', () async {
     final value = await backend();
     final terms = await value.readCachedQuery(
@@ -195,6 +213,24 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  BridgeGradeOverview? overview;
+  @override
+  Future<BridgeCachedCampusSection?> readCampus({
+    required BridgeConnectionMode route,
+    required BridgeCampusCacheQuery query,
+  }) async => query == BridgeCampusCacheQuery.profile
+      ? BridgeCachedCampusSection(
+          data: const BridgeCampusSection(
+            profile: BridgePortalProfile(
+              identity: '研究生',
+              department: '合成学院',
+              fetchedAt: 100,
+            ),
+          ),
+          sourceRoute: route,
+          fetchedAt: 100,
+        )
+      : null;
   @override
   Future<void> close() async {}
 
@@ -328,7 +364,14 @@ class _Cache implements BridgeOfflineCache {
   @override
   Future<BridgeCachedAcademicGradesOverview?> readAcademicGradesOverview({
     required BridgeConnectionMode route,
-  }) async => null;
+  }) async => overview == null
+      ? null
+      : BridgeCachedAcademicGradesOverview(
+          data: overview!,
+          sourceRoute: route,
+          fetchedAt: 100,
+          complete: true,
+        );
   @override
   Future<BridgeCachedAcademicGrades?> readAcademicGrades({
     required BridgeConnectionMode route,

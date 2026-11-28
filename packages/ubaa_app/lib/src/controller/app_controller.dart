@@ -5,6 +5,7 @@ import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
 import 'features/finance/service.dart';
 import 'features/campus/service.dart';
+import 'features/spoc/services.dart';
 import 'features/bhpan/service.dart';
 import 'features/cloud_print.dart';
 import 'error_mapper.dart';
@@ -316,17 +317,17 @@ class AppController extends ControllerState
   /// SPOC 附件、我的提交与课件的读取和下载。
   SpocFilesService? get spocFilesService {
     final backend = internalBackend;
-    return backend is SpocFilesBackend
-        ? (backend as SpocFilesBackend).spocFiles
-        : null;
+    if (backend is! SpocFilesBackend) return null;
+    final service = (backend as SpocFilesBackend).spocFiles;
+    return service == null ? null : UiSpocFilesService(service);
   }
 
   /// 课堂页面读取，不参与首页聚合或离线预热。
   ClassroomService? get classroomService {
     final backend = internalBackend;
-    return backend is ClassroomBackend
-        ? (backend as ClassroomBackend).classroom
-        : null;
+    if (backend is! ClassroomBackend) return null;
+    final service = (backend as ClassroomBackend).classroom;
+    return service == null ? null : UiClassroomService(service);
   }
 
   /// “我的”页面的在线读取；账号、会话或路线代次变化后旧绑定失效。

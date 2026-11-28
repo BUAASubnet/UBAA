@@ -159,6 +159,7 @@ pub struct SpocCourse {
     pub course_id: String,
     pub name: String,
     pub teacher: Option<String>,
+    pub course_code: Option<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpocCourseFile {

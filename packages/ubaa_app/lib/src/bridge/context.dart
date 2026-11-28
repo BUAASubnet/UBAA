@@ -10,6 +10,7 @@ class BridgeContext {
   SharedAccountBinding? sharedAccount;
   BridgeSharedAccount? nativeAccount;
   bool closed = false;
+  void Function(bool?)? onAcademicIdentity;
   final cache = BridgeCacheState();
   final authentication = BridgeAuthenticationState();
 }
