@@ -48,11 +48,14 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   ClassroomSession? _session;
   Object? _sessionError;
   ClassroomPlaybackSource? _source;
-  VideoPlayback? _playback;
-  VideoPlayback? _openingPlayback;
-  Object? _openError;
-  String? _playbackError;
-  var _opening = false;
+  final _playbackView =
+      ValueNotifier<({VideoPlayback? playback, bool opening, Object? error})>((
+        playback: null,
+        opening: false,
+        error: null,
+      ));
+  VideoPlayback? get _playback => _playbackView.value.playback;
+  VideoPlayback? _pendingPlayback;
   double _rate = 1;
   final _teacherPosition = ValueNotifier(Duration.zero);
   ClassroomLoad<ClassroomTranscript>? _transcript;
@@ -77,7 +80,8 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     WidgetsBinding.instance.removeObserver(this);
     _openGeneration++;
     _playback?.state.removeListener(_onPlaybackState);
-    unawaited((_playback ?? _openingPlayback)?.dispose());
+    unawaited((_playback ?? _pendingPlayback)?.dispose());
+    _playbackView.dispose();
     _teacherPosition.dispose();
     _transcript?.dispose();
     _summary?.dispose();
@@ -88,11 +92,15 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 切到后台就暂停：不在后台继续拉流。
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      unawaited(_playback?.pause());
+    if (_isBackground(state)) {
+      unawaited((_playback ?? _pendingPlayback)?.pause());
     }
   }
+
+  static bool _isBackground(AppLifecycleState? state) =>
+      state == AppLifecycleState.hidden ||
+      state == AppLifecycleState.paused ||
+      state == AppLifecycleState.detached;
 
   Future<void> _loadSession() async {
     setState(() {
@@ -166,45 +174,60 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     required bool play,
   }) async {
     final generation = ++_openGeneration;
-    final old = _playback ?? _openingPlayback;
+    bool isCurrent() => mounted && generation == _openGeneration;
+    final binding = WidgetsBinding.instance;
+    final old = _playback ?? _pendingPlayback;
     _playback?.state.removeListener(_onPlaybackState);
-    _openingPlayback = null;
+    _pendingPlayback = old;
     setState(() {
       _source = source;
-      _playback = null;
-      _playbackError = null;
-      _openError = null;
-      _opening = _unsupportedReason(source) == null;
+      _playbackView.value = (
+        playback: null,
+        opening: _unsupportedReason(source) == null,
+        error: null,
+      );
     });
     try {
-      if (old != null) await old.dispose();
-      if (!mounted || generation != _openGeneration || !_opening) return;
+      if (old != null) {
+        // 让普通页和全屏路由先卸下旧画面和控件，再释放句柄。
+        await binding.endOfFrame;
+        if (!isCurrent()) return;
+        _pendingPlayback = null;
+        await old.dispose();
+      }
+      if (!isCurrent() || !_playbackView.value.opening) return;
       final playback = await _capability!.open(
         Uri.parse(source.url),
         startAt: _isLive ? null : startAt,
       );
-      if (!mounted || generation != _openGeneration) {
+      if (!isCurrent()) {
         await playback.dispose();
         return;
       }
-      _openingPlayback = playback;
+      _pendingPlayback = playback;
       if (_rate != 1 && !_isLive) await playback.setRate(_rate);
-      if (play) await playback.play();
-      if (!mounted || generation != _openGeneration) return;
+      if (!isCurrent()) return;
+      if (play && !_isBackground(binding.lifecycleState)) {
+        await playback.play();
+        if (!isCurrent()) return;
+        if (_isBackground(binding.lifecycleState)) await playback.pause();
+      }
+      if (!isCurrent()) return;
       playback.state.addListener(_onPlaybackState);
-      _openingPlayback = null;
+      _pendingPlayback = null;
       setState(() {
-        _playback = playback;
-        _playbackError = playback.state.value.error;
-        _opening = false;
+        _playbackView.value = (
+          playback: playback,
+          opening: false,
+          error: playback.state.value.error,
+        );
       });
     } on Object catch (error) {
-      if (!mounted || generation != _openGeneration) return;
-      final failed = _openingPlayback;
-      _openingPlayback = null;
+      if (!isCurrent()) return;
+      final failed = _pendingPlayback;
+      _pendingPlayback = null;
       setState(() {
-        _opening = false;
-        _openError = error;
+        _playbackView.value = (playback: null, opening: false, error: error);
       });
       await failed?.dispose();
     }
@@ -215,8 +238,14 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     if (playback == null) return;
     final state = playback.state.value;
     _teacherPosition.value = _toTeacher(state.position);
-    if (state.error != _playbackError) {
-      setState(() => _playbackError = state.error);
+    if (state.error != _playbackView.value.error) {
+      setState(() {
+        _playbackView.value = (
+          playback: playback,
+          opening: false,
+          error: state.error,
+        );
+      });
     }
   }
 
@@ -256,13 +285,16 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   }
 
   Future<void> _fullscreen() async {
-    final playback = _playback;
-    if (playback == null) return;
+    if (_playback == null) return;
     await Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
         opaque: true,
-        pageBuilder: (_, _, _) =>
-            _FullscreenPlayer(playback: playback, controls: _controlsFor),
+        pageBuilder: (_, _, _) => _FullscreenPlayer(
+          content: ListenableBuilder(
+            listenable: _playbackView,
+            builder: (_, _) => _videoContent(fullscreen: true),
+          ),
+        ),
       ),
     );
   }
@@ -377,8 +409,9 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     ].join(' · ');
   }
 
-  Widget _videoArea() {
+  Widget _videoContent({required bool fullscreen}) {
     final source = _source;
+    final view = _playbackView.value;
     Widget child;
     if (_sessionError != null) {
       final error = _sessionError is UiError ? _sessionError as UiError : null;
@@ -388,7 +421,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         detail: error?.message ?? '请稍后重试',
         primary: ('重试', _loadSession),
       );
-    } else if (_session == null || _opening) {
+    } else if (_session == null || view.opening) {
       child = const Center(
         child: CircularProgressIndicator(color: Colors.white70),
       );
@@ -406,11 +439,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         detail: '可以用系统里的播放器打开',
         primary: ('用外部播放器打开', _openExternally),
       );
-    } else if (_openError != null || _playbackError != null) {
+    } else if (view.error != null) {
       child = _VideoMessage(
         icon: Icons.error_outline,
         title: '视频播放失败',
-        detail: _failureDetail(),
+        detail: _failureDetail(view.error),
         primary: (
           '重试',
           () => _open(
@@ -422,15 +455,39 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         secondary: ('用外部播放器打开', _openExternally),
       );
     } else {
-      final playback = _playback!;
-      child = Stack(
+      final playback = view.playback!;
+      final controls = _controlsFor(playback, fullscreen: fullscreen);
+      return Stack(
         fit: StackFit.expand,
         children: [
           Center(child: _AspectView(playback: playback)),
-          _controlsFor(playback, fullscreen: false),
+          if (fullscreen) SafeArea(child: controls) else controls,
         ],
       );
     }
+    return fullscreen
+        ? Stack(
+            fit: StackFit.expand,
+            children: [
+              child,
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    tooltip: '退出全屏',
+                    color: Colors.white,
+                    icon: const Icon(Icons.fullscreen_exit),
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true).maybePop(),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : child;
+  }
+
+  Widget _videoArea() {
     return Shortcuts(
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.space): _TogglePlayIntent(),
@@ -462,7 +519,10 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
           autofocus: true,
           child: AspectRatio(
             aspectRatio: 16 / 9,
-            child: ColoredBox(color: Colors.black, child: child),
+            child: ColoredBox(
+              color: Colors.black,
+              child: _videoContent(fullscreen: false),
+            ),
           ),
         ),
       ),
@@ -470,14 +530,13 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   }
 
   /// 失败说明：与标题相同的通用文案不重复显示。
-  String _failureDetail() {
-    final message =
-        _playbackError ??
-        switch (_openError) {
-          final VideoPlaybackException e => e.message,
-          final UiError e => e.message,
-          _ => null,
-        };
+  String _failureDetail(Object? error) {
+    final message = switch (error) {
+      final String message => message,
+      final VideoPlaybackException e => e.message,
+      final UiError e => e.message,
+      _ => null,
+    };
     return message == null || message == '视频播放失败' ? '请重试，或用外部播放器打开' : message;
   }
 
@@ -650,9 +709,8 @@ class _VideoMessage extends StatelessWidget {
 
 /// 全屏：黑底，移动端横屏沉浸，退出时恢复方向与系统栏。
 class _FullscreenPlayer extends StatefulWidget {
-  const _FullscreenPlayer({required this.playback, required this.controls});
-  final VideoPlayback playback;
-  final Widget Function(VideoPlayback, {required bool fullscreen}) controls;
+  const _FullscreenPlayer({required this.content});
+  final Widget content;
 
   @override
   State<_FullscreenPlayer> createState() => _FullscreenPlayerState();
@@ -696,16 +754,8 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: Stack(
-      fit: StackFit.expand,
-      children: [
-        Center(child: _AspectView(playback: widget.playback)),
-        SafeArea(child: widget.controls(widget.playback, fullscreen: true)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      Scaffold(backgroundColor: Colors.black, body: widget.content);
 }
 
 /// 便于测试替换：页面用到的位置流。

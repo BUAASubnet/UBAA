@@ -11,10 +11,16 @@ import 'package:ubaa_ui/src/features/spoc_classroom/player_page.dart';
 import 'fixture.dart';
 
 final class _RecordingPlayback implements VideoPlaybackCapability {
-  _RecordingPlayback({this.supportsHls = true, this.beforePlay});
+  _RecordingPlayback({
+    this.supportsHls = true,
+    this.beforeOpen,
+    this.beforePlay,
+  });
 
   final memory = MemoryVideoPlaybackCapability();
   final opens = <(Uri, Duration?)>[];
+  final playbacks = <_RecordedPlayback>[];
+  final Future<void> Function(Uri)? beforeOpen;
   final Future<void> Function()? beforePlay;
 
   @override
@@ -32,41 +38,58 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
   @override
   Future<VideoPlayback> open(Uri url, {Duration? startAt}) async {
     opens.add((url, startAt));
-    final playback = await memory.open(url, startAt: startAt);
-    final hook = beforePlay;
-    return hook == null ? playback : _PendingPlayback(playback, hook);
+    await beforeOpen?.call(url);
+    final playback = _RecordedPlayback(
+      await memory.open(url, startAt: startAt),
+      url,
+      beforePlay,
+    );
+    playbacks.add(playback);
+    return playback;
   }
 }
 
-final class _PendingPlayback implements VideoPlayback {
-  _PendingPlayback(this.memory, this.beforePlay);
+final class _RecordedPlayback implements VideoPlayback {
+  _RecordedPlayback(this.memory, this.url, this.beforePlay);
 
   final MemoryVideoPlayback memory;
-  final Future<void> Function() beforePlay;
+  final Uri url;
+  final Future<void> Function()? beforePlay;
+  final calls = <String>[];
 
   @override
   ValueListenable<VideoPlaybackState> get state => memory.state;
 
   @override
   Future<void> play() async {
-    await beforePlay();
+    calls.add('播放');
+    await beforePlay?.call();
     await memory.play();
   }
 
   @override
-  Future<void> pause() => memory.pause();
+  Future<void> pause() {
+    calls.add('暂停');
+    return memory.pause();
+  }
 
   @override
-  Future<void> seekTo(Duration position) => memory.seekTo(position);
+  Future<void> seekTo(Duration position) {
+    calls.add('跳转');
+    return memory.seekTo(position);
+  }
 
   @override
   Future<void> setRate(double rate) => memory.setRate(rate);
 
   @override
-  Widget buildView() => memory.buildView();
+  Widget buildView() => SizedBox(key: ValueKey(url));
 
   @override
-  Future<void> dispose() => memory.dispose();
+  Future<void> dispose() {
+    calls.add('释放');
+    return memory.dispose();
+  }
 }
 
 final _teacherUrl = Uri.https('example.invalid', '/teacher.mp4');
@@ -137,6 +160,106 @@ void main() {
     expect(slides.state.value.rate, 1.5);
     expect(slides.state.value.isPlaying, isTrue);
     await _expectDisposed(teacher);
+  });
+
+  testWidgets('全屏换源后画面与暂停、播放、进度均使用新句柄', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final nextSource = Completer<void>();
+    final capability = _RecordingPlayback(
+      beforeOpen: (url) async {
+        if (url == _slidesUrl) await nextSource.future;
+      },
+    );
+    await _pumpPlayer(tester, fixture, playback: capability);
+    final teacher = capability.playbacks.single;
+    await tapAndSettle(tester, find.byTooltip('全屏'));
+    expect(find.byKey(ValueKey(_teacherUrl)), findsOneWidget);
+
+    await tester.tap(find.text('PPT'));
+    await tester.pump();
+    expect(find.byKey(ValueKey(_teacherUrl)), findsNothing);
+    expect(find.byTooltip('退出全屏'), findsOneWidget);
+    nextSource.complete();
+    await tester.pumpAndSettle();
+
+    final slides = capability.playbacks.last;
+    expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
+    await tapAndSettle(tester, find.byTooltip('暂停'));
+    expect(slides.state.value.isPlaying, isFalse);
+    await tester.tapAt(tester.getRect(find.byType(Slider)).center);
+    await tester.pumpAndSettle();
+    expect(slides.state.value.position, greaterThan(Duration.zero));
+    await tapAndSettle(tester, find.byTooltip('播放').first);
+    expect(slides.state.value.isPlaying, isTrue);
+    expect(slides.calls, ['播放', '暂停', '跳转', '播放']);
+    expect(teacher.calls, ['播放', '释放']);
+
+    await tapAndSettle(tester, find.byTooltip('退出全屏'));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
+  });
+
+  for (final switchSource in [false, true]) {
+    testWidgets('${switchSource ? '换源' : '首次打开'}等候期间进入后台，句柄交付后不自动播放', (
+      tester,
+    ) async {
+      final fixture = await ClassroomFixture.load();
+      final opening = Completer<void>();
+      final delayedUrl = switchSource ? _slidesUrl : _teacherUrl;
+      final capability = _RecordingPlayback(
+        beforeOpen: (url) async {
+          if (url == delayedUrl) await opening.future;
+        },
+      );
+      setViewport(tester);
+      await pumpClassroom(tester, fixture.view(playback: capability));
+      final replay = find.text(fixture.period(ClassroomStatus.replay).title);
+      if (switchSource) {
+        await tapAndSettle(tester, replay);
+        await tester.tap(find.text('PPT'));
+      } else {
+        await tester.tap(replay);
+      }
+      await tester.pump();
+      expect(capability.opens.last.$1, delayedUrl);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      try {
+        opening.complete();
+        await tester.pump();
+        final playback = capability.playbacks.last;
+        expect(playback.url, delayedUrl);
+        expect(playback.calls, isNot(contains('播放')));
+        expect(playback.state.value.isPlaying, isFalse);
+      } finally {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      }
+      await tester.pumpAndSettle();
+    });
+  }
+
+  testWidgets('开始播放尚未完成时进入后台，结束后保持暂停', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final play = Completer<void>();
+    final capability = _RecordingPlayback(beforePlay: () => play.future);
+    setViewport(tester);
+    await pumpClassroom(tester, fixture.view(playback: capability));
+    await tester.tap(find.text(fixture.period(ClassroomStatus.replay).title));
+    await tester.pump();
+    final playback = capability.playbacks.single;
+    expect(playback.calls, ['播放']);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    try {
+      play.complete();
+      await tester.pump();
+      expect(playback.state.value.isPlaying, isFalse);
+    } finally {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+    await tester.pumpAndSettle();
   });
 
   testWidgets('暂停期间控件保持显示，恢复播放三秒后隐藏', (tester) async {
