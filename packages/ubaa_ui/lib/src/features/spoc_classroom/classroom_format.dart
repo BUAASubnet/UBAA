@@ -28,6 +28,12 @@ String sessionPeriodLabel(ClassroomSessionSummary s) {
   return '第${match.group(1)}节';
 }
 
+String playbackSourceLabel(ClassroomPlaybackKind kind) => switch (kind) {
+  ClassroomPlaybackKind.teacher => '教师',
+  ClassroomPlaybackKind.slides => 'PPT',
+  ClassroomPlaybackKind.student => '学生',
+};
+
 bool sessionPlayable(ClassroomStatus status) =>
     status == ClassroomStatus.replay || status == ClassroomStatus.live;
 

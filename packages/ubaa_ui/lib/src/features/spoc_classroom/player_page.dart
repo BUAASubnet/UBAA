@@ -56,7 +56,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         error: null,
       ));
   VideoPlayback? get _playback => _playbackView.value.playback;
-  VideoPlayback? _pendingPlayback;
+  ({VideoPlayback playback, int generation})? _pendingPlayback;
   double _rate = 1;
   final _teacherPosition = ValueNotifier(Duration.zero);
   ClassroomLoad<ClassroomTranscript>? _transcript;
@@ -81,7 +81,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     WidgetsBinding.instance.removeObserver(this);
     _openGeneration++;
     _playback?.state.removeListener(_onPlaybackState);
-    unawaited((_playback ?? _pendingPlayback)?.dispose());
+    unawaited((_playback ?? _pendingPlayback?.playback)?.dispose());
     _playbackView.dispose();
     _teacherPosition.dispose();
     _transcript?.dispose();
@@ -93,8 +93,43 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 切到后台就暂停：不在后台继续拉流。
-    if (_isBackground(state)) {
-      unawaited((_playback ?? _pendingPlayback)?.pause());
+    if (!_isBackground(state)) return;
+    final playback = _playback;
+    if (playback != null) {
+      unawaited(_pauseInBackground(playback, _openGeneration));
+    } else if (_pendingPlayback case final pending?) {
+      unawaited(_pauseInBackground(pending.playback, pending.generation));
+    }
+  }
+
+  Future<void> _pauseInBackground(
+    VideoPlayback playback,
+    int generation,
+  ) async {
+    try {
+      await playback.pause();
+    } on Object catch (error) {
+      if (!mounted ||
+          generation != _openGeneration ||
+          !identical(playback, _playback ?? _pendingPlayback?.playback)) {
+        return;
+      }
+      await _failPlayback(error);
+    }
+  }
+
+  Future<void> _failPlayback(Object error) async {
+    _openGeneration++;
+    final failed = _playback ?? _pendingPlayback?.playback;
+    _playback?.state.removeListener(_onPlaybackState);
+    _pendingPlayback = null;
+    setState(() {
+      _playbackView.value = (playback: null, opening: false, error: error);
+    });
+    try {
+      await failed?.dispose();
+    } on Object {
+      // 释放失败不覆盖用户需要看到的播放错误。
     }
   }
 
@@ -177,8 +212,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     final generation = ++_openGeneration;
     bool isCurrent() => mounted && generation == _openGeneration;
     final binding = WidgetsBinding.instance;
-    final old = _playback ?? _pendingPlayback;
-    _playback?.state.removeListener(_onPlaybackState);
+    final previous = _playback;
+    final old = previous == null
+        ? _pendingPlayback
+        : (playback: previous, generation: generation - 1);
+    previous?.state.removeListener(_onPlaybackState);
     _pendingPlayback = old;
     setState(() {
       _source = source;
@@ -194,7 +232,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         await binding.endOfFrame;
         if (!isCurrent()) return;
         _pendingPlayback = null;
-        await old.dispose();
+        await old.playback.dispose();
       }
       if (!isCurrent() || !_playbackView.value.opening) return;
       final playback = await _capability!.open(
@@ -205,13 +243,15 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         await playback.dispose();
         return;
       }
-      _pendingPlayback = playback;
+      _pendingPlayback = (playback: playback, generation: generation);
       if (_rate != 1 && !_isLive) await playback.setRate(_rate);
       if (!isCurrent()) return;
       if (play && !_isBackground(binding.lifecycleState)) {
         await playback.play();
         if (!isCurrent()) return;
-        if (_isBackground(binding.lifecycleState)) await playback.pause();
+        if (_isBackground(binding.lifecycleState)) {
+          await _pauseInBackground(playback, generation);
+        }
       }
       if (!isCurrent()) return;
       playback.state.addListener(_onPlaybackState);
@@ -225,12 +265,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       });
     } on Object catch (error) {
       if (!isCurrent()) return;
-      final failed = _pendingPlayback;
-      _pendingPlayback = null;
-      setState(() {
-        _playbackView.value = (playback: null, opening: false, error: error);
-      });
-      await failed?.dispose();
+      await _failPlayback(error);
     }
   }
 
@@ -453,7 +488,16 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
             play: true,
           ),
         ),
-        secondary: ('用外部播放器打开', _openExternally),
+        alternatives: [
+          ('用外部播放器打开', _openExternally),
+          for (final alternative in _session!.sources)
+            if (alternative != source &&
+                _unsupportedReason(alternative) == null)
+              (
+                '切换到 ${playbackSourceLabel(alternative.kind)}',
+                () => _switch(alternative),
+              ),
+        ],
       );
     } else {
       final playback = view.playback!;
@@ -654,12 +698,12 @@ class _VideoMessage extends StatelessWidget {
     required this.title,
     required this.detail,
     required this.primary,
-    this.secondary,
+    this.alternatives = const [],
   });
   final IconData icon;
   final String title, detail;
   final (String, VoidCallback) primary;
-  final (String, VoidCallback)? secondary;
+  final List<(String, VoidCallback)> alternatives;
 
   @override
   Widget build(BuildContext context) {
@@ -690,14 +734,14 @@ class _VideoMessage extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: [
                 FilledButton(onPressed: primary.$2, child: Text(primary.$1)),
-                if (secondary case final s?)
+                for (final (label, action) in alternatives)
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white54),
                     ),
-                    onPressed: s.$2,
-                    child: Text(s.$1),
+                    onPressed: action,
+                    child: Text(label),
                   ),
               ],
             ),

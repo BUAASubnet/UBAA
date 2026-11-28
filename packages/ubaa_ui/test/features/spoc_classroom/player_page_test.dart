@@ -16,13 +16,14 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
     this.supportsHls = true,
     this.beforeOpen,
     this.beforePlay,
+    this.beforePause,
   });
 
   final memory = MemoryVideoPlaybackCapability();
   final opens = <(Uri, Duration?)>[];
   final playbacks = <_RecordedPlayback>[];
   final Future<void> Function(Uri)? beforeOpen;
-  final Future<void> Function()? beforePlay;
+  final Future<void> Function()? beforePlay, beforePause;
 
   @override
   final bool supportsHls;
@@ -44,6 +45,7 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
       await memory.open(url, startAt: startAt),
       url,
       beforePlay,
+      beforePause,
     );
     playbacks.add(playback);
     return playback;
@@ -51,11 +53,11 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
 }
 
 final class _RecordedPlayback implements VideoPlayback {
-  _RecordedPlayback(this.memory, this.url, this.beforePlay);
+  _RecordedPlayback(this.memory, this.url, this.beforePlay, this.beforePause);
 
   final MemoryVideoPlayback memory;
   final Uri url;
-  final Future<void> Function()? beforePlay;
+  final Future<void> Function()? beforePlay, beforePause;
   final calls = <String>[];
 
   @override
@@ -69,9 +71,10 @@ final class _RecordedPlayback implements VideoPlayback {
   }
 
   @override
-  Future<void> pause() {
+  Future<void> pause() async {
     calls.add('暂停');
-    return memory.pause();
+    await beforePause?.call();
+    await memory.pause();
   }
 
   @override
@@ -269,27 +272,33 @@ void main() {
         ) async {
           final calls = <Object?>[];
           final pending = Completer<Object?>();
-          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-            SystemChannels.platform,
-            (call) async {
-              switch (call.method) {
-                case 'SystemChrome.setEnabledSystemUIMode':
-                case 'SystemChrome.setEnabledSystemUIOverlays':
-                case 'SystemChrome.setPreferredOrientations':
-                  calls.add(call.arguments);
-                  if (call.arguments case final List args
-                      when noReply &&
-                          (args.isEmpty &&
-                                  call.method ==
-                                      'SystemChrome.setEnabledSystemUIOverlays' ||
-                              args.contains('DeviceOrientation.portraitUp'))) {
-                    return pending.future;
-                  }
-                  if (!noReply) throw PlatformException(code: '合成系统栏或方向设置失败');
-              }
-              return null;
-            },
+          final messenger = tester.binding.defaultBinaryMessenger;
+          addTearDown(
+            () => messenger.setMockMethodCallHandler(
+              SystemChannels.platform,
+              null,
+            ),
           );
+          messenger.setMockMethodCallHandler(SystemChannels.platform, (
+            call,
+          ) async {
+            switch (call.method) {
+              case 'SystemChrome.setEnabledSystemUIMode':
+              case 'SystemChrome.setEnabledSystemUIOverlays':
+              case 'SystemChrome.setPreferredOrientations':
+                calls.add(call.arguments);
+                if (call.arguments case final List args
+                    when noReply &&
+                        (args.isEmpty &&
+                                call.method ==
+                                    'SystemChrome.setEnabledSystemUIOverlays' ||
+                            args.contains('DeviceOrientation.portraitUp'))) {
+                  return pending.future;
+                }
+                if (!noReply) throw PlatformException(code: '合成系统栏或方向设置失败');
+            }
+            return null;
+          });
           final fixture = await ClassroomFixture.load();
           await _pumpPlayer(
             tester,
@@ -379,6 +388,76 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     }
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('后台暂停失败后释放待交付句柄，迟到开播保留播放错误', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final play = Completer<void>();
+    final pause = Completer<void>();
+    final capability = _RecordingPlayback(
+      beforePlay: () => play.future,
+      beforePause: () => pause.future,
+    );
+    setViewport(tester);
+    await pumpClassroom(tester, fixture.view(playback: capability));
+    await tester.tap(find.text(fixture.period(ClassroomStatus.replay).title));
+    await tester.pump();
+    final playback = capability.playbacks.single;
+    expect(playback.calls, ['播放']);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    try {
+      pause.completeError(const VideoPlaybackException('合成后台暂停失败'));
+      await tester.pump();
+      expect(playback.calls, ['播放', '暂停', '释放']);
+    } finally {
+      play.complete();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('合成后台暂停失败'), findsOneWidget);
+    expect(playback.state.value.isPlaying, isFalse);
+    expect(find.byKey(ValueKey(_teacherUrl)), findsNothing);
+  });
+
+  testWidgets('旧来源的后台暂停迟到失败不影响新句柄', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final pause = Completer<void>();
+    final capability = _RecordingPlayback(beforePause: () => pause.future);
+    await _pumpPlayer(tester, fixture, playback: capability);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tapAndSettle(tester, find.text('PPT'));
+    pause.completeError(const VideoPlaybackException('合成旧来源暂停失败'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
+    expect(capability.playbacks.last.state.value.isPlaying, isTrue);
+  });
+
+  testWidgets('全屏播放失败后仍能切换到同节次的 PPT 路', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final capability = _RecordingPlayback();
+    await _pumpPlayer(tester, fixture, playback: capability);
+    final teacher = capability.playbacks.single;
+    await tapAndSettle(tester, find.byTooltip('全屏'));
+
+    teacher.memory.replaceState(const VideoPlaybackState(error: '合成教师路播放失败'));
+    await tester.pumpAndSettle();
+    expect(find.text('视频播放失败'), findsOneWidget);
+    await tapAndSettle(tester, find.text('切换到 PPT'));
+    expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
+    expect(find.byTooltip('退出全屏'), findsOneWidget);
+    expect(teacher.calls, ['播放', '释放']);
+    final slides = capability.playbacks.last;
+    await tapAndSettle(tester, find.byTooltip('播放').first);
+    expect(slides.state.value.isPlaying, isTrue);
+    expect(slides.calls, ['播放']);
+    await tapAndSettle(tester, find.byTooltip('退出全屏'));
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('暂停期间控件保持显示，恢复播放三秒后隐藏', (tester) async {

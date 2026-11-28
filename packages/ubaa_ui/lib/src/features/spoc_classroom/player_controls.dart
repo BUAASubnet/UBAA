@@ -5,7 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart'
     show VideoPlayback, VideoPlaybackState;
 
-import 'classroom_format.dart' show mediaClock;
+import 'classroom_format.dart' show mediaClock, playbackSourceLabel;
 
 /// 平台无关的播放控件：叠在画面上，播放中 3 秒无操作自动淡出，点画面切换显示。
 class ClassroomPlayerControls extends StatefulWidget {
@@ -95,12 +95,6 @@ class _ClassroomPlayerControlsState extends State<ClassroomPlayerControls> {
       _bump();
     }
   }
-
-  static String _kindLabel(ClassroomPlaybackKind kind) => switch (kind) {
-    ClassroomPlaybackKind.teacher => '教师',
-    ClassroomPlaybackKind.slides => 'PPT',
-    ClassroomPlaybackKind.student => '学生',
-  };
 
   static String _rateLabel(double r) =>
       '${r == r.roundToDouble() ? r.toStringAsFixed(1) : r.toString()}×';
@@ -212,7 +206,7 @@ class _ClassroomPlayerControlsState extends State<ClassroomPlayerControls> {
             _SourceSwitch(
               sources: widget.sources,
               current: widget.current,
-              label: _kindLabel,
+              label: playbackSourceLabel,
               onSwitch: (s) {
                 widget.onSwitch(s);
                 _bump();
