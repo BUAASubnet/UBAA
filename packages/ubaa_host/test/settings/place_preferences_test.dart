@@ -126,6 +126,65 @@ void main() {
     });
   }
 
+  testWidgets('清理地点旧键失败时立即显示合并值，重试清理后当前会话的地点不变', (tester) async {
+    await tester.runAsync(() async {
+      final values = _Preferences()..rejectPlaceRemovals = true;
+      final places = _openPlaces(values);
+      const legacy = {
+        UiPlaceKeys.libbookLibrary: '原图书馆',
+        UiPlaceKeys.libbookArea: '原分区',
+      };
+      await places.write('fixture-student', legacy);
+      final materials = syntheticMaterials(MemoryMaterials(), tester: tester);
+      await materials.probe();
+      final accounts = SecureLocalAccountStore(materials);
+      await accounts.retain('fixture', retainSession: true);
+
+      final profile = Completer<UserSummary?>();
+      final backend = _Backend(profile: profile.future);
+      await tester.pumpWidget(
+        UbaaAppHost(
+          backend: backend,
+          preferenceValues: values,
+          localAccountStore: accounts,
+        ),
+      );
+      await pumpRecoveryUntil(tester, () => backend.profileReads > 0);
+      expect(_shell(tester).user?.schoolId, isNull);
+      await _shell(tester).onSavePlacePreference!(
+        UiPlaceKeys.libbookArea,
+        '新分区',
+      );
+
+      profile.complete(
+        const UserSummary(username: 'fixture', schoolId: 'fixture-student'),
+      );
+      await pumpRecoveryUntil(tester, () => values.rejectedPlaceRemovals > 0);
+      const expected = {
+        UiPlaceKeys.libbookLibrary: '原图书馆',
+        UiPlaceKeys.libbookArea: '新分区',
+      };
+      expect(await places.read('fixture'), expected);
+      expect(await places.read('fixture-student'), legacy);
+      await tester.pumpAndSettle();
+      final shownAfterFailure = _shell(tester).placePreferences;
+
+      values.rejectPlaceRemovals = false;
+      final shell = _shell(tester);
+      shell.onRoutePolicyChanged(
+        shell.routePolicy == RoutePolicy.direct
+            ? RoutePolicy.webvpn
+            : RoutePolicy.direct,
+      );
+      await pumpRecoveryUntil(tester, () => values.removedPlaces > 0);
+      expect(await places.read('fixture-student'), isEmpty);
+      expect(await places.read('fixture'), expected);
+      expect(shownAfterFailure, expected);
+      expect(_shell(tester).placePreferences, shownAfterFailure);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
   testWidgets('下次保存成功时也持久化前一次失败的地点改动', (tester) async {
     await tester.runAsync(() async {
       final values = _Preferences();
@@ -282,6 +341,9 @@ class _Preferences implements PreferenceValues {
   bool fail = false;
   String? rejectPlaceWritesContaining;
   int rejectedPlaceWrites = 0;
+  bool rejectPlaceRemovals = false;
+  int rejectedPlaceRemovals = 0;
+  int removedPlaces = 0;
   Future<void>? nextPlaceRead;
   @override
   Future<String?> read(String key) async {
@@ -306,5 +368,13 @@ class _Preferences implements PreferenceValues {
   }
 
   @override
-  Future<void> remove(String key) => delegate.remove(key);
+  Future<void> remove(String key) async {
+    final isPlace = key.startsWith('flutter.ubaa.preferences.v2.places.');
+    if (isPlace && rejectPlaceRemovals) {
+      rejectedPlaceRemovals++;
+      throw StateError('合成地点旧键清理失败');
+    }
+    await delegate.remove(key);
+    if (isPlace) removedPlaces++;
+  }
 }

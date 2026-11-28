@@ -10,9 +10,16 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
       if (alias == owner.accountKey || !_preferenceAliases.add(alias)) continue;
       _preferenceMigration = _preferenceMigration.then((_) async {
         try {
+          owner.checkCurrent();
           var changed = false;
+          try {
+            changed = await _placeStore.migrateAccount(alias, owner.accountKey);
+          } finally {
+            // 规范键的合并值可能已写入，即使旧键清理失败也要重读。
+            owner.checkCurrent();
+            if (mounted) await _restorePlaces(owner);
+          }
           for (final store in <Object>[
-            _placeStore,
             _recentFeatureStore,
             _bykcFilterStore,
             _reminderStore,
@@ -26,10 +33,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
             }
           }
           owner.checkCurrent();
-          if (mounted && changed) {
-            _preferencesChanged();
-            await _restorePlaces(owner);
-          }
+          if (mounted && changed) _preferencesChanged();
         } on Object {
           if (_preferenceOwner == owner.accountKey)
             _preferenceAliases.remove(alias);
