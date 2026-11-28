@@ -57,6 +57,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       ));
   VideoPlayback? get _playback => _playbackView.value.playback;
   ({VideoPlayback playback, int generation})? _pendingPlayback;
+  Future<Object?>? _releasingPlayback;
   double _rate = 1;
   final _teacherPosition = ValueNotifier(Duration.zero);
   ClassroomLoad<ClassroomTranscript>? _transcript;
@@ -80,9 +81,11 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _openGeneration++;
-    _playback?.state.removeListener(_onPlaybackState);
-    unawaited((_playback ?? _pendingPlayback?.playback)?.dispose());
-    _playbackView.dispose();
+    // 全屏路由可能仍在树中，等当前卸载结束再通知它。
+    scheduleMicrotask(() {
+      _detachPlayback();
+      _playbackView.dispose();
+    });
     _teacherPosition.dispose();
     _transcript?.dispose();
     _summary?.dispose();
@@ -114,23 +117,57 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
           !identical(playback, _playback ?? _pendingPlayback?.playback)) {
         return;
       }
-      await _failPlayback(error);
+      _failPlayback(error);
     }
   }
 
-  Future<void> _failPlayback(Object error) async {
+  void _failPlayback(Object error) {
     _openGeneration++;
-    final failed = _playback ?? _pendingPlayback?.playback;
-    _playback?.state.removeListener(_onPlaybackState);
+    _detachPlayback(error: error);
+  }
+
+  Future<Object?>? _detachPlayback({bool opening = false, Object? error}) {
+    final visible = _playback;
+    final playback = visible ?? _pendingPlayback?.playback;
+    visible?.state.removeListener(_onPlaybackState);
     _pendingPlayback = null;
-    setState(() {
-      _playbackView.value = (playback: null, opening: false, error: error);
-    });
-    try {
-      await failed?.dispose();
-    } on Object {
-      // 释放失败不覆盖用户需要看到的播放错误。
+    void updateView() {
+      _playbackView.value = (playback: null, opening: opening, error: error);
     }
+
+    if (mounted) {
+      setState(updateView);
+    } else {
+      updateView();
+    }
+    return playback == null
+        ? null
+        : _releasePlayback(playback, afterFrame: visible != null);
+  }
+
+  Future<Object?> _releasePlayback(
+    VideoPlayback playback, {
+    bool afterFrame = false,
+  }) {
+    final previous = _releasingPlayback;
+    final task = Future<Object?>.microtask(() async {
+      // 已交付的句柄须等普通页和全屏都卸下画面与控件。
+      if (afterFrame) await WidgetsBinding.instance.endOfFrame;
+      await previous;
+      try {
+        await playback.dispose();
+        return null;
+      } on Object catch (error) {
+        return error;
+      }
+    });
+    _releasingPlayback = task;
+    unawaited(
+      task.then((_) {
+        if (identical(_releasingPlayback, task)) _releasingPlayback = null;
+      }),
+    );
+    return task;
   }
 
   static bool _isBackground(AppLifecycleState? state) =>
@@ -212,27 +249,19 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     final generation = ++_openGeneration;
     bool isCurrent() => mounted && generation == _openGeneration;
     final binding = WidgetsBinding.instance;
-    final previous = _playback;
-    final old = previous == null
-        ? _pendingPlayback
-        : (playback: previous, generation: generation - 1);
-    previous?.state.removeListener(_onPlaybackState);
-    _pendingPlayback = old;
-    setState(() {
-      _source = source;
-      _playbackView.value = (
-        playback: null,
-        opening: _unsupportedReason(source) == null,
-        error: null,
-      );
-    });
+    _source = source;
+    final release = _detachPlayback(
+      opening: _unsupportedReason(source) == null,
+    );
     try {
-      if (old != null) {
-        // 让普通页和全屏路由先卸下旧画面和控件，再释放句柄。
-        await binding.endOfFrame;
-        if (!isCurrent()) return;
-        _pendingPlayback = null;
-        await old.playback.dispose();
+      if (release != null) {
+        final error = await release;
+        if (error != null) throw error;
+      }
+      while (isCurrent()) {
+        final pending = _releasingPlayback;
+        if (pending == null) break;
+        await pending;
       }
       if (!isCurrent() || !_playbackView.value.opening) return;
       final playback = await _capability!.open(
@@ -240,7 +269,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         startAt: _isLive ? null : startAt,
       );
       if (!isCurrent()) {
-        await playback.dispose();
+        await _releasePlayback(playback);
         return;
       }
       _pendingPlayback = (playback: playback, generation: generation);
@@ -265,13 +294,13 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       });
     } on Object catch (error) {
       if (!isCurrent()) return;
-      await _failPlayback(error);
+      _failPlayback(error);
     }
   }
 
   void _onPlaybackState() {
     final playback = _playback;
-    if (playback == null) return;
+    if (!mounted || playback == null) return;
     final state = playback.state.value;
     _teacherPosition.value = _toTeacher(state.position);
     if (state.error != _playbackView.value.error) {
@@ -328,7 +357,9 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
         pageBuilder: (_, _, _) => _FullscreenPlayer(
           content: ListenableBuilder(
             listenable: _playbackView,
-            builder: (_, _) => _videoContent(fullscreen: true),
+            builder: (_, _) => mounted
+                ? _videoContent(fullscreen: true)
+                : const Center(child: BackButton(color: Colors.white)),
           ),
         ),
       ),

@@ -17,13 +17,14 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
     this.beforeOpen,
     this.beforePlay,
     this.beforePause,
+    this.beforeDispose,
   });
 
   final memory = MemoryVideoPlaybackCapability();
   final opens = <(Uri, Duration?)>[];
   final playbacks = <_RecordedPlayback>[];
   final Future<void> Function(Uri)? beforeOpen;
-  final Future<void> Function()? beforePlay, beforePause;
+  final Future<void> Function()? beforePlay, beforePause, beforeDispose;
 
   @override
   final bool supportsHls;
@@ -46,6 +47,7 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
       url,
       beforePlay,
       beforePause,
+      beforeDispose,
     );
     playbacks.add(playback);
     return playback;
@@ -53,11 +55,17 @@ final class _RecordingPlayback implements VideoPlaybackCapability {
 }
 
 final class _RecordedPlayback implements VideoPlayback {
-  _RecordedPlayback(this.memory, this.url, this.beforePlay, this.beforePause);
+  _RecordedPlayback(
+    this.memory,
+    this.url,
+    this.beforePlay,
+    this.beforePause,
+    this.beforeDispose,
+  );
 
   final MemoryVideoPlayback memory;
   final Uri url;
-  final Future<void> Function()? beforePlay, beforePause;
+  final Future<void> Function()? beforePlay, beforePause, beforeDispose;
   final calls = <String>[];
 
   @override
@@ -90,9 +98,13 @@ final class _RecordedPlayback implements VideoPlayback {
   Widget buildView() => SizedBox(key: ValueKey(url));
 
   @override
-  Future<void> dispose() {
+  Future<void> dispose() async {
     calls.add('释放');
-    return memory.dispose();
+    try {
+      await beforeDispose?.call();
+    } finally {
+      await memory.dispose();
+    }
   }
 }
 
@@ -419,6 +431,107 @@ void main() {
     expect(find.text('合成后台暂停失败'), findsOneWidget);
     expect(playback.state.value.isPlaying, isFalse);
     expect(find.byKey(ValueKey(_teacherUrl)), findsNothing);
+  });
+
+  for (final switchSource in [false, true]) {
+    testWidgets('全屏后台暂停失败后，${switchSource ? '切源' : '重试'}须等待旧句柄释放', (
+      tester,
+    ) async {
+      final fixture = await ClassroomFixture.load();
+      final disposal = Completer<void>();
+      int? controlsAtDisposal;
+      int? viewsAtDisposal;
+      final capability = _RecordingPlayback(
+        beforePause: () async {
+          if (!disposal.isCompleted) {
+            throw const VideoPlaybackException('合成后台暂停失败');
+          }
+        },
+        beforeDispose: () async {
+          if (disposal.isCompleted) return;
+          controlsAtDisposal = find
+              .byType(ClassroomPlayerControls, skipOffstage: false)
+              .evaluate()
+              .length;
+          viewsAtDisposal = find
+              .byKey(ValueKey(_teacherUrl), skipOffstage: false)
+              .evaluate()
+              .length;
+          await disposal.future;
+        },
+      );
+      await _pumpPlayer(tester, fixture, playback: capability);
+      await tapAndSettle(tester, find.byTooltip('全屏'));
+      expect(
+        find.byType(ClassroomPlayerControls, skipOffstage: false),
+        findsNWidgets(2),
+      );
+      final teacher = capability.playbacks.single;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      try {
+        await tester.pump();
+      } finally {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      }
+      await tester.pumpAndSettle();
+      expect(find.text('合成后台暂停失败'), findsOneWidget);
+
+      await tester.tap(find.text(switchSource ? '切换到 PPT' : '重试'));
+      await tester.pump();
+      final openedBeforeDisposal = List.of(capability.opens);
+      disposal.complete();
+      await tester.pumpAndSettle();
+
+      expect(openedBeforeDisposal, hasLength(1));
+      expect(controlsAtDisposal, 0);
+      expect(viewsAtDisposal, 0);
+      final next = capability.playbacks.last;
+      expect(next, isNot(same(teacher)));
+      expect(next.url, switchSource ? _slidesUrl : _teacherUrl);
+      await tapAndSettle(tester, find.byTooltip('暂停'));
+      expect(next.calls, ['播放', '暂停']);
+      expect(teacher.calls, ['播放', '暂停', '释放']);
+      await _expectDisposed(teacher.memory);
+      await tapAndSettle(tester, find.byTooltip('退出全屏'));
+      await tester.pump(const Duration(seconds: 1));
+    });
+  }
+
+  testWidgets('全屏暂停失败后的释放挂起时销毁页面，释放只执行一次且异常留在页内', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final disposal = Completer<void>();
+    var disposalStarted = false;
+    final capability = _RecordingPlayback(
+      beforePause: () async => throw const VideoPlaybackException('合成后台暂停失败'),
+      beforeDispose: () async {
+        if (disposalStarted) return;
+        disposalStarted = true;
+        await disposal.future;
+      },
+    );
+    await _pumpPlayer(tester, fixture, playback: capability);
+    await tapAndSettle(tester, find.byTooltip('全屏'));
+    final teacher = capability.playbacks.single;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    try {
+      await tester.pump();
+    } finally {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+    await tester.pumpAndSettle();
+    expect(teacher.calls, ['播放', '暂停', '释放']);
+    await tester.tap(find.text('重试'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    disposal.completeError(const VideoPlaybackException('合成释放失败'));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+    expect(capability.opens, hasLength(1));
+    expect(teacher.calls, ['播放', '暂停', '释放']);
+    await _expectDisposed(teacher.memory);
   });
 
   testWidgets('旧来源的后台暂停迟到失败不影响新句柄', (tester) async {
