@@ -722,30 +722,57 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   static int _session = 0;
 
   bool get _mobile => uiIsTouchPlatformName(defaultTargetPlatform.name);
+  bool get _ohos => defaultTargetPlatform.name == 'ohos';
+
+  Future<void> _setSystemUi({required bool fullscreen}) {
+    // OHOS 的模式通道成功时不回包，manual 走有回包的 overlay 通道。
+    return _ohos
+        ? SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: fullscreen ? const [] : SystemUiOverlay.values,
+          )
+        : SystemChrome.setEnabledSystemUIMode(
+            fullscreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+          );
+  }
+
+  void _request(Future<void> request) {
+    // 各请求独立完成，方向恢复无需等待其他通道回包。
+    if (!_ohos) return;
+    unawaited(
+      request.catchError((Object error) {
+        debugPrint('全屏系统栏或方向设置失败：${error.runtimeType}');
+      }),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _session++;
     if (_mobile) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+      _request(_setSystemUi(fullscreen: true));
+      _request(
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]),
+      );
     }
   }
 
   @override
   void dispose() {
     if (_mobile) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      _request(_setSystemUi(fullscreen: false));
       // 先转回竖屏，再解除锁定，让方向重新跟随设备姿态。
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      _request(
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+      );
       final session = _session;
       Future<void>.delayed(const Duration(seconds: 1), () {
         if (session == _session) {
-          SystemChrome.setPreferredOrientations(const []);
+          _request(SystemChrome.setPreferredOrientations(const []));
         }
       });
     }

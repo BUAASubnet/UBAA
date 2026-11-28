@@ -203,12 +203,14 @@ void main() {
   for (final platform in TargetPlatform.values.where(
     (platform) => const {'android', 'iOS', 'ohos'}.contains(platform.name),
   )) {
+    final ohos = platform.name == 'ohos';
     testWidgets('${platform.name} 全屏进入隐藏系统栏并横屏，退出后恢复', (tester) async {
       final calls = <List<Object?>>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
         (call) async {
           if (call.method == 'SystemChrome.setEnabledSystemUIMode' ||
+              call.method == 'SystemChrome.setEnabledSystemUIOverlays' ||
               call.method == 'SystemChrome.setPreferredOrientations') {
             calls.add([call.method, call.arguments]);
           }
@@ -224,7 +226,13 @@ void main() {
 
       await tapAndSettle(tester, find.byTooltip('全屏'));
       expect(calls, [
-        ['SystemChrome.setEnabledSystemUIMode', 'SystemUiMode.immersiveSticky'],
+        if (ohos)
+          ['SystemChrome.setEnabledSystemUIOverlays', <String>[]]
+        else
+          [
+            'SystemChrome.setEnabledSystemUIMode',
+            'SystemUiMode.immersiveSticky',
+          ],
         [
           'SystemChrome.setPreferredOrientations',
           [
@@ -237,7 +245,13 @@ void main() {
       calls.clear();
       await tapAndSettle(tester, find.byTooltip('退出全屏'));
       expect(calls, [
-        ['SystemChrome.setEnabledSystemUIMode', 'SystemUiMode.edgeToEdge'],
+        if (ohos)
+          [
+            'SystemChrome.setEnabledSystemUIOverlays',
+            ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
+          ]
+        else
+          ['SystemChrome.setEnabledSystemUIMode', 'SystemUiMode.edgeToEdge'],
         [
           'SystemChrome.setPreferredOrientations',
           ['DeviceOrientation.portraitUp'],
@@ -247,6 +261,61 @@ void main() {
       expect(calls.last, ['SystemChrome.setPreferredOrientations', <String>[]]);
       expect(calls, hasLength(3));
     }, variant: TargetPlatformVariant({platform}));
+
+    if (ohos) {
+      for (final noReply in [true, false]) {
+        testWidgets('OHOS 全屏通道${noReply ? '未回包' : '报错'}时仍进入并退出全屏', (
+          tester,
+        ) async {
+          final calls = <Object?>[];
+          final pending = Completer<Object?>();
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            (call) async {
+              switch (call.method) {
+                case 'SystemChrome.setEnabledSystemUIMode':
+                case 'SystemChrome.setEnabledSystemUIOverlays':
+                case 'SystemChrome.setPreferredOrientations':
+                  calls.add(call.arguments);
+                  if (call.arguments case final List args
+                      when noReply &&
+                          (args.isEmpty &&
+                                  call.method ==
+                                      'SystemChrome.setEnabledSystemUIOverlays' ||
+                              args.contains('DeviceOrientation.portraitUp'))) {
+                    return pending.future;
+                  }
+                  if (!noReply) throw PlatformException(code: '合成系统栏或方向设置失败');
+              }
+              return null;
+            },
+          );
+          final fixture = await ClassroomFixture.load();
+          await _pumpPlayer(
+            tester,
+            fixture,
+            playback: MemoryVideoPlaybackCapability(),
+          );
+
+          await tapAndSettle(tester, find.byTooltip('全屏'));
+          expect(find.byTooltip('退出全屏'), findsOneWidget);
+          await tapAndSettle(tester, find.byTooltip('退出全屏'));
+          await tester.pump(const Duration(seconds: 1));
+          expect(find.byTooltip('全屏'), findsOneWidget);
+          expect(calls, [
+            <String>[],
+            [
+              'DeviceOrientation.landscapeLeft',
+              'DeviceOrientation.landscapeRight',
+            ],
+            ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
+            ['DeviceOrientation.portraitUp'],
+            <String>[],
+          ]);
+          expect(tester.takeException(), isNull);
+        }, variant: TargetPlatformVariant({platform}));
+      }
+    }
   }
 
   for (final switchSource in [false, true]) {
