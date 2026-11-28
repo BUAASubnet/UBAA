@@ -809,7 +809,7 @@ void _registerSharedStateTests() {
         }
       }
     }
-    expect(retryCalls, 24);
+    expect(retryCalls, FeatureId.values.length * 2);
   });
 
   testWidgets('Core 返回未知结果时固定提示并触发只读核对', (tester) async {

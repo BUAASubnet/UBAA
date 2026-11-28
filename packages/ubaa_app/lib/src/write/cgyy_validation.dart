@@ -29,10 +29,13 @@ CgyySubmitInput validateCgyySubmitInput(CgyySubmitInput input) {
   );
 }
 
+/// 北京研讨室最多两段且必须相邻；杭州（[hangzhou]）官网不限两段、不要求相邻，
+/// 上限交给服务端，这里只挡住异常数量。
 List<CgyyReserveAction> _validateCgyyReserveActions(
-  List<CgyyReserveAction> actions,
-) {
-  if (actions.isEmpty || actions.length > 2) {
+  List<CgyyReserveAction> actions, {
+  bool hangzhou = false,
+}) {
+  if (actions.isEmpty || actions.length > (hangzhou ? 48 : 2)) {
     throw const BackendException(UbaaErrorCode.invalidInput);
   }
   final normalized = actions
@@ -74,7 +77,8 @@ List<CgyyReserveAction> _validateCgyyReserveActions(
   final ordinals = normalized.map((action) => action.timeOrdinal).toSet();
   if (timeIds.length != normalized.length ||
       ordinals.length != normalized.length ||
-      (normalized.length == 2 &&
+      (!hangzhou &&
+          normalized.length == 2 &&
           (normalized[0].timeOrdinal - normalized[1].timeOrdinal).abs() != 1)) {
     throw const BackendException(UbaaErrorCode.invalidInput);
   }
@@ -82,4 +86,38 @@ List<CgyyReserveAction> _validateCgyyReserveActions(
     (left, right) => left.timeOrdinal.compareTo(right.timeOrdinal),
   );
   return List<CgyyReserveAction>.unmodifiable(normalized);
+}
+
+/// 校验杭州空间预约输入：时段沿用研讨室 typed action 规则；手机号、
+/// 验证码与真实点击坐标只做形状校验，不在应用层推断或补全。
+HangzhouCgyySubmitInput validateHangzhouCgyySubmitInput(
+  HangzhouCgyySubmitInput input,
+) {
+  final phone = input.phone.trim();
+  if (!RegExp(r'^1\d{10}$').hasMatch(phone) ||
+      input.captcha.token.trim().isEmpty ||
+      input.captcha.secretKey.trim().isEmpty ||
+      !input.sliderOffsetX.isFinite ||
+      input.sliderOffsetX < 0 ||
+      input.tapX < 0 ||
+      input.tapY < 0) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  return HangzhouCgyySubmitInput(
+    actions: _validateCgyyReserveActions(input.actions, hangzhou: true),
+    phone: phone,
+    captcha: input.captcha,
+    sliderOffsetX: input.sliderOffsetX,
+    tapX: input.tapX,
+    tapY: input.tapY,
+  );
+}
+
+/// 取消原因原样提交给场馆系统，限制为 1–200 个字符。
+String validateHangzhouCgyyCancelReason(String reason) {
+  final trimmed = reason.trim();
+  if (trimmed.isEmpty || trimmed.runes.length > 200) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  return trimmed;
 }

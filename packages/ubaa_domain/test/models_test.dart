@@ -18,7 +18,7 @@ void main() {
     );
     expect(
       advancedFeatureIds.map((feature) => feature.title).toList(),
-      <String>['每日课程', '研讨室预约', '阳光打卡', '教学评教'],
+      <String>['每日课程', '研讨室预约', '杭州空间预约', '阳光打卡', '教学评教'],
     );
   });
 

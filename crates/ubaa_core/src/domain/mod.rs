@@ -37,6 +37,8 @@ pub(crate) mod spoc_classroom;
 pub use spoc_classroom::*;
 mod cgyy;
 pub use cgyy::*;
+mod hangzhou_cgyy;
+pub use hangzhou_cgyy::*;
 mod spoc;
 pub use spoc::*;
 mod judge;

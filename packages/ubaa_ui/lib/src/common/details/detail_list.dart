@@ -47,6 +47,7 @@ import '../../features/ygdk/record_card.dart'
     show YgdkRecordCard, uiYgdkRecordSearchValues;
 import '../../shared/text.dart' show uiNonBlank, uiHiddenAcademicField;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
+import '../../write/cgyy/hangzhou_form.dart' show uiAskHangzhouCgyyCancelReason;
 import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
@@ -106,6 +107,7 @@ class FeatureDetailList extends StatefulWidget {
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
+    this.onHangzhouCgyyCancelWrite,
     this.cgyyFormContext,
     this.ygdkFormContext,
     this.onEvaluationWrite,
@@ -151,6 +153,8 @@ class FeatureDetailList extends StatefulWidget {
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
+  final Future<void> Function(HangzhouCgyyCancelAction action, String reason)?
+  onHangzhouCgyyCancelWrite;
   final CgyyFormContext? cgyyFormContext;
   final YgdkFormContext? ygdkFormContext;
   final EvaluationSubmitStarter? onEvaluationWrite;
@@ -639,6 +643,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                                   canLibbookCancel,
                                 ),
                                 ..._cgyyCancelWriteFields(cgyyCancelAction),
+                                ..._hangzhouCgyyCancelWriteFields(detail),
                                 ..._libbookReserveWriteFields(
                                   context,
                                   libbookReserveAction,

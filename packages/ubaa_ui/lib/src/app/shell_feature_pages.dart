@@ -125,6 +125,7 @@ extension UbaaShellFeaturePages on _UbaaMainShellState {
               !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
               ? null
               : _startCgyySubmitWrite,
+          hangzhouCgyy: widget.hangzhouCgyy?.callbacks(_runDirectWrite),
           onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
               ? null
               : _startYgdkSubmitWrite,

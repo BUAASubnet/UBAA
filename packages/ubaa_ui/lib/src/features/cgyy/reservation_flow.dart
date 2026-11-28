@@ -10,7 +10,13 @@ import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
 import '../../write/cgyy/form.dart'
-    show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;
+    show
+        uiCgyyActionKey,
+        uiCollectCgyyReservation,
+        uiSelectCgyyAction,
+        uiSelectHangzhouCgyyAction;
+import '../../write/cgyy/hangzhou_form.dart'
+    show uiCollectHangzhouCgyyReservation;
 import '../../common/state_panel.dart';
 import '../../common/chip_strip.dart';
 part 'table.dart';
@@ -30,7 +36,16 @@ class CgyyReservationFlow extends StatefulWidget {
     required this.onRetry,
     this.onlyAvailable = true,
     this.onShowAll,
+    this.hangzhou,
+    this.hangzhouVenue = false,
   });
+
+  /// 杭州空间预约的场馆（篮球、羽毛球、健康中心等），表头与空态不再写“研讨室”，
+  /// 并按官网显示“教学使用”“已售”等占用说明。
+  final bool hangzhouVenue;
+
+  /// 杭州空间预约：设置后“下一步”改为手机号与用户拖动的滑块验证码。
+  final HangzhouCgyyWriteCallbacks? hangzhou;
 
   /// 初始值；页面内的“只看可预约”开关在切换日期或楼层时保持。
   final bool onlyAvailable;
@@ -264,10 +279,13 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
               ? const LoadingPlaceholder()
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback
+              // 没有可读日表的有效场地时退回通用列表，不显示空白页。
+              : day == null && _site == null
+              ? widget.fallback
               : day == null
-              ? const UiStatePanel(
+              ? UiStatePanel(
                   icon: Icons.meeting_room_outlined,
-                  title: '当前暂无研讨室时段',
+                  title: widget.hangzhouVenue ? '当前暂无可预约时段' : '当前暂无研讨室时段',
                 )
               : Padding(
                   padding: UbaaTheme.pageInsets(context, top: 0, bottom: 0),
@@ -309,7 +327,11 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
           _selected.remove(key);
           return;
         }
-        uiSelectCgyyAction(_selected, actions, key);
+        if (widget.hangzhouVenue) {
+          uiSelectHangzhouCgyyAction(_selected, actions, key);
+        } else {
+          uiSelectCgyyAction(_selected, actions, key);
+        }
       });
 
   String _siteLabel(CgyySitePresentation site) {

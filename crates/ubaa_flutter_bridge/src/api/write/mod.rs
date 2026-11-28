@@ -36,6 +36,8 @@ pub enum BridgeWriteOperation {
     CgyyCancelOrder,
     EvaluationSubmitCourses,
     SpocSubmitAssignment,
+    HangzhouCgyySubmitReservation,
+    HangzhouCgyyCancelOrder,
 }
 
 #[derive(Clone, Debug)]
@@ -160,6 +162,37 @@ pub struct BridgeCgyySubmitReservationRequest {
 pub struct BridgeCgyyCancelOrderRequest {
     pub order_id: i32,
 }
+/// 杭州空间预约提交：滑块位移由用户亲手拖动，点击坐标来自用户真实点击“提交”。
+#[derive(Clone)]
+pub struct BridgeHangzhouCgyyReservationRequest {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub selections: Vec<BridgeCgyyReservationSelection>,
+    pub phone: String,
+    pub captcha_token: String,
+    pub captcha_secret_key: String,
+    pub slider_offset_x: f64,
+    pub tap_x: i32,
+    pub tap_y: i32,
+}
+impl fmt::Debug for BridgeHangzhouCgyyReservationRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BridgeHangzhouCgyyReservationRequest")
+            .field("venue_site_id", &self.venue_site_id)
+            .field("reservation_date", &self.reservation_date)
+            .field("selections", &self.selections)
+            .field("phone", &"[REDACTED]")
+            .field("captcha_token", &"[REDACTED]")
+            .field("captcha_secret_key", &"[REDACTED]")
+            .finish_non_exhaustive()
+    }
+}
+#[derive(Clone, Debug)]
+pub struct BridgeHangzhouCgyyCancelRequest {
+    /// “我的预约”中的订单 id；场馆订单号只在 Core 内按 id 解析，不跨 FFI。
+    pub order_id: i32,
+    pub reason: String,
+}
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyReservationReceipt {
     pub order_id: i32,
@@ -224,6 +257,8 @@ pub(crate) enum PendingWrite {
     CgyyCancel(BridgeCgyyCancelOrderRequest),
     Evaluation(ubaa_core::facade::EvaluationSubmitCoursesRequest),
     Spoc(ubaa_core::facade::SpocPreparedSubmission),
+    HangzhouCgyyReserve(ubaa_core::facade::HangzhouCgyyReservationRequest),
+    HangzhouCgyyCancel(ubaa_core::facade::HangzhouCgyyCancelRequest),
 }
 
 /// Bridge 内部的待确认条目；不得向 Dart 暴露载荷或自动字段访问器。
@@ -251,6 +286,8 @@ impl PendingWrite {
             Self::CgyyCancel(_) => BridgeWriteOperation::CgyyCancelOrder,
             Self::Evaluation(_) => BridgeWriteOperation::EvaluationSubmitCourses,
             Self::Spoc(_) => BridgeWriteOperation::SpocSubmitAssignment,
+            Self::HangzhouCgyyReserve(_) => BridgeWriteOperation::HangzhouCgyySubmitReservation,
+            Self::HangzhouCgyyCancel(_) => BridgeWriteOperation::HangzhouCgyyCancelOrder,
         }
     }
 
@@ -297,6 +334,19 @@ impl PendingWrite {
                 )
             }
             Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.order_id),
+            Self::HangzhouCgyyReserve(request) => {
+                let first = request
+                    .selections
+                    .first()
+                    .expect("杭州预约意图只保存已验证的非空时段");
+                format!(
+                    "hz-cgyy-reserve:{}:{}:{}",
+                    request.venue_site_id, request.reservation_date, first.space_id,
+                )
+            }
+            Self::HangzhouCgyyCancel(request) => {
+                format!("hz-cgyy-cancel:{}", request.order_id)
+            }
             Self::Evaluation(request) => {
                 let mut targets = request
                     .targets

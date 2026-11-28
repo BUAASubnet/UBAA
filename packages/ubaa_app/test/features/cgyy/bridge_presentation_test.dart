@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_app/src/bridge/features/cgyy/projection.dart'
+    show bridgeMapCgyyDayInfo;
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -6,6 +8,40 @@ import '../../support/bridge/recording_client.dart'
     show FixtureCharacterizationBridgeClient, fixtureWebVpnRoute;
 
 void registerCgyyPresentationTests() {
+  test('杭州按人数预约的时段由剩余名额换算出已约人数', () {
+    BridgeCgyySlotStatus slot(int timeId, int? free) => BridgeCgyySlotStatus(
+      adminRemark: null,
+      freeNum: free,
+      timeId: timeId,
+      reservationStatus: 1,
+      reservationEligibility: BridgeActionEligibility.allowed,
+    );
+    final result = bridgeMapCgyyDayInfo(
+      BridgeCgyyDayInfo(
+        venueSiteId: 701,
+        reservationDate: '2026-11-27',
+        availableDates: const ['2026-11-27'],
+        timeSlots: const [],
+        spaces: [
+          BridgeCgyySpaceAvailability(
+            spaceId: 1,
+            spaceName: '合成室',
+            venueSiteId: 701,
+            slots: [slot(10, 125), slot(11, null), slot(12, 0)],
+          ),
+        ],
+        reservationTotalNum: 200,
+      ),
+      ConnectionMode.direct,
+    );
+    final already = {
+      for (final detail in result.details)
+        if (detail.presentation case final CgyySlotPresentation slot)
+          slot.timeId: slot.alreadyNum,
+    };
+    expect(already, {10: 75, 11: null, 12: 200});
+  });
+
   test('研讨室订单首页保留上游零基，第二页投影为显示第2页', () async {
     final client = FixtureCharacterizationBridgeClient();
     final backend = BridgeBackend(client);
@@ -201,6 +237,8 @@ class _RoomPresentationClient extends FixtureCharacterizationBridgeClient {
               venueSpaceGroupId: 2,
               slots: [
                 BridgeCgyySlotStatus(
+                  adminRemark: null,
+                  freeNum: null,
                   timeId: 9,
                   reservationStatus: 1,
                   reservationEligibility: BridgeActionEligibility.allowed,
@@ -214,11 +252,15 @@ class _RoomPresentationClient extends FixtureCharacterizationBridgeClient {
                   ),
                 ),
                 BridgeCgyySlotStatus(
+                  adminRemark: null,
+                  freeNum: null,
                   timeId: 3,
                   reservationStatus: 1,
                   reservationEligibility: BridgeActionEligibility.denied,
                 ),
                 BridgeCgyySlotStatus(
+                  adminRemark: null,
+                  freeNum: null,
                   timeId: 8,
                   reservationEligibility: BridgeActionEligibility.unknown,
                 ),

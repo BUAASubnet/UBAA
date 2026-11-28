@@ -16,6 +16,8 @@ pub(crate) enum WriteReceipt {
     CgyyReserve(core::CgyyReservationResult),
     CgyyCancel(core::CgyyCancelOrderResult),
     Evaluation(core::EvaluationBatchResult),
+    HangzhouCgyyReserve(core::HangzhouCgyyReservationReceipt),
+    HangzhouCgyyCancel(core::HangzhouCgyyCancelResult),
 }
 pub(crate) async fn dispatch(
     client: &mut core::UbaaClient,
@@ -107,6 +109,14 @@ pub(crate) async fn dispatch(
         PendingWrite::Evaluation(v) => receipt!(
             client.evaluation_submit_courses_if_route_matches(v, route),
             Evaluation
+        ),
+        PendingWrite::HangzhouCgyyReserve(v) => receipt!(
+            client.hangzhou_cgyy_submit_reservation_if_route_matches(v, route),
+            HangzhouCgyyReserve
+        ),
+        PendingWrite::HangzhouCgyyCancel(v) => receipt!(
+            client.hangzhou_cgyy_cancel_order_if_route_matches(v, route),
+            HangzhouCgyyCancel
         ),
     }
 }
@@ -219,6 +229,24 @@ pub(crate) fn project(
             None,
             None,
         ),
+        WriteReceipt::HangzhouCgyyReserve(v) => (
+            true,
+            safe_message(&hangzhou_reserve_message(&v)),
+            None,
+            None,
+            None,
+        ),
+        WriteReceipt::HangzhouCgyyCancel(v) => (
+            v.success,
+            safe_message(if v.success {
+                "已取消预约"
+            } else {
+                "取消失败"
+            }),
+            None,
+            None,
+            None,
+        ),
         WriteReceipt::Evaluation(v) => {
             let batch = map_evaluation_batch(v);
             (
@@ -231,4 +259,19 @@ pub(crate) fn project(
         }
     };
     (value.resolution, success, message, cgyy, ygdk, evaluation)
+}
+
+/// 订单号与时间段是用户自己的预约信息，只进入本次回执文案。
+fn hangzhou_reserve_message(receipt: &core::HangzhouCgyyReservationReceipt) -> String {
+    let time = match (
+        receipt.reservation_start_date.as_deref(),
+        receipt.reservation_end_date.as_deref(),
+    ) {
+        (Some(start), Some(end)) => {
+            let end = end.split_once(' ').map_or(end, |(_, time)| time);
+            format!("，时间 {start} 至 {end}")
+        }
+        _ => String::new(),
+    };
+    format!("预约成功（订单 {}{time}）", receipt.trade_no)
 }

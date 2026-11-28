@@ -79,6 +79,7 @@ fn 研讨室槽位只保存显示状态而不保存预约资格或审计数据()
         }),
         trade_no: Some("合成内部号".into()),
         take_up_explain: Some("合成内部说明".into()),
+        admin_remark: None,
         ..Default::default()
     });
     let value = serde_json::to_value(slot).unwrap();

@@ -3,7 +3,7 @@ use super::ClientRuntime;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use crate::session::business_cache::{
-    BusinessCacheStamp, BusinessMaterial, BusinessScope, BusinessSeeds, SeedSource,
+    BusinessCacheStamp, BusinessMaterial, BusinessScope, BusinessSeeds, HzCgyyToken, SeedSource,
     reusable_cookie_scope, same_material,
 };
 use crate::session::{CookieJar, StoredCookie};
@@ -333,6 +333,10 @@ fn business_material(
             .map(BusinessMaterial::Identity),
         BusinessScope::Spoc => state.spoc.credential().map(BusinessMaterial::Spoc),
         BusinessScope::Ygdk => state.ygdk.credential().map(BusinessMaterial::Ygdk),
+        BusinessScope::HzCgyy => state
+            .hz_cgyy
+            .credential()
+            .map(|token| BusinessMaterial::HzCgyy(HzCgyyToken(token))),
     }
 }
 
@@ -364,8 +368,14 @@ fn apply_business_seed(
                 .ygdk
                 .store_credential(state.ygdk.generation(), credential.clone());
         }
+        (BusinessScope::HzCgyy, Some(BusinessMaterial::HzCgyy(token))) => {
+            return state
+                .hz_cgyy
+                .store_credential(state.hz_cgyy.generation(), token.0.clone());
+        }
         (BusinessScope::Spoc, None) => state.spoc.clear(),
         (BusinessScope::Ygdk, None) => state.ygdk.clear(),
+        (BusinessScope::HzCgyy, None) => state.hz_cgyy.clear(),
         _ => return false,
     }
     true

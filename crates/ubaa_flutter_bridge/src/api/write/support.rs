@@ -243,6 +243,12 @@ pub(super) fn map_commit_error(
                 "教学评教资格已变化，请刷新课程后重新准备"
             }
             BridgeWriteOperation::BykcSignCourse => "博雅上课资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::HangzhouCgyySubmitReservation => {
+                "杭州空间预约资格已变化，请刷新时段后重新准备"
+            }
+            BridgeWriteOperation::HangzhouCgyyCancelOrder => {
+                "杭州预约取消资格已变化，请刷新“我的预约”后重新准备"
+            }
         };
         return routed_local_error(
             &error,
@@ -302,6 +308,9 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::CgyyCancelOrder => {
                 "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作"
             }
+            BridgeWriteOperation::HangzhouCgyyCancelOrder => {
+                "杭州预约取消结果未知，请刷新“我的预约”核对后再操作"
+            }
             BridgeWriteOperation::YgdkSubmit => "阳光打卡结果未知，请刷新概览与记录后再操作",
             BridgeWriteOperation::EvaluationSubmitCourses => "教学评教结果未知，请刷新课程后核对",
             _ => &error.error.message,
@@ -326,6 +335,8 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::CgyySubmitReservation
             | BridgeWriteOperation::CgyyCancelOrder
             | BridgeWriteOperation::EvaluationSubmitCourses
+            | BridgeWriteOperation::HangzhouCgyySubmitReservation
+            | BridgeWriteOperation::HangzhouCgyyCancelOrder
     ) {
         false
     } else {
@@ -874,6 +885,96 @@ fn unsafe_summary_character(value: char) -> bool {
                 | '\u{2060}'..='\u{206f}'
                 | '\u{feff}'
         )
+}
+
+pub(super) fn map_hangzhou_cgyy_request(
+    request: super::BridgeHangzhouCgyyReservationRequest,
+) -> Result<domain::HangzhouCgyyReservationRequest, BridgeError> {
+    if request.venue_site_id <= 0
+        || request.reservation_date.trim().is_empty()
+        || !(1..=2).contains(&request.selections.len())
+        || request
+            .selections
+            .iter()
+            .any(|item| item.space_id <= 0 || item.time_id <= 0)
+    {
+        return Err(invalid_input("请选择一至两个有效时段"));
+    }
+    if request.captcha_token.trim().is_empty()
+        || request.captcha_secret_key.trim().is_empty()
+        || !request.slider_offset_x.is_finite()
+        || request.slider_offset_x < 0.0
+    {
+        return Err(invalid_input("请先完成滑块验证码"));
+    }
+    Ok(domain::HangzhouCgyyReservationRequest {
+        venue_site_id: request.venue_site_id,
+        reservation_date: request.reservation_date.trim().to_owned(),
+        selections: request
+            .selections
+            .into_iter()
+            .map(|item| domain::CgyyReservationSelection {
+                space_id: item.space_id,
+                time_id: item.time_id,
+                venue_space_group_id: None,
+            })
+            .collect(),
+        phone: request.phone.trim().to_owned(),
+        user_input: domain::HangzhouCgyyUserInput {
+            captcha_token: request.captcha_token,
+            captcha_secret_key: request.captcha_secret_key,
+            slider_offset_x: request.slider_offset_x,
+            tap_x: request.tap_x,
+            tap_y: request.tap_y,
+        },
+    })
+}
+
+pub(super) fn hangzhou_cgyy_canonical(request: &domain::HangzhouCgyyReservationRequest) -> String {
+    let times = request
+        .selections
+        .iter()
+        .map(|item| format!("{}:{}", item.space_id, item.time_id))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "hz-cgyy:site={}:date={}:slots={times}",
+        request.venue_site_id, request.reservation_date
+    )
+}
+
+/// 用 fresh 时段复核所选时段仍可预约，并生成不含验证码与手机号的确认摘要。
+pub(super) fn hangzhou_cgyy_target_summary(
+    day: &domain::CgyyDayInfo,
+    request: &domain::HangzhouCgyyReservationRequest,
+) -> Result<String, BridgeError> {
+    let space_id = request.selections[0].space_id;
+    let space = day
+        .spaces
+        .iter()
+        .find(|space| space.space_id == space_id)
+        .ok_or_else(|| invalid_input("所选房间已不在可约列表，请刷新"))?;
+    let mut labels = Vec::new();
+    for selection in &request.selections {
+        let slot = space
+            .slots
+            .iter()
+            .find(|slot| slot.time_id == selection.time_id)
+            .filter(|slot| slot.reservation_eligibility == domain::ActionEligibility::Allowed)
+            .ok_or_else(|| invalid_input("所选时段已不可预约，请刷新后重新选择"))?;
+        let label = day
+            .time_slots
+            .iter()
+            .find(|time| time.id == slot.time_id)
+            .map_or_else(|| slot.time_id.to_string(), |time| time.label.clone());
+        labels.push(label);
+    }
+    Ok(format!(
+        "杭州空间 · {} · {} · {}",
+        safe_summary_label(&request.reservation_date, "预约日期"),
+        safe_summary_label(&space.space_name, "房间"),
+        labels.join("、"),
+    ))
 }
 
 #[cfg(test)]

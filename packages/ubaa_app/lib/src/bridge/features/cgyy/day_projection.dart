@@ -75,6 +75,8 @@ FeatureResult bridgeMapCgyyDayInfo(
             timeLabel: time?.label,
             startDate: slot.startDate,
             endDate: slot.endDate,
+            adminRemark: slot.adminRemark,
+            alreadyNum: _alreadyNum(data.reservationTotalNum, slot.freeNum),
           ),
           fields: bridgeCompactFields([
             bridgeField('站点 ID', '${data.venueSiteId}'),
@@ -118,3 +120,7 @@ FeatureResult bridgeMapCgyyDayInfo(
     resolvedRoute: route,
   );
 }
+
+/// Bridge 只给出剩余名额；界面按官网显示“已约/总数”，在此换算回已约人数。
+int? _alreadyNum(int? total, int? free) =>
+    total == null || free == null ? null : (total - free).clamp(0, total);

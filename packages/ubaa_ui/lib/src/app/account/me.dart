@@ -346,7 +346,8 @@ class _MetricsPanel extends StatelessWidget {
         ],
       ),
     );
-    final error = section.error;
+    final notice = _staleMetricsNotice(metrics) ?? section.error;
+    final stale = section.error == null || _values(metrics).isNotEmpty;
     return LayoutBuilder(
       builder: (context, constraints) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -365,14 +366,56 @@ class _MetricsPanel extends StatelessWidget {
             const SizedBox(height: 12),
             row(counts),
           ],
-          if (error != null) ...[
+          if (notice != null) ...[
             const SizedBox(height: 8),
-            _InlineNotice(error),
+            _InlineNotice(notice, stale: stale),
           ],
         ],
       ),
     );
   }
+
+  /// 有值的指标及其取得时间。
+  static List<(String, DateTime)> _values(CampusMetrics? metrics) {
+    if (metrics == null) return const [];
+    return [
+      for (final (label, metric) in <(String, CampusMetric<Object>?)>[
+        ('校园卡', metrics.cardBalance),
+        ('网费', metrics.networkBalance),
+        ('未读邮件', metrics.unreadMail),
+        ('待还图书', metrics.borrowedBooks),
+        ('云盘', metrics.cloudStorageRemaining),
+      ])
+        if (metric case CampusMetricValue(:final fetchedAt)) (label, fetchedAt),
+    ];
+  }
+
+  /// 本次未能更新而显示上次结果时，说明是哪一次的数据，并提示联网后更新。
+  String? _staleMetricsNotice(CampusMetrics? metrics) {
+    final values = _values(metrics);
+    if (values.isEmpty || section.loading) return null;
+    final newest = values
+        .map((v) => v.$2)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    if (section.error != null) {
+      return '显示的是 ${_stamp(newest)} 更新的数据，联网后会自动更新';
+    }
+    // 整组刷新成功但个别项沿用旧值（如杭州网费只能在校园网内读取）。
+    final old = [
+      for (final (label, at) in values)
+        if (newest.difference(at) > const Duration(minutes: 2)) (label, at),
+    ];
+    if (old.isEmpty) return null;
+    final oldest = old.map((v) => v.$2).reduce((a, b) => a.isBefore(b) ? a : b);
+    return '${old.map((v) => v.$1).join('、')}为 ${_stamp(oldest)} 的数据，联网后会自动更新';
+  }
+}
+
+/// 上次更新时间，按本机时区显示为“11月26日 16:10”。
+String _stamp(DateTime at) {
+  final local = at.toLocal();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${local.month}月${local.day}日 ${two(local.hour)}:${two(local.minute)}';
 }
 
 class _MetricTile extends StatelessWidget {
@@ -546,7 +589,15 @@ class _NetworkPanel extends StatelessWidget {
     }
     if (section.error case final error?) {
       children.add(const SizedBox(height: 8));
-      children.add(_InlineNotice(error));
+      // 有上次结果时照常显示，只说明数据时间并提示联网更新。
+      children.add(
+        usage != null
+            ? _InlineNotice(
+                '流量为 ${_stamp(usage.fetchedAt)} 的数据，联网后会自动更新',
+                stale: true,
+              )
+            : _InlineNotice(error),
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -609,15 +660,19 @@ class _NetworkProductCard extends StatelessWidget {
             ],
           ),
         );
+    final freeRemaining = product.freeRemaining;
+    final billableRemaining = product.billableRemaining;
     final used = double.tryParse(product.used.value);
-    final free = double.tryParse(product.freeRemaining.value);
+    final free = freeRemaining == null
+        ? null
+        : double.tryParse(freeRemaining.value);
     final freeProgress =
         used != null &&
             free != null &&
             used >= 0 &&
             free >= 0 &&
             used + free > 0 &&
-            product.used.unit == product.freeRemaining.unit
+            product.used.unit == freeRemaining?.unit
         ? used / (used + free)
         : null;
     return Card.outlined(
@@ -645,14 +700,19 @@ class _NetworkProductCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 没有的剩余项不显示，也不补零。
                 figure('已用', product.used),
-                const SizedBox(width: 12),
-                figure('免费剩余', product.freeRemaining, primary: true),
-                const SizedBox(width: 12),
-                figure('计费剩余', product.billableRemaining),
+                if (freeRemaining != null) ...[
+                  const SizedBox(width: 12),
+                  figure('免费剩余', freeRemaining, primary: true),
+                ],
+                if (billableRemaining != null) ...[
+                  const SizedBox(width: 12),
+                  figure('计费剩余', billableRemaining),
+                ],
               ],
             ),
-            if (includesPackages) ...[
+            if (includesPackages && freeRemaining != null) ...[
               const SizedBox(height: 8),
               Text(
                 '免费剩余含套餐可用流量',
@@ -686,25 +746,33 @@ class _NetworkProductCard extends StatelessWidget {
 }
 
 class _InlineNotice extends StatelessWidget {
-  const _InlineNotice(this.message);
+  const _InlineNotice(this.message, {this.stale = false});
   final String message;
+
+  /// 显示旧数据的说明用中性色，不按错误显示。
+  final bool stale;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = stale
+        ? theme.colorScheme.onSurfaceVariant
+        : theme.colorScheme.error;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline, size: 16, color: theme.colorScheme.error),
+          Icon(
+            stale ? Icons.history : Icons.error_outline,
+            size: 16,
+            color: color,
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],

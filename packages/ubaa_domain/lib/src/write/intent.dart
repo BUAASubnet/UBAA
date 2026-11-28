@@ -25,6 +25,8 @@ enum WriteOperation {
   libraryLoanRenew,
   bhpan,
   spocSubmitAssignment,
+  hangzhouCgyySubmitReservation,
+  hangzhouCgyyCancelOrder,
 }
 
 extension WriteOperationText on WriteOperation {
@@ -42,6 +44,8 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.libraryLoanRenew => null,
     WriteOperation.bhpan => null,
     WriteOperation.spocSubmitAssignment => FeatureId.spoc,
+    WriteOperation.hangzhouCgyySubmitReservation ||
+    WriteOperation.hangzhouCgyyCancelOrder => FeatureId.hangzhouCgyy,
   };
 
   String get title => switch (this) {
@@ -58,12 +62,15 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.libraryLoanRenew => '图书续借',
     WriteOperation.bhpan => '云盘',
     WriteOperation.spocSubmitAssignment => '提交 SPOC 文件作业',
+    WriteOperation.hangzhouCgyySubmitReservation => '杭州空间预约',
+    WriteOperation.hangzhouCgyyCancelOrder => '取消杭州预约',
   };
 
   bool get isIrreversible => switch (this) {
     WriteOperation.bykcDeselectCourse ||
     WriteOperation.libbookCancelBooking ||
-    WriteOperation.cgyyCancelOrder => false,
+    WriteOperation.cgyyCancelOrder ||
+    WriteOperation.hangzhouCgyyCancelOrder => false,
     _ => true,
   };
 }

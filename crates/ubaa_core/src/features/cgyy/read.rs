@@ -9,12 +9,13 @@ use crate::domain::{
 use crate::error::{ErrorCode, Result};
 use crate::runtime::ClientRuntime;
 
-use super::auth::get;
+use super::auth::{get, get_at};
 use super::parser::{
-    CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code,
-    parse_order_detail_at, parse_orders_at, parse_orders_for_cache,
+    CgyyDayContext, fallback_purpose_types, parse_day_context, parse_hangzhou_sites,
+    parse_lock_code, parse_order_detail_at, parse_orders_at, parse_orders_for_cache,
     parse_purpose_types_with_source, parse_sites,
 };
+use super::site::CgyySite;
 
 pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
     let params = [("page", "-1"), ("size", "-1"), ("reservationRoleId", "3")]
@@ -22,6 +23,41 @@ pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVen
         .map(|(key, value)| (key.into(), value.into()))
         .collect();
     parse_sites(&get(runtime, "/api/front/website/venues", params).await?)
+}
+
+/// 杭州空间预约场地列表。真机上 `/api/front/website/venues` 即使 `roleLogin` 后也返回
+/// `data:null`；杭州前端「场地预约」页（路由 `/venue-introduce`，`resourceType=SITE=1`）
+/// 实际调用 `venue_information?isNeedSearchVenue=0&resourceType=1`，场地在 `data.siteList`。
+pub(crate) async fn get_hangzhou_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
+    let params = [("isNeedSearchVenue", "0"), ("resourceType", "1")]
+        .into_iter()
+        .map(|(key, value)| (key.into(), value.into()))
+        .collect();
+    parse_hangzhou_sites(
+        &get_at(
+            runtime,
+            CgyySite::Hangzhou,
+            "/api/front/website/venue_information",
+            params,
+        )
+        .await?,
+    )
+}
+
+/// 杭州空间预约“我的预约”，与北京同为 `GET /api/orders/mine` 分页信封。
+pub(crate) async fn get_hangzhou_orders(
+    runtime: &mut ClientRuntime,
+    page: i32,
+    size: i32,
+) -> Result<CgyyOrdersPage> {
+    let params = [
+        ("page".into(), page.to_string()),
+        ("size".into(), size.to_string()),
+    ]
+    .into_iter()
+    .collect();
+    let body = get_at(runtime, CgyySite::Hangzhou, "/api/orders/mine", params).await?;
+    parse_orders_at(&body, crate::time::shanghai_datetime(runtime.now()))
 }
 
 pub(crate) async fn get_purpose_types(runtime: &mut ClientRuntime) -> Result<Vec<CgyyPurposeType>> {
@@ -64,17 +100,49 @@ pub(super) async fn get_day_context(
     site_id: i32,
     date: &str,
 ) -> Result<CgyyDayContext> {
+    parse_day_context(
+        &day_body(runtime, CgyySite::Beijing, site_id, date).await?,
+        site_id,
+        date,
+    )
+}
+
+/// 场馆某日的时段原始响应；杭州与北京同为 `GET /api/reservation/day/info`
+/// （`venueSiteId`、`searchDate`，杭州实录见专项记录）。
+pub(super) async fn day_body(
+    runtime: &mut ClientRuntime,
+    site: CgyySite,
+    site_id: i32,
+    date: &str,
+) -> Result<String> {
     let params = [
         ("searchDate".into(), date.into()),
         ("venueSiteId".into(), site_id.to_string()),
     ]
     .into_iter()
     .collect();
-    parse_day_context(
-        &get(runtime, "/api/reservation/day/info", params).await?,
-        site_id,
-        date,
-    )
+    get_at(runtime, site, "/api/reservation/day/info", params).await
+}
+
+/// 杭州空间预约某场地某日的空间与时段。
+pub(crate) async fn get_hangzhou_day_info(
+    runtime: &mut ClientRuntime,
+    site_id: i32,
+    date: &str,
+) -> Result<CgyyDayInfo> {
+    let body = day_body(runtime, CgyySite::Hangzhou, site_id, date).await?;
+    let mut info = parse_day_context(&body, site_id, date)?.info;
+    super::parser::hangzhou_apply_capacity(&mut info);
+    // 杭州日表只返回被查询的那一天；官网按 `advanceReservationDays` 从今天起列出可选日期。
+    let today = crate::time::shanghai_datetime(runtime.now()).date();
+    if let Some(dates) = super::parser::hangzhou_advance_dates(&body, today) {
+        info.available_dates = dates;
+        if !info.available_dates.contains(&info.reservation_date) {
+            info.available_dates.push(info.reservation_date.clone());
+            info.available_dates.sort();
+        }
+    }
+    Ok(info)
 }
 
 pub(crate) async fn get_orders(

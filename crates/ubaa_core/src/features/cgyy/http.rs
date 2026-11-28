@@ -10,12 +10,24 @@ use crate::runtime::ClientRuntime;
 
 use super::parser::{check_code, error, object};
 use super::sign::{sign, timestamp_millis};
+use super::site::CgyySite;
 
-const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
+/// 北京与杭州前端公开配置解码后相同（见杭州专项记录）。
 const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
 
 pub(super) fn signed_request(
     runtime: &ClientRuntime,
+    method: HttpMethod,
+    path: &str,
+    params: BTreeMap<String, String>,
+    token: Option<&str>,
+) -> Result<HttpRequest> {
+    signed_request_at(runtime, CgyySite::Beijing, method, path, params, token)
+}
+
+pub(super) fn signed_request_at(
+    runtime: &ClientRuntime,
+    site: CgyySite,
     method: HttpMethod,
     path: &str,
     mut params: BTreeMap<String, String>,
@@ -28,8 +40,8 @@ pub(super) fn signed_request(
             .or_insert_with(|| timestamp.to_string());
     }
     let signature = sign(path, &params, timestamp);
-    let mut direct =
-        url::Url::parse(&format!("{BASE_URL}{path}")).map_err(|_| error("研讨室请求地址无效"))?;
+    let mut direct = url::Url::parse(&format!("{}{path}", site.base_url()))
+        .map_err(|_| error("研讨室请求地址无效"))?;
     if method == HttpMethod::Get {
         direct.query_pairs_mut().extend_pairs(
             params
@@ -50,10 +62,9 @@ pub(super) fn signed_request(
     request
         .headers
         .insert("Accept".into(), "application/json, text/plain, */*".into());
-    request.headers.insert(
-        "Referer".into(),
-        runtime.url("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")?,
-    );
+    request
+        .headers
+        .insert("Referer".into(), runtime.url(site.referer())?);
     request.headers.insert("app-key".into(), APP_KEY.into());
     request
         .headers

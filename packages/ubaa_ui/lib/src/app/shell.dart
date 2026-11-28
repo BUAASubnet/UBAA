@@ -165,6 +165,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareLibbookCancelWrite,
     this.onPrepareLibraryLoanRenewWrite,
     this.onPrepareCgyySubmitWrite,
+    this.hangzhouCgyy,
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
     this.onPrepareSpocSubmitWrite,
@@ -300,6 +301,7 @@ class UbaaMainShell extends StatefulWidget {
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
   final LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
+  final HangzhouCgyyShellPreparers? hangzhouCgyy;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
   final SpocSubmitPreparer? onPrepareSpocSubmitWrite;

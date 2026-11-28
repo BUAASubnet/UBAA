@@ -594,6 +594,23 @@ pub struct BridgeCallerPinnedYgdkRecords {
     pub pinned_route: super::client::BridgeConnectionMode,
 }
 
+/// 杭州滑块验证码：图片交给用户拖动；令牌与密钥只在本次预约内存中使用。
+#[derive(Clone)]
+pub struct BridgeHangzhouCgyyCaptcha {
+    pub token: String,
+    pub secret_key: String,
+    pub original_image_base64: String,
+    pub jigsaw_image_base64: String,
+}
+impl std::fmt::Debug for BridgeHangzhouCgyyCaptcha {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BridgeHangzhouCgyyCaptcha")
+            .field("token", &"[REDACTED]")
+            .field("secret_key", &"[REDACTED]")
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyVenueSite {
     pub id: i32,
@@ -645,6 +662,11 @@ pub struct BridgeCgyySlotStatus {
     pub reservation_target: Option<BridgeCgyyReservationTarget>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    /// 管理员占用说明（如“教学使用”），只用于展示。
+    pub admin_remark: Option<String>,
+    /// 剩余名额（`reservation_total_num` 减已约人数，下限 0）；只在当天有总名额时给出，
+    /// 杭州按人数预约的场地据此显示“已约/总数”。与图书馆 `free_num` 同为派生计数，不透传上游原始字段。
+    pub free_num: Option<i32>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyySpaceAvailability {
@@ -791,6 +813,7 @@ routed!(BridgeRoutedCgyyDayInfo, BridgeCgyyDayInfo);
 routed!(BridgeRoutedCgyyOrders, BridgeCgyyOrdersPage);
 routed!(BridgeRoutedCgyyOrder, BridgeCgyyOrder);
 routed!(BridgeRoutedCgyyLockCode, BridgeCgyyLockCode);
+routed!(BridgeRoutedHangzhouCgyyCaptcha, BridgeHangzhouCgyyCaptcha);
 routed!(BridgeRoutedEvaluation, BridgeEvaluationCoursesResponse);
 
 #[cfg(test)]

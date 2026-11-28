@@ -11,7 +11,7 @@ import 'write/spoc.dart';
 
 // These functions are ignored because they are not marked as `pub`: `conflict_key`, `conflicts_with`, `evaluation_target_conflict_key`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCourseRequest {
   final PlatformInt64 courseId;
@@ -265,6 +265,80 @@ class BridgeEvaluationSubmitCoursesRequest {
       other is BridgeEvaluationSubmitCoursesRequest &&
           runtimeType == other.runtimeType &&
           targets == other.targets;
+}
+
+class BridgeHangzhouCgyyCancelRequest {
+  /// “我的预约”中的订单 id；场馆订单号只在 Core 内按 id 解析，不跨 FFI。
+  final int orderId;
+  final String reason;
+
+  const BridgeHangzhouCgyyCancelRequest({
+    required this.orderId,
+    required this.reason,
+  });
+
+  @override
+  int get hashCode => orderId.hashCode ^ reason.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeHangzhouCgyyCancelRequest &&
+          runtimeType == other.runtimeType &&
+          orderId == other.orderId &&
+          reason == other.reason;
+}
+
+/// 杭州空间预约提交：滑块位移由用户亲手拖动，点击坐标来自用户真实点击“提交”。
+class BridgeHangzhouCgyyReservationRequest {
+  final int venueSiteId;
+  final String reservationDate;
+  final List<BridgeCgyyReservationSelection> selections;
+  final String phone;
+  final String captchaToken;
+  final String captchaSecretKey;
+  final double sliderOffsetX;
+  final int tapX;
+  final int tapY;
+
+  const BridgeHangzhouCgyyReservationRequest({
+    required this.venueSiteId,
+    required this.reservationDate,
+    required this.selections,
+    required this.phone,
+    required this.captchaToken,
+    required this.captchaSecretKey,
+    required this.sliderOffsetX,
+    required this.tapX,
+    required this.tapY,
+  });
+
+  @override
+  int get hashCode =>
+      venueSiteId.hashCode ^
+      reservationDate.hashCode ^
+      selections.hashCode ^
+      phone.hashCode ^
+      captchaToken.hashCode ^
+      captchaSecretKey.hashCode ^
+      sliderOffsetX.hashCode ^
+      tapX.hashCode ^
+      tapY.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeHangzhouCgyyReservationRequest &&
+          runtimeType == other.runtimeType &&
+          venueSiteId == other.venueSiteId &&
+          reservationDate == other.reservationDate &&
+          selections == other.selections &&
+          phone == other.phone &&
+          captchaToken == other.captchaToken &&
+          captchaSecretKey == other.captchaSecretKey &&
+          sliderOffsetX == other.sliderOffsetX &&
+          tapX == other.tapX &&
+          tapY == other.tapY;
 }
 
 class BridgeLibbookCancelBookingRequest {
@@ -526,6 +600,8 @@ enum BridgeWriteOperation {
   cgyyCancelOrder,
   evaluationSubmitCourses,
   spocSubmitAssignment,
+  hangzhouCgyySubmitReservation,
+  hangzhouCgyyCancelOrder,
 }
 
 class BridgeYgdkSubmitReceipt {

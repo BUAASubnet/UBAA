@@ -285,3 +285,34 @@ fn 保留标记_r5_拒绝旧材料只更新内存() {
     assert!(std::fs::read(file).unwrap() == before, "拒绝不得改写旁车");
     std::fs::remove_dir_all(path).unwrap();
 }
+
+#[test]
+fn 杭州空间预约令牌在只读worker重建后复用() {
+    let (path, mut parent) = setup("hz-cgyy-reuse", RouteConfig::default());
+    parent
+        .direct_runtime
+        .refresh_authentication(&mut || {})
+        .unwrap();
+    parent
+        .direct_runtime
+        .remember_account_name(Some("fixture-user"));
+    let route = ConnectionMode::Direct;
+    let mut first = parent.fork_parallel_readonly().unwrap();
+    first
+        .runtime_for(route)
+        .feature_state()
+        .hz_cgyy
+        .set("fixture-hzsm-token".into());
+    first.persist_business_session(route);
+    drop(first);
+
+    let mut second = parent.fork_parallel_readonly().unwrap();
+    assert_eq!(
+        second.runtime_for(route).feature_state().hz_cgyy.token(),
+        Some("fixture-hzsm-token".into()),
+        "重建的只读 worker 应从共享缓存取回杭州令牌，不再重走 hzsso 登录"
+    );
+    // 北京研讨室令牌不进入共享缓存，行为不变。
+    assert_eq!(second.runtime_for(route).feature_state().cgyy.token(), None);
+    drop(path);
+}

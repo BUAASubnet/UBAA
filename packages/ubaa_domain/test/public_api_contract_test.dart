@@ -15,9 +15,9 @@ void main() {
       RoutePolicy.direct,
       RoutePolicy.webvpn,
     ]);
-    expect(FeatureId.values, hasLength(12));
+    expect(FeatureId.values, hasLength(13));
     expect(FeatureId.values.first, FeatureId.schedule);
-    expect(FeatureId.values.last, FeatureId.evaluation);
+    expect(FeatureId.values.last, FeatureId.hangzhouCgyy);
     expect(UbaaErrorCode.values, hasLength(19));
     expect(UbaaErrorCode.values.first, UbaaErrorCode.invalidInput);
     expect(UbaaErrorCode.businessRejected.wireName, 'business_rejected');
@@ -60,6 +60,7 @@ void main() {
     expect(advancedFeatureIds, <FeatureId>[
       FeatureId.signin,
       FeatureId.cgyy,
+      FeatureId.hangzhouCgyy,
       FeatureId.ygdk,
       FeatureId.evaluation,
     ]);

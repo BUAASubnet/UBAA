@@ -104,11 +104,19 @@ final class CgyySlotPresentation extends FeaturePresentation {
     this.timeLabel,
     this.startDate,
     this.endDate,
+    this.adminRemark,
+    this.alreadyNum,
   });
   final int venueSiteId, spaceId, timeId;
   final String reservationDate, spaceName;
   final int? venueSpaceGroupId, reservationStatus;
   final String? beginTime, endTime, timeLabel, startDate, endDate;
+
+  /// 场馆管理员占用说明（如“教学使用”），只用于展示。
+  final String? adminRemark;
+
+  /// 已约人数；与日表 `reservationTotalNum` 一起显示“已约/总数”。
+  final int? alreadyNum;
 }
 
 final class CgyyOrderPresentation extends FeaturePresentation {

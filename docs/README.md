@@ -34,3 +34,4 @@
 - 编辑、预览、部署和排查用户网站。[文档站手册](runbooks/docs-site.md)
 - 按授权验证直连与 WebVPN 的真实只读操作。[真实只读验证](runbooks/live-readonly-verification.md)
 - 收集并检查脱敏诊断报告。[本地诊断](runbooks/local-diagnostics.md)
+- 维护杭州校区的统一认证、空间预约、校园卡和网费，并重新实录上游协议。[杭州校区适配](runbooks/hangzhou-campus.md)

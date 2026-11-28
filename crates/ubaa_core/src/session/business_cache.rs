@@ -24,15 +24,19 @@ pub(crate) enum BusinessScope {
     Identity,
     Spoc,
     Ygdk,
+    /// 杭州空间预约（hzsm）业务令牌：建立需经 hzsso 与北航 CAS 十余次往返，
+    /// 只读 worker 重建后复用，避免每次切换场地都重新登录。
+    HzCgyy,
 }
 
 impl BusinessScope {
-    pub(crate) const ALL: [Self; 5] = [
+    pub(crate) const ALL: [Self; 6] = [
         Self::Byxt,
         Self::Portal,
         Self::Identity,
         Self::Spoc,
         Self::Ygdk,
+        Self::HzCgyy,
     ];
 
     fn is_expired(self, saved_at: i64, now: i64) -> bool {
@@ -44,6 +48,8 @@ impl BusinessScope {
             Self::Identity => 7 * 24 * 60 * 60,
             Self::Spoc => 3 * 60 * 60,
             Self::Ygdk => 12 * 60 * 60,
+            // 令牌有效期无证据，取保守值；过期时请求收到认证失效会清除并重新登录一次。
+            Self::HzCgyy => 2 * 60 * 60,
         };
         now.saturating_sub(saved_at) > ttl
     }
@@ -52,7 +58,7 @@ impl BusinessScope {
         let host = match self {
             Self::Byxt => "byxt.buaa.edu.cn",
             Self::Portal => "it.buaa.edu.cn",
-            Self::Identity | Self::Spoc | Self::Ygdk => return false,
+            Self::Identity | Self::Spoc | Self::Ygdk | Self::HzCgyy => return false,
         };
         reusable_cookie_scope(route, cookie) == Some(host)
     }
@@ -65,6 +71,18 @@ pub(crate) enum BusinessMaterial {
     Identity(StudentKind),
     Spoc(SpocCredential),
     Ygdk(YgdkCredential),
+    HzCgyy(HzCgyyToken),
+}
+
+/// hzsm 业务令牌；`Debug` 不输出令牌内容。
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub(crate) struct HzCgyyToken(pub(crate) String);
+
+impl std::fmt::Debug for HzCgyyToken {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("HzCgyyToken([已隐藏])")
+    }
 }
 
 impl BusinessMaterial {
@@ -79,6 +97,7 @@ impl BusinessMaterial {
             (Self::Identity(left), Self::Identity(right)) => left == right,
             (Self::Spoc(left), Self::Spoc(right)) => left == right,
             (Self::Ygdk(left), Self::Ygdk(right)) => left == right,
+            (Self::HzCgyy(left), Self::HzCgyy(right)) => left == right,
             _ => false,
         }
     }
@@ -93,7 +112,8 @@ impl BusinessMaterial {
             }
             (BusinessScope::Identity, Self::Identity(_))
             | (BusinessScope::Spoc, Self::Spoc(_))
-            | (BusinessScope::Ygdk, Self::Ygdk(_)) => {}
+            | (BusinessScope::Ygdk, Self::Ygdk(_))
+            | (BusinessScope::HzCgyy, Self::HzCgyy(_)) => {}
             _ => return None,
         }
         Some(self)

@@ -327,17 +327,18 @@ class BridgeLibraryLoansResult {
 }
 
 /// 一个网络产品的流量；免费剩余是否包含套餐由结果标志说明。
+/// 杭州认证网关只给已用流量，两个剩余项为空。
 class BridgeNetworkProductUsage {
   final String productName;
   final BridgeCampusAmount used;
-  final BridgeCampusAmount freeRemaining;
-  final BridgeCampusAmount billableRemaining;
+  final BridgeCampusAmount? freeRemaining;
+  final BridgeCampusAmount? billableRemaining;
 
   const BridgeNetworkProductUsage({
     required this.productName,
     required this.used,
-    required this.freeRemaining,
-    required this.billableRemaining,
+    this.freeRemaining,
+    this.billableRemaining,
   });
 
   @override

@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read/graduate.dart';
 import 'read/spoc_files.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -959,6 +959,13 @@ class BridgeCgyySlotStatus {
   final String? startDate;
   final String? endDate;
 
+  /// 管理员占用说明（如“教学使用”），只用于展示。
+  final String? adminRemark;
+
+  /// 剩余名额（`reservation_total_num` 减已约人数，下限 0）；只在当天有总名额时给出，
+  /// 杭州按人数预约的场地据此显示“已约/总数”。与图书馆 `free_num` 同为派生计数，不透传上游原始字段。
+  final int? freeNum;
+
   const BridgeCgyySlotStatus({
     required this.timeId,
     this.reservationStatus,
@@ -966,6 +973,8 @@ class BridgeCgyySlotStatus {
     this.reservationTarget,
     this.startDate,
     this.endDate,
+    this.adminRemark,
+    this.freeNum,
   });
 
   @override
@@ -975,7 +984,9 @@ class BridgeCgyySlotStatus {
       reservationEligibility.hashCode ^
       reservationTarget.hashCode ^
       startDate.hashCode ^
-      endDate.hashCode;
+      endDate.hashCode ^
+      adminRemark.hashCode ^
+      freeNum.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -987,7 +998,9 @@ class BridgeCgyySlotStatus {
           reservationEligibility == other.reservationEligibility &&
           reservationTarget == other.reservationTarget &&
           startDate == other.startDate &&
-          endDate == other.endDate;
+          endDate == other.endDate &&
+          adminRemark == other.adminRemark &&
+          freeNum == other.freeNum;
 }
 
 class BridgeCgyySpaceAvailability {
@@ -1512,6 +1525,38 @@ class BridgeGradeData {
           statistics == other.statistics &&
           termCode == other.termCode &&
           grades == other.grades;
+}
+
+/// 杭州滑块验证码：图片交给用户拖动；令牌与密钥只在本次预约内存中使用。
+class BridgeHangzhouCgyyCaptcha {
+  final String token;
+  final String secretKey;
+  final String originalImageBase64;
+  final String jigsawImageBase64;
+
+  const BridgeHangzhouCgyyCaptcha({
+    required this.token,
+    required this.secretKey,
+    required this.originalImageBase64,
+    required this.jigsawImageBase64,
+  });
+
+  @override
+  int get hashCode =>
+      token.hashCode ^
+      secretKey.hashCode ^
+      originalImageBase64.hashCode ^
+      jigsawImageBase64.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeHangzhouCgyyCaptcha &&
+          runtimeType == other.runtimeType &&
+          token == other.token &&
+          secretKey == other.secretKey &&
+          originalImageBase64 == other.originalImageBase64 &&
+          jigsawImageBase64 == other.jigsawImageBase64;
 }
 
 class BridgeJudgeAssignmentDetail {
@@ -2452,6 +2497,27 @@ class BridgeRoutedGrades {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeRoutedGrades &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+class BridgeRoutedHangzhouCgyyCaptcha {
+  final BridgeHangzhouCgyyCaptcha data;
+  final BridgeRouteDecision route;
+
+  const BridgeRoutedHangzhouCgyyCaptcha({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeRoutedHangzhouCgyyCaptcha &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           route == other.route;

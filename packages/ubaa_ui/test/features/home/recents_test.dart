@@ -130,6 +130,8 @@ void main() {
 
     final entry = find.text(healthCloudTitle);
     await tester.ensureVisible(entry);
+    // 校园入口增多后需要滚动；等滚动结束，否则首次点击只会停止滚动。
+    await tester.pumpAndSettle();
     await tester.tap(entry);
     await tester.pumpAndSettle();
     expect(find.byType(HealthCloudView), findsOneWidget);
@@ -147,6 +149,7 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(entry);
+    await tester.pumpAndSettle();
     await tester.tap(entry);
     await tester.pumpAndSettle();
     expect(reads.last, isNull);

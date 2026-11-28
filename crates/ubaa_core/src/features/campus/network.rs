@@ -5,6 +5,12 @@ use crate::error::Result;
 use crate::runtime::ClientRuntime;
 
 pub(crate) async fn get_usage(runtime: &mut ClientRuntime) -> Result<NetworkUsage> {
+    // 流量查询不读门户资料，只按登录学工号的院系代码识别杭州学生；北京学生路径不变。
+    let account = runtime.account_name().map(str::to_owned);
+    if super::hangzhou_card::is_hangzhou(None, account.as_deref()) {
+        let fetched_at = now(runtime)?;
+        return super::hangzhou_network::usage(runtime, account.as_deref(), fetched_at).await;
+    }
     let mut response = get(
         runtime,
         NETWORK_HOME,

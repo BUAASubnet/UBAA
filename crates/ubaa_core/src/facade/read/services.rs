@@ -227,6 +227,48 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 查询杭州校区空间预约（hzsm）场馆站点。
+    ///
+    /// 复用研讨室的路线策略；杭州主机暂只验证直连，`WebVPN` 路线由 feature 直接返回
+    /// `unsupported` 且不发请求，因此不走 Auto 回退，避免把杭州失败记到北航 `WebVPN` 健康度上。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、非直连路线、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn hangzhou_cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "hangzhou.sites.list");
+        let result = crate::features::cgyy::get_hangzhou_sites(self.runtime_for(resolution.mode))
+            .await
+            .map_err(crate::error::UbaaError::for_facade);
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询杭州校区空间预约（hzsm）我的预约；路线语义同 [`Self::hangzhou_cgyy_sites`]。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、参数无效、非直连路线、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn hangzhou_cgyy_orders(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> RoutedResult<CgyyOrdersPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "hangzhou.orders.list");
+        if page < 0 || size <= 0 {
+            return Err(routed_error(invalid_input("分页参数无效"), resolution));
+        }
+        let result = crate::features::cgyy::get_hangzhou_orders(
+            self.runtime_for(resolution.mode),
+            page,
+            size,
+        )
+        .await
+        .map_err(crate::error::UbaaError::for_facade);
+        self.finish_routed(resolution, result)
+    }
+
     /// 在调用方显式固定的已认证路线查询我的研讨室订单，不执行策略解析或 Auto 回退。
     ///
     /// # Errors

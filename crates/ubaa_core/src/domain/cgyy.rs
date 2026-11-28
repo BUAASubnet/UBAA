@@ -68,6 +68,9 @@ pub struct CgyySlotStatus {
     pub already_num: Option<i32>,
     pub take_up: Option<bool>,
     pub take_up_explain: Option<String>,
+    /// 管理员占用时场馆展示的说明（如杭州“教学使用”）；仅 `adminTake=true` 时提供。
+    #[serde(default)]
+    pub admin_remark: Option<String>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

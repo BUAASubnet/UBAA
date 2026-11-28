@@ -88,6 +88,11 @@ path = "tests/evaluation.rs"
 required-features = ["test-contract"]
 
 [[test]]
+name = "hangzhou_cgyy"
+path = "tests/hangzhou_cgyy.rs"
+required-features = ["test-contract"]
+
+[[test]]
 name = "facade"
 path = "tests/facade.rs"
 required-features = ["test-contract"]

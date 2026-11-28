@@ -1,4 +1,4 @@
-use super::{BusinessMaterial, BusinessScope, BusinessSessionCache, Invalidation};
+use super::{BusinessMaterial, BusinessScope, BusinessSessionCache, HzCgyyToken, Invalidation};
 use crate::domain::ConnectionMode;
 use crate::internal::route_state::{SpocCredential, StudentKind, YgdkCredential};
 use crate::session::FileSessionStore;
@@ -55,6 +55,10 @@ fn materials() -> Vec<(BusinessScope, Option<BusinessMaterial>)> {
                 token: "fixture-ygdk".into(),
             })),
         ),
+        (
+            BusinessScope::HzCgyy,
+            Some(BusinessMaterial::HzCgyy(HzCgyyToken("fixture-hzsm".into()))),
+        ),
     ]
 }
 
@@ -92,6 +96,10 @@ fn 重开旁车按账号和路线恢复对应材料() {
         seeds[BusinessScope::Ygdk as usize].material,
         Some(BusinessMaterial::Ygdk(ref value)) if value.uid == 42
     ));
+    assert!(matches!(
+        seeds[BusinessScope::HzCgyy as usize].material,
+        Some(BusinessMaterial::HzCgyy(ref value)) if value.0 == "fixture-hzsm"
+    ));
     let (_, other_route) = reopened.seeds(ACCOUNT, ConnectionMode::WebVpn, NOW + 1);
     assert!(other_route.iter().all(|seed| seed.material.is_none()));
     let (_, other_account) = reopened.seeds("fixture-other", ConnectionMode::Direct, NOW + 1);
@@ -105,6 +113,7 @@ fn 三种材料按各自期限读取() {
     write_materials(&path, NOW);
     let reopened = cache(&path);
     for (scope, ttl) in [
+        (BusinessScope::HzCgyy, 2 * 60 * 60),
         (BusinessScope::Spoc, 3 * 60 * 60),
         (BusinessScope::Ygdk, 12 * 60 * 60),
         (BusinessScope::Identity, 7 * 24 * 60 * 60),
@@ -511,4 +520,11 @@ mod queued {
         );
         std::fs::remove_dir_all(path).unwrap();
     }
+}
+
+#[test]
+fn 杭州空间预约令牌调试输出不含令牌() {
+    let material = BusinessMaterial::HzCgyy(HzCgyyToken("fixture-hzsm-secret".into()));
+    let text = format!("{material:?}");
+    assert!(!text.contains("fixture-hzsm-secret"), "{text}");
 }

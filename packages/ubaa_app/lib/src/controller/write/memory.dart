@@ -87,6 +87,8 @@ mixin ControllerWriteCache on ControllerState {
       WriteOperation.libbookCancelBooking => FeatureId.libbook,
       WriteOperation.cgyySubmitReservation ||
       WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+      WriteOperation.hangzhouCgyySubmitReservation ||
+      WriteOperation.hangzhouCgyyCancelOrder => FeatureId.hangzhouCgyy,
       WriteOperation.ygdkSubmit => FeatureId.ygdk,
       WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
       WriteOperation.libraryLoanRenew => null,

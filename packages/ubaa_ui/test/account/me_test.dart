@@ -10,6 +10,9 @@ import 'package:ubaa_ui/src/app/account/campus_account_loader.dart';
 class _FakeCampusService implements CampusAccountService {
   int calls = 0;
   bool failNetwork = false;
+  bool usedOnly = false;
+  bool staleFee = false;
+  bool failMetrics = false;
   CampusAccountSnapshot snapshot = const CampusAccountSnapshot();
   Completer<void>? gate;
   Completer<CampusAccountSnapshot>? cacheGate;
@@ -28,6 +31,13 @@ class _FakeCampusService implements CampusAccountService {
   @override
   Future<CampusMetrics> metrics() async {
     await gate?.future;
+    if (failMetrics) {
+      throw const UiError(
+        code: UbaaErrorCode.upstreamUnavailable,
+        title: '读取失败',
+        message: '请连接网络',
+      );
+    }
     return _metrics();
   }
 
@@ -36,7 +46,13 @@ class _FakeCampusService implements CampusAccountService {
       const CampusAmount(value: '0', unit: '元'),
       fetchedAt: _at,
     ),
-    networkBalance: CampusMetricFailure('暂不可用', fetchedAt: _at),
+    // 本次失败、沿用上次成功值时，取得时间早于其余项。
+    networkBalance: staleFee
+        ? CampusMetricValue(
+            const CampusAmount(value: '25.00', unit: '元'),
+            fetchedAt: _at.subtract(const Duration(days: 1)),
+          )
+        : CampusMetricFailure('暂不可用', fetchedAt: _at),
     unreadMail: CampusMetricValue(3, fetchedAt: _at),
     borrowedBooks: CampusMetricValue(0, fetchedAt: _at),
     cloudStorageRemaining: CampusMetricValue(
@@ -53,6 +69,19 @@ class _FakeCampusService implements CampusAccountService {
         code: UbaaErrorCode.upstreamUnavailable,
         title: '读取失败',
         message: '网费系统暂不可用',
+      );
+    }
+    if (usedOnly) {
+      // 上游只提供已用流量。
+      return NetworkUsage(
+        fetchedAt: _at,
+        remainingExcludesPackages: false,
+        products: const [
+          NetworkProductUsage(
+            productName: '学生',
+            used: CampusAmount(value: '197.45', unit: 'GB'),
+          ),
+        ],
       );
     }
     return NetworkUsage(
@@ -483,7 +512,23 @@ void main() {
     expect(service.calls, 1);
   });
 
-  testWidgets('下拉刷新失败时保留旧流量并显示错误', (tester) async {
+  testWidgets('只有已用流量时不显示剩余项和套餐说明', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final service = _FakeCampusService()..usedOnly = true;
+    await tester.pumpWidget(_app(service));
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    expect(find.text('学生'), findsOneWidget);
+    expect(find.text('已用'), findsOneWidget);
+    expect(find.textContaining('197.45'), findsOneWidget);
+    expect(find.text('免费剩余'), findsNothing);
+    expect(find.text('计费剩余'), findsNothing);
+    expect(find.text('免费剩余含套餐可用流量'), findsNothing);
+  });
+
+  testWidgets('下拉刷新失败时保留旧数据并提示联网后更新', (tester) async {
     tester.view.physicalSize = const Size(390, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -492,12 +537,55 @@ void main() {
     await tester.pumpAndSettle();
     await _openMe(tester);
 
-    service.failNetwork = true;
+    service
+      ..failNetwork = true
+      ..failMetrics = true;
     await tester.fling(find.byType(ListView).first, const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
     expect(service.calls, 2);
     expect(find.text('合成网络产品'), findsOneWidget);
+    expect(find.text('网费系统暂不可用'), findsNothing);
+    expect(find.text('请连接网络'), findsNothing);
+    expect(find.textContaining('流量为 10月30日'), findsOneWidget);
+    expect(find.textContaining('显示的是 10月30日'), findsOneWidget);
+    expect(find.textContaining('联网后会自动更新'), findsNWidgets(2));
+    final card = find.byKey(const ValueKey('me-metric-card'));
+    expect(
+      find.descendant(of: card, matching: find.text('读取失败')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('没有旧数据时仍显示错误', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final service = _FakeCampusService()..failNetwork = true;
+    await tester.pumpWidget(_app(service));
+    await tester.pumpAndSettle();
+    await _openMe(tester);
     expect(find.text('网费系统暂不可用'), findsOneWidget);
+    expect(find.textContaining('流量为'), findsNothing);
+  });
+
+  testWidgets('单项沿用上次结果时注明时间', (tester) async {
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final service = _FakeCampusService()..staleFee = true;
+    await tester.pumpWidget(_app(service));
+    await tester.pumpAndSettle();
+    await _openMe(tester);
+    final fee = find.byKey(const ValueKey('me-metric-network-fee'));
+    expect(
+      find.descendant(
+        of: fee,
+        matching: find.textContaining('25.00', findRichText: true),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('网费为 10月29日'), findsOneWidget);
+    expect(find.textContaining('校园卡为'), findsNothing);
   });
 
   testWidgets('先显示本机快照，在线结果到达后静默替换', (tester) async {
