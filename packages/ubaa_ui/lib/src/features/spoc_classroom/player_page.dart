@@ -57,6 +57,7 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
       ));
   VideoPlayback? get _playback => _playbackView.value.playback;
   ({VideoPlayback playback, int generation})? _pendingPlayback;
+  final _retiringPlaybacks = Set<VideoPlayback>.identity();
   Future<Object?>? _releasingPlayback;
   double _rate = 1;
   final _teacherPosition = ValueNotifier(Duration.zero);
@@ -100,14 +101,18 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     final playback = _playback;
     if (playback != null) {
       unawaited(_pauseInBackground(playback, _openGeneration));
-    } else if (_pendingPlayback case final pending?) {
+    }
+    if (_pendingPlayback case final pending?) {
       unawaited(_pauseInBackground(pending.playback, pending.generation));
+    }
+    for (final retiring in _retiringPlaybacks) {
+      unawaited(_pauseInBackground(retiring, null));
     }
   }
 
   Future<void> _pauseInBackground(
     VideoPlayback playback,
-    int generation,
+    int? generation,
   ) async {
     try {
       await playback.pause();
@@ -150,10 +155,13 @@ class _ClassroomPlayerPageState extends State<ClassroomPlayerPage>
     bool afterFrame = false,
   }) {
     final previous = _releasingPlayback;
+    // 等待卸载帧或前一项释放期间，后台事件仍须能暂停这个句柄。
+    _retiringPlaybacks.add(playback);
     final task = Future<Object?>.microtask(() async {
       // 已交付的句柄须等普通页和全屏都卸下画面与控件。
       if (afterFrame) await WidgetsBinding.instance.endOfFrame;
       await previous;
+      _retiringPlaybacks.remove(playback);
       try {
         await playback.dispose();
         return null;

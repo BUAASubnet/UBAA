@@ -522,6 +522,35 @@ void main() {
     expect(find.byKey(ValueKey(_teacherUrl)), findsNothing);
   });
 
+  testWidgets('切换到 PPT 后卸载帧前进入后台，先暂停教师路再卸载释放', (tester) async {
+    final fixture = await ClassroomFixture.load();
+    final teacherView = find.byKey(ValueKey(_teacherUrl), skipOffstage: false);
+    final capability = _RecordingPlayback(
+      beforeDispose: () async => expect(teacherView, findsNothing),
+    );
+    await _pumpPlayer(tester, fixture, playback: capability);
+    final teacher = capability.playbacks.single;
+
+    await tester.tap(find.text('PPT'));
+    expect(teacherView, findsOneWidget);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    try {
+      await tester.idle();
+      expect(teacher.calls, ['播放', '暂停']);
+      expect(teacher.state.value.isPlaying, isFalse);
+      expect(teacherView, findsOneWidget);
+      expect(capability.opens, hasLength(1));
+    } finally {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+    await tester.pumpAndSettle();
+
+    expect(teacher.calls, ['播放', '暂停', '释放']);
+    expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
+    expect(capability.playbacks.last.calls, ['播放']);
+    expect(capability.playbacks.last.state.value.isPlaying, isTrue);
+  });
+
   for (final switchSource in [false, true]) {
     testWidgets('全屏后台暂停失败后，${switchSource ? '切源' : '重试'}须等待旧句柄释放', (
       tester,
