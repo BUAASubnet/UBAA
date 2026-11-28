@@ -54,6 +54,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   FeatureQuery? _expected;
   bool _started = false, _selectionNeeded = false, _selectingTerm = false;
   int _generation = 0;
+
+  /// 按缓存学期先行展示时的在线核对代次；用户自行选择或缓存范围变化后失效。
+  int _termCheck = 0;
   String? _weeksTerm, _metadataAttempt, _reportedTitle;
   FeatureResult? _weeks;
   final _downloadAttempts = <String>{};
@@ -72,6 +75,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     super.didUpdateWidget(old);
     if (old.epoch != widget.epoch) {
       _generation++;
+      _termCheck++;
       _downloadAttempts.clear();
       _courseColors.clear();
       _weeks = null;
@@ -110,6 +114,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 
   void stopAutomatic({bool notify = true, bool clearPrompt = true}) {
     _generation++;
+    _termCheck++;
     _automatic = null;
     _expected = null;
     _started = true;
@@ -182,30 +187,14 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     }
     if (_automatic != null && _sameQuery(_expected, widget.query) && _settled) {
       if (_automatic == _ScheduleAutoStage.terms) {
-        // 学期索引核对完成后再自动选择，避免旧缓存的默认值抢先推进查询。
-        if (widget.snapshot.status == FeatureLoadStatus.loading) return;
-        final selected = widget.snapshot.details
-            .where(
-              (d) =>
-                  d.presentation is TermPresentation &&
-                  (d.presentation! as TermPresentation).selected &&
-                  (d.presentation! as TermPresentation).code.trim().isNotEmpty,
-            )
-            .toList();
-        final term = selected.length == 1
-            ? (selected.single.presentation! as TermPresentation).code
-            : null;
-        final unique =
-            term != null &&
-            widget.snapshot.details
-                    .where(
-                      (d) =>
-                          d.presentation is TermPresentation &&
-                          (d.presentation! as TermPresentation).code == term,
-                    )
-                    .length ==
-                1;
-        if (!unique) {
+        final term = _currentTerm(widget.snapshot.details);
+        if (widget.snapshot.status == FeatureLoadStatus.loading) {
+          // 在线核对未完成：完整缓存能确定唯一当前学期时先展示该学期，
+          // 另行核对学校当前学期，不一致再改选；否则等待核对，避免旧默认值抢先。
+          final loader = widget.loadTerms;
+          if (term == null || !_hasSavedRead || loader == null) return;
+          unawaited(_verifyTerm(loader, term, ++_termCheck));
+        } else if (term == null) {
           _needSelection(null);
           return;
         }
@@ -260,6 +249,44 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       _reportedTitle = title;
       widget.onTitle?.call(title);
     }
+  }
+
+  /// 唯一且可查询的学校当前学期；缺失或歧义时为 null。
+  String? _currentTerm(List<FeatureDetail> details) {
+    final terms = details
+        .map((d) => d.presentation)
+        .whereType<TermPresentation>()
+        .toList();
+    final selected = terms
+        .where((t) => t.selected && t.code.trim().isNotEmpty)
+        .toList();
+    if (selected.length != 1) return null;
+    final code = selected.single.code;
+    return terms.where((t) => t.code == code).length == 1 ? code : null;
+  }
+
+  Future<void> _verifyTerm(
+    Future<FeatureResult> Function(bool) loader,
+    String cached,
+    int check,
+  ) async {
+    final FeatureResult result;
+    try {
+      result = await loader(false);
+    } on Object {
+      return; // 核对失败保留缓存课表，学期面板仍可手动重试。
+    }
+    if (!mounted || check != _termCheck || result.error != null) return;
+    final online = _currentTerm(result.details);
+    if (online == null ||
+        online == cached ||
+        !widget.visible ||
+        widget.onQuery == null ||
+        widget.query?.term != cached)
+      return;
+    stopAutomatic(notify: false);
+    _automatic = _ScheduleAutoStage.weeks;
+    _request(FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: online));
   }
 
   void _downloadSemester() {
@@ -375,6 +402,12 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     unawaited(widget.onQuery!(query));
   }
 
+  /// 用户主动切换后，先行展示的缓存学期不再被在线核对改选。
+  void _requestByUser(FeatureQuery query) {
+    _termCheck++;
+    _request(query);
+  }
+
   void _needSelection(String? term) {
     _automatic = null;
     _expected = null;
@@ -424,7 +457,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       ),
     );
     if (!mounted || selected == null) return;
-    _request(
+    _requestByUser(
       FeatureQuery(
         view: FeatureQueryView.scheduleWeek,
         term: term,
@@ -484,7 +517,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         : (currentWeekNum != null ? currentWeekNum + 1 : null);
     VoidCallback? goWeek(int? week) => week == null || widget.onQuery == null
         ? null
-        : () => _request(
+        : () => _requestByUser(
             FeatureQuery(
               view: FeatureQueryView.scheduleWeek,
               term: term,

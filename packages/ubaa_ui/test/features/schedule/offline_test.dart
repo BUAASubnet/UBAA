@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -136,13 +137,108 @@ void main() {
     await openFeature(tester, FeatureId.schedule);
     expect(queries.map((q) => q.view), [FeatureQueryView.scheduleTerms]);
   });
+  testWidgets('在线学期核对未返回时先按缓存学期显示已保存周课表', (tester) async {
+    final queries = <FeatureQuery>[];
+    final online = Completer<FeatureResult>();
+    await _show(
+      tester,
+      queries,
+      status: FeatureLoadStatus.loading,
+      termsStatus: FeatureLoadStatus.loading,
+      loadTerms: (_) => online.future,
+    );
+    await openFeature(tester, FeatureId.schedule, settle: false);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump();
+    }
+    expect(queries.map((q) => q.view), [
+      FeatureQueryView.scheduleTerms,
+      FeatureQueryView.scheduleWeeks,
+      FeatureQueryView.scheduleWeek,
+    ]);
+    expect(find.text('合成已保存课程'), findsOneWidget);
+    online.complete(_terms({'term': true}));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump();
+    }
+    expect(queries, hasLength(3));
+    expect(find.text('合成已保存课程'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('在线核对的当前学期与缓存不同时改用学校当前学期', (tester) async {
+    final queries = <FeatureQuery>[];
+    final online = Completer<FeatureResult>();
+    await _show(
+      tester,
+      queries,
+      status: FeatureLoadStatus.loading,
+      termsStatus: FeatureLoadStatus.loading,
+      loadTerms: (_) => online.future,
+    );
+    await openFeature(tester, FeatureId.schedule, settle: false);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump();
+    }
+    expect(queries.last.view, FeatureQueryView.scheduleWeek);
+    online.complete(_terms({'term': false, '20261': true}));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump();
+    }
+    expect(
+      queries.any(
+        (q) => q.view == FeatureQueryView.scheduleWeeks && q.term == '20261',
+      ),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('在线学期核对失败时保留缓存周课表', (tester) async {
+    final queries = <FeatureQuery>[];
+    await _show(
+      tester,
+      queries,
+      status: FeatureLoadStatus.loading,
+      termsStatus: FeatureLoadStatus.loading,
+      loadTerms: (_) async => const FeatureResult.failure(
+        UiError(
+          code: UbaaErrorCode.networkError,
+          title: '网络不可用',
+          message: '合成网络失败',
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule, settle: false);
+    for (var i = 0; i < 8; i++) {
+      await tester.pump();
+    }
+    expect(queries, hasLength(3));
+    expect(find.text('合成已保存课程'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
+
+FeatureResult _terms(Map<String, bool> selected) => FeatureResult.success(
+  details: [
+    for (final (index, MapEntry(:key, :value)) in selected.entries.indexed)
+      FeatureDetail(
+        title: key,
+        presentation: TermPresentation(
+          code: key,
+          selected: value,
+          index: index,
+        ),
+      ),
+  ],
+  resolvedRoute: ConnectionMode.direct,
+);
 
 Future<void> _show(
   WidgetTester tester,
   List<FeatureQuery> queries, {
   required FeatureLoadStatus status,
   bool complete = true,
+  FeatureLoadStatus termsStatus = FeatureLoadStatus.stale,
+  Future<FeatureResult> Function(bool)? loadTerms,
 }) async {
   FeatureSnapshot snapshot = const FeatureSnapshot(feature: FeatureId.schedule);
   final evidence = DataEvidence(
@@ -202,6 +298,7 @@ Future<void> _show(
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
+          onLoadAcademicTerms: loadTerms,
           onLoadAcademicWeeks: (term, _) async => FeatureResult.success(
             details: details(
               FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
@@ -215,7 +312,7 @@ Future<void> _show(
               () => snapshot = FeatureSnapshot(
                 feature: FeatureId.schedule,
                 status: query.view == FeatureQueryView.scheduleTerms
-                    ? FeatureLoadStatus.stale
+                    ? termsStatus
                     : status,
                 details: details(query),
                 readContext: FeatureReadContext(
