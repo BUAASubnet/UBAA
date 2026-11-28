@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -9,6 +11,44 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/privacy.dart';
 
 void main() {
+  testWidgets('地点恢复未完成时保存，重读仍保留其他地点', (tester) async {
+    await tester.runAsync(() async {
+      final values = _Preferences();
+      PlacePreferenceStore openPlaces() => PlacePreferenceStore(
+        scope: 'synthetic',
+        allowedKeys: UiPlaceKeys.all,
+        values: values,
+      );
+      await openPlaces().write('fixture', {
+        UiPlaceKeys.libbookLibrary: '原图书馆',
+        UiPlaceKeys.libbookArea: '原分区',
+      });
+      final restore = Completer<void>();
+      values.nextPlaceRead = restore.future;
+      await tester.pumpWidget(
+        UbaaAppHost(backend: _Backend(), preferenceValues: values),
+      );
+      await tester.pumpAndSettle();
+      expect(values.nextPlaceRead, isNull);
+      final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+      expect(shell.placePreferences, isEmpty);
+
+      final saving = shell.onSavePlacePreference!(
+        UiPlaceKeys.libbookArea,
+        '新分区',
+      );
+      restore.complete();
+      await saving;
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+
+      expect(await openPlaces().read('fixture'), {
+        UiPlaceKeys.libbookLibrary: '原图书馆',
+        UiPlaceKeys.libbookArea: '新分区',
+      });
+    });
+  });
+
   testWidgets('宿主恢复地点、保存、清账号并保留设备主题和其他账号', (tester) async {
     await tester.runAsync(() async {
       final values = _Preferences();
@@ -62,8 +102,17 @@ class _Backend extends DemoBackend {
 class _Preferences implements PreferenceValues {
   final delegate = acceptedPrivacyPreferences();
   bool fail = false;
+  Future<void>? nextPlaceRead;
   @override
-  Future<String?> read(String key) => delegate.read(key);
+  Future<String?> read(String key) async {
+    if (key.startsWith('flutter.ubaa.preferences.v2.places.')) {
+      final delay = nextPlaceRead;
+      nextPlaceRead = null;
+      await delay;
+    }
+    return delegate.read(key);
+  }
+
   @override
   Future<void> write(String key, String value) async {
     if (fail) throw StateError('合成存储失败');

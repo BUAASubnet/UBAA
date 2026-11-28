@@ -125,11 +125,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       owner.checkCurrent();
       if (!UiPlaceKeys.all.contains(key)) return;
       _placePreferences = {..._placePreferences, key: value};
-      unawaited(
-        _placeStore
-            .write(owner.accountKey, _placePreferences)
-            .catchError((Object _) {}),
-      );
+      // 先迁移别名，再在账号存储的串行队列里合并本次选择。
+      await _preferenceMigration;
+      owner.checkCurrent();
+      await _placeStore.writePlace(owner.accountKey, key, value);
     } on Object {
       /* 普通偏好写失败不打断操作。 */
     }

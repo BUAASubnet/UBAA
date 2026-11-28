@@ -137,10 +137,15 @@ final class AccountPreferences<T> {
     });
   }
 
-  Future<void> write(String account, T value) => _serial(account, (key) async {
-    await _read(key); // 损坏偏好不被普通保存静默覆盖。
-    await values.write(key, jsonEncode(encode(value)));
-  });
+  Future<void> write(String account, T value) => update(account, (_) => value);
+
+  Future<void> update(String account, T Function(T? current) transform) =>
+      _serial(account, (key) async {
+        // 损坏偏好不被普通保存静默覆盖。
+        final value = transform(await _read(key));
+        await values.write(key, jsonEncode(encode(value)));
+      });
+
   Future<void> clear(String account) => _serial(account, (key) async {
     // 明确删除只依赖账号键；损坏的普通偏好也必须能够恢复。
     // 保留普通保存的严格解码，插件删除错误仍交由调用方处理。

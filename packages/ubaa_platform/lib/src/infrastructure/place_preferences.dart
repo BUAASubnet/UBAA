@@ -59,6 +59,17 @@ final class PlacePreferenceStore implements AccountPreferenceMigration {
     }
   }
 
+  Future<void> writePlace(String account, String key, String value) async {
+    if (!_allowed.contains(key)) throw ArgumentError('未登记的地点偏好');
+    Map<String, String> merge(Map<String, String>? current) =>
+        Map.unmodifiable({...?current, key: value});
+    if (_store case final store?) {
+      await store.update(account, merge);
+    } else {
+      _memory[account] = merge(_memory[account]);
+    }
+  }
+
   Future<void> clearAccount(String account) async {
     if (_store == null) {
       _memory.remove(account);
