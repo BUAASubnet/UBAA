@@ -271,10 +271,42 @@ fn setup_with_cookies(
         root,
     )
 }
+fn account_verification_steps(vpn: bool) -> Vec<Step> {
+    let route_url = |url: &str| {
+        if vpn {
+            ubaa_test_support::to_webvpn_url(url).unwrap()
+        } else {
+            url.to_owned()
+        }
+    };
+    let ticket_url = route_url(
+        "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp",
+    );
+    let validate_url = route_url(
+        "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
+    );
+    vec![
+        (
+            ticket_url.clone(),
+            ubaa_core::facade::testing::sso_fixture_ticket(&HttpRequest::get(&ticket_url)).unwrap(),
+        ),
+        (
+            validate_url.clone(),
+            HttpResponse::new(
+                200,
+                &validate_url,
+                br#"{"user":"fixture-user","attributes":{"employeeNumber":["fixture-user"]}}"#
+                    .to_vec(),
+            ),
+        ),
+    ]
+}
+
 #[tokio::test]
 async fn 两条路线从冷启动读取同名课程与全部课堂数据且导出脱敏() {
     for vpn in [false, true] {
-        let mut steps = super::files::login(vpn, "fixture-spoc-secret");
+        let mut steps = account_verification_steps(vpn);
+        steps.extend(super::files::login(vpn, "fixture-spoc-secret"));
         for (second, id) in [(false, "100001"), (true, "100002")] {
             steps.extend(mapping(vpn, second));
             if !second {
@@ -288,6 +320,7 @@ async fn 两条路线从冷启动读取同名课程与全部课堂数据且导�
         let (mut client, script, root) = setup(vpn, steps);
         let diagnostics = client.raw_diagnostics();
         diagnostics.enable();
+        client.recover_connection_session().await.unwrap();
         for (index, id) in ["100001", "100002"].into_iter().enumerate() {
             let list = fixture!("course-list");
             let kcid = list["content"][index]["kcid"].as_str().unwrap();

@@ -56,11 +56,15 @@ impl UbaaClient {
         login: &InteractiveLoginHandle,
         required_route: Option<ConnectionMode>,
     ) -> Result<InteractiveLoginOutcome> {
+        let previous_generation = self.raw_diagnostics.generation();
         self.verified_login = None;
         self.direct_runtime.ensure_primary_client()?;
         login.ensure_owner(&self.interactive.cancellation)?;
         self.check_school_requests()?;
         login.claim_preparation()?;
+        let diagnostic_generation = self
+            .raw_diagnostics
+            .begin_explicit(previous_generation, || login.is_active());
         self.guard_latest_session_ownership()?;
         // 这里只清旧上下文，不能撤销刚刚同步登记的当前意图。
         self.interactive.context = None;
@@ -70,13 +74,13 @@ impl UbaaClient {
         self.direct_auth.clear();
         self.webvpn_auth.clear();
         let revisions = self.sessions.clear_both()?;
-        self.raw_diagnostics.clear();
         self.business_sessions.discard_seeds();
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
         self.interactive.current_login = Some(login.clone());
         let mut context = InteractiveContext {
             login: login.clone(),
+            diagnostic_generation,
             routes: std::array::from_fn(|_| StoredRoute::default()),
             required_route,
             keep_route_policy: false,
@@ -153,14 +157,15 @@ impl UbaaClient {
                     let clock = Arc::clone(&self.interactive.clock);
                     let (runtime, auth) = self.route_parts_for(route);
                     runtime.set_interactive_login_scope(Some(login.clone()));
-                    let result = auth
-                        .submit_image_answer(
+                    let attempt = context.route_diagnostics(index, runtime);
+                    let result = attempt
+                        .scope(auth.submit_image_answer(
                             runtime,
                             credentials,
                             &pending.page,
                             answer.answer.expose_secret(),
                             || pending.handle.ensure_scope(login, route, clock()),
-                        )
+                        ))
                         .await
                         .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Captcha));
                     runtime.set_interactive_login_scope(None);
@@ -170,6 +175,7 @@ impl UbaaClient {
                             self.record_interactive_profile(&mut context, index, profile)?;
                         }
                         Ok(InteractiveSubmission::Rejected(page)) => {
+                            context.routes[index].diagnostics = None;
                             frames[index] = self
                                 .apply_interactive_preparation(
                                     &mut context,
@@ -187,6 +193,7 @@ impl UbaaClient {
                             }
                         }
                         Err(error) => {
+                            context.routes[index].diagnostics = None;
                             context.routes[index].error = Some(safe_interactive_error(&error));
                         }
                     }
@@ -206,8 +213,9 @@ impl UbaaClient {
     ) -> Result<()> {
         let (runtime, auth) = self.route_parts_for(route_at(index));
         runtime.set_interactive_login_scope(Some(login.clone()));
-        let result = auth
-            .login(runtime, credentials)
+        let attempt = context.route_diagnostics(index, runtime);
+        let result = attempt
+            .scope(auth.login(runtime, credentials))
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Submission));
         runtime.set_interactive_login_scope(None);
@@ -215,6 +223,7 @@ impl UbaaClient {
         match result {
             Ok(profile) => self.record_interactive_profile(context, index, profile)?,
             Err(error) => {
+                context.routes[index].diagnostics = None;
                 context.routes[index].state = InteractiveRouteState::Failed;
                 context.routes[index].error = Some(safe_interactive_error(&error));
             }
@@ -375,8 +384,9 @@ impl UbaaClient {
     ) -> Result<Option<CaptchaFrame>> {
         let (runtime, auth) = self.route_parts_for(route_at(index));
         runtime.set_interactive_login_scope(Some(context.login.clone()));
-        let result = auth
-            .prepare_interactive(runtime)
+        let attempt = context.route_diagnostics(index, runtime);
+        let result = attempt
+            .scope(auth.prepare_interactive(runtime))
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage));
         runtime.set_interactive_login_scope(None);
@@ -387,6 +397,7 @@ impl UbaaClient {
                     .await
             }
             Err(error) => {
+                context.routes[index].diagnostics = None;
                 // 已要求验证码的刷新失败不能降级为普通登录或恢复旧挑战。
                 if context.routes[index].state != InteractiveRouteState::CaptchaRequired {
                     context.routes[index].state = InteractiveRouteState::Failed;
@@ -423,7 +434,9 @@ impl UbaaClient {
                 );
                 let runtime = self.runtime_for(route_at(index));
                 runtime.set_interactive_login_scope(Some(context.login.clone()));
-                let result = image::fetch_captcha_frame(runtime, &page.id)
+                let attempt = context.route_diagnostics(index, runtime);
+                let result = attempt
+                    .scope(image::fetch_captcha_frame(runtime, &page.id))
                     .await
                     .map_err(|error| error.with_auth_stage(crate::error::AuthStage::Captcha));
                 runtime.set_interactive_login_scope(None);
@@ -436,6 +449,7 @@ impl UbaaClient {
                             (self.interactive.clock)(),
                         ) {
                             handle.consume();
+                            context.routes[index].diagnostics = None;
                             context.routes[index].error = Some(safe_interactive_error(
                                 &error.with_auth_reason(crate::error::AuthReason::CaptchaExpired),
                             ));
@@ -446,6 +460,7 @@ impl UbaaClient {
                     }
                     Err(error) => {
                         handle.consume();
+                        context.routes[index].diagnostics = None;
                         context.routes[index].error = Some(safe_interactive_error(&error));
                     }
                 }
@@ -460,12 +475,9 @@ impl UbaaClient {
         index: usize,
         profile: UserProfile,
     ) -> Result<()> {
+        let attempt = context.routes[index].diagnostics.take();
         let username = context.login.username();
-        if ![profile.username.as_deref(), profile.school_id.as_deref()]
-            .into_iter()
-            .flatten()
-            .any(|value| value.eq_ignore_ascii_case(username))
-        {
+        if !super::auth::login_profile_matches(&profile, username, true) {
             let (runtime, auth) = self.route_parts_for(route_at(index));
             runtime.clear_with(|| auth.clear())?;
             context.routes[index].state = InteractiveRouteState::Failed;
@@ -479,6 +491,10 @@ impl UbaaClient {
                 .with_auth_reason(crate::error::AuthReason::IdentityMismatch),
             ));
             return Ok(());
+        }
+        if let Some(attempt) = attempt {
+            self.runtime_for(route_at(index))
+                .confirm_diagnostic_identity(attempt, &profile, || context.login.is_active());
         }
         context.routes[index].state = InteractiveRouteState::Ready;
         context.routes[index].pending = None;
@@ -502,6 +518,7 @@ impl UbaaClient {
                     .ensure(&context.login, route_at(index), now)
                     .is_err()
             }) {
+                stored.diagnostics = None;
                 if let Some(pending) = stored.pending.take() {
                     pending.handle.consume();
                 }

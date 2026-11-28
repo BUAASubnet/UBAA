@@ -285,10 +285,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String name,
   });
 
+  /// 绑定本机版本。已知的账号名只用于比对原始诊断的归属。
   ///
   /// # Errors
   /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
-  Future<void> bindSharedAccount({required BridgeSharedAccount scope});
+  Future<void> bindSharedAccount({
+    required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
+  });
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///

@@ -62,7 +62,7 @@ async fn gui与命令未登录时保留日程并返回认证错误() {
     let directory = root.join("core");
     let bridge = bridge_client(&directory, core::RoutePolicy::Direct);
     let owner = shared_owner(&root);
-    bridge.bind_shared_account(&owner).await.unwrap();
+    bridge.bind_shared_account(&owner, None).await.unwrap();
     let agenda = BridgeAgendaStore::open_shared(
         directory.to_string_lossy().into(),
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
@@ -155,7 +155,7 @@ async fn 旧创建作用域在客户端锁后拒绝换路线和同路线重开()
         let directory = root.join("core");
         let owner = shared_owner(&root);
         let bridge = bridge_client(&directory, core::RoutePolicy::Direct);
-        bridge.bind_shared_account(&owner).await.unwrap();
+        bridge.bind_shared_account(&owner, None).await.unwrap();
         let agenda = BridgeAgendaStore::open_shared(
             directory.to_string_lossy().into(),
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
@@ -166,7 +166,7 @@ async fn 旧创建作用域在客户端锁后拒绝换路线和同路线重开()
         let service = BridgeAgendaSyncService::open(&agenda, directory.to_string_lossy().into());
         let scope = bridge.capture_agenda_sync_scope().unwrap();
         let replacement = bridge_client(&root.join("replacement"), policy);
-        replacement.bind_shared_account(&owner).await.unwrap();
+        replacement.bind_shared_account(&owner, None).await.unwrap();
         let reopened = replacement.inner.lock().await.take().unwrap();
         {
             let mut held = bridge.inner.lock().await;

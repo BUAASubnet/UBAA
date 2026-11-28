@@ -8,7 +8,10 @@ use base64::Engine;
 use serde_json::{Value, json};
 
 use super::{HttpFileRange, HttpRequest, HttpResponse, HttpTransferObserver, HttpTransport};
-use crate::{domain::ConnectionMode, error::Result};
+use crate::{
+    domain::{ConnectionMode, UserProfile},
+    error::Result,
+};
 mod redact;
 
 const MAX_BYTES: usize = 32 * 1024 * 1024;
@@ -21,29 +24,162 @@ pub struct RawDiagnostics(Arc<Mutex<Journal>>);
 #[derive(Default)]
 struct Journal {
     enabled: bool,
-    signed_out: bool,
+    state: SessionState,
     started_ms: u64,
     generation: u64,
+    expected_account: Option<String>,
+    account: Option<VerifiedAccount>,
+    attempt: u64,
     sequence: u64,
     dropped: u64,
     completed: u64,
     bytes: usize,
-    records: VecDeque<(u64, String)>,
+    records: VecDeque<Record>,
 }
 
+#[derive(Default, PartialEq, Eq)]
+enum SessionState {
+    #[default]
+    Open,
+    SignedOut,
+    Closed,
+}
+
+struct VerifiedAccount {
+    school_id: String,
+    username: Option<String>,
+}
+
+impl VerifiedAccount {
+    fn matches(&self, expected: &str) -> bool {
+        self.school_id == expected || self.username.as_deref() == Some(expected)
+    }
+}
+
+struct Record {
+    id: CaptureId,
+    text: String,
+}
+
+#[derive(Clone, Copy)]
 struct CaptureId {
     generation: u64,
+    attempt: Option<u64>,
     sequence: u64,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ConfirmedOwner(u64);
+
+#[derive(Clone)]
+struct CaptureScope {
+    diagnostics: RawDiagnostics,
+    generation: u64,
+    attempt: Option<u64>,
+}
+
+tokio::task_local! {
+    static CAPTURE_SCOPE: CaptureScope;
+}
+
+/// 归属未核验的认证过程。Future 被取消或认证失败时随作用域丢弃。
+pub(crate) struct DiagnosticAttempt(CaptureScope);
+
+impl DiagnosticAttempt {
+    pub(crate) async fn scope<T>(&self, future: impl Future<Output = T>) -> T {
+        CAPTURE_SCOPE.scope(self.0.clone(), future).await
+    }
+
+    pub(crate) fn confirm(
+        self,
+        profile: &UserProfile,
+        current: impl FnOnce() -> bool,
+    ) -> Option<ConfirmedOwner> {
+        let school_id = profile
+            .school_id
+            .as_deref()
+            .or(profile.username.as_deref())?;
+        let mut journal = self.0.diagnostics.lock();
+        if !journal.accepts(self.0.generation)
+            || journal
+                .account
+                .as_ref()
+                .is_some_and(|bound| bound.school_id != school_id)
+            || journal.expected_account.as_deref().is_some_and(|expected| {
+                school_id != expected && profile.username.as_deref() != Some(expected)
+            })
+            || !current()
+        {
+            return None;
+        }
+        journal.account.get_or_insert_with(|| VerifiedAccount {
+            school_id: school_id.to_owned(),
+            username: profile.username.clone(),
+        });
+        for record in &mut journal.records {
+            if self.0.owns(&record.id) {
+                record.id.attempt = None;
+            }
+        }
+        Some(ConfirmedOwner(self.0.generation))
+    }
+}
+
+impl Drop for DiagnosticAttempt {
+    fn drop(&mut self) {
+        let mut journal = self.0.diagnostics.lock();
+        if journal.generation != self.0.generation {
+            return;
+        }
+        let mut bytes = 0;
+        journal.records.retain(|record| {
+            let discard = self.0.owns(&record.id);
+            if discard {
+                bytes += record.text.len();
+            }
+            !discard
+        });
+        journal.bytes -= bytes;
+    }
+}
+
+impl CaptureScope {
+    fn owns(&self, id: &CaptureId) -> bool {
+        id.generation == self.generation && id.attempt == self.attempt
+    }
+}
+
+impl Journal {
+    fn accepts(&self, generation: u64) -> bool {
+        generation == self.generation && self.state == SessionState::Open
+    }
+
+    fn next(&self, state: SessionState) -> Self {
+        Self {
+            enabled: self.enabled,
+            started_ms: if self.enabled && state == SessionState::Open {
+                now_ms()
+            } else {
+                0
+            },
+            state,
+            generation: self.generation + 1,
+            ..Self::default()
+        }
+    }
+}
+
 impl RawDiagnostics {
+    fn lock(&self) -> std::sync::MutexGuard<'_, Journal> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     /// 宿主装配时启用采集。不会发送请求或读取已有会话文件。
     pub fn enable(&self) {
-        let mut journal = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !journal.enabled {
+        let mut journal = self.lock();
+        if !journal.enabled && journal.state != SessionState::Closed {
             journal.started_ms = now_ms();
             journal.enabled = true;
         }
@@ -52,18 +188,16 @@ impl RawDiagnostics {
     /// 只在用户主动导出时调用，内容可能包含个人数据和认证凭据。
     #[must_use]
     pub fn export_json(&self) -> String {
-        let journal = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let journal = self.lock();
         let records: Vec<Value> = journal
             .records
             .iter()
-            .filter_map(|(_, text)| serde_json::from_str(text).ok())
+            .filter(|record| record.id.attempt.is_none() && journal.accepts(record.id.generation))
+            .filter_map(|record| serde_json::from_str(&record.text).ok())
             .collect();
         json!({
             "capture_scope": "client_lifetime",
-            "enabled": journal.enabled && !journal.signed_out,
+            "enabled": journal.enabled && journal.state == SessionState::Open,
             "started_at_unix_ms": journal.started_ms,
             "exported_at_unix_ms": now_ms(),
             "max_records": MAX_RECORDS,
@@ -81,54 +215,112 @@ impl RawDiagnostics {
 
     /// 本机退出立即清空、停采，并废弃此前已开始的请求。
     pub fn end_local_session(&self) {
-        self.reset(true);
+        self.advance(SessionState::SignedOut, |_| true);
     }
 
-    /// 开始新认证时清空并恢复采集。
-    pub(crate) fn clear(&self) {
-        self.reset(false);
+    /// 后端开始关闭时永久废弃此缓冲，无需等待业务锁。
+    pub fn close(&self) {
+        self.advance(SessionState::Closed, |_| true);
     }
 
-    fn reset(&self, signed_out: bool) {
-        let mut journal = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        *journal = Journal {
-            enabled: journal.enabled,
-            signed_out,
-            started_ms: if journal.enabled && !signed_out {
-                now_ms()
-            } else {
-                0
-            },
-            generation: journal.generation + 1,
-            ..Journal::default()
-        };
+    /// 显式登录在等待会话文件锁之前更换归属代次。
+    pub(crate) fn begin_explicit(&self, generation: u64, current: impl FnOnce() -> bool) -> u64 {
+        self.advance(SessionState::Open, |observed| {
+            observed == generation && current()
+        })
+        .unwrap_or(generation)
+    }
+
+    fn advance(&self, state: SessionState, current: impl FnOnce(u64) -> bool) -> Option<u64> {
+        let mut journal = self.lock();
+        if journal.state == SessionState::Closed || !current(journal.generation) {
+            return None;
+        }
+        let next = journal.next(state);
+        let generation = next.generation;
+        let previous = std::mem::replace(&mut *journal, next);
+        drop(journal);
+        drop(previous);
+        Some(generation)
+    }
+
+    /// 宿主转交固定共享账号的用户名，认证通过后仍需和上游身份比对。
+    pub fn bind_expected_account(&self, username: String) {
+        let mut journal = self.lock();
+        if journal.state == SessionState::Closed {
+            return;
+        }
+        if journal
+            .account
+            .as_ref()
+            .is_some_and(|account| !account.matches(&username))
+        {
+            let next = journal.next(SessionState::Open);
+            *journal = next;
+        }
+        journal.expected_account = Some(username);
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.lock().generation
+    }
+
+    pub(crate) fn pending(&self, generation: u64) -> DiagnosticAttempt {
+        let mut journal = self.lock();
+        journal.attempt += 1;
+        DiagnosticAttempt(CaptureScope {
+            diagnostics: self.clone(),
+            generation,
+            attempt: Some(journal.attempt),
+        })
+    }
+
+    pub(crate) async fn capture_for<T>(
+        &self,
+        ConfirmedOwner(generation): ConfirmedOwner,
+        future: impl Future<Output = T>,
+    ) -> T {
+        // 认证的待确认作用域优先于传输发起方原有的账号归属。
+        if CAPTURE_SCOPE.try_with(|_| ()).is_err() {
+            return CAPTURE_SCOPE
+                .scope(
+                    CaptureScope {
+                        diagnostics: self.clone(),
+                        generation,
+                        attempt: None,
+                    },
+                    future,
+                )
+                .await;
+        }
+        future.await
     }
 
     fn begin(&self) -> Option<CaptureId> {
-        let mut journal = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !journal.enabled || journal.signed_out {
-            return None;
-        }
-        journal.sequence += 1;
-        Some(CaptureId {
-            generation: journal.generation,
-            sequence: journal.sequence,
-        })
+        CAPTURE_SCOPE
+            .try_with(|scope| {
+                if !Arc::ptr_eq(&self.0, &scope.diagnostics.0) {
+                    return None;
+                }
+                let mut journal = self.lock();
+                if !journal.enabled || !journal.accepts(scope.generation) {
+                    return None;
+                }
+                journal.sequence += 1;
+                Some(CaptureId {
+                    generation: scope.generation,
+                    attempt: scope.attempt,
+                    sequence: journal.sequence,
+                })
+            })
+            .ok()
+            .flatten()
     }
 
     fn push(&self, id: &CaptureId, record: &Value) {
         let text = record.to_string();
-        let mut journal = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if id.generation != journal.generation {
+        let mut journal = self.lock();
+        if !journal.accepts(id.generation) {
             return;
         }
         journal.completed += 1;
@@ -137,21 +329,30 @@ impl RawDiagnostics {
             return;
         }
         while journal.records.len() >= MAX_RECORDS || journal.bytes + text.len() > MAX_BYTES {
-            if let Some((_, removed)) = journal.records.pop_front() {
-                journal.bytes -= removed.len();
+            // 待确认记录不能挤掉已确认的故障现场。预算由两类记录共用。
+            let pending = journal
+                .records
+                .iter()
+                .position(|record| record.id.attempt.is_some());
+            let Some(index) = pending.or_else(|| id.attempt.is_none().then_some(0)) else {
                 journal.dropped += 1;
-            } else {
-                break;
-            }
+                return;
+            };
+            let removed = journal
+                .records
+                .remove(index)
+                .expect("超限时缓冲有可淘汰记录");
+            journal.bytes -= removed.text.len();
+            journal.dropped += 1;
         }
         journal.bytes += text.len();
         // 请求可以并发完成，按开始顺序导出，方便关联认证与后续查询。
         let position = journal
             .records
             .iter()
-            .position(|(other, _)| *other > id.sequence)
+            .position(|record| record.id.sequence > id.sequence)
             .unwrap_or(journal.records.len());
-        journal.records.insert(position, (id.sequence, text));
+        journal.records.insert(position, Record { id: *id, text });
     }
 }
 

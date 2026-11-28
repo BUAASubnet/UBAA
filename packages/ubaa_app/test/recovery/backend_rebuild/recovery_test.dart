@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:ubaa_app/src/contracts/lifecycle.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -146,6 +149,40 @@ void main() {
     expect(controller.writeCoordinator.intent, isNull);
   });
 
+  test('旧 Bridge 后端释放挂起期间退出，登录页和旧后端均导出空报告', () async {
+    final first = _DiagnosticsBackend()
+      ..dead = true
+      ..disposeGate = Completer<void>();
+    final controller = AppController(
+      backend: first,
+      backendFactory: Backend.new,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await cachedHome(controller, first);
+    expect(first.exportRawDiagnostics(), contains('synthetic-prior-response'));
+
+    final recovering = controller.resumeSession();
+    await first.disposeStarted.future;
+    final logout = controller.logout();
+    try {
+      expect(controller.phase, AppPhase.login);
+      expect(
+        (jsonDecode(controller.exportFullDiagnostics())
+            as Map)['raw_http']['records'],
+        isEmpty,
+      );
+      expect(
+        (jsonDecode(first.exportRawDiagnostics()) as Map)['records'],
+        isEmpty,
+      );
+    } finally {
+      first.disposeGate!.complete();
+      await recovering;
+      await logout;
+    }
+  });
+
   for (final destroy in [false, true]) {
     test('旧实例释放挂起时${destroy ? "销毁" : "退出"}拒绝继任实例与迟到缓存', () async {
       final first = Backend()
@@ -197,4 +234,37 @@ class _TodoBackend extends Backend implements HomeTodoBackend {
           sortTime: request.now,
         ),
       ]);
+}
+
+class _DiagnosticsBackend extends Backend
+    implements RawDiagnosticsBackend, RawDiagnosticsLifecycle {
+  late final _bridge = BridgeBackend(_RawClient(super.dispose));
+
+  @override
+  String exportRawDiagnostics() => _bridge.exportRawDiagnostics();
+
+  @override
+  void endLocalSession() => _bridge.endLocalSession();
+
+  @override
+  Future<void> dispose() => _bridge.dispose();
+}
+
+class _RawClient implements BridgeClient {
+  _RawClient(this.close);
+
+  final Future<void> Function() close;
+
+  @override
+  int contractVersion() => 54;
+
+  @override
+  String exportRawDiagnostics() =>
+      '{"records":[{"body":"synthetic-prior-response"}]}';
+
+  @override
+  Future<void> dispose() => close();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

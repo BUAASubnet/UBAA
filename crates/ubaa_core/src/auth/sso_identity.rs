@@ -15,7 +15,12 @@ pub(crate) async fn validate_status(
     runtime: &mut ClientRuntime,
     clear_workflow: &mut (dyn FnMut() + Send),
 ) -> Result<AuthStatus> {
-    validate(runtime, clear_workflow, false).await
+    let attempt = runtime.begin_diagnostic_verification(runtime.diagnostics.generation());
+    let status = attempt
+        .scope(validate(runtime, clear_workflow, false))
+        .await?;
+    runtime.confirm_diagnostic_identity(attempt, &status.user, || true);
+    Ok(status)
 }
 
 pub(super) async fn validate_login(

@@ -243,7 +243,11 @@ async fn 诊断按需导出并复用课堂脱敏规则() {
             0o600
         );
         assert!(text.contains(r#""enabled":true"#));
-        assert!(!text.contains(r#""records":[]"#));
+        assert_eq!(
+            text.contains(r#""records":[]"#),
+            login_fails,
+            "验票前失败的响应不属于已确认的账号"
+        );
         for secret in [
             "fixture-media-secret",
             "fixture-token-secret",

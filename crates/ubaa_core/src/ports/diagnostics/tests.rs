@@ -1,9 +1,23 @@
 use super::*;
 
+fn bind(diagnostics: &RawDiagnostics) -> ConfirmedOwner {
+    diagnostics
+        .pending(diagnostics.generation())
+        .confirm(
+            &UserProfile {
+                school_id: Some("fixture-user".into()),
+                ..UserProfile::default()
+            },
+            || true,
+        )
+        .unwrap()
+}
+
 #[tokio::test]
 async fn 课堂异常正文和授权头在入缓冲前脱敏() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
+    let owner = bind(&diagnostics);
     let transport = RecordingTransport {
         inner: Fixture,
         diagnostics: diagnostics.clone(),
@@ -24,12 +38,15 @@ async fn 课堂异常正文和授权头在入缓冲前脱敏() {
         "Cookie".into(),
         vec!["mode=1; _token=fixture-cookie-secret".into()],
     );
-    transport
-        .capture(
-            super::super::HttpMethod::Get,
-            endpoint.into(),
-            false,
-            async { Ok(response) },
+    diagnostics
+        .capture_for(
+            owner,
+            transport.capture(
+                super::super::HttpMethod::Get,
+                endpoint.into(),
+                false,
+                async { Ok(response) },
+            ),
         )
         .await
         .unwrap();
@@ -77,6 +94,7 @@ fn 课堂诊断遮盖跳转片段中的敏感键() {
 async fn 课堂两主机及网关快照按请求或响应地址遮盖全部cookie值() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
+    let owner = bind(&diagnostics);
     let transport = RecordingTransport {
         inner: Fixture,
         diagnostics: diagnostics.clone(),
@@ -106,12 +124,15 @@ async fn 课堂两主机及网关快照按请求或响应地址遮盖全部cooki
                         "another=another-secret".into(),
                     ],
                 );
-                transport
-                    .capture(
-                        super::super::HttpMethod::Get,
-                        request_url.into(),
-                        false,
-                        async { Ok(response) },
+                diagnostics
+                    .capture_for(
+                        owner,
+                        transport.capture(
+                            super::super::HttpMethod::Get,
+                            request_url.into(),
+                            false,
+                            async { Ok(response) },
+                        ),
                     )
                     .await
                     .unwrap();
@@ -163,9 +184,13 @@ async fn 原始响应保留未知字段重复响应头和重试顺序() {
         json!([])
     );
     diagnostics.enable();
+    let owner = bind(&diagnostics);
     for _ in 0..2 {
-        let response = transport
-            .execute(HttpRequest::get("https://example.test/today"))
+        let response = diagnostics
+            .capture_for(
+                owner,
+                transport.execute(HttpRequest::get("https://example.test/today")),
+            )
             .await
             .unwrap();
         assert_eq!(response.status, 401);
@@ -286,6 +311,7 @@ async fn 研讨室诊断遮蔽凭据并保留普通字段() {
     for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
         let diagnostics = RawDiagnostics::default();
         diagnostics.enable();
+        let owner = bind(&diagnostics);
         let exchanges = cgyy_diagnostic_exchanges(route);
         let transport = RecordingTransport {
             inner: CgyyDiagnosticTransport(Mutex::new(exchanges.iter().cloned().collect())),
@@ -293,7 +319,13 @@ async fn 研讨室诊断遮蔽凭据并保留普通字段() {
             route,
         };
         for (request, response) in exchanges {
-            assert_eq!(transport.execute(request).await.unwrap(), response);
+            assert_eq!(
+                diagnostics
+                    .capture_for(owner, transport.execute(request))
+                    .await
+                    .unwrap(),
+                response
+            );
         }
 
         let text = diagnostics.export_json();
@@ -343,12 +375,18 @@ async fn 研讨室诊断遮蔽凭据并保留普通字段() {
     }
 }
 
-#[test]
-fn 容量淘汰明确报告且保留完整记录() {
+#[tokio::test]
+async fn 容量淘汰明确报告且保留完整记录() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
+    let owner = bind(&diagnostics);
     for id in 1..=257 {
-        diagnostics.push(&diagnostics.begin().unwrap(), &json!({"request_id": id}));
+        diagnostics.push(
+            &diagnostics
+                .capture_for(owner, async { diagnostics.begin().unwrap() })
+                .await,
+            &json!({"request_id": id}),
+        );
     }
     let report: Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
     assert_eq!(report["dropped_records"], 1);
@@ -356,13 +394,19 @@ fn 容量淘汰明确报告且保留完整记录() {
     assert_eq!(report["records"][0]["request_id"], 2);
 }
 
-#[test]
-fn 清空诊断后忽略上一轮请求的迟到响应() {
+#[tokio::test]
+async fn 清空诊断后忽略上一轮请求的迟到响应() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
-    let previous = diagnostics.begin().unwrap();
-    diagnostics.clear();
-    let current = diagnostics.begin().unwrap();
+    let owner = bind(&diagnostics);
+    let previous = diagnostics
+        .capture_for(owner, async { diagnostics.begin().unwrap() })
+        .await;
+    diagnostics.begin_explicit(diagnostics.generation(), || true);
+    let owner = bind(&diagnostics);
+    let current = diagnostics
+        .capture_for(owner, async { diagnostics.begin().unwrap() })
+        .await;
     diagnostics.push(&previous, &json!({"message": "合成旧响应"}));
     diagnostics.push(&current, &json!({"message": "合成新响应"}));
 
@@ -377,34 +421,41 @@ fn 清空诊断后忽略上一轮请求的迟到响应() {
 async fn 非文本响应无损导出且传输失败不伪造响应() {
     let diagnostics = RawDiagnostics::default();
     diagnostics.enable();
+    let owner = bind(&diagnostics);
     let transport = RecordingTransport {
         inner: Fixture,
         diagnostics: diagnostics.clone(),
         route: ConnectionMode::Direct,
     };
     let bytes = vec![0, 255, 128, 10];
-    transport
-        .capture(
-            super::super::HttpMethod::Get,
-            "https://example.test/binary".into(),
-            false,
-            async {
-                Ok(HttpResponse::new(
-                    200,
-                    "https://example.test/binary",
-                    bytes.clone(),
-                ))
-            },
+    diagnostics
+        .capture_for(
+            owner,
+            transport.capture(
+                super::super::HttpMethod::Get,
+                "https://example.test/binary".into(),
+                false,
+                async {
+                    Ok(HttpResponse::new(
+                        200,
+                        "https://example.test/binary",
+                        bytes.clone(),
+                    ))
+                },
+            ),
         )
         .await
         .unwrap();
     let error = crate::error::UbaaError::upstream_changed("合成错误");
-    transport
-        .capture(
-            super::super::HttpMethod::Get,
-            "https://example.test/failure".into(),
-            false,
-            async { Err(error) },
+    diagnostics
+        .capture_for(
+            owner,
+            transport.capture(
+                super::super::HttpMethod::Get,
+                "https://example.test/failure".into(),
+                false,
+                async { Err(error) },
+            ),
         )
         .await
         .unwrap_err();

@@ -73,21 +73,24 @@ impl UbaaClient {
             enabled[index] = true;
         }
         self.ensure_interactive_active(login)?;
+        let [direct, webvpn] = &mut context.routes;
         let (direct, webvpn) = tokio::join!(
-            authenticate(
+            Box::pin(authenticate(
                 &mut self.direct_runtime,
                 &mut self.direct_auth,
                 login,
                 &input,
-                enabled[0]
-            ),
-            authenticate(
+                enabled[0].then_some(direct),
+                context.diagnostic_generation,
+            )),
+            Box::pin(authenticate(
                 &mut self.webvpn_runtime,
                 &mut self.webvpn_auth,
                 login,
                 &input,
-                enabled[1]
-            ),
+                enabled[1].then_some(webvpn),
+                context.diagnostic_generation,
+            )),
         );
         self.ensure_interactive_active(login)?;
         for (index, completed) in [direct, webvpn].into_iter().enumerate() {
@@ -97,10 +100,12 @@ impl UbaaClient {
             match result {
                 Ok(profile) => self.record_interactive_profile(&mut context, index, profile)?,
                 Err(error) if error.is_captcha_required() => {
+                    context.routes[index].diagnostics = None;
                     let manual = manual.ok_or_else(invalid_interaction)?;
                     frames[index] = Some(self.adopt_manual_captcha(&mut context, index, manual)?);
                 }
                 Err(error) => {
+                    context.routes[index].diagnostics = None;
                     context.routes[index].state = InteractiveRouteState::Failed;
                     context.routes[index].error = Some(safe_interactive_error(
                         &error.with_auth_stage(crate::error::AuthStage::Submission),
@@ -134,6 +139,7 @@ impl UbaaClient {
         self.interactive.current_login = Some(login.clone());
         let mut context = InteractiveContext {
             login: login.clone(),
+            diagnostic_generation: self.raw_diagnostics.generation(),
             routes: std::array::from_fn(|_| StoredRoute::default()),
             required_route: Some(route),
             keep_route_policy: true,
@@ -181,23 +187,25 @@ async fn authenticate(
     auth: &mut crate::auth::AuthWorkflow,
     login: &InteractiveLoginHandle,
     input: &DualLoginInput,
-    enabled: bool,
+    stored: Option<&mut StoredRoute>,
+    generation: u64,
 ) -> Option<(
     Result<crate::domain::UserProfile>,
     Option<PendingManualCaptcha>,
 )> {
-    if !enabled {
-        return None;
-    }
+    let stored = stored?;
+    let attempt = stored
+        .diagnostics
+        .get_or_insert_with(|| runtime.begin_diagnostic_verification(generation));
     runtime.set_interactive_login_scope(Some(login.clone()));
-    let result = auth
-        .login_automatically(
+    let result = attempt
+        .scope(auth.login_automatically(
             runtime,
             LoginInput {
                 username: input.username.trim().to_owned(),
                 password: input.password.clone(),
             },
-        )
+        ))
         .await;
     runtime.set_interactive_login_scope(None);
     Some((result, auth.manual_captcha.take()))

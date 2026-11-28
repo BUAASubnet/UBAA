@@ -26,7 +26,7 @@ impl ClientRuntime {
         self.check_school_requests()?;
         let pending = self.transport.download_stream(request, &mut sink);
         drop(permit);
-        let result = pending.await;
+        let result = self.capture_transport(pending).await;
         let head = self.finish_request_response(result, &url, session_cookies.then_some(now))?;
         self.ensure_session_revision()?;
         let deliver = || {
@@ -72,7 +72,7 @@ impl ClientRuntime {
             self.transport.execute(request)
         };
         drop(permit);
-        Ok(pending)
+        Ok(self.capture_transport(pending))
     }
 
     pub(super) fn finish_request_response(

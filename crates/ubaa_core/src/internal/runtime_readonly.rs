@@ -76,6 +76,7 @@ impl ClientRuntime {
         }
         // 调用方持有认证与写入的排他边界。
         self.session_revision = parent.session_revision;
+        self.diagnostic_owner = parent.diagnostic_owner;
         self.synchronize_business_sessions(parent.business_session_account());
         true
     }

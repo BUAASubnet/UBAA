@@ -187,3 +187,5 @@ async fn 受控恢复保留写意图冲突且控制柄不能重复使用() {
     assert_eq!(fixture.gate.requests.load(Ordering::SeqCst), 0);
     fixture.bridge.dispose().await.unwrap();
 }
+
+mod diagnostics;

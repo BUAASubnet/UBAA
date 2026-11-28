@@ -7,9 +7,10 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::connection::to_webvpn_url;
-use crate::domain::{ConnectionMode, InteractiveLoginHandle};
+use crate::domain::{ConnectionMode, InteractiveLoginHandle, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
+use crate::ports::diagnostics::{ConfirmedOwner, DiagnosticAttempt, RawDiagnostics};
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
 use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
 
@@ -26,6 +27,8 @@ pub(crate) struct ClientRuntime {
     pub(crate) reached_domains: std::collections::BTreeSet<String>,
     mode: ConnectionMode,
     transport: Arc<dyn HttpTransport>,
+    pub(crate) diagnostics: RawDiagnostics,
+    diagnostic_owner: Option<ConfirmedOwner>,
     pub(crate) app_service: Option<Arc<crate::app_service::AppService>>,
     store: Arc<dyn SessionStore>,
     jar: CookieJar,
@@ -127,6 +130,8 @@ impl ClientRuntime {
             reached_domains: std::collections::BTreeSet::default(),
             mode,
             transport,
+            diagnostics: RawDiagnostics::default(),
+            diagnostic_owner: None,
             app_service: None,
             store,
             jar,
@@ -193,6 +198,8 @@ impl ClientRuntime {
             reached_domains: std::collections::BTreeSet::default(),
             mode: self.mode,
             transport: Arc::clone(&self.transport),
+            diagnostics: self.diagnostics.clone(),
+            diagnostic_owner: self.diagnostic_owner,
             app_service: self.app_service.clone(),
             store: Arc::clone(&self.store),
             jar,
@@ -349,6 +356,42 @@ impl ClientRuntime {
         Ok(())
     }
 
+    pub(crate) fn begin_diagnostic_verification(&mut self, generation: u64) -> DiagnosticAttempt {
+        self.diagnostic_owner = None;
+        self.diagnostics.pending(generation)
+    }
+
+    pub(crate) fn confirm_diagnostic_identity(
+        &mut self,
+        attempt: DiagnosticAttempt,
+        user: &UserProfile,
+        current: impl FnOnce() -> bool,
+    ) {
+        self.diagnostic_owner = attempt.confirm(user, || {
+            self.check_operation_controls().is_ok() && current()
+        });
+    }
+
+    pub(crate) fn inherit_diagnostic_owner(&mut self, previous: &Self) {
+        if self.session_revision == previous.session_revision
+            && self.persisted_authentication == previous.persisted_authentication
+        {
+            self.diagnostic_owner = previous.diagnostic_owner;
+        }
+    }
+
+    fn capture_transport<'a, T: 'a>(
+        &'a self,
+        future: futures_util::future::BoxFuture<'a, T>,
+    ) -> futures_util::future::BoxFuture<'a, T> {
+        if let Some(owner) = self.diagnostic_owner
+            && !self.authentication_revoked()
+        {
+            return Box::pin(self.diagnostics.capture_for(owner, future));
+        }
+        future
+    }
+
     pub(crate) fn account_name(&self) -> Option<&str> {
         self.account_name.as_deref()
     }
@@ -445,7 +488,10 @@ impl ClientRuntime {
         }
         let pending = self.transport.execute(request);
         drop(permit);
-        let response = pending.await.map_err(unknown_after_send)?;
+        let response = self
+            .capture_transport(pending)
+            .await
+            .map_err(unknown_after_send)?;
         self.observe_campus_network_page(&response, &request_url);
         self.check_consumer().map_err(unknown_after_send)?;
         if let Some(scope) = &self.shared_account {
@@ -481,6 +527,7 @@ impl ClientRuntime {
         self.last_activity = None;
         self.persisted_authentication = None;
         self.account_name = None;
+        self.diagnostic_owner = None;
         self.feature_state.clear();
         if let Some(owner) = &self.readonly_generation {
             owner.invalidate();

@@ -124,7 +124,7 @@ async fn 静默恢复成功或失败都保留恢复前的诊断() {
 }
 
 #[tokio::test]
-async fn 静默恢复核验出不同身份后丢弃原先及恢复期间的诊断() {
+async fn 静默恢复核验出不同身份时只丢弃恢复期间的诊断() {
     for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
         let mut fixture = Fixture::new(RoutePolicy::Auto);
         let diagnostics = fixture.client.raw_diagnostics();
@@ -163,12 +163,10 @@ async fn 静默恢复核验出不同身份后丢弃原先及恢复期间的诊�
                 Some("synthetic-mismatched-recovery-account"),
             ),
         }
-        let report: serde_json::Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
-        assert_eq!(
-            report["records"],
-            serde_json::json!([]),
-            "诊断含不同账号的响应"
-        );
+        let report = diagnostics.export_json();
+        assert!(report.contains(PRIOR_RECOVERY_RESPONSE));
+        assert!(!report.contains(RECOVERY_RESPONSE));
+        assert!(!report.contains("synthetic-mismatched-recovery-account"));
     }
 }
 

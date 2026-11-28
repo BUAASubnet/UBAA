@@ -5202,6 +5202,7 @@ fn wire__crate__api__client__BridgeClient_bind_shared_account_impl(
             let api_scope = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeSharedAccount>,
             >>::sse_decode(&mut deserializer);
+            let api_expected_diagnostics_username = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::client::BridgeError>(
@@ -5237,6 +5238,7 @@ fn wire__crate__api__client__BridgeClient_bind_shared_account_impl(
                         let output_ok = crate::api::client::BridgeClient::bind_shared_account(
                             &*api_that_guard,
                             &*api_scope_guard,
+                            api_expected_diagnostics_username,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)

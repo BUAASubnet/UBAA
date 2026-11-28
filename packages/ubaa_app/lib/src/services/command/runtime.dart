@@ -603,7 +603,12 @@ final class _CommandBackend
         await client.dispose();
         throw const RecoveryInterrupted(RecoveryStopReason.closed);
       }
-      if (native != null) await client.bindSharedAccount(scope: native!);
+      if (native case final scope?) {
+        await client.bindSharedAccount(
+          scope: scope,
+          expectedDiagnosticsUsername: binding?.account.username,
+        );
+      }
       _client = client;
     }
     return _client!;
@@ -618,7 +623,12 @@ final class _CommandBackend
       retainSession: value.snapshot.state.canRestore,
     );
     if (closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);
-    if (_client != null) await _client!.bindSharedAccount(scope: captured);
+    if (_client case final client?) {
+      await client.bindSharedAccount(
+        scope: captured,
+        expectedDiagnosticsUsername: value.account.username,
+      );
+    }
     await value.validate();
     if (binding?.generation != value.generation) appServiceAccount = null;
     native = captured;

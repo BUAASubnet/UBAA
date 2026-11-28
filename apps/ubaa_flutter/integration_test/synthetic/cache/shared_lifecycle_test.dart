@@ -29,8 +29,13 @@ class _LocalOnlyLogoutClient implements BridgeClient {
   @override
   Future<BridgeRouteSettings> routeSettings() => _delegate.routeSettings();
   @override
-  Future<void> bindSharedAccount({required BridgeSharedAccount scope}) =>
-      _delegate.bindSharedAccount(scope: scope);
+  Future<void> bindSharedAccount({
+    required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
+  }) => _delegate.bindSharedAccount(
+    scope: scope,
+    expectedDiagnosticsUsername: expectedDiagnosticsUsername,
+  );
   @override
   void endLocalSession() => _delegate.endLocalSession();
   @override

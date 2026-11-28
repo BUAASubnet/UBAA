@@ -38,7 +38,12 @@ impl Drop for PendingExam {
 #[async_trait::async_trait]
 impl HttpTransport for Transport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let body = if request.url.ends_with("/logout") {
+        if let Some(ticket) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(ticket);
+        }
+        let body = if request.url.contains("/serviceValidate?") {
+            r#"{"user":"fixture-user","attributes":{"employeeNumber":["fixture-user"]}}"#
+        } else if request.url.ends_with("/logout") {
             if let Some(started) = &self.logout_started {
                 started.notify_one();
                 self.finish_logout.notified().await;
@@ -91,6 +96,15 @@ impl HttpTransport for Transport {
 
 #[tokio::test]
 async fn 本机退出立即清空诊断并拒绝迟到响应() {
+    Box::pin(结束诊断时拒绝迟到响应(false)).await;
+}
+
+#[tokio::test]
+async fn 后端释放仍在排队时旧客户端导出立即为空() {
+    Box::pin(结束诊断时拒绝迟到响应(true)).await;
+}
+
+async fn 结束诊断时拒绝迟到响应(closing: bool) {
     use futures_util::FutureExt;
 
     let root = ubaa_test_support::test_temp_dir("ubaa_logout_diagnostics").unwrap();
@@ -117,6 +131,7 @@ async fn 本机退出立即清空诊断并拒绝迟到响应() {
         )
         .unwrap(),
     );
+    bridge.auth_status().await.unwrap();
     bridge.schedule_today().await.unwrap();
     assert!(
         bridge
@@ -129,7 +144,13 @@ async fn 本机退出立即清空诊断并拒绝迟到响应() {
         () = transport.exam_started.notified() => {},
         result = &mut exam => panic!("考试应保持在途：{:?}", result.err()),
     }
-    let logout = bridge.logout();
+    let logout = async {
+        if closing {
+            bridge.dispose().await
+        } else {
+            bridge.logout().await
+        }
+    };
     tokio::pin!(logout);
     assert!(logout.as_mut().now_or_never().is_none());
     let empty = || {
@@ -140,7 +161,13 @@ async fn 本机退出立即清空诊断并拒绝迟到响应() {
     };
     empty();
     transport.finish_exam.notify_one();
-    exam.await.unwrap();
+    let result = exam.await;
+    if closing {
+        logout.await.unwrap();
+        empty();
+        return;
+    }
+    result.unwrap();
     tokio::select! {
         () = transport.logout_started.as_ref().unwrap().notified() => {},
         result = &mut logout => panic!("远端退出应等待响应：{result:?}"),
@@ -368,4 +395,60 @@ async fn 慢考试在途时签到和课表仍可完成() {
     std::fs::remove_dir_all(root).unwrap();
     assert!(signin.expect("签到不应等待慢考试").is_ok());
     assert!(schedule.expect("课表不应等待慢考试").is_ok());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn 会话文件锁释放后被取消的登录准备不能恢复诊断采集() {
+    let root = ubaa_test_support::test_temp_dir("ubaa_cancel_diagnostics_prepare").unwrap();
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: vec![],
+            authenticated_at: 1000,
+            last_activity: 1001,
+        })
+        .unwrap();
+    let bridge = Arc::new(BridgeClient::from_core(
+        UbaaClient::with_routing(
+            Transport::default(),
+            Transport::default(),
+            store,
+            RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+            NoProbe,
+        )
+        .unwrap(),
+    ));
+    bridge.auth_status().await.unwrap();
+    assert!(bridge.export_raw_diagnostics().contains("fixture-user"));
+    let login = bridge
+        .begin_interactive_login("fixture-user".into())
+        .unwrap();
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(root.join(".session.lock"))
+        .unwrap();
+    lock.try_lock().unwrap();
+    let pending = tokio::spawn({
+        let bridge = bridge.clone();
+        async move { bridge.prepare_interactive_login(&login).await }
+    });
+    // 旧记录清空说明准备已领取资格，文件锁仍阻止清理槽位完成。
+    tokio::time::timeout(std::time::Duration::from_secs(1), async {
+        while bridge.export_raw_diagnostics().contains("fixture-user") {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!pending.is_finished());
+    bridge.cancel_interactive_login();
+    bridge.end_local_session();
+    lock.unlock().unwrap();
+    assert!(pending.await.unwrap().is_err());
+    let report: serde_json::Value = serde_json::from_str(&bridge.export_raw_diagnostics()).unwrap();
+    assert_eq!(report["records"], serde_json::json!([]));
+    assert_eq!(report["enabled"], false);
+    assert_eq!(report["started_requests"], 0);
 }

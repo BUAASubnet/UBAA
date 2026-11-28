@@ -110,7 +110,7 @@ impl ClientRuntime {
         let before = transfer.progress().bytes;
         let pending = self.transport.upload(request, body, observer);
         drop(permit);
-        let result = tokio::select! {biased;_ = transfer.cancelled()=>return Err(write_outcome_unknown()),response=pending=>response};
+        let result = tokio::select! {biased;_ = transfer.cancelled()=>return Err(write_outcome_unknown()),response=self.capture_transport(pending)=>response};
         let response = result.map_err(super::unknown_after_send)?;
         if expected
             .is_some_and(|length| transfer.progress().bytes.checked_sub(before) != Some(length))
@@ -148,7 +148,7 @@ impl ClientRuntime {
         transfer.ensure_active()?;
         let pending = self.transport.download(request, file, observer);
         drop(permit);
-        let response = tokio::select! {biased;error = transfer.cancelled()=>return Err(error),response=pending=>response}?;
+        let response = tokio::select! {biased;error = transfer.cancelled()=>return Err(error),response=self.capture_transport(pending)=>response}?;
         self.ensure_session_revision()?;
         transfer.ensure_active()?;
         Ok(response)

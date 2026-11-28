@@ -42,6 +42,7 @@ pub(crate) struct StoredRoute {
     pub(crate) error: Option<SafeError>,
     pub(crate) profile: Option<UserProfile>,
     pub(crate) automatic_attempted: bool,
+    pub(crate) diagnostics: Option<crate::ports::diagnostics::DiagnosticAttempt>,
 }
 
 impl Default for StoredRoute {
@@ -52,18 +53,30 @@ impl Default for StoredRoute {
             error: None,
             profile: None,
             automatic_attempted: false,
+            diagnostics: None,
         }
     }
 }
 
 pub(crate) struct InteractiveContext {
     pub(crate) login: InteractiveLoginHandle,
+    pub(crate) diagnostic_generation: u64,
     pub(crate) routes: [StoredRoute; 2],
     pub(crate) required_route: Option<ConnectionMode>,
     pub(crate) keep_route_policy: bool,
 }
 
 impl InteractiveContext {
+    pub(super) fn route_diagnostics(
+        &mut self,
+        index: usize,
+        runtime: &mut crate::runtime::ClientRuntime,
+    ) -> &crate::ports::diagnostics::DiagnosticAttempt {
+        self.routes[index].diagnostics.get_or_insert_with(|| {
+            runtime.begin_diagnostic_verification(self.diagnostic_generation)
+        })
+    }
+
     pub(crate) fn outcome(
         &self,
         mut frames: [Option<CaptchaFrame>; 2],

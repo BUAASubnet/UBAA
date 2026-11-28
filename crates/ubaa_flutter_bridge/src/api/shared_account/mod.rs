@@ -92,12 +92,14 @@ impl BridgeClient {
         Ok(())
     }
 
+    /// 绑定本机版本。已知的账号名只用于比对原始诊断的归属。
     ///
     /// # Errors
     /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
     pub async fn bind_shared_account(
         &self,
         scope: &BridgeSharedAccount,
+        expected_diagnostics_username: Option<String>,
     ) -> Result<(), BridgeError> {
         if self.is_disposed.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(super::client::disposed_error());
@@ -106,10 +108,11 @@ impl BridgeClient {
         if self.is_disposed.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(super::client::disposed_error());
         }
-        inner
-            .as_mut()
-            .ok_or_else(super::client::disposed_error)?
-            .bind_shared_account(Some(scope.guard.clone()));
+        let client = inner.as_mut().ok_or_else(super::client::disposed_error)?;
+        if let Some(username) = expected_diagnostics_username {
+            self.raw_diagnostics.bind_expected_account(username);
+        }
+        client.bind_shared_account(Some(scope.guard.clone()));
         self.inner.clear_readers().await;
         self.write_intents.lock().await.clear();
         Ok(())

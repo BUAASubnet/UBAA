@@ -600,6 +600,7 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiClientBridgeClientBindSharedAccount({
     required BridgeClient that,
     required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
   });
 
   Future<BridgeBykcCatalogRefresh> crateApiClientBridgeClientBykcCatalogCached({
@@ -5651,6 +5652,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<void> crateApiClientBridgeClientBindSharedAccount({
     required BridgeClient that,
     required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -5664,6 +5666,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             scope,
             serializer,
           );
+          sse_encode_opt_String(expectedDiagnosticsUsername, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -5676,7 +5679,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_bridge_error,
         ),
         constMeta: kCrateApiClientBridgeClientBindSharedAccountConstMeta,
-        argValues: [that, scope],
+        argValues: [that, scope, expectedDiagnosticsUsername],
         apiImpl: this,
       ),
     );
@@ -5685,7 +5688,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiClientBridgeClientBindSharedAccountConstMeta =>
       const TaskConstMeta(
         debugName: "BridgeClient_bind_shared_account",
-        argNames: ["that", "scope"],
+        argNames: ["that", "scope", "expectedDiagnosticsUsername"],
       );
 
   @override
@@ -50880,14 +50883,18 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     name: name,
   );
 
+  /// 绑定本机版本。已知的账号名只用于比对原始诊断的归属。
   ///
   /// # Errors
   /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
-  Future<void> bindSharedAccount({required BridgeSharedAccount scope}) =>
-      RustLib.instance.api.crateApiClientBridgeClientBindSharedAccount(
-        that: this,
-        scope: scope,
-      );
+  Future<void> bindSharedAccount({
+    required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
+  }) => RustLib.instance.api.crateApiClientBridgeClientBindSharedAccount(
+    that: this,
+    scope: scope,
+    expectedDiagnosticsUsername: expectedDiagnosticsUsername,
+  );
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///

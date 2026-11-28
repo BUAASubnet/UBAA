@@ -254,7 +254,10 @@ class _Client extends _Opaque implements BridgeClient {
   final Future<BridgeCommandAttempt> Function(int attempt) invoke;
   int attempts = 0, recoveries = 0, logins = 0, disposals = 0, logouts = 0;
   @override
-  Future<void> bindSharedAccount({required BridgeSharedAccount scope}) async {}
+  Future<void> bindSharedAccount({
+    required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
+  }) async {}
   @override
   Future<BridgeCommandAttempt> executeCommand({
     required BridgeCommand command,

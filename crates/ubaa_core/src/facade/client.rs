@@ -121,6 +121,12 @@ impl UbaaClient {
         }
         reopened.direct_runtime.ensure_session_revision()?;
         reopened.webvpn_runtime.ensure_session_revision()?;
+        reopened
+            .direct_runtime
+            .inherit_diagnostic_owner(&self.direct_runtime);
+        reopened
+            .webvpn_runtime
+            .inherit_diagnostic_owner(&self.webvpn_runtime);
         Ok(reopened)
     }
 
@@ -312,7 +318,7 @@ impl UbaaClient {
                 ConnectionMode::WebVpn,
                 crate::ports::diagnostics::RecordingTransport {
                     inner: webvpn_transport,
-                    diagnostics,
+                    diagnostics: diagnostics.clone(),
                     route: ConnectionMode::WebVpn,
                 },
                 &sessions,
@@ -326,6 +332,8 @@ impl UbaaClient {
             bhpan: Box::default(),
             cloud_print: None,
         };
+        client.direct_runtime.diagnostics = diagnostics.clone();
+        client.webvpn_runtime.diagnostics = diagnostics;
         client.direct_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
         client.webvpn_runtime.business_sessions = Some(Arc::clone(&client.business_sessions));
         Ok(client)

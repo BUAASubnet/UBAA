@@ -43,7 +43,7 @@ impl ClientRuntime {
         }
         let pending = self.transport.execute(request);
         drop(permit);
-        let result = pending.await;
+        let result = self.capture_transport(pending).await;
         if write {
             let response = result.map_err(super::unknown_after_send)?;
             // 已收到确定响应后，普通关闭不改写结果；账号撤销与会话替换仍使结果待核对。

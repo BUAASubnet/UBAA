@@ -107,7 +107,10 @@ mixin BridgeBackendAppService {
     var adopted = false;
     try {
       check();
-      await client.bindSharedAccount(scope: native);
+      await client.bindSharedAccount(
+        scope: native,
+        expectedDiagnosticsUsername: binding.account.username,
+      );
       check();
       await binding.validate();
       check();

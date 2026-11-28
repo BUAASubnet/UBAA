@@ -263,7 +263,7 @@ async fn 外部共享代次撤销后旧意图不发送且原路线回读不恢�
         true,
     )
     .unwrap();
-    client.bind_shared_account(&scope).await.unwrap();
+    client.bind_shared_account(&scope, None).await.unwrap();
     let intent = client
         .prepare_bykc_select_course(BridgeBykcCourseRequest { course_id: 42 })
         .await

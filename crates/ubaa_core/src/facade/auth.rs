@@ -4,7 +4,7 @@ use crate::domain::{
     AuthStatus, ConnectionMode, DualLoginInput, DualLoginPreparation, LoginInput, LoginOutcome,
     LoginReadiness, RouteLoginResult, RouteLoginState, SafeError, UserProfile,
 };
-use crate::error::{AuthReason, Result, UbaaError};
+use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::session::DualSessionCoordinator;
 
@@ -64,30 +64,27 @@ impl UbaaClient {
         kind: RequiredLoginKind,
     ) -> Result<super::types::CallerPinned<UserProfile>> {
         self.verified_login = None;
+        let generation = match kind {
+            RequiredLoginKind::Explicit => self
+                .raw_diagnostics
+                .begin_explicit(self.raw_diagnostics.generation(), || true),
+            RequiredLoginKind::BoundRecovery => self.raw_diagnostics.generation(),
+        };
         self.guard_latest_session_ownership()?;
         self.runtime_for(route).check_school_requests()?;
-        let expected = match kind {
-            RequiredLoginKind::Explicit => {
-                self.raw_diagnostics.clear();
-                None
-            }
-            RequiredLoginKind::BoundRecovery => Some(input.username.trim().to_owned()),
-        };
+        let expected = input.username.trim().to_owned();
         let (runtime, auth) = self.route_parts_for(route);
-        let result = auth.login_automatically(runtime, input).await;
-        if expected.as_deref().is_some_and(|expected| match &result {
-            Ok(profile) => {
-                profile.school_id.as_deref() != Some(expected)
-                    && profile.username.as_deref() != Some(expected)
-            }
-            Err(error) => {
-                error.auth_diagnostic().and_then(|value| value.reason)
-                    == Some(AuthReason::IdentityMismatch)
-            }
-        }) {
-            self.raw_diagnostics.end_local_session();
-        }
+        let attempt = runtime.begin_diagnostic_verification(generation);
+        let result = attempt
+            .scope(auth.login_automatically(runtime, input))
+            .await;
         self.clear_on_session_conflict()?;
+        if let Ok(profile) = &result
+            && login_profile_matches(profile, &expected, false)
+        {
+            self.runtime_for(route)
+                .confirm_diagnostic_identity(attempt, profile, || true);
+        }
         result
             .map(|data| super::types::CallerPinned {
                 data,
@@ -130,10 +127,12 @@ impl UbaaClient {
     ///
     /// 双路线会话所有权或协调状态发生冲突时返回错误；单路线认证失败保留在返回结果中。
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
+        let generation = self
+            .raw_diagnostics
+            .begin_explicit(self.raw_diagnostics.generation(), || true);
         self.guard_latest_session_ownership()?;
         self.check_school_requests()?;
         self.clear_interactive_context();
-        self.raw_diagnostics.clear();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         let mut identities = Vec::new();
@@ -141,6 +140,7 @@ impl UbaaClient {
             let login = self
                 .login_route(
                     route,
+                    generation,
                     LoginInput {
                         username: input.username.clone(),
                         password: input.password.clone(),
@@ -298,7 +298,9 @@ impl UbaaClient {
 
     async fn prepare_route(&mut self, route: ConnectionMode) -> Result<()> {
         let (runtime, auth) = self.route_parts_for(route);
-        auth.prepare_login(runtime)
+        let attempt = runtime.begin_diagnostic_verification(runtime.diagnostics.generation());
+        attempt
+            .scope(auth.prepare_login(runtime))
             .await
             .map_err(|error| error.with_auth_stage(crate::error::AuthStage::LoginPage))
     }
@@ -325,10 +327,19 @@ impl UbaaClient {
     async fn login_route(
         &mut self,
         route: ConnectionMode,
+        generation: u64,
         input: LoginInput,
     ) -> Result<UserProfile> {
+        let expected = input.username.trim().to_owned();
         let (runtime, auth) = self.route_parts_for(route);
-        auth.login(runtime, input).await
+        let attempt = runtime.begin_diagnostic_verification(generation);
+        let result = attempt.scope(auth.login(runtime, input)).await;
+        if let Ok(profile) = &result
+            && login_profile_matches(profile, &expected, false)
+        {
+            runtime.confirm_diagnostic_identity(attempt, profile, || true);
+        }
+        result
     }
 
     pub(super) async fn auth_status_route(&mut self, route: ConnectionMode) -> Result<AuthStatus> {
@@ -348,6 +359,13 @@ impl UbaaClient {
         }
     }
 }
+pub(super) fn login_profile_matches(user: &UserProfile, expected: &str, ignore_case: bool) -> bool {
+    [user.school_id.as_deref(), user.username.as_deref()]
+        .into_iter()
+        .flatten()
+        .any(|name| name == expected || (ignore_case && name.eq_ignore_ascii_case(expected)))
+}
+
 fn failed_preparation(error: &UbaaError) -> DualLoginPreparation {
     let error = safe_error(error);
     DualLoginPreparation {

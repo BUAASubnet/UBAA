@@ -10,7 +10,9 @@ mixin BridgeBackendRead {
   Future<SigninQr> fetchSigninQr(String courseId, Duration offset) =>
       bridgeFetchSigninQr(_context, courseId, offset);
 
-  String exportRawDiagnostics() => _context.client.exportRawDiagnostics();
+  String exportRawDiagnostics() => _context.closed
+      ? '{"enabled":false,"unavailable_reason":"backend_closed","records":[]}'
+      : _context.client.exportRawDiagnostics();
 
   void endLocalSession() {
     if (!_context.closed) _context.client.endLocalSession();

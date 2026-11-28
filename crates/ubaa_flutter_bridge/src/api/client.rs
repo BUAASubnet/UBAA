@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 87;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 88;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -350,7 +350,7 @@ pub struct BridgeRoutedUserProfile {
 
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
-    raw_diagnostics: ubaa_core::facade::RawDiagnostics,
+    pub(super) raw_diagnostics: ubaa_core::facade::RawDiagnostics,
     pub(crate) network_control: ubaa_core::facade::ClientNetworkControl,
     pub(super) close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
@@ -411,6 +411,10 @@ impl BridgeClient {
     /// 宿主结束本机会话时立即停止原始诊断采集，无需取得客户端业务锁。
     #[flutter_rust_bridge::frb(sync)]
     pub fn end_local_session(&self) {
+        self.auth_control
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .cancel();
         self.raw_diagnostics.end_local_session();
     }
 
@@ -427,6 +431,7 @@ impl BridgeClient {
     ///
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
+        self.raw_diagnostics.close();
         self.is_disposed.store(true, Ordering::SeqCst);
         self.close_control.close();
         self.cancel_bhpan_transfers();

@@ -22,13 +22,15 @@ void main() {
         (await accounts.capture())!,
         requireRestore: false,
       );
-      final backend = BridgeBackend(_Client());
+      final client = _Client();
+      final backend = BridgeBackend(client);
       addTearDown(backend.dispose);
 
       api.retainSessions.clear();
       await backend.bindSharedAccount(binding);
 
       expect(api.retainSessions, [retainSession]);
+      expect(client.expectedUsername, 'fixture-user');
     });
   }
 }
@@ -59,11 +61,17 @@ class _NativeSharedAccount implements BridgeSharedAccount {
 }
 
 class _Client implements BridgeClient {
+  String? expectedUsername;
   @override
   int contractVersion() => currentBridgeContractVersion;
 
   @override
-  Future<void> bindSharedAccount({required BridgeSharedAccount scope}) async {}
+  Future<void> bindSharedAccount({
+    required BridgeSharedAccount scope,
+    String? expectedDiagnosticsUsername,
+  }) async {
+    expectedUsername = expectedDiagnosticsUsername;
+  }
 
   @override
   Future<void> dispose() async {}

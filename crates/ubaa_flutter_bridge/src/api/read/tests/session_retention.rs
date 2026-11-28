@@ -29,7 +29,7 @@ async fn 保留标记_r1_两批读取只在内存复用_spoc() {
     let transport = Transport::default();
     let bridge = restored(fixture.1.clone(), "direct", &transport).await;
     bridge
-        .bind_shared_account(&shared_guard(&fixture, 1, false))
+        .bind_shared_account(&shared_guard(&fixture, 1, false), None)
         .await
         .unwrap();
     let before = std::fs::read(fixture.cache()).ok();
@@ -51,7 +51,7 @@ async fn 保留标记_r2_两批读取保存_spoc_材料() {
     let transport = Transport::default();
     let bridge = restored(fixture.1.clone(), "direct", &transport).await;
     bridge
-        .bind_shared_account(&shared_guard(&fixture, 1, true))
+        .bind_shared_account(&shared_guard(&fixture, 1, true), None)
         .await
         .unwrap();
     for _ in 0..2 {
@@ -74,7 +74,7 @@ async fn 保留标记_r4_过期退出票据与恢复旧归属不改变旁车() {
     let original = shared_guard(&fixture, 1, false);
     let expired = shared_guard(&fixture, 2, false);
     let bridge = restored(fixture.1.clone(), "direct", &transport).await;
-    bridge.bind_shared_account(&original).await.unwrap();
+    bridge.bind_shared_account(&original, None).await.unwrap();
     assert!(bridge.logout_with_shared_account(&expired).await.is_err());
     let inner = bridge.inner.lock().await;
     let restored = inner.as_ref().unwrap().shared_account_guard().unwrap();

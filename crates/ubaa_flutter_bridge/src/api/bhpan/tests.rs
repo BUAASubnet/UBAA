@@ -456,7 +456,7 @@ async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
             true,
         )
         .unwrap();
-        bridge.bind_shared_account(&scope).await.unwrap();
+        bridge.bind_shared_account(&scope, None).await.unwrap();
         match change {
             "退出" => std::fs::write(root.join("account-generation.v1"), "UBAA1:2").unwrap(),
             "换号" => {

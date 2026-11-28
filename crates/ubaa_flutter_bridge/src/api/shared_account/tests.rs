@@ -71,7 +71,7 @@ async fn 条件退出只在指定操作使用撤销票据并恢复旧归属() {
         .unwrap(),
     );
     let original = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
-    bridge.bind_shared_account(&original).await.unwrap();
+    bridge.bind_shared_account(&original, None).await.unwrap();
     let cache = BridgeOfflineCache::open_shared(
         root.to_string_lossy().into(),
         "0123456789abcdef0123456789abcdef".into(),
@@ -154,7 +154,7 @@ async fn 退出_future取消也恢复旧归属不遗留活动清理许可() {
         .unwrap(),
     );
     let original = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
-    bridge.bind_shared_account(&original).await.unwrap();
+    bridge.bind_shared_account(&original, None).await.unwrap();
     let cache = BridgeOfflineCache::open_shared(
         root.to_string_lossy().into(),
         "0123456789abcdef0123456789abcdef".into(),
@@ -251,7 +251,7 @@ async fn 退出传输错误或panic后恢复旧归属且旧缓存仍被拒绝() 
         *bridge.inner.lock().await = Some(client);
         let original =
             BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
-        bridge.bind_shared_account(&original).await.unwrap();
+        bridge.bind_shared_account(&original, None).await.unwrap();
         let cache = BridgeOfflineCache::open_shared(
             root.to_string_lossy().into(),
             "0123456789abcdef0123456789abcdef".into(),
@@ -322,7 +322,7 @@ async fn 受限退出本地失败也恢复旧归属不采纳更新版本() {
         .unwrap(),
     );
     let original = BridgeSharedAccount::capture(root.to_string_lossy().into(), 1, true).unwrap();
-    bridge.bind_shared_account(&original).await.unwrap();
+    bridge.bind_shared_account(&original, None).await.unwrap();
     advance(&root);
     let revoked = BridgeSharedAccount::capture(root.to_string_lossy().into(), 2, false).unwrap();
     assert!(bridge.logout_with_shared_account(&revoked).await.is_err());
