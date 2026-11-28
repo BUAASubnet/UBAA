@@ -21,7 +21,10 @@ import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 
 import '../../runtime.dart'
-    show ControlledRequiredTargetSessionBackend, RequiredRecoveryOperation;
+    show
+        ControlledRequiredTargetSessionBackend,
+        RawDiagnosticsLifecycle,
+        RequiredRecoveryOperation;
 import 'auth/required_session.dart';
 import 'auth/network.dart';
 import 'auth/shared_logout.dart';
@@ -103,7 +106,7 @@ part 'bridge_backend_auth.dart';
 part 'bridge_backend_read.dart';
 part 'bridge_backend_write.dart';
 
-const _supportedBridgeContractVersion = 86;
+const _supportedBridgeContractVersion = 87;
 const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
@@ -121,6 +124,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         RawDiagnosticsBackend,
+        RawDiagnosticsLifecycle,
         AgendaProvider,
         HomeTodoBackend,
         IhomeBackend,

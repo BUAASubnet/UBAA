@@ -8,6 +8,7 @@ Flutter 与 OHOS 宿主通过 FRB 的 typed 接口调用 Rust Core facade。Brid
 
 - **版本协商。** Core 导出的版本以 [`client.rs`](../../crates/ubaa_flutter_bridge/src/api/client.rs) 为准，宿主只接受 [`bridge_backend.dart`](../../packages/ubaa_app/lib/src/bridge/bridge_backend.dart) 明确列出的版本。版本不匹配时释放新建资源并停止初始化。原生库与 Dart 绑定按同一生成链交付，不能用放宽版本判断替代重新生成。Bridge 版本与缓存格式和 CLI 输出版本独立。
 - **类型和隐私边界。** 宿主只使用 typed DTO 和不透明句柄，不重建路线、解析上游正文或取得 Cookie、会话、Token、签名。不把类型退化为任意 JSON；扫码、交互验证码、短期锁码和主动导出的完整诊断仅从各自专用入口交付，不进入普通 DTO、日志和遥测。诊断的分享范围见[本地诊断手册](../runbooks/local-diagnostics.md)。
+- **本机退出。** 宿主通过同步的 `end_local_session` 清空并暂停原始诊断采集。调用无需等待在途请求或取得共享账号清理票据。远端退出仍由原有注销入口处理。
 
 <a id="2-生命周期与并发"></a>
 

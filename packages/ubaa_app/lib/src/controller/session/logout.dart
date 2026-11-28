@@ -28,6 +28,10 @@ mixin ControllerLogout on ControllerState {
       }
       return;
     }
+    final localBackend = internalBackend;
+    if (localBackend is RawDiagnosticsLifecycle) {
+      (localBackend as RawDiagnosticsLifecycle).endLocalSession();
+    }
     internalClearCurrentSessionGrant();
     internalCancelLoginVerification(notify: false);
     internalSessionLifecycle.beginSignOut();

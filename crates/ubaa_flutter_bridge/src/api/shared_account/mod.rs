@@ -47,6 +47,7 @@ impl BridgeClient {
         scope: &BridgeSharedAccount,
     ) -> Result<(), BridgeError> {
         use futures_util::FutureExt;
+        self.end_local_session();
         if self.is_disposed.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(super::client::disposed_error());
         }

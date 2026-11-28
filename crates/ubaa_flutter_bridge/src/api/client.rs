@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 86;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 87;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -408,6 +408,12 @@ impl BridgeClient {
         self.raw_diagnostics.export_json()
     }
 
+    /// 宿主结束本机会话时立即停止原始诊断采集，无需取得客户端业务锁。
+    #[flutter_rust_bridge::frb(sync)]
+    pub fn end_local_session(&self) {
+        self.raw_diagnostics.end_local_session();
+    }
+
     /// 返回 bridge 合同版本。
     #[flutter_rust_bridge::frb(sync)]
     #[must_use]
@@ -551,6 +557,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 注销失败时返回安全错误。
     pub async fn logout(&self) -> Result<(), BridgeError> {
+        self.end_local_session();
         self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {

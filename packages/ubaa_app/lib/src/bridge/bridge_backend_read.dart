@@ -12,6 +12,10 @@ mixin BridgeBackendRead {
 
   String exportRawDiagnostics() => _context.client.exportRawDiagnostics();
 
+  void endLocalSession() {
+    if (!_context.closed) _context.client.endLocalSession();
+  }
+
   Future<CgyyLockDisplaySession> openLockDisplay() async {
     try {
       return BridgeLockDisplaySession(

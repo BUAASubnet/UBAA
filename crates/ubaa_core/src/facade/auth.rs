@@ -167,6 +167,7 @@ impl UbaaClient {
     /// 会话所有权已失效或无法原子清理持久化槽位时返回错误。
     pub async fn logout(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
+        self.raw_diagnostics.end_local_session();
         self.guard_latest_session_ownership()?;
         {
             let _permit = self
@@ -192,7 +193,6 @@ impl UbaaClient {
         self.webvpn_auth
             .remote_logout(&mut self.webvpn_runtime)
             .await;
-        self.raw_diagnostics.clear();
         self.direct_runtime.clear_memory();
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();

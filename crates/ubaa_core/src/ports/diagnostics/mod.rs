@@ -21,6 +21,7 @@ pub struct RawDiagnostics(Arc<Mutex<Journal>>);
 #[derive(Default)]
 struct Journal {
     enabled: bool,
+    signed_out: bool,
     started_ms: u64,
     generation: u64,
     sequence: u64,
@@ -62,7 +63,7 @@ impl RawDiagnostics {
             .collect();
         json!({
             "capture_scope": "client_lifetime",
-            "enabled": journal.enabled,
+            "enabled": journal.enabled && !journal.signed_out,
             "started_at_unix_ms": journal.started_ms,
             "exported_at_unix_ms": now_ms(),
             "max_records": MAX_RECORDS,
@@ -78,15 +79,29 @@ impl RawDiagnostics {
         .to_string()
     }
 
-    /// 清空当前记录，已开始的旧请求即使稍后完成也不能写入新的缓冲。
+    /// 本机退出立即清空、停采，并废弃此前已开始的请求。
+    pub fn end_local_session(&self) {
+        self.reset(true);
+    }
+
+    /// 开始新认证时清空并恢复采集。
     pub(crate) fn clear(&self) {
+        self.reset(false);
+    }
+
+    fn reset(&self, signed_out: bool) {
         let mut journal = self
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         *journal = Journal {
             enabled: journal.enabled,
-            started_ms: if journal.enabled { now_ms() } else { 0 },
+            signed_out,
+            started_ms: if journal.enabled && !signed_out {
+                now_ms()
+            } else {
+                0
+            },
             generation: journal.generation + 1,
             ..Journal::default()
         };
@@ -97,7 +112,7 @@ impl RawDiagnostics {
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !journal.enabled {
+        if !journal.enabled || journal.signed_out {
             return None;
         }
         journal.sequence += 1;

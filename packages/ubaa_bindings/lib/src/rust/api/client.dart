@@ -581,6 +581,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
   Future<void> dispose();
 
+  /// 宿主结束本机会话时立即停止原始诊断采集，无需取得客户端业务锁。
+  void endLocalSession();
+
   /// 结束原刷新批次，旧批次不能清除继任批次。
   /// # Errors
   /// 客户端关闭时返回已关闭错误。

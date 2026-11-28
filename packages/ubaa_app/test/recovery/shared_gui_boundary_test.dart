@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -100,7 +101,54 @@ class _ScopedLogoutBackend extends _Backend
   }
 }
 
+class _DiagnosticLogoutBackend extends _ScopedLogoutBackend
+    implements RawDiagnosticsBackend, RawDiagnosticsLifecycle {
+  _DiagnosticLogoutBackend(super.root, super.external);
+
+  bool ended = false;
+  @override
+  void endLocalSession() => ended = true;
+
+  @override
+  String exportRawDiagnostics() => jsonEncode({
+    'records': ended ? [] : ['synthetic-prior-account-response'],
+  });
+}
+
 void main() {
+  test('共享索引拒绝撤销后，登录页导出没有旧账号响应', () async {
+    final root = await probe.fixture();
+    final accounts = await probe.openAccounts(root);
+    final external = await probe.openAccounts(root);
+    final backend = _DiagnosticLogoutBackend(root, external);
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+      credentialVault: MemoryCredentialVault(initial: saved),
+    );
+    try {
+      await controller.initialize();
+      expect(controller.phase, AppPhase.home);
+      expect(
+        controller.exportFullDiagnostics(),
+        contains('synthetic-prior-account-response'),
+      );
+      await external.retain('synthetic-other', retainSession: true);
+      await controller.logout();
+      expect(controller.phase, AppPhase.login);
+      expect(controller.error, isNotNull);
+      expect(backend.fresh, isNull);
+      expect(
+        (jsonDecode(controller.exportFullDiagnostics()) as Map)['raw_http'],
+        {'records': []},
+      );
+    } finally {
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      await root.delete(recursive: true);
+    }
+  });
+
   test('退出凭据清理被新登录拒绝后，不得无归属执行本机偏好回调', () async {
     final root = await probe.fixture();
     final accounts = await probe.openAccounts(root);

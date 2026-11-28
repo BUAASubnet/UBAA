@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,10 @@ class _LocalOnlyLogoutClient implements BridgeClient {
   @override
   Future<void> bindSharedAccount({required BridgeSharedAccount scope}) =>
       _delegate.bindSharedAccount(scope: scope);
+  @override
+  void endLocalSession() => _delegate.endLocalSession();
+  @override
+  String exportRawDiagnostics() => _delegate.exportRawDiagnostics();
   @override
   Future<void> logoutWithSharedAccount({
     required BridgeSharedAccount scope,
@@ -105,8 +110,13 @@ void main() {
     try {
       await controller.initialize();
       await backend.agenda.unsyncedCount();
+      final before = jsonDecode(localClient.exportRawDiagnostics()) as Map;
+      expect(before['enabled'], isTrue);
       await controller.logout();
       expect(localClient.logoutCalls, 1);
+      final after = jsonDecode(controller.exportFullDiagnostics()) as Map;
+      expect((after['raw_http'] as Map)['enabled'], isFalse);
+      expect((after['raw_http'] as Map)['records'], isEmpty);
       // 生产远端入口不能透传给真实客户端；此断言不执行 delegate 的 HTTP。
       expect(() => localClient.logout(), throwsStateError);
       expect(() => localClient.prepareLogin(), throwsStateError);
