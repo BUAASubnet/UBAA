@@ -18,3 +18,11 @@ export 'src/widgets.dart';
 export 'src/app/destination.dart';
 
 export 'src/shared/place_memory.dart' show UiPlaceKeys;
+
+export 'src/features/agenda/home_card.dart'
+    show
+        HomeCardItem,
+        HomeCardSnapshot,
+        HomeCardWeekCell,
+        HomeCardWeekRow,
+        buildHomeCardSnapshot;

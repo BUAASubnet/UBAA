@@ -11,6 +11,30 @@
     {
       "name": "EntryAbility_label",
       "value": "UBAA"
+    },
+    {
+      "name": "home_card_display_name",
+      "value": "UBAA 今日安排"
+    },
+    {
+      "name": "home_card_desc",
+      "value": "滑动查看今日日程、待办和作业"
+    },
+    {
+      "name": "home_card_timetable_display_name",
+      "value": "UBAA 课程表"
+    },
+    {
+      "name": "home_card_timetable_desc",
+      "value": "本周课程表，高亮今天"
+    },
+    {
+      "name": "home_card_large_display_name",
+      "value": "UBAA 日程与作业"
+    },
+    {
+      "name": "home_card_large_desc",
+      "value": "显示日程、作业和待办，可调整大小"
     }
   ]
 }
