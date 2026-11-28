@@ -28,11 +28,11 @@ void main() {
       expect(calls, 1);
     });
   }
-  const feature = FeatureId.exam;
-  for (final status in [
-    FeatureLoadStatus.success,
-    FeatureLoadStatus.empty,
-    FeatureLoadStatus.failure,
+  for (final (feature, status) in [
+    for (final feature in FeatureId.values)
+      (feature, FeatureLoadStatus.success),
+    (FeatureId.exam, FeatureLoadStatus.empty),
+    (FeatureId.exam, FeatureLoadStatus.failure),
   ]) {
     testWidgets('${feature.title} ${status.name} 移动端下拉沿原刷新入口', (tester) async {
       var calls = 0;

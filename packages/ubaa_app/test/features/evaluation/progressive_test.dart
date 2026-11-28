@@ -25,7 +25,10 @@ void main() {
     expect(first.result.details.length, 1);
     expect(first.result.details.single.actions, isEmpty);
     expect(first.result.overview, isNull);
-    expect(first.result.summary?.trim(), isNotEmpty);
+    expect(
+      RegExp(r'\b\d+/\d+\b').stringMatch(first.result.summary ?? ''),
+      '0/1',
+    );
     final last = await task.next();
     expect(last.finished, isTrue);
     expect(last.result.details.length, 2);
