@@ -31,9 +31,11 @@ impl CgyyLockDisplayLease {
         !*self.cancelled.borrow()
     }
 
-    async fn cancelled(&self) {
+    /// 等待页面撤销，供调用者在排队或执行读取时结束等待。
+    pub async fn interrupted(&self) -> UbaaError {
         let mut cancelled = self.cancelled.subscribe();
         let _ = cancelled.wait_for(|value| *value).await;
+        inactive_lock_display()
     }
 }
 
@@ -86,7 +88,7 @@ impl UbaaClient {
         self.validate_lock_display(lease)?;
         let result = tokio::select! {
             biased;
-            () = lease.cancelled() => return Err(inactive_lock_display()),
+            error = lease.interrupted() => return Err(error),
             result = crate::features::cgyy::lock_display::read(self.runtime_for(lease.route)) => result,
         };
         self.validate_lock_display(lease)?;

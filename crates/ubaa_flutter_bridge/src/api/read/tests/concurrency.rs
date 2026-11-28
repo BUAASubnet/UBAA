@@ -207,6 +207,66 @@ async fn 撤销门锁租约后课表可以在门锁响应前完成() {
 }
 
 #[tokio::test]
+async fn 撤销排队的门锁读取后课表可以在考试响应前完成() {
+    use crate::api::client::BridgeErrorCode;
+    use futures_util::FutureExt;
+
+    let root = ubaa_test_support::test_temp_dir("ubaa_cancel_queued_lock_display").unwrap();
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: vec![],
+            authenticated_at: 1000,
+            last_activity: 1001,
+        })
+        .unwrap();
+    let transport = Transport::default();
+    let bridge = BridgeClient::from_core(
+        UbaaClient::with_routing(
+            transport.clone(),
+            transport.clone(),
+            store,
+            RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+            NoProbe,
+        )
+        .unwrap(),
+    );
+    let lease = bridge.open_cgyy_lock_display().await.unwrap();
+    let exam = bridge.exam_arrangement("synthetic-term".into());
+    tokio::pin!(exam);
+    tokio::select! {
+        () = transport.exam_started.notified() => {},
+        result = &mut exam => panic!("考试应保持在途：{:?}", result.err()),
+    }
+    let lock = bridge.read_cgyy_lock_display(&lease);
+    tokio::pin!(lock);
+    assert!(lock.as_mut().now_or_never().is_none());
+    assert!(
+        bridge.schedule_today().now_or_never().is_none(),
+        "租约仍有效时，排队的独占读取应阻止新课表插队"
+    );
+
+    lease.cancel();
+    let error = lock
+        .as_mut()
+        .now_or_never()
+        .expect("排队的门锁读取应在考试响应前退出")
+        .unwrap_err();
+    assert_eq!(error.code, BridgeErrorCode::InvalidInput);
+    assert_eq!(error.message, "门锁页面已失效，请重新打开");
+    tokio::time::timeout(crate::TEST_HANG_TIMEOUT, bridge.schedule_today())
+        .await
+        .expect("撤销后新课表不应等待考试响应")
+        .unwrap();
+    assert!(!transport.exam_dropped.load(Ordering::SeqCst));
+    transport.finish_exam.notify_one();
+    exam.await.unwrap();
+    bridge.dispose().await.unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
 async fn 换网与手动切换丢弃在途网络读取并立即释放客户端锁() {
     use crate::api::client::{BridgeErrorCode, BridgeRoutePolicy};
     use std::time::Duration;

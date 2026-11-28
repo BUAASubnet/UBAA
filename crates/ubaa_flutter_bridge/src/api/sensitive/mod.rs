@@ -64,7 +64,11 @@ impl BridgeClient {
             if self.is_disposed.load(Ordering::SeqCst) {
                 return Err(disposed_error());
             }
-            let mut guard = self.inner.lock().await;
+            let mut guard = tokio::select! {
+                biased;
+                error = lease.inner.interrupted() => return Err(BridgeError::from_core(error, None)),
+                guard = self.inner.lock() => guard,
+            };
             let client = guard.as_mut().ok_or_else(|| disposed_error())?;
             let value = client
                 .read_cgyy_lock_display(&lease.inner)
