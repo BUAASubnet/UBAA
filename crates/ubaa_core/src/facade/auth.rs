@@ -4,12 +4,17 @@ use crate::domain::{
     AuthStatus, ConnectionMode, DualLoginInput, DualLoginPreparation, LoginInput, LoginOutcome,
     LoginReadiness, RouteLoginResult, RouteLoginState, SafeError, UserProfile,
 };
-use crate::error::{Result, UbaaError};
+use crate::error::{AuthReason, Result, UbaaError};
 use crate::features::user;
 use crate::session::DualSessionCoordinator;
 
 use super::client::UbaaClient;
 use super::types::{Operation, RoutedResult};
+
+pub(super) enum RequiredLoginKind {
+    Explicit,
+    BoundRecovery,
+}
 
 impl UbaaClient {
     /// 校验当前任务所需路线，不等待另一条路线或提交凭据。
@@ -48,12 +53,40 @@ impl UbaaClient {
         route: ConnectionMode,
         input: LoginInput,
     ) -> Result<super::types::CallerPinned<UserProfile>> {
+        self.login_required_route_with_kind(route, input, RequiredLoginKind::Explicit)
+            .await
+    }
+
+    pub(super) async fn login_required_route_with_kind(
+        &mut self,
+        route: ConnectionMode,
+        input: LoginInput,
+        kind: RequiredLoginKind,
+    ) -> Result<super::types::CallerPinned<UserProfile>> {
         self.verified_login = None;
         self.guard_latest_session_ownership()?;
         self.runtime_for(route).check_school_requests()?;
-        self.raw_diagnostics.clear();
+        let expected = match kind {
+            RequiredLoginKind::Explicit => {
+                self.raw_diagnostics.clear();
+                None
+            }
+            RequiredLoginKind::BoundRecovery => Some(input.username.trim().to_owned()),
+        };
         let (runtime, auth) = self.route_parts_for(route);
         let result = auth.login_automatically(runtime, input).await;
+        if expected.as_deref().is_some_and(|expected| match &result {
+            Ok(profile) => {
+                profile.school_id.as_deref() != Some(expected)
+                    && profile.username.as_deref() != Some(expected)
+            }
+            Err(error) => {
+                error.auth_diagnostic().and_then(|value| value.reason)
+                    == Some(AuthReason::IdentityMismatch)
+            }
+        }) {
+            self.raw_diagnostics.end_local_session();
+        }
         self.clear_on_session_conflict()?;
         result
             .map(|data| super::types::CallerPinned {

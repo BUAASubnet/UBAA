@@ -2,6 +2,7 @@
 mod batch;
 pub(super) use batch::ReadRecoveryBatch;
 
+use super::auth::RequiredLoginKind;
 use super::{
     AuthStatus, CallerPinned, ConnectionMode, LoginInput, ReadonlyFeature, RequiredRecoveryControl,
     RequiredRecoveryOperation, RoutedResult, UbaaClient, UserProfile,
@@ -148,7 +149,7 @@ impl UbaaClient {
         let result = tokio::select! {
             biased;
             error = control.interrupted() => Err(error),
-            result = scope.client.login_required_route(route, input) => result,
+            result = scope.client.login_required_route_with_kind(route, input, RequiredLoginKind::BoundRecovery) => result,
         };
         let result = control.check().and(result);
         scope.completed = control.interruption_reason().is_none();

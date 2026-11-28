@@ -83,6 +83,95 @@ async fn login_for_diagnostics(fixture: &mut Fixture, account: &str, response: &
     );
 }
 
+const PRIOR_RECOVERY_RESPONSE: &str = "synthetic-before-bound-recovery";
+const RECOVERY_RESPONSE: &str = "synthetic-bound-recovery-response";
+
+#[tokio::test]
+async fn 静默恢复成功或失败都保留恢复前的诊断() {
+    for failed in [false, true] {
+        let mut fixture = Fixture::new(RoutePolicy::Direct);
+        let diagnostics = fixture.client.raw_diagnostics();
+        diagnostics.enable();
+        login_for_diagnostics(&mut fixture, SYNTHETIC_USERNAME, PRIOR_RECOVERY_RESPONSE).await;
+        if failed {
+            refuse(&fixture.direct);
+        } else {
+            fixture.direct.state.lock().unwrap().post_body = RECOVERY_RESPONSE.into();
+        }
+        let credentials = input();
+        let control = RequiredRecoveryControl::new(std::time::Duration::from_secs(10)).unwrap();
+        let result = fixture
+            .client
+            .login_required_route_controlled(
+                ConnectionMode::Direct,
+                LoginInput {
+                    username: credentials.username,
+                    password: credentials.password,
+                },
+                control.claim().unwrap(),
+            )
+            .await;
+        assert_eq!(result.is_err(), failed);
+        let report = diagnostics.export_json();
+        if !failed {
+            assert!(report.contains(RECOVERY_RESPONSE));
+        }
+        assert!(
+            report.contains(PRIOR_RECOVERY_RESPONSE),
+            "静默恢复清掉了故障现场"
+        );
+    }
+}
+
+#[tokio::test]
+async fn 静默恢复核验出不同身份后丢弃原先及恢复期间的诊断() {
+    for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let mut fixture = Fixture::new(RoutePolicy::Auto);
+        let diagnostics = fixture.client.raw_diagnostics();
+        diagnostics.enable();
+        login_for_diagnostics(&mut fixture, SYNTHETIC_USERNAME, PRIOR_RECOVERY_RESPONSE).await;
+        let transport = match route {
+            ConnectionMode::Direct => &fixture.direct,
+            ConnectionMode::WebVpn => &fixture.webvpn,
+        };
+        {
+            let mut state = transport.state.lock().unwrap();
+            state.page = PLAIN_PAGE.into();
+            state.username = "synthetic-mismatched-recovery-account".into();
+            state.post_body = RECOVERY_RESPONSE.into();
+        }
+        let credentials = input();
+        let control = RequiredRecoveryControl::new(std::time::Duration::from_secs(10)).unwrap();
+        let result = fixture
+            .client
+            .login_required_route_controlled(
+                route,
+                LoginInput {
+                    username: credentials.username,
+                    password: credentials.password,
+                },
+                control.claim().unwrap(),
+            )
+            .await;
+        match route {
+            ConnectionMode::Direct => assert_eq!(
+                result.unwrap_err().code,
+                ubaa_core::facade::ErrorCode::AuthenticationRequired,
+            ),
+            ConnectionMode::WebVpn => assert_eq!(
+                result.unwrap().data.school_id.as_deref(),
+                Some("synthetic-mismatched-recovery-account"),
+            ),
+        }
+        let report: serde_json::Value = serde_json::from_str(&diagnostics.export_json()).unwrap();
+        assert_eq!(
+            report["records"],
+            serde_json::json!([]),
+            "诊断含不同账号的响应"
+        );
+    }
+}
+
 #[tokio::test]
 async fn 身份核对失败保留安全原因() {
     let mut fixture = Fixture::new(RoutePolicy::Direct);

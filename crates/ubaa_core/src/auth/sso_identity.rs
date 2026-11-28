@@ -4,7 +4,7 @@ use serde_json::Value;
 use url::Url;
 
 use crate::domain::{AuthStatus, UserProfile};
-use crate::error::{ErrorCode, Result, UbaaError};
+use crate::error::{AuthReason, ErrorCode, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 
@@ -41,10 +41,13 @@ async fn validate(
     if runtime.account_name().is_some_and(|expected| {
         user.school_id.as_deref() != Some(expected) && user.username.as_deref() != Some(expected)
     }) {
-        runtime.clear_with(clear_workflow)?;
-        return Err(UbaaError::authentication_required(
-            "SSO 身份已变化，请重新登录",
-        ));
+        runtime
+            .clear_with(clear_workflow)
+            .map_err(|error| error.with_auth_reason(AuthReason::IdentityMismatch))?;
+        return Err(
+            UbaaError::authentication_required("SSO 身份已变化，请重新登录")
+                .with_auth_reason(AuthReason::IdentityMismatch),
+        );
     }
     let (authenticated_at, last_activity) = if login {
         runtime.refresh_authentication_for_login(
