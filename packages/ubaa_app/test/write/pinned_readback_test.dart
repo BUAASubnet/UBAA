@@ -47,11 +47,16 @@ void main() {
       const FeatureQuery(view: FeatureQueryView.cgyyOrders, page: 2, size: 15),
     ),
   ]) {
-    for (final (label, unknown, readFails) in [
-      ('提交成功', false, false),
-      ('提交成功且回读失败', false, true),
-      ('结果未知', true, false),
-      ('结果未知且回读失败', true, true),
+    final intentRoute = route == BridgeConnectionMode.direct
+        ? ConnectionMode.direct
+        : ConnectionMode.webvpn;
+    for (final (label, unknown, readFails, errorHasRoute) in [
+      ('提交成功', false, false, false),
+      ('提交成功且回读失败', false, true, false),
+      ('结果未知', true, false, true),
+      ('结果未知且回读失败', true, true, true),
+      if (operation == BridgeWriteOperation.libbookReserve)
+        ('结果未知且错误没有带路线', true, false, false),
     ]) {
       test('${operation.name} 第 $page 页 $label，确认后仅回读原路线和指定页', () async {
         final cached =
@@ -61,6 +66,7 @@ void main() {
                 route: route,
                 readFails: readFails,
                 unknown: unknown,
+                errorRoute: errorHasRoute ? route : null,
               )
               ..commitResult = BridgeWriteCommitResult(
                 operation: operation,
@@ -93,12 +99,7 @@ void main() {
           expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
         }
         final intent = await prepare(controller);
-        expect(
-          intent.resolvedRoute,
-          route == BridgeConnectionMode.direct
-              ? ConnectionMode.direct
-              : ConnectionMode.webvpn,
-        );
+        expect(intent.resolvedRoute, intentRoute);
         final writes = controller.writeCoordinator;
         writes.setIntent(
           query == null ? intent : intent.withReadbackQuery(query),
@@ -114,6 +115,11 @@ void main() {
         if (unknown) {
           expect(outcome?.result, isNull);
           expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
+          expect(outcome?.error?.kind, UbaaErrorKind.upstream);
+          expect(
+            outcome?.error?.resolvedRoute,
+            errorHasRoute ? intentRoute : null,
+          );
           expect(outcome?.message, allOf(contains('刷新后查看'), contains('勿重复提交')));
         } else {
           expect(outcome?.result?.success, isTrue);
@@ -201,17 +207,19 @@ class _ReadbackClient extends FixtureCharacterizationBridgeClient {
     required this.route,
     required this.readFails,
     required this.unknown,
+    required this.errorRoute,
   });
 
   final BridgeConnectionMode route;
   final bool readFails, unknown;
+  final BridgeConnectionMode? errorRoute;
 
   BridgeError get _unknownError => BridgeError(
     code: BridgeErrorCode.outcomeUnknown,
-    kind: BridgeErrorKind.network,
+    kind: BridgeErrorKind.upstream,
     retryable: false,
     message: '合成发送后结果未知',
-    resolvedRoute: route,
+    resolvedRoute: errorRoute,
   );
 
   @override

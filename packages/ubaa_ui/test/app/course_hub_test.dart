@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/common/read_navigator.dart'
+    show FeatureReadNavigator;
 import 'package:ubaa_ui/src/features/course_hub/entries.dart';
 import 'package:ubaa_ui/src/features/course_hub/study_landing.dart';
 import 'package:ubaa_ui/src/features/schedule/detail.dart';
@@ -295,28 +297,44 @@ Future<Set<FeatureId>> _observedFeatures(
   Finder view, {
   Map<FeatureId, String> shortTitles = const {},
 }) async {
-  final observed = <FeatureId>{};
+  final entries = <String, FeatureId>{};
   final scrollable = find.descendant(
     of: view,
     matching: find.byType(Scrollable),
   );
+  Finder entry(String label) =>
+      find.descendant(of: view, matching: find.text(label));
   final position = tester.state<ScrollableState>(scrollable).position;
   while (true) {
     for (final feature in FeatureId.values) {
-      final labels = [feature.title, ?shortTitles[feature]];
-      if (labels.any(
-        (label) => find
-            .descendant(of: view, matching: find.text(label))
-            .evaluate()
-            .isNotEmpty,
-      )) {
-        observed.add(feature);
+      for (final label in [feature.title, ?shortTitles[feature]]) {
+        if (entry(label).evaluate().isNotEmpty) entries[label] = feature;
       }
     }
-    if (position.pixels >= position.maxScrollExtent) return observed;
+    if (position.pixels >= position.maxScrollExtent) break;
     position.jumpTo(
       (position.pixels + 220).clamp(0.0, position.maxScrollExtent).toDouble(),
     );
     await tester.pumpAndSettle();
   }
+
+  final opened = <FeatureId>{};
+  for (final MapEntry(key: label, value: expected) in entries.entries) {
+    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(entry(label), 220, scrollable: scrollable);
+    await tester.tap(entry(label));
+    // 合成快照停在初始加载状态，只推进进入过渡需要的帧。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final navigator = tester.widget<FeatureReadNavigator>(
+      find.byType(FeatureReadNavigator),
+    );
+    final feature = navigator.snapshot.feature;
+    expect(feature, expected, reason: '点击 $label 后打开的领域');
+    opened.add(feature);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+  }
+  return opened;
 }
