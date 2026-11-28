@@ -27,42 +27,6 @@ void main() {
     }
   });
 
-  testWidgets('学习和校园分组的实际功能卡片互不重复', (tester) async {
-    await _mount(tester);
-    final allObserved = <FeatureId>{};
-    for (final group in [UiDestination.study, UiDestination.campus]) {
-      await tester.tap(find.widgetWithText(NavigationDestination, group.label));
-      await tester.pumpAndSettle();
-      final observed = <FeatureId>{};
-      final view = find.byType(CustomScrollView);
-      final scrollable = find.descendant(
-        of: view,
-        matching: find.byType(Scrollable),
-      );
-      for (var step = 0; step < 20; step++) {
-        for (final feature in FeatureId.values) {
-          if (find
-              .descendant(
-                of: view,
-                matching: find.widgetWithText(Card, feature.title),
-              )
-              .evaluate()
-              .isNotEmpty) {
-            observed.add(feature);
-          }
-        }
-        final position = tester.state<ScrollableState>(scrollable).position;
-        if (position.pixels >= position.maxScrollExtent) break;
-        await tester.drag(view, const Offset(0, -220));
-        await tester.pumpAndSettle();
-      }
-      expect(observed, unorderedEquals(group.features), reason: group.label);
-      expect(observed.intersection(allObserved), isEmpty, reason: group.label);
-      allObserved.addAll(observed);
-    }
-    expect(allObserved, unorderedEquals(FeatureId.values));
-  });
-
   testWidgets('手机横屏高度不足时侧边导航的每个分组仍可点击', (tester) async {
     await _mount(tester);
     tester.view.physicalSize = const Size(874, 402);

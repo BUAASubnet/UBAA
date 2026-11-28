@@ -154,39 +154,64 @@ void main() {
     );
     expect(course.hitTestable(), findsOneWidget);
   });
+  testWidgets('课程中心及按来源浏览的功能入口与校园页互不重复', (tester) async {
+    await _mountCourseHub(tester, width: 402, snapshot: snapshot);
+
+    final studyRoot = find.byKey(const PageStorageKey('course-hub-landing'));
+    final study = await _observedFeatures(
+      tester,
+      studyRoot,
+      shortTitles: const {
+        FeatureId.schedule: '课表',
+        FeatureId.exam: '考试',
+        FeatureId.grades: '成绩',
+      },
+    );
+    final sources = find.byKey(const ValueKey('course-hub-open-sources'));
+    final studyScroll = find.descendant(
+      of: studyRoot,
+      matching: find.byType(Scrollable),
+    );
+    tester.state<ScrollableState>(studyScroll).position.jumpTo(0);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(sources, 220, scrollable: studyScroll);
+    await tester.tap(sources);
+    await tester.pumpAndSettle();
+    study.addAll(
+      await _observedFeatures(
+        tester,
+        find.byKey(const ValueKey('course-hub-sources')),
+      ),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, UiDestination.campus.label),
+    );
+    await tester.pumpAndSettle();
+    final campus = await _observedFeatures(
+      tester,
+      find.byType(CustomScrollView),
+    );
+    expect(study.intersection(campus), isEmpty);
+    expect(study, unorderedEquals(UiDestination.study.features));
+    expect(campus, unorderedEquals(UiDestination.campus.features));
+  });
+
   for (final width in [402.0, 1100.0]) {
     testWidgets('课程、全部作业和来源导航 $width', (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = Size(width, 874);
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
       final queries = <FeatureQuery>[];
       var needs = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: UbaaMainShell(
-            user: const UserSummary(username: "synthetic"),
-            initialDestination: UiDestination.study,
-            courseHub: ValueNotifier(snapshot),
-            onNeedCourseHub: () => needs++,
-            routePolicy: RoutePolicy.direct,
-            activeRoutes: const [ConnectionMode.direct],
-            snapshots: {
-              for (final feature in FeatureId.values)
-                feature: FeatureSnapshot(feature: feature),
-            },
-            onRefresh: () async {},
-            onRetryFeature: (_) async {},
-            onRoutePolicyChanged: (_) {},
-            onLogout: () async {},
-            onLogoutAndClearAccount: () async {},
-            onFeatureQuery: (_, value) async {
-              queries.add(value);
-            },
-          ),
-        ),
+      await _mountCourseHub(
+        tester,
+        width: width,
+        snapshot: snapshot,
+        onNeedCourseHub: () => needs++,
+        onFeatureQuery: (_, value) async {
+          queries.add(value);
+        },
       );
-      await tester.pumpAndSettle();
       Future<void> tap(String label) async {
         final item = find.text(label).hitTestable().last;
         await tester.tap(item);
@@ -224,5 +249,74 @@ void main() {
         findsOneWidget,
       );
     });
+  }
+}
+
+Future<void> _mountCourseHub(
+  WidgetTester tester, {
+  required double width,
+  required CourseHubSnapshot snapshot,
+  VoidCallback? onNeedCourseHub,
+  Future<void> Function(FeatureId, FeatureQuery)? onFeatureQuery,
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = Size(width, 874);
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  final hub = ValueNotifier(snapshot);
+  addTearDown(hub.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: UbaaMainShell(
+        user: const UserSummary(username: 'synthetic'),
+        initialDestination: UiDestination.study,
+        courseHub: hub,
+        onNeedCourseHub: onNeedCourseHub,
+        routePolicy: RoutePolicy.direct,
+        activeRoutes: const [ConnectionMode.direct],
+        snapshots: {
+          for (final feature in FeatureId.values)
+            feature: FeatureSnapshot(feature: feature),
+        },
+        onRefresh: () async {},
+        onRetryFeature: (_) async {},
+        onRoutePolicyChanged: (_) {},
+        onLogout: () async {},
+        onLogoutAndClearAccount: () async {},
+        onFeatureQuery: onFeatureQuery,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<Set<FeatureId>> _observedFeatures(
+  WidgetTester tester,
+  Finder view, {
+  Map<FeatureId, String> shortTitles = const {},
+}) async {
+  final observed = <FeatureId>{};
+  final scrollable = find.descendant(
+    of: view,
+    matching: find.byType(Scrollable),
+  );
+  final position = tester.state<ScrollableState>(scrollable).position;
+  while (true) {
+    for (final feature in FeatureId.values) {
+      final labels = [feature.title, ?shortTitles[feature]];
+      if (labels.any(
+        (label) => find
+            .descendant(of: view, matching: find.text(label))
+            .evaluate()
+            .isNotEmpty,
+      )) {
+        observed.add(feature);
+      }
+    }
+    if (position.pixels >= position.maxScrollExtent) return observed;
+    position.jumpTo(
+      (position.pixels + 220).clamp(0.0, position.maxScrollExtent).toDouble(),
+    );
+    await tester.pumpAndSettle();
   }
 }
