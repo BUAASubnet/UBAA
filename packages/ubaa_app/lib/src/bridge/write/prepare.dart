@@ -311,7 +311,7 @@ Future<WriteIntent> bridgePrepareHangzhouCgyyCancelOrder(
     backend,
     backend.client.prepareHangzhouCgyyCancelOrder(
       request: BridgeHangzhouCgyyCancelRequest(
-        tradeNo: action.tradeNo,
+        orderId: action.orderId,
         reason: validateHangzhouCgyyCancelReason(reason),
       ),
     ),

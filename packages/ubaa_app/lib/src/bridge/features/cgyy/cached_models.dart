@@ -13,7 +13,7 @@ bool bridgeIsCgyyCacheQuery(FeatureId feature, FeatureQuery query) =>
 BridgeCgyySlotStatus _cachedCgyySlotStatus(BridgeCachedCgyySlotStatus v) =>
     BridgeCgyySlotStatus(
       adminRemark: null,
-      alreadyNum: null,
+      freeNum: null,
       timeId: v.timeId,
       reservationStatus: v.reservationStatus,
       reservationEligibility: BridgeActionEligibility.unknown,
@@ -44,7 +44,6 @@ BridgeCgyyDayInfo bridgeCachedCgyyDayInfo(BridgeCachedCgyyDayInfo v) =>
 
 BridgeCgyyOrder bridgeCachedCgyyOrder(BridgeCachedCgyyOrder v) =>
     BridgeCgyyOrder(
-      tradeNo: null,
       id: v.id,
       venueSiteId: v.venueSiteId,
       reservationDate: v.reservationDate,

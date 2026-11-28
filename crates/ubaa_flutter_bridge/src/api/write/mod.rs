@@ -189,7 +189,8 @@ impl fmt::Debug for BridgeHangzhouCgyyReservationRequest {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeHangzhouCgyyCancelRequest {
-    pub trade_no: String,
+    /// “我的预约”中的订单 id；场馆订单号只在 Core 内按 id 解析，不跨 FFI。
+    pub order_id: i32,
     pub reason: String,
 }
 #[derive(Clone, Debug)]
@@ -344,7 +345,7 @@ impl PendingWrite {
                 )
             }
             Self::HangzhouCgyyCancel(request) => {
-                format!("hz-cgyy-cancel:{}", request.trade_no.trim())
+                format!("hz-cgyy-cancel:{}", request.order_id)
             }
             Self::Evaluation(request) => {
                 let mut targets = request

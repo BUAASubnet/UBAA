@@ -145,8 +145,52 @@ final class HangzhouCgyyWriteCallbacks {
 
   final Future<HangzhouCgyyCaptcha> Function() loadCaptcha;
   final Future<void> Function(HangzhouCgyySubmitInput input) submit;
-  final Future<void> Function(HangzhouCgyyCancelAction action) cancel;
+
+  /// 取消；原因由触发取消的界面先向用户收集。
+  final Future<void> Function(HangzhouCgyyCancelAction action, String reason)
+  cancel;
 }
+
+/// 宿主提供的杭州空间预约能力；整体为 null 表示当前不可用。
+final class HangzhouCgyyShellPreparers {
+  const HangzhouCgyyShellPreparers({
+    required this.loadCaptcha,
+    required this.submit,
+    required this.cancel,
+  });
+
+  final Future<HangzhouCgyyCaptcha> Function() loadCaptcha;
+  final HangzhouCgyyReservationPreparer submit;
+  final HangzhouCgyyCancelPreparer cancel;
+
+  /// 接到主壳写入管线 [run]；管线自行处理写命令缺失与忙碌状态。
+  HangzhouCgyyWriteCallbacks callbacks(UiShellDirectWrite run) =>
+      HangzhouCgyyWriteCallbacks(
+        loadCaptcha: loadCaptcha,
+        submit: (input) async {
+          await run(
+            prepare: () => submit(input),
+            failureMessage: '预约失败，请换一张验证码后重试',
+            expectedOperation: WriteOperation.hangzhouCgyySubmitReservation,
+          );
+        },
+        cancel: (action, reason) async {
+          await run(
+            prepare: () => cancel(action, reason),
+            failureMessage: '取消失败，请刷新后重试',
+            expectedOperation: action.operation,
+          );
+        },
+      );
+}
+
+/// 主壳直接写入管线（`_runDirectWrite`）的形状。
+typedef UiShellDirectWrite =
+    Future<Object?> Function({
+      required Future<WriteIntent> Function() prepare,
+      required String failureMessage,
+      required WriteOperation expectedOperation,
+    });
 
 /// 杭州空间预约准备回调。
 typedef HangzhouCgyyReservationPreparer =

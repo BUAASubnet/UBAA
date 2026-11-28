@@ -82,11 +82,13 @@ pub struct HangzhouCgyyReservationReceipt {
     pub reservation_end_date: Option<String>,
 }
 
-/// 杭州订单取消请求；`trade_no` 来自“我的预约”，原因原样提交给场馆系统。
+/// 杭州订单取消请求；`order_id` 来自“我的预约”，原因原样提交给场馆系统。
+///
+/// 场馆订单号（`tradeNo`）不跨 FFI：Core 在预检时按 `order_id` 重新读取“我的预约”解析。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HangzhouCgyyCancelRequest {
-    pub trade_no: String,
+    pub order_id: i32,
     pub reason: String,
 }
 
@@ -94,7 +96,7 @@ pub struct HangzhouCgyyCancelRequest {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HangzhouCgyyCancelPreflight {
-    pub trade_no: String,
+    pub order_id: i32,
     pub tip: Option<String>,
 }
 

@@ -303,22 +303,21 @@ class LibbookCancelAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.libbookCancelBooking;
 }
 
-/// 杭州空间预约订单的取消能力；[tradeNo] 来自“我的预约”读取结果。
+/// 杭州空间预约订单的取消能力；[orderId] 来自“我的预约”读取结果，
+/// 场馆订单号只在 Core 内按 id 解析。
 @immutable
 class HangzhouCgyyCancelAction extends FeatureAction {
   const HangzhouCgyyCancelAction({
-    required this.tradeNo,
+    required this.orderId,
     required this.eligibility,
   });
 
-  final String tradeNo;
+  final int orderId;
 
   @override
   final ActionEligibility eligibility;
 
-  bool get isUsable =>
-      eligibility == ActionEligibility.allowed &&
-      RegExp(r'^[A-Za-z0-9]{1,64}$').hasMatch(tradeNo);
+  bool get isUsable => eligibility == ActionEligibility.allowed && orderId > 0;
 
   @override
   WriteOperation get operation => WriteOperation.hangzhouCgyyCancelOrder;

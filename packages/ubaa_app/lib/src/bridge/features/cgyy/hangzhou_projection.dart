@@ -58,13 +58,12 @@ FeatureResult bridgeProjectHangzhouCgyySites(
 /// 杭州订单的取消入口只排除明确已取消或已结束的订单；能否取消最终由
 /// 场馆系统的取消提醒与取消接口决定，界面不推断杭州的取消时限。
 List<FeatureAction> _hangzhouCancelActions(BridgeCgyyOrder item, DateTime now) {
-  final tradeNo = item.tradeNo?.trim() ?? '';
   final end = DateTime.tryParse(
     (item.reservationEndDate ?? '').trim().replaceFirst(' ', 'T'),
   );
   final cancelled = item.orderStatus == 2 || (item.checkStatus ?? 0) < 0;
   final action = HangzhouCgyyCancelAction(
-    tradeNo: tradeNo,
+    orderId: item.id,
     eligibility: cancelled || (end != null && !now.isBefore(end))
         ? ActionEligibility.denied
         : ActionEligibility.allowed,

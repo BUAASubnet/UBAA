@@ -754,9 +754,6 @@ class BridgeCgyyLockCode {
 
 class BridgeCgyyOrder {
   final int id;
-
-  /// 场馆系统订单号；杭州取消按它提交，北京仅保留不使用。
-  final String? tradeNo;
   final int? venueSiteId;
   final String? reservationDate;
   final String? reservationDateDetail;
@@ -777,7 +774,6 @@ class BridgeCgyyOrder {
 
   const BridgeCgyyOrder({
     required this.id,
-    this.tradeNo,
     this.venueSiteId,
     this.reservationDate,
     this.reservationDateDetail,
@@ -800,7 +796,6 @@ class BridgeCgyyOrder {
   @override
   int get hashCode =>
       id.hashCode ^
-      tradeNo.hashCode ^
       venueSiteId.hashCode ^
       reservationDate.hashCode ^
       reservationDateDetail.hashCode ^
@@ -825,7 +820,6 @@ class BridgeCgyyOrder {
       other is BridgeCgyyOrder &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          tradeNo == other.tradeNo &&
           venueSiteId == other.venueSiteId &&
           reservationDate == other.reservationDate &&
           reservationDateDetail == other.reservationDateDetail &&
@@ -968,8 +962,9 @@ class BridgeCgyySlotStatus {
   /// 管理员占用说明（如“教学使用”），只用于展示。
   final String? adminRemark;
 
-  /// 已约人数；杭州按人数预约的场地与 `reservation_total_num` 一起显示“已约/总数”。
-  final int? alreadyNum;
+  /// 剩余名额（`reservation_total_num` 减已约人数，下限 0）；只在当天有总名额时给出，
+  /// 杭州按人数预约的场地据此显示“已约/总数”。与图书馆 `free_num` 同为派生计数，不透传上游原始字段。
+  final int? freeNum;
 
   const BridgeCgyySlotStatus({
     required this.timeId,
@@ -979,7 +974,7 @@ class BridgeCgyySlotStatus {
     this.startDate,
     this.endDate,
     this.adminRemark,
-    this.alreadyNum,
+    this.freeNum,
   });
 
   @override
@@ -991,7 +986,7 @@ class BridgeCgyySlotStatus {
       startDate.hashCode ^
       endDate.hashCode ^
       adminRemark.hashCode ^
-      alreadyNum.hashCode;
+      freeNum.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1005,7 +1000,7 @@ class BridgeCgyySlotStatus {
           startDate == other.startDate &&
           endDate == other.endDate &&
           adminRemark == other.adminRemark &&
-          alreadyNum == other.alreadyNum;
+          freeNum == other.freeNum;
 }
 
 class BridgeCgyySpaceAvailability {

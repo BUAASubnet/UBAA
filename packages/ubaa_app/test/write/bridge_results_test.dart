@@ -213,7 +213,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       ),
       await backend.prepareHangzhouCgyyCancelOrder(
         const HangzhouCgyyCancelAction(
-          tradeNo: 'D000000000001',
+          orderId: 71425,
           eligibility: ActionEligibility.allowed,
         ),
         ' 临时有事 ',
@@ -239,7 +239,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
     final hzCancel =
         client.writeRequests[#prepareHangzhouCgyyCancelOrder]!
             as BridgeHangzhouCgyyCancelRequest;
-    expect((hzCancel.tradeNo, hzCancel.reason), ('D000000000001', '临时有事'));
+    expect((hzCancel.orderId, hzCancel.reason), (71425, '临时有事'));
 
     expect(
       intents.map((intent) => intent.operation).toList(growable: false),

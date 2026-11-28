@@ -260,7 +260,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                         slots: <BridgeCgyySlotStatus>[
                           BridgeCgyySlotStatus(
                             adminRemark: null,
-                            alreadyNum: null,
+                            freeNum: null,
                             timeId: 9,
                             reservationStatus: 1,
                             reservationEligibility:
@@ -292,7 +292,6 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
         return Future<BridgeRoutedCgyyOrder>.value(
           BridgeRoutedCgyyOrder(
             data: BridgeCgyyOrder(
-              tradeNo: null,
               id: named[#id] as int,
               orderStatus: 2,
               checkStatus: 2,
@@ -315,7 +314,6 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
                   ? const <BridgeCgyyOrder>[]
                   : const <BridgeCgyyOrder>[
                       BridgeCgyyOrder(
-                        tradeNo: null,
                         id: 101,
                         theme: '订单分页',
                         orderStatus: 1,

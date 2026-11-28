@@ -33,7 +33,13 @@ extension CgyyDetailActions on _FeatureDetailListState {
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton(
-          onPressed: !widget.writesEnabled ? null : () => cancel(action),
+          onPressed: !widget.writesEnabled
+              ? null
+              : () async {
+                  final reason = await uiAskHangzhouCgyyCancelReason(context);
+                  if (reason == null || !mounted) return;
+                  await cancel(action, reason);
+                },
           style: TextButton.styleFrom(
             foregroundColor: Theme.of(context).colorScheme.error,
           ),

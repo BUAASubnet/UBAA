@@ -6,7 +6,6 @@ import '../features/course_hub/entries.dart';
 import '../features/bykc/agenda_conflicts.dart';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
-import '../write/cgyy/hangzhou_form.dart' show uiAskHangzhouCgyyCancelReason;
 import 'navigation/content.dart' show uiShellContent;
 import 'navigation/header.dart' show uiShellHeader;
 import '../features/bhpan/write_flow.dart';
@@ -165,9 +164,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareLibbookCancelWrite,
     this.onPrepareLibraryLoanRenewWrite,
     this.onPrepareCgyySubmitWrite,
-    this.onLoadHangzhouCgyyCaptcha,
-    this.onPrepareHangzhouCgyySubmitWrite,
-    this.onPrepareHangzhouCgyyCancelWrite,
+    this.hangzhouCgyy,
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
     this.onPrepareSpocSubmitWrite,
@@ -303,9 +300,7 @@ class UbaaMainShell extends StatefulWidget {
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
   final LibraryLoanRenewPreparer? onPrepareLibraryLoanRenewWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
-  final Future<HangzhouCgyyCaptcha> Function()? onLoadHangzhouCgyyCaptcha;
-  final HangzhouCgyyReservationPreparer? onPrepareHangzhouCgyySubmitWrite;
-  final HangzhouCgyyCancelPreparer? onPrepareHangzhouCgyyCancelWrite;
+  final HangzhouCgyyShellPreparers? hangzhouCgyy;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
   final SpocSubmitPreparer? onPrepareSpocSubmitWrite;

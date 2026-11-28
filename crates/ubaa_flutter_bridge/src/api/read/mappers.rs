@@ -728,10 +728,12 @@ pub(crate) fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot 
         label: v.label,
     }
 }
-fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
+fn map_cgyy_slot(v: domain::CgyySlotStatus, total_num: Option<i32>) -> BridgeCgyySlotStatus {
     BridgeCgyySlotStatus {
         admin_remark: v.admin_remark,
-        already_num: v.already_num,
+        free_num: total_num
+            .zip(v.already_num)
+            .map(|(total, already)| total.saturating_sub(already).max(0)),
         time_id: v.time_id,
         reservation_status: v.reservation_status,
         reservation_eligibility: map_action_eligibility(v.reservation_eligibility),
@@ -750,6 +752,7 @@ fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
     }
 }
 pub(crate) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
+    let total_num = v.reservation_total_num;
     BridgeCgyyDayInfo {
         venue_site_id: v.venue_site_id,
         reservation_date: v.reservation_date,
@@ -763,7 +766,11 @@ pub(crate) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
                 space_name: s.space_name,
                 venue_site_id: s.venue_site_id,
                 venue_space_group_id: s.venue_space_group_id,
-                slots: s.slots.into_iter().map(map_cgyy_slot).collect(),
+                slots: s
+                    .slots
+                    .into_iter()
+                    .map(|slot| map_cgyy_slot(slot, total_num))
+                    .collect(),
             })
             .collect(),
         reservation_total_num: v.reservation_total_num,
@@ -800,7 +807,6 @@ pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
         });
     BridgeCgyyOrder {
         id: v.id,
-        trade_no: v.trade_no,
         venue_site_id: v.venue_site_id,
         reservation_date: v.reservation_date,
         reservation_date_detail: v.reservation_date_detail,

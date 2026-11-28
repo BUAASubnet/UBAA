@@ -21449,31 +21449,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyyOrder dco_decode_bridge_cgyy_order(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 19)
-      throw Exception('unexpected arr length: expect 19 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return BridgeCgyyOrder(
       id: dco_decode_i_32(arr[0]),
-      tradeNo: dco_decode_opt_String(arr[1]),
-      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[2]),
-      reservationDate: dco_decode_opt_String(arr[3]),
-      reservationDateDetail: dco_decode_opt_String(arr[4]),
-      venueSpaceName: dco_decode_opt_String(arr[5]),
-      campusName: dco_decode_opt_String(arr[6]),
-      venueName: dco_decode_opt_String(arr[7]),
-      siteName: dco_decode_opt_String(arr[8]),
-      reservationStartDate: dco_decode_opt_String(arr[9]),
-      reservationEndDate: dco_decode_opt_String(arr[10]),
-      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[11]),
-      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[12]),
-      theme: dco_decode_opt_String(arr[13]),
-      purposeTypeName: dco_decode_opt_String(arr[14]),
-      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[15]),
-      cancelEligibility: dco_decode_bridge_action_eligibility(arr[16]),
+      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      reservationDate: dco_decode_opt_String(arr[2]),
+      reservationDateDetail: dco_decode_opt_String(arr[3]),
+      venueSpaceName: dco_decode_opt_String(arr[4]),
+      campusName: dco_decode_opt_String(arr[5]),
+      venueName: dco_decode_opt_String(arr[6]),
+      siteName: dco_decode_opt_String(arr[7]),
+      reservationStartDate: dco_decode_opt_String(arr[8]),
+      reservationEndDate: dco_decode_opt_String(arr[9]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[11]),
+      theme: dco_decode_opt_String(arr[12]),
+      purposeTypeName: dco_decode_opt_String(arr[13]),
+      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[14]),
+      cancelEligibility: dco_decode_bridge_action_eligibility(arr[15]),
       cancelTarget: dco_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(
-        arr[17],
+        arr[16],
       ),
       cancelledTarget:
-          dco_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(arr[18]),
+          dco_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(arr[17]),
     );
   }
 
@@ -21642,7 +21641,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startDate: dco_decode_opt_String(arr[4]),
       endDate: dco_decode_opt_String(arr[5]),
       adminRemark: dco_decode_opt_String(arr[6]),
-      alreadyNum: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      freeNum: dco_decode_opt_box_autoadd_i_32(arr[7]),
     );
   }
 
@@ -22409,7 +22408,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 2)
       throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
     return BridgeHangzhouCgyyCancelRequest(
-      tradeNo: dco_decode_String(arr[0]),
+      orderId: dco_decode_i_32(arr[0]),
       reason: dco_decode_String(arr[1]),
     );
   }
@@ -32353,7 +32352,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyyOrder sse_decode_bridge_cgyy_order(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_i_32(deserializer);
-    var var_tradeNo = sse_decode_opt_String(deserializer);
     var var_venueSiteId = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_reservationDate = sse_decode_opt_String(deserializer);
     var var_reservationDateDetail = sse_decode_opt_String(deserializer);
@@ -32381,7 +32379,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         );
     return BridgeCgyyOrder(
       id: var_id,
-      tradeNo: var_tradeNo,
       venueSiteId: var_venueSiteId,
       reservationDate: var_reservationDate,
       reservationDateDetail: var_reservationDateDetail,
@@ -32584,7 +32581,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_startDate = sse_decode_opt_String(deserializer);
     var var_endDate = sse_decode_opt_String(deserializer);
     var var_adminRemark = sse_decode_opt_String(deserializer);
-    var var_alreadyNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_freeNum = sse_decode_opt_box_autoadd_i_32(deserializer);
     return BridgeCgyySlotStatus(
       timeId: var_timeId,
       reservationStatus: var_reservationStatus,
@@ -32593,7 +32590,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startDate: var_startDate,
       endDate: var_endDate,
       adminRemark: var_adminRemark,
-      alreadyNum: var_alreadyNum,
+      freeNum: var_freeNum,
     );
   }
 
@@ -33521,10 +33518,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeHangzhouCgyyCancelRequest
   sse_decode_bridge_hangzhou_cgyy_cancel_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_tradeNo = sse_decode_String(deserializer);
+    var var_orderId = sse_decode_i_32(deserializer);
     var var_reason = sse_decode_String(deserializer);
     return BridgeHangzhouCgyyCancelRequest(
-      tradeNo: var_tradeNo,
+      orderId: var_orderId,
       reason: var_reason,
     );
   }
@@ -44271,7 +44268,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.id, serializer);
-    sse_encode_opt_String(self.tradeNo, serializer);
     sse_encode_opt_box_autoadd_i_32(self.venueSiteId, serializer);
     sse_encode_opt_String(self.reservationDate, serializer);
     sse_encode_opt_String(self.reservationDateDetail, serializer);
@@ -44441,7 +44437,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.startDate, serializer);
     sse_encode_opt_String(self.endDate, serializer);
     sse_encode_opt_String(self.adminRemark, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.alreadyNum, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.freeNum, serializer);
   }
 
   @protected
@@ -45127,7 +45123,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.tradeNo, serializer);
+    sse_encode_i_32(self.orderId, serializer);
     sse_encode_String(self.reason, serializer);
   }
 

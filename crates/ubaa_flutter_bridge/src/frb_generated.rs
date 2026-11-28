@@ -26546,7 +26546,6 @@ impl SseDecode for crate::api::read::BridgeCgyyOrder {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <i32>::sse_decode(deserializer);
-        let mut var_tradeNo = <Option<String>>::sse_decode(deserializer);
         let mut var_venueSiteId = <Option<i32>>::sse_decode(deserializer);
         let mut var_reservationDate = <Option<String>>::sse_decode(deserializer);
         let mut var_reservationDateDetail = <Option<String>>::sse_decode(deserializer);
@@ -26569,7 +26568,6 @@ impl SseDecode for crate::api::read::BridgeCgyyOrder {
             <Option<crate::api::read::BridgeCgyyCancelOrderTarget>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyyOrder {
             id: var_id,
-            trade_no: var_tradeNo,
             venue_site_id: var_venueSiteId,
             reservation_date: var_reservationDate,
             reservation_date_detail: var_reservationDateDetail,
@@ -26772,7 +26770,7 @@ impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
         let mut var_startDate = <Option<String>>::sse_decode(deserializer);
         let mut var_endDate = <Option<String>>::sse_decode(deserializer);
         let mut var_adminRemark = <Option<String>>::sse_decode(deserializer);
-        let mut var_alreadyNum = <Option<i32>>::sse_decode(deserializer);
+        let mut var_freeNum = <Option<i32>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyySlotStatus {
             time_id: var_timeId,
             reservation_status: var_reservationStatus,
@@ -26781,7 +26779,7 @@ impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
             start_date: var_startDate,
             end_date: var_endDate,
             admin_remark: var_adminRemark,
-            already_num: var_alreadyNum,
+            free_num: var_freeNum,
         };
     }
 }
@@ -27789,10 +27787,10 @@ impl SseDecode for crate::api::read::graduate::BridgeGradeTermStatistics {
 impl SseDecode for crate::api::write::BridgeHangzhouCgyyCancelRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_tradeNo = <String>::sse_decode(deserializer);
+        let mut var_orderId = <i32>::sse_decode(deserializer);
         let mut var_reason = <String>::sse_decode(deserializer);
         return crate::api::write::BridgeHangzhouCgyyCancelRequest {
-            trade_no: var_tradeNo,
+            order_id: var_orderId,
             reason: var_reason,
         };
     }
@@ -41105,7 +41103,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyyOrder {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.id.into_into_dart().into_dart(),
-            self.trade_no.into_into_dart().into_dart(),
             self.venue_site_id.into_into_dart().into_dart(),
             self.reservation_date.into_into_dart().into_dart(),
             self.reservation_date_detail.into_into_dart().into_dart(),
@@ -41396,7 +41393,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyySlotStatus {
             self.start_date.into_into_dart().into_dart(),
             self.end_date.into_into_dart().into_dart(),
             self.admin_remark.into_into_dart().into_dart(),
-            self.already_num.into_into_dart().into_dart(),
+            self.free_num.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -42758,7 +42755,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::graduate::BridgeGradeTe
 impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeHangzhouCgyyCancelRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.trade_no.into_into_dart().into_dart(),
+            self.order_id.into_into_dart().into_dart(),
             self.reason.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -50730,7 +50727,6 @@ impl SseEncode for crate::api::read::BridgeCgyyOrder {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.id, serializer);
-        <Option<String>>::sse_encode(self.trade_no, serializer);
         <Option<i32>>::sse_encode(self.venue_site_id, serializer);
         <Option<String>>::sse_encode(self.reservation_date, serializer);
         <Option<String>>::sse_encode(self.reservation_date_detail, serializer);
@@ -50888,7 +50884,7 @@ impl SseEncode for crate::api::read::BridgeCgyySlotStatus {
         <Option<String>>::sse_encode(self.start_date, serializer);
         <Option<String>>::sse_encode(self.end_date, serializer);
         <Option<String>>::sse_encode(self.admin_remark, serializer);
-        <Option<i32>>::sse_encode(self.already_num, serializer);
+        <Option<i32>>::sse_encode(self.free_num, serializer);
     }
 }
 
@@ -51646,7 +51642,7 @@ impl SseEncode for crate::api::read::graduate::BridgeGradeTermStatistics {
 impl SseEncode for crate::api::write::BridgeHangzhouCgyyCancelRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.trade_no, serializer);
+        <i32>::sse_encode(self.order_id, serializer);
         <String>::sse_encode(self.reason, serializer);
     }
 }

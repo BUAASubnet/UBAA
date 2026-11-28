@@ -403,7 +403,6 @@ void main() {
           data: const BridgeCgyyOrdersPage(
             content: <BridgeCgyyOrder>[
               BridgeCgyyOrder(
-                tradeNo: null,
                 id: 17,
                 orderStatus: 1,
                 checkStatus: 2,

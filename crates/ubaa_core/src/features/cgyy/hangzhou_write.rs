@@ -10,8 +10,8 @@
 //!    `orderPrice`、`orderPin`、`venueSiteId`、`phone`；返回 `data.{id,tradeNo,...}`；
 //! 4. 订单进入 10 分钟待支付，`GET /api/venue/finances/order/detail` 确认 `payFee == 0` 后，
 //!    `POST /api/venue/finances/order/pay`（`venueTradeNo`、`isApp=0`）完成 0 元确认；
-//! 5. 取消：`GET /api/orders/cancel_tip`，再 `POST /api/venue/finances/order/cancel`
-//!    （`venueTradeNo`、`handleReason`）。
+//! 5. 取消：按订单 id 在 `GET /api/orders/mine` 中解析 `tradeNo`，读取 `GET /api/orders/cancel_tip`，
+//!    再 `POST /api/venue/finances/order/cancel`（`venueTradeNo`、`handleReason`）。
 //!
 //! 验证码不由程序求解：位移来自用户拖动；`orderPin` 加密的是用户真实点击坐标。
 //! 写请求一律不自动重试。
@@ -36,7 +36,7 @@ use super::captcha::{build_captcha_check_form, build_captcha_params, parse_captc
 use super::crypto::build_captcha_solution_at;
 use super::http::{log_response, signed_request_at};
 use super::parser::{data, parse_day_context};
-use super::read::day_body;
+use super::read::{day_body, get_hangzhou_orders};
 use super::sign::timestamp_millis;
 use super::site::CgyySite;
 
@@ -47,6 +47,9 @@ const PIN_IV: &[u8; 16] = b"C2H3I4N5G2O3K1E4";
 /// `RESERVATION_TYPE.COMMON`。
 const RESERVATION_TYPE_COMMON: &str = "-1";
 const MAX_REASON_CHARS: usize = 200;
+/// 取消时按订单 id 回查“我的预约”的分页大小与页数上限（零基页码）。
+const CANCEL_LOOKUP_PAGE_SIZE: i32 = 50;
+const CANCEL_LOOKUP_MAX_PAGES: i32 = 10;
 
 /// 取一张新的滑块验证码交给用户拖动。
 pub(crate) async fn hangzhou_captcha(
@@ -134,17 +137,48 @@ pub(crate) async fn hangzhou_preflight_cancel(
 ) -> Result<HangzhouCgyyCancelPreflight> {
     super::super::hzsso::require_direct_route(runtime)?;
     let request = normalize_cancel(request)?;
+    resolve_trade_no(runtime, request.order_id).await?;
+    let tip = read_cancel_tip(runtime).await?;
+    Ok(HangzhouCgyyCancelPreflight {
+        order_id: request.order_id,
+        tip,
+    })
+}
+
+async fn read_cancel_tip(runtime: &mut ClientRuntime) -> Result<Option<String>> {
     let body = get_at(runtime, SITE, "/api/orders/cancel_tip", BTreeMap::new()).await?;
-    let tip = data(&body)?
+    Ok(data(&body)?
         .get("tip")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|tip| !tip.is_empty())
-        .map(str::to_owned);
-    Ok(HangzhouCgyyCancelPreflight {
-        trade_no: request.trade_no,
-        tip,
-    })
+        .map(str::to_owned))
+}
+
+/// 按订单 id 回查“我的预约”，取出只在 Core 内使用的场馆订单号。
+async fn resolve_trade_no(runtime: &mut ClientRuntime, order_id: i32) -> Result<String> {
+    for page in 0..CANCEL_LOOKUP_MAX_PAGES {
+        let orders = get_hangzhou_orders(runtime, page, CANCEL_LOOKUP_PAGE_SIZE).await?;
+        if let Some(order) = orders.content.iter().find(|order| order.id == order_id) {
+            return order
+                .trade_no
+                .as_deref()
+                .map(str::trim)
+                .filter(|trade_no| valid_trade_no(trade_no))
+                .map(str::to_owned)
+                .ok_or_else(|| invalid_input("该订单缺少场馆订单号，无法取消"));
+        }
+        if orders.content.is_empty() || page + 1 >= orders.total_pages {
+            break;
+        }
+    }
+    Err(invalid_input("在“我的预约”中找不到该订单，请刷新后重试"))
+}
+
+fn valid_trade_no(trade_no: &str) -> bool {
+    !trade_no.is_empty()
+        && trade_no.len() <= 64
+        && trade_no.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 /// 只发送一次取消请求。
@@ -152,10 +186,12 @@ pub(crate) async fn hangzhou_cancel_order(
     runtime: &mut ClientRuntime,
     request: HangzhouCgyyCancelRequest,
 ) -> Result<HangzhouCgyyCancelResult> {
-    let preflight = hangzhou_preflight_cancel(runtime, &request).await?;
+    super::super::hzsso::require_direct_route(runtime)?;
     let request = normalize_cancel(&request)?;
+    let trade_no = resolve_trade_no(runtime, request.order_id).await?;
+    read_cancel_tip(runtime).await?;
     let form = [
-        ("venueTradeNo".into(), preflight.trade_no),
+        ("venueTradeNo".into(), trade_no),
         ("handleReason".into(), request.reason),
     ]
     .into_iter()
@@ -439,9 +475,8 @@ fn parse_write_root(
 }
 
 fn normalize_cancel(request: &HangzhouCgyyCancelRequest) -> Result<HangzhouCgyyCancelRequest> {
-    let trade_no = request.trade_no.trim();
-    if trade_no.is_empty() || !trade_no.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err(invalid_input("订单号无效"));
+    if request.order_id <= 0 {
+        return Err(invalid_input("订单无效"));
     }
     let reason = request.reason.trim();
     if reason.is_empty() {
@@ -451,7 +486,7 @@ fn normalize_cancel(request: &HangzhouCgyyCancelRequest) -> Result<HangzhouCgyyC
         return Err(invalid_input("取消原因不能超过 200 字"));
     }
     Ok(HangzhouCgyyCancelRequest {
-        trade_no: trade_no.to_owned(),
+        order_id: request.order_id,
         reason: reason.to_owned(),
     })
 }
@@ -526,27 +561,35 @@ mod tests {
     }
 
     #[test]
-    fn 取消原因与订单号经过规范化校验() {
+    fn 取消原因与订单经过规范化校验() {
         let ok = normalize_cancel(&HangzhouCgyyCancelRequest {
-            trade_no: " D261125000791 ".into(),
+            order_id: 71_425,
             reason: " 临时有事 ".into(),
         })
         .unwrap();
-        assert_eq!(ok.trade_no, "D261125000791");
+        assert_eq!(ok.order_id, 71_425);
         assert_eq!(ok.reason, "临时有事");
         assert!(
             normalize_cancel(&HangzhouCgyyCancelRequest {
-                trade_no: "D1".into(),
+                order_id: 1,
                 reason: "   ".into(),
             })
             .is_err()
         );
         assert!(
             normalize_cancel(&HangzhouCgyyCancelRequest {
-                trade_no: "D1/../x".into(),
+                order_id: 0,
                 reason: "x".into(),
             })
             .is_err()
         );
+    }
+
+    #[test]
+    fn 场馆订单号只接受有界字母数字() {
+        assert!(valid_trade_no("D261125000791"));
+        assert!(!valid_trade_no(""));
+        assert!(!valid_trade_no("D1/../x"));
+        assert!(!valid_trade_no(&"D".repeat(65)));
     }
 }

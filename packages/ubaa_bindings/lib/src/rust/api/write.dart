@@ -268,23 +268,24 @@ class BridgeEvaluationSubmitCoursesRequest {
 }
 
 class BridgeHangzhouCgyyCancelRequest {
-  final String tradeNo;
+  /// “我的预约”中的订单 id；场馆订单号只在 Core 内按 id 解析，不跨 FFI。
+  final int orderId;
   final String reason;
 
   const BridgeHangzhouCgyyCancelRequest({
-    required this.tradeNo,
+    required this.orderId,
     required this.reason,
   });
 
   @override
-  int get hashCode => tradeNo.hashCode ^ reason.hashCode;
+  int get hashCode => orderId.hashCode ^ reason.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeHangzhouCgyyCancelRequest &&
           runtimeType == other.runtimeType &&
-          tradeNo == other.tradeNo &&
+          orderId == other.orderId &&
           reason == other.reason;
 }
 

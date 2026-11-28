@@ -664,8 +664,9 @@ pub struct BridgeCgyySlotStatus {
     pub end_date: Option<String>,
     /// 管理员占用说明（如“教学使用”），只用于展示。
     pub admin_remark: Option<String>,
-    /// 已约人数；杭州按人数预约的场地与 `reservation_total_num` 一起显示“已约/总数”。
-    pub already_num: Option<i32>,
+    /// 剩余名额（`reservation_total_num` 减已约人数，下限 0）；只在当天有总名额时给出，
+    /// 杭州按人数预约的场地据此显示“已约/总数”。与图书馆 `free_num` 同为派生计数，不透传上游原始字段。
+    pub free_num: Option<i32>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyySpaceAvailability {
@@ -691,8 +692,6 @@ pub struct BridgeCgyyCancelOrderTarget {
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyOrder {
     pub id: i32,
-    /// 场馆系统订单号；杭州取消按它提交，北京仅保留不使用。
-    pub trade_no: Option<String>,
     pub venue_site_id: Option<i32>,
     pub reservation_date: Option<String>,
     pub reservation_date_detail: Option<String>,

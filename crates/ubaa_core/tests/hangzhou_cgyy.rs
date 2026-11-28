@@ -485,7 +485,7 @@ impl HttpTransport for HzTransport {
             ),
             "hzsm.buaa.edu.cn/venue-server/api/orders/mine" => ok(
                 url,
-                r#"{"code":200,"data":{"content":[{"id":9001,"tradeNo":"synthetic-trade","venueSiteId":701,"orderStatus":1}],"totalElements":1,"totalPages":1,"size":10,"number":0}}"#,
+                r#"{"code":200,"data":{"content":[{"id":9001,"tradeNo":"D000000009001","venueSiteId":701,"orderStatus":1}],"totalElements":1,"totalPages":1,"size":10,"number":0}}"#,
             ),
             _ => self
                 .write_response(&key, url)
@@ -817,13 +817,13 @@ fn 杭州预约路线已变化时不发任何请求() {
 }
 
 #[test]
-fn 杭州取消先读提醒再按订单号和原因只发送一次() {
+fn 杭州取消按订单id回查订单号再读提醒并只发送一次() {
     let requests = Arc::new(Mutex::new(Vec::new()));
     let (mut client, _webvpn, root) =
         routed_client("cancel", HzTransport::new(Arc::clone(&requests), true));
     let rt = runtime();
     let request = ubaa_core::facade::HangzhouCgyyCancelRequest {
-        trade_no: "D000000000001".into(),
+        order_id: 9001,
         reason: "临时有事".into(),
     };
 
@@ -844,12 +844,13 @@ fn 杭州取消先读提醒再按订单号和原因只发送一次() {
     assert_eq!(
         hz_api_paths(&requests),
         [
+            "hzsm.buaa.edu.cn/venue-server/api/orders/mine",
             "hzsm.buaa.edu.cn/venue-server/api/orders/cancel_tip",
             "hzsm.buaa.edu.cn/venue-server/api/venue/finances/order/cancel",
         ]
     );
     let form = form_of(&find_request(&requests, "finances/order/cancel"));
-    assert_eq!(form["venueTradeNo"], "D000000000001");
+    assert_eq!(form["venueTradeNo"], "D000000009001");
     assert_eq!(form["handleReason"], "临时有事");
     let _ = std::fs::remove_dir_all(&root);
 }

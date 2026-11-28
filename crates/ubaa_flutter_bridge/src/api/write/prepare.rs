@@ -681,7 +681,7 @@ impl BridgeClient {
         request: BridgeHangzhouCgyyCancelRequest,
     ) -> Result<BridgeWriteIntent, PreparationError> {
         let request = domain::HangzhouCgyyCancelRequest {
-            trade_no: request.trade_no.trim().to_owned(),
+            order_id: request.order_id,
             reason: request.reason.trim().to_owned(),
         };
         catch_preparation_panic(async {
@@ -700,10 +700,10 @@ impl BridgeClient {
             }
             self.store_write_intent(
                 BridgeWriteOperation::HangzhouCgyyCancelOrder,
-                format!("trade_no={}", current.data.trade_no),
+                format!("order_id={}", current.data.order_id),
                 format!(
-                    "杭州预约订单 {} · 原因 {}",
-                    safe_summary_label(&current.data.trade_no, "订单"),
+                    "杭州预约订单 #{} · 原因 {}",
+                    current.data.order_id,
                     safe_summary_label(&request.reason, "原因"),
                 ),
                 warnings,
