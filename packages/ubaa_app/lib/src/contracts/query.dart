@@ -1,6 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+/// 图书馆预约记录按一基分页，研讨室订单按零基分页。
+const libbookBookingsReadbackFirstPage = FeatureQuery(
+  view: FeatureQueryView.libbookBookings,
+  page: 1,
+);
+const cgyyOrdersReadbackFirstPage = FeatureQuery(
+  view: FeatureQueryView.cgyyOrders,
+  page: 0,
+);
+
 /// 写后核对只读取 intent 的原路线，不能使用全局 Auto 策略。
 abstract interface class PinnedWriteReadbackBackend {
   Future<FeatureResult> readAfterWriteOnRoute(

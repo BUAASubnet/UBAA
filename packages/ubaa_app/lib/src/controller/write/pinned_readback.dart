@@ -32,9 +32,8 @@ Future<void> controllerPinnedWriteReadback(
     FeatureId.bykc => const FeatureQuery(
       view: FeatureQueryView.bykcChosenCourses,
     ),
-    FeatureId.libbook =>
-      query ?? const FeatureQuery(view: FeatureQueryView.libbookBookings),
-    FeatureId.cgyy => const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+    FeatureId.libbook => query ?? libbookBookingsReadbackFirstPage,
+    FeatureId.cgyy => query ?? cgyyOrdersReadbackFirstPage,
     _ => const FeatureQuery(),
   };
   final scope = controller.internalCaptureSessionScope();

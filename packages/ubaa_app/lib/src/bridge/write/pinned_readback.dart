@@ -1,6 +1,7 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/query.dart';
 import '../context.dart';
 import '../features/bykc/projection.dart';
 import '../features/libbook/projection.dart';
@@ -36,8 +37,7 @@ Future<FeatureResult> bridgePinnedWriteReadback(
         );
       case WriteOperation.libbookReserve:
       case WriteOperation.libbookCancelBooking:
-        final selected =
-            query ?? const FeatureQuery(view: FeatureQueryView.libbookBookings);
+        final selected = query ?? libbookBookingsReadbackFirstPage;
         final result = await backend.client.libbookBookingsOnRoute(
           route: pinned,
           page: selected.page,
@@ -50,11 +50,12 @@ Future<FeatureResult> bridgePinnedWriteReadback(
           selected,
         );
       case WriteOperation.cgyySubmitReservation:
+        final orders = query ?? cgyyOrdersReadbackFirstPage;
         return await bridgeLoadCgyyOrdersOnRoute(
           backend,
           route: route,
-          page: 1,
-          size: 20,
+          page: orders.page,
+          size: orders.size,
         );
       default:
         throw const BackendException(UbaaErrorCode.invalidInput);
