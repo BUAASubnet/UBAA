@@ -72,7 +72,7 @@ fn cookie(raw: &str, mask_all: bool, set_cookie: bool) -> String {
         .map(|(index, field)| {
             if let Some((name, _)) = field.split_once('=')
                 && (!set_cookie || index == 0)
-                && (mask_all || name.trim() == "_token")
+                && (mask_all || matches!(name.trim(), "_token" | "sso_buaa_zhjs_token"))
             {
                 format!("{name}={HIDDEN}")
             } else {
@@ -129,16 +129,16 @@ pub(super) fn headers(request_url: &str, response: &HttpResponse) -> BTreeMap<St
         })
         .collect()
 }
-fn fields(value: &mut Value) -> bool {
+fn fields(value: &mut Value, private_field: &impl Fn(&str) -> bool) -> bool {
     match value {
         Value::Object(map) => {
             let mut changed = false;
             for (key, item) in map {
-                if private(key) {
+                if private_field(key) {
                     *item = Value::String(HIDDEN.into());
                     changed = true;
                 } else {
-                    changed |= fields(item);
+                    changed |= fields(item, private_field);
                 }
             }
             changed
@@ -146,7 +146,7 @@ fn fields(value: &mut Value) -> bool {
         Value::Array(items) => {
             let mut changed = false;
             for item in items {
-                changed |= fields(item);
+                changed |= fields(item, private_field);
             }
             changed
         }
@@ -154,7 +154,7 @@ fn fields(value: &mut Value) -> bool {
             let trimmed = text.trim_start();
             if trimmed.starts_with(['[', '{'])
                 && let Ok(mut nested) = serde_json::from_str::<Value>(trimmed)
-                && fields(&mut nested)
+                && fields(&mut nested, private_field)
             {
                 *text = nested.to_string();
                 return true;
@@ -196,5 +196,13 @@ pub(super) fn body(request_url: &str, bytes: &[u8]) -> Option<String> {
         .any(|suffix| path.path().ends_with(suffix))
         .then(|| HIDDEN.into());
     };
-    fields(&mut data).then(|| data.to_string())
+    let cgyy_login = path.path().ends_with("/venue-zhjs-server/api/login");
+    let cgyy_captcha = path.path().ends_with("/venue-zhjs-server/api/captcha/get");
+    let private_field = |key: &str| {
+        private(key)
+            || (cgyy_login && key.eq_ignore_ascii_case("access_token"))
+            || (cgyy_captcha
+                && (key.eq_ignore_ascii_case("secretKey") || key.eq_ignore_ascii_case("token")))
+    };
+    fields(&mut data, &private_field).then(|| data.to_string())
 }

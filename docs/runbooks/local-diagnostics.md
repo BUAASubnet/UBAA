@@ -28,9 +28,9 @@
 
 设置中的“诊断信息”只提供“分享完整诊断”（桌面为“保存完整诊断”），并明确提示不得公开分享。导出时额外附加 `raw_http`，包含学校请求方法、完整地址、实际路线、请求编号、开始时间、耗时、响应状态、重复响应头及完整正文。文本以 UTF-8 保存，其他字节以 Base64 无损保存。记录包括成功响应、重定向、认证和内部重试，通过编号与时间顺序查看。错误摘要包含保留范围内的全部事件，按错误编号查找关联记录。
 
-请求头不录制。记录器在写入缓冲前遮盖响应头中的 `Authorization` 和 Cookie 的 `_token`。请求或响应属于 `yjapi.msa.buaa.edu.cn`、`classroom.msa.buaa.edu.cn`（含 WebVPN 包装）或网关 `/wengine-vpn/cookie` 时，`Cookie` 和 `Set-Cookie` 中的所有 Cookie 都只保留名称，不保留值。
+请求头不录制。记录器在写入缓冲前遮盖响应头中的 `Authorization`、`_token` Cookie 和研讨室认证 Cookie `sso_buaa_zhjs_token`。请求或响应属于 `yjapi.msa.buaa.edu.cn`、`classroom.msa.buaa.edu.cn`（含 WebVPN 包装）或网关 `/wengine-vpn/cookie` 时，`Cookie` 和 `Set-Cookie` 中的所有 Cookie 都只保留名称，不保留值。
 
-地址和 `Location` 的查询与片段均遮盖票据、签名、账号及媒体密钥。JSON 正文及其字符串化的 JSON 对象和数组也按同一规则处理，字符串化字段仍保持字符串。课堂签名、签名映射、casapi 及网关 Cookie 快照不录制正文。`body_capture=redacted` 表示正文已处理，`body_bytes` 仍是原始大小。
+地址和 `Location` 的查询与片段均遮盖票据、签名、账号及媒体密钥。JSON 正文及其字符串化的 JSON 对象和数组也按同一规则处理，字符串化字段仍保持字符串。研讨室业务登录响应中的 `access_token`，以及验证码挑战响应中的 `secretKey` 和 `token`，在 Direct 和 WebVPN 两条路线均会遮盖。课堂签名、签名映射、casapi 及网关 Cookie 快照不录制正文。`body_capture=redacted` 表示正文已处理，`body_bytes` 仍是原始大小。
 
 `redaction_scope=selected_fields` 表示只遮盖指定字段。其余响应仍可能包含个人数据、Cookie 和业务 Token，只私下发送给可信任的维护者，不发到群聊、论坛或 GitHub Issues 等公开场所。该信息不自动上传，不保存到偏好存储。原始缓冲只在当前客户端生命周期有效，路线切换与派生读取共享记录；重建客户端或重启后需要重新复现。普通错误历史仍可保留七天。
 

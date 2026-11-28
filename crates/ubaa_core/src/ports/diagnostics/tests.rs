@@ -185,6 +185,85 @@ async fn 原始响应保留未知字段重复响应头和重试顺序() {
     );
 }
 
+#[tokio::test]
+async fn 研讨室诊断遮蔽凭据并保留普通字段() {
+    use super::super::HttpMethod::{Get, Post};
+
+    for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let diagnostics = RawDiagnostics::default();
+        diagnostics.enable();
+        let transport = RecordingTransport {
+            inner: Fixture,
+            diagnostics: diagnostics.clone(),
+            route,
+        };
+        for (method, path, body) in [
+            (Get, "/sso/manageLogin", "合成认证响应"),
+            (
+                Post,
+                "/api/login",
+                r#"{"code":200,"data":{"token":{"access_token":"fixture-cgyy-access"}},"message":"合成业务登录"}"#,
+            ),
+            (
+                Get,
+                "/api/captcha/get",
+                r#"{"code":200,"data":{"success":true,"repData":{"secretKey":"fixture-cgyy-key","token":"fixture-cgyy-challenge"}}}"#,
+            ),
+        ] {
+            let endpoint = format!("https://cgyy.buaa.edu.cn/venue-zhjs-server{path}");
+            let endpoint = match route {
+                ConnectionMode::Direct => endpoint,
+                ConnectionMode::WebVpn => crate::connection::to_webvpn_url(&endpoint).unwrap(),
+            };
+            let mut response = HttpResponse::new(200, &endpoint, body.as_bytes().to_vec());
+            if path == "/sso/manageLogin" {
+                response.headers.insert(
+                    "Set-Cookie".into(),
+                    vec![
+                        "sso_buaa_zhjs_token=fixture-cgyy-sso; Path=/venue-zhjs-server/; Secure"
+                            .into(),
+                        "view=compact; Path=/".into(),
+                    ],
+                );
+            }
+            transport
+                .capture(method, endpoint, false, async { Ok(response) })
+                .await
+                .unwrap();
+        }
+
+        let text = diagnostics.export_json();
+        for secret in [
+            "fixture-cgyy-sso",
+            "fixture-cgyy-access",
+            "fixture-cgyy-key",
+            "fixture-cgyy-challenge",
+        ] {
+            assert!(!text.contains(secret), "{route:?} 的研讨室凭据进入了诊断");
+        }
+        let report: Value = serde_json::from_str(&text).unwrap();
+        let records = report["records"].as_array().unwrap();
+        let sso = &records[0]["response"];
+        assert_eq!(sso["body"], "合成认证响应");
+        assert_eq!(
+            sso["headers"]["Set-Cookie"],
+            json!([
+                "sso_buaa_zhjs_token=[已隐藏]; Path=/venue-zhjs-server/; Secure",
+                "view=compact; Path=/"
+            ])
+        );
+        let login: Value =
+            serde_json::from_str(records[1]["response"]["body"].as_str().unwrap()).unwrap();
+        assert_eq!(login["message"], "合成业务登录");
+        assert_eq!(login["data"]["token"]["access_token"], "[已隐藏]");
+        let captcha: Value =
+            serde_json::from_str(records[2]["response"]["body"].as_str().unwrap()).unwrap();
+        assert_eq!(captcha["data"]["success"], true);
+        assert_eq!(captcha["data"]["repData"]["secretKey"], "[已隐藏]");
+        assert_eq!(captcha["data"]["repData"]["token"], "[已隐藏]");
+    }
+}
+
 #[test]
 fn 容量淘汰明确报告且保留完整记录() {
     let diagnostics = RawDiagnostics::default();
