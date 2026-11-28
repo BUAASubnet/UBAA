@@ -9,10 +9,10 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
-  testWidgets('详情继承同课程列表人数并阻止已满课程选课', (tester) async {
+  testWidgets('详情展示同路线列表人数，选课按钮遵循 Core 资格', (tester) async {
     for (final (count, eligibility, route, enabled) in [
       (3, ActionEligibility.allowed, ConnectionMode.direct, true),
-      (10, ActionEligibility.allowed, ConnectionMode.direct, false),
+      (10, ActionEligibility.allowed, ConnectionMode.direct, true),
       (3, ActionEligibility.unknown, ConnectionMode.direct, false),
       (10, ActionEligibility.allowed, ConnectionMode.webvpn, true),
     ]) {
@@ -59,6 +59,15 @@ void main() {
       expect(
         find.text('已报名'),
         route == ConnectionMode.direct ? findsOneWidget : findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.widgetWithText(Card, '合成空人数详情'),
+          matching: find.text('人数已满'),
+        ),
+        count == 10 && route == ConnectionMode.direct
+            ? findsOneWidget
+            : findsNothing,
       );
       await _show(tester, find.text('选课'));
       final button = tester.widget<OutlinedButton>(

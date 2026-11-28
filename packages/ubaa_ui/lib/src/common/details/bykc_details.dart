@@ -12,14 +12,13 @@ extension BykcDetails on _FeatureDetailListState {
     final listCourse = widget.bykcListCourse?.id == course.id
         ? widget.bykcListCourse
         : null;
-    final full =
+    final displayedFull =
         uiBykcDisplayStatus(course) == BykcCourseStatus.full ||
         listCourse != null &&
             uiBykcDisplayStatus(listCourse) == BykcCourseStatus.full;
     final canSelect =
         select?.eligibility == ActionEligibility.allowed &&
-        select!.courseId > 0 &&
-        !full;
+        select!.courseId > 0;
     final canDeselect =
         deselect?.eligibility == ActionEligibility.allowed &&
         deselect!.courseId > 0;
@@ -42,7 +41,7 @@ extension BykcDetails on _FeatureDetailListState {
                 ),
                 const SizedBox(height: 8),
                 BykcStatusChip(
-                  full && course.selected != true
+                  displayedFull && course.selected != true
                       ? BykcCourseStatus.full
                       : uiBykcDisplayStatus(course),
                 ),
@@ -156,7 +155,7 @@ extension BykcDetails on _FeatureDetailListState {
                 ),
             ],
           ),
-          if (!canSelect && !canDeselect && full)
+          if (!canSelect && !canDeselect && displayedFull)
             const Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text('该课程人数已满，当前不可选择。'),
