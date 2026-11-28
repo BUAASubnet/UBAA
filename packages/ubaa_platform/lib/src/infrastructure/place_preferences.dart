@@ -29,13 +29,29 @@ final class PlacePreferenceStore implements AccountPreferenceMigration {
   AccountPreferences<Map<String, String>>? _store;
   @override
   Future<bool> migrateAccount(String previous, String current) async {
-    if (_store case final store?)
-      return store.migrateAccount(previous, current);
+    if (_store case final store?) {
+      return store.migrateAccount(
+        previous,
+        current,
+        merge: _mergeMissingPlaces,
+      );
+    }
     if (previous == current || !_memory.containsKey(previous)) return false;
-    final value = _memory.remove(previous)!;
-    if (_memory.containsKey(current)) return false;
+    final old = _memory.remove(previous)!;
+    final existing = _memory[current];
+    final value = existing == null ? old : _mergeMissingPlaces(old, existing);
+    if (value == null) return false;
     _memory[current] = value;
     return true;
+  }
+
+  static Map<String, String>? _mergeMissingPlaces(
+    Map<String, String> old,
+    Map<String, String> existing,
+  ) {
+    // 规范键已经保存所有地点时，只需清理旧键。
+    if (old.keys.every(existing.containsKey)) return null;
+    return Map.unmodifiable({...old, ...existing});
   }
 
   Future<Map<String, String>> read(String account) async {
@@ -59,10 +75,16 @@ final class PlacePreferenceStore implements AccountPreferenceMigration {
     }
   }
 
-  Future<void> writePlace(String account, String key, String value) async {
-    if (!_allowed.contains(key)) throw ArgumentError('未登记的地点偏好');
+  Future<void> writePlace(String account, String key, String value) =>
+      mergePlaces(account, {key: value});
+
+  Future<void> mergePlaces(String account, Map<String, String> changes) async {
+    if (changes.keys.any((key) => !_allowed.contains(key))) {
+      throw ArgumentError('未登记的地点偏好');
+    }
+    final edits = Map<String, String>.of(changes);
     Map<String, String> merge(Map<String, String>? current) =>
-        Map.unmodifiable({...?current, key: value});
+        Map.unmodifiable({...?current, ...edits});
     if (_store case final store?) {
       await store.update(account, merge);
     } else {

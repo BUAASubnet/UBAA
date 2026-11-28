@@ -124,16 +124,21 @@ final class AccountPreferences<T> {
   }
 
   Future<T?> read(String account) => _serial(account, _read);
-  Future<bool> migrateAccount(String previous, String current) {
+  Future<bool> migrateAccount(
+    String previous,
+    String current, {
+    T? Function(T old, T current)? merge,
+  }) {
     if (previous == current) return Future.value(false);
     return _serial(current, (key) async {
       final oldKey = _key(previous);
       final old = await _read(oldKey);
       if (old == null) return false;
-      final exists = await _read(key) != null;
-      if (!exists) await values.write(key, jsonEncode(encode(old)));
+      final existing = await _read(key);
+      final value = existing == null ? old : merge?.call(old, existing);
+      if (value != null) await values.write(key, jsonEncode(encode(value)));
       await values.remove(oldKey);
-      return !exists;
+      return value != null;
     });
   }
 

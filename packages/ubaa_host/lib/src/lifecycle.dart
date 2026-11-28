@@ -41,6 +41,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late ThemePreferenceStore _themeStore;
   String? _placeOwner;
   Map<String, String> _placePreferences = {};
+  final _pendingPlaceEdits = <String, ({String value, int revision})>{};
+  int _placeEditRevision = 0;
   String? _preferenceOwner;
   final _preferenceAliases = <String>{};
   Future<void> _preferenceMigration = Future.value();
@@ -91,6 +93,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _homeFrameReported = false;
       _placeOwner = null;
       _placePreferences = {};
+      _pendingPlaceEdits.clear();
       return;
     }
     final owner = _controller.localDataOwnerScope;
@@ -98,6 +101,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     if (_placeOwner == owner.accountKey) return;
     _placeOwner = owner.accountKey;
     _placePreferences = {};
+    _pendingPlaceEdits.clear();
     if (owner.accountKey.isEmpty) return;
     unawaited(_restorePlaces(owner));
   }
@@ -125,10 +129,19 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       owner.checkCurrent();
       if (!UiPlaceKeys.all.contains(key)) return;
       _placePreferences = {..._placePreferences, key: value};
-      // 先迁移别名，再在账号存储的串行队列里合并本次选择。
+      _pendingPlaceEdits[key] = (value: value, revision: ++_placeEditRevision);
+      // 迁移和保存共用存储队列，保存只提交显式选择。
       await _preferenceMigration;
       owner.checkCurrent();
-      await _placeStore.writePlace(owner.accountKey, key, value);
+      final edits = Map.of(_pendingPlaceEdits);
+      if (edits.isEmpty) return;
+      await _placeStore.mergePlaces(
+        owner.accountKey,
+        edits.map((key, edit) => MapEntry(key, edit.value)),
+      );
+      owner.checkCurrent();
+      // 保存进行期间，用户可能又修改了同一地点。
+      _pendingPlaceEdits.removeWhere((key, edit) => edits[key] == edit);
     } on Object {
       /* 普通偏好写失败不打断操作。 */
     }
