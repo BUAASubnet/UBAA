@@ -1,0 +1,43 @@
+{
+  "forms": [
+    {
+      "name": "home_card",
+      "displayName": "$string:home_card_display_name",
+      "description": "$string:home_card_desc",
+      "src": "./ets/homecard/pages/HomeCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDefault": true,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "defaultDimension": "2*2",
+      "supportDimensions": [
+        "2*2"
+      ]
+    },
+    {
+      "name": "home_card_large",
+      "displayName": "$string:home_card_large_display_name",
+      "description": "$string:home_card_large_desc",
+      "src": "./ets/homecard/pages/HomeCardLarge.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDefault": false,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "defaultDimension": "4*4",
+      "supportDimensions": [
+        "2*4",
+        "4*4"
+      ]
+    }
+  ]
+}

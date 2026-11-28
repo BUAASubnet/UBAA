@@ -3,6 +3,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
+import 'home_card.dart';
 import 'ohos_video_playback.dart';
 
 /// 保留 HarmonyOS 宿主的既有公开名称。
@@ -30,4 +31,5 @@ Future<void> bootstrapUbaaOhosApp({
         videoPlayback: const OhosVideoPlaybackCapability(),
       ),
   runApplication: runApplication ?? runApp,
+  publishHomeCard: const OhosHomeCard().publish,
 );

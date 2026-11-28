@@ -20,3 +20,4 @@ export UBAA_TYPESCRIPT="$typescript"
 "$node_bin" "$repo_root/packages/connectivity_plus_ohos/test/native/contracts.cjs"
 
 "$node_bin" --test "$repo_root/apps/ubaa_ohos/test/native/agenda_file.test.cjs"
+"$node_bin" --test "$repo_root/apps/ubaa_ohos/test/native/home_card.test.cjs"

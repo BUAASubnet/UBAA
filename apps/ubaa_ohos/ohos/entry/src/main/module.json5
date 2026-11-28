@@ -35,6 +35,20 @@
         ]
       }
     ],
+    "extensionAbilities": [
+      {
+        "name": "HomeCardFormAbility",
+        "srcEntry": "./ets/homecard/HomeCardFormAbility.ets",
+        "description": "$string:home_card_desc",
+        "type": "form",
+        "metadata": [
+          {
+            "name": "ohos.extension.form",
+            "resource": "$profile:home_card"
+          }
+        ]
+      }
+    ],
     "requestPermissions": [
       {"name" :  "ohos.permission.INTERNET"},
       {"name": "ohos.permission.GET_NETWORK_INFO"},

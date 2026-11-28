@@ -16,6 +16,7 @@ import 'crash_handlers.dart';
 
 part 'app_service.dart';
 part 'callbacks.dart';
+part 'home_card.dart';
 part 'lifecycle.dart';
 part 'startup.dart';
 part 'session.dart';
@@ -40,6 +41,7 @@ Future<void> bootstrapUbaaHost({
   PreferenceValues? preferenceValues,
   PlatformAppInformation? appInformation,
   DiagnosticReportExporter reportExporter = const DiagnosticReportExporter(),
+  Future<void> Function(HomeCardSnapshot)? publishHomeCard,
 }) async {
   ensureFlutterInitialized();
   final preferences = preferenceValues ?? PluginPreferenceValues();
@@ -80,6 +82,7 @@ Future<void> bootstrapUbaaHost({
         diagnosticReportExporter: reportExporter,
         startupDiagnostics: diagnostics,
         materialRecovery: capabilities.materialRecovery,
+        publishHomeCard: publishHomeCard,
       ),
     );
   }
@@ -199,6 +202,7 @@ class UbaaAppHost extends StatefulWidget {
     this.appInformation,
     this.startupDiagnostics,
     this.materialRecovery,
+    this.publishHomeCard,
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
     this.scheduleWidgetGateway,
@@ -244,6 +248,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformAppInformation? appInformation;
   final LocalDiagnostics? startupDiagnostics;
   final MaterialTransactionRecovery? materialRecovery;
+  final Future<void> Function(HomeCardSnapshot)? publishHomeCard;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
   final ScheduleWidgetGateway? scheduleWidgetGateway;

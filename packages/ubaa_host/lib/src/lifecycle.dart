@@ -140,6 +140,12 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
+  Timer? _homeCardTimer;
+  _HomeCardScope? _lastHomeCardScope;
+  Object? _homeCardRevision;
+  int _homeCardRequest = 0;
+  Future<void> _homeCardWrite = Future<void>.value();
+  HomeCardSnapshot? _lastHomeCardSnapshot;
   // 宿主只定期检查，Core 按持久化的实际尝试时间限制六小时间隔。
   static const _appServiceInterval = Duration(minutes: 30);
   Timer? _appServiceTimer;
@@ -219,6 +225,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _ => false,
     };
     WidgetsBinding.instance.addObserver(this);
+    _syncHomeCard();
     if (widget.startupDiagnostics == null) {
       unawaited(
         _readDiagnosticVersion(
@@ -302,6 +309,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? MemoryRecentFeatureStore()
             : PreferencesRecentFeatureStore(scope: defaultConfigDirectory()));
     _controller.addListener(_syncPlaces);
+    if (widget.publishHomeCard != null) _controller.addListener(_syncHomeCard);
     _controller.addListener(_checkHomeGrades);
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
@@ -353,6 +361,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void dispose() {
     _disposed = true;
     _widgetLaunch?.dispose();
+    _homeCardTimer?.cancel();
     _appServiceTimer?.cancel();
     _updateReminderTimer?.cancel();
     _crashHandlers?.dispose();
@@ -363,6 +372,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       return;
     }
     _controller.removeListener(_syncPlaces);
+    _controller.removeListener(_syncHomeCard);
     _controller.removeListener(_checkHomeGrades);
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
@@ -392,6 +402,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         state == AppLifecycleState.detached) {
       final enteringBackground = !_wasBackgrounded;
       _wasBackgrounded = true;
+      _syncHomeCard();
       if (enteringBackground && _mobile) {
         unawaited(_attemptAppService(force: true));
       }
@@ -405,6 +416,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         state == AppLifecycleState.inactive;
     if (visible && _wasBackgrounded) {
       _wasBackgrounded = false;
+      _syncHomeCard();
       if (_readyController == null) return;
       _listenNetworkChanges();
       _controller.setAppForeground(true);

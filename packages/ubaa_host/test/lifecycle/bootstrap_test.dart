@@ -227,4 +227,19 @@ void main() {
     expect(find.text('重试启动'), findsNothing);
     expect(apps.whereType<UbaaAppHost>(), isEmpty);
   });
+
+  test('publishHomeCard forwards to the host', () async {
+    final apps = <Widget>[];
+    Future<void> publish(HomeCardSnapshot snapshot) async {}
+    await bootstrapUbaaHost(
+      readThemeMode: () async => ThemeMode.system,
+      ensureFlutterInitialized: () {},
+      initializeSdk: () async {},
+      debugHello: () => 'UBAA FRB 2.13.0 ready',
+      createCapabilities: () async => fixtureCapabilities(),
+      runApplication: apps.add,
+      publishHomeCard: publish,
+    );
+    expect((apps.last as UbaaAppHost).publishHomeCard, same(publish));
+  });
 }
