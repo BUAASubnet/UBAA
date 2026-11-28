@@ -4,4 +4,5 @@ library;
 export 'src/ubaa_app_host.dart'
     show UbaaAppHost, UbaaBootSplash, bootstrapUbaaHost;
 
-export 'package:ubaa_ui/ubaa_ui.dart' show HomeCardItem, HomeCardSnapshot;
+export 'package:ubaa_ui/ubaa_ui.dart'
+    show HomeCardItem, HomeCardSnapshot, HomeCardWeekCell, HomeCardWeekRow;

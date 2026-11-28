@@ -35,11 +35,12 @@ void main() {
       UbaaMainShell shell() => tester.widget(find.byType(UbaaMainShell));
       expect(snapshots.last.todo.single.title, 'First');
       final query = backend.storage.cardQueries.last;
-      expect(query.from, query.now.rfc3339.substring(0, 10));
+      final today = DateTime.parse(query.now.rfc3339.substring(0, 10));
       expect(
-        query.to,
-        agendaDate(DateTime.parse(query.from).add(const Duration(days: 28))),
+        query.from,
+        agendaDate(today.subtract(Duration(days: today.weekday - 1))),
       );
+      expect(query.to, agendaDate(today.add(const Duration(days: 28))));
       expect(query.includeHidden, isFalse);
 
       backend.storage.title = 'Edited';
@@ -75,7 +76,10 @@ void main() {
         await tester.tap(find.byTooltip('上一周'));
         await tester.pumpAndSettle();
       }
-      expect(backend.storage.queries.last.to.compareTo(query.from), lessThan(0));
+      expect(
+        backend.storage.queries.last.to.compareTo(query.from),
+        lessThan(0),
+      );
       expect(snapshots, hasLength(beforeBrowsing));
 
       final pending = Completer<void>();

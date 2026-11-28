@@ -81,6 +81,14 @@ extension _UbaaAppHostHomeCard on _UbaaAppHostState {
         scope == _homeCardScope &&
         day == agendaDate(campusDate(DateTime.now()));
 
+    final campusNow = campusDate(now);
+    final weekStart = agendaDate(
+      DateTime.utc(
+        campusNow.year,
+        campusNow.month,
+        campusNow.day - (campusNow.weekday - 1),
+      ),
+    );
     scheduleMicrotask(() async {
       if (!current()) return;
       try {
@@ -88,7 +96,7 @@ extension _UbaaAppHostHomeCard on _UbaaAppHostState {
           AgendaQuery(
             route: scope.route,
             term: scope.term,
-            from: day,
+            from: weekStart,
             to: agendaDate(now.add(const Duration(days: 28))),
             now: agendaTime(now),
             includeHidden: false,
@@ -118,7 +126,8 @@ extension _UbaaAppHostHomeCard on _UbaaAppHostState {
           previous.signedIn == snapshot.signedIn &&
           _sameCardItems(previous.agenda, snapshot.agenda) &&
           _sameCardItems(previous.homework, snapshot.homework) &&
-          _sameCardItems(previous.todo, snapshot.todo)) {
+          _sameCardItems(previous.todo, snapshot.todo) &&
+          _sameWeek(previous, snapshot)) {
         return;
       }
       try {
@@ -129,6 +138,26 @@ extension _UbaaAppHostHomeCard on _UbaaAppHostState {
       }
     });
   }
+}
+
+bool _sameWeek(HomeCardSnapshot a, HomeCardSnapshot b) {
+  if (a.weekLabel != b.weekLabel ||
+      a.todayWeekday != b.todayWeekday ||
+      a.weekRows.length != b.weekRows.length) {
+    return false;
+  }
+  for (var i = 0; i < a.weekRows.length; i++) {
+    final x = a.weekRows[i], y = b.weekRows[i];
+    if (x.time != y.time || x.cells.length != y.cells.length) return false;
+    for (var j = 0; j < x.cells.length; j++) {
+      final p = x.cells[j], q = y.cells[j];
+      if ((p.title, p.time, p.location, p.color) !=
+          (q.title, q.time, q.location, q.color)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 bool _sameCardItems(List<HomeCardItem> a, List<HomeCardItem> b) {

@@ -58,6 +58,20 @@ const payload = {
     {title: 'SPOC 作业', time: '明天 23:59', location: ''},
   ],
   todo: [{title: '博雅报名', time: '今天 18:00', location: ''}],
+  weekLabel: '11.23–11.29',
+  todayWeekday: 5,
+  weekRows: [
+    {time: '08:00',
+      cells: [
+        {title: '周一课', time: '08:00–09:40', location: '主楼 101', color: 1},
+        {title: '', time: '', location: '', color: 0},
+        {title: '周三课', time: '08:00–09:40', location: '', color: 2},
+        {title: '', time: '', location: '', color: 0},
+        {title: '', time: '', location: '', color: 0},
+        {title: '', time: '', location: '', color: 0},
+        {title: '', time: '', location: '', color: 0},
+      ]},
+  ],
 };
 
 const today = new Date('2026-11-26T16:00:00Z');
@@ -78,6 +92,30 @@ test('没有课程时小卡仍显示待办和作业，退出后不保留条目',
   assert.equal(view.empty, false);
   assert.deepEqual(Array.from(view.smallItems, item => item.category), ['待办', '作业', '作业']);
   assert.equal(read({...payload, signedIn: false}).smallItems.length, 0);
+});
+
+test('课程表卡片读取本周课程并按七天补齐空格', () => {
+  const view = read(payload);
+  assert.equal(view.weekLabel, '11.23–11.29');
+  assert.equal(view.todayWeekday, 5);
+  assert.equal(view.weekRows.length, 1);
+  assert.equal(view.weekRows[0].time, '08:00');
+  assert.equal(view.weekRows[0].cells.length, 7);
+  assert.equal(view.weekRows[0].cells[0].title, '周一课');
+  assert.equal(view.weekRows[0].cells[2].title, '周三课');
+  assert.equal(view.weekRows[0].cells[6].title, '');
+  const legacy = read({...payload, weekRows: undefined, weekLabel: undefined,
+    todayWeekday: undefined});
+  assert.equal(legacy.weekRows.length, 0);
+  assert.equal(legacy.todayWeekday, 1);
+  const broken = read({...payload, weekRows: [{time: '08:00', cells: [
+    {title: '缺字段'}]}]});
+  assert.equal(broken.weekRows[0].cells.length, 7);
+  assert.equal(broken.weekRows[0].cells[0].title, '');
+  const clamped = read({...payload, weekRows: [{time: '08:00', cells: [
+    {title: '越界颜色', time: '', location: '', color: 99}]}]});
+  assert.equal(clamped.weekRows[0].cells[0].color, 0);
+  assert.equal(read({...payload, signedIn: false}).weekRows.length, 0);
 });
 
 test('保留超出首屏的日程、作业和待办供滑动查看', () => {

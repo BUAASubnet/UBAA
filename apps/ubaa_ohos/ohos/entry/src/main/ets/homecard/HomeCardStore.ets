@@ -14,6 +14,18 @@ export interface HomeCardSmallItem extends HomeCardItem {
   category: string;
 }
 
+export interface HomeCardWeekCell {
+  title: string;
+  time: string;
+  location: string;
+  color: number;
+}
+
+export interface HomeCardWeekRow {
+  time: string;
+  cells: Array<HomeCardWeekCell>;
+}
+
 interface HomeCardPayload {
   version: number;
   campusDay?: string;
@@ -22,6 +34,9 @@ interface HomeCardPayload {
   agenda: HomeCardItem[];
   homework: HomeCardItem[];
   todo: HomeCardItem[];
+  weekLabel?: string;
+  todayWeekday?: number;
+  weekRows?: Array<HomeCardWeekRow>;
 }
 
 export class HomeCardViewData {
@@ -36,6 +51,9 @@ export class HomeCardViewData {
   statusLine: string = '';
   empty: boolean = true;
   largeEmpty: boolean = true;
+  weekLabel: string = '';
+  todayWeekday: number = 1;
+  weekRows: Array<HomeCardWeekRow> = [];
 }
 
 const snapshotFile: string = 'ubaa_home_card.json';
@@ -57,7 +75,10 @@ function parsePayload(raw: string): HomeCardPayload | undefined {
     if (value === null || value.version !== 2 || typeof value.dateLabel !== 'string' ||
       (value.campusDay !== undefined && typeof value.campusDay !== 'string') ||
       typeof value.signedIn !== 'boolean' ||
-      !Array.isArray(value.agenda) || !Array.isArray(value.homework) || !Array.isArray(value.todo)) {
+      !Array.isArray(value.agenda) || !Array.isArray(value.homework) || !Array.isArray(value.todo) ||
+      (value.weekLabel !== undefined && typeof value.weekLabel !== 'string') ||
+      (value.todayWeekday !== undefined && typeof value.todayWeekday !== 'number') ||
+      (value.weekRows !== undefined && !Array.isArray(value.weekRows))) {
       return undefined;
     }
     return value;
@@ -78,6 +99,33 @@ function appendSmallItem(items: Array<HomeCardSmallItem>, category: string, item
     location: item.location,
   };
   items.push(row);
+}
+
+function weekRows(rows: Array<HomeCardWeekRow> | undefined): Array<HomeCardWeekRow> {
+  if (!Array.isArray(rows)) return [];
+  const result: Array<HomeCardWeekRow> = [];
+  for (const row of rows.slice(0, 16)) {
+    if (row === null || typeof row.time !== 'string' || !Array.isArray(row.cells)) continue;
+    const cells: Array<HomeCardWeekCell> = [];
+    for (const cell of row.cells.slice(0, 7)) {
+      if (cell === null || typeof cell.title !== 'string' || typeof cell.time !== 'string' ||
+        typeof cell.location !== 'string' || typeof cell.color !== 'number') {
+        continue;
+      }
+      const color = cell.color >= 0 && cell.color <= 7 ? Math.floor(cell.color) : 0;
+      cells.push({
+        title: cell.title.slice(0, 40),
+        time: cell.time.slice(0, 24),
+        location: cell.location.slice(0, 32),
+        color: color,
+      });
+    }
+    while (cells.length < 7) {
+      cells.push({ title: '', time: '', location: '', color: 0 });
+    }
+    result.push({ time: row.time.slice(0, 8), cells: cells });
+  }
+  return result;
 }
 
 export function readViewData(context: common.Context, now: Date = new Date()): HomeCardViewData {
@@ -107,6 +155,11 @@ export function readViewData(context: common.Context, now: Date = new Date()): H
   }
   const view = new HomeCardViewData();
   view.dateLabel = payload.dateLabel.slice(0, 32);
+  view.weekLabel = typeof payload.weekLabel === 'string' ? payload.weekLabel.slice(0, 32) : '';
+  view.todayWeekday = typeof payload.todayWeekday === 'number' &&
+    payload.todayWeekday >= 1 && payload.todayWeekday <= 7
+    ? Math.floor(payload.todayWeekday) : 1;
+  view.weekRows = weekRows(payload.weekRows);
   view.agendaSmall = payload.agenda.slice(0, 12);
   view.agendaLarge = view.agendaSmall;
   view.homework = payload.homework.slice(0, 12);

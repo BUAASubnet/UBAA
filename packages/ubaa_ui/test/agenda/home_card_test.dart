@@ -158,6 +158,74 @@ void main() {
     expect(snapshot.todo.last.time, '无截止');
   });
 
+  test('按本周开始时间生成课程表行并合并同格课程', () {
+    final snapshot = buildHomeCardSnapshot(
+      [
+        _local(
+          title: '周一课 A',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-23T08:00:00+08:00',
+          end: '2026-11-23T09:40:00+08:00',
+          location: '主楼 101',
+        ),
+        _local(
+          title: '周一课 B',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-23T08:00:00+08:00',
+          end: '2026-11-23T09:40:00+08:00',
+        ),
+        _local(
+          title: '周三课',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-25T14:00:00+08:00',
+          end: '2026-11-25T15:40:00+08:00',
+        ),
+        _local(
+          title: '周六课',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-28T10:00:00+08:00',
+          end: '2026-11-28T11:40:00+08:00',
+        ),
+        _local(
+          title: '下周课',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-30T08:00:00+08:00',
+          end: '2026-11-30T09:40:00+08:00',
+        ),
+        _local(
+          title: '已完成的课',
+          kind: AgendaTimingKind.period,
+          start: '2026-11-24T08:00:00+08:00',
+          end: '2026-11-24T09:40:00+08:00',
+          completed: true,
+        ),
+      ],
+      now: now,
+      signedIn: true,
+    );
+
+    expect(snapshot.weekLabel, '11.23–11.29');
+    expect(snapshot.todayWeekday, 5);
+    expect(snapshot.weekRows.map((row) => row.time), [
+      '08:00',
+      '10:00',
+      '14:00',
+    ]);
+    expect(snapshot.weekRows.first.cells[0].title, '周一课 A / 周一课 B');
+    expect(snapshot.weekRows.first.cells[0].time, '09:40');
+    expect(snapshot.weekRows.first.cells[0].location, '主楼 101');
+    expect(snapshot.weekRows.first.cells[1].isEmpty, isTrue);
+    expect(snapshot.weekRows[1].cells[5].title, '周六课');
+    expect(snapshot.weekRows[1].cells[6].isEmpty, isTrue);
+    expect(snapshot.weekRows[2].cells[2].title, '周三课');
+    expect(
+      snapshot.weekRows
+          .expand((row) => row.cells)
+          .every((cell) => cell.title != '下周课' && cell.title != '已完成的课'),
+      isTrue,
+    );
+  });
+
   test('结束时间缺失只显示开始时间，未登录快照为空', () {
     expect(
       homeCardTime(

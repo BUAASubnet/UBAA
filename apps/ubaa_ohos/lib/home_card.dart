@@ -18,8 +18,24 @@ final class OhosHomeCard {
           'agenda': [for (final item in snapshot.agenda) _item(item)],
           'homework': [for (final item in snapshot.homework) _item(item)],
           'todo': [for (final item in snapshot.todo) _item(item)],
+          'weekLabel': snapshot.weekLabel,
+          'todayWeekday': snapshot.todayWeekday,
+          'weekRows': [
+            for (final row in snapshot.weekRows)
+              {
+                'time': row.time,
+                'cells': [for (final cell in row.cells) _weekCell(cell)],
+              },
+          ],
         }),
       });
+
+  static Map<String, Object> _weekCell(HomeCardWeekCell cell) => {
+    'title': cell.title,
+    'time': cell.time,
+    'location': cell.location,
+    'color': cell.color,
+  };
 
   static Map<String, Object> _item(HomeCardItem item) => {
     'title': item.title,
