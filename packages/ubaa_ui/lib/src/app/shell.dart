@@ -21,6 +21,7 @@ import '../features/library_loans/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../shared/app_bar_slot.dart' show UiAppBarSlot;
+import '../shared/create_button.dart' show UiCreateButtonHost;
 import '../shared/layout/page_transition.dart' show UiPageTransition;
 import '../shared/loading.dart' show UiBusyRegistry, UiBusyScope;
 import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
@@ -687,68 +688,73 @@ class _UbaaMainShellState extends WidgetNavigationState {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _goBack();
       },
-      child: Scaffold(
-        // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-        body: UiAppBarSlot(
-          slot: _appBarSlot,
-          child: UiBusyScope(
-            busy: _pageBusy,
-            child: UiPlaceMemory(
-              values: _places,
-              onChanged: _savePlace,
-              child: Row(
-                children: <Widget>[
-                  if (wide) homeRailScroll(context, _buildRailContent(context)),
-                  uiShellContent(
-                    maxWidth: maxContentWidth,
-                    wide: wide,
-                    header:
-                        _selectedIndex != UiDestination.agenda.index ||
-                            _openedFeature != null ||
-                            _utilityPage != null
-                        ? header
-                        : null,
-                    body: ValueListenableBuilder<int>(
-                      valueListenable: _depthRevision,
-                      child: body,
-                      builder: (context, _, child) {
-                        final depth = atRoot
-                            ? 0
-                            : _utilityPage != null ||
-                                  (_openedFeature == null && _hubPage != null)
-                            ? 1
-                            : _readDepths[_openedFeature] ?? 1;
-                        return UiPageTransition(
-                          pageKey: (
-                            _openedFeature,
-                            _utilityPage,
-                            _hubPage,
-                            depth,
-                          ),
-                          order: depth,
-                          onBack:
-                              touchRefresh &&
-                                  !atRoot &&
-                                  widget.writeState.intent == null
-                              ? _goBack
-                              : null,
-                          child: child!,
-                        );
-                      },
+      // 创建按钮叠在页面里；占位让浮动提示排在当前可见的创建按钮上方。
+      child: UiCreateButtonHost(
+        builder: (_, createButton) => Scaffold(
+          // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
+          body: UiAppBarSlot(
+            slot: _appBarSlot,
+            child: UiBusyScope(
+              busy: _pageBusy,
+              child: UiPlaceMemory(
+                values: _places,
+                onChanged: _savePlace,
+                child: Row(
+                  children: <Widget>[
+                    if (wide)
+                      homeRailScroll(context, _buildRailContent(context)),
+                    uiShellContent(
+                      maxWidth: maxContentWidth,
+                      wide: wide,
+                      header:
+                          _selectedIndex != UiDestination.agenda.index ||
+                              _openedFeature != null ||
+                              _utilityPage != null
+                          ? header
+                          : null,
+                      body: ValueListenableBuilder<int>(
+                        valueListenable: _depthRevision,
+                        child: body,
+                        builder: (context, _, child) {
+                          final depth = atRoot
+                              ? 0
+                              : _utilityPage != null ||
+                                    (_openedFeature == null && _hubPage != null)
+                              ? 1
+                              : _readDepths[_openedFeature] ?? 1;
+                          return UiPageTransition(
+                            pageKey: (
+                              _openedFeature,
+                              _utilityPage,
+                              _hubPage,
+                              depth,
+                            ),
+                            order: depth,
+                            onBack:
+                                touchRefresh &&
+                                    !atRoot &&
+                                    widget.writeState.intent == null
+                                ? _goBack
+                                : null,
+                            child: child!,
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
+          floatingActionButton: createButton,
+          bottomNavigationBar: wide
+              ? null
+              : uiShellBottomBar(
+                  context,
+                  selectedIndex: _selectedIndex,
+                  onSelectTab: _selectTab,
+                ),
         ),
-        bottomNavigationBar: wide
-            ? null
-            : uiShellBottomBar(
-                context,
-                selectedIndex: _selectedIndex,
-                onSelectTab: _selectTab,
-              ),
       ),
     );
     return touchRefresh ? shell : withRefreshShortcuts(shell, refreshPage);
