@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -198,6 +199,55 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.byKey(ValueKey(_slidesUrl)), findsOneWidget);
   });
+
+  for (final platform in TargetPlatform.values.where(
+    (platform) => const {'android', 'iOS', 'ohos'}.contains(platform.name),
+  )) {
+    testWidgets('${platform.name} 全屏进入隐藏系统栏并横屏，退出后恢复', (tester) async {
+      final calls = <List<Object?>>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'SystemChrome.setEnabledSystemUIMode' ||
+              call.method == 'SystemChrome.setPreferredOrientations') {
+            calls.add([call.method, call.arguments]);
+          }
+          return null;
+        },
+      );
+      final fixture = await ClassroomFixture.load();
+      await _pumpPlayer(
+        tester,
+        fixture,
+        playback: MemoryVideoPlaybackCapability(),
+      );
+
+      await tapAndSettle(tester, find.byTooltip('全屏'));
+      expect(calls, [
+        ['SystemChrome.setEnabledSystemUIMode', 'SystemUiMode.immersiveSticky'],
+        [
+          'SystemChrome.setPreferredOrientations',
+          [
+            'DeviceOrientation.landscapeLeft',
+            'DeviceOrientation.landscapeRight',
+          ],
+        ],
+      ]);
+
+      calls.clear();
+      await tapAndSettle(tester, find.byTooltip('退出全屏'));
+      expect(calls, [
+        ['SystemChrome.setEnabledSystemUIMode', 'SystemUiMode.edgeToEdge'],
+        [
+          'SystemChrome.setPreferredOrientations',
+          ['DeviceOrientation.portraitUp'],
+        ],
+      ]);
+      await tester.pump(const Duration(seconds: 1));
+      expect(calls.last, ['SystemChrome.setPreferredOrientations', <String>[]]);
+      expect(calls, hasLength(3));
+    }, variant: TargetPlatformVariant({platform}));
+  }
 
   for (final switchSource in [false, true]) {
     testWidgets('${switchSource ? '换源' : '首次打开'}等候期间进入后台，句柄交付后不自动播放', (

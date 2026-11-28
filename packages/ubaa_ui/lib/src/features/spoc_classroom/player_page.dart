@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart'
-    show ValueListenable, TargetPlatform, defaultTargetPlatform;
+    show ValueListenable, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -14,6 +14,7 @@ import 'package:ubaa_platform/ubaa_platform.dart'
 
 import '../../common/state_panel.dart' show UiStatePanel;
 import '../../shared/feedback.dart' show UbaaFeedback, UbaaFeedbackKind;
+import '../../shared/sync_status.dart' show uiIsTouchPlatformName;
 import '../../shared/text.dart' show uiNonBlank;
 import '../coursework/spoc_classroom_access.dart' show SpocClassroomAccess;
 import 'classroom_format.dart';
@@ -720,9 +721,7 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   /// 每次进入全屏递增；退出时延迟解除方向锁前核对，避免覆盖紧接着的再次全屏。
   static int _session = 0;
 
-  bool get _mobile =>
-      defaultTargetPlatform == TargetPlatform.iOS ||
-      defaultTargetPlatform == TargetPlatform.android;
+  bool get _mobile => uiIsTouchPlatformName(defaultTargetPlatform.name);
 
   @override
   void initState() {
