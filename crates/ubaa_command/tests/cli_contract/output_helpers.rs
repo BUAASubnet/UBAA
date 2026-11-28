@@ -1,3 +1,4 @@
+use clap::CommandFactory;
 use ubaa_command::{CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope};
 use ubaa_core::facade::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcSignConfig, BykcSignPoint, BykcUserProfile,
@@ -10,27 +11,46 @@ use ubaa_core::facade::{
 
 use super::masked_profile;
 
+#[path = "output_service_samples.rs"]
+mod output_service_samples;
+use output_service_samples::routed_service_success_representatives;
+
 pub(super) fn assert_all_routed_features_validate(
     validator: &jsonschema::Validator,
     resolution: RouteResolution,
 ) {
-    for (feature, data) in routed_success_representatives() {
-        let envelope = RoutedJsonEnvelope::success(
-            data,
-            ResolvedRoutedJsonMeta::from_resolution(feature, resolution),
-        );
-        let value = serde_json::to_value(envelope).unwrap();
-        assert!(
-            validator.is_valid(&value),
-            "schema rejected {feature:?} representative: {value}"
-        );
+    let mut representatives = std::collections::BTreeMap::<_, Vec<_>>::new();
+    for (feature, data) in routed_primary_success_representatives()
+        .into_iter()
+        .chain(routed_assignment_success_representatives())
+        .chain(routed_service_success_representatives())
+    {
+        representatives
+            .entry(feature.as_str())
+            .or_default()
+            .push((feature, data));
     }
-}
 
-fn routed_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
-    let mut representatives = routed_primary_success_representatives();
-    representatives.extend(routed_assignment_success_representatives());
-    representatives
+    for command in ubaa_command::Cli::command().get_subcommands() {
+        let name = command.get_name();
+        if name == "agenda" {
+            continue; // 日程使用本机日程信封。
+        }
+        let samples = representatives
+            .remove(name)
+            .unwrap_or_else(|| panic!("已登记的路由功能缺少成功输出样例：{name}"));
+        for (feature, data) in samples {
+            let envelope = routed_envelope(feature, data, resolution);
+            assert!(
+                validator.is_valid(&envelope),
+                "Schema 拒绝 {name} 的样例：{envelope}"
+            );
+        }
+    }
+    assert!(
+        representatives.is_empty(),
+        "样例没有对应的路由命令：{representatives:?}"
+    );
 }
 
 #[allow(clippy::too_many_lines)]

@@ -926,6 +926,118 @@
       },
       "additionalProperties": false
     },
+    "ihomePage": {
+      "type": "object",
+      "required": ["entries", "page", "last_page", "total"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["appeal", "evaluation"],
+            "properties": {
+              "appeal": { "$ref": "#/$defs/ihomeAppeal" },
+              "evaluation": { "anyOf": [{ "$ref": "#/$defs/ihomeEvaluation" }, { "type": "null" }] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "page": { "$ref": "#/$defs/i32" },
+        "last_page": { "$ref": "#/$defs/i32" },
+        "total": { "$ref": "#/$defs/i32" }
+      },
+      "additionalProperties": false
+    },
+    "ihomeAppeal": {
+      "type": "object",
+      "required": ["id", "content", "status", "category", "published_at", "departments", "is_mine", "is_followed", "is_supported", "follow_count", "support_count", "replies", "evaluations", "history"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" },
+        "content": { "type": "string" },
+        "status": { "type": "string" },
+        "category": { "type": "string" },
+        "published_at": { "type": "string" },
+        "departments": { "type": "array", "items": { "type": "string" } },
+        "is_mine": { "type": "boolean" },
+        "is_followed": { "type": ["boolean", "null"] },
+        "is_supported": { "type": ["boolean", "null"] },
+        "follow_count": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "support_count": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "replies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["content", "department", "created_at"],
+            "properties": {
+              "content": { "type": "string" },
+              "department": { "type": "string" },
+              "created_at": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "evaluations": { "type": "array", "items": { "$ref": "#/$defs/ihomeEvaluation" } },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["content", "created_at"],
+            "properties": {
+              "content": { "type": "string" },
+              "created_at": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ihomeEvaluation": {
+      "type": "object",
+      "required": ["id", "department", "speed", "satisfaction", "degree", "content", "created_at"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" },
+        "department": { "type": "string" },
+        "speed": { "$ref": "#/$defs/i32" },
+        "satisfaction": { "$ref": "#/$defs/i32" },
+        "degree": { "$ref": "#/$defs/i32" },
+        "content": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ihomeConfig": {
+      "type": "object",
+      "required": ["support_enabled", "support_label", "categories"],
+      "properties": {
+        "support_enabled": { "type": "boolean" },
+        "support_label": { "type": "string" },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "$ref": "#/$defs/i64" },
+              "name": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ihomeNotice": {
+      "type": "object",
+      "required": ["id", "title", "content", "date"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "signinClass": {
       "type": "object",
       "required": ["courseId", "courseName", "classBeginTime", "classEndTime", "signStatus", "signinEligibility", "signinTarget"],
@@ -1907,6 +2019,20 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "finance" } }, "required": ["feature"] },
                   "data": { "$ref": "#/$defs/financeIncomes" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "ihome" } }, "required": ["feature"] },
+                  "data": {
+                    "oneOf": [
+                      { "$ref": "#/$defs/ihomePage" },
+                      { "$ref": "#/$defs/ihomeAppeal" },
+                      { "$ref": "#/$defs/ihomeConfig" },
+                      { "type": "array", "items": { "$ref": "#/$defs/ihomeNotice" } },
+                      { "$ref": "#/$defs/ihomeNotice" }
+                    ]
+                  }
                 }
               },
               {
