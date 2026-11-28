@@ -22,6 +22,8 @@ struct Transport {
     exam_started: Arc<Notify>,
     finish_exam: Arc<Notify>,
     exam_dropped: Arc<AtomicBool>,
+    lock_started: Arc<Notify>,
+    finish_lock: Arc<Notify>,
 }
 
 struct PendingExam(Arc<AtomicBool>);
@@ -34,7 +36,20 @@ impl Drop for PendingExam {
 #[async_trait::async_trait]
 impl HttpTransport for Transport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let body = if request.url.contains("/personal/frontend/data/info") {
+        let body = if request.url.contains("/sso/manageLogin") {
+            let mut response = HttpResponse::new(200, request.url, Vec::new());
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["sso_buaa_zhjs_token=fixture-sso; Path=/venue-zhjs-server/".into()],
+            );
+            return Ok(response);
+        } else if request.url.contains("/venue-zhjs-server/api/login") {
+            r#"{"code":200,"data":{"token":{"access_token":"fixture-cgyy"}}}"#
+        } else if request.url.contains("/api/orders/lock/code") {
+            self.lock_started.notify_one();
+            self.finish_lock.notified().await;
+            r#"{"code":200,"data":{"qrCode":"fixture-lock"}}"#
+        } else if request.url.contains("/personal/frontend/data/info") {
             r#"{"e":0,"d":{"info":{"identity":"本科生","depart":"示例学院"}}}"#
         } else if request.url.contains("currentUser.do") {
             r#"{"code":"0","datas":{"userId":"fixture-user"}}"#
@@ -64,6 +79,60 @@ impl HttpTransport for Transport {
             body.as_bytes().to_vec(),
         ))
     }
+}
+
+#[tokio::test]
+async fn 撤销门锁租约后课表可以在门锁响应前完成() {
+    use crate::api::client::{BridgeErrorCode, BridgeRoutePolicy};
+
+    let root = ubaa_test_support::test_temp_dir("ubaa_cancel_lock_display").unwrap();
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: vec![],
+            authenticated_at: 1000,
+            last_activity: 1001,
+        })
+        .unwrap();
+    let transport = Transport::default();
+    let bridge = BridgeClient::from_core(
+        UbaaClient::with_routing(
+            transport.clone(),
+            transport.clone(),
+            store,
+            RouteConfig::parse("[route]\ndefault = \"direct\"").unwrap(),
+            NoProbe,
+        )
+        .unwrap(),
+    );
+    let before = bridge.route_settings().await.unwrap();
+    let lease = bridge.open_cgyy_lock_display().await.unwrap();
+    let lock_display = bridge.read_cgyy_lock_display(&lease);
+    tokio::pin!(lock_display);
+    tokio::time::timeout(crate::TEST_HANG_TIMEOUT, async {
+        tokio::select! {
+            () = transport.lock_started.notified() => {},
+            result = &mut lock_display => panic!("门锁请求应已发送且正在等待响应：{result:?}"),
+        }
+    })
+    .await
+    .expect("门锁请求应到达合成 transport");
+
+    lease.cancel();
+    let schedule = tokio::time::timeout(crate::TEST_HANG_TIMEOUT, async {
+        let (lock, schedule) = tokio::join!(&mut lock_display, bridge.schedule_today());
+        assert_eq!(lock.unwrap_err().code, BridgeErrorCode::InvalidInput);
+        schedule.unwrap();
+    })
+    .await;
+    transport.finish_lock.notify_one();
+    schedule.expect("撤销门锁租约后课表不应等待门锁响应");
+    let after = bridge.route_settings().await.unwrap();
+    assert_eq!(after.default_policy, BridgeRoutePolicy::Direct);
+    assert_eq!(after.active_routes, before.active_routes);
+    bridge.dispose().await.unwrap();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[tokio::test]

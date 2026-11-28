@@ -5,10 +5,8 @@ use crate::domain::{CgyyLockDisplay, ConnectionMode, ReadonlyFeature};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use std::fmt;
-use std::sync::{
-    Arc, Weak,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, Weak};
+use tokio::sync::watch;
 
 #[derive(Clone)]
 pub struct CgyyLockDisplayLease {
@@ -16,7 +14,7 @@ pub struct CgyyLockDisplayLease {
     generation: u64,
     route_generation: u64,
     route: ConnectionMode,
-    cancelled: Arc<AtomicBool>,
+    cancelled: watch::Sender<bool>,
 }
 impl fmt::Debug for CgyyLockDisplayLease {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -26,13 +24,28 @@ impl fmt::Debug for CgyyLockDisplayLease {
 impl CgyyLockDisplayLease {
     /// 页面隐藏或销毁时同步撤销，不等待网络。
     pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::Release);
+        self.cancelled.send_replace(true);
     }
     #[must_use]
     pub fn is_active(&self) -> bool {
-        !self.cancelled.load(Ordering::Acquire)
+        !*self.cancelled.borrow()
+    }
+
+    async fn cancelled(&self) {
+        let mut cancelled = self.cancelled.subscribe();
+        let _ = cancelled.wait_for(|value| *value).await;
     }
 }
+
+fn inactive_lock_display() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::InvalidInput,
+        ErrorKind::Input,
+        false,
+        "门锁页面已失效，请重新打开",
+    )
+}
+
 impl UbaaClient {
     /// 创建只在当前会话、客户端与路线策略内有效的门锁页面。
     /// # Errors
@@ -47,7 +60,7 @@ impl UbaaClient {
             owner: Arc::downgrade(&owner),
             route_generation: self.route_generation,
             route: resolution.mode,
-            cancelled: Arc::new(AtomicBool::new(false)),
+            cancelled: watch::Sender::new(false),
         })
     }
     fn validate_lock_display(&mut self, lease: &CgyyLockDisplayLease) -> Result<()> {
@@ -59,12 +72,7 @@ impl UbaaClient {
             || lease.generation != owner.lifecycle_generation()
             || lease.route_generation != self.route_generation
         {
-            return Err(UbaaError::new(
-                ErrorCode::InvalidInput,
-                ErrorKind::Input,
-                false,
-                "门锁页面已失效，请重新打开",
-            ));
+            return Err(inactive_lock_display());
         }
         Ok(())
     }
@@ -76,7 +84,11 @@ impl UbaaClient {
         lease: &CgyyLockDisplayLease,
     ) -> Result<CgyyLockDisplay> {
         self.validate_lock_display(lease)?;
-        let result = crate::features::cgyy::lock_display::read(self.runtime_for(lease.route)).await;
+        let result = tokio::select! {
+            biased;
+            () = lease.cancelled() => return Err(inactive_lock_display()),
+            result = crate::features::cgyy::lock_display::read(self.runtime_for(lease.route)) => result,
+        };
         self.validate_lock_display(lease)?;
         self.finish_caller_pinned(lease.route, result)
             .map(|r| r.data)
