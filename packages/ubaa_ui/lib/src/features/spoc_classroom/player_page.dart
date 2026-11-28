@@ -795,6 +795,7 @@ class _FullscreenPlayer extends StatefulWidget {
 class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   /// 每次进入全屏递增；退出时延迟解除方向锁前核对，避免覆盖紧接着的再次全屏。
   static int _session = 0;
+  late final int _generation;
 
   bool get _mobile => uiIsTouchPlatformName(defaultTargetPlatform.name);
   bool get _ohos => defaultTargetPlatform.name == 'ohos';
@@ -811,43 +812,68 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
           );
   }
 
-  void _request(Future<void> request) {
+  void _request(Future<void> request, {VoidCallback? onFailure}) {
     // 各请求独立完成，方向恢复无需等待其他通道回包。
     if (!_ohos) return;
     unawaited(
       request.catchError((Object error) {
         debugPrint('全屏系统栏或方向设置失败：${error.runtimeType}');
+        if (_generation == _session) onFailure?.call();
       }),
+    );
+  }
+
+  void _exitAfterFailure() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && route.isActive) {
+      // 移除本次全屏路由，交给退出流程恢复两项系统设置。
+      Navigator.of(context).removeRoute(route);
+    }
+  }
+
+  void _restore(Future<void> Function() request, {bool Function()? canRetry}) {
+    _request(
+      request(),
+      onFailure: () {
+        if (canRetry?.call() ?? true) _request(request());
+      },
     );
   }
 
   @override
   void initState() {
     super.initState();
-    _session++;
+    _generation = ++_session;
     if (_mobile) {
-      _request(_setSystemUi(fullscreen: true));
+      _request(_setSystemUi(fullscreen: true), onFailure: _exitAfterFailure);
       _request(
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ]),
+        onFailure: _exitAfterFailure,
       );
     }
   }
 
   @override
   void dispose() {
-    if (_mobile) {
-      _request(_setSystemUi(fullscreen: false));
+    if (_mobile && (!_ohos || _generation == _session)) {
+      _restore(() => _setSystemUi(fullscreen: false));
       // 先转回竖屏，再解除锁定，让方向重新跟随设备姿态。
-      _request(
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+      var unlocking = false;
+      _restore(
+        () => SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]),
+        canRetry: () => !unlocking,
       );
       final session = _session;
       Future<void>.delayed(const Duration(seconds: 1), () {
         if (session == _session) {
-          _request(SystemChrome.setPreferredOrientations(const []));
+          unlocking = true;
+          _restore(() => SystemChrome.setPreferredOrientations(const []));
         }
       });
     }

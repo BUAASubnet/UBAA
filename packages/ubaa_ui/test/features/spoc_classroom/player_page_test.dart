@@ -279,7 +279,7 @@ void main() {
 
     if (ohos) {
       for (final noReply in [true, false]) {
-        testWidgets('OHOS 全屏通道${noReply ? '未回包' : '报错'}时仍进入并退出全屏', (
+        testWidgets('OHOS 全屏通道${noReply ? '未回包时仍可手动退出' : '都报错时退出并尝试恢复'}', (
           tester,
         ) async {
           final calls = <Object?>[];
@@ -319,8 +319,10 @@ void main() {
           );
 
           await tapAndSettle(tester, find.byTooltip('全屏'));
-          expect(find.byTooltip('退出全屏'), findsOneWidget);
-          await tapAndSettle(tester, find.byTooltip('退出全屏'));
+          if (noReply) {
+            expect(find.byTooltip('退出全屏'), findsOneWidget);
+            await tapAndSettle(tester, find.byTooltip('退出全屏'));
+          }
           await tester.pump(const Duration(seconds: 1));
           expect(find.byTooltip('全屏'), findsOneWidget);
           expect(calls, [
@@ -331,10 +333,97 @@ void main() {
             ],
             ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
             ['DeviceOrientation.portraitUp'],
+            if (!noReply) ...[
+              ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
+              ['DeviceOrientation.portraitUp'],
+            ],
             <String>[],
+            if (!noReply) <String>[],
           ]);
           expect(tester.takeException(), isNull);
         }, variant: TargetPlatformVariant({platform}));
+      }
+      for (final exiting in [false, true]) {
+        for (final systemUiFails in [false, true]) {
+          testWidgets(
+            'OHOS ${exiting ? '退出' : '进入'}全屏时${systemUiFails ? '仅系统栏失败' : '仅方向失败'}会恢复两项设置',
+            (tester) async {
+              final finishFailure = Completer<void>();
+              var failedRequestSent = false;
+              var barsHidden = false;
+              var landscapeLocked = false;
+              final orientations = <List<String>>[];
+              final messenger = tester.binding.defaultBinaryMessenger;
+              messenger.setMockMethodCallHandler(SystemChannels.platform, (
+                call,
+              ) async {
+                final systemUi =
+                    call.method == 'SystemChrome.setEnabledSystemUIOverlays';
+                if (!systemUi &&
+                    call.method != 'SystemChrome.setPreferredOrientations') {
+                  return null;
+                }
+                final args = List<String>.from(call.arguments as List);
+                final fullscreen = systemUi
+                    ? args.isEmpty
+                    : args.contains('DeviceOrientation.landscapeLeft');
+                if (!failedRequestSent &&
+                    systemUi == systemUiFails &&
+                    fullscreen != exiting) {
+                  failedRequestSent = true;
+                  await finishFailure.future;
+                  throw PlatformException(code: '合成单项设置失败');
+                }
+                if (systemUi) {
+                  barsHidden = fullscreen;
+                } else {
+                  orientations.add(args);
+                  landscapeLocked = fullscreen;
+                }
+                return null;
+              });
+              addTearDown(
+                () => messenger.setMockMethodCallHandler(
+                  SystemChannels.platform,
+                  null,
+                ),
+              );
+              final fixture = await ClassroomFixture.load();
+              await _pumpPlayer(
+                tester,
+                fixture,
+                playback: MemoryVideoPlaybackCapability(),
+              );
+              await tapAndSettle(tester, find.byTooltip('全屏'));
+              if (exiting) {
+                expect(barsHidden && landscapeLocked, isTrue);
+                await tapAndSettle(tester, find.byTooltip('退出全屏'));
+              }
+              expect(failedRequestSent, isTrue);
+              expect(barsHidden, systemUiFails == exiting);
+              expect(landscapeLocked, systemUiFails != exiting);
+
+              finishFailure.complete();
+              await tester.pumpAndSettle();
+              final restored = (barsHidden, landscapeLocked);
+              final fullscreenClosed = find
+                  .byTooltip('退出全屏')
+                  .evaluate()
+                  .isEmpty;
+              await tester.pump(const Duration(seconds: 1));
+              // 即使断言失败也退出残留路由，避免测试结束时留下延迟任务。
+              if (!fullscreenClosed) {
+                await tapAndSettle(tester, find.byTooltip('退出全屏'));
+                await tester.pump(const Duration(seconds: 1));
+              }
+              expect(fullscreenClosed, isTrue);
+              expect(restored, (false, false));
+              expect(orientations.last, isEmpty);
+              expect(tester.takeException(), isNull);
+            },
+            variant: TargetPlatformVariant({platform}),
+          );
+        }
       }
     }
   }
